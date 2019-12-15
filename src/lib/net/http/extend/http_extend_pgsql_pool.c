@@ -369,9 +369,9 @@ pg_auth(sky_pg_sql_t *ps) {
                         break;
                     }
                     p = buf->pos;
-                    for (sky_uint32_t i = 0; i != size; ++i) {
-                        if (p[i] == '\0') {
-                            p[i] = ' ';
+                    for (n = 0; n != size; ++n) {
+                        if (p[n] == '\0') {
+                            p[n] = ' ';
                         }
                     }
                     sky_log_error("%s", p);
@@ -589,7 +589,8 @@ pg_exec_read(sky_pg_sql_t *ps) {
         ROW_DESC,
         ROW_DATA,
         COMPLETE,
-        READY
+        READY,
+        ERROR
     } state;
 
     result = sky_pcalloc(ps->pool, sizeof(sky_pg_result_t));
@@ -630,6 +631,9 @@ pg_exec_read(sky_pg_sql_t *ps) {
                             break;
                         case 'Z':
                             state = READY;
+                            break;
+                        case 'E':
+                            state = ERROR;
                             break;
                         default:
                             sky_log_error("接收数据无法识别命令");
@@ -776,6 +780,19 @@ pg_exec_read(sky_pg_sql_t *ps) {
                     result->is_ok = true;
 
                     return result;
+                case ERROR:
+                    if ((buf->last - buf->pos) < size) {
+                        break;
+                    }
+                    ch = buf->pos;
+                    for (i = 0; i != size; ++i) {
+                        if (ch[i] == '\0') {
+                            ch[i] = ' ';
+                        }
+                    }
+                    sky_log_error("%s", ch);
+                    buf->pos += size;
+                    return false;
             }
             break;
         }
