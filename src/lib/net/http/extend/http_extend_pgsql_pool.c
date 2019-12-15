@@ -27,6 +27,7 @@ struct sky_pg_connection_pool_s {
     sky_str_t username;
     sky_str_t password;
     sky_str_t database;
+    sky_str_t connection_info;
     sky_pool_t *mem_pool;
     sky_int32_t family;
     sky_int32_t sock_type;
@@ -63,12 +64,31 @@ sky_pg_connection_pool_t *
 sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf) {
     sky_pg_connection_pool_t *ps_pool;
     sky_pg_connection_t *conn;
+    sky_uchar_t *p;
 
     ps_pool = sky_palloc(pool, sizeof(sky_pg_connection_pool_t));
     ps_pool->mem_pool = pool;
     ps_pool->username = conf->username;
     ps_pool->password = conf->password;
     ps_pool->database = conf->database;
+
+    ps_pool->connection_info.len = 11 + sizeof("user") + sizeof("database") + conf->username.len + conf->database.len;
+    ps_pool->connection_info.data = p = sky_palloc(pool, ps_pool->connection_info.len);
+
+    *((sky_uint32_t *) p) = sky_htonl(ps_pool->connection_info.len);
+    p += 4;
+    *((sky_uint32_t *) p) = 3 << 8;
+    p += 4;
+
+    sky_memcpy(p, "user", sizeof("user"));
+    p += sizeof("user");
+    sky_memcpy(p, conf->username.data, conf->username.len + 1);
+    p += conf->username.len + 1;
+    sky_memcpy(p, "database", sizeof("database"));
+    p += sizeof("database");
+    sky_memcpy(p, conf->database.data, conf->database.len + 1);
+    p += conf->database.len + 1;
+    *p = '\0';
 
     if (!set_address(ps_pool, conf)) {
         return null;
@@ -241,33 +261,13 @@ pg_connection(sky_pg_sql_t *ps) {
 
 static sky_bool_t
 pg_auth(sky_pg_sql_t *ps) {
-    sky_str_t conn_info;
+    sky_uint32_t n, size, auth_type;
     sky_uchar_t *p;
 
-    conn_info.len = 11 + sizeof("user") + sizeof("database") + ps->ps_pool->username.len + ps->ps_pool->database.len;
-    conn_info.data = p = sky_palloc(ps->pool, conn_info.len);
-
-    *((sky_uint32_t *) p) = sky_htonl(conn_info.len);
-    p += 4;
-    *((sky_uint32_t *) p) = 3 << 8;
-    p += 4;
-
-    sky_memcpy(p, "user", sizeof("user"));
-    p += sizeof("user");
-    sky_memcpy(p, ps->ps_pool->username.data, ps->ps_pool->username.len + 1);
-    p += ps->ps_pool->username.len + 1;
-    sky_memcpy(p, "database", sizeof("database"));
-    p += sizeof("database");
-    sky_memcpy(p, ps->ps_pool->database.data, ps->ps_pool->database.len + 1);
-    p += ps->ps_pool->database.len + 1;
-    *p = '\0';
-
-    if (!pg_write(ps, conn_info.data, (sky_uint32_t) conn_info.len)) {
+    if (!pg_write(ps, ps->ps_pool->connection_info.data, (sky_uint32_t) ps->ps_pool->connection_info.len)) {
         return false;
     }
 
-    // ============================= read and parse ======================================
-    sky_uint32_t n, size, auth_type;
     sky_buf_t *buf = sky_buf_create(ps->pool, 1023);
 
     enum {
@@ -369,9 +369,9 @@ pg_auth(sky_pg_sql_t *ps) {
                         break;
                     }
                     p = buf->pos;
-                    for (sky_uint32_t i = 0; i != size; ++i) {
-                        if (p[i] == '\0') {
-                            p[i] = ' ';
+                    for (n = 0; n != size; ++n) {
+                        if (p[n] == '\0') {
+                            p[n] = ' ';
                         }
                     }
                     sky_log_error("%s", p);
@@ -379,6 +379,21 @@ pg_auth(sky_pg_sql_t *ps) {
                     return false;
             }
             break;
+        }
+        if (size < 1023) {
+            buf->start = sky_palloc(ps->pool, 1024);
+            buf->end = buf->start + 1023;
+        } else {
+            buf->start = sky_palloc(ps->pool, size + 1);
+            buf->end = buf->start + size;
+        }
+        n = (sky_uint32_t)(buf->last - buf->pos);
+        if (n) {
+            sky_memcpy(buf->start, buf->pos, n );
+            buf->last = buf->start + n;
+            buf->pos = buf->start;
+        } else {
+            buf->last = buf->pos = buf->start;
         }
     }
 }
@@ -574,14 +589,15 @@ pg_exec_read(sky_pg_sql_t *ps) {
         ROW_DESC,
         ROW_DATA,
         COMPLETE,
-        READY
+        READY,
+        ERROR
     } state;
 
     result = sky_pcalloc(ps->pool, sizeof(sky_pg_result_t));
     desc = null;
     row = null;
 
-    buf = sky_buf_create(ps->pool, 1024);
+    buf = sky_buf_create(ps->pool, 1023);
 
     size = 0;
     state = START;
@@ -615,6 +631,9 @@ pg_exec_read(sky_pg_sql_t *ps) {
                             break;
                         case 'Z':
                             state = READY;
+                            break;
+                        case 'E':
+                            state = ERROR;
                             break;
                         default:
                             sky_log_error("接收数据无法识别命令");
@@ -761,8 +780,36 @@ pg_exec_read(sky_pg_sql_t *ps) {
                     result->is_ok = true;
 
                     return result;
+                case ERROR:
+                    if ((buf->last - buf->pos) < size) {
+                        break;
+                    }
+                    ch = buf->pos;
+                    for (i = 0; i != size; ++i) {
+                        if (ch[i] == '\0') {
+                            ch[i] = ' ';
+                        }
+                    }
+                    sky_log_error("%s", ch);
+                    buf->pos += size;
+                    return false;
             }
             break;
+        }
+        if (size < 1023) {
+            buf->start = sky_palloc(ps->pool, 1024);
+            buf->end = buf->start + 1023;
+        } else {
+            buf->start = sky_palloc(ps->pool, size + 1);
+            buf->end = buf->start + size;
+        }
+        n = (sky_uint32_t)(buf->last - buf->pos);
+        if (n) {
+            sky_memcpy(buf->start, buf->pos, n );
+            buf->last = buf->start + n;
+            buf->pos = buf->start;
+        } else {
+            buf->last = buf->pos = buf->start;
         }
     }
 }
