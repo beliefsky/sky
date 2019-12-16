@@ -200,7 +200,7 @@ http_response(sky_http_request_t *request, sky_http_response_t *response) {
             str_len = sky_palloc(request->pool, 16);
             header = sky_list_push(&request->headers_out.headers);
             sky_str_set(&header->key, "Content-Length");
-            header->value.len = sky_int64_to_str((sky_int64_t) (response->file.count - response->file.offset), str_len);
+            header->value.len = sky_int64_to_str( (sky_int64_t) response->file.count - response->file.offset, str_len);
             header->value.data = str_len;
             if (request->state == 206) {
                 header = sky_list_push(&request->headers_out.headers);
@@ -210,7 +210,7 @@ http_response(sky_http_request_t *request, sky_http_response_t *response) {
             }
 
             http_send_header(request, null);
-            http_http_send_file(request->conn, response->file.fd, response->file.offset, response->file.count - 1);
+            http_http_send_file(request->conn, response->file.fd, response->file.offset, (sky_int64_t)response->file.count - 1);
             return;
         }
         case SKY_HTTP_RESPONSE_BUF: {

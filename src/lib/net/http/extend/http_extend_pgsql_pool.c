@@ -471,14 +471,14 @@ pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_data_t *params, sky_uint16
                     param->data_type = SKY_PG_DATA_NULL;
                     size += 6;
                 } else {
-                    size += param->stream.len + 6;
+                    size += (sky_uint32_t)param->stream.len + 6;
                 }
                 break;
             default:
                 return false;
         }
     }
-    size += cmd->len + 32;
+    size += (sky_uint32_t)cmd->len + 32;
     if (!ps->query_buf) {
         buf = ps->query_buf = sky_buf_create(ps->pool, size < 1023 ? 1023 : size);
     } else {
@@ -488,7 +488,7 @@ pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_data_t *params, sky_uint16
             buf = ps->query_buf = sky_buf_create(ps->pool, size);
         }
     }
-    size -= cmd->len + 32;
+    size -= (sky_uint32_t)cmd->len + 32;
 
     *(buf->last++) = 'P';
     *((sky_uint32_t *) buf->last) = sky_htonl(cmd->len + 8);
@@ -880,7 +880,7 @@ pg_write(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
     if (!ps->conn->ev.reg) {
         if ((n = write(fd, data, size)) > 0) {
             if (n < size) {
-                data += n, size -= n;
+                data += n, size -= (sky_uint32_t)n;
             } else {
                 return true;
             }
@@ -910,7 +910,7 @@ pg_write(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
         }
         if ((n = write(fd, data, size)) > 0) {
             if (n < size) {
-                data += n, size -= n;
+                data += n, size -= (sky_uint32_t)n;
             } else {
                 return true;
             }

@@ -256,7 +256,7 @@ http_write(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size) {
         }
 
         if (n < size) {
-            data += n, size -= n;
+            data += n, size -= (sky_uint32_t)n;
             conn->ev.write = false;
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
             continue;
