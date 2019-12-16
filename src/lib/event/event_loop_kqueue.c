@@ -198,7 +198,7 @@ sky_event_register(sky_event_t *ev, sky_int32_t timeout) {
     ev->reg = true;
 
     EV_SET(event, ev->fd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
-    EV_SET(event, ev->fd, EVFILT_WRITE, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
+    EV_SET(event + 1, ev->fd, EVFILT_WRITE, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
     kevent(ev->loop->fd, event, 2, null, 0, null);
 }
 
