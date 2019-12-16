@@ -4,6 +4,6 @@
 #else
 #ifdef __unix__
 
-#include "event_loop_epoll.c"
+#include "event_loop_kqueue.c"
 #endif
 #endif
