@@ -81,7 +81,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
     for (;;) {
         n = kevent(fd, null, 0, events, max_events,
-                   timeout == -1 ? null, (&(struct timespec) {.tv_sec = timeout, .tv_nsec = 0}));
+                   timeout == -1 ? null : (&(struct timespec) {.tv_sec = timeout, .tv_nsec = 0}));
         if (sky_unlikely(n < 0)) {
             switch (errno) {
                 case EBADF:
