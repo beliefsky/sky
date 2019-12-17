@@ -109,7 +109,7 @@ server_start() {
     sky_array_init(&modules, pool, 32, sizeof(sky_http_module_t));
 
     sky_str_set(&prefix, "");
-    sky_str_set(&file_path, "/home/beliefsky/Downloads/test");
+    sky_str_set(&file_path, "/home/weijing/Downloads/test");
     sky_http_module_file_init(pool, sky_array_push(&modules), &prefix, &file_path);
 
     build_http_dispatcher(pool, sky_array_push(&modules));
@@ -162,7 +162,7 @@ static void
 hello_world(sky_http_request_t *req, sky_http_response_t *res) {
     sky_pg_sql_t *ps = sky_pg_sql_connection_get(ps_pool, req->pool, req->conn);
 
-    sky_str_t cmd = sky_string("SELECT * FROM tb_user WHERE id = $1");
+    sky_str_t cmd = sky_string("SELECT id, username, password FROM tb_user WHERE id = $1");
 
     sky_pg_data_t param = {
             .data_type = SKY_PG_DATA_U64,

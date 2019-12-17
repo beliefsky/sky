@@ -120,7 +120,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 continue;
             }
             // 是否可读
-            if (event->flags == EVFILT_READ) {
+            if (event->filter == EVFILT_READ) {
                 ev->read = true;
             } else {
                 // 是否可写
