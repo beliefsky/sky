@@ -74,7 +74,7 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
 
 #ifdef TCP_FASTOPEN
             opt = 5;
-            setsockopt(fd, SOL_TCP, TCP_FASTOPEN, &opt, sizeof(sky_int32_t));
+            setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &opt, sizeof(sky_int32_t));
 #endif
 
             l = sky_palloc(pool, sizeof(listener_t));
