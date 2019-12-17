@@ -24,6 +24,7 @@ struct sky_event_s {
     sky_time_t key; // 节点关键key
     sky_int32_t timeout; // 节点超时时间
     sky_int32_t fd; //时间句柄
+    sky_int16_t index; // 用于内部多时间合并寻址的相关功能
     sky_bool_t reg:1; // 该事件监听是否注册，用于防止非法提交
     sky_bool_t wait:1; // 期间不会触发run函数
     sky_bool_t read:1; // 目前io可读

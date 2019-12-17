@@ -64,9 +64,10 @@ sky_event_loop_create(sky_pool_t *pool) {
 void
 sky_event_loop_run(sky_event_loop_t *loop) {
     sky_int32_t fd, max_events, n, timeout;
+    sky_int16_t index, i;
     sky_rbtree_t *btree;
     sky_time_t now;
-    sky_event_t *ev;
+    sky_event_t *ev, **run_ev;
     struct kevent *events, *event;
 
     fd = loop->fd;
@@ -77,7 +78,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
     max_events = sky_min(loop->conn_max, 1024);
     events = sky_palloc(loop->pool, sizeof(struct kevent) * (sky_uint32_t) max_events);
-
+    run_ev = sky_palloc(loop->pool, sizeof(sky_event_t *) * (sky_uint32_t) max_events);
 
     for (;;) {
         n = kevent(fd, null, 0, events, max_events,
@@ -93,34 +94,54 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             break;
         }
 
-        loop->now = time(null);
-
-        for (event = events; n--; ++event) {
+        // 合并事件状态, 防止多个事件造成影响
+        for (index = 0, event = events; n--; ++event) {
             ev = event->udata;
-
             // 需要处理被移除的请求
             if (!ev->reg) {
-                sky_rbtree_delete(btree, &ev->node);
-                ev->close(ev);
+                if (ev->index != -1) {
+                    ev->index = index;
+                    run_ev[index++] = ev;
+                }
                 continue;
             }
             // 是否出现异常
             if (event->flags & EV_ERROR) {
                 close(ev->fd);
                 ev->reg = false;
+                if (ev->index != -1) {
+                    ev->index = index;
+                    run_ev[index++] = ev;
+                }
+                continue;
+            }
+            // 是否可读
+            if (event->flags == EVFILT_READ) {
+                ev->read = true;
+            } else {
+                // 是否可写
+                ev->write = true;
+            }
+
+            if (ev->wait) {
+                continue;
+            }
+            if (ev->index != -1) {
+                ev->index = index;
+                run_ev[index++] = ev;
+            }
+        }
+        loop->now = time(null);
+
+        for (i = 0; i != index; ++i) {
+            ev = run_ev[index];
+            ev->index = -1;
+            if (!ev->reg) {
                 if (ev->timeout != -1) {
                     sky_rbtree_delete(btree, &ev->node);
                 }
                 // 触发回收资源待解决
                 ev->close(ev);
-                continue;
-            }
-            // 是否可读
-            ev->read = true;
-            // 是否可写
-            ev->write = true;
-
-            if (ev->wait) {
                 continue;
             }
             if (!ev->run(ev)) {
@@ -196,6 +217,7 @@ sky_event_register(sky_event_t *ev, sky_int32_t timeout) {
     }
     ev->timeout = timeout;
     ev->reg = true;
+    ev->index = -1;
 
     EV_SET(event, ev->fd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
     EV_SET(event + 1, ev->fd, EVFILT_WRITE, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
@@ -212,6 +234,8 @@ sky_event_unregister(sky_event_t *ev) {
     ev->reg = false;
     if (ev->timeout != -1) {
         sky_rbtree_delete(&ev->loop->rbtree, &ev->node);
+    } else {
+        ev->timeout = 0;
     }
     // 此处应添加 应追加需要处理的连接
     ev->loop->update = true;
