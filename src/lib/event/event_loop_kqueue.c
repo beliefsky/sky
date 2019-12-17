@@ -63,15 +63,20 @@ sky_event_loop_create(sky_pool_t *pool) {
 
 void
 sky_event_loop_run(sky_event_loop_t *loop) {
-    sky_int32_t fd, max_events, n, timeout;
+    sky_bool_t timeout;
     sky_int16_t index, i;
+    sky_int32_t fd, max_events, n;
     sky_rbtree_t *btree;
     sky_time_t now;
     sky_event_t *ev, **run_ev;
     struct kevent *events, *event;
+    struct timespec timespec = {
+            .tv_sec = 0,
+            .tv_nsec = 0
+    };
 
     fd = loop->fd;
-    timeout = -1;
+    timeout = false;
     btree = &loop->rbtree;
 
     now = loop->now;
@@ -81,8 +86,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
     run_ev = sky_palloc(loop->pool, sizeof(sky_event_t *) * (sky_uint32_t) max_events);
 
     for (;;) {
-        n = kevent(fd, null, 0, events, max_events,
-                   timeout == -1 ? null : (&(struct timespec) {.tv_sec = timeout, .tv_nsec = 0}));
+        n = kevent(fd, null, 0, events, max_events, timeout ? null : &timespec);
         if (sky_unlikely(n < 0)) {
             switch (errno) {
                 case EBADF:
@@ -166,12 +170,13 @@ sky_event_loop_run(sky_event_loop_t *loop) {
         // 处理超时的连接
         for (;;) {
             if (btree->root == btree->sentinel) {
-                timeout = -1;
+                timeout = false;
                 break;
             }
             ev = (sky_event_t *) sky_rbtree_min(btree->root, btree->sentinel);
             if (loop->now < ev->key) {
-                timeout = (sky_int32_t) ((ev->key - now) * 1000);
+                timeout = true;
+                timespec.tv_sec = (ev->key - now);
                 break;
             }
             sky_rbtree_delete(btree, &ev->node);
