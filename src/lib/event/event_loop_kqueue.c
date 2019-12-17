@@ -86,7 +86,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
     run_ev = sky_palloc(loop->pool, sizeof(sky_event_t *) * (sky_uint32_t) max_events);
 
     for (;;) {
-        n = kevent(fd, null, 0, events, max_events, timeout ? null : &timespec);
+        n = kevent(fd, null, 0, events, max_events, timeout ? &timespec : null);
         if (sky_unlikely(n < 0)) {
             switch (errno) {
                 case EBADF:
