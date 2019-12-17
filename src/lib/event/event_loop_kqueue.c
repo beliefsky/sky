@@ -103,7 +103,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             ev = event->udata;
             // 需要处理被移除的请求
             if (!ev->reg) {
-                if (ev->index != -1) {
+                if (ev->index == -1) {
                     ev->index = index;
                     run_ev[index++] = ev;
                 }
@@ -113,7 +113,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             if (event->flags & EV_ERROR) {
                 close(ev->fd);
                 ev->reg = false;
-                if (ev->index != -1) {
+                if (ev->index == -1) {
                     ev->index = index;
                     run_ev[index++] = ev;
                 }
@@ -130,7 +130,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             if (ev->wait) {
                 continue;
             }
-            if (ev->index != -1) {
+            if (ev->index == -1) {
                 ev->index = index;
                 run_ev[index++] = ev;
             }
