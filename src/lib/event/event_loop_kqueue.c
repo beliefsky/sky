@@ -138,7 +138,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
         loop->now = time(null);
 
         for (i = 0; i != index; ++i) {
-            ev = run_ev[index];
+            ev = run_ev[i];
             ev->index = -1;
             if (!ev->reg) {
                 if (ev->timeout != -1) {
