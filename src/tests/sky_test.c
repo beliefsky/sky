@@ -21,21 +21,19 @@
 #include <core/memory.h>
 #include <core/number.h>
 
-#ifdef __linux__
+#if defined(__linux__)
 
 #include <sched.h>
 
 typedef cpu_set_t sky_cpu_set_t;
 
 #define sky_setaffinity(_c)   sched_setaffinity(0, sizeof(sky_cpu_set_t), _c)
-#else
-#ifdef __unix__
+#elif defined(__FreeBSD__) || defined(__APPLE__)
 
 #include <sys/cpuset.h>
 typedef cpuset_t sky_cpu_set_t;
 #define sky_setaffinity(_c) \
     cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1, sizeof(cpuset_t), _c)
-#endif
 #endif
 
 static void server_start();
@@ -69,9 +67,9 @@ main() {
                 sky_cpu_set_t mask;
                 CPU_ZERO(&mask);
                 CPU_SET(i, &mask);
-                for (int j = 0; j < CPU_SETSIZE; ++j) {
+                for (sky_uint32_t j = 0; j < CPU_SETSIZE; ++j) {
                     if (CPU_ISSET(j, &mask)) {
-                        sky_log_error("sched_setaffinity(): using cpu #%u", j);
+                        sky_log_error("sky_setaffinity(): using cpu #%u", j);
                     }
                 }
                 sky_setaffinity(&mask);
@@ -86,9 +84,9 @@ main() {
                 sky_cpu_set_t mask;
                 CPU_ZERO(&mask);
                 CPU_SET(i, &mask);
-                for (int j = 0; j < CPU_SETSIZE; ++j) {
+                for (sky_uint32_t j = 0; j < CPU_SETSIZE; ++j) {
                     if (CPU_ISSET(j, &mask)) {
-                        sky_log_error("sched_setaffinity(): using cpu #%u", j);
+                        sky_log_error("sky_setaffinity(): using cpu #%u", j);
                     }
                 }
                 sky_setaffinity(&mask);
@@ -118,7 +116,7 @@ server_start() {
     loop = sky_event_loop_create(pool);
 
     sky_pg_sql_conf_t pg_conf = {
-            .host = sky_string("localhost"),
+            .host = sky_string("192.168.1.5"),
             .port = sky_string("5432"),
             .database = sky_string("beliefsky"),
             .username = sky_string("postgres"),
@@ -154,7 +152,7 @@ server_start() {
     };
 
     sky_http_conf_t conf = {
-            .host = sky_string("0.0.0.0"),
+            .host = sky_string("*pf"),
             .port = sky_string("8080"),
             .header_buf_size = 2048,
             .header_buf_n = 4,
