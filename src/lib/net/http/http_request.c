@@ -2,14 +2,12 @@
 // Created by weijing on 18-11-9.
 //
 
-#ifdef __linux__
+#if defined(__linux__)
 
 #include <sys/sendfile.h>
 
-#else
-#ifdef __unix__
+#elif defined(__FreeBSD__) || defined(__APPLE__)
 #include <sys/uio.h>
-#endif
 #endif
 
 #include <errno.h>
@@ -348,7 +346,7 @@ http_http_send_file(sky_http_connection_t *conn, sky_int32_t fd, sky_int64_t lef
     }
 }
 
-#elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__) || defined(__APPLE__)
 static void
 http_http_send_file(sky_http_connection_t *conn, sky_int32_t fd, sky_int64_t left, sky_int64_t right) {
     sky_int64_t n, sbytes, total_written;
