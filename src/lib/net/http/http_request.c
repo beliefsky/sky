@@ -3,7 +3,9 @@
 //
 
 #ifdef __linux__
+
 #include <sys/sendfile.h>
+
 #else
 #ifdef __unix__
 #include <sys/uio.h>
@@ -200,7 +202,7 @@ http_response(sky_http_request_t *request, sky_http_response_t *response) {
             str_len = sky_palloc(request->pool, 16);
             header = sky_list_push(&request->headers_out.headers);
             sky_str_set(&header->key, "Content-Length");
-            header->value.len = sky_int64_to_str( (sky_int64_t) response->file.count - response->file.offset, str_len);
+            header->value.len = sky_int64_to_str((sky_int64_t) response->file.count - response->file.offset, str_len);
             header->value.data = str_len;
             if (request->state == 206) {
                 header = sky_list_push(&request->headers_out.headers);
@@ -210,7 +212,8 @@ http_response(sky_http_request_t *request, sky_http_response_t *response) {
             }
 
             http_send_header(request, null);
-            http_http_send_file(request->conn, response->file.fd, response->file.offset, (sky_int64_t)response->file.count - 1);
+            http_http_send_file(request->conn, response->file.fd, response->file.offset,
+                                (sky_int64_t) response->file.count - 1);
             return;
         }
         case SKY_HTTP_RESPONSE_BUF: {
@@ -311,6 +314,8 @@ http_send_header(sky_http_request_t *r, sky_str_t *body) {
     connection_buf_free(r->conn, buf);
 }
 
+#if defined(__linux__)
+
 static void
 http_http_send_file(sky_http_connection_t *conn, sky_int32_t fd, sky_int64_t left, sky_int64_t right) {
     sky_int64_t n;
@@ -342,6 +347,47 @@ http_http_send_file(sky_http_connection_t *conn, sky_int32_t fd, sky_int64_t lef
         break;
     }
 }
+
+#elif defined(__FreeBSD__)
+static void
+http_http_send_file(sky_http_connection_t *conn, sky_int32_t fd, sky_int64_t left, sky_int64_t right) {
+    sky_int64_t n, sbytes, total_written;
+    sky_int32_t socket_fd;
+
+    total_written = 0;
+    sbytes = ++right;
+    socket_fd = conn->ev.fd;
+    for (;;) {
+#ifdef __APPLE__
+        n = endfile(fd, socket_fd, left, &sbytes, null, 0);
+#else
+        n = sendfile(fd, socket_fd, left, right, null, &sbytes, SF_MNOWAIT);
+#endif
+        if (sky_unlikely(n < 1)) {
+            if (n == 0) {
+                sky_coro_yield(conn->coro, SKY_CORO_ABORT);
+                sky_coro_exit();
+            }
+            switch (errno) {
+                case EAGAIN:
+                case EBUSY:
+                case EINTR:
+                    sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+                    continue;
+                default:
+                    sky_coro_yield(conn->coro, SKY_CORO_ABORT);
+                    sky_coro_exit();
+            }
+        }
+        total_written += sbytes;
+        if (total_written < right) {
+            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+            continue;
+        }
+        break;
+    }
+}
+#endif
 
 static
 void connection_buf_free(sky_http_connection_t *conn, sky_buf_t *buf) {
