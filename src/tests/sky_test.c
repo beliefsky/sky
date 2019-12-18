@@ -109,7 +109,7 @@ server_start() {
     sky_array_init(&modules, pool, 32, sizeof(sky_http_module_t));
 
     sky_str_set(&prefix, "");
-    sky_str_set(&file_path, "/home/weijing/Downloads/test");
+    sky_str_set(&file_path, "/home/beliefsky/Downloads/test");
     sky_http_module_file_init(pool, sky_array_push(&modules), &prefix, &file_path);
 
     build_http_dispatcher(pool, sky_array_push(&modules));
