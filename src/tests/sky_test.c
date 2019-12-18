@@ -152,7 +152,7 @@ server_start() {
     };
 
     sky_http_conf_t conf = {
-            .host = sky_string("*pf"),
+            .host = sky_string("*"),
             .port = sky_string("8080"),
             .header_buf_size = 2048,
             .header_buf_n = 4,
