@@ -7,6 +7,8 @@
 #include <sys/sendfile.h>
 
 #elif defined(__FreeBSD__) || defined(__APPLE__)
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/uio.h>
 #endif
 
@@ -359,7 +361,7 @@ http_http_send_file(sky_http_connection_t *conn, sky_int32_t fd, sky_int64_t lef
 #ifdef __APPLE__
         n = endfile(fd, socket_fd, left, &sbytes, null, 0);
 #else
-        n = sendfile(fd, socket_fd, left, right, null, &sbytes, SF_MNOWAIT);
+        n = sendfile(fd, socket_fd, left, (sky_size_t)right, null, &sbytes, SF_MNOWAIT);
 #endif
         if (sky_unlikely(n < 1)) {
             if (n == 0) {
