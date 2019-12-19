@@ -354,7 +354,6 @@ http_http_send_file(sky_http_connection_t *conn, sky_int32_t fd, sky_int64_t lef
     sky_int64_t n, sbytes;
     sky_int32_t socket_fd;
 
-    total_written = 0;
     ++right;
     socket_fd = conn->ev.fd;
     for (;;) {
@@ -364,7 +363,7 @@ http_http_send_file(sky_http_connection_t *conn, sky_int32_t fd, sky_int64_t lef
         n = sendfile(fd, socket_fd, left, (sky_size_t)right, null, &sbytes, SF_MNOWAIT);
 #endif
         left += sbytes;
-        right -= right;
+        right -= sbytes;
         if (sky_unlikely(n < 1)) {
             if (n == 0) {
                 sky_coro_yield(conn->coro, SKY_CORO_ABORT);
