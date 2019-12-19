@@ -351,11 +351,11 @@ http_http_send_file(sky_http_connection_t *conn, sky_int32_t fd, sky_int64_t lef
 #elif defined(__FreeBSD__) || defined(__APPLE__)
 static void
 http_http_send_file(sky_http_connection_t *conn, sky_int32_t fd, sky_int64_t left, sky_int64_t right) {
-    sky_int64_t n, sbytes, total_written;
+    sky_int64_t n, sbytes;
     sky_int32_t socket_fd;
 
     total_written = 0;
-    sbytes = ++right;
+    ++right;
     socket_fd = conn->ev.fd;
     for (;;) {
 #ifdef __APPLE__
@@ -363,6 +363,8 @@ http_http_send_file(sky_http_connection_t *conn, sky_int32_t fd, sky_int64_t lef
 #else
         n = sendfile(fd, socket_fd, left, (sky_size_t)right, null, &sbytes, SF_MNOWAIT);
 #endif
+        left += sbytes;
+        right -= right;
         if (sky_unlikely(n < 1)) {
             if (n == 0) {
                 sky_coro_yield(conn->coro, SKY_CORO_ABORT);
@@ -379,8 +381,7 @@ http_http_send_file(sky_http_connection_t *conn, sky_int32_t fd, sky_int64_t lef
                     sky_coro_exit();
             }
         }
-        total_written += sbytes;
-        if (total_written < right) {
+        if (right > 0) {
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
             continue;
         }
