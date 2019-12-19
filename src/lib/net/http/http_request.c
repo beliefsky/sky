@@ -325,7 +325,7 @@ http_http_send_file(sky_http_connection_t *conn, sky_int32_t fd, sky_int64_t lef
     socket_fd = conn->ev.fd;
     for (;;) {
         n = sendfile(socket_fd, fd, &left, (size_t) (right - left));
-        if (sky_unlikely(n < 1)) {
+        if (n < 1) {
             if (n == 0) {
                 sky_coro_yield(conn->coro, SKY_CORO_ABORT);
                 sky_coro_exit();
@@ -364,17 +364,12 @@ http_http_send_file(sky_http_connection_t *conn, sky_int32_t fd, sky_int64_t lef
 #endif
         left += sbytes;
         right -= sbytes;
-        if (sky_unlikely(n < 1)) {
-            if (n == 0) {
-                sky_coro_yield(conn->coro, SKY_CORO_ABORT);
-                sky_coro_exit();
-            }
+        if (n < 0) {
             switch (errno) {
                 case EAGAIN:
                 case EBUSY:
                 case EINTR:
-                    sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-                    continue;
+                    break;
                 default:
                     sky_coro_yield(conn->coro, SKY_CORO_ABORT);
                     sky_coro_exit();
