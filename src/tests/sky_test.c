@@ -8,7 +8,7 @@
 
 #include <event/event_loop.h>
 #include <unistd.h>
-#include <sched.h>
+
 #include <core/palloc.h>
 #include <net/http/http_server.h>
 #include <core/cpuinfo.h>
@@ -16,11 +16,25 @@
 #include <net/http/module/http_module_dispatcher.h>
 #include <net/http/http_request.h>
 #include <net/http/extend//http_extend_pgsql_pool.h>
-//#include <net/http/extend/http_extend_pgsql.h>
 
 #include <core/log.h>
 #include <core/memory.h>
 #include <core/number.h>
+
+#if defined(__linux__)
+
+#include <sched.h>
+
+typedef cpu_set_t sky_cpu_set_t;
+
+#define sky_setaffinity(_c)   sched_setaffinity(0, sizeof(sky_cpu_set_t), _c)
+#elif defined(__FreeBSD__) || defined(__APPLE__)
+
+#include <sys/cpuset.h>
+typedef cpuset_t sky_cpu_set_t;
+#define sky_setaffinity(_c) \
+    cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1, sizeof(cpuset_t), _c)
+#endif
 
 static void server_start();
 
@@ -33,8 +47,8 @@ main() {
     sky_int64_t cpu_num;
     sky_uint32_t i;
 
-//    cpu_num = sysconf(_SC_NPROCESSORS_CONF);
-    cpu_num = 0;
+    cpu_num = sysconf(_SC_NPROCESSORS_CONF);
+//    cpu_num = 0;
     if ((--cpu_num) < 0) {
         cpu_num = 0;
     }
@@ -50,10 +64,15 @@ main() {
             case -1:
                 return 0;
             case 0: {
-                cpu_set_t mask;
+                sky_cpu_set_t mask;
                 CPU_ZERO(&mask);
                 CPU_SET(i, &mask);
-                sched_setaffinity(0, sizeof(cpu_set_t), &mask);
+                for (sky_uint32_t j = 0; j < CPU_SETSIZE; ++j) {
+                    if (CPU_ISSET(j, &mask)) {
+                        sky_log_error("sky_setaffinity(): using cpu #%u", j);
+                    }
+                }
+                sky_setaffinity(&mask);
 
                 server_start();
             }
@@ -62,10 +81,15 @@ main() {
                 if (--i) {
                     continue;
                 }
-                cpu_set_t mask;
+                sky_cpu_set_t mask;
                 CPU_ZERO(&mask);
                 CPU_SET(i, &mask);
-                sched_setaffinity(0, sizeof(cpu_set_t), &mask);
+                for (sky_uint32_t j = 0; j < CPU_SETSIZE; ++j) {
+                    if (CPU_ISSET(j, &mask)) {
+                        sky_log_error("sky_setaffinity(): using cpu #%u", j);
+                    }
+                }
+                sky_setaffinity(&mask);
 
                 server_start();
                 break;
@@ -92,7 +116,7 @@ server_start() {
     loop = sky_event_loop_create(pool);
 
     sky_pg_sql_conf_t pg_conf = {
-            .host = sky_string("localhost"),
+            .host = sky_string("192.168.1.5"),
             .port = sky_string("5432"),
             .database = sky_string("beliefsky"),
             .username = sky_string("postgres"),
@@ -128,7 +152,7 @@ server_start() {
     };
 
     sky_http_conf_t conf = {
-            .host = sky_string("0.0.0.0"),
+            .host = sky_string("*"),
             .port = sky_string("8080"),
             .header_buf_size = 2048,
             .header_buf_n = 4,
@@ -162,7 +186,7 @@ static void
 hello_world(sky_http_request_t *req, sky_http_response_t *res) {
     sky_pg_sql_t *ps = sky_pg_sql_connection_get(ps_pool, req->pool, req->conn);
 
-    sky_str_t cmd = sky_string("SELECT * FROM tb_user WHERE id = $1");
+    sky_str_t cmd = sky_string("SELECT id, username, password FROM tb_user WHERE id = $1");
 
     sky_pg_data_t param = {
             .data_type = SKY_PG_DATA_U64,
@@ -207,7 +231,7 @@ hello_world(sky_http_request_t *req, sky_http_response_t *res) {
     buf->last += res->buf.len;
 
     res->buf.data = buf->pos;
-    res->buf.len = (sky_size_t)(buf->last - buf->pos);
+    res->buf.len = (sky_size_t) (buf->last - buf->pos);
 
 
 }

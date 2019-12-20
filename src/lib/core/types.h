@@ -42,5 +42,5 @@ typedef time_t sky_time_t;
 #define sky_abs(value)       (((value) > 0) ? (value) : - (value))
 #define sky_max(val1, val2)  ((val1) < (val2) ? (val2) : (val1))
 #define sky_min(val1, val2)  ((val1) > (val2) ? (val2) : (val1))
-#define sky_swap(a, b)       (((a) ^= (b)), ((b) ^= (a)), ((a) ^= (b)))
+#define sky_swap(a, b)       (((a) ^ (b)) && ((b) ^= (a) ^= (b), (a) ^= (b)))
 #endif //SKY_TYPES_H
