@@ -303,7 +303,7 @@ sky_int64_to_str(sky_int64_t data, sky_uchar_t *src) {
 
 sky_inline sky_uint8_t
 sky_uint64_to_str(sky_uint64_t data, sky_uchar_t *src) {
-    if (data < 9999999998) {
+    if (data < 9999999999) {
         return large_num_to_str((sky_uint64_t) data, src);
     }
     large_num_to_str(data / 1000000000, src);
