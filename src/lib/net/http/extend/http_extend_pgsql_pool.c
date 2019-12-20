@@ -231,6 +231,8 @@ pg_connection(sky_pg_sql_t *ps) {
             case EALREADY:
             case EINPROGRESS:
                 break;
+            case EISCONN:
+                return true;
             default:
                 sky_log_error("%d", errno);
                 return false;
@@ -247,6 +249,8 @@ pg_connection(sky_pg_sql_t *ps) {
                     case EINPROGRESS:
                         sky_coro_yield(ps->coro, SKY_CORO_MAY_RESUME);
                         continue;
+                    case EISCONN:
+                        break;
                     default:
                         sky_log_error("%d", errno);
                         return false;
