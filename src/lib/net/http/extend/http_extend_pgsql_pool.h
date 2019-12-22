@@ -24,6 +24,7 @@ typedef struct {
     sky_str_t username;
     sky_str_t password;
     sky_str_t database;
+    sky_str_t unix_path;
     sky_str_t host;
     sky_str_t port;
 } sky_pg_sql_conf_t;

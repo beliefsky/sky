@@ -8,10 +8,10 @@
 #include "types.h"
 #include <string.h>
 
-#define sky_str2_switch(m)               \
-    (*(sky_uint16_t *)(m))
-#define sky_str3_switch(m)               \
-    (*(sky_uint32_t *)(m))
+#define sky_str2_switch(_m)               \
+    (*(sky_uint16_t *)(_m))
+#define sky_str3_switch(_m)               \
+    (*(sky_uint32_t *)(_m))
 #define sky_str4_switch sky_str3_switch
 
 
@@ -83,15 +83,15 @@ typedef struct {
 
 //通过一个以‘0’结尾的普通字符串str构造一个nginx的字符串。
 //鉴于api中采用sizeof操作符计算字符串长度，因此该api的参数必须是一个常量字符串。
-#define sky_string(str)     { sizeof(str) - 1, (sky_uchar_t *) str }
+#define sky_string(_str)     { sizeof(_str) - 1, (sky_uchar_t *) _str }
 
 //声明变量时，初始化字符串为空字符串，符串的长度为0，data为NULL。
 #define sky_null_string     { 0, null }
 
 //设置字符串str为text，text必须为常量字符串。
-#define sky_str_set(str, text)          \
-    (str)->len = sizeof(text) - 1;      \
-    (str)->data = (sky_uchar_t *) text
+#define sky_str_set(_str, _text)          \
+    (_str)->len = sizeof(_text) - 1;      \
+    (_str)->data = (sky_uchar_t *) (_text)
 
 //设置字符串str为空串，长度为0，data为NULL。
 #define sky_str_null(str)   (str)->len = 0; (str)->data = null
@@ -135,10 +135,10 @@ sky_strlow(str->data, str->data, str->len);
 */
 
 //区分大小写的字符串比较，只比较前n个字符。
-#define sky_strncmp(s1, s2, n) strncmp((const sky_char_t *) s1, (const sky_char_t *) s2, n)
+#define sky_strncmp(_s1, _s2, _n) strncmp((const sky_char_t *) _s1, (const sky_char_t *) _s2, _n)
 
 /* msvc and icc7 compile strcmp() to inline loop */
-#define sky_strcmp(s1, s2) strcmp((const sky_char_t *) s1, (const sky_char_t *) s2)
+#define sky_strcmp(_s1, _s2) strcmp((const sky_char_t *) _s1, (const sky_char_t *) _s2)
 
 #define sky_strstr(s1, s2)  strstr((const sky_char_t *) s1, (const sky_char_t *) s2)
 
