@@ -5,6 +5,7 @@
 #include "http_extend_redis_pool.h"
 #include "../../../core/memory.h"
 #include "../../../core/log.h"
+#include "../../../core/number.h"
 
 #define SKY_REDIS_POOL_SIZE 2
 #define SKY_REDIS_PTR 1
@@ -35,6 +36,8 @@ static void redis_connection_defer(sky_redis_cmd_t *rc);
 static sky_bool_t redis_run(sky_redis_connection_t *conn);
 
 static void redis_close(sky_redis_connection_t *conn);
+
+static sky_bool_t redis_send_exec(sky_redis_cmd_t *rc, sky_redis_data_t *prams, sky_uint16_t param_len);
 
 static sky_bool_t set_address(sky_redis_connection_pool_t *redis_pool, sky_redis_conf_t *conf);
 
@@ -106,7 +109,7 @@ sky_redis_connection_get(sky_redis_connection_pool_t *redis_pool, sky_pool_t *po
 }
 
 void *
-sky_redis_exec(sky_redis_cmd_t *rc) {
+sky_redis_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t param_len) {
     sky_redis_connection_t *conn;
 
     if (!(conn = rc->conn)) {
@@ -120,23 +123,17 @@ sky_redis_exec(sky_redis_cmd_t *rc) {
 //            return null;
 //        }
     }
-//    if (!pg_send_exec(ps, cmd, params, param_len)) {
-//        return null;
-//    }
-//    return pg_exec_read(ps);
-
-
-    sky_str_t cmd = sky_string("*3\r\n$3\r\nset\r\n$8\r\ntest_key\r\n$10\r\ntest_value\r\n");
-    if (!redis_write(rc, cmd.data, cmd.len)) {
-        sky_log_error("send error");
+    if (!redis_send_exec(rc, params, param_len)) {
         return null;
     }
-    sky_uchar_t *res = sky_palloc(rc->pool, 128);
+//    return pg_exec_read(ps);
+
+    sky_uchar_t *res = sky_palloc(rc->pool, 512);
     if (!redis_read(rc, res, 128)) {
         sky_log_error("read error");
         return null;
     }
-//    sky_log_info("%s", res);
+    sky_log_info("%s", res);
 }
 
 void
@@ -190,6 +187,40 @@ redis_close(sky_redis_connection_t *conn) {
     redis_run(conn);
 }
 
+static sky_bool_t
+redis_send_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t param_len) {
+    sky_buf_t *buf;
+
+    if (sky_unlikely(!param_len)) {
+        return false;
+    }
+    if (!rc->query_buf) {
+        buf = rc->query_buf = sky_buf_create(rc->pool, 1023);
+    } else {
+        buf = rc->query_buf;
+        sky_buf_reset(buf);
+    }
+    *(buf->last++) = '*';
+    buf->last += sky_uint16_to_str(param_len, buf->last);
+    *(buf->last++) = '\r';
+    *(buf->last++) = '\n';
+    for (; param_len; ++params, --param_len) {
+        *(buf->last++) = '$';
+        buf->last += sky_uint32_to_str((sky_uint32_t) params->stream.len, buf->last);
+        *(buf->last++) = '\r';
+        *(buf->last++) = '\n';
+        sky_memcpy(buf->last, params->stream.data, params->stream.len);
+        buf->last += params->stream.len;
+        *(buf->last++) = '\r';
+        *(buf->last++) = '\n';
+    }
+    if (!redis_write(rc, buf->pos, (sky_uint32_t)(buf->last - buf->pos))) {
+        return false;
+    }
+
+
+    return true;
+}
 
 static sky_bool_t
 set_address(sky_redis_connection_pool_t *redis_pool, sky_redis_conf_t *conf) {

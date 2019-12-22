@@ -24,6 +24,7 @@
 #if defined(__linux__)
 
 #include <sched.h>
+#include <net/http/extend/http_extend_redis_pool.h>
 
 typedef cpu_set_t sky_cpu_set_t;
 
@@ -40,6 +41,8 @@ static void server_start();
 
 static void build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module);
 
+static void redis_test(sky_http_request_t *req, sky_http_response_t *res);
+
 static void hello_world(sky_http_request_t *req, sky_http_response_t *res);
 
 int
@@ -47,8 +50,8 @@ main() {
     sky_int64_t cpu_num;
     sky_uint32_t i;
 
-    cpu_num = sysconf(_SC_NPROCESSORS_CONF);
-//    cpu_num = 0;
+//    cpu_num = sysconf(_SC_NPROCESSORS_CONF);
+    cpu_num = 0;
     if ((--cpu_num) < 0) {
         cpu_num = 0;
     }
@@ -101,6 +104,7 @@ main() {
 }
 
 sky_pg_connection_pool_t *ps_pool;
+sky_redis_connection_pool_t *redis_pool;
 
 static void
 server_start() {
@@ -116,8 +120,9 @@ server_start() {
     loop = sky_event_loop_create(pool);
 
     sky_pg_sql_conf_t pg_conf = {
-            .host = sky_string("192.168.1.5"),
+            .host = sky_string("localhost"),
             .port = sky_string("5432"),
+            .unix_path = sky_string("/run/postgresql/.s.PGSQL.5432"),
             .database = sky_string("beliefsky"),
             .username = sky_string("postgres"),
             .password = sky_string("123456")
@@ -129,6 +134,16 @@ server_start() {
         return;
     }
 
+    sky_redis_conf_t redis_conf = {
+            .host = sky_string("127.0.0.1"),
+            .port = sky_string("6379")
+    };
+
+    redis_pool = sky_redis_pool_create(pool, &redis_conf);
+    if (!redis_pool) {
+        sky_log_error("create redis connection pool error");
+        return;
+    }
 
     sky_array_init(&modules, pool, 32, sizeof(sky_http_module_t));
 
@@ -175,11 +190,45 @@ build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module) {
             {
                     .path = sky_string("/hello"),
                     .handler = hello_world
+            },
+            {
+                    .path = sky_string("/redis"),
+                    .handler = redis_test
             }
     };
 
 
-    sky_http_module_dispatcher_init(pool, module, &prefix, mappers, 1);
+    sky_http_module_dispatcher_init(pool, module, &prefix, mappers, 2);
+}
+
+static void
+redis_test(sky_http_request_t *req, sky_http_response_t *res) {
+    sky_redis_cmd_t *rc = sky_redis_connection_get(redis_pool, req->pool, req->conn);
+
+    sky_redis_data_t params[] = {
+            {
+                .stream = sky_string("set")
+            },
+            {
+                .stream = sky_string("key_test")
+            },
+            {
+                .stream = sky_string("key_value")
+            },
+            {
+                    .stream = sky_string("EX")
+            },
+            {
+                    .stream = sky_string("300")
+            }
+    };
+
+    sky_redis_exec(rc, params, 5);
+    sky_redis_connection_put(rc);
+
+    res->type = SKY_HTTP_RESPONSE_BUF;
+    sky_str_set(&res->buf, "{\"status\": 200, \"msg\": \"success\"}");
+    return;
 }
 
 static void
