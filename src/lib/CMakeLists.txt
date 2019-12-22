@@ -28,6 +28,7 @@ set(SOURCES
         net/http/module/http_module_file.c
         net/http/module/http_module_dispatcher.c
         net/http/extend/http_extend_pgsql_pool.c
+        net/http/extend/http_extend_redis_pool.c
         )
 add_library(sky_static STATIC ${SOURCES})
 set_target_properties(sky_static PROPERTIES
