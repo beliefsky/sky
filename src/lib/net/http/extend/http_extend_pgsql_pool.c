@@ -51,7 +51,7 @@ static sky_bool_t pg_auth(sky_pg_sql_t *ps);
 
 static sky_bool_t set_address(sky_pg_connection_pool_t *pool, sky_pg_sql_conf_t *conf);
 
-static sky_bool_t pg_send_password(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size);
+static sky_bool_t pg_send_password(sky_pg_sql_t *ps, sky_uint32_t auth_type, sky_uchar_t *data, sky_uint32_t size);
 
 static sky_bool_t pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_data_t *params, sky_uint16_t param_len);
 
@@ -267,7 +267,7 @@ pg_connection(sky_pg_sql_t *ps) {
 
 static sky_bool_t
 pg_auth(sky_pg_sql_t *ps) {
-    sky_uint32_t n, size, auth_type;
+    sky_uint32_t n, size;
     sky_uchar_t *p;
     sky_buf_t *buf;
 
@@ -339,14 +339,14 @@ pg_auth(sky_pg_sql_t *ps) {
                     if ((buf->last - buf->pos) < size) {
                         break;
                     }
-                    auth_type = sky_ntohl(*((sky_uint32_t *) buf->pos));
+                    n = sky_ntohl(*((sky_uint32_t *) buf->pos));
                     buf->pos += 4;
                     size -= 4;
-                    if (!auth_type) {
+                    if (!n) {
                         state = START;
                         continue;
                     }
-                    if (!pg_send_password(ps, buf->pos, size)) {
+                    if (!pg_send_password(ps, n, buf->pos, size)) {
                         return false;
                     }
                     sky_buf_reset(buf);
@@ -392,6 +392,9 @@ pg_auth(sky_pg_sql_t *ps) {
                     return false;
             }
             break;
+        }
+        if ((buf->end - buf->pos) > size) {
+            continue;
         }
         if (size < 1023) {
             buf->start = sky_palloc(ps->pool, 1024);
@@ -814,6 +817,9 @@ pg_exec_read(sky_pg_sql_t *ps) {
             }
             break;
         }
+        if ((buf->end - buf->pos) > size) {
+            continue;
+        }
         if (size < 1023) {
             buf->start = sky_palloc(ps->pool, 1024);
             buf->end = buf->start + 1023;
@@ -875,7 +881,11 @@ set_address(sky_pg_connection_pool_t *ps_pool, sky_pg_sql_conf_t *conf) {
 
 
 static sky_bool_t
-pg_send_password(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
+pg_send_password(sky_pg_sql_t *ps, sky_uint32_t auth_type, sky_uchar_t *data, sky_uint32_t size) {
+    if (auth_type != 5) {
+        sky_log_error("auth type %u not support", auth_type);
+        return false;
+    }
     sky_md5_t ctx;
     sky_uchar_t bin[16], hex[41], *ch;
 

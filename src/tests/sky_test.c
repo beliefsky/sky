@@ -207,10 +207,14 @@ redis_test(sky_http_request_t *req, sky_http_response_t *res) {
 
     sky_redis_data_t params[] = {
             {
+<<<<<<< HEAD
                 .stream = sky_string("get")
+=======
+                .stream = sky_string("HGETALL")
+>>>>>>> 6500a1a3b531f13b21d717326cb6d3bc91e3321c
             },
             {
-                .stream = sky_string("key_test")
+                .stream = sky_string("runoobkey")
             },
             {
                 .stream = sky_string("key_value")
@@ -223,8 +227,18 @@ redis_test(sky_http_request_t *req, sky_http_response_t *res) {
             }
     };
 
+<<<<<<< HEAD
     sky_redis_exec(rc, params, 2);
+=======
+    sky_redis_result_t *data = sky_redis_exec(rc, params, 2);
+>>>>>>> 6500a1a3b531f13b21d717326cb6d3bc91e3321c
     sky_redis_connection_put(rc);
+
+    if (data && data->is_ok && data->rows) {
+        for(sky_int32_t i = 0; i != data->rows; ++i) {
+            sky_log_info("%s", data->data[i].stream.data);
+        }
+    }
 
     res->type = SKY_HTTP_RESPONSE_BUF;
     sky_str_set(&res->buf, "{\"status\": 200, \"msg\": \"success\"}");

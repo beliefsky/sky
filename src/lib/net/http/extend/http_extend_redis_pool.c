@@ -39,6 +39,8 @@ static void redis_close(sky_redis_connection_t *conn);
 
 static sky_bool_t redis_send_exec(sky_redis_cmd_t *rc, sky_redis_data_t *prams, sky_uint16_t param_len);
 
+static sky_redis_result_t *redis_exec_read(sky_redis_cmd_t *rc);
+
 static sky_bool_t set_address(sky_redis_connection_pool_t *redis_pool, sky_redis_conf_t *conf);
 
 static sky_bool_t redis_connection(sky_redis_cmd_t *rc);
@@ -108,7 +110,7 @@ sky_redis_connection_get(sky_redis_connection_pool_t *redis_pool, sky_pool_t *po
     return rc;
 }
 
-void *
+sky_redis_result_t *
 sky_redis_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t param_len) {
     sky_redis_connection_t *conn;
 
@@ -126,14 +128,7 @@ sky_redis_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t param
     if (!redis_send_exec(rc, params, param_len)) {
         return null;
     }
-//    return pg_exec_read(ps);
-
-    sky_uchar_t *res = sky_palloc(rc->pool, 512);
-    if (!redis_read(rc, res, 128)) {
-        sky_log_error("read error");
-        return null;
-    }
-//    sky_log_info("%s", res);
+    return redis_exec_read(rc);
 }
 
 void
@@ -214,13 +209,222 @@ redis_send_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t para
         *(buf->last++) = '\r';
         *(buf->last++) = '\n';
     }
-    if (!redis_write(rc, buf->pos, (sky_uint32_t)(buf->last - buf->pos))) {
+    if (!redis_write(rc, buf->pos, (sky_uint32_t) (buf->last - buf->pos))) {
         return false;
     }
 
 
     return true;
 }
+
+static sky_redis_result_t *
+redis_exec_read(sky_redis_cmd_t *rc) {
+    sky_buf_t *buf;
+    sky_redis_result_t *result;
+    sky_redis_data_t *params;
+    sky_uchar_t *p;
+    sky_uint32_t n, i;
+    sky_int32_t size;
+
+    enum {
+        START = 0,
+        SUCCESS,
+        ERROR,
+        SINGLE_LINE_REPLY_NUM,
+        BULK_REPLY_SIZE,
+        BULK_REPLY_VALUE,
+        MULTI_BULK_REPLY
+    } state;
+
+    result = sky_pcalloc(rc->pool, sizeof(sky_redis_result_t));
+    result->rows = 0;
+
+    state = START;
+    p = null;
+    params = null;
+    size = 0;
+    i = 0;
+    buf = sky_buf_create(rc->pool, 1023);
+    for (;;) {
+        n = redis_read(rc, buf->last, (sky_uint32_t) (buf->end - buf->last));
+        if (sky_unlikely(!n)) {
+            sky_log_error("redis exec read error");
+            return false;
+        }
+        buf->last += n;
+        *(buf->last) = '\0';
+        for (;;) {
+            switch (state) {
+                case START: {
+                    DO_START:
+                    switch (*(buf->pos++)) {
+                        case '+':
+                            state = SUCCESS;
+                            continue;
+                        case '-':
+                            state = ERROR;
+                            continue;
+                        case ':':
+                            state = SINGLE_LINE_REPLY_NUM;
+                            continue;
+                        case '$':
+                            state = BULK_REPLY_SIZE;
+                            p = buf->pos;
+                            continue;
+                        case '*':
+                            state = MULTI_BULK_REPLY;
+                            p = buf->pos;
+                            continue;
+                        case '\0':
+                            break;
+                        default:
+                            return null;
+                    }
+                    break;
+                }
+                case SUCCESS: {
+                    if (*(buf->last - 1) == '\n' && *(buf->last - 2) == '\r') {
+                        result->is_ok = true;
+                        result->data = params = sky_palloc(rc->pool, sizeof(sky_redis_data_t));
+                        result->rows = 1;
+                        params->stream.data = buf->pos;
+
+                        buf->last -= 2;
+                        params->stream.len = (sky_size_t) (buf->last - buf->pos);
+
+                        *(buf->last++) = '\0';
+                        buf->pos = buf->last;
+                        return result;
+                    }
+                    break;
+                }
+                case ERROR: {
+                    if (*(buf->last - 1) == '\n' && *(buf->last - 2) == '\r') {
+                        result->is_ok = false;
+                        result->data = params = sky_palloc(rc->pool, sizeof(sky_redis_data_t));
+                        result->rows = 1;
+                        params->stream.data = buf->pos;
+
+                        buf->last -= 2;
+                        params->stream.len = (sky_size_t) (buf->last - buf->pos);
+
+                        *(buf->last++) = '\0';
+                        buf->pos = buf->last;
+                        return result;
+                    }
+                    break;
+                }
+                case SINGLE_LINE_REPLY_NUM: {
+                    if (*(buf->last - 1) == '\n' && *(buf->last - 2) == '\r') {
+                        result->is_ok = true;
+                        result->data = params = sky_palloc(rc->pool, sizeof(sky_redis_data_t));
+                        result->rows = 1;
+
+                        sky_str_t tmp;
+                        tmp.data = buf->pos;
+                        tmp.len = (sky_size_t) (buf->last - buf->pos - 2);
+                        sky_str_to_int32(&tmp, (sky_int32_t *) (&params->u32));
+                        return result;
+                    }
+                    break;
+                }
+
+                case BULK_REPLY_SIZE: {
+                    for (;;) {
+                        if (!(*p)) {
+                            break;
+                        }
+                        if (*p == '\n' && *(p - 1) == '\r') {
+                            if (!result->rows) {
+                                result->data = params = sky_palloc(rc->pool, sizeof(sky_redis_data_t));
+                                result->rows = 1;
+
+                                sky_str_t tmp;
+                                tmp.data = buf->pos;
+                                tmp.len = (sky_size_t) (p - buf->pos - 1);
+                                sky_str_to_int32(&tmp, &size);
+                                if (size < 0) {
+                                    params->stream.len = 0;
+                                    params->stream.data = null;
+                                    result->is_ok = true;
+
+                                    return result;
+                                }
+                                i++;
+
+                                buf->pos = ++p;
+                                state = BULK_REPLY_VALUE;
+                                goto DO_BULK_REPLY_SIZE;
+                            } else {
+                                params = &result->data[i++];
+
+                                sky_str_t tmp;
+                                tmp.data = buf->pos;
+                                tmp.len = (sky_size_t) (p - buf->pos - 1);
+                                sky_str_to_int32(&tmp, &size);
+                                buf->pos = ++p;
+                                if (size < 0) {
+                                    params->stream.len = 0;
+                                    params->stream.data = null;
+
+                                    state = START;
+                                    goto DO_START;
+                                }
+                                state = BULK_REPLY_VALUE;
+                                goto DO_BULK_REPLY_SIZE;
+                            }
+                        }
+                        ++p;
+                    }
+                    break;
+                }
+                case BULK_REPLY_VALUE: {
+                    DO_BULK_REPLY_SIZE:
+                    if ((buf->last - buf->pos) < (size + 2)) {
+                        break;
+                    }
+                    params->stream.len = (sky_size_t) size;
+                    params->stream.data = buf->pos;
+
+                    buf->pos[size] = '\0';
+                    if (i == result->rows) {
+                        result->is_ok = true;
+                        return result;
+                    }
+                    buf->pos += size + 2;
+                    state = START;
+                    continue;
+                }
+                case MULTI_BULK_REPLY: {
+                    for (;;) {
+                        if (!(*p)) {
+                            break;
+                        }
+                        if (*p == '\n' && *(p - 1) == '\r') {
+                            sky_str_t tmp;
+                            tmp.data = buf->pos;
+                            tmp.len = (sky_size_t) (p - buf->pos - 1);
+                            sky_str_to_uint32(&tmp, &result->rows);
+                            if (!result->rows) {
+                                result->is_ok = true;
+                                return result;
+                            }
+                            result->data = sky_palloc(rc->pool, sizeof(sky_redis_data_t) * result->rows);
+                            buf->pos = ++p;
+                            state = BULK_REPLY_SIZE;
+                            goto DO_START;
+                        }
+                        ++p;
+                    }
+                    break;
+                }
+            }
+            break;
+        }
+        // append buf
+    }
+}
+
 
 static sky_bool_t
 set_address(sky_redis_connection_pool_t *redis_pool, sky_redis_conf_t *conf) {

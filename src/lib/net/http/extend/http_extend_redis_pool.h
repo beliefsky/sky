@@ -45,12 +45,18 @@ typedef struct {
     sky_uint8_t data_type: 3; // 0: null, 1:u8, 2:u16, 3:u32, 4:u64, 5: stream
 } sky_redis_data_t;
 
+typedef struct {
+    sky_uint32_t rows;
+    sky_redis_data_t *data;
+    sky_bool_t is_ok:1;
+} sky_redis_result_t;
+
 sky_redis_connection_pool_t *sky_redis_pool_create(sky_pool_t *pool, sky_redis_conf_t *conf);
 
 sky_redis_cmd_t *
 sky_redis_connection_get(sky_redis_connection_pool_t *redis_pool, sky_pool_t *pool, sky_http_connection_t *main);
 
-void *sky_redis_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t param_len);
+sky_redis_result_t *sky_redis_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t param_len);
 
 void sky_redis_connection_put(sky_redis_cmd_t *rc);
 

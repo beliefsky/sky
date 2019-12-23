@@ -96,7 +96,7 @@ sky_str_to_int32(sky_str_t *in, sky_int32_t *out) {
         }
     } else {
         if (in->len < 9) {
-            *out = -((sky_int32_t) fast_str_parse_uint32(p, in->len));
+            *out = ((sky_int32_t) fast_str_parse_uint32(p, in->len));
             return true;
         }
         data = (sky_int32_t) in->len - 8;
@@ -127,14 +127,14 @@ sky_str_to_uint32(sky_str_t *in, sky_uint32_t *out) {
 
     p = in->data;
     if (in->len < 9) {
-        *out = fast_str_parse_uint32(p, in->len);
+        *out = fast_str_parse_uint32(in->data, in->len);
         return true;
     }
     data = (sky_uint32_t) in->len - 8;
     if (data == 1) {
         *out = fast_str_parse_uint32(p, 8) * 10 + (p[8] - '0');
     } else {
-        *out = fast_str_parse_uint32(p, 8) * 100 + fast_str_parse_uint32(p + 8, 2);
+        *out = fast_str_parse_uint32(p, 8) * 100 + fast_str_parse_uint32(&p[8], 2);
     }
 
     return true;
@@ -143,64 +143,86 @@ sky_str_to_uint32(sky_str_t *in, sky_uint32_t *out) {
 
 sky_bool_t
 sky_str_to_int64(sky_str_t *in, sky_int64_t *out) {
-    sky_int64_t data;
-    sky_uchar_t *start, *end;
-
-    data = 0;
-    if (sky_unlikely(in->len == 0 || in->len > 20)) {
-        return false;
-    }
-    start = in->data;
-    end = start + in->len;
-    if (*start == '-') {
-        ++start;
-        for (; start != end; ++start) {
-            if (sky_unlikely(*start < '0' || *start > '9')) {
-                return false;
-            }
-            if (sky_unlikely(data > 922337203685477580 && (*start - '0') > 8)) {
-                return false;
-            }
-            data = data * 10 + (*start - '0');
+    if (*in->data == '-') {
+        sky_str_t tmp = {
+                .data = &in->data[1],
+                .len = in->len - 1
+        };
+        if (sky_str_to_uint64(&tmp, (sky_uint64_t *) out)) {
+            *out = -(*out);
+            return true;
+        } else {
+            return false;
         }
-        *out = -data;
     } else {
-        for (; start != end; ++start) {
-            if (sky_unlikely(*start < '0' || *start > '9')) {
-                return false;
-            }
-            if (sky_unlikely(data > 922337203685477580 && (*start - '0') > 7)) {
-                return false;
-            }
-            data = data * 10 + (*start - '0');
-        }
-        *out = data;
+        return sky_str_to_uint64(in, (sky_uint64_t *) out);
     }
-
-    return true;
 }
 
 
 sky_bool_t
 sky_str_to_uint64(sky_str_t *in, sky_uint64_t *out) {
-    sky_uint64_t data;
-    sky_uchar_t ch, *p;
+    sky_size_t len;
 
-    data = 0;
-    if (sky_unlikely(!in->len || in->len > 20)) {
+    len = in->len;
+    if (sky_unlikely(!len || len > 20)) {
         return false;
     }
-
-    for (p = in->data; (ch = *p); ++p) {
-        if (sky_unlikely(ch < '0' || ch > '9')) {
-            return false;
-        }
-        if (sky_unlikely(data > 1844674407370955161 && (ch - '0') > 5)) {
-            return false;
-        }
-        data = data * 10 + (ch - '0');
+    if (len < 9) {
+        *out = fast_str_parse_uint32(in->data, len);
+        return true;
     }
-    *out = data;
+    *out = fast_str_parse_uint32(in->data, 8);
+    len -= 8;
+    if (len < 9) {
+        switch (len) {
+            case 1:
+                *out *= 10;
+                break;
+            case 2:
+                *out *= 100;
+                break;
+            case 3:
+                *out *= 1000;
+                break;
+            case 4:
+                *out *= 10000;
+                break;
+            case 5:
+                *out *= 100000;
+                break;
+            case 6:
+                *out *= 1000000;
+                break;
+            case 7:
+                *out *= 10000000;
+                break;
+            case 8:
+                *out *= 1000000000;
+                break;
+        }
+        *out += fast_str_parse_uint32(&in->data[8], len);
+        return true;
+    }
+    *out *= 1000000000;
+    *out += fast_str_parse_uint32(&in->data[8], 8);
+
+    len -= 8;
+    switch (len) {
+        case 1:
+            *out *= 10;
+            break;
+        case 2:
+            *out *= 100;
+            break;
+        case 3:
+            *out *= 1000;
+            break;
+        case 4:
+            *out *= 10000;
+            break;
+    }
+    *out += fast_str_parse_uint32(&in->data[16], len);
 
     return true;
 }
