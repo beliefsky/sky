@@ -127,14 +127,14 @@ sky_str_to_uint32(sky_str_t *in, sky_uint32_t *out) {
 
     p = in->data;
     if (in->len < 9) {
-        *out = fast_str_parse_uint32(p, in->len);
+        *out = fast_str_parse_uint32(in->data, in->len);
         return true;
     }
     data = (sky_uint32_t) in->len - 8;
     if (data == 1) {
         *out = fast_str_parse_uint32(p, 8) * 10 + (p[8] - '0');
     } else {
-        *out = fast_str_parse_uint32(p, 8) * 100 + fast_str_parse_uint32(p + 8, 2);
+        *out = fast_str_parse_uint32(p, 8) * 100 + fast_str_parse_uint32(&p[8], 2);
     }
 
     return true;
@@ -143,41 +143,20 @@ sky_str_to_uint32(sky_str_t *in, sky_uint32_t *out) {
 
 sky_bool_t
 sky_str_to_int64(sky_str_t *in, sky_int64_t *out) {
-    sky_int64_t data;
-    sky_uchar_t *start, *end;
-
-    data = 0;
-    if (sky_unlikely(in->len == 0 || in->len > 20)) {
-        return false;
-    }
-    start = in->data;
-    end = start + in->len;
-    if (*start == '-') {
-        ++start;
-        for (; start != end; ++start) {
-            if (sky_unlikely(*start < '0' || *start > '9')) {
-                return false;
-            }
-            if (sky_unlikely(data > 922337203685477580 && (*start - '0') > 8)) {
-                return false;
-            }
-            data = data * 10 + (*start - '0');
+    if (*in->data == '-') {
+        sky_str_t tmp = {
+                .data = &in->data[1],
+                .len = in->len - 1
+        };
+        if (sky_str_to_uint64(&tmp, (sky_uint64_t *) out)) {
+            *out = -(*out);
+            return true;
+        } else {
+            return false;
         }
-        *out = -data;
     } else {
-        for (; start != end; ++start) {
-            if (sky_unlikely(*start < '0' || *start > '9')) {
-                return false;
-            }
-            if (sky_unlikely(data > 922337203685477580 && (*start - '0') > 7)) {
-                return false;
-            }
-            data = data * 10 + (*start - '0');
-        }
-        *out = data;
+        return sky_str_to_uint64(in, (sky_uint64_t *) out);
     }
-
-    return true;
 }
 
 
