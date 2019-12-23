@@ -183,24 +183,67 @@ sky_str_to_int64(sky_str_t *in, sky_int64_t *out) {
 
 sky_bool_t
 sky_str_to_uint64(sky_str_t *in, sky_uint64_t *out) {
-    sky_uint64_t data;
-    sky_uchar_t ch, *p;
+    sky_size_t len;
 
-    data = 0;
-    if (sky_unlikely(!in->len || in->len > 20)) {
+    len = in->len;
+    if (sky_unlikely(!len || len > 20)) {
         return false;
     }
-
-    for (p = in->data; (ch = *p); ++p) {
-        if (sky_unlikely(ch < '0' || ch > '9')) {
-            return false;
-        }
-        if (sky_unlikely(data > 1844674407370955161 && (ch - '0') > 5)) {
-            return false;
-        }
-        data = data * 10 + (ch - '0');
+    if (len < 9) {
+        *out = fast_str_parse_uint32(in->data, len);
+        return true;
     }
-    *out = data;
+    *out = fast_str_parse_uint32(in->data, 8);
+    len -= 8;
+    if (len < 9) {
+        switch (len) {
+            case 1:
+                *out *= 10;
+                break;
+            case 2:
+                *out *= 100;
+                break;
+            case 3:
+                *out *= 1000;
+                break;
+            case 4:
+                *out *= 10000;
+                break;
+            case 5:
+                *out *= 100000;
+                break;
+            case 6:
+                *out *= 1000000;
+                break;
+            case 7:
+                *out *= 10000000;
+                break;
+            case 8:
+                *out *= 1000000000;
+                break;
+        }
+        *out += fast_str_parse_uint32(&in->data[8], len);
+        return true;
+    }
+    *out *= 1000000000;
+    *out += fast_str_parse_uint32(&in->data[8], 8);
+
+    len -= 8;
+    switch (len) {
+        case 1:
+            *out *= 10;
+            break;
+        case 2:
+            *out *= 100;
+            break;
+        case 3:
+            *out *= 1000;
+            break;
+        case 4:
+            *out *= 10000;
+            break;
+    }
+    *out += fast_str_parse_uint32(&in->data[16], len);
 
     return true;
 }
