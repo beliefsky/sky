@@ -36,6 +36,7 @@ struct sky_pg_sql_s {
     sky_pg_connection_t *conn;
     sky_pg_connection_pool_t *ps_pool;
     sky_buf_t *query_buf;
+    sky_buf_t *read_buf;
     sky_defer_t *defer;
     sky_pg_sql_t *prev;
     sky_pg_sql_t *next;

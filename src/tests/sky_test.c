@@ -207,7 +207,7 @@ redis_test(sky_http_request_t *req, sky_http_response_t *res) {
 
     sky_redis_data_t params[] = {
             {
-                .stream = sky_string("set")
+                .stream = sky_string("get")
             },
             {
                 .stream = sky_string("key_test")
@@ -223,7 +223,7 @@ redis_test(sky_http_request_t *req, sky_http_response_t *res) {
             }
     };
 
-    sky_redis_exec(rc, params, 5);
+    sky_redis_exec(rc, params, 2);
     sky_redis_connection_put(rc);
 
     res->type = SKY_HTTP_RESPONSE_BUF;

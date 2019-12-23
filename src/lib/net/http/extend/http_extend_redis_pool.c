@@ -133,7 +133,7 @@ sky_redis_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t param
         sky_log_error("read error");
         return null;
     }
-    sky_log_info("%s", res);
+//    sky_log_info("%s", res);
 }
 
 void

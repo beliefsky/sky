@@ -118,6 +118,7 @@ sky_pg_sql_connection_get(sky_pg_connection_pool_t *ps_pool, sky_pool_t *pool, s
     ps->pool = pool;
     ps->ps_pool = ps_pool;
     ps->query_buf = null;
+    ps->read_buf = null;
     ps->defer = sky_defer_add(
             main->coro,
             (sky_defer_func_t) pg_sql_connection_defer,
@@ -268,12 +269,19 @@ static sky_bool_t
 pg_auth(sky_pg_sql_t *ps) {
     sky_uint32_t n, size, auth_type;
     sky_uchar_t *p;
+    sky_buf_t *buf;
 
     if (!pg_write(ps, ps->ps_pool->connection_info.data, (sky_uint32_t) ps->ps_pool->connection_info.len)) {
         return false;
     }
 
-    sky_buf_t *buf = sky_buf_create(ps->pool, 1023);
+    if (!(buf = ps->read_buf) || (buf->end - buf->last) < 256)
+    {
+        buf = sky_buf_create(ps->pool, 1023);
+    } else {
+      buf->pos = buf->last;
+    }
+    
 
     enum {
         START = 0,
@@ -602,7 +610,12 @@ pg_exec_read(sky_pg_sql_t *ps) {
     desc = null;
     row = null;
 
-    buf = sky_buf_create(ps->pool, 1023);
+    if (!(buf = ps->read_buf) || (buf->end - buf->last) < 256)
+    {
+        buf = sky_buf_create(ps->pool, 1023);
+    } else {
+      buf->pos = buf->last;
+    }
 
     size = 0;
     state = START;
