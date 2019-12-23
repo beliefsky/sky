@@ -96,7 +96,7 @@ sky_str_to_int32(sky_str_t *in, sky_int32_t *out) {
         }
     } else {
         if (in->len < 9) {
-            *out = -((sky_int32_t) fast_str_parse_uint32(p, in->len));
+            *out = ((sky_int32_t) fast_str_parse_uint32(p, in->len));
             return true;
         }
         data = (sky_int32_t) in->len - 8;

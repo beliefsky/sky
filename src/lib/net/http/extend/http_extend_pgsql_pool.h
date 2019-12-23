@@ -18,8 +18,6 @@ typedef struct sky_pg_connection_pool_s sky_pg_connection_pool_t;
 typedef struct sky_pg_connection_s sky_pg_connection_t;
 typedef struct sky_pg_sql_s sky_pg_sql_t;
 typedef struct sky_pg_row_s sky_pg_row_t;
-typedef struct sky_pg_result_s sky_pg_result_t;
-
 typedef struct {
     sky_str_t username;
     sky_str_t password;
@@ -69,13 +67,13 @@ struct sky_pg_row_s {
     sky_uint16_t num;
 };
 
-struct sky_pg_result_s {
+typedef struct {
     sky_pg_desc_t *desc;
     sky_pg_row_t *data;
     sky_uint32_t rows;
     sky_uint16_t lines;
     sky_bool_t is_ok:1;
-};
+} sky_pg_result_t;
 
 sky_pg_connection_pool_t *sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf);
 

@@ -385,6 +385,9 @@ pg_auth(sky_pg_sql_t *ps) {
             }
             break;
         }
+        if ((buf->end - buf->pos) > size) {
+            continue;
+        }
         if (size < 1023) {
             buf->start = sky_palloc(ps->pool, 1024);
             buf->end = buf->start + 1023;
@@ -800,6 +803,9 @@ pg_exec_read(sky_pg_sql_t *ps) {
                     return false;
             }
             break;
+        }
+        if ((buf->end - buf->pos) > size) {
+            continue;
         }
         if (size < 1023) {
             buf->start = sky_palloc(ps->pool, 1024);
