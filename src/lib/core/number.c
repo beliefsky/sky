@@ -19,7 +19,7 @@ sky_str_to_int8(sky_str_t *in, sky_int8_t *out) {
         return false;
     }
     if (*(in->data) == '-') {
-        *out = -((sky_int8_t) fast_str_parse_uint32(in->data + 1, in->len - 1));
+        *out = ~((sky_int8_t) fast_str_parse_uint32(in->data + 1, in->len - 1)) + 1;
     } else {
         *out = (sky_int8_t) fast_str_parse_uint32(in->data, in->len);
     }
@@ -46,7 +46,7 @@ sky_str_to_int16(sky_str_t *in, sky_int16_t *out) {
     }
 
     if (*(in->data) == '-') {
-        *out = -((sky_int16_t) fast_str_parse_uint32(in->data + 1, in->len - 1));
+        *out = ~((sky_int16_t) fast_str_parse_uint32(in->data + 1, in->len - 1)) + 1;
     } else {
         *out = (sky_int16_t) fast_str_parse_uint32(in->data, in->len);
     }
@@ -78,19 +78,19 @@ sky_str_to_int32(sky_str_t *in, sky_int32_t *out) {
     if (*p == '-') {
         ++p;
         if (in->len < 10) {
-            *out = -((sky_int32_t) fast_str_parse_uint32(p, in->len - 1));
+            *out = ~((sky_int32_t) fast_str_parse_uint32(p, in->len - 1)) + 1;
             return true;
         }
         data = (sky_int32_t) in->len - 9;
         switch (data) {
             case 1:
-                *out = -((sky_int32_t) fast_str_parse_uint32(p, 8) * 10 + (p[8] - '0'));
+                *out = ~((sky_int32_t) fast_str_parse_uint32(p, 8) * 10 + (p[8] - '0')) + 1;
                 return true;
             case 2:
-                *out = -((sky_int32_t) (fast_str_parse_uint32(p, 8) * 100 + fast_str_parse_uint32(p + 8, 2)));
+                *out = ~((sky_int32_t) (fast_str_parse_uint32(p, 8) * 100 + fast_str_parse_uint32(p + 8, 2))) + 1;
                 return true;
             case 3:
-                *out = -((sky_int32_t) (fast_str_parse_uint32(p, 8) * 1000 + fast_str_parse_uint32(p + 8, 3)));
+                *out = ~((sky_int32_t) (fast_str_parse_uint32(p, 8) * 1000 + fast_str_parse_uint32(p + 8, 3))) + 1;
             default:
                 return false;
         }
@@ -149,7 +149,7 @@ sky_str_to_int64(sky_str_t *in, sky_int64_t *out) {
                 .len = in->len - 1
         };
         if (sky_str_to_uint64(&tmp, (sky_uint64_t *) out)) {
-            *out = -(*out);
+            *out = ~(*out) + 1;
             return true;
         } else {
             return false;
@@ -285,7 +285,7 @@ sky_uint64_to_str(sky_uint64_t data, sky_uchar_t *src) {
     }
     large_num_to_str(data / 1000000000, src);
 
-    return 9 + large_num_to_str(data % 1000000000, src + 9);
+    return large_num_to_str(data % 1000000000, &src[9]) + 9;
 }
 
 
