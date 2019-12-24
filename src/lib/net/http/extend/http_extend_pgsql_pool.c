@@ -275,13 +275,15 @@ pg_auth(sky_pg_sql_t *ps) {
         return false;
     }
 
-    if (!(buf = ps->read_buf) || (buf->end - buf->last) < 256)
-    {
+    if (!(buf = ps->read_buf)) {
         buf = sky_buf_create(ps->pool, 1023);
+    } else if ((buf->end - buf->last) < 256) {
+        buf->pos = buf->last = buf->start = sky_palloc(ps->pool, 1024);
+        buf->end = buf->start + 1023;
     } else {
-      buf->pos = buf->last;
+        buf->pos = buf->last;
     }
-    
+
 
     enum {
         START = 0,
@@ -613,11 +615,13 @@ pg_exec_read(sky_pg_sql_t *ps) {
     desc = null;
     row = null;
 
-    if (!(buf = ps->read_buf) || (buf->end - buf->last) < 256)
-    {
+    if (!(buf = ps->read_buf)) {
         buf = sky_buf_create(ps->pool, 1023);
+    } else if ((buf->end - buf->last) < 256) {
+        buf->pos = buf->last = buf->start = sky_palloc(ps->pool, 1024);
+        buf->end = buf->start + 1023;
     } else {
-      buf->pos = buf->last;
+        buf->pos = buf->last;
     }
 
     size = 0;

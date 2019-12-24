@@ -227,7 +227,7 @@ redis_test(sky_http_request_t *req, sky_http_response_t *res) {
     sky_redis_connection_put(rc);
 
     if (data && data->is_ok && data->rows) {
-        for(sky_int32_t i = 0; i != data->rows; ++i) {
+        for(sky_uint32_t i = 0; i != data->rows; ++i) {
             sky_log_info("%s", data->data[i].stream.data);
         }
     }
