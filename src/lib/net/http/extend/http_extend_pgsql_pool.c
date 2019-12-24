@@ -698,7 +698,7 @@ pg_exec_read(sky_pg_sql_t *ps) {
                         }
                         desc->name.len = (sky_uint32_t) (ch - buf->pos);
                         buf->pos = ch;
-                        if ((buf->last - ch) < 18) {
+                        if (sky_unlikely((buf->last - ch) < 18)) {
                             return result;
                         }
                         desc->table_id = sky_ntohl(*((sky_uint32_t *) buf->pos));
@@ -735,7 +735,6 @@ pg_exec_read(sky_pg_sql_t *ps) {
                         sky_log_error("表列数不对应，什么鬼");
                     }
                     row->data = params = sky_palloc(ps->pool, sizeof(sky_pg_data_t) * row->num);
-//                    buf->pos += size;
                     for (i = 0; i != row->num; ++i, ++params) {
                         size = sky_ntohl(*((sky_uint32_t *) buf->pos));
                         *buf->pos = '\0';
