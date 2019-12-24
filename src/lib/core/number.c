@@ -91,6 +91,7 @@ sky_str_to_int32(sky_str_t *in, sky_int32_t *out) {
                 return true;
             case 3:
                 *out = ~((sky_int32_t) (fast_str_parse_uint32(p, 8) * 1000 + fast_str_parse_uint32(p + 8, 3))) + 1;
+                return true;
             default:
                 return false;
         }
@@ -109,6 +110,7 @@ sky_str_to_int32(sky_str_t *in, sky_int32_t *out) {
                 return true;
             case 3:
                 *out = (sky_int32_t) (fast_str_parse_uint32(p, 8) * 1000 + fast_str_parse_uint32(p + 8, 3));
+                return true;
             default:
                 return false;
         }
