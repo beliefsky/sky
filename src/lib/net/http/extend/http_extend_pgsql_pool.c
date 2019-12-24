@@ -236,7 +236,7 @@ pg_connection(sky_pg_sql_t *ps) {
             case EISCONN:
                 return true;
             default:
-                sky_log_error("%d", errno);
+                sky_log_error("pgsql connect errno: %d", errno);
                 return false;
         }
         sky_event_register(&ps->conn->ev, 10);
@@ -254,7 +254,7 @@ pg_connection(sky_pg_sql_t *ps) {
                     case EISCONN:
                         break;
                     default:
-                        sky_log_error("%d", errno);
+                        sky_log_error("pgsql connect errno: %d", errno);
                         return false;
                 }
             }
@@ -924,6 +924,7 @@ pg_write(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
                 case EAGAIN:
                     break;
                 default:
+                    sky_log_error("pgsql write errno: %d", errno);
                     return false;
             }
         }
@@ -954,6 +955,7 @@ pg_write(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
                 case EAGAIN:
                     break;
                 default:
+                    sky_log_error("pgsql write errno: %d", errno);
                     return false;
             }
         }
@@ -985,6 +987,7 @@ pg_read(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
             case EAGAIN:
                 break;
             default:
+                sky_log_error("pgsql read errno: %d", errno);
                 return 0;
         }
         sky_event_register(&ps->conn->ev, 60);
@@ -1010,6 +1013,7 @@ pg_read(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
             case EAGAIN:
                 break;
             default:
+                sky_log_error("pgsql read errno: %d", errno);
                 return 0;
         }
         ps->conn->ev.read = false;
