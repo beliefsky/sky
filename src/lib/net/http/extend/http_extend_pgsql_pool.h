@@ -59,7 +59,6 @@ typedef struct {
     sky_uint16_t line_id; // 列属性ID
     sky_int16_t data_size; // 数据大小
     sky_uint16_t data_code; // 字段编码格式
-    sky_uint8_t data_type: 3;
 } sky_pg_desc_t;
 
 struct sky_pg_row_s {

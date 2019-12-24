@@ -706,24 +706,6 @@ pg_exec_read(sky_pg_sql_t *ps) {
                         desc->line_id = sky_ntohs(*((sky_uint16_t *) buf->pos));
                         buf->pos += 2;
                         desc->type_id = sky_ntohl(*((sky_uint32_t *) buf->pos));
-                        switch (desc->type_id) {
-                            case 16: // bool
-                            case 18: // char
-                                desc->data_type = SKY_PG_DATA_U8;
-                                break;
-                            case 21: // int2
-                                desc->data_type = SKY_PG_DATA_U16;
-                                break;
-                            case 23: // int4
-                                desc->data_type = SKY_PG_DATA_U32;
-                                break;
-                            case 20: // int8
-                            case 1114:  // timestamp
-                                desc->data_type = SKY_PG_DATA_U64;
-                                break;
-                            default:
-                                desc->data_type = SKY_PG_DATA_STREAM;
-                        }
                         buf->pos += 4;
                         desc->data_size = (sky_int16_t) sky_ntohs(*((sky_uint16_t *) buf->pos));
                         buf->pos += 2;
@@ -762,28 +744,33 @@ pg_exec_read(sky_pg_sql_t *ps) {
                             params->data_type = SKY_PG_DATA_NULL;
                             continue;
                         }
-                        params->data_type = desc[i].data_type;
-                        switch (params->data_type) {
-                            case SKY_PG_DATA_U8: // u8
+                        switch (desc[i].type_id) {
+                            case 16: // bool
+                            case 18: // char
+                                params->data_type = SKY_PG_DATA_U8;
                                 params->u8 = *(buf->pos++);
                                 break;
-                            case SKY_PG_DATA_U16: // u16
+                            case 21: // int2
+                                params->data_type = SKY_PG_DATA_U16;
                                 params->u16 = sky_ntohs(*((sky_uint16_t *) buf->pos));
+                                buf->pos += 2;
                                 break;
-                            case SKY_PG_DATA_U32: // u32
+                            case 23: // int4
+                                params->data_type = SKY_PG_DATA_U32;
                                 params->u32 = sky_ntohl(*((sky_uint32_t *) buf->pos));
                                 buf->pos += 4;
                                 break;
-                            case SKY_PG_DATA_U64: // u64
+                            case 20: // int8
+                            case 1114:  // timestamp
+                                params->data_type = SKY_PG_DATA_U64;
                                 params->u64 = sky_ntohll(*((sky_uint64_t *) buf->pos));
                                 buf->pos += 8;
                                 break;
-                            case SKY_PG_DATA_STREAM: // binary stream
                             default:
+                                params->data_type = SKY_PG_DATA_STREAM;
                                 params->stream.len = size;
                                 params->stream.data = buf->pos;
                                 buf->pos += size;
-                                break;
                         }
                     }
                     state = START;
