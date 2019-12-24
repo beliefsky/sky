@@ -207,11 +207,7 @@ redis_test(sky_http_request_t *req, sky_http_response_t *res) {
 
     sky_redis_data_t params[] = {
             {
-<<<<<<< HEAD
-                .stream = sky_string("get")
-=======
                 .stream = sky_string("HGETALL")
->>>>>>> 6500a1a3b531f13b21d717326cb6d3bc91e3321c
             },
             {
                 .stream = sky_string("runoobkey")
@@ -227,11 +223,7 @@ redis_test(sky_http_request_t *req, sky_http_response_t *res) {
             }
     };
 
-<<<<<<< HEAD
-    sky_redis_exec(rc, params, 2);
-=======
     sky_redis_result_t *data = sky_redis_exec(rc, params, 2);
->>>>>>> 6500a1a3b531f13b21d717326cb6d3bc91e3321c
     sky_redis_connection_put(rc);
 
     if (data && data->is_ok && data->rows) {
