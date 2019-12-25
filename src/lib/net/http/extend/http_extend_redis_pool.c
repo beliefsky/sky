@@ -477,7 +477,8 @@ redis_exec_read(sky_redis_cmd_t *rc) {
                                 }
                                 i++;
 
-                                buf->pos = ++p;
+                                buf->pos = p + 1;
+                                p = null;
                                 state = BULK_REPLY_VALUE;
                                 goto DO_BULK_REPLY_SIZE;
                             } else {
@@ -487,11 +488,13 @@ redis_exec_read(sky_redis_cmd_t *rc) {
                                 tmp.data = buf->pos;
                                 tmp.len = (sky_size_t) (p - buf->pos - 1);
                                 sky_str_to_int32(&tmp, &size);
-                                buf->pos = ++p;
+                                buf->pos = p + 1;
+                                p = null;
                                 if (size < 0) {
                                     params->stream.len = 0;
                                     params->stream.data = null;
 
+                                    size = 0;
                                     state = START;
                                     goto DO_START;
                                 }
@@ -517,6 +520,7 @@ redis_exec_read(sky_redis_cmd_t *rc) {
                         return result;
                     }
                     buf->pos += size + 2;
+                    size = 0;
                     state = START;
                     continue;
                 }
@@ -535,7 +539,8 @@ redis_exec_read(sky_redis_cmd_t *rc) {
                                 return result;
                             }
                             result->data = sky_palloc(rc->pool, sizeof(sky_redis_data_t) * result->rows);
-                            buf->pos = ++p;
+                            buf->pos = p + 1;
+                            p = null;
                             state = BULK_REPLY_SIZE;
                             goto DO_START;
                         }
@@ -546,7 +551,27 @@ redis_exec_read(sky_redis_cmd_t *rc) {
             }
             break;
         }
-        // append buf
+        if ((buf->end - buf->pos) > size) {
+            continue;
+        }
+        if (size < 1021) { // size + 2
+            buf->start = sky_palloc(rc->pool, 1024);
+            buf->end = buf->start + 1023;
+        } else {
+            buf->start = sky_palloc(rc->pool, (sky_size_t) size + 3);
+            buf->end = buf->start + size + 2;
+        }
+        n = (sky_uint32_t) (buf->last - buf->pos);
+        if (n) {
+            if (p) {
+                p = buf->start + (p - buf->pos);
+            }
+            sky_memcpy(buf->start, buf->pos, n);
+            buf->last = buf->start + n;
+            buf->pos = buf->start;
+        } else {
+            buf->last = buf->pos = buf->start;
+        }
     }
 }
 
