@@ -152,14 +152,14 @@ sky_pg_sql_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_data_t *params, sky_uin
         return null;
     }
     if (conn->ev.fd == -1) {
-        if (!pg_connection(ps)) {
+        if (sky_unlikely(!pg_connection(ps))) {
             return null;
         }
-        if (!pg_auth(ps)) {
+        if (sky_unlikely(!pg_auth(ps))) {
             return null;
         }
     }
-    if (!pg_send_exec(ps, cmd, params, param_len)) {
+    if (sky_unlikely(!pg_send_exec(ps, cmd, params, param_len))) {
         return null;
     }
     return pg_exec_read(ps);
@@ -351,7 +351,7 @@ pg_auth(sky_pg_sql_t *ps) {
                         state = START;
                         continue;
                     }
-                    if (!pg_send_password(ps, n, buf->pos, size)) {
+                    if (sky_unlikely(!pg_send_password(ps, n, buf->pos, size))) {
                         return false;
                     }
                     sky_buf_reset(buf);
