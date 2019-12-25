@@ -204,7 +204,7 @@ sky_event_register(sky_event_t *ev, sky_int32_t timeout) {
 
 void
 sky_event_unregister(sky_event_t *ev) {
-    if (!ev->reg) {
+    if (sky_unlikely(!ev->reg)) {
         return;
     }
     close(ev->fd);

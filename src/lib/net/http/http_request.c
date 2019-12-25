@@ -84,7 +84,7 @@ http_header_read(sky_http_connection_t *conn) {
     sky_pool_t *pool;
     sky_http_request_t *r;
     sky_buf_t *buf;
-    sky_uint32_t size;
+    sky_uint32_t n;
     sky_uint16_t buf_size;
     sky_uint8_t buf_n;
     sky_int8_t i;
@@ -104,10 +104,9 @@ http_header_read(sky_http_connection_t *conn) {
     sky_defer_add(conn->coro, (sky_defer_func_t) sky_destroy_pool, (sky_uintptr_t) pool);
     r = sky_pcalloc(pool, sizeof(sky_http_request_t));
 
-    // read http line
     for (;;) {
-        size = conn->read(conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
-        buf->last += size;
+        n = conn->read(conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
+        buf->last += n;
         i = sky_http_request_line_parse(r, buf);
         if (i == 1) {
             break;
@@ -133,14 +132,10 @@ http_header_read(sky_http_connection_t *conn) {
         if (sky_unlikely(i < 0)) {
             return null;
         }
-        if (sky_unlikely(buf->last >= buf->end)) {
+        if (sky_unlikely(buf->last == buf->end)) {
             if (--buf_n) {
                 if (r->req_pos) {
-                    size = (sky_uint32_t) (buf->last - r->req_pos);
-                    if (size >= buf_size) {
-                        return null;
-                    }
-
+                    n = (sky_uint32_t) (buf->last - r->req_pos);
                     if (conn->free) {
                         buf = conn->free;
                         conn->free = buf->next;
@@ -150,9 +145,9 @@ http_header_read(sky_http_connection_t *conn) {
                     sky_defer_add2(conn->coro, (sky_defer_func2_t) connection_buf_free, (sky_uintptr_t) conn,
                                    (sky_uintptr_t) buf);
 
-                    sky_memcpy(buf->pos, r->req_pos, size);
+                    sky_memcpy(buf->pos, r->req_pos, n);
                     r->req_pos = buf->pos;
-                    buf->last = buf->pos += size;
+                    buf->last = buf->pos += n;
                 } else {
                     if (conn->free) {
                         buf = conn->free;
@@ -165,8 +160,8 @@ http_header_read(sky_http_connection_t *conn) {
                 }
             }
         }
-        size = conn->read(conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
-        buf->last += size;
+        n = conn->read(conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
+        buf->last += n;
     }
     sky_list_init(&r->headers_out.headers, pool, 32, sizeof(sky_table_elt_t));
 
