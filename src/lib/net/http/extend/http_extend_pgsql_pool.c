@@ -273,7 +273,8 @@ pg_auth(sky_pg_sql_t *ps) {
     sky_uchar_t *p;
     sky_buf_t *buf;
 
-    if (!pg_write(ps, ps->ps_pool->connection_info.data, (sky_uint32_t) ps->ps_pool->connection_info.len)) {
+    if (sky_unlikely(
+            !pg_write(ps, ps->ps_pool->connection_info.data, (sky_uint32_t) ps->ps_pool->connection_info.len))) {
         return false;
     }
 
@@ -587,7 +588,7 @@ pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_data_t *params, sky_uint16
     sky_memcpy(buf->last, sql_tmp + 14, 26);
     buf->last += 26;
 
-    if (!pg_write(ps, buf->pos, (sky_uint32_t) (buf->last - buf->pos))) {
+    if (sky_unlikely(!pg_write(ps, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
         return false;
     }
     return true;
