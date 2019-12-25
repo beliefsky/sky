@@ -12,6 +12,13 @@
 #include <sys/un.h>
 #include "../http_server.h"
 
+#define SKY_REDIS_DATA_NULL    0
+#define SKY_REDIS_DATA_I8      1
+#define SKY_REDIS_DATA_I16     2
+#define SKY_REDIS_DATA_I32     3
+#define SKY_REDIS_DATA_I64     4
+#define SKY_REDIS_DATA_STREAM  5
+
 typedef struct sky_redis_connection_pool_s sky_redis_connection_pool_t;
 typedef struct sky_redis_connection_s sky_redis_connection_t;
 typedef struct sky_redis_cmd_s sky_redis_cmd_t;
@@ -36,10 +43,10 @@ struct sky_redis_cmd_s {
 
 typedef struct {
     union {
-        sky_uint8_t u8;
-        sky_uint16_t u16;
-        sky_uint32_t u32;
-        sky_uint64_t u64;
+        sky_int8_t i8;
+        sky_int16_t i16;
+        sky_int32_t i32;
+        sky_int64_t i64;
         sky_str_t stream;
     };
     sky_uint8_t data_type: 3; // 0: null, 1:u8, 2:u16, 3:u32, 4:u64, 5: stream

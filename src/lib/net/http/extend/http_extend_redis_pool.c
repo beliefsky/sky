@@ -17,10 +17,6 @@ struct sky_redis_connection_s {
 };
 
 struct sky_redis_connection_pool_s {
-    sky_str_t username;
-    sky_str_t password;
-    sky_str_t database;
-    sky_str_t connection_info;
     sky_pool_t *mem_pool;
     sky_int32_t family;
     sky_int32_t sock_type;
@@ -185,6 +181,7 @@ redis_close(sky_redis_connection_t *conn) {
 static sky_bool_t
 redis_send_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t param_len) {
     sky_buf_t *buf;
+    sky_uint8_t len;
 
     if (sky_unlikely(!param_len)) {
         return false;
@@ -200,16 +197,144 @@ redis_send_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t para
     *(buf->last++) = '\r';
     *(buf->last++) = '\n';
     for (; param_len; ++params, --param_len) {
-        *(buf->last++) = '$';
-        buf->last += sky_uint32_to_str((sky_uint32_t) params->stream.len, buf->last);
-        *(buf->last++) = '\r';
-        *(buf->last++) = '\n';
-        sky_memcpy(buf->last, params->stream.data, params->stream.len);
-        buf->last += params->stream.len;
-        *(buf->last++) = '\r';
-        *(buf->last++) = '\n';
+        switch (params->data_type) {
+            case SKY_REDIS_DATA_NULL:
+                if ((buf->end - buf->last) < 5) {
+                    if (sky_unlikely(!redis_read(rc, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
+                        return false;
+                    }
+                    sky_buf_reset(buf);
+                }
+                sky_memcpy(buf->last, "$-1\r\b", 5);
+                buf->last += 5;
+                break;
+            case SKY_REDIS_DATA_I8:
+                if ((buf->end - buf->last) < 10) {
+                    if (sky_unlikely(!redis_read(rc, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
+                        return false;
+                    }
+                    sky_buf_reset(buf);
+                }
+                len = sky_int8_to_str(params->i8, &buf->last[4]);
+                *(buf->last++) = '$';
+                *(buf->last++) = sky_num_to_uchar(len);
+                *(buf->last++) = '\r';
+                *(buf->last++) = '\n';
+                buf->last += len;
+                *(buf->last++) = '\r';
+                *(buf->last++) = '\n';
+                break;
+            case SKY_REDIS_DATA_I16:
+                if ((buf->end - buf->last) < 12) {
+                    if (sky_unlikely(!redis_read(rc, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
+                        return false;
+                    }
+                    sky_buf_reset(buf);
+                }
+                len = sky_int16_to_str(params->i16, &buf->last[4]);
+                *(buf->last++) = '$';
+                *(buf->last++) = sky_num_to_uchar(len);
+                *(buf->last++) = '\r';
+                *(buf->last++) = '\n';
+                buf->last += len;
+                *(buf->last++) = '\r';
+                *(buf->last++) = '\n';
+                break;
+            case SKY_REDIS_DATA_I32:
+                if ((buf->end - buf->last) < 18) {
+                    if (sky_unlikely(!redis_read(rc, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
+                        return false;
+                    }
+                    sky_buf_reset(buf);
+                }
+                *(buf->last++) = '$';
+                if (params->i32 >= 0 && params->i32 < 1000000000) {
+                    len = sky_int32_to_str(params->i32, &buf->last[3]);
+                    *(buf->last++) = sky_num_to_uchar(len);
+                } else {
+                    len = sky_int32_to_str(params->i32, &buf->last[4]);
+                    buf->last += sky_uint8_to_str(len, buf->last);
+                }
+                *(buf->last++) = '\r';
+                *(buf->last++) = '\n';
+                buf->last += len;
+                *(buf->last++) = '\r';
+                *(buf->last++) = '\n';
+                break;
+            case SKY_REDIS_DATA_I64:
+                if ((buf->end - buf->last) < 27) {
+                    if (sky_unlikely(!redis_read(rc, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
+                        return false;
+                    }
+                    sky_buf_reset(buf);
+                }
+                *(buf->last++) = '$';
+                if (params->i64 >= 0 && params->i64 < 1000000000) {
+                    len = sky_int64_to_str(params->i64, &buf->last[3]);
+                    *(buf->last++) = sky_num_to_uchar(len);
+                } else {
+                    len = sky_int64_to_str(params->i64, &buf->last[4]);
+                    buf->last += sky_uint8_to_str(len, buf->last);
+                }
+                *(buf->last++) = '\r';
+                *(buf->last++) = '\n';
+                buf->last += len;
+                *(buf->last++) = '\r';
+                *(buf->last++) = '\n';
+                break;
+            case SKY_REDIS_DATA_STREAM:
+                if (params->stream.len < 512) {
+                    if ((buf->end - buf->last) < ((sky_uint16_t) params->stream.len + 8)) {
+                        if (sky_unlikely(!redis_read(rc, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
+                            return false;
+                        }
+                        sky_buf_reset(buf);
+                    }
+                    *(buf->last++) = '$';
+                    buf->last += sky_uint16_to_str((sky_uint16_t) params->stream.len, buf->last);
+                    *(buf->last++) = '\r';
+                    *(buf->last++) = '\n';
+                    sky_memcpy(buf->last, params->stream.data, params->stream.len);
+                    buf->last += params->stream.len;
+                    *(buf->last++) = '\r';
+                    *(buf->last++) = '\n';
+                } else {
+                    if ((buf->end - buf->last) < ((sky_uint32_t) params->stream.len + 17)) {
+                        *(buf->last++) = '$';
+                        buf->last += sky_uint32_to_str((sky_uint32_t) params->stream.len, buf->last);
+                        *(buf->last++) = '\r';
+                        *(buf->last++) = '\n';
+                        sky_memcpy(buf->last, params->stream.data, params->stream.len);
+                        buf->last += params->stream.len;
+                        *(buf->last++) = '\r';
+                        *(buf->last++) = '\n';
+                    } else {
+                        if ((buf->end - buf->last) < 14) {
+                            if (sky_unlikely(!redis_read(rc, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
+                                return false;
+                            }
+                            sky_buf_reset(buf);
+                        }
+                        *(buf->last++) = '$';
+                        buf->last += sky_uint32_to_str((sky_uint32_t) params->stream.len, buf->last);
+                        *(buf->last++) = '\r';
+                        *(buf->last++) = '\n';
+
+                        if (sky_unlikely(!redis_read(rc, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
+                            return false;
+                        }
+                        sky_buf_reset(buf);
+                        if (sky_unlikely(!redis_read(rc, params->stream.data, (sky_uint32_t) params->stream.len))) {
+                            return false;
+                        }
+                        *(buf->last++) = '\r';
+                        *(buf->last++) = '\n';
+                    }
+                }
+                break;
+        }
     }
-    if (!redis_write(rc, buf->pos, (sky_uint32_t) (buf->last - buf->pos))) {
+    if (sky_unlikely(!redis_write(rc, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
         return false;
     }
 
@@ -323,7 +448,7 @@ redis_exec_read(sky_redis_cmd_t *rc) {
                         sky_str_t tmp;
                         tmp.data = buf->pos;
                         tmp.len = (sky_size_t) (buf->last - buf->pos - 2);
-                        sky_str_to_int32(&tmp, (sky_int32_t *) (&params->u32));
+                        sky_str_to_int32(&tmp, (sky_int32_t *) (&params->i32));
                         return result;
                     }
                     break;
