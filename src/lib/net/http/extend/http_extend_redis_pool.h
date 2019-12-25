@@ -27,6 +27,7 @@ typedef struct {
     sky_str_t host;
     sky_str_t port;
     sky_str_t unix_path;
+    sky_uint16_t connection_size;
 } sky_redis_conf_t;
 
 struct sky_redis_cmd_s {

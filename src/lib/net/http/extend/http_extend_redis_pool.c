@@ -7,9 +7,6 @@
 #include "../../../core/log.h"
 #include "../../../core/number.h"
 
-#define SKY_REDIS_POOL_SIZE 4
-#define SKY_REDIS_PTR 3
-
 struct sky_redis_connection_s {
     sky_event_t ev;
     sky_redis_cmd_t *current;
@@ -18,13 +15,15 @@ struct sky_redis_connection_s {
 
 struct sky_redis_connection_pool_s {
     sky_pool_t *mem_pool;
+    struct sockaddr *addr;
+    sky_uint32_t addr_len;
     sky_int32_t family;
     sky_int32_t sock_type;
     sky_int32_t protocol;
-    sky_uint32_t addr_len;
-    struct sockaddr *addr;
+    sky_uint16_t connection_size;
+    sky_uint16_t connection_ptr;
 
-    sky_redis_connection_t conns[SKY_REDIS_POOL_SIZE];
+    sky_redis_connection_t *conns;
 };
 
 static void redis_connection_defer(sky_redis_cmd_t *rc);
@@ -50,15 +49,26 @@ sky_redis_connection_pool_t *
 sky_redis_pool_create(sky_pool_t *pool, sky_redis_conf_t *conf) {
     sky_redis_connection_pool_t *redis_pool;
     sky_redis_connection_t *conn;
+    sky_uint16_t i;
 
-    redis_pool = sky_palloc(pool, sizeof(sky_redis_connection_pool_t));
+    if (!(i = conf->connection_size)) {
+        i = 2;
+    } else if ((i & (i - 1)) != 0) {
+        sky_log_error("连接数必须为2的整数幂");
+        return null;
+    }
+
+    redis_pool = sky_palloc(pool, sizeof(sky_redis_connection_pool_t) +
+                                  sizeof(sky_redis_connection_t) * i);
     redis_pool->mem_pool = pool;
+    redis_pool->connection_size = i;
+    redis_pool->connection_ptr = i - 1;
+    redis_pool->conns = (sky_redis_connection_t *) (redis_pool + 1);
 
     if (!set_address(redis_pool, conf)) {
         return null;
     }
-    for (sky_uint32_t i = 0; i != SKY_REDIS_POOL_SIZE; ++i) {
-        conn = redis_pool->conns + i;
+    for (conn = redis_pool->conns; i; --i, ++conn) {
         conn->ev.fd = -1;
         conn->current = null;
         conn->tasks.next = conn->tasks.prev = &conn->tasks;
@@ -72,7 +82,7 @@ sky_redis_connection_get(sky_redis_connection_pool_t *redis_pool, sky_pool_t *po
     sky_redis_connection_t *conn;
     sky_redis_cmd_t *rc;
 
-    conn = redis_pool->conns + (main->ev.fd & SKY_REDIS_PTR);
+    conn = redis_pool->conns + (main->ev.fd & redis_pool->connection_ptr);
 
     rc = sky_palloc(pool, sizeof(sky_redis_cmd_t));
     rc->conn = null;

@@ -25,6 +25,7 @@ typedef struct {
     sky_str_t unix_path;
     sky_str_t host;
     sky_str_t port;
+    sky_uint16_t connection_size;
 } sky_pg_sql_conf_t;
 
 struct sky_pg_sql_s {

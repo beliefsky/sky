@@ -13,9 +13,6 @@
 #include "../../../core/log.h"
 #include "../../../core/md5.h"
 
-#define SKY_PG_POOL_SIZE 4
-#define SKY_PG_PTR 3
-
 struct sky_pg_connection_s {
     sky_event_t ev;
     sky_uint32_t process_id;
@@ -30,13 +27,15 @@ struct sky_pg_connection_pool_s {
     sky_str_t database;
     sky_str_t connection_info;
     sky_pool_t *mem_pool;
+    struct sockaddr *addr;
+    sky_uint32_t addr_len;
     sky_int32_t family;
     sky_int32_t sock_type;
     sky_int32_t protocol;
-    sky_uint32_t addr_len;
-    struct sockaddr *addr;
+    sky_uint16_t connection_size;
+    sky_uint16_t connection_ptr;
 
-    sky_pg_connection_t conns[SKY_PG_POOL_SIZE];
+    sky_pg_connection_t *conns;
 };
 
 static void pg_sql_connection_defer(sky_pg_sql_t *ps);
@@ -66,14 +65,25 @@ sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf) {
     sky_pg_connection_pool_t *ps_pool;
     sky_pg_connection_t *conn;
     sky_uchar_t *p;
+    sky_uint16_t i;
 
-    ps_pool = sky_palloc(pool, sizeof(sky_pg_connection_pool_t));
+    if (!(i = conf->connection_size)) {
+        i = 2;
+    } else if ((i & (i - 1)) != 0) {
+        sky_log_error("连接数必须为2的整数幂");
+        return null;
+    }
+
+    ps_pool = sky_palloc(pool, sizeof(sky_pg_connection_pool_t) + sizeof(sky_pg_connection_t) * i);
     ps_pool->mem_pool = pool;
     ps_pool->username = conf->username;
     ps_pool->password = conf->password;
     ps_pool->database = conf->database;
+    ps_pool->connection_size = i;
+    ps_pool->connection_ptr = i - 1;
+    ps_pool->conns = (sky_pg_connection_t *) (ps_pool + 1);
 
-    ps_pool->connection_info.len = 11 + sizeof("user") + sizeof("database") + conf->username.len + conf->database.len;
+    ps_pool->connection_info.len = 11 + sizeof("user") + sizeof("database") + ps_pool->username.len + ps_pool->database.len;
     ps_pool->connection_info.data = p = sky_palloc(pool, ps_pool->connection_info.len);
 
     *((sky_uint32_t *) p) = sky_htonl(ps_pool->connection_info.len);
@@ -94,8 +104,8 @@ sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf) {
     if (!set_address(ps_pool, conf)) {
         return null;
     }
-    for (sky_uint32_t i = 0; i != SKY_PG_POOL_SIZE; ++i) {
-        conn = ps_pool->conns + i;
+
+    for (conn = ps_pool->conns; i; --i, ++conn) {
         conn->ev.fd = -1;
         conn->current = null;
         conn->tasks.next = conn->tasks.prev = &conn->tasks;
@@ -109,7 +119,7 @@ sky_pg_sql_connection_get(sky_pg_connection_pool_t *ps_pool, sky_pool_t *pool, s
     sky_pg_connection_t *conn;
     sky_pg_sql_t *ps;
 
-    conn = ps_pool->conns + (main->ev.fd & SKY_PG_PTR);
+    conn = ps_pool->conns + (main->ev.fd & ps_pool->connection_ptr);
 
     ps = sky_palloc(pool, sizeof(sky_pg_sql_t));
     ps->conn = null;
