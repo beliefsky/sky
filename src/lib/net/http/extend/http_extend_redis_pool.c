@@ -7,8 +7,8 @@
 #include "../../../core/log.h"
 #include "../../../core/number.h"
 
-#define SKY_REDIS_POOL_SIZE 2
-#define SKY_REDIS_PTR 1
+#define SKY_REDIS_POOL_SIZE 4
+#define SKY_REDIS_PTR 3
 
 struct sky_redis_connection_s {
     sky_event_t ev;

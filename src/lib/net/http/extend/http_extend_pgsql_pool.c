@@ -13,8 +13,8 @@
 #include "../../../core/log.h"
 #include "../../../core/md5.h"
 
-#define SKY_PG_POOL_SIZE 2
-#define SKY_PG_PTR 1
+#define SKY_PG_POOL_SIZE 4
+#define SKY_PG_PTR 3
 
 struct sky_pg_connection_s {
     sky_event_t ev;
