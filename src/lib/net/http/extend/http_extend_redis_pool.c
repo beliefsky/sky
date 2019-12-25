@@ -610,7 +610,9 @@ redis_connection(sky_redis_cmd_t *rc) {
             case EISCONN:
                 return true;
             default:
-                sky_log_error("socket errno: %d", errno);
+                close(fd);
+                rc->conn->ev.fd = -1;
+                sky_log_error("redis connection errno: %d", errno);
                 return false;
         }
         sky_event_register(&rc->conn->ev, 10);
@@ -628,7 +630,7 @@ redis_connection(sky_redis_cmd_t *rc) {
                     case EISCONN:
                         break;
                     default:
-                        sky_log_error("socket errno: %d", errno);
+                        sky_log_error("redis connection errno: %d", errno);
                         return false;
                 }
             }
@@ -661,6 +663,9 @@ redis_write(sky_redis_cmd_t *rc, sky_uchar_t *data, sky_uint32_t size) {
                 case EAGAIN:
                     break;
                 default:
+                    close(fd);
+                    rc->conn->ev.fd = -1;
+                    sky_log_error("redis write errno: %d", errno);
                     return false;
             }
         }
@@ -691,6 +696,7 @@ redis_write(sky_redis_cmd_t *rc, sky_uchar_t *data, sky_uint32_t size) {
                 case EAGAIN:
                     break;
                 default:
+                    sky_log_error("redis write errno: %d", errno);
                     return false;
             }
         }
@@ -722,6 +728,9 @@ redis_read(sky_redis_cmd_t *rc, sky_uchar_t *data, sky_uint32_t size) {
             case EAGAIN:
                 break;
             default:
+                close(fd);
+                rc->conn->ev.fd = -1;
+                sky_log_error("redis read errno: %d", errno);
                 return 0;
         }
         sky_event_register(&rc->conn->ev, 60);
@@ -747,6 +756,7 @@ redis_read(sky_redis_cmd_t *rc, sky_uchar_t *data, sky_uint32_t size) {
             case EAGAIN:
                 break;
             default:
+                sky_log_error("redis read errno: %d", errno);
                 return 0;
         }
         rc->conn->ev.read = false;
