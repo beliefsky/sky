@@ -160,6 +160,11 @@ server_start() {
                     .modules_n = (sky_uint16_t) modules.nelts
             },
             {
+                    .host = sky_string("0.0.0.0:8080"),
+                    .modules = modules.elts,
+                    .modules_n = (sky_uint16_t) modules.nelts
+            },
+            {
                     .host = sky_string("192.168.1.4:8080"),
                     .modules = modules.elts,
                     .modules_n = (sky_uint16_t) modules.nelts
@@ -172,7 +177,7 @@ server_start() {
             .header_buf_size = 2048,
             .header_buf_n = 4,
             .modules_host = hosts,
-            .modules_n = 2
+            .modules_n = 3
     };
 
     server = sky_http_server_create(pool, &conf);
@@ -207,30 +212,35 @@ redis_test(sky_http_request_t *req, sky_http_response_t *res) {
 
     sky_redis_data_t params[] = {
             {
-                .stream = sky_string("HGETALL")
+                .stream = sky_string("HGETALL"),
+                .data_type = SKY_REDIS_DATA_STREAM
             },
             {
-                .stream = sky_string("runoobkey")
+                .stream = sky_string("runoobkey"),
+                    .data_type = SKY_REDIS_DATA_STREAM
             },
             {
-                .stream = sky_string("key_value")
+                .stream = sky_string("key_value"),
+                    .data_type = SKY_REDIS_DATA_STREAM
             },
             {
-                    .stream = sky_string("EX")
+                    .stream = sky_string("EX"),
+                    .data_type = SKY_REDIS_DATA_STREAM
             },
             {
-                    .stream = sky_string("300")
+                    .stream = sky_string("300"),
+                    .data_type = SKY_REDIS_DATA_STREAM
             }
     };
 
     sky_redis_result_t *data = sky_redis_exec(rc, params, 2);
     sky_redis_connection_put(rc);
 
-    if (data && data->is_ok && data->rows) {
-        for(sky_uint32_t i = 0; i != data->rows; ++i) {
-            sky_log_info("%s", data->data[i].stream.data);
-        }
-    }
+//    if (data && data->is_ok && data->rows) {
+//        for(sky_uint32_t i = 0; i != data->rows; ++i) {
+//            sky_log_info("%s", data->data[i].stream.data);
+//        }
+//    }
 
     res->type = SKY_HTTP_RESPONSE_BUF;
     sky_str_set(&res->buf, "{\"status\": 200, \"msg\": \"success\"}");
