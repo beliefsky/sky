@@ -5,7 +5,7 @@ endif ()
 
 set(SOURCES
         core/palloc.c
-        core/mem_pool.c
+#        core/mem_pool.c
         core/array.c
         core/list.c
         core/cpuinfo.c
