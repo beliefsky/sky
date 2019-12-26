@@ -231,63 +231,90 @@ sky_str_to_uint64(sky_str_t *in, sky_uint64_t *out) {
 
 sky_uint8_t
 sky_int8_to_str(sky_int8_t data, sky_uchar_t *src) {
+    sky_uint8_t len;
     if (data < 0) {
         *(src++) = '-';
-        data = -data;
+        len = small_num_to_str((sky_uint64_t) (~data + 1), src);
+        src[len] = '\0';
+        return ++len;
     }
-    return small_num_to_str((sky_uint64_t) data, src);
+    len = small_num_to_str((sky_uint64_t) data, src);
+    src[len] = '\0';
+    return len;
 }
 
 sky_uint8_t
 sky_uint8_to_str(sky_uint8_t data, sky_uchar_t *src) {
-    return small_num_to_str((sky_uint64_t) data, src);
+    sky_uint8_t len = small_num_to_str((sky_uint64_t) data, src);
+    src[len] = '\0';
+    return len;
 }
 
 sky_uint8_t
 sky_int16_to_str(sky_int16_t data, sky_uchar_t *src) {
+    sky_uint8_t len;
+
     if (data < 0) {
         *(src++) = '-';
-        data = -data;
+        len = large_num_to_str((sky_uint64_t) (~data + 1), src);
+        src[len] = '\0';
+        return ++len;
     }
-    return large_num_to_str((sky_uint64_t) data, src);
+    len = large_num_to_str((sky_uint64_t) data, src);
+    src[len] = '\0';
+    return len;
 }
 
 sky_uint8_t
 sky_uint16_to_str(sky_uint16_t data, sky_uchar_t *src) {
-    return large_num_to_str((sky_uint64_t) data, src);
+    sky_uint8_t len = large_num_to_str((sky_uint64_t) data, src);
+    src[len] = '\0';
+    return len;
 }
 
 sky_uint8_t
 sky_int32_to_str(sky_int32_t data, sky_uchar_t *src) {
+    sky_uint8_t len;
+
     if (data < 0) {
         *(src++) = '-';
-        data = -data;
+        len = large_num_to_str((sky_uint64_t) (~data + 1), src);
+        src[len] = '\0';
+        return ++len;
     }
-    return large_num_to_str((sky_uint64_t) data, src);
+    len = large_num_to_str((sky_uint64_t) data, src);
+    src[len] = '\0';
+    return len;
 }
 
 sky_uint8_t
 sky_uint32_to_str(sky_uint32_t data, sky_uchar_t *src) {
-    return large_num_to_str((sky_uint64_t) data, src);
+    sky_uint8_t len = large_num_to_str((sky_uint64_t) data, src);
+    src[len] = '\0';
+    return len;
 }
 
 sky_uint8_t
 sky_int64_to_str(sky_int64_t data, sky_uchar_t *src) {
     if (data < 0) {
         *(src++) = '-';
-        data = -data;
+        return sky_uint64_to_str((sky_uint64_t) (~data + 1), src) + 1;
     }
     return sky_uint64_to_str((sky_uint64_t) data, src);
 }
 
 sky_inline sky_uint8_t
 sky_uint64_to_str(sky_uint64_t data, sky_uchar_t *src) {
-    if (data < 9999999999) {
-        return large_num_to_str((sky_uint64_t) data, src);
-    }
-    large_num_to_str(data / 1000000000, src);
+    sky_uint8_t len;
 
-    return large_num_to_str(data % 1000000000, &src[9]) + 9;
+    if (data < 9999999999) {
+        len = large_num_to_str((sky_uint64_t) data, src);
+    } else {
+        large_num_to_str(data / 1000000000, src);
+        len = large_num_to_str(data % 1000000000, &src[9]) + 9;
+    }
+    src[len] = '\0';
+    return len;
 }
 
 
