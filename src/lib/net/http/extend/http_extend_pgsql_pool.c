@@ -256,7 +256,7 @@ pg_connection(sky_pg_sql_t *ps) {
         sky_event_register(ev, 10);
         sky_coro_yield(ps->coro, SKY_CORO_MAY_RESUME);
         for (;;) {
-            if (!ps->conn) {
+            if (sky_unlikely(!ps->conn || ev->fd == -1)) {
                 return false;
             }
             if (connect(ev->fd, ps->ps_pool->addr, ps->ps_pool->addr_len) < 0) {
@@ -951,7 +951,7 @@ pg_write(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
         sky_event_register(ev, 60);
         ev->write = false;
         sky_coro_yield(ps->coro, SKY_CORO_MAY_RESUME);
-        if (!ps->conn) {
+        if (sky_unlikely(!ps->conn || ev->fd == -1)) {
             return false;
         }
     }
@@ -980,8 +980,7 @@ pg_write(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
             }
         }
         ev->write = false;
-        sky_coro_yield(ps->coro, SKY_CORO_MAY_RESUME);
-        if (!ps->conn) {
+        if (sky_unlikely(!ps->conn || ev->fd == -1)) {
             return false;
         }
     }
@@ -1018,7 +1017,7 @@ pg_read(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
         sky_event_register(ev, 60);
         ev->read = false;
         sky_coro_yield(ps->coro, SKY_CORO_MAY_RESUME);
-        if (!ps->conn) {
+        if (sky_unlikely(!ps->conn || ev->fd == -1)) {
             return false;
         }
     }
@@ -1043,7 +1042,7 @@ pg_read(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
         }
         ev->read = false;
         sky_coro_yield(ps->coro, SKY_CORO_MAY_RESUME);
-        if (!ps->conn) {
+        if (sky_unlikely(!ps->conn || ev->fd == -1)) {
             return false;
         }
     }

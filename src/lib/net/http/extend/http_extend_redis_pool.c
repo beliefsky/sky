@@ -655,7 +655,7 @@ redis_connection(sky_redis_cmd_t *rc) {
         sky_event_register(ev, 10);
         sky_coro_yield(rc->coro, SKY_CORO_MAY_RESUME);
         for (;;) {
-            if (!rc->conn) {
+            if (sky_unlikely(!rc->conn || ev->fd == -1)) {
                 return false;
             }
             if (connect(ev->fd, rc->redis_pool->addr, rc->redis_pool->addr_len) < 0) {
@@ -713,7 +713,7 @@ redis_write(sky_redis_cmd_t *rc, sky_uchar_t *data, sky_uint32_t size) {
         sky_event_register(ev, 60);
         ev->write = false;
         sky_coro_yield(rc->coro, SKY_CORO_MAY_RESUME);
-        if (!rc->conn) {
+        if (sky_unlikely(!rc->conn || ev->fd == -1)) {
             return false;
         }
     }
@@ -743,7 +743,7 @@ redis_write(sky_redis_cmd_t *rc, sky_uchar_t *data, sky_uint32_t size) {
         }
         ev->write = false;
         sky_coro_yield(rc->coro, SKY_CORO_MAY_RESUME);
-        if (!rc->conn) {
+        if (sky_unlikely(!rc->conn || ev->fd == -1)) {
             return false;
         }
     }
@@ -780,7 +780,7 @@ redis_read(sky_redis_cmd_t *rc, sky_uchar_t *data, sky_uint32_t size) {
         sky_event_register(ev, 60);
         ev->read = false;
         sky_coro_yield(rc->coro, SKY_CORO_MAY_RESUME);
-        if (!rc->conn) {
+        if (sky_unlikely(!rc->conn || ev->fd == -1)) {
             return false;
         }
     }
@@ -805,7 +805,7 @@ redis_read(sky_redis_cmd_t *rc, sky_uchar_t *data, sky_uint32_t size) {
         }
         ev->read = false;
         sky_coro_yield(rc->coro, SKY_CORO_MAY_RESUME);
-        if (!rc->conn) {
+        if (sky_unlikely(!rc->conn || ev->fd == -1)) {
             return false;
         }
     }
