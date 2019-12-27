@@ -104,7 +104,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 continue;
             }
             // 是否出现异常
-            if (event->events & (EPOLLRDHUP | EPOLLHUP)) {
+            if (sky_unlikely(event->events & (EPOLLRDHUP | EPOLLHUP))) {
                 close(ev->fd);
                 ev->reg = false;
                 if (ev->timeout != -1) {
