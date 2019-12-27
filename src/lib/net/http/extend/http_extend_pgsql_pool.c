@@ -925,7 +925,7 @@ pg_write(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
 
     ev = &ps->conn->ev;
     if (!ev->reg) {
-        if ((n = write(ev->reg, data, size)) > 0) {
+        if ((n = write(ev->fd, data, size)) > 0) {
             if (n < size) {
                 data += n, size -= (sky_uint32_t) n;
             } else {
