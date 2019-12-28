@@ -5,7 +5,6 @@ endif ()
 
 set(SOURCES
         core/palloc.c
-#        core/mem_pool.c
         core/array.c
         core/list.c
         core/cpuinfo.c
@@ -67,22 +66,41 @@ install(TARGETS sky_shared sky_static
 set(CMAKE_INSTALL_FULL_INCLUDEDIR "/usr/local/include")
 
 install(FILES
-        os/types.h
-        os/memory.h
-        os/event.h
-        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/os")
-install(FILES
+        core/types.h
         core/palloc.h
-        core/mem_pool.h
         core/array.h
+        core/hash.h
         core/list.h
         core/rbtree.h
+        core/trie.h
         core/coro.h
         core/string.h
         core/number.h
         core/date.h
+        core/cpuinfo.h
         core/buf.h
         core/md5.h
-        core/json.h
+        core/base64.h
         core/log.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/core")
+
+install(FILES
+        event/event_loop.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/event")
+install(FILES
+        net/inet.h
+        net/tcp.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net")
+install(FILES
+        net/http/http_parse.h
+        net/http/http_request.h
+        net/http/http_server.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/http")
+install(FILES
+        net/http/module/http_module_dispatcher.h
+        net/http/module/http_module_file.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/module")
+install(FILES
+        net/http/extend/http_extend_pgsql_pool.h
+        net/http/extend/http_extend_redis_pool.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/extend")
