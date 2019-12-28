@@ -110,7 +110,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 continue;
             }
             // 是否出现异常
-            if (event->flags & EV_ERROR) {
+            if (sky_unlikely(event->flags & EV_ERROR)) {
                 close(ev->fd);
                 ev->reg = false;
                 if (ev->index == -1) {

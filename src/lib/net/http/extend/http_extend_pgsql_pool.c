@@ -6,14 +6,12 @@
 #include <errno.h>
 #include <unistd.h>
 #include <sys/socket.h>
+#include <sys/un.h>
 #include "http_extend_pgsql_pool.h"
 #include "../../inet.h"
 #include "../../../core/memory.h"
 #include "../../../core/log.h"
 #include "../../../core/md5.h"
-
-#define SKY_PG_POOL_SIZE 2
-#define SKY_PG_PTR 1
 
 struct sky_pg_connection_s {
     sky_event_t ev;
@@ -29,13 +27,15 @@ struct sky_pg_connection_pool_s {
     sky_str_t database;
     sky_str_t connection_info;
     sky_pool_t *mem_pool;
+    struct sockaddr *addr;
+    sky_uint32_t addr_len;
     sky_int32_t family;
     sky_int32_t sock_type;
     sky_int32_t protocol;
-    sky_uint32_t addr_len;
-    struct sockaddr *addr;
+    sky_uint16_t connection_size;
+    sky_uint16_t connection_ptr;
 
-    sky_pg_connection_t conns[SKY_PG_POOL_SIZE];
+    sky_pg_connection_t *conns;
 };
 
 static void pg_sql_connection_defer(sky_pg_sql_t *ps);
@@ -50,7 +50,7 @@ static sky_bool_t pg_auth(sky_pg_sql_t *ps);
 
 static sky_bool_t set_address(sky_pg_connection_pool_t *pool, sky_pg_sql_conf_t *conf);
 
-static sky_bool_t pg_send_password(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size);
+static sky_bool_t pg_send_password(sky_pg_sql_t *ps, sky_uint32_t auth_type, sky_uchar_t *data, sky_uint32_t size);
 
 static sky_bool_t pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_data_t *params, sky_uint16_t param_len);
 
@@ -65,14 +65,26 @@ sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf) {
     sky_pg_connection_pool_t *ps_pool;
     sky_pg_connection_t *conn;
     sky_uchar_t *p;
+    sky_uint16_t i;
 
-    ps_pool = sky_palloc(pool, sizeof(sky_pg_connection_pool_t));
+    if (!(i = conf->connection_size)) {
+        i = 2;
+    } else if ((i & (i - 1)) != 0) {
+        sky_log_error("连接数必须为2的整数幂");
+        return null;
+    }
+
+    ps_pool = sky_palloc(pool, sizeof(sky_pg_connection_pool_t) + sizeof(sky_pg_connection_t) * i);
     ps_pool->mem_pool = pool;
     ps_pool->username = conf->username;
     ps_pool->password = conf->password;
     ps_pool->database = conf->database;
+    ps_pool->connection_size = i;
+    ps_pool->connection_ptr = i - 1;
+    ps_pool->conns = (sky_pg_connection_t *) (ps_pool + 1);
 
-    ps_pool->connection_info.len = 11 + sizeof("user") + sizeof("database") + conf->username.len + conf->database.len;
+    ps_pool->connection_info.len =
+            11 + sizeof("user") + sizeof("database") + ps_pool->username.len + ps_pool->database.len;
     ps_pool->connection_info.data = p = sky_palloc(pool, ps_pool->connection_info.len);
 
     *((sky_uint32_t *) p) = sky_htonl(ps_pool->connection_info.len);
@@ -93,8 +105,8 @@ sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf) {
     if (!set_address(ps_pool, conf)) {
         return null;
     }
-    for (sky_uint32_t i = 0; i != SKY_PG_POOL_SIZE; ++i) {
-        conn = ps_pool->conns + i;
+
+    for (conn = ps_pool->conns; i; --i, ++conn) {
         conn->ev.fd = -1;
         conn->current = null;
         conn->tasks.next = conn->tasks.prev = &conn->tasks;
@@ -108,7 +120,7 @@ sky_pg_sql_connection_get(sky_pg_connection_pool_t *ps_pool, sky_pool_t *pool, s
     sky_pg_connection_t *conn;
     sky_pg_sql_t *ps;
 
-    conn = ps_pool->conns + (main->ev.fd & SKY_PG_PTR);
+    conn = ps_pool->conns + (main->ev.fd & ps_pool->connection_ptr);
 
     ps = sky_palloc(pool, sizeof(sky_pg_sql_t));
     ps->conn = null;
@@ -117,6 +129,7 @@ sky_pg_sql_connection_get(sky_pg_connection_pool_t *ps_pool, sky_pool_t *pool, s
     ps->pool = pool;
     ps->ps_pool = ps_pool;
     ps->query_buf = null;
+    ps->read_buf = null;
     ps->defer = sky_defer_add(
             main->coro,
             (sky_defer_func_t) pg_sql_connection_defer,
@@ -150,14 +163,14 @@ sky_pg_sql_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_data_t *params, sky_uin
         return null;
     }
     if (conn->ev.fd == -1) {
-        if (!pg_connection(ps)) {
+        if (sky_unlikely(!pg_connection(ps))) {
             return null;
         }
-        if (!pg_auth(ps)) {
+        if (sky_unlikely(!pg_auth(ps))) {
             return null;
         }
     }
-    if (!pg_send_exec(ps, cmd, params, param_len)) {
+    if (sky_unlikely(!pg_send_exec(ps, cmd, params, param_len))) {
         return null;
     }
     return pg_exec_read(ps);
@@ -218,13 +231,14 @@ pg_close(sky_pg_connection_t *conn) {
 static sky_bool_t
 pg_connection(sky_pg_sql_t *ps) {
     sky_int32_t fd;
+    sky_event_t *ev;
 
-
+    ev = &ps->conn->ev;
     fd = socket(ps->ps_pool->family, ps->ps_pool->sock_type, ps->ps_pool->protocol);
     if (sky_unlikely(fd < 0)) {
         return false;
     }
-    sky_event_init(ps->ev->loop, &ps->conn->ev, fd, pg_run, pg_close);
+    sky_event_init(ps->ev->loop, ev, fd, pg_run, pg_close);
 
     if (connect(fd, ps->ps_pool->addr, ps->ps_pool->addr_len) < 0) {
         switch (errno) {
@@ -234,16 +248,18 @@ pg_connection(sky_pg_sql_t *ps) {
             case EISCONN:
                 return true;
             default:
-                sky_log_error("%d", errno);
+                close(fd);
+                ev->fd = -1;
+                sky_log_error("pgsql connect errno: %d", errno);
                 return false;
         }
-        sky_event_register(&ps->conn->ev, 10);
+        sky_event_register(ev, 10);
         sky_coro_yield(ps->coro, SKY_CORO_MAY_RESUME);
         for (;;) {
-            if (!ps->conn) {
+            if (sky_unlikely(!ps->conn || ev->fd == -1)) {
                 return false;
             }
-            if (connect(fd, ps->ps_pool->addr, ps->ps_pool->addr_len) < 0) {
+            if (connect(ev->fd, ps->ps_pool->addr, ps->ps_pool->addr_len) < 0) {
                 switch (errno) {
                     case EALREADY:
                     case EINPROGRESS:
@@ -252,27 +268,37 @@ pg_connection(sky_pg_sql_t *ps) {
                     case EISCONN:
                         break;
                     default:
-                        sky_log_error("%d", errno);
+                        sky_log_error("pgsql connect errno: %d", errno);
                         return false;
                 }
             }
             break;
         }
-        ps->conn->ev.timeout = 60;
+        ev->timeout = 60;
     }
     return true;
 }
 
 static sky_bool_t
 pg_auth(sky_pg_sql_t *ps) {
-    sky_uint32_t n, size, auth_type;
+    sky_uint32_t n, size;
     sky_uchar_t *p;
+    sky_buf_t *buf;
 
-    if (!pg_write(ps, ps->ps_pool->connection_info.data, (sky_uint32_t) ps->ps_pool->connection_info.len)) {
+    if (sky_unlikely(
+            !pg_write(ps, ps->ps_pool->connection_info.data, (sky_uint32_t) ps->ps_pool->connection_info.len))) {
         return false;
     }
 
-    sky_buf_t *buf = sky_buf_create(ps->pool, 1023);
+    if (!(buf = ps->read_buf)) {
+        buf = sky_buf_create(ps->pool, 1023);
+    } else if ((buf->end - buf->last) < 256) {
+        buf->pos = buf->last = buf->start = sky_palloc(ps->pool, 1024);
+        buf->end = buf->start + 1023;
+    } else {
+        buf->pos = buf->last;
+    }
+
 
     enum {
         START = 0,
@@ -330,14 +356,14 @@ pg_auth(sky_pg_sql_t *ps) {
                     if ((buf->last - buf->pos) < size) {
                         break;
                     }
-                    auth_type = sky_ntohl(*((sky_uint32_t *) buf->pos));
+                    n = sky_ntohl(*((sky_uint32_t *) buf->pos));
                     buf->pos += 4;
                     size -= 4;
-                    if (!auth_type) {
+                    if (!n) {
                         state = START;
                         continue;
                     }
-                    if (!pg_send_password(ps, buf->pos, size)) {
+                    if (sky_unlikely(!pg_send_password(ps, n, buf->pos, size))) {
                         return false;
                     }
                     sky_buf_reset(buf);
@@ -384,6 +410,9 @@ pg_auth(sky_pg_sql_t *ps) {
             }
             break;
         }
+        if ((buf->end - buf->pos) > size) {
+            continue;
+        }
         if (size < 1023) {
             buf->start = sky_palloc(ps->pool, 1024);
             buf->end = buf->start + 1023;
@@ -391,9 +420,9 @@ pg_auth(sky_pg_sql_t *ps) {
             buf->start = sky_palloc(ps->pool, size + 1);
             buf->end = buf->start + size;
         }
-        n = (sky_uint32_t)(buf->last - buf->pos);
+        n = (sky_uint32_t) (buf->last - buf->pos);
         if (n) {
-            sky_memcpy(buf->start, buf->pos, n );
+            sky_memcpy(buf->start, buf->pos, n);
             buf->last = buf->start + n;
             buf->pos = buf->start;
         } else {
@@ -475,14 +504,14 @@ pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_data_t *params, sky_uint16
                     param->data_type = SKY_PG_DATA_NULL;
                     size += 6;
                 } else {
-                    size += (sky_uint32_t)param->stream.len + 6;
+                    size += (sky_uint32_t) param->stream.len + 6;
                 }
                 break;
             default:
                 return false;
         }
     }
-    size += (sky_uint32_t)cmd->len + 32;
+    size += (sky_uint32_t) cmd->len + 32;
     if (!ps->query_buf) {
         buf = ps->query_buf = sky_buf_create(ps->pool, size < 1023 ? 1023 : size);
     } else {
@@ -492,7 +521,7 @@ pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_data_t *params, sky_uint16
             buf = ps->query_buf = sky_buf_create(ps->pool, size);
         }
     }
-    size -= (sky_uint32_t)cmd->len + 32;
+    size -= (sky_uint32_t) cmd->len + 32;
 
     *(buf->last++) = 'P';
     *((sky_uint32_t *) buf->last) = sky_htonl(cmd->len + 8);
@@ -571,7 +600,7 @@ pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_data_t *params, sky_uint16
     sky_memcpy(buf->last, sql_tmp + 14, 26);
     buf->last += 26;
 
-    if (!pg_write(ps, buf->pos, (sky_uint32_t) (buf->last - buf->pos))) {
+    if (sky_unlikely(!pg_write(ps, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
         return false;
     }
     return true;
@@ -601,7 +630,14 @@ pg_exec_read(sky_pg_sql_t *ps) {
     desc = null;
     row = null;
 
-    buf = sky_buf_create(ps->pool, 1023);
+    if (!(buf = ps->read_buf)) {
+        buf = sky_buf_create(ps->pool, 1023);
+    } else if ((buf->end - buf->last) < 256) {
+        buf->pos = buf->last = buf->start = sky_palloc(ps->pool, 1024);
+        buf->end = buf->start + 1023;
+    } else {
+        buf->pos = buf->last;
+    }
 
     size = 0;
     state = START;
@@ -677,7 +713,7 @@ pg_exec_read(sky_pg_sql_t *ps) {
                         }
                         desc->name.len = (sky_uint32_t) (ch - buf->pos);
                         buf->pos = ch;
-                        if ((buf->last - ch) < 18) {
+                        if (sky_unlikely((buf->last - ch) < 18)) {
                             return result;
                         }
                         desc->table_id = sky_ntohl(*((sky_uint32_t *) buf->pos));
@@ -685,24 +721,6 @@ pg_exec_read(sky_pg_sql_t *ps) {
                         desc->line_id = sky_ntohs(*((sky_uint16_t *) buf->pos));
                         buf->pos += 2;
                         desc->type_id = sky_ntohl(*((sky_uint32_t *) buf->pos));
-                        switch (desc->type_id) {
-                            case 16: // bool
-                            case 18: // char
-                                desc->data_type = SKY_PG_DATA_U8;
-                                break;
-                            case 21: // int2
-                                desc->data_type = SKY_PG_DATA_U16;
-                                break;
-                            case 23: // int4
-                                desc->data_type = SKY_PG_DATA_U32;
-                                break;
-                            case 20: // int8
-                            case 1114:  // timestamp
-                                desc->data_type = SKY_PG_DATA_U64;
-                                break;
-                            default:
-                                desc->data_type = SKY_PG_DATA_STREAM;
-                        }
                         buf->pos += 4;
                         desc->data_size = (sky_int16_t) sky_ntohs(*((sky_uint16_t *) buf->pos));
                         buf->pos += 2;
@@ -732,7 +750,6 @@ pg_exec_read(sky_pg_sql_t *ps) {
                         sky_log_error("表列数不对应，什么鬼");
                     }
                     row->data = params = sky_palloc(ps->pool, sizeof(sky_pg_data_t) * row->num);
-//                    buf->pos += size;
                     for (i = 0; i != row->num; ++i, ++params) {
                         size = sky_ntohl(*((sky_uint32_t *) buf->pos));
                         *buf->pos = '\0';
@@ -741,28 +758,33 @@ pg_exec_read(sky_pg_sql_t *ps) {
                             params->data_type = SKY_PG_DATA_NULL;
                             continue;
                         }
-                        params->data_type = desc[i].data_type;
-                        switch (params->data_type) {
-                            case SKY_PG_DATA_U8: // u8
+                        switch (desc[i].type_id) {
+                            case 16: // bool
+                            case 18: // char
+                                params->data_type = SKY_PG_DATA_U8;
                                 params->u8 = *(buf->pos++);
                                 break;
-                            case SKY_PG_DATA_U16: // u16
+                            case 21: // int2
+                                params->data_type = SKY_PG_DATA_U16;
                                 params->u16 = sky_ntohs(*((sky_uint16_t *) buf->pos));
+                                buf->pos += 2;
                                 break;
-                            case SKY_PG_DATA_U32: // u32
+                            case 23: // int4
+                                params->data_type = SKY_PG_DATA_U32;
                                 params->u32 = sky_ntohl(*((sky_uint32_t *) buf->pos));
                                 buf->pos += 4;
                                 break;
-                            case SKY_PG_DATA_U64: // u64
+                            case 20: // int8
+                            case 1114:  // timestamp
+                                params->data_type = SKY_PG_DATA_U64;
                                 params->u64 = sky_ntohll(*((sky_uint64_t *) buf->pos));
                                 buf->pos += 8;
                                 break;
-                            case SKY_PG_DATA_STREAM: // binary stream
                             default:
+                                params->data_type = SKY_PG_DATA_STREAM;
                                 params->stream.len = size;
                                 params->stream.data = buf->pos;
                                 buf->pos += size;
-                                break;
                         }
                     }
                     state = START;
@@ -800,6 +822,9 @@ pg_exec_read(sky_pg_sql_t *ps) {
             }
             break;
         }
+        if ((buf->end - buf->pos) > size) {
+            continue;
+        }
         if (size < 1023) {
             buf->start = sky_palloc(ps->pool, 1024);
             buf->end = buf->start + 1023;
@@ -807,9 +832,9 @@ pg_exec_read(sky_pg_sql_t *ps) {
             buf->start = sky_palloc(ps->pool, size + 1);
             buf->end = buf->start + size;
         }
-        n = (sky_uint32_t)(buf->last - buf->pos);
+        n = (sky_uint32_t) (buf->last - buf->pos);
         if (n) {
-            sky_memcpy(buf->start, buf->pos, n );
+            sky_memcpy(buf->start, buf->pos, n);
             buf->last = buf->start + n;
             buf->pos = buf->start;
         } else {
@@ -821,6 +846,19 @@ pg_exec_read(sky_pg_sql_t *ps) {
 
 static sky_bool_t
 set_address(sky_pg_connection_pool_t *ps_pool, sky_pg_sql_conf_t *conf) {
+    if (conf->unix_path.len) {
+        struct sockaddr_un *addr = sky_pcalloc(ps_pool->mem_pool, sizeof(struct sockaddr_un));
+        ps_pool->addr = (struct sockaddr *) addr;
+        ps_pool->addr_len = sizeof(struct sockaddr_un);
+        ps_pool->family = AF_UNIX;
+        ps_pool->sock_type = SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC;
+        ps_pool->protocol = 0;
+
+        addr->sun_family = AF_UNIX;
+        sky_memcpy(addr->sun_path, conf->unix_path.data, conf->unix_path.len + 1);
+
+        return true;
+    }
     struct addrinfo *addrs;
 
     struct addrinfo hints = {
@@ -831,7 +869,7 @@ set_address(sky_pg_connection_pool_t *ps_pool, sky_pg_sql_conf_t *conf) {
 
     if (sky_unlikely(getaddrinfo(
             (sky_char_t *) conf->host.data, (sky_char_t *) conf->port.data,
-            &hints, &addrs) == -1)) {
+            &hints, &addrs) == -1 || !addrs)) {
         return false;
     }
     ps_pool->family = addrs->ai_family;
@@ -848,7 +886,11 @@ set_address(sky_pg_connection_pool_t *ps_pool, sky_pg_sql_conf_t *conf) {
 
 
 static sky_bool_t
-pg_send_password(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
+pg_send_password(sky_pg_sql_t *ps, sky_uint32_t auth_type, sky_uchar_t *data, sky_uint32_t size) {
+    if (auth_type != 5) {
+        sky_log_error("auth type %u not support", auth_type);
+        return false;
+    }
     sky_md5_t ctx;
     sky_uchar_t bin[16], hex[41], *ch;
 
@@ -878,18 +920,21 @@ pg_send_password(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
 static sky_bool_t
 pg_write(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
     ssize_t n;
-    sky_int32_t fd;
+    sky_event_t *ev;
 
-    fd = ps->conn->ev.fd;
-    if (!ps->conn->ev.reg) {
-        if ((n = write(fd, data, size)) > 0) {
+
+    ev = &ps->conn->ev;
+    if (!ev->reg) {
+        if ((n = write(ev->fd, data, size)) > 0) {
             if (n < size) {
-                data += n, size -= (sky_uint32_t)n;
+                data += n, size -= (sky_uint32_t) n;
             } else {
                 return true;
             }
         } else {
             if (sky_unlikely(!n)) {
+                close(ev->fd);
+                ev->fd = -1;
                 return false;
             }
             switch (errno) {
@@ -897,24 +942,27 @@ pg_write(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
                 case EAGAIN:
                     break;
                 default:
+                    close(ev->fd);
+                    ev->fd = -1;
+                    sky_log_error("pgsql write errno: %d", errno);
                     return false;
             }
         }
-        sky_event_register(&ps->conn->ev, 60);
-        ps->conn->ev.write = false;
+        sky_event_register(ev, 60);
+        ev->write = false;
         sky_coro_yield(ps->coro, SKY_CORO_MAY_RESUME);
-        if (!ps->conn) {
+        if (sky_unlikely(!ps->conn || ev->fd == -1)) {
             return false;
         }
     }
     for (;;) {
-        if (sky_unlikely(!ps->conn->ev.write)) {
+        if (sky_unlikely(!ev->write)) {
             sky_coro_yield(ps->coro, SKY_CORO_MAY_RESUME);
             continue;
         }
-        if ((n = write(fd, data, size)) > 0) {
+        if ((n = write(ev->fd, data, size)) > 0) {
             if (n < size) {
-                data += n, size -= (sky_uint32_t)n;
+                data += n, size -= (sky_uint32_t) n;
             } else {
                 return true;
             }
@@ -927,12 +975,12 @@ pg_write(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
                 case EAGAIN:
                     break;
                 default:
+                    sky_log_error("pgsql write errno: %d", errno);
                     return false;
             }
         }
-        ps->conn->ev.write = false;
-        sky_coro_yield(ps->coro, SKY_CORO_MAY_RESUME);
-        if (!ps->conn) {
+        ev->write = false;
+        if (sky_unlikely(!ps->conn || ev->fd == -1)) {
             return false;
         }
     }
@@ -943,14 +991,17 @@ pg_write(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
 static sky_uint32_t
 pg_read(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
     ssize_t n;
-    sky_int32_t fd;
+    sky_event_t *ev;
 
-    fd = ps->conn->ev.fd;
-    if (!ps->conn->ev.reg) {
-        if ((n = read(fd, data, size)) > 0) {
+
+    ev = &ps->conn->ev;
+    if (!ev->reg) {
+        if ((n = read(ev->fd, data, size)) > 0) {
             return (sky_uint32_t) n;
         }
         if (sky_unlikely(!n)) {
+            close(ev->fd);
+            ev->fd = -1;
             return 0;
         }
         switch (errno) {
@@ -958,21 +1009,24 @@ pg_read(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
             case EAGAIN:
                 break;
             default:
+                close(ev->fd);
+                ev->fd = -1;
+                sky_log_error("pgsql read errno: %d", errno);
                 return 0;
         }
-        sky_event_register(&ps->conn->ev, 60);
-        ps->conn->ev.read = false;
+        sky_event_register(ev, 60);
+        ev->read = false;
         sky_coro_yield(ps->coro, SKY_CORO_MAY_RESUME);
-        if (!ps->conn) {
+        if (sky_unlikely(!ps->conn || ev->fd == -1)) {
             return false;
         }
     }
     for (;;) {
-        if (sky_unlikely(!ps->conn->ev.read)) {
+        if (sky_unlikely(!ev->read)) {
             sky_coro_yield(ps->coro, SKY_CORO_MAY_RESUME);
             continue;
         }
-        if ((n = read(fd, data, size)) > 0) {
+        if ((n = read(ev->fd, data, size)) > 0) {
             return (sky_uint32_t) n;
         }
         if (sky_unlikely(!n)) {
@@ -983,11 +1037,12 @@ pg_read(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
             case EAGAIN:
                 break;
             default:
+                sky_log_error("pgsql read errno: %d", errno);
                 return 0;
         }
-        ps->conn->ev.read = false;
+        ev->read = false;
         sky_coro_yield(ps->coro, SKY_CORO_MAY_RESUME);
-        if (!ps->conn) {
+        if (sky_unlikely(!ps->conn || ev->fd == -1)) {
             return false;
         }
     }

@@ -104,7 +104,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 continue;
             }
             // 是否出现异常
-            if (event->events & (EPOLLRDHUP | EPOLLHUP)) {
+            if (sky_unlikely(event->events & (EPOLLRDHUP | EPOLLHUP))) {
                 close(ev->fd);
                 ev->reg = false;
                 if (ev->timeout != -1) {
@@ -115,9 +115,9 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 continue;
             }
             // 是否可读
-            ev->read = (event->events & EPOLLIN) ? true : false;
+            ev->read = (event->events & EPOLLIN) != 0;
             // 是否可写
-            ev->write = (event->events & EPOLLOUT) ? true : false;
+            ev->write = (event->events & EPOLLOUT) != 0;
 
             if (ev->wait) {
                 continue;
@@ -204,7 +204,7 @@ sky_event_register(sky_event_t *ev, sky_int32_t timeout) {
 
 void
 sky_event_unregister(sky_event_t *ev) {
-    if (!ev->reg) {
+    if (sky_unlikely(!ev->reg)) {
         return;
     }
     close(ev->fd);

@@ -18,14 +18,14 @@ typedef struct sky_pg_connection_pool_s sky_pg_connection_pool_t;
 typedef struct sky_pg_connection_s sky_pg_connection_t;
 typedef struct sky_pg_sql_s sky_pg_sql_t;
 typedef struct sky_pg_row_s sky_pg_row_t;
-typedef struct sky_pg_result_s sky_pg_result_t;
-
 typedef struct {
     sky_str_t username;
     sky_str_t password;
     sky_str_t database;
+    sky_str_t unix_path;
     sky_str_t host;
     sky_str_t port;
+    sky_uint16_t connection_size;
 } sky_pg_sql_conf_t;
 
 struct sky_pg_sql_s {
@@ -35,6 +35,7 @@ struct sky_pg_sql_s {
     sky_pg_connection_t *conn;
     sky_pg_connection_pool_t *ps_pool;
     sky_buf_t *query_buf;
+    sky_buf_t *read_buf;
     sky_defer_t *defer;
     sky_pg_sql_t *prev;
     sky_pg_sql_t *next;
@@ -59,7 +60,6 @@ typedef struct {
     sky_uint16_t line_id; // 列属性ID
     sky_int16_t data_size; // 数据大小
     sky_uint16_t data_code; // 字段编码格式
-    sky_uint8_t data_type: 3;
 } sky_pg_desc_t;
 
 struct sky_pg_row_s {
@@ -68,13 +68,13 @@ struct sky_pg_row_s {
     sky_uint16_t num;
 };
 
-struct sky_pg_result_s {
+typedef struct {
     sky_pg_desc_t *desc;
     sky_pg_row_t *data;
     sky_uint32_t rows;
     sky_uint16_t lines;
     sky_bool_t is_ok:1;
-};
+} sky_pg_result_t;
 
 sky_pg_connection_pool_t *sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf);
 
