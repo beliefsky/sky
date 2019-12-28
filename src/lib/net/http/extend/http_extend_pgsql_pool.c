@@ -588,7 +588,7 @@ pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_data_t *params, sky_uint16
                 ch += 2;
                 *((sky_uint32_t *) buf->last) = sky_htonl(param->stream.len);
                 buf->last += 4;
-                if (param->stream.len) {
+                if (sky_likely(param->stream.len)) {
                     sky_memcpy(buf->last, param->stream.data, param->stream.len);
                     buf->last += param->stream.len;
                 }
@@ -645,7 +645,7 @@ pg_exec_read(sky_pg_sql_t *ps) {
         n = pg_read(ps, buf->last, (sky_uint32_t) (buf->end - buf->last));
         if (sky_unlikely(!n)) {
             sky_log_error("pg exec read error");
-            return false;
+            return result;
         }
         buf->last += n;
         for (;;) {
@@ -681,13 +681,13 @@ pg_exec_read(sky_pg_sql_t *ps) {
                                 printf("%c", *p);
                             }
                             printf("\n\n");
-                            return false;
+                            return result;
                     }
                     *(buf->pos++) = '\0';
                     size = sky_ntohl(*((sky_uint32_t *) buf->pos));
                     buf->pos += 4;
-                    if (size < 4) {
-                        return false;
+                    if (sky_unlikely(size < 4)) {
+                        return result;
                     }
                     size -= 4;
                     continue;
