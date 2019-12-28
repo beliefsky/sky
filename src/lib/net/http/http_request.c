@@ -275,7 +275,7 @@ http_send_header(sky_http_request_t *r, sky_str_t *body) {
     buf->last += 15;
 
     sky_list_foreach(&r->headers_out.headers, sky_table_elt_t, item, {
-        if ((sky_size_t) (buf->end - buf->last) < (item->key.len + item->value.len + 4)) {
+        if (sky_unlikely((sky_size_t) (buf->end - buf->last) < (item->key.len + item->value.len + 4))) {
             r->conn->write(r->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos));
             sky_buf_reset(buf);
         }
@@ -288,7 +288,7 @@ http_send_header(sky_http_request_t *r, sky_str_t *body) {
         *(buf->last++) = '\r';
         *(buf->last++) = '\n';
     })
-    if ((buf->end - buf->last) < 2) {
+    if (sky_unlikely((buf->end - buf->last) < 2)) {
         r->conn->write(r->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos));
         sky_buf_reset(buf);
     }
@@ -296,7 +296,7 @@ http_send_header(sky_http_request_t *r, sky_str_t *body) {
     *(buf->last++) = '\n';
 
     if (body) {
-        if ((sky_size_t) (buf->end - buf->last) < body->len) {
+        if (sky_unlikely((sky_size_t) (buf->end - buf->last) < body->len)) {
             r->conn->write(r->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos));
             sky_buf_reset(buf);
         }
@@ -321,7 +321,7 @@ http_http_send_file(sky_http_connection_t *conn, sky_int32_t fd, sky_int64_t lef
     for (;;) {
         n = sendfile(socket_fd, fd, &left, (size_t) (right - left));
         if (n < 1) {
-            if (n == 0) {
+            if (sky_unlikely(n == 0)) {
                 sky_coro_yield(conn->coro, SKY_CORO_ABORT);
                 sky_coro_exit();
             }
