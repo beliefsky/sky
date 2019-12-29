@@ -16,26 +16,11 @@
 #include <net/http/module/http_module_dispatcher.h>
 #include <net/http/http_request.h>
 #include <net/http/extend//http_extend_pgsql_pool.h>
+#include <net/http/extend/http_extend_redis_pool.h>
 
 #include <core/log.h>
 #include <core/memory.h>
 #include <core/number.h>
-
-#if defined(__linux__)
-
-#include <sched.h>
-#include <net/http/extend/http_extend_redis_pool.h>
-
-typedef cpu_set_t sky_cpu_set_t;
-
-#define sky_setaffinity(_c)   sched_setaffinity(0, sizeof(sky_cpu_set_t), _c)
-#elif defined(__FreeBSD__) || defined(__APPLE__)
-
-#include <sys/cpuset.h>
-typedef cpuset_t sky_cpu_set_t;
-#define sky_setaffinity(_c) \
-    cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1, sizeof(cpuset_t), _c)
-#endif
 
 static void server_start(sky_int64_t cpu_num);
 
@@ -50,8 +35,8 @@ main() {
     sky_int64_t cpu_num;
     sky_uint32_t i;
 
-    cpu_num = sysconf(_SC_NPROCESSORS_CONF);
-//    cpu_num = 0;
+//    cpu_num = sysconf(_SC_NPROCESSORS_ONLN);
+    cpu_num = 0;
     if ((--cpu_num) < 0) {
         cpu_num = 0;
     }
@@ -251,6 +236,7 @@ redis_test(sky_http_request_t *req, sky_http_response_t *res) {
 static void
 hello_world(sky_http_request_t *req, sky_http_response_t *res) {
     sky_pg_sql_t *ps = sky_pg_sql_connection_get(ps_pool, req->pool, req->conn);
+
 
     sky_str_t cmd = sky_string("SELECT id, username, password FROM tb_user WHERE id = $1");
 
