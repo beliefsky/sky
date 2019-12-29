@@ -67,6 +67,7 @@ set(CMAKE_INSTALL_FULL_INCLUDEDIR "/usr/local/include")
 
 install(FILES
         core/types.h
+        core/memory.h
         core/palloc.h
         core/array.h
         core/hash.h
@@ -99,8 +100,8 @@ install(FILES
 install(FILES
         net/http/module/http_module_dispatcher.h
         net/http/module/http_module_file.h
-        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/module")
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/http/module")
 install(FILES
         net/http/extend/http_extend_pgsql_pool.h
         net/http/extend/http_extend_redis_pool.h
-        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/extend")
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/http/extend")
