@@ -26,9 +26,9 @@ static void server_start(sky_int64_t cpu_num);
 
 static void build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module);
 
-static void redis_test(sky_http_request_t *req, sky_http_response_t *res);
+static sky_bool_t redis_test(sky_http_request_t *req, sky_http_response_t *res);
 
-static void hello_world(sky_http_request_t *req, sky_http_response_t *res);
+static sky_bool_t hello_world(sky_http_request_t *req, sky_http_response_t *res);
 
 int
 main() {
@@ -181,11 +181,11 @@ build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module) {
     sky_http_mapper_t mappers[] = {
             {
                     .path = sky_string("/hello"),
-                    .handler = hello_world
+                    .get_handler = hello_world
             },
             {
                     .path = sky_string("/redis"),
-                    .handler = redis_test
+                    .get_handler = redis_test
             }
     };
 
@@ -193,7 +193,7 @@ build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module) {
     sky_http_module_dispatcher_init(pool, module, &prefix, mappers, 2);
 }
 
-static void
+static sky_bool_t
 redis_test(sky_http_request_t *req, sky_http_response_t *res) {
     sky_redis_cmd_t *rc = sky_redis_connection_get(redis_pool, req->pool, req->conn);
 
@@ -231,9 +231,11 @@ redis_test(sky_http_request_t *req, sky_http_response_t *res) {
 
     res->type = SKY_HTTP_RESPONSE_BUF;
     sky_str_set(&res->buf, "{\"status\": 200, \"msg\": \"success\"}");
+
+    return true;
 }
 
-static void
+static sky_bool_t
 hello_world(sky_http_request_t *req, sky_http_response_t *res) {
     sky_pg_sql_t *ps = sky_pg_sql_connection_get(ps_pool, req->pool, req->conn);
 
@@ -250,14 +252,14 @@ hello_world(sky_http_request_t *req, sky_http_response_t *res) {
 
         res->type = SKY_HTTP_RESPONSE_BUF;
         sky_str_set(&res->buf, "{\"status\": 500, \"msg\": \"database error\"}");
-        return;
+        return false;
     }
     sky_pg_sql_connection_put(ps);
 
     if (!result->lines) {
         res->type = SKY_HTTP_RESPONSE_BUF;
         sky_str_set(&res->buf, "{\"status\": 200, \"msg\": \"success\", \"data\": null}");
-        return;
+        return false;
     }
     sky_pg_row_t *row = result->data;
 
@@ -285,6 +287,6 @@ hello_world(sky_http_request_t *req, sky_http_response_t *res) {
     res->buf.data = buf->pos;
     res->buf.len = (sky_size_t) (buf->last - buf->pos);
 
-
+    return true;
 }
 
