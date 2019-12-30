@@ -69,6 +69,9 @@ http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
             handler = &handler[9];
             break;
         default:
+            r->state = 405;
+            response->type = SKY_HTTP_RESPONSE_BUF;
+            sky_str_set(&response->buf, "{\"status\": 405, \"msg\": \"405 Method Not Allowed\"}");
             return response;
     }
 
