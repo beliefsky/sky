@@ -43,6 +43,7 @@ static sky_http_response_t *
 http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
     sky_http_response_t *response;
     sky_http_mapper_pt *handler;
+    sky_bool_t flag;
 
     response = sky_palloc(r->pool, sizeof(sky_http_response_t));
     sky_str_set(&r->headers_out.content_type, "application/json");
@@ -70,14 +71,28 @@ http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
         default:
             return response;
     }
-    if (handler[0] && !handler[0](r, response)) {
-        return response;
+
+    flag = false;
+    if (handler[0]) {
+        if (!handler[0](r, response)) {
+            return response;
+        }
+        flag = true;
     }
-    if (handler[1] && !handler[2](r, response)) {
-        return response;
+    if (handler[1]) {
+        if (!handler[1](r, response)) {
+            return response;
+        }
+        flag = true;
     }
     if (handler[2]) {
         handler[2](r, response);
+        flag = true;
+    }
+    if (!flag) {
+        r->state = 405;
+        response->type = SKY_HTTP_RESPONSE_BUF;
+        sky_str_set(&response->buf, "{\"status\": 405, \"msg\": \"405 Method Not Allowed\"}");
     }
 
     return response;
