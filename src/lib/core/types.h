@@ -101,5 +101,5 @@ typedef time_t sky_time_t;
 * x >= 0; 0<= n <=128
 */
 #define sky_uchar_eight_count_between(_x, _m, _n)   \
-    (sky_uchar_seven_has_between(_x, _m, _n) / 128 % 255)
+    (sky_uchar_eight_has_between(_x, _m, _n) / 128 % 255)
 #endif //SKY_TYPES_H
