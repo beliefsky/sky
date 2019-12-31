@@ -44,7 +44,62 @@ typedef time_t sky_time_t;
 #define sky_min(_v1, _v2)  ((_v2) ^ ((_v1) ^ (_v2)) &- ((_v1) < (_v2)))
 #define sky_swap(a, b)       (((a) ^ (b)) && ((b) ^= (a) ^= (b), (a) ^= (b)))
 
+/**
+ * 是否是2的冪数
+ */
 #define sky_is_2_power(_v) ((_v) && ((_v) & ((_v) -1)))
 
+/**
+ * 可以计算查找4个字节是否有\0, 需要提前把 v 转成 uint32
+ */
+#define sky_uchar_four_has_zero(_v)  \
+    (((_v) - 0x01010101UL) & ~(_v) & 0x80808080UL)
 
+/**
+ * 可以计算查找4个字节是否有n, 需要提前把 v 转成 uint32
+ */
+#define sky_uchar_four_has_value(_v, _n)    \
+    (sky_uchar_four_has_zero((_v) ^ (~0UL / 255 * (_n))))
+
+/**
+ * 可以计算8个字节是否都小于n, 需要提前把 v 转成 uint32或uint64
+ * x >= 0; 0<= n <=128
+ */
+#define sky_uchar_eight_has_less(_x, _n) \
+    (((_x) - ~0UL / 255 * (_n)) & ~(_x) & ~0UL / 255 * 128)
+
+/**
+ * 可以计算8个字节小于n的字节数, 需要提前把 v 转成 uint32或uint64
+ *  x >= 0; 0<= n <=128
+ */
+#define sky_uchar_eight_count_less(_x, _n)    \
+    (((~0UL / 255 * (127 + (_n)) - ((_x) & ~0UL / 255 * 127)) & ~(_x) & ~0UL / 255 * 128) / 128 % 255)
+
+/**
+ * 可以计算8个字节是否都大于n, 需要提前把 v 转成 uint32或uint64
+ * x >= 0; 0<= n <=128
+ */
+#define sky_uchar_eight_has_more(_x, _n)    \
+    (((_x) + ~0UL / 255 * (127 - (_n)) | (_x)) & ~0UL / 255 * 128)
+
+/**
+ * 可以计算8个字节大于n的字节数, 需要提前把 v 转成 uint32或uint64
+ * x >= 0; 0<= n <=128
+ */
+#define sky_uchar_eight_count_more(_x, _n)    \
+    (((((_x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (_n)) | (_x)) & ~0UL / 255 * 128) / 128 % 255)
+
+/**
+* 可以计算8个字节是否都 m < v < n, 需要提前把 v 转成 uint32或uint64
+* x >= 0; 0<= n <=128
+*/
+#define sky_uchar_eight_has_between(_x, _m, _n) \
+    ((~0UL / 255 * ( 127 + (_n)) - ((_x) & ~0UL / 255 * 127 )& ~(_x) & ((_x) & ~0UL / 255 * 127) + ~0UL / 255 * (127-(_m))) & ~0UL / 255 * 128)
+
+/**
+* 可以计算8个字节在 m < v < n 的字节数, 需要提前把 v 转成 uint32或uint64
+* x >= 0; 0<= n <=128
+*/
+#define sky_uchar_eight_count_between(_x, _m, _n)   \
+    (sky_uchar_seven_has_between(_x, _m, _n) / 128 % 255)
 #endif //SKY_TYPES_H
