@@ -250,6 +250,8 @@ sky_str_to_uint64(sky_str_t *in, sky_uint64_t *out) {
     sky_size_t len;
     sky_uint64_t mask;
 
+    static const sky_uint32_t base_dic[] = {1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000};
+
     len = in->len;
     if (sky_unlikely(!len || len > 20)) {
         return false;
@@ -271,32 +273,7 @@ sky_str_to_uint64(sky_str_t *in, sky_uint64_t *out) {
 
     mask = *(sky_uint64_t *) (&in->data[8]);
     if (len < 9) {
-        switch (len) {
-            case 1:
-                *out *= 10;
-                break;
-            case 2:
-                *out *= 100;
-                break;
-            case 3:
-                *out *= 1000;
-                break;
-            case 4:
-                *out *= 10000;
-                break;
-            case 5:
-                *out *= 100000;
-                break;
-            case 6:
-                *out *= 1000000;
-                break;
-            case 7:
-                *out *= 10000000;
-                break;
-            case 8:
-                *out *= 1000000000;
-                break;
-        }
+        *out *= base_dic[len];
         if (sky_unlikely((sky_uchar_eight_count_between(mask, 0x2F, 0x3A) < len))) {
             return false;
         }
@@ -306,26 +283,12 @@ sky_str_to_uint64(sky_str_t *in, sky_uint64_t *out) {
     if (sky_unlikely((sky_uchar_eight_count_between(mask, 0x2F, 0x3A) < 8))) {
         return false;
     }
-    *out *= 1000000000;
+    *out *= base_dic[8];
     *out += fast_str_parse_uint32(&in->data[8], 8);
-
     len -= 8;
 
     mask = *(sky_uint64_t *) (&in->data[16]);
-    switch (len) {
-        case 1:
-            *out *= 10;
-            break;
-        case 2:
-            *out *= 100;
-            break;
-        case 3:
-            *out *= 1000;
-            break;
-        case 4:
-            *out *= 10000;
-            break;
-    }
+    *out *= base_dic[len];
     if (sky_unlikely((sky_uchar_eight_count_between(mask, 0x2F, 0x3A) < len))) {
         return false;
     }
