@@ -39,8 +39,12 @@ typedef time_t sky_time_t;
 #define sky_likely(_x)       __builtin_expect(!!(_x), 1)
 #define sky_unlikely(_x)     __builtin_expect(!!(_x), 0)
 
-#define sky_abs(value)       (((value) > 0) ? (value) : ~(value) + 1)
-#define sky_max(val1, val2)  ((val1) < (val2) ? (val2) : (val1))
-#define sky_min(val1, val2)  ((val1) > (val2) ? (val2) : (val1))
+#define sky_abs(_v)       (((_v) > 0) ? (_v) : ~(_v) + 1)
+#define sky_max(_v1, _v2)  ((_v1) ^ ((_v1) ^ (_v2)) &- ((_v1) < (_v2)))
+#define sky_min(_v1, _v2)  ((_v2) ^ ((_v1) ^ (_v2)) &- ((_v1) < (_v2)))
 #define sky_swap(a, b)       (((a) ^ (b)) && ((b) ^= (a) ^= (b), (a) ^= (b)))
+
+#define sky_is_2_power(_v) ((_v) && ((_v) & ((_v) -1)))
+
+
 #endif //SKY_TYPES_H

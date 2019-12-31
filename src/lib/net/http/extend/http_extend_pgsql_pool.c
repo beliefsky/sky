@@ -69,7 +69,7 @@ sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf) {
 
     if (!(i = conf->connection_size)) {
         i = 2;
-    } else if ((i & (i - 1)) != 0) {
+    } else if (sky_is_2_power(i)) {
         sky_log_error("连接数必须为2的整数幂");
         return null;
     }
@@ -451,10 +451,7 @@ pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_data_t *params, sky_uint16
     if (!params || !param_len) {
         size = (sky_uint32_t) cmd->len + 46;
         if (!ps->query_buf) {
-            if (size < 1023) {
-                size = 1023;
-            }
-            buf = ps->query_buf = sky_buf_create(ps->pool, size);
+            buf = ps->query_buf = sky_buf_create(ps->pool, sky_max(size, 1023));
         } else {
             buf = ps->query_buf;
             sky_buf_reset(buf);
@@ -513,7 +510,7 @@ pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_data_t *params, sky_uint16
     }
     size += (sky_uint32_t) cmd->len + 32;
     if (!ps->query_buf) {
-        buf = ps->query_buf = sky_buf_create(ps->pool, size < 1023 ? 1023 : size);
+        buf = ps->query_buf = sky_buf_create(ps->pool, sky_max(size, 1023));
     } else {
         buf = ps->query_buf;
         sky_buf_reset(buf);

@@ -7,8 +7,7 @@
 
 
 sky_array_t *
-sky_array_create(sky_pool_t *p, sky_uint32_t n, sky_size_t size)
-{
+sky_array_create(sky_pool_t *p, sky_uint32_t n, sky_size_t size) {
     sky_array_t *a;
 
     // 分配ngx_array_t数组管理结构的内存
@@ -24,9 +23,8 @@ sky_array_create(sky_pool_t *p, sky_uint32_t n, sky_size_t size)
 }
 
 void
-sky_array_destroy(sky_array_t *a)
-{
-    sky_pool_t  *p;
+sky_array_destroy(sky_array_t *a) {
+    sky_pool_t *p;
 
     p = a->pool;
 
@@ -45,19 +43,17 @@ sky_array_destroy(sky_array_t *a)
 如果当前链表节点没有足够的空间则使用ngx_palloc重新分配一个2倍于之前数组空间大小的数组，然后将数据转移过来，并返回新地址的指针
 */
 void *
-sky_array_push(sky_array_t *a)
-{
-    void            *elt, *new;
-    sky_size_t      size;
-    sky_pool_t      *p;
+sky_array_push(sky_array_t *a) {
+    void *elt, *new;
+    sky_size_t size;
+    sky_pool_t *p;
 
     if (a->nelts == a->nalloc) {
         /* the array is full */
         size = a->size * a->nalloc;
         p = a->pool;
         if ((sky_uchar_t *) a->elts + size == p->d.last
-            && p->d.last + a->size <= p->d.end)
-        {
+            && p->d.last + a->size <= p->d.end) {
             /*
              * the array allocation is the last in the pool
              * and there is space for new allocation
@@ -81,20 +77,18 @@ sky_array_push(sky_array_t *a)
 }
 
 void *
-sky_array_push_n(sky_array_t *a, sky_uint32_t n)
-{
-    void            *elt, *new;
-    sky_size_t      size;
-    sky_uint32_t    nalloc;
-    sky_pool_t      *p;
+sky_array_push_n(sky_array_t *a, sky_uint32_t n) {
+    void *elt, *new;
+    sky_size_t size;
+    sky_uint32_t nalloc;
+    sky_pool_t *p;
 
     size = n * a->size;
     if (a->nelts + n > a->nalloc) {
         /* the array is full */
         p = a->pool;
         if ((sky_uchar_t *) a->elts + a->size * a->nalloc == p->d.last
-            && p->d.last + size <= p->d.end)
-        {
+            && p->d.last + size <= p->d.end) {
             /*
              * the array allocation is the last in the pool
              * and there is space for new allocation
@@ -103,7 +97,7 @@ sky_array_push_n(sky_array_t *a, sky_uint32_t n)
             a->nalloc += n;
         } else {
             /* allocate a new array */
-            nalloc = ((n >= a->nalloc) ? n : a->nalloc) << 0x1;
+            nalloc = (sky_max(n, a->nalloc)) << 0x1;
             new = sky_palloc(p, nalloc * a->size);
             if (sky_unlikely(!new)) {
                 return null;

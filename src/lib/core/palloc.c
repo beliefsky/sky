@@ -34,7 +34,7 @@ sky_create_pool(sky_size_t size)
     p->d.next = null;
     p->d.failed = 0x0;
     size = size - sizeof(sky_pool_t);
-    p->max = (size < SKY_MAX_ALLOC_FROM_POOL) ? size : SKY_MAX_ALLOC_FROM_POOL;
+    p->max = sky_min(size, SKY_MAX_ALLOC_FROM_POOL);
     p->current = p;
     p->large = null;
     p->cleanup = null;
