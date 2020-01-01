@@ -18,7 +18,7 @@ set(SOURCES
         core/buf.c
         core/md5.c
         core/base64.c
-        #		core/json.c
+        core/json.c
         event/event_loop.c
         net/tcp.c
         net/http/http_request.c
