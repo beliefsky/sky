@@ -41,6 +41,7 @@ typedef struct {
     sky_table_elt_t *if_modified_since;
     sky_table_elt_t *content_type;
     sky_table_elt_t *content_length;
+    sky_table_elt_t *authorization;
 
     sky_table_elt_t *range;
     sky_table_elt_t *if_range;

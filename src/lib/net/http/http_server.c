@@ -287,6 +287,9 @@ build_headers_in(sky_array_t *array, sky_pool_t *pool) {
     http_header_push("Content-Type", http_process_header_line,
                      sky_offset_of(sky_http_headers_in_t, content_type));
 
+    http_header_push("Authorization", http_process_header_line,
+                     sky_offset_of(sky_http_headers_in_t, authorization));
+
     http_header_push("Range", http_process_header_line,
                      sky_offset_of(sky_http_headers_in_t, range));
 
