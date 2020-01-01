@@ -170,6 +170,7 @@ http_header_read(sky_http_connection_t *conn) {
 
         if (n == r->headers_in.content_length_n) {
             *(buf->last) = '\0';
+            r->request_body->ok = true;
         } else {
             n += (sky_uint32_t) (buf->end - buf->last);
             if (n >= r->headers_in.content_length_n) {
@@ -183,6 +184,7 @@ http_header_read(sky_http_connection_t *conn) {
                         continue;
                     }
                     *(buf->last) = '\0';
+                    r->request_body->ok = true;
                     break;
                 }
             }
