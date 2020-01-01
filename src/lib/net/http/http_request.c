@@ -163,6 +163,31 @@ http_header_read(sky_http_connection_t *conn) {
         n = conn->read(conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
         buf->last += n;
     }
+    if (r->request_body) {
+        n = (sky_uint32_t) (buf->last - buf->pos);
+        r->request_body->read_size = n;
+        r->request_body->tmp = buf->pos;
+
+        if (n == r->headers_in.content_length_n) {
+            *(buf->last) = '\0';
+        } else {
+            n += (sky_uint32_t) (buf->end - buf->last);
+            if (n >= r->headers_in.content_length_n) {
+                // read body
+                for (;;) {
+                    n = conn->read(conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
+                    buf->last += n;
+                    r->request_body->read_size += n;
+
+                    if (r->request_body->read_size < r->headers_in.content_length_n) {
+                        continue;
+                    }
+                    *(buf->last) = '\0';
+                    break;
+                }
+            }
+        }
+    }
     sky_list_init(&r->headers_out.headers, pool, 32, sizeof(sky_table_elt_t));
 
     return r;

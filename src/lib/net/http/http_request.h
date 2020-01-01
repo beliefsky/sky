@@ -69,7 +69,8 @@ typedef struct {
 } sky_http_headers_out_t;
 
 typedef struct {
-
+    sky_uint32_t read_size;
+    sky_uchar_t *tmp;
 } sky_http_request_body_t;
 
 struct sky_http_request_s {
