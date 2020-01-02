@@ -18,6 +18,7 @@ set(SOURCES
         core/buf.c
         core/md5.c
         core/base64.c
+        core/uuid.c
         core/json.c
         event/event_loop.c
         net/tcp.c
