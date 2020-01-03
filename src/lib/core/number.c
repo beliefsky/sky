@@ -1,7 +1,6 @@
 //
 // Created by weijing on 18-10-9.
 //
-
 #include "number.h"
 #include "memory.h"
 
@@ -374,6 +373,29 @@ fast_str_parse_mask(sky_uchar_t *chars, sky_size_t len) {
     return val;
 }
 
+#ifdef HAS_CPU_MSSE
+#include <emmintrin.h>
+#include <tmmintrin.h>
+#include <nmmintrin.h>
+
+static sky_inline
+sky_uint32_t fast_str_parse_uint32(sky_uint64_t mask) {
+    // this actually computes *16* values so we are being wasteful.
+    const __m128i ascii0 = _mm_set1_epi8('0');
+    const __m128i mul_1_10 =
+            _mm_setr_epi8(10, 1, 10, 1, 10, 1, 10, 1, 10, 1, 10, 1, 10, 1, 10, 1);
+    const __m128i mul_1_100 = _mm_setr_epi16(100, 1, 100, 1, 100, 1, 100, 1);
+    const __m128i mul_1_10000 =
+            _mm_setr_epi16(10000, 1, 10000, 1, 10000, 1, 10000, 1);
+    const __m128i input = _mm_sub_epi8(
+            _mm_loadu_si128((const __m128i *) (&mask)), ascii0);
+    const __m128i t1 = _mm_maddubs_epi16(input, mul_1_10);
+    const __m128i t2 = _mm_madd_epi16(t1, mul_1_100);
+    const __m128i t3 = _mm_packus_epi32(t2, t2);
+    const __m128i t4 = _mm_madd_epi16(t3, mul_1_10000);
+    return (sky_uint32_t) _mm_cvtsi128_si32(t4); // only captures the sum of the first 8 digits, drop the rest
+}
+#else
 /**
  * 将8个字节及以内字符串转成int
  * @param chars 待转换的字符
@@ -385,6 +407,7 @@ fast_str_parse_uint32(sky_uint64_t mask) {
     mask = (mask & 0x00FF00FF00FF00FF) * 6553601 >> 16;
     return (mask & 0x0000FFFF0000FFFF) * 42949672960001 >> 32;
 }
+#endif
 
 /**
  * 0-99 的值转字符串

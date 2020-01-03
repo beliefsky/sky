@@ -193,6 +193,16 @@ build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module) {
     sky_http_module_dispatcher_init(pool, module, &prefix, mappers, 2);
 }
 
+static sky_bool_t fast_check(sky_char_t *s) {
+    uint64_t val;
+
+    memcpy(&val, s, 8);
+
+    return (((val & 0xF0F0F0F0F0F0F0F0) |
+             (((val + 0x0606060606060606) & 0xF0F0F0F0F0F0F0F0) >> 4)) ==
+            0x3333333333333333);
+}
+
 static sky_bool_t
 redis_test(sky_http_request_t *req, sky_http_response_t *res) {
     sky_redis_cmd_t *rc = sky_redis_connection_get(redis_pool, req->pool, req->conn);
@@ -231,6 +241,12 @@ redis_test(sky_http_request_t *req, sky_http_response_t *res) {
 
     res->type = SKY_HTTP_RESPONSE_BUF;
     sky_str_set(&res->buf, "{\"status\": 200, \"msg\": \"success\"}");
+
+
+    sky_str_t s = sky_string("92345678");
+    sky_uint32_t num;
+    sky_str_to_uint32(&s, &num);
+    sky_log_info("%d", num);
 
     return true;
 }

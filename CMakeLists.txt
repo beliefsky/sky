@@ -64,7 +64,6 @@ endif()
 
 enable_c_flag_if_avail(-mtune=native C_FLAGS_REL HAS_MTUNE_NATIVE)
 enable_c_flag_if_avail(-march=native C_FLAGS_REL HAS_MARCH_NATIVE)
-
 #
 # Check if immediate binding and read-only global offset table flags
 # can be used
@@ -81,6 +80,7 @@ else ()
             HAS_NO_PLT)
 endif ()
 
+enable_c_flag_if_avail(-msse4.2 CMAKE_C_FLAGS HAS_CPU_MSSE)
 
 if (${CMAKE_BUILD_TYPE} MATCHES "Rel")
     enable_c_flag_if_avail(-malign-data=abi C_FLAGS_REL HAS_ALIGN_DATA)
@@ -106,6 +106,7 @@ else ()
         message(STATUS "Building without a sanitizer")
     endif ()
 endif ()
+
 
 #
 # These warnings are only supported by GCC, and some only in newer versions.
