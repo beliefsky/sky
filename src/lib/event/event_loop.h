@@ -4,6 +4,9 @@
 
 #ifndef SKY_EVENT_LOOP_H
 #define SKY_EVENT_LOOP_H
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include "../core/palloc.h"
 #include "../core/rbtree.h"
@@ -74,4 +77,7 @@ void sky_event_register(sky_event_t *ev, sky_int32_t timeout);
  */
 void sky_event_unregister(sky_event_t *ev);
 
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_EVENT_LOOP_H

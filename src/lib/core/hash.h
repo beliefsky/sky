@@ -4,6 +4,9 @@
 
 #ifndef SKY_HASH_H
 #define SKY_HASH_H
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include "types.h"
 #include "string.h"
@@ -199,4 +202,7 @@ sky_bool_t sky_hash_keys_array_init(sky_hash_keys_arrays_t *ha, sky_uint_t type)
 
 sky_int8_t sky_hash_add_key(sky_hash_keys_arrays_t *ha, sky_str_t *key, void *value, sky_uint_t flags);
 
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_HASH_H

@@ -4,6 +4,9 @@
 
 #ifndef SKY_NUMBER_H
 #define SKY_NUMBER_H
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include "string.h"
 
@@ -41,4 +44,7 @@ sky_uint8_t sky_int64_to_str(sky_int64_t data, sky_uchar_t *src);
 
 sky_uint8_t sky_uint64_to_str(sky_uint64_t data, sky_uchar_t *src);
 
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_NUMBER_H

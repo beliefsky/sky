@@ -4,7 +4,9 @@
 
 #ifndef SKY_INET_H
 #define SKY_INET_H
-
+#if defined(__cplusplus)
+extern "C" {
+#endif
 #include "../core/types.h"
 
 #ifdef HAVE_BUILTIN_BSWAP
@@ -46,4 +48,7 @@
 #define sky_ntohll(_ll) (_ll)
 #endif
 
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_INET_H

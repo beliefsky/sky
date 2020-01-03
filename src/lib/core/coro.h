@@ -4,6 +4,9 @@
 
 #ifndef SKY_CORO_H
 #define SKY_CORO_H
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 
 #include "types.h"
 #include "palloc.h"
@@ -77,4 +80,7 @@ void sky_defer_run(sky_coro_t *coro);
 
 sky_pool_t *sky_coro_pool_get(sky_coro_t *coro);
 
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_CORO_H

@@ -4,6 +4,9 @@
 
 #ifndef SKY_HTTP_EXTEND_PGSQL_POOL_H
 #define SKY_HTTP_EXTEND_PGSQL_POOL_H
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include "../http_server.h"
 
@@ -85,4 +88,7 @@ sky_pg_result_t *sky_pg_sql_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_data_t
 
 void sky_pg_sql_connection_put(sky_pg_sql_t *ps);
 
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_HTTP_EXTEND_PGSQL_POOL_H

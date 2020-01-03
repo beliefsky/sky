@@ -4,6 +4,9 @@
 
 #ifndef SKY_HTTP_EXTEND_REDIS_POOL_H
 #define SKY_HTTP_EXTEND_REDIS_POOL_H
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include <netdb.h>
 #include <errno.h>
@@ -68,4 +71,7 @@ sky_redis_result_t *sky_redis_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params
 
 void sky_redis_connection_put(sky_redis_cmd_t *rc);
 
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_HTTP_EXTEND_REDIS_POOL_H

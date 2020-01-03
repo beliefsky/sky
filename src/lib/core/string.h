@@ -4,6 +4,9 @@
 
 #ifndef SKY_STRING_H
 #define SKY_STRING_H
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include "types.h"
 #include <string.h>
@@ -146,4 +149,7 @@ sky_strlow(str->data, str->data, str->len);
 
 sky_uchar_t *sky_cpystrn(sky_uchar_t *dst, sky_uchar_t *src, sky_size_t n);
 
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_STRING_H

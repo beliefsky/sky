@@ -4,7 +4,9 @@
 
 #ifndef SKY_BASE64_H
 #define SKY_BASE64_H
-
+#if defined(__cplusplus)
+extern "C" {
+#endif
 #include "string.h"
 
 //base64 编码／解码函数和宏
@@ -23,5 +25,7 @@ sky_bool_t sky_decode_base64(sky_str_t *dst, sky_str_t *src);
 
 void sky_encode_base64url(sky_str_t *dst, sky_str_t *src);
 sky_bool_t sky_decode_base64url(sky_str_t *dst, sky_str_t *src);
-
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_BASE64_H

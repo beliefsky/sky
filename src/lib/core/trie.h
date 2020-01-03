@@ -4,6 +4,9 @@
 
 #ifndef SKY_TRIE_H
 #define SKY_TRIE_H
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include "palloc.h"
 #include "string.h"
@@ -19,4 +22,7 @@ sky_uintptr_t sky_trie_find(sky_trie_t *trie, sky_str_t *key);
 
 sky_uintptr_t sky_trie_contains(sky_trie_t *trie, sky_str_t *key);
 
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_TRIE_H

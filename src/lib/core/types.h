@@ -4,6 +4,9 @@
 
 #ifndef SKY_TYPES_H
 #define SKY_TYPES_H
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include <stdint.h>
 #include <time.h>
@@ -84,7 +87,7 @@ typedef time_t sky_time_t;
 
 /**
  * 可以计算8个字节大于n的字节数, 需要提前把 v 转成 uint32或uint64
- * x >= 0; 0<= n <=128
+ * x >= 0; 0<= n <=128_
  */
 #define sky_uchar_eight_count_more(_x, _n)    \
     (((((_x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (_n)) | (_x)) & ~0UL / 255 * 128) / 128 % 255)
@@ -102,4 +105,8 @@ typedef time_t sky_time_t;
 */
 #define sky_uchar_eight_count_between(_x, _m, _n)   \
     (sky_uchar_eight_has_between(_x, _m, _n) / 128 % 255)
+
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_TYPES_H

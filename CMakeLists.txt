@@ -34,7 +34,7 @@ if (NOT HAS_CLOCK_GETTIME AND ${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 endif ()
 
 #
-# Ensure compiler is compatible with GNU99 standard
+# Ensure compiler is compatible with GNU11 standard
 #
 check_c_compiler_flag(-std=gnu11 HAS_STD_GNU11)
 if (NOT HAS_STD_GNU11)

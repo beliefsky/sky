@@ -4,6 +4,9 @@
 
 #ifndef SKY_RADIX_TREE_H
 #define SKY_RADIX_TREE_H
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include "palloc.h"
 
@@ -44,4 +47,7 @@ sky_bool_t sky_radix128tree_delete(sky_radix_tree_t *tree, sky_uchar_t *key, sky
 
 sky_uintptr_t sky_radix128tree_find(sky_radix_tree_t *tree, sky_uchar_t *key);
 
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_RADIX_TREE_H

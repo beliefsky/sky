@@ -4,6 +4,9 @@
 
 #ifndef SKY_TCP_H
 #define SKY_TCP_H
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include "../event/event_loop.h"
 #include "../core/palloc.h"
@@ -23,4 +26,7 @@ typedef struct {
 void sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
                              sky_tcp_conf_t *conf);
 
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_TCP_H

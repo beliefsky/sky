@@ -4,6 +4,9 @@
 
 #ifndef SKY_CPUINFO_H
 #define SKY_CPUINFO_H
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include "types.h"
 
@@ -25,4 +28,8 @@ typedef cpuset_t sky_cpu_set_t;
 extern sky_uint_t sky_cache_line_size;
 
 void sky_cpu_info(void);
+
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_CPUINFO_H

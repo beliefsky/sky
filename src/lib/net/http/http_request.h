@@ -4,6 +4,9 @@
 
 #ifndef SKY_HTTP_REQUEST_H
 #define SKY_HTTP_REQUEST_H
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include "http_server.h"
 #include "../../core/array.h"
@@ -118,5 +121,9 @@ struct sky_http_response_s {
 void sky_http_request_init(sky_http_server_t *server);
 
 sky_int8_t sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn);
+
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 
 #endif //SKY_HTTP_REQUEST_H

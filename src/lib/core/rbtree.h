@@ -4,6 +4,9 @@
 
 #ifndef SKY_RBTREE_H
 #define SKY_RBTREE_H
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include "types.h"
 
@@ -14,11 +17,11 @@ typedef struct sky_rbtree_node_s sky_rbtree_node_t;
 **/
 
 struct sky_rbtree_node_s {
-    sky_uintptr_t       key;                /*无符号整形的关键字*/
-    sky_rbtree_node_t   *left;              /*左子节点*/
-    sky_rbtree_node_t   *right;             /*右子节点*/
-    sky_rbtree_node_t   *parent;            /*父节点*/
-    sky_uchar_t         color;              /*节点的颜色，0表示黑色，1表示红色*/
+    sky_uintptr_t key;                /*无符号整形的关键字*/
+    sky_rbtree_node_t *left;              /*左子节点*/
+    sky_rbtree_node_t *right;             /*右子节点*/
+    sky_rbtree_node_t *parent;            /*父节点*/
+    sky_uchar_t color;              /*节点的颜色，0表示黑色，1表示红色*/
 };
 
 typedef struct sky_rbtree_s sky_rbtree_t;
@@ -62,12 +65,14 @@ sky_rbtree_node_t *sky_rbtree_next(sky_rbtree_t *tree, sky_rbtree_node_t *node);
 #define sky_rbtree_sentinel_init(node)  sky_rbt_black(node)
 
 static sky_inline sky_rbtree_node_t *
-sky_rbtree_min(sky_rbtree_node_t *node, sky_rbtree_node_t *sentinel)
-{
+sky_rbtree_min(sky_rbtree_node_t *node, sky_rbtree_node_t *sentinel) {
     while (node->left != sentinel) {
         node = node->left;
     }
     return node;
 }
 
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_RBTREE_H

@@ -3,6 +3,9 @@
 //
 #ifndef SKY_MEM_POOL_H
 #define SKY_MEM_POOL_H
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include "types.h"
 
@@ -17,4 +20,8 @@ void sky_mem_pool_put(sky_mem_pool_t *pool, void *ptr);
 void sky_mem_pool_reset(sky_mem_pool_t *pool);
 
 void sky_mem_pool_destroy(sky_mem_pool_t *pool);
+
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_MEM_POOL_H

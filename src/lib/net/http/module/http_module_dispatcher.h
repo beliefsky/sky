@@ -4,6 +4,9 @@
 
 #ifndef SKY_HTTP_MODULE_DISPATCHER_H
 #define SKY_HTTP_MODULE_DISPATCHER_H
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include "../http_server.h"
 
@@ -30,4 +33,7 @@ struct sky_http_mapper_s {
 void sky_http_module_dispatcher_init(sky_pool_t *pool, sky_http_module_t *module, sky_str_t *prefix,
                                      sky_http_mapper_t *mappers, sky_size_t mapper_len);
 
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_HTTP_MODULE_DISPATCHER_H

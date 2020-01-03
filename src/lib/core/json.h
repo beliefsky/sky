@@ -4,6 +4,9 @@
 
 #ifndef SKY_JSON_H
 #define SKY_JSON_H
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include "string.h"
 #include "palloc.h"
@@ -31,5 +34,9 @@ struct sky_json_node_s {
 };
 
 sky_json_t *sky_json_load(sky_pool_t *pool, sky_str_t *value);
+
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 
 #endif //SKY_JSON_H
