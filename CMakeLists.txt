@@ -44,6 +44,9 @@ endif()
 #
 # Check for GCC builtin functions
 #
+
+check_c_source_compiles("int main(void) { __builtin_bswap64(123); }" HAVE_BUILTIN_BSWAP)
+
 check_c_source_compiles("int main(void) { __builtin_cpu_init(); }" HAVE_BUILTIN_CPU_INIT)
 check_c_source_compiles("int main(void) { __builtin_clzll(0); }" HAVE_BUILTIN_CLZLL)
 check_c_source_compiles("int main(void) { unsigned long long p; (void)__builtin_mul_overflow(0, 0, &p); }" HAVE_BUILTIN_MUL_OVERFLOW)
