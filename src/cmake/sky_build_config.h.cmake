@@ -36,6 +36,6 @@
 #cmakedefine USE_VALGRIND
 
 
-#cmakedefine HAS_CPU_MSSE
+#cmakedefine HAS_CPU_MSSE42
 #endif
 

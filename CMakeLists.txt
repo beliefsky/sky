@@ -83,7 +83,7 @@ else ()
             HAS_NO_PLT)
 endif ()
 
-enable_c_flag_if_avail(-msse4.2 CMAKE_C_FLAGS HAS_CPU_MSSE)
+enable_c_flag_if_avail(-msse4.2 CMAKE_C_FLAGS HAS_CPU_MSSE42)
 
 if (${CMAKE_BUILD_TYPE} MATCHES "Rel")
     enable_c_flag_if_avail(-malign-data=abi C_FLAGS_REL HAS_ALIGN_DATA)
