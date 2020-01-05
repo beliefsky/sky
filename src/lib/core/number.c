@@ -373,7 +373,7 @@ fast_str_parse_mask(sky_uchar_t *chars, sky_size_t len) {
     return val;
 }
 
-#ifdef HAS_CPU_MSSE42
+#ifdef __SSE4_2__
 #include <emmintrin.h>
 #include <tmmintrin.h>
 #include <nmmintrin.h>

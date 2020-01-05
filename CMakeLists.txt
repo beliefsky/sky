@@ -83,8 +83,6 @@ else ()
             HAS_NO_PLT)
 endif ()
 
-enable_c_flag_if_avail(-msse4.2 CMAKE_C_FLAGS HAS_CPU_MSSE42)
-
 if (${CMAKE_BUILD_TYPE} MATCHES "Rel")
     enable_c_flag_if_avail(-malign-data=abi C_FLAGS_REL HAS_ALIGN_DATA)
     enable_c_flag_if_avail(-fno-asynchronous-unwind-tables C_FLAGS_REL HAS_NO_ASYNC_UNWIND_TABLES)
@@ -97,6 +95,8 @@ if (${CMAKE_BUILD_TYPE} MATCHES "Rel")
     enable_c_flag_if_avail(-ffat-lto-objects C_FLAGS_REL HAS_LTO_FAT_OBJS)
     enable_c_flag_if_avail(-mcrc32 C_FLAGS_REL HAVE_BUILTIN_IA32_CRC32)
 else ()
+    enable_c_flag_if_avail(-mtune=native CMAKE_C_FLAGS HAS_MTUNE_NATIVE)
+    enable_c_flag_if_avail(-march=native CMAKE_C_FLAGS HAS_MARCH_NATIVE)
     option(SANITIZER "Use sanitizer (undefined, address, thread, none)" "none")
 
     if (${SANITIZER} MATCHES "(undefined|ub|ubsan)")

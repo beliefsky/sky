@@ -135,7 +135,7 @@ server_start(sky_int64_t cpu_num) {
     sky_array_init(&modules, pool, 32, sizeof(sky_http_module_t));
 
     sky_str_set(&prefix, "");
-    sky_str_set(&file_path, "/home/beliefsky/Downloads/test");
+    sky_str_set(&file_path, "/home/weijing/Downloads/test");
     sky_http_module_file_init(pool, sky_array_push(&modules), &prefix, &file_path);
 
     build_http_dispatcher(pool, sky_array_push(&modules));
@@ -243,10 +243,10 @@ redis_test(sky_http_request_t *req, sky_http_response_t *res) {
     sky_str_set(&res->buf, "{\"status\": 200, \"msg\": \"success\"}");
 
 
-    sky_str_t s = sky_string("92345678");
-    sky_uint32_t num;
-    sky_str_to_uint32(&s, &num);
-    sky_log_info("%d", num);
+//    sky_str_t s = sky_string("92345678");
+//    sky_uint32_t num;
+//    sky_str_to_uint32(&s, &num);
+//    sky_log_info("%d", num);
 
     return true;
 }

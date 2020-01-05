@@ -35,7 +35,5 @@
 /* Valgrind support for coroutines */
 #cmakedefine USE_VALGRIND
 
-
-#cmakedefine HAS_CPU_MSSE42
 #endif
 
