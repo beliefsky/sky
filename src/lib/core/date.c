@@ -47,7 +47,7 @@ sky_rfc_str_to_date(sky_str_t *in, time_t *out) {
     tmp.data = value;
     tmp.len = 2;
 
-    if (sky_unlikely(!sky_str_to_uint8(&tmp, (sky_uint8_t *) &tm.tm_mday) || tm.tm_mday < 1 || tm.tm_mday > 31)) {
+    if (sky_unlikely(!sky_str_to_int32(&tmp, &tm.tm_mday) || tm.tm_mday < 1 || tm.tm_mday > 31)) {
         return false;
     }
     value += 3;
@@ -95,7 +95,7 @@ sky_rfc_str_to_date(sky_str_t *in, time_t *out) {
 
     tmp.data = value;
     tmp.len = 4;
-    if (sky_unlikely(!sky_str_to_uint16(&tmp, (sky_uint16_t *) &tm.tm_year) || tm.tm_year < 0 || tm.tm_year > 9999)) {
+    if (sky_unlikely(!sky_str_to_int32(&tmp, &tm.tm_year) || tm.tm_year < 0 || tm.tm_year > 9999)) {
         return false;
     }
     tm.tm_year -= 1900;
@@ -103,19 +103,19 @@ sky_rfc_str_to_date(sky_str_t *in, time_t *out) {
 
     tmp.data = value;
     tmp.len = 2;
-    if (sky_unlikely(!sky_str_to_uint8(&tmp, (sky_uint8_t *) &tm.tm_hour) || tm.tm_hour < 0 || tm.tm_hour > 24)) {
+    if (sky_unlikely(!sky_str_to_int32(&tmp, &tm.tm_hour) || tm.tm_hour < 0 || tm.tm_hour > 24)) {
         return false;
     }
     value += 3;
 
     tmp.data = value;
-    if (sky_unlikely(!sky_str_to_uint8(&tmp, (sky_uint8_t *) &tm.tm_min) || tm.tm_min < 0 || tm.tm_min > 60)) {
+    if (sky_unlikely(!sky_str_to_int32(&tmp, &tm.tm_min) || tm.tm_min < 0 || tm.tm_min > 60)) {
         return false;
     }
     value += 3;
 
     tmp.data = value;
-    if (sky_unlikely(!sky_str_to_uint8(&tmp, (sky_uint8_t *) &tm.tm_sec) || tm.tm_sec < 0 || tm.tm_sec > 60)) {
+    if (sky_unlikely(!sky_str_to_int32(&tmp, &tm.tm_sec) || tm.tm_sec < 0 || tm.tm_sec > 60)) {
         return false;
     }
     value += 3;

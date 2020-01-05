@@ -367,7 +367,7 @@ fast_str_parse_mask(sky_uchar_t *chars, sky_size_t len) {
     if (len > 8) {
         val = *(sky_uint64_t *) chars;
     } else {
-        val = 0;
+        val = 0x3030303030303030UL;
         sky_memcpy(((sky_uchar_t *) (&val) + (8 - len)), chars, len);
     }
     return val;
