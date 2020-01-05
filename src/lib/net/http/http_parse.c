@@ -569,13 +569,13 @@ http_method_identify(sky_http_request_t *r) {
         case 4:
             switch (*(m++)) {
                 case 'H':
-                    if (sky_unlikely(!sky_str3_cmp(m, 'E', 'A', 'D'))) {
+                    if (sky_unlikely(!sky_str4_cmp(m, 'E', 'A', 'D', 0))) {
                         return false;
                     }
                     r->method = SKY_HTTP_HEAD;
                     break;
                 case 'P':
-                    if (sky_unlikely(!sky_str3_cmp(m, 'O', 'S', 'T'))) {
+                    if (sky_unlikely(!sky_str4_cmp(m, 'O', 'S', 'T', 0))) {
                         return false;
                     }
                     r->method = SKY_HTTP_POST;
@@ -585,19 +585,21 @@ http_method_identify(sky_http_request_t *r) {
             }
             break;
         case 5:
-            if (sky_unlikely(!sky_str5_cmp(m, 'P', 'A', 'T', 'C', 'H'))) {
+            if (sky_unlikely(!sky_str4_cmp(m, 'P', 'A', 'T', 'C') || m[4] != 'H')) {
                 return false;
             }
             r->method = SKY_HTTP_PATCH;
             break;
         case 6:
-            if (sky_unlikely(!sky_str6_cmp(m, 'D', 'E', 'L', 'E', 'T', 'E'))) {
+            if (sky_unlikely(!sky_str4_cmp(m, 'D', 'E', 'L', 'E')
+                             || !sky_str2_cmp(&m[4], 'T', 'E'))) {
                 return false;
             }
             r->method = SKY_HTTP_DELETE;
             break;
         case 7:
-            if (sky_unlikely(!sky_str7_cmp(m, 'O', 'P', 'T', 'I', 'O', 'N', 'S'))) {
+            if (sky_unlikely(!sky_str4_cmp(m, 'O', 'P', 'T', 'I')
+                             || !sky_str4_cmp(&m[4], 'O', 'N', 'S', 0))) {
                 return false;
             }
             r->method = SKY_HTTP_OPTIONS;

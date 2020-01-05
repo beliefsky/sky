@@ -119,7 +119,7 @@ sky_rfc_str_to_date(sky_str_t *in, time_t *out) {
         return false;
     }
     value += 3;
-    if (sky_unlikely(!sky_str3_cmp(value, 'G', 'M', 'T'))) {
+    if (sky_unlikely(!sky_str2_cmp(value, 'G', 'M') || value[2] != 'T')) {
         return false;
     }
 

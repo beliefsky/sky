@@ -11,67 +11,36 @@ extern "C" {
 #include "types.h"
 #include <string.h>
 
-#define sky_str2_switch(_m)               \
+#define sky_str2_switch(_m) \
     (*(sky_uint16_t *)(_m))
-#define sky_str3_switch(_m)               \
+
+#define sky_str4_switch(_m) \
     (*(sky_uint32_t *)(_m))
-#define sky_str4_switch sky_str3_switch
 
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 #define sky_str2_num(c0, c1)            \
     (((c1) << 0x8) | (c0))
-#define sky_str3_num(c0, c1, c2)        \
-    (((c2) << 0x10) | ((c1) << 0x8) | (c0))
 #define sky_str4_num(c0, c1, c2, c3)    \
     (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0))
 
 #define sky_str2_cmp(m, c0, c1)                                                         \
     (*(sky_uint16_t *) (m) == (((c1) << 0x8) | (c0)))
-#define sky_str3_cmp(m, c0, c1, c2)                                                     \
-    (*(sky_uint32_t *) (m) == (((c2) << 0x10) | ((c1) << 0x8) | (c0)))
 #define sky_str4_cmp(m, c0, c1, c2, c3)                                                 \
     (*(sky_uint32_t *) (m) == (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0)))
-#define sky_str5_cmp(m, c0, c1, c2, c3, c4)                                             \
-    (*(sky_uint32_t *) (m) == (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0))             \
-    && *((m) + 0x4) == (c4))
-#define sky_str6_cmp(m, c0, c1, c2, c3, c4, c5)                                         \
-    (*(sky_uint32_t *) (m) == (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0))             \
-    &&  *(sky_uint16_t *)((m) + 0x4) == (((c5) << 0x8) | (c4)))
-#define sky_str7_cmp(m, c0, c1, c2, c3, c4, c5, c6)                                     \
-    (*(sky_uint32_t *) (m) == (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0))             \
-    &&  *(sky_uint32_t *)((m) + 0x4) == (((c6) << 0x10) | ((c5) << 0x8) | (c4)))
-#define sky_str8_cmp(m, c0, c1, c2, c3, c4, c5, c6, c7)                                 \
-    (*(sky_uint32_t *) (m) == (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0))             \
-    &&  *(sky_uint32_t *)((m) + 0x4) == (((c7) << 0x18) | ((c6) << 0x10) | ((c5) << 0x8) | (c4)))
 
 #else
 
 #define sky_str2_num(c1, c0)            \
     (((c1) << 0x8) | (c0))
-#define sky_str3_num(c2, c1, c0)        \
-    (((c2) << 0x10) | ((c1) << 0x8) | (c0))
 #define sky_str4_num(c3, c2, c1, c0)    \
     (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0))
 
 #define sky_str2_cmp(m, c1, c0)                                                         \
     (*(sky_uint16_t *) (m) == (((c1) << 0x8) | (c0)))
-#define sky_str3_cmp(m, c2, c1, c0)                                                     \
-    (*(sky_uint32_t *) (m) == (((c2) << 0x10) | ((c1) << 0x8) | (c0)))
+
 #define sky_str4_cmp(m, c3, c2, c1, c0)                                                 \
     (*(sky_uint32_t *) (m) == (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0)))
-#define sky_str5_cmp(m, c4, c3, c2, c1, c0)                                             \
-    (*(sky_uint32_t *) (m) == (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0))             \
-    && *((m) + 0x4) == (c4))
-#define sky_str6_cmp(m, c5, c4, c3, c2, c1, c0)                                         \
-    (*(sky_uint32_t *) (m) == (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0))             \
-    &&  *(sky_uint16_t *)((m) + 0x4) == (((c5) << 0x8) | (c4)))
-#define sky_str7_cmp(m, c6, c5, c4, c3, c2, c1, c0)                                     \
-    (*(sky_uint32_t *) (m) == (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0))             \
-    &&  *(sky_uint32_t *)((m) + 0x4) == (((c6) << 0x10) | ((c5) << 0x8) | (c4)))
-#define sky_str8_cmp(m, c7, c6, c5, c4, c3, c2, c1, c0)                                 \
-    (*(sky_uint32_t *) (m) == (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0))             \
-    &&  *(sky_uint32_t *)((m) + 0x4) == (((c7) << 0x18) | ((c6) << 0x10) | ((c5) << 0x8) | (c4)))
 
 #endif
 
