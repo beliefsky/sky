@@ -374,8 +374,6 @@ fast_str_parse_mask(sky_uchar_t *chars, sky_size_t len) {
 }
 
 #ifdef __SSE4_2__
-#include <emmintrin.h>
-#include <tmmintrin.h>
 #include <nmmintrin.h>
 
 static sky_inline
