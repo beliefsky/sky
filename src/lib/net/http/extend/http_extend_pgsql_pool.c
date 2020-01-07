@@ -702,30 +702,9 @@ pg_exec_read(sky_pg_sql_t *ps) {
                     i = result->lines;
                     for (desc = result->desc; i; --i, ++desc) {
                         desc->name.data = buf->pos;
-                        for (ch = buf->pos; ch < buf->last;) {
-                            n = *((sky_uint32_t *) ch);
-                            if (sky_uchar_four_has_zero(n)) {
-                                if (!ch[0]) {
-                                    break;
-                                }
-                                if (!ch[1]) {
-                                    ++ch;
-                                    break;
-                                }
-                                if (!ch[2]) {
-                                    ch += 2;
-                                    break;
-                                }
-                                if (!ch[3]) {
-                                    ch += 3;
-                                    break;
-                                }
-                            }
-                            ch += 4;
-                        }
-                        desc->name.len = (sky_uint32_t) (ch - buf->pos);
-                        buf->pos = ++ch;
-                        if (sky_unlikely((buf->last - ch) < 18)) {
+                        buf->pos += (desc->name.len = strnlen((const sky_char_t *) buf->pos,
+                                                              (size_t) (buf->last - buf->pos))) + 1;
+                        if (sky_unlikely((buf->last - buf->pos) < 18)) {
                             return result;
                         }
                         desc->table_id = sky_ntohl(*((sky_uint32_t *) buf->pos));
