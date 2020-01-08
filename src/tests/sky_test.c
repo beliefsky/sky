@@ -21,6 +21,8 @@
 #include <core/log.h>
 #include <core/memory.h>
 #include <core/number.h>
+#include <core/json.h>
+#include <core/json_builder.h>
 
 static void server_start(sky_int64_t cpu_num);
 
@@ -242,6 +244,15 @@ redis_test(sky_http_request_t *req, sky_http_response_t *res) {
     res->type = SKY_HTTP_RESPONSE_BUF;
     sky_str_set(&res->buf, "{\"status\": 200, \"msg\": \"success\"}");
 
+    json_value * value = json_parse(res->buf.data, res->buf.len);
+    if (!value) {
+        sky_log_info("111");
+        return true;
+    }
+    json_object_entry *e = value->u.object.values;
+    sky_log_info("%s : %ld", e[0].name, e[0].value->u.integer);
+    sky_log_info("%s : %s", e[1].name, e[1].value->u.string.ptr);
+    json_value_free(value);
 
 //    sky_str_t s = sky_string("92345678");
 //    sky_uint32_t num;
@@ -281,27 +292,45 @@ hello_world(sky_http_request_t *req, sky_http_response_t *res) {
 
     res->type = SKY_HTTP_RESPONSE_BUF;
 
-    sky_buf_t *buf = sky_buf_create(req->pool, 127);
-    sky_str_set(&res->buf, "{\"status\": 200, \"msg\": \"success\", \"data\": { \"id\": ");
-    sky_memcpy(buf->last, res->buf.data, res->buf.len);
-    buf->last += res->buf.len;
-    buf->last += sky_uint64_to_str(row->data[0].u64, buf->last);
-    sky_str_set(&res->buf, ", \"username\": \"");
-    sky_memcpy(buf->last, res->buf.data, res->buf.len);
-    buf->last += res->buf.len;
-    sky_memcpy(buf->last, row->data[1].stream.data, row->data[1].stream.len);
-    buf->last += row->data[1].stream.len;
-    sky_str_set(&res->buf, "\", \"password\": \"");
-    sky_memcpy(buf->last, res->buf.data, res->buf.len);
-    buf->last += res->buf.len;
-    sky_memcpy(buf->last, row->data[2].stream.data, row->data[2].stream.len);
-    buf->last += row->data[2].stream.len;
-    sky_str_set(&res->buf, "\"}}");
-    sky_memcpy(buf->last, res->buf.data, res->buf.len);
-    buf->last += res->buf.len;
+    json_value *arr = json_object_new(3);
+    json_value *obj = json_object_new(3);
+    json_object_push_length(arr, sizeof("status") -1, "status", json_integer_new(200));
+    json_object_push_length(arr, sizeof("msg") -1, "msg", json_string_new_length(sizeof("success") -1, "success"));
 
-    res->buf.data = buf->pos;
-    res->buf.len = (sky_size_t) (buf->last - buf->pos);
+    json_object_push_length(obj, sizeof("id") -1, "id", json_integer_new(row->data[0].u64));
+    json_object_push_length(obj, sizeof("username") -1, "username", json_string_new_length(row->data[1].stream.len, row->data[1].stream.data));
+    json_object_push_length(obj, sizeof("password") -1, "password", json_string_new_length(row->data[2].stream.len, row->data[2].stream.data));
+
+    json_object_push_length(arr, sizeof("data") -1, "data", obj);
+
+    res->buf.data = sky_palloc(req->pool, (res->buf.len = json_measure(arr)));
+    --res->buf.len;
+    json_serialize(res->buf.data, arr);
+
+    json_builder_free(arr);
+
+
+//    sky_buf_t *buf = sky_buf_create(req->pool, 127);
+//    sky_str_set(&res->buf, "{\"status\": 200, \"msg\": \"success\", \"data\": { \"id\": ");
+//    sky_memcpy(buf->last, res->buf.data, res->buf.len);
+//    buf->last += res->buf.len;
+//    buf->last += sky_uint64_to_str(row->data[0].u64, buf->last);
+//    sky_str_set(&res->buf, ", \"username\": \"");
+//    sky_memcpy(buf->last, res->buf.data, res->buf.len);
+//    buf->last += res->buf.len;
+//    sky_memcpy(buf->last, row->data[1].stream.data, row->data[1].stream.len);
+//    buf->last += row->data[1].stream.len;
+//    sky_str_set(&res->buf, "\", \"password\": \"");
+//    sky_memcpy(buf->last, res->buf.data, res->buf.len);
+//    buf->last += res->buf.len;
+//    sky_memcpy(buf->last, row->data[2].stream.data, row->data[2].stream.len);
+//    buf->last += row->data[2].stream.len;
+//    sky_str_set(&res->buf, "\"}}");
+//    sky_memcpy(buf->last, res->buf.data, res->buf.len);
+//    buf->last += res->buf.len;
+//
+//    res->buf.data = buf->pos;
+//    res->buf.len = (sky_size_t) (buf->last - buf->pos);
 
     return true;
 }
