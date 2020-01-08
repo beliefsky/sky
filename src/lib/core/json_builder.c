@@ -4,6 +4,7 @@
 
 #include "json_builder.h"
 #include "number.h"
+#include "memory.h"
 
 #include <string.h>
 #include <assert.h>
