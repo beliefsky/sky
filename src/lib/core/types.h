@@ -19,7 +19,7 @@ extern "C" {
 
 #define null    (void *)0x0
 
-typedef unsigned char sky_bool_t;
+typedef _Bool sky_bool_t;
 typedef char sky_char_t;             /*-128 ~ +127*/
 typedef unsigned char sky_uchar_t;            /*0 ~ 255*/
 typedef int8_t sky_int8_t;             /*-128 ~ +127*/
