@@ -7,7 +7,7 @@
 #include "number.h"
 
 
-sky_uint8_t
+sky_inline sky_uint8_t
 sky_time_to_str(sky_uint32_t secs, sky_uchar_t *out) {
     if (sky_unlikely(secs > 86400)) {
         return 0;
@@ -173,8 +173,10 @@ sky_date_to_rfc_str(time_t time, sky_uchar_t *src) {
     static const sky_char_t *week_days = "Sun,Mon,Tue,Wed,Thu,Fri,Sat,";
     static const sky_char_t *months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec ";
     struct tm tm;
+    sky_uint32_t day_of_time;
 
 
+    day_of_time = time % 86400;
     if (sky_unlikely(!gmtime_r(&time, &tm))) {
         return 0;
     }
@@ -193,26 +195,9 @@ sky_date_to_rfc_str(time_t time, sky_uchar_t *src) {
 
     src += sky_uint16_to_str((sky_uint16_t) tm.tm_year + 1900, src);
     *(src++) = ' ';
-    if (tm.tm_hour < 10) {
-        *(src++) = '0';
-        *(src++) = sky_num_to_uchar(tm.tm_hour);
-    } else {
-        src += sky_uint8_to_str((sky_uint8_t) tm.tm_hour, src);
-    }
-    *(src++) = ':';
-    if (tm.tm_min < 10) {
-        *(src++) = '0';
-        *(src++) = sky_num_to_uchar(tm.tm_min);
-    } else {
-        src += sky_uint8_to_str((sky_uint8_t) tm.tm_min, src);
-    }
-    *(src++) = ':';
-    if (tm.tm_sec < 10) {
-        *(src++) = '0';
-        *(src++) = sky_num_to_uchar(tm.tm_sec);
-    } else {
-        src += sky_uint8_to_str((sky_uint8_t) tm.tm_sec, src);
-    }
+
+    src += sky_time_to_str(day_of_time, src);
+
     sky_memcpy(src, " GMT\0", 5);
 
     return 29;
