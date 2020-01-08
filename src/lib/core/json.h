@@ -9,6 +9,7 @@ extern "C" {
 #endif
 
 #include "types.h"
+#include "string.h"
 
 
 #ifndef json_int_t
@@ -18,7 +19,7 @@ extern "C" {
 #include <stdlib.h>
 
 typedef struct _json_value json_value;
-typedef struct _json_object_entry json_object_entry;
+typedef struct sky_json_object_entry_s json_object_entry;
 
 typedef struct {
     unsigned long max_memory;
@@ -51,10 +52,8 @@ typedef enum {
 
 } json_type;
 
-struct _json_object_entry {
-    sky_uchar_t *name;
-    unsigned int name_length;
-
+struct sky_json_object_entry_s {
+    sky_str_t key;
     json_value *value;
 
 };

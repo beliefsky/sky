@@ -20,7 +20,7 @@ static const json_int_t JSON_INT_MAX = sizeof(json_int_t) == 1
                                              ? INT32_MAX
                                              : INT64_MAX));
 
-static unsigned char hex_value(sky_uchar_t c) {
+static sky_uchar_t hex_value(sky_uchar_t c) {
     if (isdigit(c))
         return c - '0';
 
@@ -208,9 +208,9 @@ json_value *json_parse_ex(json_settings *settings,
 
     /* Skip UTF-8 BOM
      */
-    if (length >= 3 && ((unsigned char) json[0]) == 0xEF
-        && ((unsigned char) json[1]) == 0xBB
-        && ((unsigned char) json[2]) == 0xBF) {
+    if (length >= 3 && ((sky_uchar_t) json[0]) == 0xEF
+        && ((sky_uchar_t) json[1]) == 0xBB
+        && ((sky_uchar_t) json[2]) == 0xBF) {
         json += 3;
         length -= 3;
     }
@@ -285,9 +285,9 @@ json_value *json_parse_ex(json_settings *settings,
                                 goto e_failed;
                             }
 
-                            uc_b1 = (uc_b1 << 4) | uc_b2;
-                            uc_b2 = (uc_b3 << 4) | uc_b4;
-                            uchar = (uc_b1 << 8) | uc_b2;
+                            uc_b1 = (sky_uchar_t) ((uc_b1 << 4) | uc_b2);
+                            uc_b2 = (sky_uchar_t) ((uc_b3 << 4) | uc_b4);
+                            uchar = (json_uchar) ((uc_b1 << 8) | uc_b2);
 
                             if ((uchar & 0xF800) == 0xD800) {
                                 json_uchar uchar2;
@@ -301,9 +301,9 @@ json_value *json_parse_ex(json_settings *settings,
                                     goto e_failed;
                                 }
 
-                                uc_b1 = (uc_b1 << 4) | uc_b2;
-                                uc_b2 = (uc_b3 << 4) | uc_b4;
-                                uchar2 = (uc_b1 << 8) | uc_b2;
+                                uc_b1 = (sky_uchar_t) ((uc_b1 << 4) | uc_b2);
+                                uc_b2 = (sky_uchar_t) ((uc_b3 << 4) | uc_b4);
+                                uchar2 = (json_uchar) ((uc_b1 << 8) | uc_b2);
 
                                 uchar = 0x010000 | ((uchar & 0x3FF) << 10) | (uchar2 & 0x3FF);
                             }
@@ -379,10 +379,10 @@ json_value *json_parse_ex(json_settings *settings,
                             if (state.first_pass)
                                 (*(sky_uchar_t **) &top->u.object.values) += string_length + 1;
                             else {
-                                top->u.object.values[top->u.object.length].name
+                                top->u.object.values[top->u.object.length].key.data
                                         = (sky_uchar_t *) top->_reserved.object_mem;
 
-                                top->u.object.values[top->u.object.length].name_length
+                                top->u.object.values[top->u.object.length].key.len
                                         = string_length;
 
                                 (*(sky_uchar_t **) &top->_reserved.object_mem) += string_length + 1;

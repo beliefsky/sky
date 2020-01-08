@@ -43,11 +43,11 @@ static int builderize(json_value *value) {
             sky_uchar_t *name_copy;
             json_object_entry *entry = &value->u.object.values[i];
 
-            if (!(name_copy = (sky_uchar_t *) malloc((entry->name_length + 1) * sizeof(sky_uchar_t))))
+            if (!(name_copy = (sky_uchar_t *) malloc((entry->key.len + 1) * sizeof(sky_uchar_t))))
                 return 0;
 
-            memcpy(name_copy, entry->name, entry->name_length + 1);
-            entry->name = name_copy;
+            memcpy(name_copy, entry->key.data, entry->key.len + 1);
+            entry->key.data = name_copy;
         }
     }
 
@@ -208,8 +208,8 @@ json_value *json_object_push_nocopy(json_value *object,
 
     entry = object->u.object.values + object->u.object.length;
 
-    entry->name_length = name_length;
-    entry->name = name;
+    entry->key.len = name_length;
+    entry->key.data = name;
     entry->value = value;
 
     ++object->u.object.length;
@@ -327,10 +327,11 @@ void json_object_sort(json_value *object, json_value *proto) {
         for (j = 0; j < object->u.object.length; ++j) {
             json_object_entry entry = object->u.object.values[j];
 
-            if (entry.name_length != proto_entry.name_length)
+            if (entry.key.len != proto_entry.key.len)
                 continue;
 
-            if (memcmp(entry.name, proto_entry.name, entry.name_length) != 0)
+            if (memcmp(entry.key.data, proto_entry.
+                    key.data, entry.key.len) != 0)
                 continue;
 
             object->u.object.values[j] = object->u.object.values[out_index];
@@ -559,7 +560,7 @@ size_t json_measure_ex(json_value *value, json_serialize_opts opts) {
                 entry = value->u.object.values + (((json_builder_value *) value)->length_iterated++);
 
                 total += 2 + colon_size;  /* `"": ` */
-                total += measure_string(entry->name_length, entry->name);
+                total += measure_string(entry->key.len, entry->key.data);
 
                 value = entry->value;
                 continue;
@@ -745,7 +746,7 @@ void json_serialize_ex(sky_uchar_t *buf, json_value *value, json_serialize_opts 
                 entry = value->u.object.values + (((json_builder_value *) value)->length_iterated++);
 
                 *buf++ = '\"';
-                buf += serialize_string(buf, entry->name_length, entry->name);
+                buf += serialize_string(buf, entry->key.len, entry->key.data);
                 *buf++ = '\"';
                 *buf++ = ':';
 
@@ -838,7 +839,7 @@ void json_builder_free(json_value *value) {
                      * values, they are part of the same allocation as the values array
                      * itself.
                      */
-                    free(value->u.object.values[value->u.object.length].name);
+                    free(value->u.object.values[value->u.object.length].key.data);
                 }
 
                 value = value->u.object.values[value->u.object.length].value;
