@@ -6,6 +6,43 @@
 #include "memory.h"
 #include "number.h"
 
+
+sky_uint8_t
+sky_time_to_str(sky_uint32_t secs, sky_uchar_t *out) {
+    if (sky_unlikely(secs > 86400)) {
+        return 0;
+    }
+    // divide by 3600 to calculate hours
+    sky_uint64_t hours = (secs * 0x91A3) >> 27;
+    sky_uint64_t xrem = secs - (hours * 3600);
+
+    // divide by 60 to calculate minutes
+    sky_uint64_t mins = (xrem * 0x889) >> 17;
+    xrem = xrem - (mins * 60);
+
+    // position hours, minutes, and seconds in one var
+    sky_uint64_t timeBuffer = hours + (mins << 24) + (xrem << 48);
+
+    // convert to decimal representation
+    xrem = ((timeBuffer * 103) >> 9) & 0x001E00001E00001E;
+    timeBuffer += xrem * 3;
+
+    // move high nibbles into low mibble position in current byte
+    // move lower nibble into left-side byte
+    timeBuffer = ((timeBuffer & 0x00F00000F00000F0) >> 4) |
+                 ((timeBuffer & 0x000F00000F00000F) << 8);
+
+    // bitwise-OR in colons and convert numbers into ASCII number characters
+    timeBuffer |= 0x30303A30303A3030;
+
+    // copy to buffer
+    *(sky_uint64_t *) out = timeBuffer;
+    out[8] = '\0';
+
+    return 8;
+}
+
+
 sky_bool_t
 sky_rfc_str_to_date(sky_str_t *in, time_t *out) {
     struct tm tm;

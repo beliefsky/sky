@@ -11,6 +11,14 @@ extern "C" {
 #include <time.h>
 #include "string.h"
 
+/**
+ * 用于时分秒
+ * @param secs 秒 secs <= 86400
+ * @param out 输出的字符串
+ * @return 字符长度 一直为8, 0代表 secs > 86400
+ */
+sky_uint8_t sky_time_to_str(sky_uint32_t secs, sky_uchar_t *out);
+
 sky_bool_t sky_rfc_str_to_date(sky_str_t *in, time_t *out);
 
 sky_uint8_t sky_date_to_rfc_str(time_t time, sky_uchar_t *src);
