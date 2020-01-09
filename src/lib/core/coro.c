@@ -21,6 +21,15 @@ typedef uintptr_t sky_coro_context_t[7];
 typedef ucontext_t sky_coro_context_t;
 #endif
 
+#if defined(__APPLE__)
+#define ASM_SYMBOL(name_) "_" #name_
+#else
+#define ASM_SYMBOL(name_) #name_
+#endif
+
+#define ASM_ROUTINE(name_)                                      \
+    ".globl " ASM_SYMBOL(name_) "\n\t" ASM_SYMBOL(name_) ":\n\t"
+
 struct sky_coro_switcher_s {
     sky_coro_context_t caller;
     sky_coro_context_t callee;
@@ -64,8 +73,7 @@ sky_coro_swapcontext(sky_coro_context_t *current, sky_coro_context_t *other);
 asm(
 ".text\n\t"
 ".p2align 4\n\t"
-".globl sky_coro_swapcontext\n\t"
-"sky_coro_swapcontext:\n\t"
+ASM_ROUTINE(sky_coro_swapcontext)
 "movq    %rbx,0(%rdi)\n\t"
 "movq    %rbp,8(%rdi)\n\t"
 "movq    %r12,16(%rdi)\n\t"
@@ -95,8 +103,7 @@ sky_coro_swapcontext(sky_coro_context_t *current, sky_coro_context_t *other);
     asm(
     ".text\n\t"
     ".p2align 16\n\t"
-    ".globl sky_coro_swapcontext\n\t"
-    "sky_coro_swapcontext:\n\t"
+    ASM_ROUTINE(sky_coro_swapcontext)
     "movl   0x4(%esp),%eax\n\t"
     "movl   %ecx,0x1c(%eax)\n\t" /* ECX */
     "movl   %ebx,0x0(%eax)\n\t"  /* EBX */
@@ -138,8 +145,7 @@ sky_coro_entry_point(sky_coro_t *coro, sky_coro_func_t func, void *data);
 asm(
 ".text\n\t"
 ".p2align 4\n\t"
-".globl sky_coro_entry_point\n\t"
-"sky_coro_entry_point:\n\t"
+ASM_ROUTINE(sky_coro_entry_point)
 "pushq %rbx\n\t"
 "movq  %rdi, %rbx\n\t"        /* coro = rdi */
 "movq  %rsi, %rdx\n\t"        /* func = rsi */
