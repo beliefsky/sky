@@ -131,7 +131,7 @@ sky_coro_swapcontext(sky_coro_context_t *current, sky_coro_context_t *other);
 
 #ifndef __x86_64__
 static void
-sky_coro_entry_point(sky_coro_t *coro, sky_coro_func_t func, void *data) {
+sky_coro_entry_point(sky_coro_t *coro, sky_coro_func_t func, sky_uintptr_t data) {
     sky_int8_t  i;
 
     i = func(coro, data);
@@ -140,7 +140,7 @@ sky_coro_entry_point(sky_coro_t *coro, sky_coro_func_t func, void *data) {
 #else
 
 void __attribute__((noinline, visibility("internal")))
-sky_coro_entry_point(sky_coro_t *coro, sky_coro_func_t func, void *data);
+sky_coro_entry_point(sky_coro_t *coro, sky_coro_func_t func, sky_uintptr_t data);
 
 asm(
 ".text\n\t"
