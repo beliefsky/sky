@@ -79,80 +79,60 @@ json_alloc(json_state *state, sky_size_t size, sky_bool_t zero) {
     return zero ? sky_pcalloc(state->pool, size) : sky_palloc(state->pool, size);
 }
 
-static int new_value(json_state *state,
-                     sky_json_t **top, sky_json_t **root, sky_json_t **alloc,
-                     json_type type) {
+static int
+new_value(json_state *state, sky_json_t **top, sky_json_t **root, sky_json_t **alloc, json_type type) {
     sky_json_t *value;
-    int values_size;
+    sky_size_t values_size;
 
     if (!state->first_pass) {
         value = *top = *alloc;
         *alloc = (*alloc)->_reserved.next_alloc;
 
-        if (!*root)
+        if (!*root) {
             *root = value;
-
+        }
         switch (value->type) {
             case json_array:
-
-                if (value->u.array.length == 0)
-                    break;
-
-                if (!(value->u.array.values = (sky_json_t **) json_alloc
-                        (state, value->u.array.length * sizeof(sky_json_t *), 0))) {
+                if (value->u.array.length == 0) { break; }
+                if (sky_unlikely(!(value->u.array.values = json_alloc
+                        (state, value->u.array.length * sizeof(sky_json_t *), 0)))) {
                     return 0;
                 }
-
                 value->u.array.length = 0;
                 break;
-
             case json_object:
-
-                if (value->u.object.length == 0)
-                    break;
-
+                if (value->u.object.length == 0) { break; }
                 values_size = sizeof(*value->u.object.values) * value->u.object.length;
-
-                if (!(value->u.object.values = (json_object_s *) json_alloc
-                        (state, values_size + ((unsigned long) value->u.object.values), 0))) {
+                if (sky_unlikely(!(value->u.object.values = json_alloc
+                        (state, values_size + ((sky_uintptr_t) value->u.object.values), 0)))) {
                     return 0;
                 }
-
-                value->_reserved.object_mem = (*(char **) &value->u.object.values) + values_size;
-
+                value->_reserved.object_mem = (*(sky_uchar_t **) &value->u.object.values) + values_size;
                 value->u.object.length = 0;
                 break;
-
             case json_string:
-
-                if (!(value->u.string.ptr = (sky_uchar_t *) json_alloc
-                        (state, (value->u.string.length + 1) * sizeof(sky_uchar_t), 0))) {
+                if (sky_unlikely(!(value->u.string.ptr = (sky_uchar_t *) json_alloc
+                        (state, (value->u.string.length + 1) * sizeof(sky_uchar_t), 0)))) {
                     return 0;
                 }
-
                 value->u.string.length = 0;
                 break;
-
             default:
                 break;
-        };
+        }
 
         return 1;
     }
 
-    if (!(value = json_alloc(state, sizeof(sky_json_t), 1))) {
+    if (sky_unlikely(!(value = json_alloc(state, sizeof(sky_json_t), 1)))) {
         return 0;
     }
 
-    if (!*root)
-        *root = value;
-
+    if (!*root) { *root = value; }
     value->type = type;
     value->parent = *top;
 
-    if (*alloc)
-        (*alloc)->_reserved.next_alloc = value;
-
+    if (*alloc) { (*alloc)->_reserved.next_alloc = value; }
     *alloc = *top = value;
 
     return 1;
