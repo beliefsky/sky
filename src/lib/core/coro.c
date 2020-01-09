@@ -32,7 +32,6 @@ typedef ucontext_t sky_coro_context_t;
 
 struct sky_coro_switcher_s {
     sky_coro_context_t caller;
-    sky_coro_context_t callee;
 };
 
 struct sky_defer_s {
@@ -260,14 +259,14 @@ sky_coro_resume(sky_coro_t *coro) {
            coro->context[STACK_PTR] <= (sky_uintptr_t) (coro->stack + SKY_CORO_STACK_MIN));
 #endif
     sky_coro_swapcontext(&coro->switcher->caller, &coro->context);
-    sky_memcpy(&coro->context, &coro->switcher->callee, sizeof(sky_coro_context_t));
+//    sky_memcpy(&coro->context, &coro->switcher->callee, sizeof(sky_coro_context_t));
     return coro->yield_value;
 }
 
 sky_int8_t
 sky_coro_yield(sky_coro_t *coro, sky_int8_t value) {
     coro->yield_value = value;
-    sky_coro_swapcontext(&coro->switcher->callee, &coro->switcher->caller);
+    sky_coro_swapcontext(&coro->context, &coro->switcher->caller);
     return coro->yield_value;
 }
 
