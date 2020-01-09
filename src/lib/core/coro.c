@@ -127,32 +127,24 @@ sky_coro_swapcontext(sky_coro_context_t *current, sky_coro_context_t *other);
 #define sky_coro_swapcontext(cur,oth) swapcontext(cur, oth)
 #endif
 
-
-#ifndef __x86_64__
-static void
-sky_coro_entry_point(sky_coro_t *coro, sky_coro_func_t func, sky_uintptr_t data) {
+__attribute__((used, visibility("internal")))
+void
+coro_entry_point(sky_coro_t *coro, sky_coro_func_t func, sky_uintptr_t data) {
     sky_coro_yield(coro, func(coro, data));
 }
-#else
 
-void __attribute__((noinline, visibility("internal")))
-sky_coro_entry_point(sky_coro_t *coro, sky_coro_func_t func, sky_uintptr_t data);
+#ifdef __x86_64__
 
-asm(
-".text\n\t"
-".p2align 4\n\t"
-ASM_ROUTINE(sky_coro_entry_point)
-"pushq %rbx\n\t"
-"movq  %rdi, %rbx\n\t"        /* coro = rdi */
-"movq  %rsi, %rdx\n\t"        /* func = rsi */
-"movq  %r15, %rsi\n\t"        /* data = r15 */
-"call  *%rdx\n\t"            /* eax = func(coro, data) */
-"movq  (%rbx), %rsi\n\t"
-//"movl  %eax, 0x58(%rbx)\n\t"	/* coro->yield_value = eax */
-"movb  %al, 0x58(%rbx)\n\t"    /* coro->yield_value = eax */
-"popq  %rbx\n\t"
-"leaq  0x50(%rsi), %rdi\n\t"    /* get coro context from coro */
-"jmp   sky_coro_swapcontext\n\t");
+/* See comment in coro_reset() for an explanation of why this routine is
+ * necessary. */
+void __attribute__((visibility("internal"))) sky_coro_entry_point_x86_64();
+
+asm(".text\n\t"
+    ".p2align 4\n\t"
+    ASM_ROUTINE(sky_coro_entry_point_x86_64)
+    "mov %r15, %rdx\n\t"
+    "jmp " ASM_SYMBOL(coro_entry_point) "\n\t"
+);
 #endif
 
 sky_coro_switcher_t *
@@ -176,7 +168,7 @@ sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func, sky_uintptr
     coro->context[5 /* R15 */] = (sky_uintptr_t) data;
     coro->context[6 /* RDI */] = (sky_uintptr_t) coro;
     coro->context[7 /* RSI */] = (sky_uintptr_t) func;
-    coro->context[8 /* RIP */] = (sky_uintptr_t) sky_coro_entry_point;
+    coro->context[8 /* RIP */] = (sky_uintptr_t) sky_coro_entry_point_x86_64;
 #define STACK_PTR 9
     coro->context[STACK_PTR /* RSP */] = (((sky_uintptr_t) coro->stack + SKY_CORO_STACK_MIN) & ~0xful) - 0x8ul;
 #elif defined(__i386__)
@@ -223,7 +215,7 @@ sky_coro_create2(sky_coro_switcher_t *switcher, sky_coro_func_t func, sky_uintpt
     coro->context[5 /* R15 */] = (sky_uintptr_t) data;
     coro->context[6 /* RDI */] = (sky_uintptr_t) coro;
     coro->context[7 /* RSI */] = (sky_uintptr_t) func;
-    coro->context[8 /* RIP */] = (sky_uintptr_t) sky_coro_entry_point;
+    coro->context[8 /* RIP */] = (sky_uintptr_t) sky_coro_entry_point_x86_64;
 #define STACK_PTR 9
     coro->context[STACK_PTR /* RSP */] = (((sky_uintptr_t) coro->stack + SKY_CORO_STACK_MIN) & ~0xful) - 0x8ul;
 #elif defined(__i386__)
