@@ -251,7 +251,6 @@ sky_coro_resume(sky_coro_t *coro) {
            coro->context[STACK_PTR] <= (sky_uintptr_t) (coro->stack + SKY_CORO_STACK_MIN));
 #endif
     sky_coro_swapcontext(&coro->switcher->caller, &coro->context);
-//    sky_memcpy(&coro->context, &coro->switcher->callee, sizeof(sky_coro_context_t));
     return coro->yield_value;
 }
 
