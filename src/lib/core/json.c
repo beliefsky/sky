@@ -5,9 +5,10 @@
 #include "json.h"
 
 #include <stdio.h>
-#include <string.h>
 #include <ctype.h>
 #include <math.h>
+
+#define json_error_max 128
 
 typedef sky_uint32_t json_uchar;
 
@@ -58,38 +59,30 @@ typedef struct {
     unsigned int uint_max;
     unsigned long ulong_max;
 
-    json_settings settings;
     int first_pass;
 
     const sky_uchar_t *ptr;
     unsigned int cur_line, cur_col;
 
+    sky_pool_t *pool;
+    sky_bool_t enable_comments;
+
 } json_state;
 
-static void *default_alloc(size_t size, int zero, void *user_data) {
-    return zero ? calloc(1, size) : malloc(size);
-}
 
-static void default_free(void *ptr, void *user_data) {
-    free(ptr);
-}
-
-static void *json_alloc(json_state *state, unsigned long size, int zero) {
-    if ((state->ulong_max - state->used_memory) < size)
-        return 0;
-
-    if (state->settings.max_memory
-        && (state->used_memory += size) > state->settings.max_memory) {
-        return 0;
+static sky_inline void *
+json_alloc(json_state *state, sky_size_t size, sky_bool_t zero) {
+    if ((state->ulong_max - state->used_memory) < size) {
+        return null;
     }
 
-    return state->settings.mem_alloc(size, zero, state->settings.user_data);
+    return zero ? sky_pcalloc(state->pool, size) : sky_palloc(state->pool, size);
 }
 
 static int new_value(json_state *state,
-                     json_value **top, json_value **root, json_value **alloc,
+                     sky_json_t **top, sky_json_t **root, sky_json_t **alloc,
                      json_type type) {
-    json_value *value;
+    sky_json_t *value;
     int values_size;
 
     if (!state->first_pass) {
@@ -105,8 +98,8 @@ static int new_value(json_state *state,
                 if (value->u.array.length == 0)
                     break;
 
-                if (!(value->u.array.values = (json_value **) json_alloc
-                        (state, value->u.array.length * sizeof(json_value *), 0))) {
+                if (!(value->u.array.values = (sky_json_t **) json_alloc
+                        (state, value->u.array.length * sizeof(sky_json_t *), 0))) {
                     return 0;
                 }
 
@@ -120,7 +113,7 @@ static int new_value(json_state *state,
 
                 values_size = sizeof(*value->u.object.values) * value->u.object.length;
 
-                if (!(value->u.object.values = (json_object_entry *) json_alloc
+                if (!(value->u.object.values = (json_object_s *) json_alloc
                         (state, values_size + ((unsigned long) value->u.object.values), 0))) {
                     return 0;
                 }
@@ -147,8 +140,7 @@ static int new_value(json_state *state,
         return 1;
     }
 
-    if (!(value = (json_value *) json_alloc
-            (state, sizeof(json_value) + state->settings.value_extra, 1))) {
+    if (!(value = json_alloc(state, sizeof(sky_json_t), 1))) {
         return 0;
     }
 
@@ -176,7 +168,10 @@ static int new_value(json_state *state,
 #define line_and_col \
    state.cur_line, state.cur_col
 
-static const long
+
+sky_json_t *
+sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bool_t enable_comments) {
+    enum {
         flag_next = 1 << 0,
         flag_reproc = 1 << 1,
         flag_need_comma = 1 << 2,
@@ -192,15 +187,12 @@ static const long
         flag_num_e_negative = 1 << 12,
         flag_line_comment = 1 << 13,
         flag_block_comment = 1 << 14,
-        flag_num_got_decimal = 1 << 15;
+        flag_num_got_decimal = 1 << 15
+    };
 
-json_value *json_parse_ex(json_settings *settings,
-                          const sky_uchar_t *json,
-                          size_t length,
-                          char *error_buf) {
     sky_uchar_t error[json_error_max];
     const sky_uchar_t *end;
-    json_value *top, *root, *alloc = 0;
+    sky_json_t *top, *root, *alloc = null;
     json_state state = {0};
     long flags = 0;
     double num_digits = 0, num_e = 0;
@@ -218,14 +210,8 @@ json_value *json_parse_ex(json_settings *settings,
     error[0] = '\0';
     end = (json + length);
 
-    memcpy(&state.settings, settings, sizeof(json_settings));
-
-    if (!state.settings.mem_alloc)
-        state.settings.mem_alloc = default_alloc;
-
-    if (!state.settings.mem_free)
-        state.settings.mem_free = default_free;
-
+    state.pool = pool;
+    state.enable_comments = enable_comments;
     memset(&state.uint_max, 0xFF, sizeof(state.uint_max));
     memset(&state.ulong_max, 0xFF, sizeof(state.ulong_max));
 
@@ -234,7 +220,7 @@ json_value *json_parse_ex(json_settings *settings,
 
     for (state.first_pass = 1; state.first_pass >= 0; --state.first_pass) {
         json_uchar uchar;
-        sky_uchar_t uc_b1, uc_b2, uc_b3, uc_b4;
+        sky_uchar_t b, uc_b1, uc_b2, uc_b3, uc_b4;
         sky_uchar_t *string = 0;
         sky_uint32_t string_length = 0;
 
@@ -244,7 +230,7 @@ json_value *json_parse_ex(json_settings *settings,
         state.cur_line = 1;
 
         for (state.ptr = json;; ++state.ptr) {
-            sky_uchar_t b = (state.ptr == end ? 0 : *state.ptr);
+            b = (state.ptr == end ? 0 : *state.ptr);
 
             if (flags & flag_string) {
                 if (!b) {
@@ -400,7 +386,7 @@ json_value *json_parse_ex(json_settings *settings,
                 }
             }
 
-            if (state.settings.settings & json_enable_comments) {
+            if (state.enable_comments) {
                 if (flags & (flag_line_comment | flag_block_comment)) {
                     if (flags & flag_line_comment) {
                         if (b == '\r' || b == '\n' || !b) {
@@ -795,23 +781,16 @@ json_value *json_parse_ex(json_settings *settings,
                     flags |= flag_seek_value;
 
                 if (!state.first_pass) {
-                    json_value *parent = top->parent;
+                    sky_json_t *parent = top->parent;
 
                     switch (parent->type) {
                         case json_object:
-
-                            parent->u.object.values
-                            [parent->u.object.length].value = top;
-
+                            parent->u.object.values[parent->u.object.length].value = top;
                             break;
 
                         case json_array:
-
-                            parent->u.array.values
-                            [parent->u.array.length] = top;
-
+                            parent->u.array.values[parent->u.array.length] = top;
                             break;
-
                         default:
                             break;
                     };
@@ -848,80 +827,19 @@ json_value *json_parse_ex(json_settings *settings,
 
     e_failed:
 
-    if (error_buf) {
-        if (*error)
-            strcpy(error_buf, error);
-        else
-            strcpy(error_buf, "Unknown error");
-    }
-
     if (state.first_pass)
         alloc = root;
 
     while (alloc) {
         top = alloc->_reserved.next_alloc;
-        state.settings.mem_free(alloc, state.settings.user_data);
         alloc = top;
     }
-
-    if (!state.first_pass)
-        json_value_free_ex(&state.settings, root);
 
     return 0;
 }
 
-json_value *json_parse(const sky_uchar_t *json, size_t length) {
-    json_settings settings = {0};
-    return json_parse_ex(&settings, json, length, 0);
+sky_json_t *
+sky_json_parse(sky_pool_t *pool, sky_str_t *json) {
+    return sky_json_parse_ex(pool, json->data, json->len, 0);
 }
 
-void json_value_free_ex(json_settings *settings, json_value *value) {
-    json_value *cur_value;
-
-    if (!value)
-        return;
-
-    value->parent = 0;
-
-    while (value) {
-        switch (value->type) {
-            case json_array:
-
-                if (!value->u.array.length) {
-                    settings->mem_free(value->u.array.values, settings->user_data);
-                    break;
-                }
-
-                value = value->u.array.values[--value->u.array.length];
-                continue;
-
-            case json_object:
-
-                if (!value->u.object.length) {
-                    settings->mem_free(value->u.object.values, settings->user_data);
-                    break;
-                }
-
-                value = value->u.object.values[--value->u.object.length].value;
-                continue;
-
-            case json_string:
-
-                settings->mem_free(value->u.string.ptr, settings->user_data);
-                break;
-
-            default:
-                break;
-        };
-
-        cur_value = value;
-        value = value->parent;
-        settings->mem_free(cur_value, settings->user_data);
-    }
-}
-
-void json_value_free(json_value *value) {
-    json_settings settings = {0};
-    settings.mem_free = default_free;
-    json_value_free_ex(&settings, value);
-}

@@ -28,55 +28,55 @@ extern const size_t json_builder_extra;
  * Note that all of these length arguments are just a hint to allow for
  * pre-allocation - passing 0 is fine.
  */
-json_value * json_array_new (size_t length);
-json_value * json_array_push (json_value * array, json_value *);
+sky_json_t * json_array_new (size_t length);
+sky_json_t * json_array_push (sky_json_t * array, sky_json_t *);
 
 
 /*** Objects
  ***/
-json_value * json_object_new (size_t length);
+sky_json_t * json_object_new (size_t length);
 
-json_value * json_object_push (json_value * object,
+sky_json_t * json_object_push (sky_json_t * object,
                                const sky_uchar_t * name,
-                               json_value *);
+                               sky_json_t *);
 
 /* Same as json_object_push, but doesn't call strlen() for you.
  */
-json_value * json_object_push_length (json_value * object,
+sky_json_t * json_object_push_length (sky_json_t * object,
                                       unsigned int name_length, const sky_uchar_t * name,
-                                      json_value *);
+                                      sky_json_t *);
 
 /* Same as json_object_push_length, but doesn't copy the name buffer before
  * storing it in the value.  Use this micro-optimisation at your own risk.
  */
-json_value * json_object_push_nocopy (json_value * object,
+sky_json_t * json_object_push_nocopy (sky_json_t * object,
                                       unsigned int name_length, sky_uchar_t * name,
-                                      json_value *);
+                                      sky_json_t *);
 
 /* Merges all entries from objectB into objectA and destroys objectB.
  */
-json_value * json_object_merge (json_value * objectA, json_value * objectB);
+sky_json_t * json_object_merge (sky_json_t * objectA, sky_json_t * objectB);
 
 /* Sort the entries of an object based on the order in a prototype object.
  * Helpful when reading JSON and writing it again to preserve user order.
  */
-void json_object_sort (json_value * object, json_value * proto);
+void json_object_sort (sky_json_t * object, sky_json_t * proto);
 
 
 
 /*** Strings
  ***/
-json_value * json_string_new (const sky_uchar_t *);
-json_value * json_string_new_length (unsigned int length, const sky_uchar_t *);
-json_value * json_string_new_nocopy (unsigned int length, sky_uchar_t *);
+sky_json_t * json_string_new (const sky_uchar_t *);
+sky_json_t * json_string_new_length (unsigned int length, const sky_uchar_t *);
+sky_json_t * json_string_new_nocopy (unsigned int length, sky_uchar_t *);
 
 
 /*** Everything else
  ***/
-json_value * json_integer_new (json_int_t);
-json_value * json_double_new (double);
-json_value * json_boolean_new (int);
-json_value * json_null_new (void);
+sky_json_t * json_integer_new (json_int_t);
+sky_json_t * json_double_new (double);
+sky_json_t * json_boolean_new (int);
+sky_json_t * json_null_new (void);
 
 
 /*** Serializing
@@ -103,20 +103,20 @@ typedef struct json_serialize_opts
 /* Returns a length in characters that is at least large enough to hold the
  * value in its serialized form, including a null terminator.
  */
-size_t json_measure (json_value *);
-size_t json_measure_ex (json_value *, json_serialize_opts);
+size_t json_measure (sky_json_t *);
+size_t json_measure_ex (sky_json_t *, json_serialize_opts);
 
 
 /* Serializes a JSON value into the buffer given (which must already be
  * allocated with a length of at least json_measure(value, opts))
  */
-void json_serialize (sky_uchar_t * buf, json_value *);
-void json_serialize_ex (sky_uchar_t * buf, json_value *, json_serialize_opts);
+void json_serialize (sky_uchar_t * buf, sky_json_t *);
+void json_serialize_ex (sky_uchar_t * buf, sky_json_t *, json_serialize_opts);
 
 
 /*** Cleaning up
  ***/
-void json_builder_free (json_value *);
+void json_builder_free (sky_json_t *);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

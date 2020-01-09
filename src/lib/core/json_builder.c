@@ -18,7 +18,7 @@ static const json_serialize_opts default_opts =
         };
 
 typedef struct json_builder_value {
-    json_value value;
+    sky_json_t value;
 
     int is_builder_value;
 
@@ -27,7 +27,7 @@ typedef struct json_builder_value {
 
 } json_builder_value;
 
-static int builderize(json_value *value) {
+static int builderize(sky_json_t *value) {
     if (((json_builder_value *) value)->is_builder_value)
         return 1;
 
@@ -41,7 +41,7 @@ static int builderize(json_value *value) {
          */
         for (i = 0; i < value->u.object.length; ++i) {
             sky_uchar_t *name_copy;
-            json_object_entry *entry = &value->u.object.values[i];
+            json_object_s *entry = &value->u.object.values[i];
 
             if (!(name_copy = (sky_uchar_t *) malloc((entry->key.len + 1) * sizeof(sky_uchar_t))))
                 return 0;
@@ -56,7 +56,7 @@ static int builderize(json_value *value) {
     return 1;
 }
 
-const size_t json_builder_extra = sizeof(json_builder_value) - sizeof(json_value);
+const size_t json_builder_extra = sizeof(json_builder_value) - sizeof(sky_json_t);
 
 /* These flags are set up from the opts before serializing to make the
  * serializer conditions simpler.
@@ -89,8 +89,8 @@ static int get_serialize_flags(json_serialize_opts opts) {
     return flags;
 }
 
-json_value *json_array_new(size_t length) {
-    json_value *value = (json_value *) calloc(1, sizeof(json_builder_value));
+sky_json_t *json_array_new(size_t length) {
+    sky_json_t *value = (sky_json_t *) calloc(1, sizeof(json_builder_value));
 
     if (!value)
         return NULL;
@@ -99,7 +99,7 @@ json_value *json_array_new(size_t length) {
 
     value->type = json_array;
 
-    if (!(value->u.array.values = (json_value **) malloc(length * sizeof(json_value *)))) {
+    if (!(value->u.array.values = (sky_json_t **) malloc(length * sizeof(sky_json_t *)))) {
         free(value);
         return NULL;
     }
@@ -109,7 +109,7 @@ json_value *json_array_new(size_t length) {
     return value;
 }
 
-json_value *json_array_push(json_value *array, json_value *value) {
+sky_json_t *json_array_push(sky_json_t *array, sky_json_t *value) {
     assert (array->type == json_array);
 
     if (!builderize(array) || !builderize(value))
@@ -118,8 +118,8 @@ json_value *json_array_push(json_value *array, json_value *value) {
     if (((json_builder_value *) array)->additional_length_allocated > 0) {
         --((json_builder_value *) array)->additional_length_allocated;
     } else {
-        json_value **values_new = (json_value **) realloc
-                (array->u.array.values, sizeof(json_value *) * (array->u.array.length + 1));
+        sky_json_t **values_new = (sky_json_t **) realloc
+                (array->u.array.values, sizeof(sky_json_t *) * (array->u.array.length + 1));
 
         if (!values_new)
             return NULL;
@@ -135,8 +135,8 @@ json_value *json_array_push(json_value *array, json_value *value) {
     return value;
 }
 
-json_value *json_object_new(size_t length) {
-    json_value *value = (json_value *) calloc(1, sizeof(json_builder_value));
+sky_json_t *json_object_new(size_t length) {
+    sky_json_t *value = (sky_json_t *) calloc(1, sizeof(json_builder_value));
 
     if (!value)
         return NULL;
@@ -145,7 +145,7 @@ json_value *json_object_new(size_t length) {
 
     value->type = json_object;
 
-    if (!(value->u.object.values = (json_object_entry *) calloc
+    if (!(value->u.object.values = (json_object_s *) calloc
             (length, sizeof(*value->u.object.values)))) {
         free(value);
         return NULL;
@@ -156,15 +156,15 @@ json_value *json_object_new(size_t length) {
     return value;
 }
 
-json_value *json_object_push(json_value *object,
+sky_json_t *json_object_push(sky_json_t *object,
                              const sky_uchar_t *name,
-                             json_value *value) {
+                             sky_json_t *value) {
     return json_object_push_length(object, strlen(name), name, value);
 }
 
-json_value *json_object_push_length(json_value *object,
+sky_json_t *json_object_push_length(sky_json_t *object,
                                     unsigned int name_length, const sky_uchar_t *name,
-                                    json_value *value) {
+                                    sky_json_t *value) {
     sky_uchar_t *name_copy;
 
     assert (object->type == json_object);
@@ -183,10 +183,10 @@ json_value *json_object_push_length(json_value *object,
     return value;
 }
 
-json_value *json_object_push_nocopy(json_value *object,
+sky_json_t *json_object_push_nocopy(sky_json_t *object,
                                     unsigned int name_length, sky_uchar_t *name,
-                                    json_value *value) {
-    json_object_entry *entry;
+                                    sky_json_t *value) {
+    json_object_s *entry;
 
     assert (object->type == json_object);
 
@@ -196,7 +196,7 @@ json_value *json_object_push_nocopy(json_value *object,
     if (((json_builder_value *) object)->additional_length_allocated > 0) {
         --((json_builder_value *) object)->additional_length_allocated;
     } else {
-        json_object_entry *values_new = (json_object_entry *)
+        json_object_s *values_new = (json_object_s *)
                 realloc(object->u.object.values, sizeof(*object->u.object.values)
                                                  * (object->u.object.length + 1));
 
@@ -219,12 +219,12 @@ json_value *json_object_push_nocopy(json_value *object,
     return value;
 }
 
-json_value *json_string_new(const sky_uchar_t *buf) {
+sky_json_t *json_string_new(const sky_uchar_t *buf) {
     return json_string_new_length(strlen(buf), buf);
 }
 
-json_value *json_string_new_length(unsigned int length, const sky_uchar_t *buf) {
-    json_value *value;
+sky_json_t *json_string_new_length(unsigned int length, const sky_uchar_t *buf) {
+    sky_json_t *value;
     sky_uchar_t *copy = (sky_uchar_t *) malloc((length + 1) * sizeof(sky_uchar_t));
 
     if (!copy)
@@ -241,8 +241,8 @@ json_value *json_string_new_length(unsigned int length, const sky_uchar_t *buf) 
     return value;
 }
 
-json_value *json_string_new_nocopy(unsigned int length, sky_uchar_t *buf) {
-    json_value *value = (json_value *) calloc(1, sizeof(json_builder_value));
+sky_json_t *json_string_new_nocopy(unsigned int length, sky_uchar_t *buf) {
+    sky_json_t *value = (sky_json_t *) calloc(1, sizeof(json_builder_value));
 
     if (!value)
         return NULL;
@@ -256,8 +256,8 @@ json_value *json_string_new_nocopy(unsigned int length, sky_uchar_t *buf) {
     return value;
 }
 
-json_value *json_integer_new(json_int_t integer) {
-    json_value *value = (json_value *) calloc(1, sizeof(json_builder_value));
+sky_json_t *json_integer_new(json_int_t integer) {
+    sky_json_t *value = (sky_json_t *) calloc(1, sizeof(json_builder_value));
 
     if (!value)
         return NULL;
@@ -270,8 +270,8 @@ json_value *json_integer_new(json_int_t integer) {
     return value;
 }
 
-json_value *json_double_new(double dbl) {
-    json_value *value = (json_value *) calloc(1, sizeof(json_builder_value));
+sky_json_t *json_double_new(double dbl) {
+    sky_json_t *value = (sky_json_t *) calloc(1, sizeof(json_builder_value));
 
     if (!value)
         return NULL;
@@ -284,8 +284,8 @@ json_value *json_double_new(double dbl) {
     return value;
 }
 
-json_value *json_boolean_new(int b) {
-    json_value *value = (json_value *) calloc(1, sizeof(json_builder_value));
+sky_json_t *json_boolean_new(int b) {
+    sky_json_t *value = (sky_json_t *) calloc(1, sizeof(json_builder_value));
 
     if (!value)
         return NULL;
@@ -298,8 +298,8 @@ json_value *json_boolean_new(int b) {
     return value;
 }
 
-json_value *json_null_new(void) {
-    json_value *value = (json_value *) calloc(1, sizeof(json_builder_value));
+sky_json_t *json_null_new(void) {
+    sky_json_t *value = (sky_json_t *) calloc(1, sizeof(json_builder_value));
 
     if (!value)
         return NULL;
@@ -311,7 +311,7 @@ json_value *json_null_new(void) {
     return value;
 }
 
-void json_object_sort(json_value *object, json_value *proto) {
+void json_object_sort(sky_json_t *object, sky_json_t *proto) {
     unsigned int i, out_index = 0;
 
     if (!builderize(object))
@@ -322,10 +322,10 @@ void json_object_sort(json_value *object, json_value *proto) {
 
     for (i = 0; i < proto->u.object.length; ++i) {
         unsigned int j;
-        json_object_entry proto_entry = proto->u.object.values[i];
+        json_object_s proto_entry = proto->u.object.values[i];
 
         for (j = 0; j < object->u.object.length; ++j) {
-            json_object_entry entry = object->u.object.values[j];
+            json_object_s entry = object->u.object.values[j];
 
             if (entry.key.len != proto_entry.key.len)
                 continue;
@@ -342,7 +342,7 @@ void json_object_sort(json_value *object, json_value *proto) {
     }
 }
 
-json_value *json_object_merge(json_value *objectA, json_value *objectB) {
+sky_json_t *json_object_merge(sky_json_t *objectA, sky_json_t *objectB) {
     unsigned int i;
 
     assert (objectA->type == json_object);
@@ -357,15 +357,15 @@ json_value *json_object_merge(json_value *objectA, json_value *objectB) {
         ((json_builder_value *) objectA)->additional_length_allocated
                 -= objectB->u.object.length;
     } else {
-        json_object_entry *values_new;
+        json_object_s *values_new;
 
         unsigned int alloc =
                 objectA->u.object.length
                 + ((json_builder_value *) objectA)->additional_length_allocated
                 + objectB->u.object.length;
 
-        if (!(values_new = (json_object_entry *)
-                realloc(objectA->u.object.values, sizeof(json_object_entry) * alloc))) {
+        if (!(values_new = (json_object_s *)
+                realloc(objectA->u.object.values, sizeof(json_object_s) * alloc))) {
             return NULL;
         }
 
@@ -373,7 +373,7 @@ json_value *json_object_merge(json_value *objectA, json_value *objectB) {
     }
 
     for (i = 0; i < objectB->u.object.length; ++i) {
-        json_object_entry *entry = &objectA->u.object.values[objectA->u.object.length + i];
+        json_object_s *entry = &objectA->u.object.values[objectA->u.object.length + i];
 
         *entry = objectB->u.object.values[i];
         entry->value->parent = objectA;
@@ -465,7 +465,7 @@ static size_t serialize_string(sky_uchar_t *buf,
     return buf - orig_buf;
 }
 
-size_t json_measure(json_value *value) {
+size_t json_measure(sky_json_t *value) {
     return json_measure_ex(value, default_opts);
 }
 
@@ -475,7 +475,7 @@ size_t json_measure(json_value *value) {
 } while(0);                                        \
 
 
-size_t json_measure_ex(json_value *value, json_serialize_opts opts) {
+size_t json_measure_ex(sky_json_t *value, json_serialize_opts opts) {
     size_t total = 1;  /* null terminator */
     size_t newlines = 0;
     size_t depth = 0;
@@ -493,7 +493,7 @@ size_t json_measure_ex(json_value *value, json_serialize_opts opts) {
 
     while (value) {
         json_int_t integer;
-        json_object_entry *entry;
+        json_object_s *entry;
 
         switch (value->type) {
             case json_array:
@@ -629,7 +629,7 @@ size_t json_measure_ex(json_value *value, json_serialize_opts opts) {
     return total;
 }
 
-void json_serialize(sky_uchar_t *buf, json_value *value) {
+void json_serialize(sky_uchar_t *buf, sky_json_t *value) {
     json_serialize_ex(buf, value, default_opts);
 }
 
@@ -656,9 +656,9 @@ void json_serialize(sky_uchar_t *buf, json_value *value) {
 } while(0);                                           \
 
 
-void json_serialize_ex(sky_uchar_t *buf, json_value *value, json_serialize_opts opts) {
+void json_serialize_ex(sky_uchar_t *buf, sky_json_t *value, json_serialize_opts opts) {
     json_int_t integer, orig_integer;
-    json_object_entry *entry;
+    json_object_s *entry;
     sky_uchar_t *ptr, *dot;
     int indent = 0;
     char indent_char;
@@ -805,8 +805,8 @@ void json_serialize_ex(sky_uchar_t *buf, json_value *value, json_serialize_opts 
     *buf = 0;
 }
 
-void json_builder_free(json_value *value) {
-    json_value *cur_value;
+void json_builder_free(sky_json_t *value) {
+    sky_json_t *cur_value;
 
     if (!value)
         return;

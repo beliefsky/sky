@@ -10,6 +10,7 @@ extern "C" {
 
 #include "types.h"
 #include "string.h"
+#include "palloc.h"
 
 
 #ifndef json_int_t
@@ -18,31 +19,12 @@ extern "C" {
 
 #include <stdlib.h>
 
-typedef struct _json_value json_value;
-typedef struct sky_json_object_entry_s json_object_entry;
+typedef struct sky_json_s sky_json_t;
+typedef struct sky_json_object_s json_object_s;
 
-typedef struct {
-    unsigned long max_memory;
-    int settings;
-
-    /* Custom allocator support (leave null to use malloc/free)
-     */
-
-    void *(*mem_alloc)(size_t, int zero, void *user_data);
-
-    void (*mem_free)(void *, void *user_data);
-
-    void *user_data;  /* will be passed to mem_alloc and mem_free */
-
-    size_t value_extra;  /* how much extra space to allocate for values? */
-
-} json_settings;
-
-#define json_enable_comments  0x01
 
 typedef enum {
-    json_none,
-    json_object,
+    json_object = 0,
     json_array,
     json_integer,
     json_double,
@@ -52,14 +34,13 @@ typedef enum {
 
 } json_type;
 
-struct sky_json_object_entry_s {
+struct sky_json_object_s {
     sky_str_t key;
-    json_value *value;
-
+    sky_json_t *value;
 };
 
-struct _json_value {
-    json_value *parent;
+struct sky_json_s {
+    sky_json_t *parent;
 
     json_type type;
 
@@ -77,42 +58,27 @@ struct _json_value {
         struct {
             unsigned int length;
 
-            json_object_entry *values;
+            json_object_s *values;
 
         } object;
 
         struct {
             unsigned int length;
-            json_value **values;
+            sky_json_t **values;
         } array;
 
     } u;
 
     union {
-        json_value *next_alloc;
+        sky_json_t *next_alloc;
         void *object_mem;
 
     } _reserved;
 };
 
-json_value *json_parse(const sky_uchar_t *json,
-                       size_t length);
+sky_json_t *sky_json_parse(sky_pool_t *pool, sky_str_t *json);
 
-#define json_error_max 128
-
-json_value *json_parse_ex(json_settings *settings,
-                          const sky_uchar_t *json,
-                          size_t length,
-                          char *error);
-
-void json_value_free(json_value *);
-
-
-/* Not usually necessary, unless you used a custom mem_alloc and now want to
- * use a custom mem_free.
- */
-void json_value_free_ex(json_settings *settings,
-                        json_value *);
+sky_json_t *sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bool_t enable_comments);
 
 
 #if defined(__cplusplus)
