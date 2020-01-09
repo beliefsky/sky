@@ -42,10 +42,11 @@ typedef time_t sky_time_t;
 #define sky_likely(_x)       __builtin_expect(!!(_x), 1)
 #define sky_unlikely(_x)     __builtin_expect(!!(_x), 0)
 
-#define sky_abs(_v)       (((_v) < 0) ? -(_v) : v)
-#define sky_max(_v1, _v2)  ((_v1) ^ ((_v1) ^ (_v2)) & -((_v1) < (_v2)))
-#define sky_min(_v1, _v2)  ((_v2) ^ ((_v1) ^ (_v2)) & -((_v1) < (_v2)))
-#define sky_swap(a, b)       (((a) ^ (b)) && ((b) ^= (a) ^= (b), (a) ^= (b)))
+#define sky_abs(_v)         (((_v) < 0) ? -(_v) : v)
+#define sky_max(_v1, _v2)   ((_v1) ^ ((_v1) ^ (_v2)) & -((_v1) < (_v2)))
+#define sky_min(_v1, _v2)   ((_v2) ^ ((_v1) ^ (_v2)) & -((_v1) < (_v2)))
+#define sky_swap(_a, _b)    (((_a) ^ (_b)) && ((_b) ^= (_a) ^= (_b), (_a) ^= (_b)))
+#define sky_two_avg(_a, _b) (_a & _b) + ((_a ^ _b) >> 1)
 
 /**
  * 是否是2的冪数
