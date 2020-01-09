@@ -218,8 +218,9 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                     goto e_failed;
                 }
 
-                if (string_length > state.uint_max)
+                if (sky_unlikely(string_length > state.uint_max)) {
                     goto e_overflow;
+                }
 
                 if (flags & flag_escaped) {
                     flags &= ~flag_escaped;
@@ -242,11 +243,11 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                             break;
                         case 'u':
 
-                            if (end - state.ptr <= 4 ||
-                                (uc_b1 = hex_value(*++state.ptr)) == 0xFF ||
-                                (uc_b2 = hex_value(*++state.ptr)) == 0xFF ||
-                                (uc_b3 = hex_value(*++state.ptr)) == 0xFF ||
-                                (uc_b4 = hex_value(*++state.ptr)) == 0xFF) {
+                            if (sky_unlikely(end - state.ptr <= 4 ||
+                                             (uc_b1 = hex_value(*++state.ptr)) == 0xFF ||
+                                             (uc_b2 = hex_value(*++state.ptr)) == 0xFF ||
+                                             (uc_b3 = hex_value(*++state.ptr)) == 0xFF ||
+                                             (uc_b4 = hex_value(*++state.ptr)) == 0xFF)) {
                                 sprintf(error, "Invalid character value `%c` (at %d:%d)", b, line_and_col);
                                 goto e_failed;
                             }
@@ -258,11 +259,12 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                             if ((uchar & 0xF800) == 0xD800) {
                                 json_uchar uchar2;
 
-                                if (end - state.ptr <= 6 || (*++state.ptr) != '\\' || (*++state.ptr) != 'u' ||
-                                    (uc_b1 = hex_value(*++state.ptr)) == 0xFF ||
-                                    (uc_b2 = hex_value(*++state.ptr)) == 0xFF ||
-                                    (uc_b3 = hex_value(*++state.ptr)) == 0xFF ||
-                                    (uc_b4 = hex_value(*++state.ptr)) == 0xFF) {
+                                if (sky_likely(
+                                        end - state.ptr <= 6 || (*++state.ptr) != '\\' || (*++state.ptr) != 'u' ||
+                                        (uc_b1 = hex_value(*++state.ptr)) == 0xFF ||
+                                        (uc_b2 = hex_value(*++state.ptr)) == 0xFF ||
+                                        (uc_b3 = hex_value(*++state.ptr)) == 0xFF ||
+                                        (uc_b4 = hex_value(*++state.ptr)) == 0xFF)) {
                                     sprintf(error, "Invalid character value `%c` (at %d:%d)", b, line_and_col);
                                     goto e_failed;
                                 }
@@ -302,9 +304,9 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                 break;
                             }
 
-                            if (state.first_pass)
+                            if (state.first_pass) {
                                 string_length += 4;
-                            else {
+                            } else {
                                 string[string_length++] = 0xF0 | (uchar >> 18);
                                 string[string_length++] = 0x80 | ((uchar >> 12) & 0x3F);
                                 string[string_length++] = 0x80 | ((uchar >> 6) & 0x3F);
@@ -438,12 +440,11 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                 switch (b) {
                     whitespace:
                         continue;
-
                     case ']':
 
-                        if (top && top->type == json_array)
+                        if (sky_likely(top && top->type == json_array)) {
                             flags = (flags & ~(flag_need_comma | flag_seek_value)) | flag_next;
-                        else {
+                        } else {
                             sprintf(error, "%d:%d: Unexpected ]", line_and_col);
                             goto e_failed;
                         }
@@ -452,7 +453,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
 
                     default:
 
-                        if (flags & flag_need_comma) {
+                        if (sky_likely(flags & flag_need_comma)) {
                             if (b == ',') {
                                 flags &= ~flag_need_comma;
                                 continue;
@@ -464,7 +465,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                             }
                         }
 
-                        if (flags & flag_need_colon) {
+                        if (sky_likely(flags & flag_need_colon)) {
                             if (b == ':') {
                                 flags &= ~flag_need_colon;
                                 continue;
@@ -481,23 +482,24 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                         switch (b) {
                             case '{':
 
-                                if (!new_value(&state, &top, &root, &alloc, json_object))
+                                if (sky_unlikely(!new_value(&state, &top, &root, &alloc, json_object))) {
                                     goto e_alloc_failure;
-
+                                }
                                 continue;
 
                             case '[':
 
-                                if (!new_value(&state, &top, &root, &alloc, json_array))
+                                if (sky_unlikely(!new_value(&state, &top, &root, &alloc, json_array))) {
                                     goto e_alloc_failure;
-
+                                }
                                 flags |= flag_seek_value;
                                 continue;
 
                             case '"':
 
-                                if (!new_value(&state, &top, &root, &alloc, json_string))
+                                if (sky_unlikely(!new_value(&state, &top, &root, &alloc, json_string))) {
                                     goto e_alloc_failure;
+                                }
 
                                 flags |= flag_string;
 
@@ -507,52 +509,49 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                 continue;
 
                             case 't':
-
-                                if ((end - state.ptr) < 3 || *(++state.ptr) != 'r' ||
-                                    *(++state.ptr) != 'u' || *(++state.ptr) != 'e') {
+                                if (sky_unlikely((end - state.ptr) < 3
+                                                 || !sky_str4_cmp(state.ptr, 't', 'r', 'u', 'e'))) {
                                     goto e_unknown_value;
                                 }
-
-                                if (!new_value(&state, &top, &root, &alloc, json_boolean))
+                                state.ptr += 3;
+                                if (sky_unlikely(!new_value(&state, &top, &root, &alloc, json_boolean))) {
                                     goto e_alloc_failure;
-
-                                top->u.boolean = 1;
+                                }
+                                top->u.boolean = true;
 
                                 flags |= flag_next;
                                 break;
 
                             case 'f':
-
-                                if ((end - state.ptr) < 4 || *(++state.ptr) != 'a' ||
-                                    *(++state.ptr) != 'l' || *(++state.ptr) != 's' ||
-                                    *(++state.ptr) != 'e') {
+                                if (sky_unlikely((end - state.ptr) < 4
+                                                 || !sky_str4_cmp(++state.ptr, 'a', 'l', 's', 'e'))) {
                                     goto e_unknown_value;
                                 }
-
-                                if (!new_value(&state, &top, &root, &alloc, json_boolean))
+                                state.ptr += 3;
+                                if (sky_unlikely(!new_value(&state, &top, &root, &alloc, json_boolean))) {
                                     goto e_alloc_failure;
-
+                                }
                                 flags |= flag_next;
                                 break;
 
                             case 'n':
-
-                                if ((end - state.ptr) < 3 || *(++state.ptr) != 'u' ||
-                                    *(++state.ptr) != 'l' || *(++state.ptr) != 'l') {
+                                if (sky_unlikely((end - state.ptr) < 3
+                                                 || !sky_str4_cmp(state.ptr, 'n', 'u', 'l', 'l'))) {
                                     goto e_unknown_value;
                                 }
-
-                                if (!new_value(&state, &top, &root, &alloc, json_null))
+                                state.ptr += 3;
+                                if (sky_unlikely(!new_value(&state, &top, &root, &alloc, json_null))) {
                                     goto e_alloc_failure;
-
+                                }
                                 flags |= flag_next;
                                 break;
 
                             default:
 
-                                if (isdigit (b) || b == '-') {
-                                    if (!new_value(&state, &top, &root, &alloc, json_integer))
+                                if (sky_likely(isdigit(b) || b == '-')) {
+                                    if (sky_unlikely(!new_value(&state, &top, &root, &alloc, json_integer))) {
                                         goto e_alloc_failure;
+                                    }
 
                                     if (!state.first_pass) {
                                         while (isdigit (b) || b == '+' || b == '-'
@@ -588,7 +587,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                     sprintf(error, "%d:%d: Unexpected %c when seeking value", line_and_col, b);
                                     goto e_failed;
                                 }
-                        };
+                        }
                 };
             } else {
                 switch (top->type) {
@@ -597,33 +596,24 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                         switch (b) {
                             whitespace:
                                 continue;
-
                             case '"':
-
-                                if (flags & flag_need_comma) {
+                                if (sky_unlikely(flags & flag_need_comma)) {
                                     sprintf(error, "%d:%d: Expected , before \"", line_and_col);
                                     goto e_failed;
                                 }
-
                                 flags |= flag_string;
 
                                 string = (sky_uchar_t *) top->_reserved.object_mem;
                                 string_length = 0;
-
                                 break;
-
                             case '}':
-
                                 flags = (flags & ~flag_need_comma) | flag_next;
                                 break;
-
                             case ',':
-
                                 if (flags & flag_need_comma) {
                                     flags &= ~flag_need_comma;
                                     break;
                                 }
-
                             default:
                                 sprintf(error, "%d:%d: Unexpected `%c` in object", line_and_col, b);
                                 goto e_failed;
@@ -639,13 +629,13 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
 
                             if (top->type == json_integer || flags & flag_num_e) {
                                 if (!(flags & flag_num_e)) {
-                                    if (flags & flag_num_zero) {
+                                    if (sky_unlikely(flags & flag_num_zero)) {
                                         sprintf(error, "%d:%d: Unexpected `0` before `%c`", line_and_col, b);
                                         goto e_failed;
                                     }
-
-                                    if (num_digits == 1 && b == '0')
+                                    if (num_digits == 1 && b == '0') {
                                         flags |= flag_num_zero;
+                                    }
                                 } else {
                                     flags |= flag_num_e_got_sign;
                                     num_e = (num_e * 10) + (b - '0');
@@ -664,11 +654,11 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                 continue;
                             }
 
-                            if (flags & flag_num_got_decimal)
+                            if (flags & flag_num_got_decimal) {
                                 num_fraction = (num_fraction * 10) + (b - '0');
-                            else
+                            } else {
                                 top->u.dbl = (top->u.dbl * 10) + (b - '0');
-
+                            }
                             continue;
                         }
 
@@ -676,13 +666,13 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                             if ((flags & flag_num_e) && !(flags & flag_num_e_got_sign)) {
                                 flags |= flag_num_e_got_sign;
 
-                                if (b == '-')
+                                if (b == '-') {
                                     flags |= flag_num_e_negative;
-
+                                }
                                 continue;
                             }
                         } else if (b == '.' && top->type == json_integer) {
-                            if (!num_digits) {
+                            if (sky_unlikely(!num_digits)) {
                                 sprintf(error, "%d:%d: Expected digit before `.`", line_and_col);
                                 goto e_failed;
                             }
@@ -697,7 +687,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
 
                         if (!(flags & flag_num_e)) {
                             if (top->type == json_double) {
-                                if (!num_digits) {
+                                if (sky_unlikely(!num_digits)) {
                                     sprintf(error, "%d:%d: Expected digit after `.`", line_and_col);
                                     goto e_failed;
                                 }
@@ -719,7 +709,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                 continue;
                             }
                         } else {
-                            if (!num_digits) {
+                            if (sky_unlikely(!num_digits)) {
                                 sprintf(error, "%d:%d: Expected digit after `e`", line_and_col);
                                 goto e_failed;
                             }
@@ -728,10 +718,11 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                         }
 
                         if (flags & flag_num_negative) {
-                            if (top->type == json_integer)
+                            if (top->type == json_integer) {
                                 top->u.integer = -top->u.integer;
-                            else
+                            } else {
                                 top->u.dbl = -top->u.dbl;
+                            }
                         }
 
                         flags |= flag_next | flag_reproc;
@@ -752,13 +743,13 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
 
                 if (!top->parent) {
                     /* root value done */
-
                     flags |= flag_done;
                     continue;
                 }
 
-                if (top->parent->type == json_array)
+                if (top->parent->type == json_array) {
                     flags |= flag_seek_value;
+                }
 
                 if (!state.first_pass) {
                     sky_json_t *parent = top->parent;
@@ -773,11 +764,12 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                             break;
                         default:
                             break;
-                    };
+                    }
                 }
 
-                if ((++top->parent->u.array.length) > state.uint_max)
+                if ((++top->parent->u.array.length) > state.uint_max) {
                     goto e_overflow;
+                }
 
                 top = top->parent;
 
@@ -807,8 +799,9 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
 
     e_failed:
 
-    if (state.first_pass)
+    if (state.first_pass) {
         alloc = root;
+    }
 
     while (alloc) {
         top = alloc->_reserved.next_alloc;
