@@ -67,12 +67,12 @@ struct sky_coro_s {
 #if defined(__x86_64__)
 
 void __attribute__((noinline, visibility("internal")))
-sky_coro_swapcontext(sky_coro_context_t *current, sky_coro_context_t *other);
+coro_swapcontext(sky_coro_context_t *current, sky_coro_context_t *other);
 
 asm(
 ".text\n\t"
 ".p2align 4\n\t"
-ASM_ROUTINE(sky_coro_swapcontext)
+ASM_ROUTINE(coro_swapcontext)
 "movq    %rbx,0(%rdi)\n\t"
 "movq    %rbp,8(%rdi)\n\t"
 "movq    %r12,16(%rdi)\n\t"
@@ -98,11 +98,11 @@ ASM_ROUTINE(sky_coro_swapcontext)
 "jmpq    *%rcx\n\t");
 #elif defined(__i386__)
 void __attribute__((noinline, visibility("internal")))
-sky_coro_swapcontext(sky_coro_context_t *current, sky_coro_context_t *other);
+coro_swapcontext(sky_coro_context_t *current, sky_coro_context_t *other);
     asm(
     ".text\n\t"
     ".p2align 16\n\t"
-    ASM_ROUTINE(sky_coro_swapcontext)
+    ASM_ROUTINE(coro_swapcontext)
     "movl   0x4(%esp),%eax\n\t"
     "movl   %ecx,0x1c(%eax)\n\t" /* ECX */
     "movl   %ebx,0x0(%eax)\n\t"  /* EBX */
@@ -124,7 +124,7 @@ sky_coro_swapcontext(sky_coro_context_t *current, sky_coro_context_t *other);
     "movl   0x1c(%eax),%ecx\n\t" /* ECX */
     "ret\n\t");
 #else
-#define sky_coro_swapcontext(cur,oth) swapcontext(cur, oth)
+#define coro_swapcontext(cur,oth) swapcontext(cur, oth)
 #endif
 
 __attribute__((used, visibility("internal")))
@@ -137,11 +137,11 @@ coro_entry_point(sky_coro_t *coro, sky_coro_func_t func, sky_uintptr_t data) {
 
 /* See comment in coro_reset() for an explanation of why this routine is
  * necessary. */
-void __attribute__((visibility("internal"))) sky_coro_entry_point_x86_64();
+void __attribute__((visibility("internal"))) coro_entry_point_x86_64();
 
 asm(".text\n\t"
     ".p2align 4\n\t"
-    ASM_ROUTINE(sky_coro_entry_point_x86_64)
+    ASM_ROUTINE(coro_entry_point_x86_64)
     "mov %r15, %rdx\n\t"
     "jmp " ASM_SYMBOL(coro_entry_point) "\n\t"
 );
@@ -168,7 +168,7 @@ sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func, sky_uintptr
     coro->context[5 /* R15 */] = (sky_uintptr_t) data;
     coro->context[6 /* RDI */] = (sky_uintptr_t) coro;
     coro->context[7 /* RSI */] = (sky_uintptr_t) func;
-    coro->context[8 /* RIP */] = (sky_uintptr_t) sky_coro_entry_point_x86_64;
+    coro->context[8 /* RIP */] = (sky_uintptr_t) coro_entry_point_x86_64;
 #define STACK_PTR 9
     coro->context[STACK_PTR /* RSP */] = (((sky_uintptr_t) coro->stack + SKY_CORO_STACK_MIN) & ~0xful) - 0x8ul;
 #elif defined(__i386__)
@@ -191,7 +191,7 @@ sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func, sky_uintptr
     coro->context.uc_stack.ss_flags = 0;
     coro->context.uc_link = null;
 
-    makecontext(&coro->context, sky_coro_entry_point, 3, coro, func, data);
+    makecontext(&coro->context, coro_entry_point, 3, coro, func, data);
 #endif
     return coro;
 
@@ -215,7 +215,7 @@ sky_coro_create2(sky_coro_switcher_t *switcher, sky_coro_func_t func, sky_uintpt
     coro->context[5 /* R15 */] = (sky_uintptr_t) data;
     coro->context[6 /* RDI */] = (sky_uintptr_t) coro;
     coro->context[7 /* RSI */] = (sky_uintptr_t) func;
-    coro->context[8 /* RIP */] = (sky_uintptr_t) sky_coro_entry_point_x86_64;
+    coro->context[8 /* RIP */] = (sky_uintptr_t) coro_entry_point_x86_64;
 #define STACK_PTR 9
     coro->context[STACK_PTR /* RSP */] = (((sky_uintptr_t) coro->stack + SKY_CORO_STACK_MIN) & ~0xful) - 0x8ul;
 #elif defined(__i386__)
@@ -238,7 +238,7 @@ sky_coro_create2(sky_coro_switcher_t *switcher, sky_coro_func_t func, sky_uintpt
     coro->context.uc_stack.ss_flags = 0;
     coro->context.uc_link = null;
 
-    makecontext(&coro->context, sky_coro_entry_point, 3, coro, func, data);
+    makecontext(&coro->context, coro_entry_point, 3, coro, func, data);
 #endif
     return coro;
 }
@@ -250,14 +250,14 @@ sky_coro_resume(sky_coro_t *coro) {
     assert(coro->context[STACK_PTR] >= (sky_uintptr_t) coro->stack &&
            coro->context[STACK_PTR] <= (sky_uintptr_t) (coro->stack + SKY_CORO_STACK_MIN));
 #endif
-    sky_coro_swapcontext(&coro->switcher->caller, &coro->context);
+    coro_swapcontext(&coro->switcher->caller, &coro->context);
     return coro->yield_value;
 }
 
 sky_int8_t
 sky_coro_yield(sky_coro_t *coro, sky_int8_t value) {
     coro->yield_value = value;
-    sky_coro_swapcontext(&coro->context, &coro->switcher->caller);
+    coro_swapcontext(&coro->context, &coro->switcher->caller);
     return coro->yield_value;
 }
 
