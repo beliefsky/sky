@@ -3,6 +3,7 @@
 //
 
 #include "json.h"
+#include "log.h"
 
 #include <stdio.h>
 #include <ctype.h>
@@ -170,8 +171,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
         flag_num_got_decimal = 1 << 15
     };
 
-    sky_uchar_t error[json_error_max];
-    const sky_uchar_t *end;
+    sky_uchar_t *end;
     sky_json_t *top, *root, *alloc = null;
     json_state state = {0};
     long flags = 0;
@@ -186,8 +186,6 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
         json += 3;
         length -= 3;
     }
-
-    error[0] = '\0';
     end = (json + length);
 
     state.pool = pool;
@@ -214,7 +212,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
 
             if (flags & flag_string) {
                 if (!b) {
-                    sprintf(error, "Unexpected EOF in string (at %d:%d)", line_and_col);
+                    sky_log_error("Unexpected EOF in string (at %d:%d)", line_and_col);
                     goto e_failed;
                 }
 
@@ -248,7 +246,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                              (uc_b2 = hex_value(*++state.ptr)) == 0xFF ||
                                              (uc_b3 = hex_value(*++state.ptr)) == 0xFF ||
                                              (uc_b4 = hex_value(*++state.ptr)) == 0xFF)) {
-                                sprintf(error, "Invalid character value `%c` (at %d:%d)", b, line_and_col);
+                                sky_log_error("Invalid character value `%c` (at %d:%d)", b, line_and_col);
                                 goto e_failed;
                             }
 
@@ -265,7 +263,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                         (uc_b2 = hex_value(*++state.ptr)) == 0xFF ||
                                         (uc_b3 = hex_value(*++state.ptr)) == 0xFF ||
                                         (uc_b4 = hex_value(*++state.ptr)) == 0xFF)) {
-                                    sprintf(error, "Invalid character value `%c` (at %d:%d)", b, line_and_col);
+                                    sky_log_error("Invalid character value `%c` (at %d:%d)", b, line_and_col);
                                     goto e_failed;
                                 }
 
@@ -381,7 +379,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
 
                     if (flags & flag_block_comment) {
                         if (!b) {
-                            sprintf(error, "%d:%d: Unexpected EOF in block comment", line_and_col);
+                            sky_log_error("%d:%d: Unexpected EOF in block comment", line_and_col);
                             goto e_failed;
                         }
 
@@ -394,12 +392,12 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                     }
                 } else if (b == '/') {
                     if (!(flags & (flag_seek_value | flag_done)) && top->type != json_object) {
-                        sprintf(error, "%d:%d: Comment not allowed here", line_and_col);
+                        sky_log_error("%d:%d: Comment not allowed here", line_and_col);
                         goto e_failed;
                     }
 
                     if (++state.ptr == end) {
-                        sprintf(error, "%d:%d: EOF unexpected", line_and_col);
+                        sky_log_error("%d:%d: EOF unexpected", line_and_col);
                         goto e_failed;
                     }
 
@@ -413,7 +411,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                             continue;
 
                         default:
-                            sprintf(error, "%d:%d: Unexpected `%c` in comment opening sequence", line_and_col, b);
+                            sky_log_error("%d:%d: Unexpected `%c` in comment opening sequence", line_and_col, b);
                             goto e_failed;
                     };
                 }
@@ -429,7 +427,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
 
                     default:
 
-                        sprintf(error, "%d:%d: Trailing garbage: `%c`",
+                        sky_log_error("%d:%d: Trailing garbage: `%c`",
                                 state.cur_line, state.cur_col, b);
 
                         goto e_failed;
@@ -445,7 +443,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                         if (sky_likely(top && top->type == json_array)) {
                             flags = (flags & ~(flag_need_comma | flag_seek_value)) | flag_next;
                         } else {
-                            sprintf(error, "%d:%d: Unexpected ]", line_and_col);
+                            sky_log_error("%d:%d: Unexpected ]", line_and_col);
                             goto e_failed;
                         }
 
@@ -458,7 +456,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                 flags &= ~flag_need_comma;
                                 continue;
                             } else {
-                                sprintf(error, "%d:%d: Expected , before %c",
+                                sky_log_error("%d:%d: Expected , before %c",
                                         state.cur_line, state.cur_col, b);
 
                                 goto e_failed;
@@ -470,7 +468,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                 flags &= ~flag_need_colon;
                                 continue;
                             } else {
-                                sprintf(error, "%d:%d: Expected : before %c",
+                                sky_log_error("%d:%d: Expected : before %c",
                                         state.cur_line, state.cur_col, b);
 
                                 goto e_failed;
@@ -584,7 +582,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                     flags |= flag_num_negative;
                                     continue;
                                 } else {
-                                    sprintf(error, "%d:%d: Unexpected %c when seeking value", line_and_col, b);
+                                    sky_log_error("%d:%d: Unexpected %c when seeking value", line_and_col, b);
                                     goto e_failed;
                                 }
                         }
@@ -598,7 +596,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                 continue;
                             case '"':
                                 if (sky_unlikely(flags & flag_need_comma)) {
-                                    sprintf(error, "%d:%d: Expected , before \"", line_and_col);
+                                    sky_log_error("%d:%d: Expected , before \"", line_and_col);
                                     goto e_failed;
                                 }
                                 flags |= flag_string;
@@ -615,7 +613,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                     break;
                                 }
                             default:
-                                sprintf(error, "%d:%d: Unexpected `%c` in object", line_and_col, b);
+                                sky_log_error("%d:%d: Unexpected `%c` in object", line_and_col, b);
                                 goto e_failed;
                         };
 
@@ -630,7 +628,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                             if (top->type == json_integer || flags & flag_num_e) {
                                 if (!(flags & flag_num_e)) {
                                     if (sky_unlikely(flags & flag_num_zero)) {
-                                        sprintf(error, "%d:%d: Unexpected `0` before `%c`", line_and_col, b);
+                                        sky_log_error("%d:%d: Unexpected `0` before `%c`", line_and_col, b);
                                         goto e_failed;
                                     }
                                     if (num_digits == 1 && b == '0') {
@@ -673,7 +671,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                             }
                         } else if (b == '.' && top->type == json_integer) {
                             if (sky_unlikely(!num_digits)) {
-                                sprintf(error, "%d:%d: Expected digit before `.`", line_and_col);
+                                sky_log_error("%d:%d: Expected digit before `.`", line_and_col);
                                 goto e_failed;
                             }
 
@@ -688,7 +686,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                         if (!(flags & flag_num_e)) {
                             if (top->type == json_double) {
                                 if (sky_unlikely(!num_digits)) {
-                                    sprintf(error, "%d:%d: Expected digit after `.`", line_and_col);
+                                    sky_log_error("%d:%d: Expected digit after `.`", line_and_col);
                                     goto e_failed;
                                 }
 
@@ -710,7 +708,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                             }
                         } else {
                             if (sky_unlikely(!num_digits)) {
-                                sprintf(error, "%d:%d: Expected digit after `e`", line_and_col);
+                                sky_log_error("%d:%d: Expected digit after `e`", line_and_col);
                                 goto e_failed;
                             }
 
@@ -784,17 +782,17 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
 
     e_unknown_value:
 
-    sprintf(error, "%d:%d: Unknown value", line_and_col);
+    sky_log_error("%d:%d: Unknown value", line_and_col);
     goto e_failed;
 
     e_alloc_failure:
 
-    strcpy(error, "Memory allocation failure");
+    sky_log_error("Memory allocation failure");
     goto e_failed;
 
     e_overflow:
 
-    sprintf(error, "%d:%d: Too long (caught overflow)", line_and_col);
+    sky_log_error("%d:%d: Too long (caught overflow)", line_and_col);
     goto e_failed;
 
     e_failed:
