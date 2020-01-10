@@ -48,30 +48,17 @@ static int would_overflow(json_int_t value, sky_uchar_t b) {
 }
 
 typedef struct {
-    unsigned long used_memory;
+    sky_uint32_t uint_max;
 
-    unsigned int uint_max;
-    unsigned long ulong_max;
+    sky_int32_t first_pass;
 
-    int first_pass;
-
-    const sky_uchar_t *ptr;
-    unsigned int cur_line, cur_col;
+    sky_uchar_t *ptr;
+    sky_uint32_t cur_line, cur_col;
 
     sky_pool_t *pool;
     sky_bool_t enable_comments;
 
 } json_state;
-
-
-static sky_inline void *
-json_alloc(json_state *state, sky_size_t size, sky_bool_t zero) {
-    if ((state->ulong_max - state->used_memory) < size) {
-        return null;
-    }
-
-    return zero ? sky_pcalloc(state->pool, size) : sky_palloc(state->pool, size);
-}
 
 static int
 new_value(json_state *state, sky_json_t **top, sky_json_t **root, sky_json_t **alloc, json_type type) {
@@ -88,8 +75,8 @@ new_value(json_state *state, sky_json_t **top, sky_json_t **root, sky_json_t **a
         switch (value->type) {
             case json_array:
                 if (value->array.length == 0) { break; }
-                if (sky_unlikely(!(value->array.values = json_alloc
-                        (state, value->array.length * sizeof(sky_json_t *), 0)))) {
+                if (sky_unlikely(!(value->array.values = sky_pcalloc(state->pool,
+                                                                     value->array.length * sizeof(sky_json_t *))))) {
                     return 0;
                 }
                 value->array.length = 0;
@@ -97,16 +84,16 @@ new_value(json_state *state, sky_json_t **top, sky_json_t **root, sky_json_t **a
             case json_object:
                 if (value->object.length == 0) { break; }
                 values_size = sizeof(*value->object.values) * value->object.length;
-                if (sky_unlikely(!(value->object.values = json_alloc
-                        (state, values_size + ((sky_uintptr_t) value->object.values), 0)))) {
+                if (sky_unlikely(!(value->object.values = sky_pcalloc(state->pool, values_size +
+                                                                                   ((sky_uintptr_t) value->object.values))))) {
                     return 0;
                 }
                 value->_reserved.object_mem = (*(sky_uchar_t **) &value->object.values) + values_size;
                 value->object.length = 0;
                 break;
             case json_string:
-                if (sky_unlikely(!(value->string.data = (sky_uchar_t *) json_alloc
-                        (state, (value->string.len + 1) * sizeof(sky_uchar_t), 0)))) {
+                if (sky_unlikely(!(value->string.data = (sky_uchar_t *) sky_pcalloc
+                        (state->pool, (value->string.len + 1) * sizeof(sky_uchar_t))))) {
                     return 0;
                 }
                 value->string.len = 0;
@@ -118,7 +105,7 @@ new_value(json_state *state, sky_json_t **top, sky_json_t **root, sky_json_t **a
         return 1;
     }
 
-    if (sky_unlikely(!(value = json_alloc(state, sizeof(sky_json_t), 1)))) {
+    if (sky_unlikely(!(value = sky_palloc(state->pool, sizeof(sky_json_t))))) {
         return 0;
     }
 
@@ -165,7 +152,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
     };
 
     sky_uchar_t *end;
-    sky_json_t *top, *root, *alloc = null;
+    sky_json_t *top, *root = null, *alloc = null;
     json_state state = {0};
     long flags = 0;
     double num_digits = 0, num_e = 0;
@@ -184,10 +171,8 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
     state.pool = pool;
     state.enable_comments = enable_comments;
     memset(&state.uint_max, 0xFF, sizeof(state.uint_max));
-    memset(&state.ulong_max, 0xFF, sizeof(state.ulong_max));
 
     state.uint_max -= 8; /* limit of how much can be added before next check */
-    state.ulong_max -= 8;
 
     for (state.first_pass = 1; state.first_pass >= 0; --state.first_pass) {
         json_uchar uchar;
