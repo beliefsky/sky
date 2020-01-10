@@ -105,11 +105,11 @@ new_value(json_state *state, sky_json_t **top, sky_json_t **root, sky_json_t **a
                 value->u.object.length = 0;
                 break;
             case json_string:
-                if (sky_unlikely(!(value->u.string.ptr = (sky_uchar_t *) json_alloc
-                        (state, (value->u.string.length + 1) * sizeof(sky_uchar_t), 0)))) {
+                if (sky_unlikely(!(value->u.string.data = (sky_uchar_t *) json_alloc
+                        (state, (value->u.string.len + 1) * sizeof(sky_uchar_t), 0)))) {
                     return 0;
                 }
-                value->u.string.length = 0;
+                value->u.string.len = 0;
                 break;
             default:
                 break;
@@ -328,7 +328,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                     switch (top->type) {
                         case json_string:
 
-                            top->u.string.length = string_length;
+                            top->u.string.len = string_length;
                             flags |= flag_next;
 
                             break;
@@ -494,7 +494,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
 
                                 flags |= flag_string;
 
-                                string = top->u.string.ptr;
+                                string = top->u.string.data;
                                 string_length = 0;
 
                                 continue;

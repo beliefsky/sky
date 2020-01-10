@@ -49,11 +49,7 @@ struct sky_json_s {
         json_int_t integer;
         double dbl;
 
-        struct {
-            unsigned int length;
-            sky_uchar_t *ptr; /* null terminated */
-
-        } string;
+        sky_str_t string;
 
         struct {
             unsigned int length;

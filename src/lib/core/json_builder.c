@@ -250,8 +250,8 @@ sky_json_t *json_string_new_nocopy(unsigned int length, sky_uchar_t *buf) {
     ((json_builder_value *) value)->is_builder_value = 1;
 
     value->type = json_string;
-    value->u.string.length = length;
-    value->u.string.ptr = buf;
+    value->u.string.len = length;
+    value->u.string.data = buf;
 
     return value;
 }
@@ -568,7 +568,7 @@ size_t json_measure_ex(sky_json_t *value, json_serialize_opts opts) {
             case json_string:
 
                 total += 2;  /* `""` */
-                total += measure_string(value->u.string.length, value->u.string.ptr);
+                total += measure_string(value->u.string.len, value->u.string.data);
                 break;
 
             case json_integer:
@@ -758,7 +758,7 @@ void json_serialize_ex(sky_uchar_t *buf, sky_json_t *value, json_serialize_opts 
 
             case json_string:
                 *buf++ = '\"';
-                buf += serialize_string(buf, value->u.string.length, value->u.string.ptr);
+                buf += serialize_string(buf, value->u.string.len, value->u.string.data);
                 *buf++ = '\"';
                 break;
 
@@ -847,7 +847,7 @@ void json_builder_free(sky_json_t *value) {
 
             case json_string:
 
-                free(value->u.string.ptr);
+                free(value->u.string.data);
                 break;
 
             default:
