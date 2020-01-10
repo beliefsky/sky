@@ -234,27 +234,15 @@ redis_test(sky_http_request_t *req, sky_http_response_t *res) {
     res->type = SKY_HTTP_RESPONSE_BUF;
     sky_str_set(&res->buf, "{\"status\": 200, \"msg\": \"success\"}");
 
-    sky_json_t * value = sky_json_parse(req->pool, &res->buf);
+    sky_json_t *value = sky_json_parse(req->pool, &res->buf);
     if (!value) {
         sky_log_info("111");
         return true;
     }
-    json_object_s *e = value->u.object.values;
-    sky_log_info("%s : %ld", e[0].key.data, 0x1 & 0x01);
-    sky_log_info("%s : %s", e[1].key.data, e[1].value->u.string.ptr);
+    json_object_s *e = value->object.values;
+    sky_log_info("%s : %ld", e[0].key.data, e[0].value->integer);
+    sky_log_info("%s : %s", e[1].key.data, e[1].value->string.data);
 //    sky_json_t_free(value);
-
-    sky_uint32_t num = 1000;
-
-    num |= (num >> 1);
-    num |= (num >> 2);
-    num |= (num >> 4);
-    num |= (num >> 8);
-    num |= (num >> 16);
-
-    num = (num & ~(num >> 1));
-
-    sky_log_info("%d", num);
 
     return true;
 }
@@ -289,22 +277,24 @@ hello_world(sky_http_request_t *req, sky_http_response_t *res) {
 
     res->type = SKY_HTTP_RESPONSE_BUF;
 
-    sky_json_t *arr = json_object_new(3);
-    sky_json_t *obj = json_object_new(3);
-    json_object_push_length(arr, sizeof("status") -1, "status", json_integer_new(200));
-    json_object_push_length(arr, sizeof("msg") -1, "msg", json_string_new_length(sizeof("success") -1, "success"));
+    sky_json_t *arr = sky_json_object_new(req->pool, 3);
+    sky_json_t *obj = sky_json_object_new(req->pool, 3);
+    json_object_push_nocopy(arr, sizeof("status") - 1, "status", json_integer_new(200));
+    json_object_push_nocopy(arr, sizeof("msg") - 1, "msg", json_string_new_nocopy(sizeof("success") - 1, "success"));
 
-    json_object_push_length(obj, sizeof("id") -1, "id", json_integer_new(row->data[0].u64));
-    json_object_push_length(obj, sizeof("username") -1, "username", json_string_new_length(row->data[1].stream.len, row->data[1].stream.data));
-    json_object_push_length(obj, sizeof("password") -1, "password", json_string_new_length(row->data[2].stream.len, row->data[2].stream.data));
+    json_object_push_nocopy(obj, sizeof("id") - 1, "id", json_integer_new(row->data[0].u64));
+    json_object_push_nocopy(obj, sizeof("username") - 1, "username",
+                            json_string_new_nocopy(row->data[1].stream.len, row->data[1].stream.data));
+    json_object_push_nocopy(obj, sizeof("password") - 1, "password",
+                            json_string_new_nocopy(row->data[2].stream.len, row->data[2].stream.data));
 
-    json_object_push_length(arr, sizeof("data") -1, "data", obj);
+    json_object_push_nocopy(arr, sizeof("data") - 1, "data", obj);
 
     res->buf.data = sky_palloc(req->pool, (res->buf.len = json_measure(arr)));
     --res->buf.len;
     json_serialize(res->buf.data, arr);
 
-    json_builder_free(arr);
+//    json_builder_free(arr);
 
 
 //    sky_buf_t *buf = sky_buf_create(req->pool, 127);

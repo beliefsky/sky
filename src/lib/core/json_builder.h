@@ -23,60 +23,47 @@ extern "C" {
 extern const size_t json_builder_extra;
 
 
-/*** Arrays
- ***
- * Note that all of these length arguments are just a hint to allow for
- * pre-allocation - passing 0 is fine.
- */
-sky_json_t * json_array_new (size_t length);
-sky_json_t * json_array_push (sky_json_t * array, sky_json_t *);
-
-
 /*** Objects
  ***/
-sky_json_t * json_object_new (size_t length);
-
-sky_json_t * json_object_push (sky_json_t * object,
-                               const sky_uchar_t * name,
-                               sky_json_t *);
+sky_json_t *sky_json_object_new(sky_pool_t *pool, sky_size_t length);
 
 /* Same as json_object_push, but doesn't call strlen() for you.
  */
-sky_json_t * json_object_push_length (sky_json_t * object,
-                                      unsigned int name_length, const sky_uchar_t * name,
-                                      sky_json_t *);
+sky_json_t *json_object_push_length(sky_json_t *object,
+                                    unsigned int name_length, const sky_uchar_t *name,
+                                    sky_json_t *);
 
 /* Same as json_object_push_length, but doesn't copy the name buffer before
  * storing it in the value.  Use this micro-optimisation at your own risk.
  */
-sky_json_t * json_object_push_nocopy (sky_json_t * object,
-                                      unsigned int name_length, sky_uchar_t * name,
-                                      sky_json_t *);
+sky_json_t *json_object_push_nocopy(sky_json_t *object,
+                                    unsigned int name_length, sky_uchar_t *name,
+                                    sky_json_t *);
 
 /* Merges all entries from objectB into objectA and destroys objectB.
  */
-sky_json_t * json_object_merge (sky_json_t * objectA, sky_json_t * objectB);
+sky_json_t *json_object_merge(sky_json_t *objectA, sky_json_t *objectB);
 
 /* Sort the entries of an object based on the order in a prototype object.
  * Helpful when reading JSON and writing it again to preserve user order.
  */
-void json_object_sort (sky_json_t * object, sky_json_t * proto);
-
+void json_object_sort(sky_json_t *object, sky_json_t *proto);
 
 
 /*** Strings
  ***/
-sky_json_t * json_string_new (const sky_uchar_t *);
-sky_json_t * json_string_new_length (unsigned int length, const sky_uchar_t *);
-sky_json_t * json_string_new_nocopy (unsigned int length, sky_uchar_t *);
+sky_json_t *json_string_new_nocopy(unsigned int length, sky_uchar_t *);
 
 
 /*** Everything else
  ***/
-sky_json_t * json_integer_new (json_int_t);
-sky_json_t * json_double_new (double);
-sky_json_t * json_boolean_new (int);
-sky_json_t * json_null_new (void);
+sky_json_t *sky_json_integer_new(sky_pool_t *pool, json_int_t value);
+
+sky_json_t *sky_json_double_new(sky_pool_t *pool, double value);
+
+sky_json_t *sky_json_boolean_new(sky_pool_t *pool, sky_bool_t value);
+
+sky_json_t *sky_json_null_new(sky_pool_t *pool);
 
 
 /*** Serializing
@@ -91,8 +78,7 @@ sky_json_t * json_null_new (void);
 #define json_serialize_opt_no_space_after_colon    (1 << 4)
 #define json_serialize_opt_use_tabs                (1 << 5)
 
-typedef struct json_serialize_opts
-{
+typedef struct json_serialize_opts {
     int mode;
     int opts;
     int indent_size;
@@ -103,20 +89,22 @@ typedef struct json_serialize_opts
 /* Returns a length in characters that is at least large enough to hold the
  * value in its serialized form, including a null terminator.
  */
-size_t json_measure (sky_json_t *);
-size_t json_measure_ex (sky_json_t *, json_serialize_opts);
+size_t json_measure(sky_json_t *);
+
+size_t json_measure_ex(sky_json_t *, json_serialize_opts);
 
 
 /* Serializes a JSON value into the buffer given (which must already be
  * allocated with a length of at least json_measure(value, opts))
  */
-void json_serialize (sky_uchar_t * buf, sky_json_t *);
-void json_serialize_ex (sky_uchar_t * buf, sky_json_t *, json_serialize_opts);
+void json_serialize(sky_uchar_t *buf, sky_json_t *);
+
+void json_serialize_ex(sky_uchar_t *buf, sky_json_t *, json_serialize_opts);
 
 
 /*** Cleaning up
  ***/
-void json_builder_free (sky_json_t *);
+void json_builder_free(sky_json_t *);
 
 #if defined(__cplusplus)
 } /* extern "C" { */
