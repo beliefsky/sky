@@ -63,7 +63,7 @@ struct sky_json_s {
             sky_json_t **values;
         } array;
 
-    } u;
+    };
 
     union {
         sky_json_t *next_alloc;

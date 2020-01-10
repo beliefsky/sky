@@ -87,29 +87,29 @@ new_value(json_state *state, sky_json_t **top, sky_json_t **root, sky_json_t **a
         }
         switch (value->type) {
             case json_array:
-                if (value->u.array.length == 0) { break; }
-                if (sky_unlikely(!(value->u.array.values = json_alloc
-                        (state, value->u.array.length * sizeof(sky_json_t *), 0)))) {
+                if (value->array.length == 0) { break; }
+                if (sky_unlikely(!(value->array.values = json_alloc
+                        (state, value->array.length * sizeof(sky_json_t *), 0)))) {
                     return 0;
                 }
-                value->u.array.length = 0;
+                value->array.length = 0;
                 break;
             case json_object:
-                if (value->u.object.length == 0) { break; }
-                values_size = sizeof(*value->u.object.values) * value->u.object.length;
-                if (sky_unlikely(!(value->u.object.values = json_alloc
-                        (state, values_size + ((sky_uintptr_t) value->u.object.values), 0)))) {
+                if (value->object.length == 0) { break; }
+                values_size = sizeof(*value->object.values) * value->object.length;
+                if (sky_unlikely(!(value->object.values = json_alloc
+                        (state, values_size + ((sky_uintptr_t) value->object.values), 0)))) {
                     return 0;
                 }
-                value->_reserved.object_mem = (*(sky_uchar_t **) &value->u.object.values) + values_size;
-                value->u.object.length = 0;
+                value->_reserved.object_mem = (*(sky_uchar_t **) &value->object.values) + values_size;
+                value->object.length = 0;
                 break;
             case json_string:
-                if (sky_unlikely(!(value->u.string.data = (sky_uchar_t *) json_alloc
-                        (state, (value->u.string.len + 1) * sizeof(sky_uchar_t), 0)))) {
+                if (sky_unlikely(!(value->string.data = (sky_uchar_t *) json_alloc
+                        (state, (value->string.len + 1) * sizeof(sky_uchar_t), 0)))) {
                     return 0;
                 }
-                value->u.string.len = 0;
+                value->string.len = 0;
                 break;
             default:
                 break;
@@ -328,7 +328,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                     switch (top->type) {
                         case json_string:
 
-                            top->u.string.len = string_length;
+                            top->string.len = string_length;
                             flags |= flag_next;
 
                             break;
@@ -336,12 +336,12 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                         case json_object:
 
                             if (state.first_pass)
-                                (*(sky_uchar_t **) &top->u.object.values) += string_length + 1;
+                                (*(sky_uchar_t **) &top->object.values) += string_length + 1;
                             else {
-                                top->u.object.values[top->u.object.length].key.data
+                                top->object.values[top->object.length].key.data
                                         = (sky_uchar_t *) top->_reserved.object_mem;
 
-                                top->u.object.values[top->u.object.length].key.len
+                                top->object.values[top->object.length].key.len
                                         = string_length;
 
                                 (*(sky_uchar_t **) &top->_reserved.object_mem) += string_length + 1;
@@ -494,7 +494,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
 
                                 flags |= flag_string;
 
-                                string = top->u.string.data;
+                                string = top->string.data;
                                 string_length = 0;
 
                                 continue;
@@ -508,7 +508,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                 if (sky_unlikely(!new_value(&state, &top, &root, &alloc, json_boolean))) {
                                     goto e_alloc_failure;
                                 }
-                                top->u.boolean = true;
+                                top->boolean = true;
 
                                 flags |= flag_next;
                                 break;
@@ -633,22 +633,22 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                     continue;
                                 }
 
-                                if (would_overflow(top->u.integer, b)) {
+                                if (would_overflow(top->integer, b)) {
                                     --num_digits;
                                     --state.ptr;
                                     top->type = json_double;
-                                    top->u.dbl = (double) top->u.integer;
+                                    top->dbl = (double) top->integer;
                                     continue;
                                 }
 
-                                top->u.integer = (top->u.integer * 10) + (b - '0');
+                                top->integer = (top->integer * 10) + (b - '0');
                                 continue;
                             }
 
                             if (flags & flag_num_got_decimal) {
                                 num_fraction = (num_fraction * 10) + (b - '0');
                             } else {
-                                top->u.dbl = (top->u.dbl * 10) + (b - '0');
+                                top->dbl = (top->dbl * 10) + (b - '0');
                             }
                             continue;
                         }
@@ -669,7 +669,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                             }
 
                             top->type = json_double;
-                            top->u.dbl = (double) top->u.integer;
+                            top->dbl = (double) top->integer;
 
                             flags |= flag_num_got_decimal;
                             num_digits = 0;
@@ -683,7 +683,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                     goto e_failed;
                                 }
 
-                                top->u.dbl += num_fraction / pow(10.0, num_digits);
+                                top->dbl += num_fraction / pow(10.0, num_digits);
                             }
 
                             if (b == 'e' || b == 'E') {
@@ -691,7 +691,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
 
                                 if (top->type == json_integer) {
                                     top->type = json_double;
-                                    top->u.dbl = (double) top->u.integer;
+                                    top->dbl = (double) top->integer;
                                 }
 
                                 num_digits = 0;
@@ -705,14 +705,14 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                 goto e_failed;
                             }
 
-                            top->u.dbl *= pow(10.0, (flags & flag_num_e_negative ? -num_e : num_e));
+                            top->dbl *= pow(10.0, (flags & flag_num_e_negative ? -num_e : num_e));
                         }
 
                         if (flags & flag_num_negative) {
                             if (top->type == json_integer) {
-                                top->u.integer = -top->u.integer;
+                                top->integer = -top->integer;
                             } else {
-                                top->u.dbl = -top->u.dbl;
+                                top->dbl = -top->dbl;
                             }
                         }
 
@@ -747,18 +747,18 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
 
                     switch (parent->type) {
                         case json_object:
-                            parent->u.object.values[parent->u.object.length].value = top;
+                            parent->object.values[parent->object.length].value = top;
                             break;
 
                         case json_array:
-                            parent->u.array.values[parent->u.array.length] = top;
+                            parent->array.values[parent->array.length] = top;
                             break;
                         default:
                             break;
                     }
                 }
 
-                if ((++top->parent->u.array.length) > state.uint_max) {
+                if ((++top->parent->array.length) > state.uint_max) {
                     goto e_overflow;
                 }
 
