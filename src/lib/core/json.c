@@ -137,7 +137,7 @@ new_value(json_state *state, sky_json_t **top, sky_json_t **root, sky_json_t **a
    case ' ': case '\t': case '\r'
 
 #define string_add(b)  \
-   do { if (!state.first_pass) string [string_length] = b;  ++ string_length; } while (0);
+   do { if (!state.first_pass) string [string_length] = b;  ++ string_length; } while (0)
 
 #define line_and_col \
    state.cur_line, state.cur_col
@@ -267,7 +267,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                 uchar = 0x010000 | ((uchar & 0x3FF) << 10) | (uchar2 & 0x3FF);
                             }
 
-                            if (sizeof(sky_uchar_t) >= sizeof(json_uchar) || (uchar <= 0x7F)) {
+                            if (uchar <= 0x7F) {
                                 string_add ((sky_uchar_t) uchar);
                                 break;
                             }
@@ -308,7 +308,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
 
                         default:
                             string_add (b);
-                    };
+                    }
 
                     continue;
                 }
@@ -352,7 +352,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
 
                         default:
                             break;
-                    };
+                    }
                 } else {
                     string_add (b);
                     continue;
@@ -406,7 +406,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                         default:
                             sky_log_error("%d:%d: Unexpected `%c` in comment opening sequence", line_and_col, b);
                             goto e_failed;
-                    };
+                    }
                 }
             }
 
@@ -424,7 +424,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                       state.cur_line, state.cur_col, b);
 
                         goto e_failed;
-                };
+                }
             }
 
             if (flags & flag_seek_value) {
@@ -548,7 +548,6 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                         while (isdigit (b) || b == '+' || b == '-'
                                                || b == 'e' || b == 'E' || b == '.') {
                                             if ((++state.ptr) == end) {
-                                                b = 0;
                                                 break;
                                             }
 
@@ -579,7 +578,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                     goto e_failed;
                                 }
                         }
-                };
+                }
             } else {
                 switch (top->type) {
                     case json_object:
@@ -608,7 +607,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                             default:
                                 sky_log_error("%d:%d: Unexpected `%c` in object", line_and_col, b);
                                 goto e_failed;
-                        };
+                        }
 
                         break;
 
@@ -721,7 +720,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
 
                     default:
                         break;
-                };
+                }
             }
 
             if (flags & flag_reproc) {
