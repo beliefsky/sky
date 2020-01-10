@@ -5,22 +5,14 @@
 #include "json.h"
 #include "log.h"
 
-#include <stdio.h>
 #include <ctype.h>
 #include <math.h>
 
-#define json_error_max 128
+
+#define JSON_INT_MAX INTPTR_MAX
+
 
 typedef sky_uint32_t json_uchar;
-
-/* There has to be a better way to do this */
-static const json_int_t JSON_INT_MAX = sizeof(json_int_t) == 1
-                                       ? INT8_MAX
-                                       : (sizeof(json_int_t) == 2
-                                          ? INT16_MAX
-                                          : (sizeof(json_int_t) == 4
-                                             ? INT32_MAX
-                                             : INT64_MAX));
 
 static sky_uchar_t hex_value(sky_uchar_t c) {
     if (isdigit(c))
@@ -51,7 +43,8 @@ static sky_uchar_t hex_value(sky_uchar_t c) {
 }
 
 static int would_overflow(json_int_t value, sky_uchar_t b) {
-    return ((JSON_INT_MAX - (b - '0')) / 10) < value;
+    return ((JSON_INT_MAX
+             - (b - '0')) / 10) < value;
 }
 
 typedef struct {
@@ -428,7 +421,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                     default:
 
                         sky_log_error("%d:%d: Trailing garbage: `%c`",
-                                state.cur_line, state.cur_col, b);
+                                      state.cur_line, state.cur_col, b);
 
                         goto e_failed;
                 };
@@ -457,7 +450,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                 continue;
                             } else {
                                 sky_log_error("%d:%d: Expected , before %c",
-                                        state.cur_line, state.cur_col, b);
+                                              state.cur_line, state.cur_col, b);
 
                                 goto e_failed;
                             }
@@ -469,7 +462,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                 continue;
                             } else {
                                 sky_log_error("%d:%d: Expected : before %c",
-                                        state.cur_line, state.cur_col, b);
+                                              state.cur_line, state.cur_col, b);
 
                                 goto e_failed;
                             }
