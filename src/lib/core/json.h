@@ -11,6 +11,7 @@ extern "C" {
 #include "types.h"
 #include "string.h"
 #include "palloc.h"
+#include "array.h"
 
 
 #ifndef json_int_t
@@ -20,7 +21,7 @@ extern "C" {
 #include <stdlib.h>
 
 typedef struct sky_json_s sky_json_t;
-typedef struct sky_json_object_s json_object_s;
+typedef struct sky_json_object_s sky_json_object_t;
 
 
 typedef enum {
@@ -50,11 +51,13 @@ struct sky_json_s {
         double dbl;
 
         sky_str_t string;
+        sky_array_t *arr;
+        sky_array_t *obj;
 
         struct {
             unsigned int length;
 
-            json_object_s *values;
+            sky_json_object_t *values;
 
         } object;
 

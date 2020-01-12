@@ -52,7 +52,7 @@ typedef struct {
     sky_uchar_t *data;  //字符串的内容，指向字符串的起始位置
 } sky_str_t;
 
-
+#define sky_str_line(_str)  (sky_uchar_t *)(_str), (sizeof(_str) - 1)
 //通过一个以‘0’结尾的普通字符串str构造一个nginx的字符串。
 //鉴于api中采用sizeof操作符计算字符串长度，因此该api的参数必须是一个常量字符串。
 #define sky_string(_str)     { sizeof(_str) - 1, (sky_uchar_t *) _str }

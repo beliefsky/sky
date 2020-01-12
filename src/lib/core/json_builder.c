@@ -5,6 +5,7 @@
 #include "json_builder.h"
 #include "number.h"
 #include "memory.h"
+#include "json.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -26,6 +27,164 @@ typedef struct json_builder_value {
 
 } json_builder_value;
 
+sky_json_t *
+sky_json_object_new(sky_pool_t *pool, sky_uint32_t length) {
+    sky_json_t *value = sky_pcalloc(pool, sizeof(json_builder_value));
+
+    if (sky_unlikely(!value)) {
+        return null;
+    }
+    value->type = json_object;
+//    value->obj = sky_array_create(pool, length, sizeof(sky_json_object_t));
+    value->object.values = sky_array_create(pool, length, sizeof(sky_json_object_t))->elts;
+
+    return value;
+}
+
+
+sky_json_t *
+sky_json_array_new(sky_pool_t *pool, sky_uint32_t length) {
+//    sky_json_t *value = sky_pcalloc(pool, sizeof(json_builder_value));
+//
+//    if (sky_unlikely(!value)) {
+//        return null;
+//    }
+//
+//    value->type = json_array;
+//    value->arr = sky_array_create(pool, length, sizeof(sky_json_t *));
+//
+//    return value;
+
+    sky_json_t *value = (sky_json_t *) calloc(1, sizeof(json_builder_value));
+
+
+    ((json_builder_value *) value)->is_builder_value = 1;
+
+    value->type = json_array;
+
+    if (!(value->array.values = (sky_json_t **) malloc(length * sizeof(sky_json_t *)))) {
+        free(value);
+        return NULL;
+    }
+
+    ((json_builder_value *) value)->additional_length_allocated = length;
+
+    return value;
+}
+
+sky_json_t *
+sky_json_integer_new(sky_pool_t *pool, json_int_t integer) {
+    sky_json_t *value = sky_pcalloc(pool, sizeof(json_builder_value));
+
+    if (sky_unlikely(!value)) {
+        return null;
+    }
+
+    value->type = json_integer;
+    value->integer = integer;
+
+    return value;
+}
+
+sky_json_t *
+sky_json_double_new(sky_pool_t *pool, double dbl) {
+    sky_json_t *value = sky_pcalloc(pool, sizeof(json_builder_value));
+
+    if (sky_unlikely(!value)) {
+        return null;
+    }
+
+    value->type = json_double;
+    value->dbl = dbl;
+
+    return value;
+}
+
+sky_json_t *
+sky_json_boolean_new(sky_pool_t *pool, sky_bool_t b) {
+    sky_json_t *value = sky_pcalloc(pool, sizeof(json_builder_value));
+
+    if (sky_unlikely(!value)) {
+        return null;
+    }
+
+    value->type = json_boolean;
+    value->boolean = b;
+
+    return value;
+}
+
+sky_json_t *
+sky_json_null_new(sky_pool_t *pool) {
+    sky_json_t *value = sky_pcalloc(pool, sizeof(json_builder_value));
+
+    if (sky_unlikely(!value)) {
+        return null;
+    }
+
+    value->type = json_null;
+
+    return value;
+}
+
+
+sky_json_t *
+sky_json_string_new(sky_pool_t *pool, sky_str_t *value) {
+    return sky_json_str_len_new(pool, value->data, value->len);
+}
+
+
+sky_json_t *
+sky_json_str_len_new(sky_pool_t *pool, sky_uchar_t *str, sky_size_t str_len) {
+    sky_json_t *value = sky_pcalloc(pool, sizeof(json_builder_value));
+
+    if (sky_unlikely(!value)) {
+        return null;
+    }
+
+    value->type = json_string;
+    value->string.len = str_len;
+    value->string.data = str;
+
+    return value;
+}
+
+
+void
+sky_json_object_push(sky_json_t *object, sky_uchar_t *key, sky_size_t key_len, sky_json_t *value) {
+    sky_json_object_t *entry;
+
+    assert (object->type == json_object);
+    value->parent = object;
+//    entry = sky_array_push(object->obj);
+//    entry->key.data = key;
+//    entry->key.len = key_len;
+//    entry->value = value;
+
+    //=========================================
+    entry = object->object.values + object->object.length;
+
+    entry->key.len = key_len;
+    entry->key.data = key;
+    entry->value = value;
+
+    ++object->object.length;
+
+    return;
+}
+
+void
+sky_json_object_push2(sky_json_t *object, sky_str_t *key, sky_json_t *value) {
+    sky_json_object_push(object, key->data, key->len, value);
+}
+
+void
+sky_json_array_push(sky_json_t *array, sky_json_t *value) {
+    assert(array->type == json_array);
+    value->parent = array;
+    *(sky_json_t **) sky_array_push(array->arr) = value;
+}
+
 static int builderize(sky_json_t *value) {
     if (((json_builder_value *) value)->is_builder_value)
         return 1;
@@ -40,7 +199,7 @@ static int builderize(sky_json_t *value) {
          */
         for (i = 0; i < value->object.length; ++i) {
             sky_uchar_t *name_copy;
-            json_object_s *entry = &value->object.values[i];
+            sky_json_object_t *entry = &value->object.values[i];
 
             if (!(name_copy = (sky_uchar_t *) malloc((entry->key.len + 1) * sizeof(sky_uchar_t))))
                 return 0;
@@ -55,7 +214,7 @@ static int builderize(sky_json_t *value) {
     return 1;
 }
 
-const size_t json_builder_extra = sizeof(json_builder_value) - sizeof(sky_json_t);
+
 
 /* These flags are set up from the opts before serializing to make the
  * serializer conditions simpler.
@@ -134,26 +293,7 @@ sky_json_t *json_array_push(sky_json_t *array, sky_json_t *value) {
     return value;
 }
 
-sky_json_t *sky_json_object_new(sky_pool_t *pool, sky_size_t length) {
-    sky_json_t *value = (sky_json_t *) sky_pcalloc(pool, sizeof(json_builder_value));
 
-    if (sky_unlikely(!value)) {
-        return null;
-    }
-
-    ((json_builder_value *) value)->is_builder_value = 1;
-
-    value->type = json_object;
-
-    if (sky_unlikely(
-            !(value->object.values = (json_object_s *) sky_pnalloc(pool, length * sizeof(*value->object.values))))) {
-        return null;
-    }
-
-    ((json_builder_value *) value)->additional_length_allocated = length;
-
-    return value;
-}
 
 sky_json_t *json_object_push_length(sky_json_t *object,
                                     unsigned int name_length, const sky_uchar_t *name,
@@ -179,7 +319,7 @@ sky_json_t *json_object_push_length(sky_json_t *object,
 sky_json_t *json_object_push_nocopy(sky_json_t *object,
                                     unsigned int name_length, sky_uchar_t *name,
                                     sky_json_t *value) {
-    json_object_s *entry;
+    sky_json_object_t *entry;
 
     assert (object->type == json_object);
 
@@ -189,7 +329,7 @@ sky_json_t *json_object_push_nocopy(sky_json_t *object,
     if (((json_builder_value *) object)->additional_length_allocated > 0) {
         --((json_builder_value *) object)->additional_length_allocated;
     } else {
-        json_object_s *values_new = (json_object_s *)
+        sky_json_object_t *values_new = (sky_json_object_t *)
                 realloc(object->object.values, sizeof(*object->object.values)
                                                * (object->object.length + 1));
 
@@ -228,168 +368,6 @@ sky_json_t *json_string_new_nocopy(unsigned int length, sky_uchar_t *buf) {
     return value;
 }
 
-sky_json_t *
-sky_json_integer_new(sky_pool_t *pool, json_int_t integer) {
-    sky_json_t *value = (sky_json_t *) sky_pcalloc(pool, sizeof(json_builder_value));
-
-    if (sky_unlikely(!value)) {
-        return null;
-    }
-
-
-    ((json_builder_value *) value)->is_builder_value = 1;
-
-    value->type = json_integer;
-    value->integer = integer;
-
-    return value;
-}
-
-sky_json_t *
-sky_json_double_new(sky_pool_t *pool, double value) {
-
-}
-
-sky_json_t *
-sky_json_boolean_new(sky_pool_t *pool, sky_bool_t value) {
-
-}
-
-sky_json_t *
-sky_json_null_new(sky_pool_t *pool) {
-
-}
-
-sky_json_t *json_integer_new(json_int_t integer) {
-    sky_json_t *value = (sky_json_t *) calloc(1, sizeof(json_builder_value));
-
-    if (!value)
-        return NULL;
-
-    ((json_builder_value *) value)->is_builder_value = 1;
-
-    value->type = json_integer;
-    value->integer = integer;
-
-    return value;
-}
-
-sky_json_t *json_double_new(double dbl) {
-    sky_json_t *value = (sky_json_t *) calloc(1, sizeof(json_builder_value));
-
-    if (!value)
-        return NULL;
-
-    ((json_builder_value *) value)->is_builder_value = 1;
-
-    value->type = json_double;
-    value->dbl = dbl;
-
-    return value;
-}
-
-sky_json_t *json_boolean_new(int b) {
-    sky_json_t *value = (sky_json_t *) calloc(1, sizeof(json_builder_value));
-
-    if (!value)
-        return NULL;
-
-    ((json_builder_value *) value)->is_builder_value = 1;
-
-    value->type = json_boolean;
-    value->boolean = b;
-
-    return value;
-}
-
-sky_json_t *json_null_new(void) {
-    sky_json_t *value = (sky_json_t *) calloc(1, sizeof(json_builder_value));
-
-    if (!value)
-        return NULL;
-
-    ((json_builder_value *) value)->is_builder_value = 1;
-
-    value->type = json_null;
-
-    return value;
-}
-
-void json_object_sort(sky_json_t *object, sky_json_t *proto) {
-    unsigned int i, out_index = 0;
-
-    if (!builderize(object))
-        return;  /* TODO error */
-
-    assert (object->type == json_object);
-    assert (proto->type == json_object);
-
-    for (i = 0; i < proto->object.length; ++i) {
-        unsigned int j;
-        json_object_s proto_entry = proto->object.values[i];
-
-        for (j = 0; j < object->object.length; ++j) {
-            json_object_s entry = object->object.values[j];
-
-            if (entry.key.len != proto_entry.key.len)
-                continue;
-
-            if (memcmp(entry.key.data, proto_entry.
-                    key.data, entry.key.len) != 0)
-                continue;
-
-            object->object.values[j] = object->object.values[out_index];
-            object->object.values[out_index] = entry;
-
-            ++out_index;
-        }
-    }
-}
-
-sky_json_t *json_object_merge(sky_json_t *objectA, sky_json_t *objectB) {
-    unsigned int i;
-
-    assert (objectA->type == json_object);
-    assert (objectB->type == json_object);
-    assert (objectA != objectB);
-
-    if (!builderize(objectA) || !builderize(objectB))
-        return NULL;
-
-    if (objectB->object.length <=
-        ((json_builder_value *) objectA)->additional_length_allocated) {
-        ((json_builder_value *) objectA)->additional_length_allocated
-                -= objectB->object.length;
-    } else {
-        json_object_s *values_new;
-
-        unsigned int alloc =
-                objectA->object.length
-                + ((json_builder_value *) objectA)->additional_length_allocated
-                + objectB->object.length;
-
-        if (!(values_new = (json_object_s *)
-                realloc(objectA->object.values, sizeof(json_object_s) * alloc))) {
-            return NULL;
-        }
-
-        objectA->object.values = values_new;
-    }
-
-    for (i = 0; i < objectB->object.length; ++i) {
-        json_object_s *entry = &objectA->object.values[objectA->object.length + i];
-
-        *entry = objectB->object.values[i];
-        entry->value->parent = objectA;
-    }
-
-    objectA->object.length += objectB->object.length;
-
-    free(objectB->object.values);
-    free(objectB);
-
-    return objectA;
-}
 
 static size_t measure_string(unsigned int length,
                              const sky_uchar_t *str) {
@@ -497,7 +475,7 @@ size_t json_measure_ex(sky_json_t *value, json_serialize_opts opts) {
 
     while (value) {
         json_int_t integer;
-        json_object_s *entry;
+        sky_json_object_t *entry;
 
         switch (value->type) {
             case json_array:
@@ -661,7 +639,7 @@ void json_serialize(sky_uchar_t *buf, sky_json_t *value) {
 
 
 void json_serialize_ex(sky_uchar_t *buf, sky_json_t *value, json_serialize_opts opts) {
-    json_object_s *entry;
+    sky_json_object_t *entry;
     sky_uchar_t *ptr, *dot;
     int indent = 0;
     char indent_char;
@@ -806,60 +784,5 @@ void json_serialize_ex(sky_uchar_t *buf, sky_json_t *value, json_serialize_opts 
     }
 
     *buf = 0;
-}
-
-void json_builder_free(sky_json_t *value) {
-    sky_json_t *cur_value;
-
-    if (!value)
-        return;
-
-    value->parent = 0;
-
-    while (value) {
-        switch (value->type) {
-            case json_array:
-
-                if (!value->array.length) {
-                    free(value->array.values);
-                    break;
-                }
-
-                value = value->array.values[--value->array.length];
-                continue;
-
-            case json_object:
-
-                if (!value->object.length) {
-                    free(value->object.values);
-                    break;
-                }
-
-                --value->object.length;
-
-                if (((json_builder_value *) value)->is_builder_value) {
-                    /* Names are allocated separately for builder values.  In parser
-                     * values, they are part of the same allocation as the values array
-                     * itself.
-                     */
-                    free(value->object.values[value->object.length].key.data);
-                }
-
-                value = value->object.values[value->object.length].value;
-                continue;
-
-            case json_string:
-
-                free(value->string.data);
-                break;
-
-            default:
-                break;
-        };
-
-        cur_value = value;
-        value = value->parent;
-        free(cur_value);
-    }
 }
 

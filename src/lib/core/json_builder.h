@@ -10,22 +10,29 @@ extern "C" {
 
 #include "json.h"
 
-/* IMPORTANT NOTE:  If you want to use json-builder functions with values
-* allocated by json-parser as part of the parsing process, you must pass
-* json_builder_extra as the value_extra setting in json_settings when
-* parsing.  Otherwise there will not be room for the extra state and
-* json-builder WILL invoke undefined behaviour.
-*
-* Also note that unlike json-parser, json-builder does not currently support
-* custom allocators (for no particular reason other than that it doesn't have
-* any settings or global state.)
-*/
-extern const size_t json_builder_extra;
+sky_json_t *sky_json_object_new(sky_pool_t *pool, sky_uint32_t length);
+
+sky_json_t *sky_json_array_new(sky_pool_t *pool, sky_uint32_t length);
+
+sky_json_t *sky_json_integer_new(sky_pool_t *pool, json_int_t value);
+
+sky_json_t *sky_json_double_new(sky_pool_t *pool, double value);
+
+sky_json_t *sky_json_boolean_new(sky_pool_t *pool, sky_bool_t value);
+
+sky_json_t *sky_json_null_new(sky_pool_t *pool);
+
+sky_json_t *sky_json_string_new(sky_pool_t *pool, sky_str_t *value);
+
+sky_json_t *sky_json_str_len_new(sky_pool_t *pool, sky_uchar_t *str, sky_size_t str_len);
+
+void sky_json_object_push(sky_json_t *object, sky_uchar_t *key, sky_size_t key_len, sky_json_t *value);
+
+void sky_json_object_push2(sky_json_t *object, sky_str_t *key, sky_json_t *value);
+
+void sky_json_array_push(sky_json_t *array, sky_json_t *value);
 
 
-/*** Objects
- ***/
-sky_json_t *sky_json_object_new(sky_pool_t *pool, sky_size_t length);
 
 /* Same as json_object_push, but doesn't call strlen() for you.
  */
@@ -39,32 +46,6 @@ sky_json_t *json_object_push_length(sky_json_t *object,
 sky_json_t *json_object_push_nocopy(sky_json_t *object,
                                     unsigned int name_length, sky_uchar_t *name,
                                     sky_json_t *);
-
-/* Merges all entries from objectB into objectA and destroys objectB.
- */
-sky_json_t *json_object_merge(sky_json_t *objectA, sky_json_t *objectB);
-
-/* Sort the entries of an object based on the order in a prototype object.
- * Helpful when reading JSON and writing it again to preserve user order.
- */
-void json_object_sort(sky_json_t *object, sky_json_t *proto);
-
-
-/*** Strings
- ***/
-sky_json_t *json_string_new_nocopy(unsigned int length, sky_uchar_t *);
-
-
-/*** Everything else
- ***/
-sky_json_t *sky_json_integer_new(sky_pool_t *pool, json_int_t value);
-
-sky_json_t *sky_json_double_new(sky_pool_t *pool, double value);
-
-sky_json_t *sky_json_boolean_new(sky_pool_t *pool, sky_bool_t value);
-
-sky_json_t *sky_json_null_new(sky_pool_t *pool);
-
 
 /*** Serializing
  ***/
@@ -100,11 +81,6 @@ size_t json_measure_ex(sky_json_t *, json_serialize_opts);
 void json_serialize(sky_uchar_t *buf, sky_json_t *);
 
 void json_serialize_ex(sky_uchar_t *buf, sky_json_t *, json_serialize_opts);
-
-
-/*** Cleaning up
- ***/
-void json_builder_free(sky_json_t *);
 
 #if defined(__cplusplus)
 } /* extern "C" { */
