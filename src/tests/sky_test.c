@@ -277,7 +277,7 @@ hello_world(sky_http_request_t *req, sky_http_response_t *res) {
 
     res->type = SKY_HTTP_RESPONSE_BUF;
 
-    sky_json_t *arr = sky_json_object_new(req->pool, 3);
+    sky_json_t *arr = sky_json_object_new(req->pool, 4);
     sky_json_t *obj = sky_json_object_new(req->pool, 3);
     sky_json_object_push(arr, sky_str_line("status"), sky_json_integer_new(req->pool, 200));
     sky_json_object_push(arr, sky_str_line("msg"), sky_json_str_len_new(req->pool, sky_str_line("success")));
@@ -289,6 +289,12 @@ hello_world(sky_http_request_t *req, sky_http_response_t *res) {
                             sky_json_string_new(req->pool, &row->data[2].stream));
 
     sky_json_object_push(arr, sky_str_line("data"), obj);
+
+    sky_json_t * item = sky_json_array_new(req->pool, 2);
+    sky_json_array_push(item, sky_json_str_len_new(req->pool, sky_str_line("data1")));
+    sky_json_array_push(item, sky_json_str_len_new(req->pool, sky_str_line("data2")));
+
+    sky_json_object_push(arr, sky_str_line("test"), item);
 
     res->buf.data = sky_palloc(req->pool, (res->buf.len = json_measure(arr)));
     --res->buf.len;
