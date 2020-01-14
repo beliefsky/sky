@@ -788,6 +788,6 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
 
 sky_json_t *
 sky_json_parse(sky_pool_t *pool, sky_str_t *json) {
-    return sky_json_parse_ex(pool, json->data, json->len, 0);
+    return sky_json_parse_ex(pool, json->data, json->len, false);
 }
 
