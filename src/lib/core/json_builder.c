@@ -211,8 +211,8 @@ static size_t measure_string(sky_size_t length,
 
                 ++measured_length;
                 break;
-        };
-    };
+        }
+    }
 
     return measured_length;
 }
@@ -220,18 +220,16 @@ static size_t measure_string(sky_size_t length,
 #define PRINT_ESCAPED(c) do {  \
    *buf ++ = '\\';             \
    *buf ++ = (c);              \
-} while(0);                    \
+} while(0)                     \
 
 
-static size_t serialize_string(sky_uchar_t *buf,
-                               sky_size_t length,
-                               const sky_uchar_t *str) {
-    sky_uchar_t *orig_buf = buf;
-    unsigned int i;
+static sky_size_t
+serialize_string(sky_uchar_t *buf, sky_size_t length, sky_uchar_t *str) {
+    sky_uchar_t *orig_buf = buf, c;
+    sky_uint32_t i;
 
     for (i = 0; i < length; ++i) {
-        sky_uchar_t c = str[i];
-
+        c = str[i];
         switch (c) {
             case '"':
                 PRINT_ESCAPED ('\"');
@@ -272,16 +270,16 @@ size_t json_measure(sky_json_t *value) {
 #define MEASURE_NEWLINE() do {                     \
    ++ newlines;                                    \
    indents += depth;                               \
-} while(0);                                        \
+} while(0)                                         \
 
 
 size_t json_measure_ex(sky_json_t *value, json_serialize_opts opts) {
-    size_t total = 1;  /* null terminator */
-    size_t newlines = 0;
-    size_t depth = 0;
-    size_t indents = 0;
-    int flags;
-    int bracket_size, comma_size, colon_size;
+    sky_size_t total = 1;  /* null terminator */
+    sky_size_t newlines = 0;
+    sky_size_t depth = 0;
+    sky_size_t indents = 0;
+    sky_int32_t flags;
+    sky_int32_t bracket_size, comma_size, colon_size;
 
     flags = get_serialize_flags(opts);
 
@@ -326,7 +324,7 @@ size_t json_measure_ex(sky_json_t *value, json_serialize_opts opts) {
                 }
 
                 ((json_builder_value *) value)->length_iterated++;
-                value = ((sky_json_t **)value->arr->elts)[((json_builder_value *) value)->length_iterated - 1];
+                value = ((sky_json_t **) value->arr->elts)[((json_builder_value *) value)->length_iterated - 1];
                 continue;
 
             case json_object:
@@ -415,7 +413,7 @@ size_t json_measure_ex(sky_json_t *value, json_serialize_opts opts) {
 
             default:
                 break;
-        };
+        }
 
         value = value->parent;
     }
@@ -457,11 +455,8 @@ void json_serialize(sky_uchar_t *buf, sky_json_t *value) {
 
 void json_serialize_ex(sky_uchar_t *buf, sky_json_t *value, json_serialize_opts opts) {
     sky_json_object_t *entry;
-    sky_uchar_t *ptr, *dot;
-    int indent = 0;
-    char indent_char;
-    int i;
-    int flags;
+    sky_uchar_t *ptr, *dot, indent_char;
+    sky_int32_t indent = 0, i, flags;
 
     flags = get_serialize_flags(opts);
 
@@ -504,7 +499,7 @@ void json_serialize_ex(sky_uchar_t *buf, sky_json_t *value, json_serialize_opts 
                 }
 
                 ((json_builder_value *) value)->length_iterated++;
-                value = ((sky_json_t **)value->arr->elts)[((json_builder_value *) value)->length_iterated - 1];
+                value = ((sky_json_t **) value->arr->elts)[((json_builder_value *) value)->length_iterated - 1];
                 continue;
 
             case json_object:
@@ -595,7 +590,7 @@ void json_serialize_ex(sky_uchar_t *buf, sky_json_t *value, json_serialize_opts 
 
             default:
                 break;
-        };
+        }
 
         value = value->parent;
     }

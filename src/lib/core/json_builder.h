@@ -33,20 +33,6 @@ void sky_json_object_push2(sky_json_t *object, sky_str_t *key, sky_json_t *value
 void sky_json_array_push(sky_json_t *array, sky_json_t *value);
 
 
-
-/* Same as json_object_push, but doesn't call strlen() for you.
- */
-sky_json_t *json_object_push_length(sky_json_t *object,
-                                    unsigned int name_length, const sky_uchar_t *name,
-                                    sky_json_t *);
-
-/* Same as json_object_push_length, but doesn't copy the name buffer before
- * storing it in the value.  Use this micro-optimisation at your own risk.
- */
-sky_json_t *json_object_push_nocopy(sky_json_t *object,
-                                    unsigned int name_length, sky_uchar_t *name,
-                                    sky_json_t *);
-
 /*** Serializing
  ***/
 #define json_serialize_mode_multiline     0
