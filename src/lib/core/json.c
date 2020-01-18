@@ -7,7 +7,7 @@
 #include "memory.h"
 #include "number.h"
 
-#include <ctype.h>
+
 #include <math.h>
 #include <assert.h>
 
@@ -697,13 +697,13 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
 
                             default:
 
-                                if (sky_likely(isdigit(b) || b == '-')) {
+                                if (sky_likely((b >= '0' && b <= '9') || b == '-')) {
                                     if (sky_unlikely(!new_value(&state, &top, &root, &alloc, json_integer))) {
                                         goto e_alloc_failure;
                                     }
 
                                     if (!state.first_pass) {
-                                        while (isdigit (b) || b == '+' || b == '-'
+                                        while ((b >= '0' && b <= '9') || b == '+' || b == '-'
                                                || b == 'e' || b == 'E' || b == '.') {
                                             if ((++state.ptr) == end) {
                                                 break;
@@ -772,7 +772,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                     case json_integer:
                     case json_double:
 
-                        if (isdigit (b)) {
+                        if (b >= '0' && b <= '9') {
                             ++num_digits;
 
                             if (top->type == json_integer || flags & flag_num_e) {
