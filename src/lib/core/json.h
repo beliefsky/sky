@@ -56,9 +56,7 @@ struct sky_json_s {
 
         struct {
             unsigned int length;
-
             sky_json_object_t *values;
-
         } object;
 
         struct {

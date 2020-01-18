@@ -15,10 +15,27 @@
 typedef sky_uint32_t json_uchar;
 
 static sky_uchar_t hex_value(sky_uchar_t c) {
-    if (isdigit(c))
-        return c - '0';
-
     switch (c) {
+        case '0':
+            return 0;
+        case '1':
+            return 1;
+        case '2':
+            return 2;
+        case '3':
+            return 3;
+        case '4':
+            return 4;
+        case '5':
+            return 5;
+        case '6':
+            return 6;
+        case '7':
+            return 7;
+        case '8':
+            return 8;
+        case '9':
+            return 9;
         case 'a':
         case 'A':
             return 0x0A;
@@ -60,7 +77,7 @@ typedef struct {
 
 } json_state;
 
-static int
+static sky_bool_t
 new_value(json_state *state, sky_json_t **top, sky_json_t **root, sky_json_t **alloc, json_type type) {
     sky_json_t *value;
     sky_size_t values_size;
@@ -77,7 +94,7 @@ new_value(json_state *state, sky_json_t **top, sky_json_t **root, sky_json_t **a
                 if (value->array.length == 0) { break; }
                 if (sky_unlikely(!(value->array.values = sky_pcalloc(state->pool,
                                                                      value->array.length * sizeof(sky_json_t *))))) {
-                    return 0;
+                    return false;
                 }
                 value->array.length = 0;
                 break;
@@ -86,7 +103,7 @@ new_value(json_state *state, sky_json_t **top, sky_json_t **root, sky_json_t **a
                 values_size = sizeof(*value->object.values) * value->object.length;
                 if (sky_unlikely(!(value->object.values = sky_pcalloc(state->pool, values_size +
                                                                                    ((sky_uintptr_t) value->object.values))))) {
-                    return 0;
+                    return false;
                 }
                 value->_reserved.object_mem = (*(sky_uchar_t **) &value->object.values) + values_size;
                 value->object.length = 0;
@@ -94,7 +111,7 @@ new_value(json_state *state, sky_json_t **top, sky_json_t **root, sky_json_t **a
             case json_string:
                 if (sky_unlikely(!(value->string.data = (sky_uchar_t *) sky_pcalloc
                         (state->pool, (value->string.len + 1) * sizeof(sky_uchar_t))))) {
-                    return 0;
+                    return false;
                 }
                 value->string.len = 0;
                 break;
@@ -102,11 +119,11 @@ new_value(json_state *state, sky_json_t **top, sky_json_t **root, sky_json_t **a
                 break;
         }
 
-        return 1;
+        return true;
     }
 
     if (sky_unlikely(!(value = sky_palloc(state->pool, sizeof(sky_json_t))))) {
-        return 0;
+        return false;
     }
 
     if (!*root) { *root = value; }
@@ -116,7 +133,7 @@ new_value(json_state *state, sky_json_t **top, sky_json_t **root, sky_json_t **a
     if (*alloc) { (*alloc)->_reserved.next_alloc = value; }
     *alloc = *top = value;
 
-    return 1;
+    return true;
 }
 
 #define whitespace \
