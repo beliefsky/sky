@@ -22,7 +22,6 @@
 #include <core/memory.h>
 #include <core/number.h>
 #include <core/json.h>
-#include <core/json_builder.h>
 
 static void server_start(sky_int64_t cpu_num);
 
@@ -242,7 +241,6 @@ redis_test(sky_http_request_t *req, sky_http_response_t *res) {
     sky_json_object_t *e = value->object.values;
     sky_log_info("%s : %ld", e[0].key.data, e[0].value->integer);
     sky_log_info("%s : %s", e[1].key.data, e[1].value->string.data);
-//    sky_json_t_free(value);
 
     return true;
 }
@@ -284,21 +282,20 @@ hello_world(sky_http_request_t *req, sky_http_response_t *res) {
 
     sky_json_object_push(obj, sky_str_line("id"), sky_json_integer_new(req->pool, row->data[0].u64));
     sky_json_object_push(obj, sky_str_line("username"),
-                            sky_json_string_new(req->pool, &row->data[1].stream));
+                         sky_json_string_new(req->pool, &row->data[1].stream));
     sky_json_object_push(obj, sky_str_line("password"),
-                            sky_json_string_new(req->pool, &row->data[2].stream));
+                         sky_json_string_new(req->pool, &row->data[2].stream));
 
     sky_json_object_push(arr, sky_str_line("data"), obj);
 
-    sky_json_t * item = sky_json_array_new(req->pool, 2);
-    sky_json_array_push(item, sky_json_str_len_new(req->pool, sky_str_line("data1")));
-    sky_json_array_push(item, sky_json_str_len_new(req->pool, sky_str_line("data2")));
+//    sky_json_t * item = sky_json_array_new(req->pool, 2);
+//    sky_json_array_push(item, sky_json_str_len_new(req->pool, sky_str_line("data1")));
+//    sky_json_array_push(item, sky_json_str_len_new(req->pool, sky_str_line("data2")));
+//    sky_json_object_push(arr, sky_str_line("test"), item);
 
-    sky_json_object_push(arr, sky_str_line("test"), item);
-
-    res->buf.data = sky_palloc(req->pool, (res->buf.len = json_measure(arr)));
+    res->buf.data = sky_palloc(req->pool, (res->buf.len = sky_json_measure(arr)));
     --res->buf.len;
-    json_serialize(res->buf.data, arr);
+    sky_json_serialize(res->buf.data, arr);
 
 //    json_builder_free(arr);
 

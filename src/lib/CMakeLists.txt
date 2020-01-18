@@ -20,7 +20,6 @@ set(SOURCES
         core/base64.c
         core/uuid.c
         core/json.c
-        core/json_builder.c
         event/event_loop.c
         net/tcp.c
         net/http/http_request.c
