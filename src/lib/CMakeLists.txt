@@ -83,6 +83,7 @@ install(FILES
         core/buf.h
         core/md5.h
         core/base64.h
+        core/uuid.h
         core/log.h
         core/json.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/core")
