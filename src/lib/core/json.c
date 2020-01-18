@@ -1310,7 +1310,7 @@ void sky_json_serialize_ex(sky_uchar_t *buf, sky_json_t *value, sky_json_seriali
 
 static sky_size_t
 measure_string(sky_size_t length, sky_uchar_t *str) {
-    sky_size_t i, measured_length = 0;
+    sky_size_t i, measured_length = length;
 
     for (i = 0; i < length; ++i) {
         switch (str[i]) {
@@ -1328,18 +1328,20 @@ measure_string(sky_size_t length, sky_uchar_t *str) {
         }
     }
 
-    return length + measured_length;
+    return measured_length;
 }
 
 static sky_size_t
 serialize_string(sky_uchar_t *buf, sky_size_t length, sky_uchar_t *str) {
-#define PRINT_ESCAPED(c) do {  \
-   *buf ++ = '\\';             \
-   *buf ++ = (c);              \
+#define PRINT_ESCAPED(c) do {   \
+   *buf ++ = '\\';              \
+   *buf ++ = (c);               \
+   ++orig_len;                  \
 } while(0)
 
-    sky_uchar_t *orig_buf = buf, c;
+    sky_uchar_t c;
     sky_uint32_t i;
+    sky_size_t orig_len = length;
 
     for (i = 0; i < length; ++i) {
         c = str[i];
@@ -1370,5 +1372,5 @@ serialize_string(sky_uchar_t *buf, sky_size_t length, sky_uchar_t *str) {
                 break;
         }
     }
-    return (sky_size_t) (buf - orig_buf);
+    return orig_len;
 }
