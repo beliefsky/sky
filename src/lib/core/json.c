@@ -19,7 +19,8 @@ typedef sky_uint32_t json_uchar;
 
 typedef struct {
     sky_json_t value;
-    size_t length_iterated;
+    sky_uint32_t additional_length_allocated;
+    sky_uint32_t length_iterated;
 } json_builder_value;
 
 static sky_size_t measure_string(sky_size_t length, sky_uchar_t *str);
@@ -40,7 +41,8 @@ sky_json_object_new(sky_pool_t *pool, sky_uint32_t length) {
         return null;
     }
     value->type = json_object;
-    value->obj = sky_array_create(pool, length, sizeof(sky_json_object_t));
+    value->object.values = sky_pnalloc(pool, sizeof(sky_json_object_t) * length);
+    ((json_builder_value *) value)->additional_length_allocated = length;
 
     return value;
 }
@@ -53,16 +55,16 @@ sky_json_array_new(sky_pool_t *pool, sky_uint32_t length) {
     if (sky_unlikely(!value)) {
         return null;
     }
-
     value->type = json_array;
-    value->arr = sky_array_create(pool, length, sizeof(sky_json_t *));
+    value->array.values = sky_pnalloc(pool, sizeof(sky_json_t *) * length);
+    ((json_builder_value *) value)->additional_length_allocated = length;
 
     return value;
 }
 
 sky_json_t *
 sky_json_integer_new(sky_pool_t *pool, json_int_t integer) {
-    sky_json_t *value = sky_pcalloc(pool, sizeof(json_builder_value));
+    sky_json_t *value = sky_pcalloc(pool, sizeof(sky_json_t));
 
     if (sky_unlikely(!value)) {
         return null;
@@ -76,7 +78,7 @@ sky_json_integer_new(sky_pool_t *pool, json_int_t integer) {
 
 sky_json_t *
 sky_json_double_new(sky_pool_t *pool, double dbl) {
-    sky_json_t *value = sky_pcalloc(pool, sizeof(json_builder_value));
+    sky_json_t *value = sky_pcalloc(pool, sizeof(sky_json_t));
 
     if (sky_unlikely(!value)) {
         return null;
@@ -90,7 +92,7 @@ sky_json_double_new(sky_pool_t *pool, double dbl) {
 
 sky_json_t *
 sky_json_boolean_new(sky_pool_t *pool, sky_bool_t b) {
-    sky_json_t *value = sky_pcalloc(pool, sizeof(json_builder_value));
+    sky_json_t *value = sky_pcalloc(pool, sizeof(sky_json_t));
 
     if (sky_unlikely(!value)) {
         return null;
@@ -104,7 +106,7 @@ sky_json_boolean_new(sky_pool_t *pool, sky_bool_t b) {
 
 sky_json_t *
 sky_json_null_new(sky_pool_t *pool) {
-    sky_json_t *value = sky_pcalloc(pool, sizeof(json_builder_value));
+    sky_json_t *value = sky_pcalloc(pool, sizeof(sky_json_t));
 
     if (sky_unlikely(!value)) {
         return null;
@@ -124,7 +126,7 @@ sky_json_string_new(sky_pool_t *pool, sky_str_t *value) {
 
 sky_json_t *
 sky_json_str_len_new(sky_pool_t *pool, sky_uchar_t *str, sky_size_t str_len) {
-    sky_json_t *value = sky_pcalloc(pool, sizeof(json_builder_value));
+    sky_json_t *value = sky_pcalloc(pool, sizeof(sky_json_t));
 
     if (sky_unlikely(!value)) {
         return null;
@@ -143,8 +145,11 @@ sky_json_object_push(sky_json_t *object, sky_uchar_t *key, sky_size_t key_len, s
     sky_json_object_t *entry;
 
     assert (object->type == json_object);
+    if (sky_unlikely(((json_builder_value *) object)->additional_length_allocated <= object->object.length)) {
+        return;
+    }
     value->parent = object;
-    entry = sky_array_push(object->obj);
+    entry = &object->object.values[object->object.length++];
     entry->key.data = key;
     entry->key.len = key_len;
     entry->value = value;
@@ -160,8 +165,11 @@ sky_json_object_push2(sky_json_t *object, sky_str_t *key, sky_json_t *value) {
 void
 sky_json_array_push(sky_json_t *array, sky_json_t *value) {
     assert(array->type == json_array);
+    if (sky_unlikely(((json_builder_value *) array)->additional_length_allocated <= array->array.length)) {
+        return;
+    }
     value->parent = array;
-    *(sky_json_t **) sky_array_push(array->arr) = value;
+    array->array.values[array->array.length++] = value;
 }
 
 
@@ -918,7 +926,6 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                 if ((++top->parent->array.length) > state.uint_max) {
                     goto e_overflow;
                 }
-
                 top = top->parent;
 
                 continue;
@@ -1026,7 +1033,7 @@ sky_json_measure_ex(sky_json_t *value, sky_json_serialize_opts opts) {
             case json_array:
 
                 if (((json_builder_value *) value)->length_iterated == 0) {
-                    if (value->arr->nelts == 0) {
+                    if (value->array.length == 0) {
                         total += 2;  /* `[]` */
                         break;
                     }
@@ -1037,7 +1044,7 @@ sky_json_measure_ex(sky_json_t *value, sky_json_serialize_opts opts) {
                     MEASURE_NEWLINE(); /* \n after [ */
                 }
 
-                if (((json_builder_value *) value)->length_iterated == value->arr->nelts) {
+                if (((json_builder_value *) value)->length_iterated == value->array.length) {
                     --depth;
                     MEASURE_NEWLINE();
                     total += bracket_size;  /* `]` */
@@ -1053,13 +1060,13 @@ sky_json_measure_ex(sky_json_t *value, sky_json_serialize_opts opts) {
                 }
 
                 ((json_builder_value *) value)->length_iterated++;
-                value = ((sky_json_t **) value->arr->elts)[((json_builder_value *) value)->length_iterated - 1];
+                value = value->array.values[((json_builder_value *) value)->length_iterated - 1];
                 continue;
 
             case json_object:
 
                 if (((json_builder_value *) value)->length_iterated == 0) {
-                    if (value->obj->nelts == 0) {
+                    if (value->object.length == 0) {
                         total += 2;  /* `{}` */
                         break;
                     }
@@ -1070,7 +1077,7 @@ sky_json_measure_ex(sky_json_t *value, sky_json_serialize_opts opts) {
                     MEASURE_NEWLINE(); /* \n after { */
                 }
 
-                if (((json_builder_value *) value)->length_iterated == value->obj->nelts) {
+                if (((json_builder_value *) value)->length_iterated == value->object.length) {
                     --depth;
                     MEASURE_NEWLINE();
                     total += bracket_size;  /* `}` */
@@ -1083,7 +1090,7 @@ sky_json_measure_ex(sky_json_t *value, sky_json_serialize_opts opts) {
                     total += comma_size;  /* `, ` */
                     MEASURE_NEWLINE();
                 }
-                entry = &((sky_json_object_t *) value->obj->elts)[((json_builder_value *) value)->length_iterated++];
+                entry = &value->object.values[((json_builder_value *) value)->length_iterated++];
 
                 total += 2 + colon_size;  /* `"": ` */
                 total += measure_string(entry->key.len, entry->key.data);
@@ -1177,7 +1184,7 @@ void sky_json_serialize_ex(sky_uchar_t *buf, sky_json_t *value, sky_json_seriali
             case json_array:
 
                 if (((json_builder_value *) value)->length_iterated == 0) {
-                    if (value->arr->nelts == 0) {
+                    if (value->array.length == 0) {
                         *buf++ = '[';
                         *buf++ = ']';
 
@@ -1190,7 +1197,7 @@ void sky_json_serialize_ex(sky_uchar_t *buf, sky_json_t *value, sky_json_seriali
                     PRINT_NEWLINE();
                 }
 
-                if (((json_builder_value *) value)->length_iterated == value->arr->nelts) {
+                if (((json_builder_value *) value)->length_iterated == value->array.length) {
                     indent -= opts.indent_size;
                     PRINT_NEWLINE();
                     PRINT_CLOSING_BRACKET (']');
@@ -1209,13 +1216,13 @@ void sky_json_serialize_ex(sky_uchar_t *buf, sky_json_t *value, sky_json_seriali
                 }
 
                 ((json_builder_value *) value)->length_iterated++;
-                value = ((sky_json_t **) value->arr->elts)[((json_builder_value *) value)->length_iterated - 1];
+                value = value->array.values[((json_builder_value *) value)->length_iterated - 1];
                 continue;
 
             case json_object:
 
                 if (((json_builder_value *) value)->length_iterated == 0) {
-                    if (value->obj->nelts == 0) {
+                    if (value->object.length == 0) {
                         *buf++ = '{';
                         *buf++ = '}';
 
@@ -1228,7 +1235,7 @@ void sky_json_serialize_ex(sky_uchar_t *buf, sky_json_t *value, sky_json_seriali
                     PRINT_NEWLINE();
                 }
 
-                if (((json_builder_value *) value)->length_iterated == value->obj->nelts) {
+                if (((json_builder_value *) value)->length_iterated == value->object.length) {
                     indent -= opts.indent_size;
                     PRINT_NEWLINE();
                     PRINT_CLOSING_BRACKET ('}');
@@ -1245,8 +1252,7 @@ void sky_json_serialize_ex(sky_uchar_t *buf, sky_json_t *value, sky_json_seriali
 
                     PRINT_NEWLINE();
                 }
-
-                entry = &((sky_json_object_t *) value->obj->elts)[((json_builder_value *) value)->length_iterated++];
+                entry = &value->object.values[((json_builder_value *) value)->length_iterated++];
 
                 *buf++ = '\"';
                 buf += serialize_string(buf, entry->key.len, entry->key.data);
@@ -1273,11 +1279,11 @@ void sky_json_serialize_ex(sky_uchar_t *buf, sky_json_t *value, sky_json_seriali
 
                 ptr = buf;
 
-                buf += sprintf((sky_char_t *)buf, "%g", value->dbl);
+                buf += sprintf((sky_char_t *) buf, "%g", value->dbl);
 
-                if ((dot = (sky_uchar_t *)strchr((sky_char_t *)ptr, ','))) {
+                if ((dot = (sky_uchar_t *) strchr((sky_char_t *) ptr, ','))) {
                     *dot = '.';
-                } else if (!strchr((sky_char_t *)ptr, '.') && !strchr((sky_char_t *)ptr, 'e')) {
+                } else if (!strchr((sky_char_t *) ptr, '.') && !strchr((sky_char_t *) ptr, 'e')) {
                     *buf++ = '.';
                     *buf++ = '0';
                 }

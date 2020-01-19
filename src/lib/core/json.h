@@ -8,7 +8,6 @@
 #include "types.h"
 #include "string.h"
 #include "palloc.h"
-#include "array.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -62,16 +61,14 @@ struct sky_json_s {
         double dbl;
 
         sky_str_t string;
-        sky_array_t *arr;
-        sky_array_t *obj;
 
         struct {
-            unsigned int length;
+            sky_uint32_t length;
             sky_json_object_t *values;
         } object;
 
         struct {
-            unsigned int length;
+            sky_uint32_t length;
             sky_json_t **values;
         } array;
 
