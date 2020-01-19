@@ -434,7 +434,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                 if (state.first_pass)
                                     string_length += 2;
                                 else {
-                                    string[string_length++] = 0xC0 | (uchar >> 6);
+                                    string[string_length++] = (sky_uchar_t) (0xC0 | (uchar >> 6));
                                     string[string_length++] = 0x80 | (uchar & 0x3F);
                                 }
 
@@ -445,7 +445,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                 if (state.first_pass)
                                     string_length += 3;
                                 else {
-                                    string[string_length++] = 0xE0 | (uchar >> 12);
+                                    string[string_length++] = (sky_uchar_t) (0xE0 | (uchar >> 12));
                                     string[string_length++] = 0x80 | ((uchar >> 6) & 0x3F);
                                     string[string_length++] = 0x80 | (uchar & 0x3F);
                                 }
@@ -456,7 +456,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                             if (state.first_pass) {
                                 string_length += 4;
                             } else {
-                                string[string_length++] = 0xF0 | (uchar >> 18);
+                                string[string_length++] = (sky_uchar_t) (0xF0 | (uchar >> 18));
                                 string[string_length++] = 0x80 | ((uchar >> 12) & 0x3F);
                                 string[string_length++] = 0x80 | ((uchar >> 6) & 0x3F);
                                 string[string_length++] = 0x80 | (uchar & 0x3F);
@@ -1009,7 +1009,7 @@ sky_json_measure_ex(sky_json_t *value, sky_json_serialize_opts opts) {
     sky_size_t depth = 0;
     sky_size_t indents = 0;
     sky_int32_t flags;
-    sky_int32_t bracket_size, comma_size, colon_size;
+    sky_uint32_t bracket_size, comma_size, colon_size;
 
     flags = get_serialize_flags(opts);
 
@@ -1106,7 +1106,7 @@ sky_json_measure_ex(sky_json_t *value, sky_json_serialize_opts opts) {
                 }
                 break;
             case json_double:
-                total += snprintf(NULL, 0, "%g", value->dbl);
+                total += snprintf(null, 0, "%g", value->dbl);
                 /* Because sometimes we need to add ".0" if sprintf does not do it
                  * for us. Downside is that we allocate more bytes than strictly
                  * needed for serialization.
@@ -1273,11 +1273,11 @@ void sky_json_serialize_ex(sky_uchar_t *buf, sky_json_t *value, sky_json_seriali
 
                 ptr = buf;
 
-                buf += sprintf(buf, "%g", value->dbl);
+                buf += sprintf((sky_char_t *)buf, "%g", value->dbl);
 
-                if ((dot = strchr(ptr, ','))) {
+                if ((dot = (sky_uchar_t *)strchr((sky_char_t *)ptr, ','))) {
                     *dot = '.';
-                } else if (!strchr(ptr, '.') && !strchr(ptr, 'e')) {
+                } else if (!strchr((sky_char_t *)ptr, '.') && !strchr((sky_char_t *)ptr, 'e')) {
                     *buf++ = '.';
                     *buf++ = '0';
                 }
