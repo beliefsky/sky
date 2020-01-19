@@ -4,13 +4,14 @@
 
 #ifndef SKY_MEMORY_H
 #define SKY_MEMORY_H
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 #include "types.h"
 #include <string.h>
 #include <stdlib.h>
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #define sky_free(ptr)               free(ptr)
 #define sky_malloc(size)            malloc(size)

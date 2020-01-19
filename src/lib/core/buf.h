@@ -4,12 +4,13 @@
 
 #ifndef SKY_BUF_H
 #define SKY_BUF_H
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 #include "types.h"
 #include "palloc.h"
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 
 typedef struct sky_buf_s sky_buf_t;

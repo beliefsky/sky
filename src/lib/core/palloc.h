@@ -1,10 +1,11 @@
 #ifndef SKY_PALLOC_H
 #define SKY_PALLOC_H
+
+#include "types.h"
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-#include "types.h"
 
 #define SKY_PAGESIZE            0x1000              /*4096*/
 #define SKY_DEFAULT_POOL_SIZE   0x4000              /*(16 * 1024) = 16384*/

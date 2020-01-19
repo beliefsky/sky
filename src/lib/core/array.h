@@ -4,11 +4,12 @@
 
 #ifndef SKY_ARRAY_H
 #define SKY_ARRAY_H
+
+#include "palloc.h"
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-#include "palloc.h"
 
 typedef struct {
     // elts指向数组的首地址

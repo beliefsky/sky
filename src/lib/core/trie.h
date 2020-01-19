@@ -4,12 +4,13 @@
 
 #ifndef SKY_TRIE_H
 #define SKY_TRIE_H
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 #include "palloc.h"
 #include "string.h"
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 typedef struct sky_trie_s sky_trie_t;
 

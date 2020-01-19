@@ -4,12 +4,13 @@
 
 #ifndef SKY_SKY_DATE_H
 #define SKY_SKY_DATE_H
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 #include <time.h>
 #include "string.h"
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /**
  * 用于时分秒

@@ -4,11 +4,12 @@
 
 #ifndef SKY_RADIX_TREE_H
 #define SKY_RADIX_TREE_H
+
+#include "palloc.h"
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-#include "palloc.h"
 
 
 #define SKY_RADIX_NO_VALUE   (sky_uintptr_t) -1

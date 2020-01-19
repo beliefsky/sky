@@ -4,11 +4,12 @@
 
 #ifndef SKY_HTTP_EXTEND_PGSQL_POOL_H
 #define SKY_HTTP_EXTEND_PGSQL_POOL_H
+
+#include "../http_server.h"
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-#include "../http_server.h"
 
 #define SKY_PG_DATA_NULL    0
 #define SKY_PG_DATA_U8      1

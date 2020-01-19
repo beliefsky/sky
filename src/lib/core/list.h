@@ -4,11 +4,12 @@
 
 #ifndef SKY_LIST_H
 #define SKY_LIST_H
+
+#include "palloc.h"
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-#include "palloc.h"
 
 
 typedef struct sky_list_part_s sky_list_part_t;

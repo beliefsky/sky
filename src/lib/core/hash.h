@@ -4,14 +4,15 @@
 
 #ifndef SKY_HASH_H
 #define SKY_HASH_H
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 #include "types.h"
 #include "string.h"
 #include "palloc.h"
 #include "array.h"
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /*
 sky_hash_t是sky自己的hash表的实现。定义和实现位于src/core/sky_hash.h|c中。

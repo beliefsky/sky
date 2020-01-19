@@ -4,12 +4,13 @@
 
 #ifndef SKY_EVENT_LOOP_H
 #define SKY_EVENT_LOOP_H
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 #include "../core/palloc.h"
 #include "../core/rbtree.h"
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 typedef struct sky_event_loop_s sky_event_loop_t;
 typedef struct sky_event_s sky_event_t;

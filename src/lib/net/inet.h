@@ -4,10 +4,12 @@
 
 #ifndef SKY_INET_H
 #define SKY_INET_H
+
+#include "../core/types.h"
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
-#include "../core/types.h"
 
 #ifdef HAVE_BUILTIN_BSWAP
 #define sky_swap_u16(_ll) __builtin_bswap16(_ll)

@@ -3,11 +3,12 @@
 //
 #ifndef SKY_MEM_POOL_H
 #define SKY_MEM_POOL_H
+
+#include "types.h"
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-#include "types.h"
 
 typedef struct sky_mem_pool_s sky_mem_pool_t;
 

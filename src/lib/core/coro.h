@@ -4,12 +4,13 @@
 
 #ifndef SKY_CORO_H
 #define SKY_CORO_H
-#if defined(__cplusplus)
-} /* extern "C" { */
-#endif
 
 #include "types.h"
 #include "palloc.h"
+
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 
 #define SKY_CORO_ABORT      (-1)
 #define SKY_CORO_MAY_RESUME 0

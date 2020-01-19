@@ -4,11 +4,12 @@
 
 #ifndef SKY_NUMBER_H
 #define SKY_NUMBER_H
+
+#include "string.h"
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-#include "string.h"
 
 #define sky_num_to_uchar(_n)    ((sky_uchar_t)((_n) | 0x30))
 

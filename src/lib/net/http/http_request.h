@@ -4,15 +4,16 @@
 
 #ifndef SKY_HTTP_REQUEST_H
 #define SKY_HTTP_REQUEST_H
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 #include "http_server.h"
 #include "../../core/array.h"
 #include "../../core/buf.h"
 #include "../../core/string.h"
 #include "../../core/list.h"
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #define SKY_HTTP_UNKNOWN                   0x0000
 #define SKY_HTTP_GET                       0x0001

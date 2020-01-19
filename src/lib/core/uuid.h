@@ -4,11 +4,13 @@
 
 #ifndef SKY_UUID_H
 #define SKY_UUID_H
+
+
+#include "types.h"
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-#include "types.h"
 
 void sky_uuid_generate_random(sky_uchar_t buf[37]);
 

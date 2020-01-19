@@ -4,11 +4,12 @@
 
 #ifndef SKY_HTTP_MODULE_DISPATCHER_H
 #define SKY_HTTP_MODULE_DISPATCHER_H
+
+#include "../http_server.h"
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-#include "../http_server.h"
 
 typedef struct sky_http_mapper_s sky_http_mapper_t;
 

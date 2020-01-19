@@ -4,11 +4,12 @@
 
 #ifndef SKY_RBTREE_H
 #define SKY_RBTREE_H
+
+#include "types.h"
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-#include "types.h"
 
 typedef struct sky_rbtree_node_s sky_rbtree_node_t;
 

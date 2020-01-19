@@ -4,9 +4,6 @@
 
 #ifndef SKY_HTTP_EXTEND_REDIS_POOL_H
 #define SKY_HTTP_EXTEND_REDIS_POOL_H
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 #include <netdb.h>
 #include <errno.h>
@@ -14,6 +11,10 @@ extern "C" {
 #include <sys/socket.h>
 #include <sys/un.h>
 #include "../http_server.h"
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #define SKY_REDIS_DATA_NULL    0
 #define SKY_REDIS_DATA_I8      1

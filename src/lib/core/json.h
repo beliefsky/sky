@@ -4,14 +4,15 @@
 
 #ifndef SKY_JSON_H
 #define SKY_JSON_H
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 #include "types.h"
 #include "string.h"
 #include "palloc.h"
 #include "array.h"
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 
 #ifndef json_int_t

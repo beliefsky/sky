@@ -4,14 +4,15 @@
 
 #ifndef SKY_HTTP_SERVER_H
 #define SKY_HTTP_SERVER_H
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 #include "../../event/event_loop.h"
 #include "../../core/coro.h"
 #include "../../core/buf.h"
 #include "../../core/hash.h"
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 
 typedef struct sky_http_server_s sky_http_server_t;

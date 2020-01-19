@@ -4,12 +4,13 @@
 
 #ifndef SKY_TYPES_H
 #define SKY_TYPES_H
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 #include <stdint.h>
 #include <time.h>
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #define true    0x1
 #define false   0x0

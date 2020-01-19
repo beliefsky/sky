@@ -4,10 +4,12 @@
 
 #ifndef SKY_BASE64_H
 #define SKY_BASE64_H
+
+#include "string.h"
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
-#include "string.h"
 
 //base64 编码／解码函数和宏
 #define sky_base64_encoded_length(len)  (((len + 0x2) / 0x3) << 0x2)

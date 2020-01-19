@@ -4,12 +4,13 @@
 
 #ifndef SKY_STRING_H
 #define SKY_STRING_H
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 #include "types.h"
 #include <string.h>
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #define sky_str2_switch(_m) \
     (*(sky_uint16_t *)(_m))

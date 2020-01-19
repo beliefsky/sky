@@ -4,14 +4,15 @@
 
 #ifndef SKY_TCP_H
 #define SKY_TCP_H
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 #include "../event/event_loop.h"
 #include "../core/palloc.h"
 #include "../core/string.h"
 #include <unistd.h>
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 typedef sky_event_t *(*sky_tcp_accept_cb_pt)(sky_event_loop_t *loop, sky_int32_t fd, void *data);
 

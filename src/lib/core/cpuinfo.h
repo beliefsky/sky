@@ -4,11 +4,12 @@
 
 #ifndef SKY_CPUINFO_H
 #define SKY_CPUINFO_H
+
+#include "types.h"
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-#include "types.h"
 
 #if defined(__linux__)
 
