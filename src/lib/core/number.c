@@ -392,12 +392,12 @@ fast_str_parse_uint32(sky_uint64_t mask) {
  * @param s 输出的字符串
  * @return  字符长度
  */
-static sky_uint8_t
+static sky_inline sky_uint8_t
 small_decimal_toStr(sky_uint64_t x, sky_uchar_t *s) {
     if (x <= 9) {
         *s = sky_num_to_uchar(x);
         return 1;
-    } else if (x <= 99) {
+    } else {
         sky_uint64_t low = x;
         sky_uint64_t ll = ((low * 103) >> 9) & 0x1E;
         low += ll * 3;
@@ -405,7 +405,6 @@ small_decimal_toStr(sky_uint64_t x, sky_uchar_t *s) {
         *(sky_uint16_t *) s = (sky_uint16_t) (ll | 0x3030);
         return 2;
     }
-    return 0;
 }
 
 /**
@@ -458,7 +457,7 @@ small_num_to_str(sky_uint64_t x, sky_uchar_t *s) {
 }
 
 /**
- * 支持所有区段值转字符串
+ * 支持 0-9999999999 区段值转字符串
  * @param x 值
  * @param s 输出的字符串
  * @return 字符长度
@@ -483,11 +482,11 @@ large_num_to_str(sky_uint64_t x, sky_uchar_t *s) {
             digits = (low > 99999) ? 6 : 5;
         }
     } else {
-        sky_uint64_t high = (((sky_uint64_t) x) * 0x55E63B89) >> 57;
-        low = x - (high * 100000000);
+        ll = (((sky_uint64_t) x) * 0x55E63B89) >> 57;
+        low = x - (ll * 100000000);
         // h will be at most 42
         // calc num digits
-        digits = small_decimal_toStr(high, s);
+        digits = small_decimal_toStr(ll, s);
         digits += 8;
     }
 
