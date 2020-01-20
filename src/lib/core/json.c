@@ -828,7 +828,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                 continue;
                             }
                         } else if (b == '.' && top->type == json_integer) {
-                            if (sky_unlikely(!num_digits)) {
+                            if (sky_unlikely(num_digits == 0)) {
                                 sky_log_error("%d:%d: Expected digit before `.`", line_and_col);
                                 goto e_failed;
                             }
@@ -843,7 +843,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
 
                         if (!(flags & flag_num_e)) {
                             if (top->type == json_double) {
-                                if (sky_unlikely(!num_digits)) {
+                                if (sky_unlikely(num_digits == 0)) {
                                     sky_log_error("%d:%d: Expected digit after `.`", line_and_col);
                                     goto e_failed;
                                 }
@@ -865,7 +865,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
                                 continue;
                             }
                         } else {
-                            if (sky_unlikely(!num_digits)) {
+                            if (sky_unlikely(num_digits == 0)) {
                                 sky_log_error("%d:%d: Expected digit after `e`", line_and_col);
                                 goto e_failed;
                             }
@@ -965,7 +965,6 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
 
     return 0;
 }
-
 
 
 #define f_spaces_around_brackets    (1 << 0)
@@ -1115,7 +1114,7 @@ sky_json_measure_ex(sky_json_t *value, sky_json_serialize_opts opts) {
                 }
                 break;
             case json_double:
-                total += snprintf(null, 0, "%g", value->dbl);
+                total += (sky_uint32_t)snprintf(null, 0, "%g", value->dbl);
                 /* Because sometimes we need to add ".0" if sprintf does not do it
                  * for us. Downside is that we allocate more bytes than strictly
                  * needed for serialization.
@@ -1136,8 +1135,8 @@ sky_json_measure_ex(sky_json_t *value, sky_json_serialize_opts opts) {
     }
 
     if (opts.mode == json_serialize_mode_multiline) {
-        total += newlines * (((opts.opts & json_serialize_opt_CRLF) ? 2 : 1) + opts.indent_size);
-        total += indents * opts.indent_size;
+        total += newlines * (((opts.opts & json_serialize_opt_CRLF) ? 2 : 1) + (sky_uint32_t)opts.indent_size);
+        total += indents * (sky_uint32_t)opts.indent_size;
     }
 
     return total;
