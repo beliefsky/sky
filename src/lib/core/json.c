@@ -1135,8 +1135,8 @@ sky_json_measure_ex(sky_json_t *value, sky_json_serialize_opts opts) {
     }
 
     if (opts.mode == json_serialize_mode_multiline) {
-        total += newlines * (((opts.opts & json_serialize_opt_CRLF) ? 2 : 1) + (sky_uint32_t)opts.indent_size);
-        total += indents * (sky_uint32_t)opts.indent_size;
+        total += newlines * (((opts.opts & json_serialize_opt_CRLF) ? 2 : 1) + opts.indent_size);
+        total += indents * opts.indent_size;
     }
 
     return total;

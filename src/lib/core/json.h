@@ -82,9 +82,9 @@ struct sky_json_s {
 };
 
 typedef struct {
-    int mode;
-    int opts;
-    int indent_size;
+    sky_int32_t mode;
+    sky_int32_t opts;
+    sky_uint32_t indent_size;
 
 } sky_json_serialize_opts;
 
