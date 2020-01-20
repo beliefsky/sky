@@ -966,10 +966,12 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
     return 0;
 }
 
-const sky_int32_t f_spaces_around_brackets = (1 << 0);
-const sky_int32_t f_spaces_after_commas = (1 << 1);
-const sky_int32_t f_spaces_after_colons = (1 << 2);
-const sky_int32_t f_tabs = (1 << 3);
+
+
+#define f_spaces_around_brackets    (1 << 0)
+#define f_spaces_after_commas       (1 << 1)
+#define f_spaces_after_colons       (1 << 2)
+#define f_tabs                      (1 << 3)
 
 static sky_int32_t
 get_serialize_flags(sky_json_serialize_opts opts) {
