@@ -1105,7 +1105,7 @@ sky_json_measure_ex(sky_json_t *value, sky_json_serialize_opts opts) {
                 integer = value->integer;
 
                 if (integer < 0) {
-                    total += 1;  /* `-` */
+                    ++total;  /* `-` */
                     integer = -integer;
                 }
                 {
