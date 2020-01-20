@@ -60,8 +60,7 @@ if (NOT HAVE_BUILTIN_FPCLASSIFY)
 endif ()
 
 install(TARGETS sky_shared sky_static
-        LIBRARY DESTINATION /usr/local/lib/sky
-        ARCHIVE DESTINATION /usr/local/lib/sky
+        DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}/sky
         )
 
 set(CMAKE_INSTALL_FULL_INCLUDEDIR "/usr/local/include")

@@ -13,6 +13,12 @@ include(EnableCFlag)
 include(FindPkgConfig)
 include(TrySanitizer)
 
+if (NOT CMAKE_BUILD_TYPE)
+    message(STATUS "No build type selected, defaulting to Debug")
+    set(CMAKE_BUILD_TYPE "Debug")
+endif ()
+
+
 #
 # Find libraries
 #
@@ -39,7 +45,7 @@ endif ()
 check_c_compiler_flag(-std=gnu11 HAS_STD_GNU11)
 if (NOT HAS_STD_GNU11)
     message(FATAL_ERROR "Compiler does not support -std=gnu11. Consider using a newer compiler")
-endif()
+endif ()
 
 #
 # Check for GCC builtin functions
@@ -62,11 +68,12 @@ if (VALGRIND_INCLUDE_DIR)
     set(USE_VALGRIND 1)
 else ()
     message(STATUS "Valgrind headers not found -- disabling valgrind support")
-endif()
+endif ()
 
 
 enable_c_flag_if_avail(-mtune=native C_FLAGS_REL HAS_MTUNE_NATIVE)
 enable_c_flag_if_avail(-march=native C_FLAGS_REL HAS_MARCH_NATIVE)
+enable_c_flag_if_avail(-fstack-protector-explicit CMAKE_C_FLAGS HAVE_STACK_PROTECTOR_EXPLICIT)
 #
 # Check if immediate binding and read-only global offset table flags
 # can be used
@@ -81,9 +88,13 @@ else ()
             HAS_READ_ONLY_GOT)
     enable_c_flag_if_avail(-fno-plt CMAKE_C_FLAGS
             HAS_NO_PLT)
+    enable_c_flag_if_avail(-Wl,-z,noexecstack CMAKE_EXE_LINKER_FLAGS
+            HAVE_NOEXEC_STACK)
 endif ()
 
 if (${CMAKE_BUILD_TYPE} MATCHES "Rel")
+    enable_c_flag_if_avail(-falign-functions=32 C_FLAGS_REL HAVE_ALIGN_FNS)
+    enable_c_flag_if_avail(-fno-semantic-interposition C_FLAGS_REL HAVE_NO_SEMANTIC_INTERPOSITION)
     enable_c_flag_if_avail(-malign-data=abi C_FLAGS_REL HAS_ALIGN_DATA)
     enable_c_flag_if_avail(-fno-asynchronous-unwind-tables C_FLAGS_REL HAS_NO_ASYNC_UNWIND_TABLES)
 
@@ -124,6 +135,7 @@ set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${C_FLAGS_REL}")
 set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} ${C_FLAGS_REL}")
 set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL} ${C_FLAGS_REL}")
 add_definitions("-D_FILE_OFFSET_BITS=64")
+add_definitions("-D_TIME_BITS=64")
 
 if (APPLE)
     set(SKY_COMMON_LIBS -Wl,-force_load sky_static)
