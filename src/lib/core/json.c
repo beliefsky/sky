@@ -1018,6 +1018,8 @@ sky_json_measure_ex(sky_json_t *value, sky_json_serialize_opts opts) {
     sky_size_t indents = 0;
     sky_int32_t flags;
     sky_uint32_t bracket_size, comma_size, colon_size;
+    json_int_t integer;
+    sky_json_object_t *entry;
 
     flags = get_serialize_flags(opts);
 
@@ -1026,10 +1028,8 @@ sky_json_measure_ex(sky_json_t *value, sky_json_serialize_opts opts) {
     bracket_size = flags & f_spaces_around_brackets ? 2 : 1;
     comma_size = flags & f_spaces_after_commas ? 2 : 1;
     colon_size = flags & f_spaces_after_colons ? 2 : 1;
-    while (value) {
-        json_int_t integer;
-        sky_json_object_t *entry;
 
+    while (value) {
         switch (value->type) {
             case json_array:
 
@@ -1103,18 +1103,25 @@ sky_json_measure_ex(sky_json_t *value, sky_json_serialize_opts opts) {
                 break;
             case json_integer:
                 integer = value->integer;
+
                 if (integer < 0) {
                     total += 1;  /* `-` */
                     integer = -integer;
                 }
-                ++total;  /* first digit */
-                while (integer >= 10) {
-                    ++total;  /* another digit */
-                    integer /= 10;
+                {
+                    sky_int64_t p = 10;
+                    sky_uint8_t i;
+                    for (i = 1; i < 19; i++) {
+                        if (integer < p) {
+                            break;
+                        }
+                        p *= 10;
+                    }
+                    total += i;
                 }
                 break;
             case json_double:
-                total += (sky_uint32_t)snprintf(null, 0, "%g", value->dbl);
+                total += (sky_uint32_t) snprintf(null, 0, "%g", value->dbl);
                 /* Because sometimes we need to add ".0" if sprintf does not do it
                  * for us. Downside is that we allocate more bytes than strictly
                  * needed for serialization.
