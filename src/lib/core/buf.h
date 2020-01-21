@@ -31,7 +31,7 @@ struct sky_buf_s {
 };
 
 
-sky_buf_t *sky_buf_create(sky_pool_t *pool, sky_uint32_t size);
+sky_buf_t *sky_buf_create(sky_pool_t *pool, sky_size_t size);
 
 #define sky_buf_reset(_buf)                      \
     (_buf)->pos = (_buf)->last = (_buf)->start

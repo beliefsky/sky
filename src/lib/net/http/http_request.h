@@ -65,6 +65,8 @@ typedef struct {
     sky_table_elt_t *accept_ranges;
 
 
+    sky_str_t *status;
+
     sky_str_t content_type;
 
     sky_int64_t content_offset;
