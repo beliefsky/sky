@@ -12,6 +12,7 @@ set(SOURCES
         core/rbtree.c
         core/trie.c
         core/coro.c
+        core/exception.c
         core/string.c
         core/number.c
         core/date.c
