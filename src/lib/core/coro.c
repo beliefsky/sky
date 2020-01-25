@@ -4,7 +4,6 @@
 
 #include <assert.h>
 #include "coro.h"
-#include "memory.h"
 
 #if PTHREAD_STACK_MIN <= 16384
 #  undef PTHREAD_STACK_MIN
@@ -55,7 +54,7 @@ struct sky_defer_s {
 struct sky_coro_s {
     sky_coro_switcher_t *switcher;
     sky_coro_context_t context;
-    sky_int8_t yield_value;
+    sky_int32_t yield_value;
 
     sky_pool_t *pool;
     sky_defer_t defers;
@@ -243,7 +242,7 @@ sky_coro_create2(sky_coro_switcher_t *switcher, sky_coro_func_t func, sky_uintpt
 }
 
 
-sky_int8_t
+sky_int32_t
 sky_coro_resume(sky_coro_t *coro) {
 #if defined(STACK_PTR)
     assert(coro->context[STACK_PTR] >= (sky_uintptr_t) coro->stack &&
@@ -253,8 +252,8 @@ sky_coro_resume(sky_coro_t *coro) {
     return coro->yield_value;
 }
 
-sky_int8_t
-sky_coro_yield(sky_coro_t *coro, sky_int8_t value) {
+sky_int32_t
+sky_coro_yield(sky_coro_t *coro, sky_int32_t value) {
     coro->yield_value = value;
     coro_swapcontext(&coro->context, &coro->switcher->caller);
     return coro->yield_value;

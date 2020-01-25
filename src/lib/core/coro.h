@@ -53,7 +53,7 @@ sky_coro_create2(sky_coro_switcher_t *switcher, sky_coro_func_t func, sky_uintpt
  * @param coro 协程
  * @return 协程执行状态
  */
-sky_int8_t sky_coro_resume(sky_coro_t *coro);
+sky_int32_t sky_coro_resume(sky_coro_t *coro);
 
 /**
  * 释放执行权
@@ -61,7 +61,9 @@ sky_int8_t sky_coro_resume(sky_coro_t *coro);
  * @param value 协程状态
  * @return 最终协程状态
  */
-sky_int8_t sky_coro_yield(sky_coro_t *coro, sky_int8_t value);
+sky_int32_t sky_coro_yield(sky_coro_t *coro, sky_int32_t value);
+
+
 
 /**
  * 销毁协程
