@@ -219,8 +219,7 @@ static sky_uchar_t hex_value(sky_uchar_t c) {
 }
 
 static int would_overflow(json_int_t value, sky_uchar_t b) {
-    return ((JSON_INT_MAX
-             - (b - '0')) / 10) < value;
+    return ((JSON_INT_MAX - (b - '0')) / 10) < value;
 }
 
 typedef struct {
@@ -281,7 +280,7 @@ new_value(json_state *state, sky_json_t **top, sky_json_t **root, sky_json_t **a
         return true;
     }
 
-    if (sky_unlikely(!(value = sky_palloc(state->pool, sizeof(sky_json_t))))) {
+    if (sky_unlikely(!(value = sky_pcalloc(state->pool, sizeof(sky_json_t))))) {
         return false;
     }
 
@@ -358,7 +357,7 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
     for (state.first_pass = 1; state.first_pass >= 0; --state.first_pass) {
         json_uchar uchar;
         sky_uchar_t b, uc_b1, uc_b2, uc_b3, uc_b4;
-        sky_uchar_t *string = 0;
+        sky_uchar_t *string = null;
         sky_uint32_t string_length = 0;
 
         top = root = 0;
