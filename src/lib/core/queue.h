@@ -7,6 +7,10 @@
 
 #include "types.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 
 typedef struct sky_queue_s sky_queue_t;
 struct sky_queue_s {
@@ -59,9 +63,13 @@ struct sky_queue_s {
 //获取队列中节点数据， q是队列中的节点，type队列类型，link是队列类型中sky_queue_t的元素名
 #define sky_queue_data(q, type, link)                                         \
     (type *) ((sky_uchar_t *) q - sky_offset_of(type, link))
+
 //队列的中间节点
 sky_queue_t *sky_queue_middle(sky_queue_t *queue);
 
 void sky_queue_sort(sky_queue_t *queue, sky_bool_t (*cmp_gt)(const sky_queue_t *, const sky_queue_t *));
 
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_QUEUE_H

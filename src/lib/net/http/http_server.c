@@ -256,7 +256,7 @@ http_write(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size) {
         }
 
         if (n < size) {
-            data += n, size -= (sky_uint32_t)n;
+            data += n, size -= (sky_uint32_t) n;
             conn->ev.write = false;
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
             continue;
@@ -286,6 +286,9 @@ build_headers_in(sky_array_t *array, sky_pool_t *pool) {
 
     http_header_push("Content-Type", http_process_header_line,
                      sky_offset_of(sky_http_headers_in_t, content_type));
+
+    http_header_push("Authorization", http_process_header_line,
+                     sky_offset_of(sky_http_headers_in_t, authorization));
 
     http_header_push("Range", http_process_header_line,
                      sky_offset_of(sky_http_headers_in_t, range));
@@ -359,7 +362,7 @@ http_process_header_line(sky_http_request_t *r, sky_table_elt_t *h, sky_uintptr_
     sky_table_elt_t **ph;
 
     ph = (sky_table_elt_t **) ((sky_uintptr_t) (&r->headers_in) + data);
-    if (!(*ph)) {
+    if (sky_likely(!(*ph))) {
         *ph = h;
     }
     return true;
@@ -371,7 +374,7 @@ http_process_unique_header_line(sky_http_request_t *r, sky_table_elt_t *h, sky_u
     sky_table_elt_t **ph;
 
     ph = (sky_table_elt_t **) ((sky_uintptr_t) (&r->headers_in) + data);
-    if (!(*ph)) {
+    if (sky_likely(!(*ph))) {
         *ph = h;
         return true;
     }
@@ -381,7 +384,7 @@ http_process_unique_header_line(sky_http_request_t *r, sky_table_elt_t *h, sky_u
 
 static sky_bool_t
 http_process_host(sky_http_request_t *r, sky_table_elt_t *h, sky_uintptr_t data) {
-    if (!r->headers_in.host) {
+    if (sky_likely(!r->headers_in.host)) {
         r->headers_in.host = h;
     }
     return true;
@@ -389,7 +392,7 @@ http_process_host(sky_http_request_t *r, sky_table_elt_t *h, sky_uintptr_t data)
 
 static sky_bool_t
 http_process_connection(sky_http_request_t *r, sky_table_elt_t *h, sky_uintptr_t data) {
-    if (!r->headers_in.connection) {
+    if (sky_likely(!r->headers_in.connection)) {
         r->headers_in.connection = h;
     }
     if (sky_unlikely(h->value.len == 5)) {
@@ -408,12 +411,15 @@ http_process_connection(sky_http_request_t *r, sky_table_elt_t *h, sky_uintptr_t
 
 static sky_bool_t
 http_process_content_length(sky_http_request_t *r, sky_table_elt_t *h, sky_uintptr_t data) {
-    if (!r->headers_in.content_length) {
+    if (sky_likely(!r->headers_in.content_length)) {
         r->headers_in.content_length = h;
 
-        if (!sky_str_to_uint32(&h->value, &r->headers_in.content_length_n)) {
+        if (sky_unlikely(!sky_str_to_uint32(&h->value, &r->headers_in.content_length_n))) {
             return false;
         }
+    }
+    if (sky_likely(r->headers_in.content_length_n)) {
+        r->request_body = sky_pcalloc(r->pool, sizeof(sky_http_request_t));
     }
     return true;
 }

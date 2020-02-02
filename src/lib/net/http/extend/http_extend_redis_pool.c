@@ -53,7 +53,7 @@ sky_redis_pool_create(sky_pool_t *pool, sky_redis_conf_t *conf) {
 
     if (!(i = conf->connection_size)) {
         i = 2;
-    } else if ((i & (i - 1)) != 0) {
+    } else if (sky_is_2_power(i)) {
         sky_log_error("连接数必须为2的整数幂");
         return null;
     }

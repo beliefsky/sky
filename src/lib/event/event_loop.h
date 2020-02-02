@@ -8,6 +8,10 @@
 #include "../core/palloc.h"
 #include "../core/rbtree.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 typedef struct sky_event_loop_s sky_event_loop_t;
 typedef struct sky_event_s sky_event_t;
 
@@ -74,4 +78,7 @@ void sky_event_register(sky_event_t *ev, sky_int32_t timeout);
  */
 void sky_event_unregister(sky_event_t *ev);
 
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_EVENT_LOOP_H

@@ -6,6 +6,43 @@
 #include "memory.h"
 #include "number.h"
 
+
+sky_inline sky_uint8_t
+sky_time_to_str(sky_uint32_t secs, sky_uchar_t *out) {
+    if (sky_unlikely(secs > 86400)) {
+        return 0;
+    }
+    // divide by 3600 to calculate hours
+    sky_uint64_t hours = (secs * 0x91A3) >> 27;
+    sky_uint64_t xrem = secs - (hours * 3600);
+
+    // divide by 60 to calculate minutes
+    sky_uint64_t mins = (xrem * 0x889) >> 17;
+    xrem = xrem - (mins * 60);
+
+    // position hours, minutes, and seconds in one var
+    sky_uint64_t timeBuffer = hours + (mins << 24) + (xrem << 48);
+
+    // convert to decimal representation
+    xrem = ((timeBuffer * 103) >> 9) & 0x001E00001E00001E;
+    timeBuffer += xrem * 3;
+
+    // move high nibbles into low mibble position in current byte
+    // move lower nibble into left-side byte
+    timeBuffer = ((timeBuffer & 0x00F00000F00000F0) >> 4) |
+                 ((timeBuffer & 0x000F00000F00000F) << 8);
+
+    // bitwise-OR in colons and convert numbers into ASCII number characters
+    timeBuffer |= 0x30303A30303A3030;
+
+    // copy to buffer
+    *(sky_uint64_t *) out = timeBuffer;
+    out[8] = '\0';
+
+    return 8;
+}
+
+
 sky_bool_t
 sky_rfc_str_to_date(sky_str_t *in, time_t *out) {
     struct tm tm;
@@ -46,8 +83,8 @@ sky_rfc_str_to_date(sky_str_t *in, time_t *out) {
 
     tmp.data = value;
     tmp.len = 2;
-    sky_str_to_uint8(&tmp, (sky_uint8_t *) &tm.tm_mday);
-    if (tm.tm_mday < 1 || tm.tm_mday > 31) {
+
+    if (sky_unlikely(!sky_str_to_int32(&tmp, &tm.tm_mday) || tm.tm_mday < 1 || tm.tm_mday > 31)) {
         return false;
     }
     value += 3;
@@ -95,8 +132,7 @@ sky_rfc_str_to_date(sky_str_t *in, time_t *out) {
 
     tmp.data = value;
     tmp.len = 4;
-    sky_str_to_uint16(&tmp, (sky_uint16_t *) &tm.tm_year);
-    if (tm.tm_year < 0 || tm.tm_year > 9999) {
+    if (sky_unlikely(!sky_str_to_int32(&tmp, &tm.tm_year) || tm.tm_year < 0 || tm.tm_year > 9999)) {
         return false;
     }
     tm.tm_year -= 1900;
@@ -104,26 +140,23 @@ sky_rfc_str_to_date(sky_str_t *in, time_t *out) {
 
     tmp.data = value;
     tmp.len = 2;
-    sky_str_to_uint8(&tmp, (sky_uint8_t *) &tm.tm_hour);
-    if (tm.tm_hour < 0 || tm.tm_hour > 24) {
+    if (sky_unlikely(!sky_str_to_int32(&tmp, &tm.tm_hour) || tm.tm_hour < 0 || tm.tm_hour > 24)) {
         return false;
     }
     value += 3;
 
     tmp.data = value;
-    sky_str_to_uint8(&tmp, (sky_uint8_t *) &tm.tm_min);
-    if (tm.tm_min < 0 || tm.tm_min > 60) {
+    if (sky_unlikely(!sky_str_to_int32(&tmp, &tm.tm_min) || tm.tm_min < 0 || tm.tm_min > 60)) {
         return false;
     }
     value += 3;
 
     tmp.data = value;
-    sky_str_to_uint8(&tmp, (sky_uint8_t *) &tm.tm_sec);
-    if (tm.tm_sec < 0 || tm.tm_sec > 60) {
+    if (sky_unlikely(!sky_str_to_int32(&tmp, &tm.tm_sec) || tm.tm_sec < 0 || tm.tm_sec > 60)) {
         return false;
     }
     value += 3;
-    if (sky_unlikely(!sky_str3_cmp(value, 'G', 'M', 'T'))) {
+    if (sky_unlikely(!sky_str2_cmp(value, 'G', 'M') || value[2] != 'T')) {
         return false;
     }
 
@@ -140,8 +173,10 @@ sky_date_to_rfc_str(time_t time, sky_uchar_t *src) {
     static const sky_char_t *week_days = "Sun,Mon,Tue,Wed,Thu,Fri,Sat,";
     static const sky_char_t *months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec ";
     struct tm tm;
+    sky_uint32_t day_of_time;
 
 
+    day_of_time = time % 86400;
     if (sky_unlikely(!gmtime_r(&time, &tm))) {
         return 0;
     }
@@ -160,26 +195,9 @@ sky_date_to_rfc_str(time_t time, sky_uchar_t *src) {
 
     src += sky_uint16_to_str((sky_uint16_t) tm.tm_year + 1900, src);
     *(src++) = ' ';
-    if (tm.tm_hour < 10) {
-        *(src++) = '0';
-        *(src++) = sky_num_to_uchar(tm.tm_hour);
-    } else {
-        src += sky_uint8_to_str((sky_uint8_t) tm.tm_hour, src);
-    }
-    *(src++) = ':';
-    if (tm.tm_min < 10) {
-        *(src++) = '0';
-        *(src++) = sky_num_to_uchar(tm.tm_min);
-    } else {
-        src += sky_uint8_to_str((sky_uint8_t) tm.tm_min, src);
-    }
-    *(src++) = ':';
-    if (tm.tm_sec < 10) {
-        *(src++) = '0';
-        *(src++) = sky_num_to_uchar(tm.tm_sec);
-    } else {
-        src += sky_uint8_to_str((sky_uint8_t) tm.tm_sec, src);
-    }
+
+    src += sky_time_to_str(day_of_time, src);
+
     sky_memcpy(src, " GMT\0", 5);
 
     return 29;

@@ -10,13 +10,13 @@ static sky_bool_t sky_decode_base64_internal(sky_str_t *dst, sky_str_t *src, con
 void
 sky_encode_base64(sky_str_t *dst, sky_str_t *src)
 {
-    static sky_uchar_t  basis64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    static const sky_uchar_t  basis64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     sky_encode_base64_internal(dst,src,basis64,true);
 }
 sky_bool_t
 sky_decode_base64(sky_str_t *dst, sky_str_t *src)
 {
-    static sky_uchar_t  basis64[] = {
+    static const sky_uchar_t  basis64[] = {
             77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
             77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
             77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 62, 77, 77, 77, 63,
@@ -41,13 +41,13 @@ sky_decode_base64(sky_str_t *dst, sky_str_t *src)
 void
 sky_encode_base64url(sky_str_t *dst, sky_str_t *src)
 {
-    static sky_uchar_t  basis64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+    static const sky_uchar_t  basis64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
     sky_encode_base64_internal(dst,src,basis64,false);
 }
 sky_bool_t
 sky_decode_base64url(sky_str_t *dst, sky_str_t *src)
 {
-    static sky_uchar_t  basis64[] = {
+    static const sky_uchar_t  basis64[] = {
             77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
             77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77,
             77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 77, 62, 77, 77,

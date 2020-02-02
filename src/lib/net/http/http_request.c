@@ -27,7 +27,9 @@ static sky_http_request_t *http_header_read(sky_http_connection_t *conn);
 
 static sky_http_module_t *find_http_module(sky_http_request_t *r);
 
-static void http_send_header(sky_http_request_t *r, sky_str_t *body);
+static sky_size_t http_header_size(sky_http_request_t *r);
+
+static void http_send_header(sky_http_request_t *r, sky_size_t header_size, sky_str_t *body);
 
 static void http_response(sky_http_request_t *request, sky_http_response_t *response);
 
@@ -163,6 +165,33 @@ http_header_read(sky_http_connection_t *conn) {
         n = conn->read(conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
         buf->last += n;
     }
+    if (r->request_body) {
+        n = (sky_uint32_t) (buf->last - buf->pos);
+        r->request_body->read_size = n;
+        r->request_body->tmp = buf->pos;
+
+        if (n == r->headers_in.content_length_n) {
+            *(buf->last) = '\0';
+            r->request_body->ok = true;
+        } else {
+            n += (sky_uint32_t) (buf->end - buf->last);
+            if (n >= r->headers_in.content_length_n) {
+                // read body
+                for (;;) {
+                    n = conn->read(conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
+                    buf->last += n;
+                    r->request_body->read_size += n;
+
+                    if (r->request_body->read_size < r->headers_in.content_length_n) {
+                        continue;
+                    }
+                    *(buf->last) = '\0';
+                    r->request_body->ok = true;
+                    break;
+                }
+            }
+        }
+    }
     sky_list_init(&r->headers_out.headers, pool, 32, sizeof(sky_table_elt_t));
 
     return r;
@@ -187,10 +216,12 @@ static void
 http_response(sky_http_request_t *request, sky_http_response_t *response) {
     sky_table_elt_t *header;
     sky_uchar_t *str_len;
+    sky_size_t header_size;
 
     switch (response->type) {
         case SKY_HTTP_RESPONSE_EMPTY: {
-            http_send_header(request, null);
+            header_size = http_header_size(request);
+            http_send_header(request, header_size, null);
             return;
         }
         case SKY_HTTP_RESPONSE_FILE: {
@@ -205,8 +236,9 @@ http_response(sky_http_request_t *request, sky_http_response_t *response) {
                 header->value.data = sky_palloc(request->pool, 64);
                 header->value.len = http_build_content_range(response, header->value.data);
             }
+            header_size = http_header_size(request);
 
-            http_send_header(request, null);
+            http_send_header(request, header_size, null);
             http_http_send_file(request->conn, response->file.fd, response->file.offset,
                                 (sky_int64_t) response->file.count - 1);
             return;
@@ -217,7 +249,10 @@ http_response(sky_http_request_t *request, sky_http_response_t *response) {
             sky_str_set(&header->key, "Content-Length");
             header->value.len = sky_uint64_to_str(response->buf.len, str_len);
             header->value.data = str_len;
-            http_send_header(request, &response->buf);
+
+            header_size = http_header_size(request);
+
+            http_send_header(request, header_size, &response->buf);
             return;
         }
         case SKY_HTTP_RESPONSE_FUNC:
@@ -227,86 +262,95 @@ http_response(sky_http_request_t *request, sky_http_response_t *response) {
     }
 }
 
-static void
-http_send_header(sky_http_request_t *r, sky_str_t *body) {
-    sky_str_t *status;
-    sky_buf_t *buf;
-    sky_defer_t *defer;
+static sky_size_t
+http_header_size(sky_http_request_t *r) {
+    sky_http_headers_out_t *header_out;
+    sky_size_t size;
+
+    size = 69;
+    size += r->version_name.len; // http/1.1 + ' '
 
     if (!r->state) {
         r->state = 200;
     }
-    status = sky_http_status_find(r->conn->server, r->state);
+    header_out = &r->headers_out;
+    header_out->status = sky_http_status_find(r->conn->server, r->state);
 
-    if (r->conn->free) {
-        buf = r->conn->free;
-        r->conn->free = buf->next;
-    } else {
-        buf = sky_buf_create(r->conn->pool, r->conn->server->header_buf_size);
-    }
-    defer = sky_defer_add2(r->conn->coro, (sky_defer_func2_t) connection_buf_free, (sky_uintptr_t) r->conn,
-                           (sky_uintptr_t) buf);
-
-    sky_memcpy(buf->last, r->version_name.data, r->version_name.len);
-    buf->last += r->version_name.len;
-    *(buf->last++) = ' ';
-
-    sky_memcpy(buf->last, status->data, status->len);
-    buf->last += status->len;
-
+    size += header_out->status->len; // 200 ok
     if (r->keep_alive) {
-        sky_memcpy(buf->last, "\r\nConnection: keep-alive\r\n", 26);
-        buf->last += 26;
+        size += 26; //
     } else {
-        sky_memcpy(buf->last, "\r\nConnection: close\r\n", 21);
-        buf->last += 21;
+        size += 21;
     }
-
-    sky_memcpy(buf->last, "Date: ", 6);
-    buf->last += 6;
-    buf->last += sky_date_to_rfc_str(r->conn->ev.now, buf->last);
-
-    sky_memcpy(buf->last, "\r\nContent-Type: ", 16);
-    buf->last += 16;
-    sky_memcpy(buf->last, r->headers_out.content_type.data, r->headers_out.content_type.len);
-    buf->last += r->headers_out.content_type.len;
-
-    sky_memcpy(buf->last, "\r\nServer: sky\r\n", 15);
-    buf->last += 15;
+    size += header_out->content_type.len;
 
     sky_list_foreach(&r->headers_out.headers, sky_table_elt_t, item, {
-        if ((sky_size_t) (buf->end - buf->last) < (item->key.len + item->value.len + 4)) {
-            r->conn->write(r->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos));
-            sky_buf_reset(buf);
-        }
-        sky_memcpy(buf->last, item->key.data, item->key.len);
-        buf->last += item->key.len;
-        *(buf->last++) = ':';
-        *(buf->last++) = ' ';
-        sky_memcpy(buf->last, item->value.data, item->value.len);
-        buf->last += item->value.len;
-        *(buf->last++) = '\r';
-        *(buf->last++) = '\n';
+        size += item->key.len + item->value.len + 4;
     })
-    if ((buf->end - buf->last) < 2) {
-        r->conn->write(r->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos));
-        sky_buf_reset(buf);
-    }
-    *(buf->last++) = '\r';
-    *(buf->last++) = '\n';
 
+    return size;
+}
+
+static void
+http_send_header(sky_http_request_t *r, sky_size_t header_size, sky_str_t *body) {
+    sky_http_headers_out_t *header_out;
+    sky_uchar_t *start, *p;
+
+    header_out = &r->headers_out;
+
+    if (body && body->len < 4096) {
+        start = p = sky_palloc(r->pool, header_size + body->len);
+        sky_memcpy(p + header_size, body->data, body->len);
+        header_size += body->len;
+        body = null;
+    } else {
+        start = p = sky_palloc(r->pool, header_size);
+    }
+
+    sky_memcpy(p, r->version_name.data, r->version_name.len);
+    p += r->version_name.len;
+    *(p++) = ' ';
+
+    sky_memcpy(p, header_out->status->data, header_out->status->len);
+    p += header_out->status->len;
+
+    if (r->keep_alive) {
+        sky_memcpy(p, "\r\nConnection: keep-alive\r\n", 26);
+        p += 26;
+    } else {
+        sky_memcpy(p, "\r\nConnection: close\r\n", 21);
+        p += 21;
+    }
+
+    sky_memcpy(p, "Date: ", 6);
+    p += 6;
+    p += sky_date_to_rfc_str(r->conn->ev.now, p);
+
+    sky_memcpy(p, "\r\nContent-Type: ", 16);
+    p += 16;
+    sky_memcpy(p, r->headers_out.content_type.data, r->headers_out.content_type.len);
+    p += r->headers_out.content_type.len;
+
+    sky_memcpy(p, "\r\nServer: sky\r\n", 15);
+    p += 15;
+
+    sky_list_foreach(&r->headers_out.headers, sky_table_elt_t, item, {
+        sky_memcpy(p, item->key.data, item->key.len);
+        p += item->key.len;
+        *(p++) = ':';
+        *(p++) = ' ';
+        sky_memcpy(p, item->value.data, item->value.len);
+        p += item->value.len;
+        *(p++) = '\r';
+        *(p++) = '\n';
+    })
+    *(p++) = '\r';
+    *(p) = '\n';
+
+    r->conn->write(r->conn, start, (sky_uint32_t) header_size);
     if (body) {
-        if ((sky_size_t) (buf->end - buf->last) < body->len) {
-            r->conn->write(r->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos));
-            sky_buf_reset(buf);
-        }
-        sky_memcpy(buf->last, body->data, body->len);
-        buf->last += body->len;
+        r->conn->write(r->conn, body->data, (sky_uint32_t) body->len);
     }
-    r->conn->write(r->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos));
-
-    sky_defer_remove(r->conn->coro, defer);
-    connection_buf_free(r->conn, buf);
 }
 
 #if defined(__linux__)
@@ -321,7 +365,7 @@ http_http_send_file(sky_http_connection_t *conn, sky_int32_t fd, sky_int64_t lef
     for (;;) {
         n = sendfile(socket_fd, fd, &left, (size_t) (right - left));
         if (n < 1) {
-            if (n == 0) {
+            if (sky_unlikely(n == 0)) {
                 sky_coro_yield(conn->coro, SKY_CORO_ABORT);
                 sky_coro_exit();
             }

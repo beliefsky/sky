@@ -7,6 +7,10 @@
 
 #include "string.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 //base64 编码／解码函数和宏
 #define sky_base64_encoded_length(len)  (((len + 0x2) / 0x3) << 0x2)
 #define sky_base64_decoded_length(len)  (((len + 0x3) >> 0x2) * 0x3)
@@ -23,5 +27,7 @@ sky_bool_t sky_decode_base64(sky_str_t *dst, sky_str_t *src);
 
 void sky_encode_base64url(sky_str_t *dst, sky_str_t *src);
 sky_bool_t sky_decode_base64url(sky_str_t *dst, sky_str_t *src);
-
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_BASE64_H

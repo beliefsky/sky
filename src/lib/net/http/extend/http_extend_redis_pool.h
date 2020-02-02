@@ -12,6 +12,10 @@
 #include <sys/un.h>
 #include "../http_server.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #define SKY_REDIS_DATA_NULL    0
 #define SKY_REDIS_DATA_I8      1
 #define SKY_REDIS_DATA_I16     2
@@ -68,4 +72,7 @@ sky_redis_result_t *sky_redis_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params
 
 void sky_redis_connection_put(sky_redis_cmd_t *rc);
 
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_HTTP_EXTEND_REDIS_POOL_H

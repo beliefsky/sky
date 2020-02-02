@@ -18,7 +18,8 @@ set(SOURCES
         core/buf.c
         core/md5.c
         core/base64.c
-        #		core/json.c
+        core/uuid.c
+        core/json.c
         event/event_loop.c
         net/tcp.c
         net/http/http_request.c
@@ -42,6 +43,7 @@ add_library(sky_shared SHARED "${CMAKE_BINARY_DIR}/empty.c")
 target_link_libraries(sky_shared
         ${SKY_COMMON_LIBS}
         ${ADDITIONAL_LIBRARIES}
+        m
         )
 #if (NOT APPLE)
 #	target_link_libraries(sky_shared
@@ -59,14 +61,14 @@ if (NOT HAVE_BUILTIN_FPCLASSIFY)
 endif ()
 
 install(TARGETS sky_shared sky_static
-        LIBRARY DESTINATION /usr/local/lib/sky
-        ARCHIVE DESTINATION /usr/local/lib/sky
+        DESTINATION /usr/local/lib/sky
         )
 
 set(CMAKE_INSTALL_FULL_INCLUDEDIR "/usr/local/include")
 
 install(FILES
         core/types.h
+        core/memory.h
         core/palloc.h
         core/array.h
         core/hash.h
@@ -81,7 +83,9 @@ install(FILES
         core/buf.h
         core/md5.h
         core/base64.h
+        core/uuid.h
         core/log.h
+        core/json.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/core")
 
 install(FILES
@@ -99,8 +103,8 @@ install(FILES
 install(FILES
         net/http/module/http_module_dispatcher.h
         net/http/module/http_module_file.h
-        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/module")
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/http/module")
 install(FILES
         net/http/extend/http_extend_pgsql_pool.h
         net/http/extend/http_extend_redis_pool.h
-        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/extend")
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/http/extend")

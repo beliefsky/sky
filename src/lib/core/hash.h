@@ -10,6 +10,10 @@
 #include "palloc.h"
 #include "array.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 /*
 sky_hash_t是sky自己的hash表的实现。定义和实现位于src/core/sky_hash.h|c中。
 sky_hash_t的实现也与数据结构教科书上所描述的hash表的实现是大同小异。
@@ -199,4 +203,7 @@ sky_bool_t sky_hash_keys_array_init(sky_hash_keys_arrays_t *ha, sky_uint_t type)
 
 sky_int8_t sky_hash_add_key(sky_hash_keys_arrays_t *ha, sky_str_t *key, void *value, sky_uint_t flags);
 
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_HASH_H

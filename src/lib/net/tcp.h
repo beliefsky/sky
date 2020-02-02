@@ -10,6 +10,10 @@
 #include "../core/string.h"
 #include <unistd.h>
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 typedef sky_event_t *(*sky_tcp_accept_cb_pt)(sky_event_loop_t *loop, sky_int32_t fd, void *data);
 
 typedef struct {
@@ -23,4 +27,7 @@ typedef struct {
 void sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
                              sky_tcp_conf_t *conf);
 
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_TCP_H

@@ -37,6 +37,7 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
                         sky_tcp_conf_t *conf) {
     sky_int32_t fd;
     sky_int32_t opt;
+    sky_int32_t backlog;
     listener_t *l;
     struct addrinfo *addrs;
 
@@ -46,10 +47,11 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
             .ai_flags = AI_PASSIVE
     };
 
-    if (sky_unlikely(getaddrinfo((sky_char_t *)conf->host.data, (sky_char_t *)conf->port.data,
+    if (sky_unlikely(getaddrinfo((sky_char_t *) conf->host.data, (sky_char_t *) conf->port.data,
                                  &hints, &addrs) == -1)) {
         return;
     }
+    backlog = get_backlog_size();
     for (struct addrinfo *addr = addrs; addr; addr = addr->ai_next) {
         fd = socket(addr->ai_family,
                     addr->ai_socktype | SOCK_NONBLOCK | SOCK_CLOEXEC,
@@ -66,7 +68,7 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
         setsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &opt, sizeof(sky_int32_t));
 #endif
         if (sky_likely(bind(fd, addr->ai_addr, addr->ai_addrlen) == 0)) {
-            if (listen(fd, get_backlog_size()) < 0) {
+            if (listen(fd, backlog) < 0) {
                 close(fd);
                 continue;
             }
@@ -124,6 +126,8 @@ static void tcp_listener_error(sky_event_t *ev) {
 static sky_int32_t
 get_backlog_size() {
     sky_int32_t fd, backlog;
+    sky_uint64_t tmp;
+    sky_size_t i;
     sky_uchar_t ch[32];
     sky_str_t str = {
             .data = ch
@@ -143,6 +147,27 @@ get_backlog_size() {
         return backlog;
     }
     close(fd);
+
+    i = 0;
+    while (i < str.len) {
+        if (str.len > 7) {
+            tmp = *((sky_uint64_t *) &str.data[i]);
+            fd = sky_uchar_eight_count_between(tmp, 0x2F, 0x3A);
+            i += (sky_size_t) fd;
+            if (!fd || fd != 8) {
+                break;
+            }
+        } else {
+            tmp = *((sky_uint64_t *) &str.data[i]);
+            fd = sky_uchar_eight_count_between(tmp, 0x2F, 0x3A);
+            i += (sky_size_t) fd;
+            break;
+        }
+    }
+    if (!i) {
+        return backlog;
+    }
+    str.len = i;
     sky_str_to_int32(&str, &backlog);
 
     return backlog;

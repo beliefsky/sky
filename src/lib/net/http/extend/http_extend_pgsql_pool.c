@@ -69,7 +69,7 @@ sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf) {
 
     if (!(i = conf->connection_size)) {
         i = 2;
-    } else if ((i & (i - 1)) != 0) {
+    } else if (sky_is_2_power(i)) {
         sky_log_error("连接数必须为2的整数幂");
         return null;
     }
@@ -451,10 +451,7 @@ pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_data_t *params, sky_uint16
     if (!params || !param_len) {
         size = (sky_uint32_t) cmd->len + 46;
         if (!ps->query_buf) {
-            if (size < 1023) {
-                size = 1023;
-            }
-            buf = ps->query_buf = sky_buf_create(ps->pool, size);
+            buf = ps->query_buf = sky_buf_create(ps->pool, sky_max(size, 1023));
         } else {
             buf = ps->query_buf;
             sky_buf_reset(buf);
@@ -513,7 +510,7 @@ pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_data_t *params, sky_uint16
     }
     size += (sky_uint32_t) cmd->len + 32;
     if (!ps->query_buf) {
-        buf = ps->query_buf = sky_buf_create(ps->pool, size < 1023 ? 1023 : size);
+        buf = ps->query_buf = sky_buf_create(ps->pool, sky_max(size, 1023));
     } else {
         buf = ps->query_buf;
         sky_buf_reset(buf);
@@ -588,7 +585,7 @@ pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_data_t *params, sky_uint16
                 ch += 2;
                 *((sky_uint32_t *) buf->last) = sky_htonl(param->stream.len);
                 buf->last += 4;
-                if (param->stream.len) {
+                if (sky_likely(param->stream.len)) {
                     sky_memcpy(buf->last, param->stream.data, param->stream.len);
                     buf->last += param->stream.len;
                 }
@@ -645,7 +642,7 @@ pg_exec_read(sky_pg_sql_t *ps) {
         n = pg_read(ps, buf->last, (sky_uint32_t) (buf->end - buf->last));
         if (sky_unlikely(!n)) {
             sky_log_error("pg exec read error");
-            return false;
+            return result;
         }
         buf->last += n;
         for (;;) {
@@ -681,13 +678,13 @@ pg_exec_read(sky_pg_sql_t *ps) {
                                 printf("%c", *p);
                             }
                             printf("\n\n");
-                            return false;
+                            return result;
                     }
                     *(buf->pos++) = '\0';
                     size = sky_ntohl(*((sky_uint32_t *) buf->pos));
                     buf->pos += 4;
-                    if (size < 4) {
-                        return false;
+                    if (sky_unlikely(size < 4)) {
+                        return result;
                     }
                     size -= 4;
                     continue;
@@ -705,15 +702,9 @@ pg_exec_read(sky_pg_sql_t *ps) {
                     i = result->lines;
                     for (desc = result->desc; i; --i, ++desc) {
                         desc->name.data = buf->pos;
-                        for (ch = buf->pos; ch != buf->last; ++ch) {
-                            if (!(*ch)) {
-                                ++ch;
-                                break;
-                            }
-                        }
-                        desc->name.len = (sky_uint32_t) (ch - buf->pos);
-                        buf->pos = ch;
-                        if (sky_unlikely((buf->last - ch) < 18)) {
+                        buf->pos += (desc->name.len = strnlen((const sky_char_t *) buf->pos,
+                                                              (size_t) (buf->last - buf->pos))) + 1;
+                        if (sky_unlikely((buf->last - buf->pos) < 18)) {
                             return result;
                         }
                         desc->table_id = sky_ntohl(*((sky_uint32_t *) buf->pos));

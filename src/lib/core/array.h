@@ -4,19 +4,24 @@
 
 #ifndef SKY_ARRAY_H
 #define SKY_ARRAY_H
+
 #include "palloc.h"
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 typedef struct {
     // elts指向数组的首地址
-    void            *elts;
+    void *elts;
     // nelts是数组中已经使用的元素个数
-    sky_uint32_t    nelts;
+    sky_uint32_t nelts;
     // 每个数组元素占用的内存大小
-    sky_size_t      size;
+    sky_size_t size;
     // 当前数组中能够容纳元素个数的总大小
-    sky_uint32_t    nalloc;
+    sky_uint32_t nalloc;
     // 内存池对象
-    sky_pool_t      *pool;
+    sky_pool_t *pool;
 } sky_array_t;
 
 /*
@@ -46,8 +51,7 @@ void *sky_array_push_n(sky_array_t *a, sky_uint32_t n);
 // 如果一个数组对象是被分配在堆上的，那么当调用ngx_array_destroy销毁以后，如果想再次使用，就可以调用此函数。
 // 如果一个数组对象是被分配在栈上的，那么就需要调用此函数，进行初始化的工作以后，才可以使用。
 static sky_inline sky_bool_t
-sky_array_init(sky_array_t *array, sky_pool_t *pool, sky_uint32_t n, sky_size_t size)
-{
+sky_array_init(sky_array_t *array, sky_pool_t *pool, sky_uint32_t n, sky_size_t size) {
     /*
      * set "array->nelts" before "array->elts", otherwise MSVC thinks
      * that "array->nelts" may be used without having been initialized
@@ -63,4 +67,7 @@ sky_array_init(sky_array_t *array, sky_pool_t *pool, sky_uint32_t n, sky_size_t 
     return true;
 }
 
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_ARRAY_H

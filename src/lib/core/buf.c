@@ -5,7 +5,7 @@
 #include "buf.h"
 
 sky_buf_t *
-sky_buf_create(sky_pool_t *pool, sky_uint32_t size) {
+sky_buf_create(sky_pool_t *pool, sky_size_t size) {
     sky_buf_t   *buf;
 
     buf = sky_palloc(pool, sizeof(sky_buf_t) + size + 1);

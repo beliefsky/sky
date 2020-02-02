@@ -10,7 +10,7 @@
 
 static void server_start();
 
-static sky_json_object_t *json_config_read(sky_pool_t *pool);
+static sky_json_object_s *json_config_read(sky_pool_t *pool);
 
 
 int
@@ -62,7 +62,7 @@ main() {
 
 static void
 server_start() {
-    sky_json_object_t *json;
+    sky_json_object_s *json;
 
     sky_pool_t *pool;
 
@@ -77,7 +77,7 @@ server_start() {
     sky_destroy_pool(pool);
 }
 
-static sky_json_object_t *
+static sky_json_object_s *
 json_config_read(sky_pool_t *pool) {
     sky_int32_t fd;
     sky_uint32_t size;

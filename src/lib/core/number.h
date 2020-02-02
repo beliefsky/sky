@@ -7,6 +7,10 @@
 
 #include "string.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #define sky_num_to_uchar(_n)    ((sky_uchar_t)((_n) | 0x30))
 
 sky_bool_t sky_str_to_int8(sky_str_t *in, sky_int8_t *out);
@@ -41,4 +45,7 @@ sky_uint8_t sky_int64_to_str(sky_int64_t data, sky_uchar_t *src);
 
 sky_uint8_t sky_uint64_to_str(sky_uint64_t data, sky_uchar_t *src);
 
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_NUMBER_H

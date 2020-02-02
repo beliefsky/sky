@@ -11,6 +11,10 @@
 #include "../../core/string.h"
 #include "../../core/list.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #define SKY_HTTP_UNKNOWN                   0x0000
 #define SKY_HTTP_GET                       0x0001
 #define SKY_HTTP_HEAD                      0x0002
@@ -41,6 +45,7 @@ typedef struct {
     sky_table_elt_t *if_modified_since;
     sky_table_elt_t *content_type;
     sky_table_elt_t *content_length;
+    sky_table_elt_t *authorization;
 
     sky_table_elt_t *range;
     sky_table_elt_t *if_range;
@@ -60,6 +65,8 @@ typedef struct {
     sky_table_elt_t *accept_ranges;
 
 
+    sky_str_t *status;
+
     sky_str_t content_type;
 
     sky_int64_t content_offset;
@@ -68,7 +75,9 @@ typedef struct {
 } sky_http_headers_out_t;
 
 typedef struct {
-
+    sky_uchar_t *tmp;
+    sky_uint32_t read_size;
+    sky_bool_t ok:1;
 } sky_http_request_body_t;
 
 struct sky_http_request_s {
@@ -115,5 +124,9 @@ struct sky_http_response_s {
 void sky_http_request_init(sky_http_server_t *server);
 
 sky_int8_t sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn);
+
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 
 #endif //SKY_HTTP_REQUEST_H

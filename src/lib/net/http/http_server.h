@@ -10,6 +10,10 @@
 #include "../../core/buf.h"
 #include "../../core/hash.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 
 typedef struct sky_http_server_s sky_http_server_t;
 typedef struct sky_http_connection_s sky_http_connection_t;
@@ -86,5 +90,9 @@ sky_http_server_t *sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *con
 void sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *loop);
 
 sky_str_t *sky_http_status_find(sky_http_server_t *server, sky_uint16_t status);
+
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 
 #endif //SKY_HTTP_SERVER_H
