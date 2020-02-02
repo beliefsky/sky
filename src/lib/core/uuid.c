@@ -29,6 +29,7 @@ void sky_uuid_generate_random(sky_uchar_t buf[37]) {
         switch (i) {
             case 3:
             case 5:
+            case 7:
             case 9:
                 *p++ = '-';
                 break;
