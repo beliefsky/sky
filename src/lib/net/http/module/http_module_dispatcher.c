@@ -52,7 +52,7 @@ http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
     if (!handler) {
         r->state = 404;
         response->type = SKY_HTTP_RESPONSE_BUF;
-        sky_str_set(&response->buf, "{\"status\": 404, \"msg\": \"404 Not Found\"}");
+        sky_str_set(&response->buf, "{\"errcode\": 404, \"errmsg\": \"404 Not Found\"}");
         return response;
     }
 
@@ -71,7 +71,7 @@ http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
         default:
             r->state = 405;
             response->type = SKY_HTTP_RESPONSE_BUF;
-            sky_str_set(&response->buf, "{\"status\": 405, \"msg\": \"405 Method Not Allowed\"}");
+            sky_str_set(&response->buf, "{\"errcode\": 405, \"errmsg\": \"405 Method Not Allowed\"}");
             return response;
     }
 
@@ -95,7 +95,7 @@ http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
     if (!flag) {
         r->state = 405;
         response->type = SKY_HTTP_RESPONSE_BUF;
-        sky_str_set(&response->buf, "{\"status\": 405, \"msg\": \"405 Method Not Allowed\"}");
+        sky_str_set(&response->buf, "{\"errcode\": 405, \"errmsg\": \"405 Method Not Allowed\"}");
     }
 
     return response;
