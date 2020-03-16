@@ -27,7 +27,7 @@
 
 struct sky_event_loop_s {
     sky_pool_t *pool;
-    sky_rbtree_t rbtree;
+    sky_rbtree_t tree;
     sky_rbtree_node_t sentinel;
     sky_time_t now;
     sky_int32_t fd;
@@ -56,7 +56,7 @@ sky_event_loop_create(sky_pool_t *pool) {
     loop->fd = epoll_create1(EPOLL_CLOEXEC);
     loop->conn_max = setup_open_file_count_limits();
     loop->now = time(null);
-    sky_rbtree_init(&loop->rbtree, &loop->sentinel, rbtree_insert_timer);
+    sky_rbtree_init(&loop->tree, &loop->sentinel, rbtree_insert_timer);
 
     return loop;
 }
@@ -71,7 +71,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
     fd = loop->fd;
     timeout = -1;
-    btree = &loop->rbtree;
+    btree = &loop->tree;
 
     now = loop->now;
 
@@ -191,7 +191,7 @@ sky_event_register(sky_event_t *ev, sky_int32_t timeout) {
         }
         ev->key = ev->loop->now + timeout;
         ev->node.key = (sky_uintptr_t) &ev->key;
-        sky_rbtree_insert(&ev->loop->rbtree, &ev->node);
+        sky_rbtree_insert(&ev->loop->tree, &ev->node);
     }
     ev->timeout = timeout;
     ev->reg = true;
@@ -210,13 +210,13 @@ sky_event_unregister(sky_event_t *ev) {
     close(ev->fd);
     ev->reg = false;
     if (ev->timeout != -1) {
-        sky_rbtree_delete(&ev->loop->rbtree, &ev->node);
+        sky_rbtree_delete(&ev->loop->tree, &ev->node);
     }
     // 此处应添加 应追加需要处理的连接
     ev->loop->update = true;
     ev->key = 0;
     ev->node.key = (sky_uintptr_t) &ev->key;
-    sky_rbtree_insert(&ev->loop->rbtree, &ev->node);
+    sky_rbtree_insert(&ev->loop->tree, &ev->node);
 }
 
 
