@@ -115,9 +115,12 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 continue;
             }
             // 是否可读
-            ev->read = (event->events & EPOLLIN) != 0;
-            // 是否可写
-            ev->write = (event->events & EPOLLOUT) != 0;
+            if (event->events & EPOLLIN) {
+                ev->read = true;
+            }
+            if (event->events & EPOLLOUT) {
+                ev->write = true;
+            }
 
             if (ev->wait) {
                 continue;
