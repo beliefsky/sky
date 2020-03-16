@@ -12,9 +12,7 @@ extern "C" {
 #endif
 
 #if defined(__linux__)
-#ifndef __USE_GNU
-#define __USE_GNU
-#endif
+
 #include <sched.h>
 
 typedef cpu_set_t sky_cpu_set_t;
