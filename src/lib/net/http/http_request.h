@@ -112,7 +112,7 @@ struct sky_http_response_s {
         struct {
             sky_int32_t fd;
             sky_int64_t offset;
-            sky_size_t count;
+            sky_int64_t right;
             sky_int64_t file_size;
         } file;
         sky_str_t buf;
