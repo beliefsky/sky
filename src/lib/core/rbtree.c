@@ -9,8 +9,7 @@ static void sky_rbtree_left_rotate(sky_rbtree_node_t **root, sky_rbtree_node_t *
 static void sky_rbtree_right_rotate(sky_rbtree_node_t **root, sky_rbtree_node_t *sentinel, sky_rbtree_node_t *node);
 
 void
-sky_rbtree_insert(sky_rbtree_t *tree, sky_rbtree_node_t *node)
-{
+sky_rbtree_insert(sky_rbtree_t *tree, sky_rbtree_node_t *node) {
     sky_rbtree_node_t **root, *temp, *sentinel;
 
     /* a binary tree insert */
@@ -65,8 +64,7 @@ sky_rbtree_insert(sky_rbtree_t *tree, sky_rbtree_node_t *node)
 }
 
 void
-sky_rbtree_delete(sky_rbtree_t *tree, sky_rbtree_node_t *node)
-{
+sky_rbtree_delete(sky_rbtree_t *tree, sky_rbtree_node_t *node) {
     sky_uchar_t red;
     sky_rbtree_node_t **root, *sentinel, *subst, *temp, *w;
 
@@ -81,11 +79,7 @@ sky_rbtree_delete(sky_rbtree_t *tree, sky_rbtree_node_t *node)
         subst = node;
     } else {
         subst = sky_rbtree_min(node->right, sentinel);
-        if (subst->left != sentinel) {
-            temp = subst->left;
-        } else {
-            temp = subst->right;
-        }
+        temp = subst->right;
     }
     if (subst == *root) {
         *root = temp;
@@ -195,8 +189,7 @@ sky_rbtree_delete(sky_rbtree_t *tree, sky_rbtree_node_t *node)
 }
 
 void
-sky_rbtree_insert_value(sky_rbtree_node_t *temp, sky_rbtree_node_t *node, sky_rbtree_node_t *sentinel)
-{
+sky_rbtree_insert_value(sky_rbtree_node_t *temp, sky_rbtree_node_t *node, sky_rbtree_node_t *sentinel) {
     sky_rbtree_node_t **p;
 
     for (;;) {
@@ -214,8 +207,7 @@ sky_rbtree_insert_value(sky_rbtree_node_t *temp, sky_rbtree_node_t *node, sky_rb
 }
 
 sky_rbtree_node_t *
-sky_rbtree_next(sky_rbtree_t *tree, sky_rbtree_node_t *node)
-{
+sky_rbtree_next(sky_rbtree_t *tree, sky_rbtree_node_t *node) {
     sky_rbtree_node_t *root, *sentinel, *parent;
 
     sentinel = tree->sentinel;
@@ -237,8 +229,7 @@ sky_rbtree_next(sky_rbtree_t *tree, sky_rbtree_node_t *node)
 
 //=============================================================
 static sky_inline void
-sky_rbtree_left_rotate(sky_rbtree_node_t **root, sky_rbtree_node_t *sentinel, sky_rbtree_node_t *node)
-{
+sky_rbtree_left_rotate(sky_rbtree_node_t **root, sky_rbtree_node_t *sentinel, sky_rbtree_node_t *node) {
     sky_rbtree_node_t *temp;
 
     temp = node->right;
@@ -259,8 +250,7 @@ sky_rbtree_left_rotate(sky_rbtree_node_t **root, sky_rbtree_node_t *sentinel, sk
 }
 
 static sky_inline void
-sky_rbtree_right_rotate(sky_rbtree_node_t **root, sky_rbtree_node_t *sentinel, sky_rbtree_node_t *node)
-{
+sky_rbtree_right_rotate(sky_rbtree_node_t **root, sky_rbtree_node_t *sentinel, sky_rbtree_node_t *node) {
     sky_rbtree_node_t *temp;
 
     temp = node->left;
