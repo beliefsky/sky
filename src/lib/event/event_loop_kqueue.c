@@ -120,12 +120,8 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 continue;
             }
             // 是否可读
-            if (event->filter == EVFILT_READ) {
-                ev->read = true;
-            } else {
-                // 是否可写
-                ev->write = true;
-            }
+            // 是否可写
+            event->filter == EVFILT_READ ? (ev->read = true) : (ev->write = true);
 
             if (ev->wait) {
                 continue;
