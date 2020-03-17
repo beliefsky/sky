@@ -70,7 +70,7 @@ coro_swapcontext(sky_coro_context_t *current, sky_coro_context_t *other);
 
 asm(
 ".text\n\t"
-".p2align 4\n\t"
+".p2align 5\n\t"
 ASM_ROUTINE(coro_swapcontext)
 "movq    %rbx,0(%rdi)\n\t"
 "movq    %rbp,8(%rdi)\n\t"
@@ -100,7 +100,7 @@ void __attribute__((noinline, visibility("internal")))
 coro_swapcontext(sky_coro_context_t *current, sky_coro_context_t *other);
     asm(
     ".text\n\t"
-    ".p2align 16\n\t"
+    ".p2align 5\n\t"
     ASM_ROUTINE(coro_swapcontext)
     "movl   0x4(%esp),%eax\n\t"
     "movl   %ecx,0x1c(%eax)\n\t" /* ECX */
@@ -138,7 +138,7 @@ coro_entry_point(sky_coro_t *coro, sky_coro_func_t func, sky_uintptr_t data) {
 void __attribute__((visibility("internal"))) coro_entry_point_x86_64();
 
 asm(".text\n\t"
-    ".p2align 4\n\t"
+    ".p2align 5\n\t"
     ASM_ROUTINE(coro_entry_point_x86_64)
     "mov %r15, %rdx\n\t"
     "jmp " ASM_SYMBOL(coro_entry_point) "\n\t"
