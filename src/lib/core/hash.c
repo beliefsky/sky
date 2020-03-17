@@ -229,7 +229,7 @@ sky_hash_init(sky_hash_init_t *hinit, sky_hash_key_t *names, sky_uint_t nelts) {
     sky_uint_t i, n, key, size, start, bucket_size;
     sky_hash_elt_t *elt, **buckets;
 
-    if (sky_unlikely(hinit->max_size == 0)) {
+    if (sky_unlikely(!hinit->max_size)) {
         return false;
     }
     if (sky_unlikely(hinit->bucket_size > 65536 - sky_cache_line_size)) {
@@ -300,7 +300,12 @@ sky_hash_init(sky_hash_init_t *hinit, sky_hash_key_t *names, sky_uint_t nelts) {
         }
         //计算key和names中所有name长度，并保存在test[key]中
         key = names[n].key_hash % size; //若size=1，则key一直为0
-        test[key] = (sky_uint16_t) (test[key] + SKY_HASH_ELT_SIZE(&names[n]));
+        len = test[key] + SKY_HASH_ELT_SIZE(&names[n]);
+        if (len > 65536 - sky_cache_line_size) {
+            sky_free(test);
+            return false;
+        }
+        test[key] = (sky_uint16_t) len;
     }
     //计算hash数据的总长度
     len = 0;
