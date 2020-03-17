@@ -5,11 +5,13 @@
 #include <assert.h>
 #include "coro.h"
 
-#if PTHREAD_STACK_MIN <= 16384
-#  undef PTHREAD_STACK_MIN
-#  define PTHREAD_STACK_MIN 16384
+#if !defined(SIGSTKSZ)
+#define SIGSTKSZ 16384
 #endif
-#define SKY_CORO_STACK_MIN  PTHREAD_STACK_MIN
+
+#ifndef CORO_STACK_MIN
+#define CORO_STACK_MIN  SIGSTKSZ
+#endif
 
 #if defined(__x86_64__)
 typedef uintptr_t sky_coro_context_t[10];
@@ -157,7 +159,7 @@ sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func, sky_uintptr
 
     pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
 
-    coro = sky_palloc(pool, SKY_CORO_STACK_MIN + sizeof(sky_coro_t));
+    coro = sky_palloc(pool, CORO_STACK_MIN + sizeof(sky_coro_t));
     coro->switcher = switcher;
     coro->pool = pool;
     coro->defers.prev = coro->defers.next = &coro->defers;
@@ -168,9 +170,9 @@ sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func, sky_uintptr
     coro->context[7 /* RSI */] = (sky_uintptr_t) func;
     coro->context[8 /* RIP */] = (sky_uintptr_t) coro_entry_point_x86_64;
 #define STACK_PTR 9
-    coro->context[STACK_PTR /* RSP */] = (((sky_uintptr_t) coro->stack + SKY_CORO_STACK_MIN) & ~0xful) - 0x8ul;
+    coro->context[STACK_PTR /* RSP */] = (((sky_uintptr_t) coro->stack + CORO_STACK_MIN) & ~0xful) - 0x8ul;
 #elif defined(__i386__)
-    sky_uchar_t *stack = (sky_uchar_t *) (sky_uintptr_t)(coro->stack + SKY_CORO_STACK_MIN);
+    sky_uchar_t *stack = (sky_uchar_t *) (sky_uintptr_t)(coro->stack + CORO_STACK_MIN);
     stack = (sky_uchar_t *)((sky_uintptr_t)(stack - (3 * sizeof(sky_uintptr_t))) & (sky_uintptr_t)~0x3);
 
     sky_uintptr_t *argp = (sky_uintptr_t *)stack;
@@ -185,7 +187,7 @@ sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func, sky_uintptr
 #else
     getcontext(&coro->context);
     coro->context.uc_stack.ss_sp = coro->stack;
-    coro->context.uc_stack.ss_size = SKY_CORO_STACK_MIN;
+    coro->context.uc_stack.ss_size = CORO_STACK_MIN;
     coro->context.uc_stack.ss_flags = 0;
     coro->context.uc_link = null;
 
@@ -203,7 +205,7 @@ sky_coro_create2(sky_coro_switcher_t *switcher, sky_coro_func_t func, sky_uintpt
 
     pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
 
-    coro = sky_palloc(pool, SKY_CORO_STACK_MIN + sizeof(sky_coro_t));
+    coro = sky_palloc(pool, CORO_STACK_MIN + sizeof(sky_coro_t));
     coro->switcher = switcher;
     coro->pool = pool;
     coro->defers.prev = coro->defers.next = &coro->defers;
@@ -215,9 +217,9 @@ sky_coro_create2(sky_coro_switcher_t *switcher, sky_coro_func_t func, sky_uintpt
     coro->context[7 /* RSI */] = (sky_uintptr_t) func;
     coro->context[8 /* RIP */] = (sky_uintptr_t) coro_entry_point_x86_64;
 #define STACK_PTR 9
-    coro->context[STACK_PTR /* RSP */] = (((sky_uintptr_t) coro->stack + SKY_CORO_STACK_MIN) & ~0xful) - 0x8ul;
+    coro->context[STACK_PTR /* RSP */] = (((sky_uintptr_t) coro->stack + CORO_STACK_MIN) & ~0xful) - 0x8ul;
 #elif defined(__i386__)
-    sky_uchar_t *stack = (sky_uchar_t *) (sky_uintptr_t)(coro->stack + SKY_CORO_STACK_MIN);
+    sky_uchar_t *stack = (sky_uchar_t *) (sky_uintptr_t)(coro->stack + CORO_STACK_MIN);
     stack = (sky_uchar_t *)((sky_uintptr_t)(stack - (3 * sizeof(sky_uintptr_t))) & (sky_uintptr_t)~0x3);
 
     sky_uintptr_t *argp = (sky_uintptr_t *)stack;
@@ -232,7 +234,7 @@ sky_coro_create2(sky_coro_switcher_t *switcher, sky_coro_func_t func, sky_uintpt
 #else
     getcontext(&coro->context);
     coro->context.uc_stack.ss_sp = coro->stack;
-    coro->context.uc_stack.ss_size = SKY_CORO_STACK_MIN;
+    coro->context.uc_stack.ss_size = CORO_STACK_MIN;
     coro->context.uc_stack.ss_flags = 0;
     coro->context.uc_link = null;
 
@@ -246,7 +248,7 @@ sky_int32_t
 sky_coro_resume(sky_coro_t *coro) {
 #if defined(STACK_PTR)
     assert(coro->context[STACK_PTR] >= (sky_uintptr_t) coro->stack &&
-           coro->context[STACK_PTR] <= (sky_uintptr_t) (coro->stack + SKY_CORO_STACK_MIN));
+           coro->context[STACK_PTR] <= (sky_uintptr_t) (coro->stack + CORO_STACK_MIN));
 #endif
     coro_swapcontext(&coro->switcher->caller, &coro->context);
     return coro->yield_value;
