@@ -100,11 +100,8 @@ sky_rbtree_delete(sky_rbtree_t *tree, sky_rbtree_node_t *node) {
     if (subst == node) {
         temp->parent = subst->parent;
     } else {
-        if (subst->parent == node) {
-            temp->parent = subst;
-        } else {
-            temp->parent = subst->parent;
-        }
+        temp->parent = subst->parent == node ? subst : subst->parent;
+
         subst->left = node->left;
         subst->right = node->right;
         subst->parent = node->parent;
