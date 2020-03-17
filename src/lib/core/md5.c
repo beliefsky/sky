@@ -161,7 +161,7 @@ sky_md5_body(sky_md5_t *ctx, const sky_uchar_t *data, size_t size)
     sky_uint32_t       saved_a, saved_b, saved_c, saved_d;
     const sky_uchar_t  *p;
 #if __BYTE_ORDER != __LITTLE_ENDIAN
-//    uint32_t       block[16];
+    sky_uint32_t       block[16];
 #endif
 
     p = data;
