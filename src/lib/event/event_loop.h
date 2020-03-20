@@ -26,8 +26,8 @@ struct sky_event_s {
     sky_event_close_pt close; // 异常事件或主动要求关闭时触发回调函数
     sky_time_t now; // 当前时间
     sky_time_t key; // 节点关键key
+    sky_int32_t fd; //事件句柄
     sky_int32_t timeout; // 节点超时时间
-    sky_int32_t fd; //时间句柄
     sky_int16_t index; // 用于内部多时间合并寻址的相关功能
     sky_bool_t reg:1; // 该事件监听是否注册，用于防止非法提交
     sky_bool_t wait:1; // 期间不会触发run函数
@@ -36,9 +36,9 @@ struct sky_event_s {
 };
 
 struct sky_event_loop_s {
-    sky_pool_t *pool;
     sky_rbtree_t tree;
     sky_rbtree_node_t sentinel;
+    sky_pool_t *pool;
     sky_time_t now;
     sky_int32_t fd;
     sky_int32_t conn_max;

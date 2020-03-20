@@ -65,7 +65,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
     now = loop->now;
 
     max_events = sky_min(loop->conn_max, 1024);
-    events = sky_palloc(loop->pool, sizeof(struct epoll_event) * (sky_uint32_t) max_events);
+    events = sky_pnalloc(loop->pool, sizeof(struct epoll_event) * (sky_uint32_t) max_events);
 
 
     for (;;) {

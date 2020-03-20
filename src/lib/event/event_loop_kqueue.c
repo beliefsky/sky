@@ -70,8 +70,8 @@ sky_event_loop_run(sky_event_loop_t *loop) {
     now = loop->now;
 
     max_events = sky_min(loop->conn_max, 1024);
-    events = sky_palloc(loop->pool, sizeof(struct kevent) * (sky_uint32_t) max_events);
-    run_ev = sky_palloc(loop->pool, sizeof(sky_event_t *) * (sky_uint32_t) max_events);
+    events = sky_pnalloc(loop->pool, sizeof(struct kevent) * (sky_uint32_t) max_events);
+    run_ev = sky_pnalloc(loop->pool, sizeof(sky_event_t *) * (sky_uint32_t) max_events);
 
     for (;;) {
         n = kevent(fd, null, 0, events, max_events, timeout ? &timespec : null);
