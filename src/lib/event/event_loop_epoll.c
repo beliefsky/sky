@@ -25,17 +25,6 @@
 #endif
 
 
-struct sky_event_loop_s {
-    sky_pool_t *pool;
-    sky_rbtree_t tree;
-    sky_rbtree_node_t sentinel;
-    sky_time_t now;
-    sky_int32_t fd;
-    sky_int32_t conn_max;
-    sky_bool_t update:1;
-};
-
-
 static sky_int32_t setup_open_file_count_limits();
 
 static void

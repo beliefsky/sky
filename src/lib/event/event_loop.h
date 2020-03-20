@@ -35,9 +35,20 @@ struct sky_event_s {
     sky_bool_t write:1; // 目前io可写
 };
 
+struct sky_event_loop_s {
+    sky_pool_t *pool;
+    sky_rbtree_t tree;
+    sky_rbtree_node_t sentinel;
+    sky_time_t now;
+    sky_int32_t fd;
+    sky_int32_t conn_max;
+    sky_bool_t update:1;
+};
+
 #define sky_event_init(_loop, _ev, _fd, _run, _close)   \
     (_ev)->fd = (_fd);                                  \
     (_ev)->loop = (_loop);                              \
+    (_ev)->now = (_loop)->now;                          \
     (_ev)->run = (sky_event_run_pt)(_run);              \
     (_ev)->close = (sky_event_close_pt)(_close);        \
     (_ev)->reg = false;                                 \
