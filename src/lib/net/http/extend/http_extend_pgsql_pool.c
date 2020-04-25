@@ -88,7 +88,7 @@ sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf) {
 
     *((sky_uint32_t *) p) = sky_htonl(ps_pool->connection_info.len);
     p += 4;
-    *((sky_uint32_t *) p) = 3 << 8;
+    *((sky_uint32_t *) p) = 3 << 8; // version
     p += 4;
 
     sky_memcpy(p, "user", sizeof("user"));
