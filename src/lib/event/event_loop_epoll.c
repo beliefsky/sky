@@ -186,7 +186,7 @@ sky_event_register(sky_event_t *ev, sky_int32_t timeout) {
 
     event.events = EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLERR | EPOLLET;
     event.data.ptr = ev;
-    epoll_ctl(ev->loop->fd, EPOLL_CTL_ADD, ev->fd, &event);
+    (void) epoll_ctl(ev->loop->fd, EPOLL_CTL_ADD, ev->fd, &event);
 }
 
 
@@ -226,7 +226,7 @@ setup_open_file_count_limits() {
             r.rlim_cur = r.rlim_max;
         } else {
             /* Shouldn't happen, so just return the current value. */
-            goto out;
+            return (sky_int32_t) r.rlim_cur;
         }
 
         if (setrlimit(RLIMIT_NOFILE, &r) < 0) {
@@ -235,8 +235,6 @@ setup_open_file_count_limits() {
             r.rlim_cur = current;
         }
     }
-
-    out:
     return (sky_int32_t) r.rlim_cur;
 }
 

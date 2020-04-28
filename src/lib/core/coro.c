@@ -49,8 +49,8 @@ struct sky_defer_s {
     sky_defer_t *prev;
     sky_defer_t *next;
 
-    sky_bool_t free:1;
-    sky_bool_t one_arg:1;
+    sky_bool_t free: 1;
+    sky_bool_t one_arg: 1;
 };
 
 struct sky_coro_s {
@@ -132,7 +132,7 @@ coro_swapcontext(sky_coro_context_t *current, sky_coro_context_t *other);
 
 __attribute__((used, visibility("internal"))) void
 coro_entry_point(sky_coro_t *coro, sky_coro_func_t func, sky_uintptr_t data) {
-    sky_coro_yield(coro, func(coro, data));
+    (void) sky_coro_yield(coro, func(coro, data));
 }
 
 #ifdef __x86_64__

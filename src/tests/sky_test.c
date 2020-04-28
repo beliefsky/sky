@@ -248,10 +248,10 @@ hello_world(sky_http_request_t *req, sky_http_response_t *res) {
     sky_pg_sql_t *ps = sky_pg_sql_connection_get(ps_pool, req->pool, req->conn);
 
 
-    sky_str_t cmd = sky_string("SELECT id, username, password FROM tb_user WHERE id = $1");
+    sky_str_t cmd = sky_string("SELECT id, title, cover, creator, descript, cover_num, resources FROM tb_comic WHERE id = $1");
 
     sky_pg_type_t type = pg_data_int64;
-    sky_pg_param_t param = {.int64 = 2L};
+    sky_pg_param_t param = {.int64 = 1L};
 
     sky_pg_result_t *result = sky_pg_sql_exec(ps, &cmd, &type, &param, 1);
     if (!result || !result->is_ok) {
