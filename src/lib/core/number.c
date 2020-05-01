@@ -9,7 +9,7 @@
     ((((_mask) + 0x0606060606060606) & 0xF0F0F0F0F0F0F0F0) >> 4)) ==    \
     0x3333333333333333)
 
-static sky_uint64_t fast_str_parse_mask(sky_uchar_t *chars, sky_size_t len);
+static sky_uint64_t fast_str_parse_mask(const sky_uchar_t *chars, sky_size_t len);
 
 static sky_uint32_t fast_str_parse_uint32(sky_uint64_t mask);
 
@@ -20,7 +20,7 @@ static sky_uint8_t small_num_to_str(sky_uint64_t x, sky_uchar_t *s);
 static sky_uint8_t large_num_to_str(sky_uint64_t x, sky_uchar_t *s);
 
 sky_bool_t
-sky_str_to_int8(sky_str_t *in, sky_int8_t *out) {
+sky_str_to_int8(const sky_str_t *in, sky_int8_t *out) {
     sky_uint64_t mask;
 
     if (sky_unlikely(in->len == 0 || in->len > 4)) {
@@ -45,7 +45,7 @@ sky_str_to_int8(sky_str_t *in, sky_int8_t *out) {
 
 
 sky_bool_t
-sky_str_to_uint8(sky_str_t *in, sky_uint8_t *out) {
+sky_str_to_uint8(const sky_str_t *in, sky_uint8_t *out) {
     sky_uint64_t mask;
 
     if (sky_unlikely(in->len == 0 || in->len > 3)) {
@@ -62,7 +62,7 @@ sky_str_to_uint8(sky_str_t *in, sky_uint8_t *out) {
 
 
 sky_bool_t
-sky_str_to_int16(sky_str_t *in, sky_int16_t *out) {
+sky_str_to_int16(const sky_str_t *in, sky_int16_t *out) {
     sky_uint64_t mask;
     if (sky_unlikely(in->len == 0 || in->len > 6)) {
         return false;
@@ -87,7 +87,7 @@ sky_str_to_int16(sky_str_t *in, sky_int16_t *out) {
 
 
 sky_bool_t
-sky_str_to_uint16(sky_str_t *in, sky_uint16_t *out) {
+sky_str_to_uint16(const sky_str_t *in, sky_uint16_t *out) {
     sky_uint64_t mask;
 
     if (sky_unlikely(!in->len || in->len > 5)) {
@@ -104,7 +104,7 @@ sky_str_to_uint16(sky_str_t *in, sky_uint16_t *out) {
 
 
 sky_bool_t
-sky_str_to_int32(sky_str_t *in, sky_int32_t *out) {
+sky_str_to_int32(const sky_str_t *in, sky_int32_t *out) {
     sky_size_t data;
     sky_uchar_t *p;
     sky_uint64_t mask;
@@ -171,7 +171,7 @@ sky_str_to_int32(sky_str_t *in, sky_int32_t *out) {
 
 
 sky_bool_t
-sky_str_to_uint32(sky_str_t *in, sky_uint32_t *out) {
+sky_str_to_uint32(const sky_str_t *in, sky_uint32_t *out) {
     sky_uint32_t data;
     sky_uchar_t *p;
     sky_uint64_t mask;
@@ -207,7 +207,7 @@ sky_str_to_uint32(sky_str_t *in, sky_uint32_t *out) {
 
 
 sky_bool_t
-sky_str_to_int64(sky_str_t *in, sky_int64_t *out) {
+sky_str_to_int64(const sky_str_t *in, sky_int64_t *out) {
     if (*in->data == '-') {
         sky_str_t tmp = {
                 .data = &in->data[1],
@@ -226,7 +226,7 @@ sky_str_to_int64(sky_str_t *in, sky_int64_t *out) {
 
 
 sky_bool_t
-sky_str_to_uint64(sky_str_t *in, sky_uint64_t *out) {
+sky_str_to_uint64(const sky_str_t *in, sky_uint64_t *out) {
     sky_size_t len;
     sky_uint64_t mask;
 
@@ -361,7 +361,7 @@ sky_uint64_to_str(sky_uint64_t data, sky_uchar_t *src) {
 }
 
 static sky_inline sky_uint64_t
-fast_str_parse_mask(sky_uchar_t *chars, sky_size_t len) {
+fast_str_parse_mask(const sky_uchar_t *chars, sky_size_t len) {
     sky_uint64_t val;
 
     if (len > 8) {
