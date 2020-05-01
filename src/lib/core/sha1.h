@@ -7,6 +7,9 @@
 
 #include "types.h"
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 typedef struct {
     sky_uint64_t bytes;
@@ -20,4 +23,7 @@ void sky_sha1_update(sky_sha1_t *ctx, const sky_uchar_t *data, sky_size_t size);
 
 void sky_sha1_final(sky_sha1_t *ctx, sky_uchar_t result[20]);
 
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 #endif //SKY_SHA1_H

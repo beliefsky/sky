@@ -8,6 +8,7 @@ set(SOURCES
         core/array.c
         core/list.c
         core/cpuinfo.c
+        core/xor-filter.c
         core/hash.c
         core/rbtree.c
         core/trie.c
