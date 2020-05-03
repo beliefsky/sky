@@ -7,7 +7,6 @@
 #include <signal.h>
 #include <sys/epoll.h>
 #include "event_loop.h"
-#include "../core/palloc.h"
 #include "../core/log.h"
 #include "../core/memory.h"
 
