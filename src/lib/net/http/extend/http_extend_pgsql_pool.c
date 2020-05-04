@@ -483,11 +483,7 @@ pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_type_t *param_types, sky_p
     static const sky_uint32_t pg_size[] = {6, 7, 7, 8, 10, 14};
 
     for (i = 0; i != param_len; ++i) {
-        if (param_types[i] < pg_data_stream) {
-            size += pg_size[param_types[i]];
-        } else {
-            size += (sky_uint32_t) params[i].stream.len + 6;
-        }
+        size += param_types[i] < pg_data_stream ? pg_size[param_types[i]] : (sky_uint32_t) params[i].stream.len + 6;
     }
 
     size += (sky_uint32_t) cmd->len + 32;
