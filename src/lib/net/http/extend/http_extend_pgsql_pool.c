@@ -480,35 +480,13 @@ pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_type_t *param_types, sky_p
     }
     size = 14;
 
+    static const sky_uint32_t pg_size[] = {6, 7, 7, 8, 10, 14};
+
     for (i = 0; i != param_len; ++i) {
-        switch (param_types[i]) {
-            case pg_data_null:
-                size += 6;
-                break;
-            case pg_data_bool:
-            case pg_data_char:
-                size += 7;
-                break;
-            case pg_data_int16:
-                size += 8;
-                break;
-            case pg_data_int32:
-                size += 10;
-                break;
-            case pg_data_int64:
-                size += 14;
-                break;
-            case pg_data_stream:
-                size += 7;
-                if (!params[i].stream.data) {
-                    param_types[i] = pg_data_null;
-                    size += 6;
-                } else {
-                    size += (sky_uint32_t) params[i].stream.len + 6;
-                }
-                break;
-            default:
-                return false;
+        if (param_types[i] < pg_data_stream) {
+            size += pg_size[param_types[i]];
+        } else {
+            size += (sky_uint32_t) params[i].stream.len + 6;
         }
     }
 
@@ -722,7 +700,29 @@ pg_exec_read(sky_pg_sql_t *ps) {
                         buf->pos += 4;
                         desc->line_id = sky_ntohs(*((sky_uint16_t *) buf->pos));
                         buf->pos += 2;
-                        desc->type = sky_ntohl(*((sky_uint32_t *) buf->pos));
+
+                        switch (sky_ntohl(*((sky_uint32_t *) buf->pos))) {
+                            case 16:
+                                desc->type = pg_data_bool;
+                                break;
+                            case 18:
+                                desc->type = pg_data_char;
+                                break;
+                            case 20:
+                                desc->type = pg_data_int64;
+                                break;
+                            case 21:
+                                desc->type = pg_data_int16;
+                                break;
+                            case 23:
+                                desc->type = pg_data_int32;
+                                break;
+                            case 1043:
+                                desc->type = pg_data_stream;
+                                break;
+                            default:
+                                desc->type = pg_data_uk;
+                        }
                         buf->pos += 4;
                         desc->data_size = (sky_int16_t) sky_ntohs(*((sky_uint16_t *) buf->pos));
                         buf->pos += 2;

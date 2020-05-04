@@ -40,12 +40,13 @@ struct sky_pg_sql_s {
 
 typedef enum {
     pg_data_null = 0,
-    pg_data_bool = 16,
-    pg_data_char = 18,
-    pg_data_int64 = 20,
-    pg_data_int16 = 21,
-    pg_data_int32 = 23,
-    pg_data_stream
+    pg_data_bool,
+    pg_data_char,
+    pg_data_int16,
+    pg_data_int32,
+    pg_data_int64,
+    pg_data_stream,
+    pg_data_uk
 } sky_pg_type_t;
 
 typedef union {
@@ -87,22 +88,20 @@ struct sky_pg_row_s {
 
 typedef struct {
     sky_pg_desc_t *desc;
-
     sky_pg_row_t *data;
 
     sky_uint32_t rows;  // 行数
     sky_uint16_t lines; // 列数
-    sky_bool_t is_ok:1;
+    sky_bool_t is_ok: 1;
 } sky_pg_result_t;
 
 sky_pg_connection_pool_t *sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf);
 
-sky_pg_sql_t *
-sky_pg_sql_connection_get(sky_pg_connection_pool_t *ps_pool, sky_pool_t *pool, sky_http_connection_t *main);
+sky_pg_sql_t *sky_pg_sql_connection_get(sky_pg_connection_pool_t *ps_pool, sky_pool_t *pool,
+                                        sky_http_connection_t *main);
 
-sky_pg_result_t *
-sky_pg_sql_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_type_t *param_types, sky_pg_param_t *params,
-                sky_uint16_t param_len);
+sky_pg_result_t *sky_pg_sql_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_type_t *param_types,
+                                 sky_pg_param_t *params, sky_uint16_t param_len);
 
 void sky_pg_sql_connection_put(sky_pg_sql_t *ps);
 
