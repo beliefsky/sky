@@ -35,7 +35,7 @@ void sky_str_buf_append_str_len(sky_str_buf_t *a, sky_uchar_t *s, sky_uint32_t l
 void sky_str_buf_append_int32(sky_str_buf_t *a, sky_int32_t num);
 
 static sky_inline sky_bool_t
-sky_array_init(sky_str_buf_t *array, sky_pool_t *pool, sky_uint32_t n) {
+sky_str_buf_init(sky_str_buf_t *array, sky_pool_t *pool, sky_uint32_t n) {
     array->nelts = 0;
     array->nalloc = n;
     array->pool = pool;
