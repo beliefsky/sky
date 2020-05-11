@@ -21,7 +21,7 @@ sky_str_buf_create(sky_pool_t *p, sky_uint32_t n) {
         return null;
     }
     // 分配存放n个元素，单个元素大小为size的内存空间
-    if (sky_unlikely(!sky_array_init(a, p, n))) {
+    if (sky_unlikely(!sky_str_buf_init(a, p, n))) {
         return null;
     }
     return a;
