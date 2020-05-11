@@ -132,7 +132,7 @@ coro_swapcontext(sky_coro_context_t *current, sky_coro_context_t *other);
 
 __attribute__((used, visibility("internal"))) void
 coro_entry_point(sky_coro_t *coro, sky_coro_func_t func, sky_uintptr_t data) {
-    (void) sky_coro_yield(coro, func(coro, data));
+    return (void) sky_coro_yield(coro, func(coro, data));
 }
 
 #ifdef __x86_64__
