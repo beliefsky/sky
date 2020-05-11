@@ -360,6 +360,28 @@ sky_uint64_to_str(sky_uint64_t data, sky_uchar_t *src) {
     return len;
 }
 
+
+sky_uint32_t
+sky_uint32_to_hex_str(sky_uint32_t data, sky_uchar_t *src, sky_bool_t lower_alpha) {
+    sky_uint64_t x = data;
+
+    x = ((x & 0xFFFF) << 32) | ((x & 0xFFFF0000) >> 16);
+    x = ((x & 0x0000FF000000FF00) >> 8) | (x & 0x000000FF000000FF) << 16;
+    x = ((x & 0x00F000F000F000F0) >> 4) | (x & 0x000F000F000F000F) << 8;
+
+    sky_uint64_t mask = ((x + 0x0606060606060606) >> 4) & 0x0101010101010101;
+
+    x |= 0x3030303030303030;
+
+    x += (lower_alpha ? 0x27 : 0x07) * mask;
+    *(sky_uint64_t *) src = x;
+
+
+
+    return 8;
+}
+
+
 static sky_inline sky_uint64_t
 fast_str_parse_mask(const sky_uchar_t *chars, sky_size_t len) {
     sky_uint64_t val;

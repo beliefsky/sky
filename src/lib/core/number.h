@@ -45,6 +45,8 @@ sky_uint8_t sky_int64_to_str(sky_int64_t data, sky_uchar_t *src);
 
 sky_uint8_t sky_uint64_to_str(sky_uint64_t data, sky_uchar_t *src);
 
+sky_uint32_t sky_uint32_to_hex_str(sky_uint32_t data, sky_uchar_t *src, sky_bool_t lower_alpha);
+
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif

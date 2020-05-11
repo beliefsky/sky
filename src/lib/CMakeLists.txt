@@ -14,6 +14,7 @@ set(SOURCES
         core/trie.c
         core/coro.c
         core/string.c
+        core/string_buf.c
         core/number.c
         core/date.c
         core/buf.c
