@@ -80,6 +80,7 @@ install(FILES
         core/trie.h
         core/coro.h
         core/string.h
+        core/string_buf.c
         core/number.h
         core/date.h
         core/cpuinfo.h
