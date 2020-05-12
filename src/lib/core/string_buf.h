@@ -32,6 +32,8 @@ void sky_str_buf_append_str(sky_str_buf_t *a, sky_str_t *str);
 
 void sky_str_buf_append_str_len(sky_str_buf_t *a, sky_uchar_t *s, sky_uint32_t len);
 
+void sky_str_buf_append_char(sky_str_buf_t *a, sky_uchar_t ch);
+
 void sky_str_buf_append_int32(sky_str_buf_t *a, sky_int32_t num);
 
 sky_bool_t sky_str_buf_build(sky_str_buf_t *a, sky_str_t *out);

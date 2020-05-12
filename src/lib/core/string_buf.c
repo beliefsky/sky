@@ -47,7 +47,7 @@ sky_str_buf_append_str(sky_str_buf_t *a, sky_str_t *str) {
     if (sky_unlikely(!str || !str->len)) {
         return;
     }
-    sky_uchar_t *p = str_buf_push_pre(a, (sky_uint32_t) str->len + 1);
+    sky_uchar_t *p = str_buf_push_pre(a, (sky_uint32_t) str->len);
     sky_memcpy(p, str->data, str->len);
     str_buf_push_next(a, str->len);
 }
@@ -57,14 +57,22 @@ sky_str_buf_append_str_len(sky_str_buf_t *a, sky_uchar_t *s, sky_uint32_t len) {
     if (sky_unlikely(!len)) {
         return;
     }
-    sky_uchar_t *p = str_buf_push_pre(a, len + 1);
+    sky_uchar_t *p = str_buf_push_pre(a, len);
     sky_memcpy(p, s, len);
     str_buf_push_next(a, len);
 }
 
 void
+sky_str_buf_append_char(sky_str_buf_t *a, sky_uchar_t ch) {
+    sky_uchar_t *p = str_buf_push_pre(a, 1);
+    *p = ch;
+
+    str_buf_push_next(a, 1);
+}
+
+void
 sky_str_buf_append_int32(sky_str_buf_t *a, sky_int32_t num) {
-    sky_uchar_t *p = str_buf_push_pre(a, 12);
+    sky_uchar_t *p = str_buf_push_pre(a, 11);
     sky_uint8_t len = sky_int32_to_str(num, p);
     str_buf_push_next(a, len);
 }
@@ -103,6 +111,7 @@ str_buf_push_pre(sky_str_buf_t *a, sky_uint32_t n) {
     sky_uint32_t nalloc;
     sky_pool_t *p;
 
+    ++n;
 
     if (a->nelts + n > a->nalloc) {
         /* the array is full */
