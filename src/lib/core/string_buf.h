@@ -34,6 +34,10 @@ void sky_str_buf_append_str_len(sky_str_buf_t *a, sky_uchar_t *s, sky_uint32_t l
 
 void sky_str_buf_append_int32(sky_str_buf_t *a, sky_int32_t num);
 
+sky_bool_t sky_str_buf_build(sky_str_buf_t *a, sky_str_t *out);
+
+sky_bool_t sky_str_buf_tmp(sky_str_buf_t *a, sky_str_t *out);
+
 static sky_inline sky_bool_t
 sky_str_buf_init(sky_str_buf_t *a, sky_pool_t *pool, sky_uint32_t n) {
     a->nelts = 0;

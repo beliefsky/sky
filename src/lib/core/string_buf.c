@@ -47,7 +47,7 @@ sky_str_buf_append_str(sky_str_buf_t *a, sky_str_t *str) {
     if (sky_unlikely(!str || !str->len)) {
         return;
     }
-    sky_uchar_t *p = str_buf_push_pre(a, (sky_uint32_t) str->len);
+    sky_uchar_t *p = str_buf_push_pre(a, (sky_uint32_t) str->len + 1);
     sky_memcpy(p, str->data, str->len);
     str_buf_push_next(a, str->len);
 }
@@ -57,7 +57,7 @@ sky_str_buf_append_str_len(sky_str_buf_t *a, sky_uchar_t *s, sky_uint32_t len) {
     if (sky_unlikely(!len)) {
         return;
     }
-    sky_uchar_t *p = str_buf_push_pre(a, len);
+    sky_uchar_t *p = str_buf_push_pre(a, len + 1);
     sky_memcpy(p, s, len);
     str_buf_push_next(a, len);
 }
@@ -69,6 +69,33 @@ sky_str_buf_append_int32(sky_str_buf_t *a, sky_int32_t num) {
     str_buf_push_next(a, len);
 }
 
+sky_bool_t
+sky_str_buf_build(sky_str_buf_t *a, sky_str_t *out) {
+    if (!sky_unlikely(!a->nelts)) {
+        return false;
+    }
+    out->len = a->nelts++;
+    out->data = a->elts;
+    out->data[out->len] = '\0';
+
+    a->elts += a->nelts;
+    a->nalloc -= a->nalloc;
+    a->nelts = 0;
+
+    return true;
+}
+
+sky_bool_t
+sky_str_buf_tmp(sky_str_buf_t *a, sky_str_t *out) {
+    if (!sky_unlikely(!a->nelts)) {
+        return false;
+    }
+    out->len = a->nelts;
+    out->data = a->elts;
+    out->data[out->len] = '\0';
+
+    return true;
+}
 
 static sky_inline sky_uchar_t *
 str_buf_push_pre(sky_str_buf_t *a, sky_uint32_t n) {
