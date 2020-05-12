@@ -45,7 +45,7 @@ typedef enum {
     pg_data_int16,
     pg_data_int32,
     pg_data_int64,
-    pg_data_stream,
+    pg_data_text,
     pg_data_uk
 } sky_pg_type_t;
 
