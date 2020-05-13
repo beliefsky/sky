@@ -752,11 +752,14 @@ pg_exec_read(sky_pg_sql_t *ps) {
                         size = sky_ntohl(*((sky_uint32_t *) buf->pos));
                         *buf->pos = '\0';
                         buf->pos += 4;
-                        if ((sky_int32_t) size == -1) {
-                            params->is_null = true;
+
+
+                        if (size == (sky_uint32_t) -1) {
+                            params->len = (sky_size_t) -1;
                             continue;
+                        } else {
+                            params->len = size;
                         }
-                        params->is_null = false;
                         switch (desc[i].type) {
                             case pg_data_bool:
                                 params->bool = *(buf->pos++);
@@ -777,8 +780,7 @@ pg_exec_read(sky_pg_sql_t *ps) {
                                 buf->pos += 8;
                                 break;
                             default:
-                                params->stream.len = size;
-                                params->stream.data = buf->pos;
+                                params->stream = buf->pos;
                                 buf->pos += size;
                                 break;
                         }

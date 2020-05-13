@@ -60,16 +60,19 @@ typedef union {
     sky_str_t stream;
 } sky_pg_param_t;
 
-typedef struct {
-    union {
-        sky_bool_t bool;
-        sky_char_t ch;
-        sky_int16_t int16;
-        sky_int32_t int32;
-        sky_int64_t int64;
-        sky_str_t stream;
+typedef union {
+    struct {
+        sky_size_t len;
+        union {
+            sky_bool_t bool;
+            sky_char_t ch;
+            sky_int16_t int16;
+            sky_int32_t int32;
+            sky_int64_t int64;
+            sky_uchar_t *stream;
+        };
     };
-    sky_bool_t is_null;
+    sky_str_t str;
 } sky_pg_data_t;
 
 typedef struct {
@@ -106,6 +109,10 @@ sky_pg_result_t *sky_pg_sql_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_type_t
                                  sky_pg_param_t *params, sky_uint16_t param_len);
 
 void sky_pg_sql_connection_put(sky_pg_sql_t *ps);
+
+static sky_inline sky_bool_t sky_pg_data_is_null(sky_pg_data_t *data) {
+    return data->len == (sky_size_t) -1;
+}
 
 #if defined(__cplusplus)
 } /* extern "C" { */
