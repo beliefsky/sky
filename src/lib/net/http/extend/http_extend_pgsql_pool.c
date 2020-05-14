@@ -1045,3 +1045,9 @@ pg_read(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
         }
     }
 }
+
+static sky_pg_array_t *
+pg_array_stream(sky_pool_t *pool, sky_uchar_t *stream, sky_uint32_t *len) {
+
+    return null;
+}

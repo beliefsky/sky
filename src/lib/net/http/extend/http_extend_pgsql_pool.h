@@ -15,6 +15,9 @@ typedef struct sky_pg_connection_pool_s sky_pg_connection_pool_t;
 typedef struct sky_pg_connection_s sky_pg_connection_t;
 typedef struct sky_pg_sql_s sky_pg_sql_t;
 typedef struct sky_pg_row_s sky_pg_row_t;
+
+typedef union sky_pg_data_u sky_pg_data_t;
+
 typedef struct {
     sky_str_t username;
     sky_str_t password;
@@ -45,8 +48,8 @@ typedef enum {
     pg_data_int16,
     pg_data_int32,
     pg_data_int64,
-    pg_data_int32_array,
     pg_data_text,
+    pg_data_int32_array,
     pg_data_text_array,
     pg_data_uk
 } sky_pg_type_t;
@@ -60,7 +63,13 @@ typedef union {
     sky_str_t stream;
 } sky_pg_param_t;
 
-typedef union {
+typedef struct {
+    sky_uint32_t dimensions; // 数组深度
+    sky_uint32_t *dims; // 每层数组的大小
+    sky_pg_data_t *data; // 数据，以一维方式存储，多维数组应计算偏移
+} sky_pg_array_t;
+
+union sky_pg_data_u {
     struct {
         sky_size_t len;
         union {
@@ -70,10 +79,11 @@ typedef union {
             sky_int32_t int32;
             sky_int64_t int64;
             sky_uchar_t *stream;
+            sky_pg_array_t *array;
         };
     };
     sky_str_t str;
-} sky_pg_data_t;
+};
 
 typedef struct {
     sky_str_t name; // 字段名
