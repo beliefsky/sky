@@ -52,7 +52,7 @@ static sky_bool_t set_address(sky_pg_connection_pool_t *pool, sky_pg_sql_conf_t 
 static sky_bool_t pg_send_password(sky_pg_sql_t *ps, sky_uint32_t auth_type, sky_uchar_t *data, sky_uint32_t size);
 
 static sky_bool_t pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_type_t *param_types,
-                               sky_pg_param_t *params, sky_uint16_t param_len);
+                               sky_pg_data_t *params, sky_uint16_t param_len);
 
 static sky_pg_result_t *pg_exec_read(sky_pg_sql_t *ps);
 
@@ -60,10 +60,13 @@ static sky_bool_t pg_write(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t siz
 
 static sky_uint32_t pg_read(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size);
 
+static sky_uint32_t pg_serialize_array_int32_size(sky_pg_array_t *const array);
 
-static sky_pg_array_t *pg_codec_array_int32(sky_pool_t *pool, sky_uchar_t *stream);
+static sky_pg_array_t *pg_deserialize_array_int32(sky_pool_t *pool, sky_uchar_t *stream);
 
-static sky_pg_array_t *pg_codec_array_stream(sky_pool_t *pool, sky_uchar_t *stream);
+static sky_uint32_t pg_serialize_array_stream_size(sky_pg_array_t *const array);
+
+static sky_pg_array_t *pg_deserialize_array_stream(sky_pool_t *pool, sky_uchar_t *stream);
 
 sky_pg_connection_pool_t *
 sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf) {
@@ -160,7 +163,7 @@ sky_pg_sql_connection_get(sky_pg_connection_pool_t *ps_pool, sky_pool_t *pool, s
 }
 
 sky_pg_result_t *
-sky_pg_sql_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_type_t *param_types, sky_pg_param_t *params,
+sky_pg_sql_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_type_t *param_types, sky_pg_data_t *params,
                 sky_uint16_t param_len) {
     sky_pg_connection_t *conn;
 
@@ -438,7 +441,7 @@ pg_auth(sky_pg_sql_t *ps) {
 
 
 static sky_bool_t
-pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_type_t *param_types, sky_pg_param_t *params,
+pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_type_t *param_types, sky_pg_data_t *params,
              sky_uint16_t param_len) {
     sky_uint32_t size;
     sky_buf_t *buf;
@@ -484,11 +487,35 @@ pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_type_t *param_types, sky_p
         return true;
     }
     size = 14;
-
-    static const sky_uint32_t pg_size[] = {6, 7, 7, 8, 10, 14};
-
     for (i = 0; i != param_len; ++i) {
-        size += param_types[i] < pg_data_text ? pg_size[param_types[i]] : (sky_uint32_t) params[i].stream.len + 6;
+        switch (param_types[i]) {
+            case pg_data_null:
+                size += 6;
+                break;
+            case pg_data_bool:
+            case pg_data_char:
+                size += 7;
+                break;
+            case pg_data_int16:
+                size += 8;
+                break;
+            case pg_data_int32:
+                size += 10;
+                break;
+            case pg_data_int64:
+                size += 14;
+                break;
+            case pg_data_array_int32:
+                params[i].len = pg_serialize_array_int32_size(params[i].array);
+                size += params[i].len + 6;
+                break;
+            case pg_data_array_text:
+                params[i].len = pg_serialize_array_stream_size(params[i].array);
+                size += params[i].len + 6;
+                break;
+            default:
+                size += params[i].len + 6;
+        }
     }
 
     size += (sky_uint32_t) cmd->len + 32;
@@ -570,14 +597,18 @@ pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_type_t *param_types, sky_p
                 *((sky_uint64_t *) buf->last) = sky_htonll((sky_uint64_t) params[i].int64);
                 buf->last += 8;
                 break;
+            case pg_data_array_int32:
+                break;
+            case pg_data_array_text:
+                break;
             case pg_data_text:
                 *((sky_uint16_t *) p) = 0;
                 p += 2;
-                *((sky_uint32_t *) buf->last) = sky_htonl(params[i].stream.len);
+                *((sky_uint32_t *) buf->last) = sky_htonl((sky_uint32_t) params[i].len);
                 buf->last += 4;
-                if (sky_likely(params[i].stream.len)) {
-                    sky_memcpy(buf->last, params[i].stream.data, params[i].stream.len);
-                    buf->last += params[i].stream.len;
+                if (sky_likely(params[i].len)) {
+                    sky_memcpy(buf->last, params[i].stream, params[i].len);
+                    buf->last += params[i].len;
                 }
                 break;
             default:
@@ -791,11 +822,11 @@ pg_exec_read(sky_pg_sql_t *ps) {
                                 buf->pos += 8;
                                 break;
                             case pg_data_array_int32:
-                                params->array = pg_codec_array_int32(ps->pool, buf->pos);
+                                params->array = pg_deserialize_array_int32(ps->pool, buf->pos);
                                 buf->pos += size;
                                 break;
                             case pg_data_array_text:
-                                params->array = pg_codec_array_stream(ps->pool, buf->pos);
+                                params->array = pg_deserialize_array_stream(ps->pool, buf->pos);
                                 buf->pos += size;
                                 break;
                             default:
@@ -1065,8 +1096,13 @@ pg_read(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
     }
 }
 
+static sky_inline sky_uint32_t
+pg_serialize_array_int32_size(sky_pg_array_t *const array) {
+    return (array->nelts << 3) + (array->dimensions << 3) + 12;
+}
+
 static sky_inline sky_pg_array_t *
-pg_codec_array_int32(sky_pool_t *pool, sky_uchar_t *stream) {
+pg_deserialize_array_int32(sky_pool_t *pool, sky_uchar_t *stream) {
     sky_uint32_t dimensions;
     sky_uint32_t i;
     sky_uint32_t number = 1;
@@ -1077,18 +1113,23 @@ pg_codec_array_int32(sky_pool_t *pool, sky_uchar_t *stream) {
     sky_pg_array_t *array;
 
     dimensions = sky_ntohl(*(sky_uint32_t *) p);
+
+    array = sky_pcalloc(pool, sizeof(sky_pg_array_t));
     if (dimensions == 0) {
-        return sky_pcalloc(pool, sizeof(sky_pg_array_t));
+        return array;
     }
+    array->dimensions = dimensions;
+
     p += 12; // flags<4byte>: 0=no-nulls, 1=has-nulls; element oid<4byte>
 
-    dims = sky_pnalloc(pool, sizeof(sky_uint32_t) * dimensions);
+    array->dims = dims = sky_pnalloc(pool, sizeof(sky_uint32_t) * dimensions);
     for (i = 0; i != dimensions; ++i) {
         dims[i] = sky_ntohl(*(sky_uint32_t *) p); // dimension size<4byte>
         number *= dims[i];
         p += 8; // lower bound ignored<4byte>
     }
-    data = sky_pnalloc(pool, sizeof(sky_pg_data_t) * number);
+    array->nelts = number;
+    array->data = data = sky_pnalloc(pool, sizeof(sky_pg_data_t) * number);
 
     for (i = 0; i != number; ++i) {
         size = sky_ntohl(*((sky_uint32_t *) p));
@@ -1102,17 +1143,22 @@ pg_codec_array_int32(sky_pool_t *pool, sky_uchar_t *stream) {
         data[i].int32 = (sky_int32_t) sky_ntohl(*((sky_uint32_t *) p));
         p += 4;
     }
-    array = (sky_pg_array_t *) stream;
-    array->dimensions = dimensions;
-    array->nelts = number;
-    array->dims = dims;
-    array->data = data;
 
     return array;
 }
 
+static sky_inline sky_uint32_t
+pg_serialize_array_stream_size(sky_pg_array_t *const array) {
+    sky_uint32_t size = (array->nelts << 2) + (array->dimensions << 3) + 12;
+
+    for (sky_uint32_t i = 0; i != array->nelts; ++i) {
+        size += array->data[i].len;
+    }
+    return size;
+}
+
 static sky_inline sky_pg_array_t *
-pg_codec_array_stream(sky_pool_t *pool, sky_uchar_t *stream) {
+pg_deserialize_array_stream(sky_pool_t *pool, sky_uchar_t *stream) {
     sky_uint32_t dimensions;
     sky_uint32_t i;
     sky_uint32_t number = 1;
@@ -1123,18 +1169,23 @@ pg_codec_array_stream(sky_pool_t *pool, sky_uchar_t *stream) {
     sky_pg_array_t *array;
 
     dimensions = sky_ntohl(*(sky_uint32_t *) p);
+
+    array = sky_pcalloc(pool, sizeof(sky_pg_array_t));
     if (dimensions == 0) {
-        return sky_pcalloc(pool, sizeof(sky_pg_array_t));
+        return array;
     }
+    array->dimensions = dimensions;
+
     p += 12; // flags<4byte>: 0=no-nulls, 1=has-nulls; element oid<4byte>
 
-    dims = sky_pnalloc(pool, sizeof(sky_uint32_t) * dimensions);
+    array->dims = dims = sky_pnalloc(pool, sizeof(sky_uint32_t) * dimensions);
     for (i = 0; i != dimensions; ++i) {
         dims[i] = sky_ntohl(*(sky_uint32_t *) p); // dimension size<4byte>
         number *= dims[i];
         p += 8; // lower bound ignored<4byte>
     }
-    data = sky_pnalloc(pool, sizeof(sky_pg_data_t) * number);
+    array->nelts = number;
+    array->data = data = sky_pnalloc(pool, sizeof(sky_pg_data_t) * number);
 
     for (i = 0; i != number; ++i) {
         size = sky_ntohl(*((sky_uint32_t *) p));
@@ -1149,11 +1200,6 @@ pg_codec_array_stream(sky_pool_t *pool, sky_uchar_t *stream) {
         data[i].stream = p;
         p += size;
     }
-    array = (sky_pg_array_t *) stream;
-    array->dimensions = dimensions;
-    array->nelts = number;
-    array->dims = dims;
-    array->data = data;
 
     return array;
 }

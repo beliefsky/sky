@@ -54,15 +54,6 @@ typedef enum {
     pg_data_uk
 } sky_pg_type_t;
 
-typedef union {
-    sky_bool_t bool;
-    sky_char_t ch;
-    sky_int16_t int16;
-    sky_int32_t int32;
-    sky_int64_t int64;
-    sky_str_t stream;
-} sky_pg_param_t;
-
 typedef struct {
     sky_uint32_t dimensions; // 数组深度
     sky_uint32_t nelts; //元素数量
@@ -117,7 +108,7 @@ sky_pg_sql_t *sky_pg_sql_connection_get(sky_pg_connection_pool_t *ps_pool, sky_p
                                         sky_http_connection_t *main);
 
 sky_pg_result_t *sky_pg_sql_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_type_t *param_types,
-                                 sky_pg_param_t *params, sky_uint16_t param_len);
+                                 sky_pg_data_t *params, sky_uint16_t param_len);
 
 void sky_pg_sql_connection_put(sky_pg_sql_t *ps);
 
