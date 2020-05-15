@@ -499,14 +499,6 @@ pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_type_t *param_types, sky_p
             case pg_data_int64:
                 size += 14;
                 break;
-            case pg_data_array_int32:
-//                params[i].len = pg_serialize_array_size(params[i].array);
-//                size += params[i].len + 6;
-                break;
-            case pg_data_array_text:
-//                params[i].len = pg_serialize_array_size(params[i].array);
-//                size += params[i].len + 6;
-                break;
             default:
                 size += params[i].len + 6;
         }
@@ -591,9 +583,15 @@ pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_type_t *param_types, sky_p
                 *((sky_uint64_t *) buf->last) = sky_htonll((sky_uint64_t) params[i].int64);
                 buf->last += 8;
                 break;
-            case pg_data_array_int32:
-                break;
-            case pg_data_array_text:
+            case pg_data_binary:
+                *((sky_uint16_t *) p) = 1;
+                p += 2;
+                *((sky_uint32_t *) buf->last) = sky_htonl((sky_uint32_t) params[i].len);
+                buf->last += 4;
+                if (sky_likely(params[i].len)) {
+                    sky_memcpy(buf->last, params[i].stream, params[i].len);
+                    buf->last += params[i].len;
+                }
                 break;
             case pg_data_text:
                 *((sky_uint16_t *) p) = 0;
@@ -1086,18 +1084,6 @@ pg_read(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
         }
     }
 }
-
-
-//static sky_inline sky_uint32_t
-//pg_serialize_array_size(sky_pg_array_t *const array) {
-//    //  return (array->nelts << 3) + (array->dimensions << 3) + 12;
-//    sky_uint32_t size = (array->nelts << 2) + (array->dimensions << 3) + 12;
-//
-//    for (sky_uint32_t i = 0; i != array->nelts; ++i) {
-//        size += array->data[i].len;
-//    }
-//    return size;
-//}
 
 static sky_inline sky_pg_array_t *
 pg_deserialize_array(sky_pool_t *pool, sky_uchar_t *p, sky_pg_type_t type) {

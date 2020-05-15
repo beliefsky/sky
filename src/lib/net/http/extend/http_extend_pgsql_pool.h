@@ -49,6 +49,7 @@ typedef enum {
     pg_data_int32,
     pg_data_int64,
     pg_data_text,
+    pg_data_binary,
     pg_data_array_int32,
     pg_data_array_text,
     pg_data_uk
