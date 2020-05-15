@@ -60,6 +60,9 @@ static sky_bool_t pg_write(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t siz
 
 static sky_uint32_t pg_read(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size);
 
+
+static sky_pg_array_t *pg_codec_array_int32(sky_pool_t *pool, sky_uchar_t *stream);
+
 sky_pg_connection_pool_t *
 sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf) {
     sky_pg_connection_pool_t *ps_pool;
@@ -713,10 +716,17 @@ pg_exec_read(sky_pg_sql_t *ps) {
                             case 23:
                                 desc->type = pg_data_int32;
                                 break;
+                            case 1007:
+                                desc->type = pg_data_array_int32;
+                                break;
+                            case 1015:
+                                desc->type = pg_data_array_text;
+                                break;
                             case 1043:
                                 desc->type = pg_data_text;
                                 break;
                             default:
+                                sky_log_warn("不支持的类型: %u", sky_ntohl(*((sky_uint32_t *) buf->pos)));
                                 desc->type = pg_data_uk;
                         }
                         buf->pos += 4;
@@ -757,9 +767,8 @@ pg_exec_read(sky_pg_sql_t *ps) {
                         if (size == (sky_uint32_t) -1) {
                             params->len = (sky_size_t) -1;
                             continue;
-                        } else {
-                            params->len = size;
                         }
+                        params->len = size;
                         switch (desc[i].type) {
                             case pg_data_bool:
                                 params->bool = *(buf->pos++);
@@ -778,6 +787,10 @@ pg_exec_read(sky_pg_sql_t *ps) {
                             case pg_data_int64:
                                 params->int64 = (sky_int64_t) sky_ntohll(*((sky_uint64_t *) buf->pos));
                                 buf->pos += 8;
+                                break;
+                            case pg_data_array_int32:
+                                params->array = pg_codec_array_int32(ps->pool, buf->pos);
+                                buf->pos += size;
                                 break;
                             default:
                                 params->stream = buf->pos;
@@ -1046,8 +1059,48 @@ pg_read(sky_pg_sql_t *ps, sky_uchar_t *data, sky_uint32_t size) {
     }
 }
 
-static sky_pg_array_t *
-pg_array_stream(sky_pool_t *pool, sky_uchar_t *stream, sky_uint32_t *len) {
+static sky_inline sky_pg_array_t *
+pg_codec_array_int32(sky_pool_t *pool, sky_uchar_t *stream) {
+    sky_uint32_t dimensions;
+    sky_uint32_t i;
+    sky_uint32_t number = 1;
+    sky_uint32_t size;
+    sky_uchar_t *p = stream;
+    sky_uint32_t *dims;
+    sky_pg_data_t *data;
+    sky_pg_array_t *array;
 
-    return null;
+    dimensions = sky_ntohl(*(sky_uint32_t *) p);
+    if (dimensions == 0) {
+        return sky_pcalloc(pool, sizeof(sky_pg_array_t));
+    }
+    p += 12; // flags<4byte>: 0=no-nulls, 1=has-nulls; element oid<4byte>
+
+    dims = sky_pnalloc(pool, sizeof(sky_uint32_t) * dimensions);
+    for (i = 0; i != dimensions; ++i) {
+        dims[i] = sky_ntohl(*(sky_uint32_t *) p); // dimension size<4byte>
+        number *= dims[i];
+        p += 8; // lower bound ignored<4byte>
+    }
+    data = sky_pnalloc(pool, sizeof(sky_pg_data_t) * number);
+
+    for (i = 0; i != number; ++i) {
+        size = sky_ntohl(*((sky_uint32_t *) p));
+        p += 4;
+
+        if (size == (sky_uint32_t) -1) {
+            data[i].len = (sky_size_t) -1;
+            continue;
+        }
+        data[i].len = size;
+        data[i].int32 = (sky_int32_t) sky_ntohl(*((sky_uint32_t *) p));
+        p += 4;
+    }
+    array = (sky_pg_array_t *) stream;
+    array->dimensions = dimensions;
+    array->nelts = number;
+    array->dims = dims;
+    array->data = data;
+
+    return array;
 }

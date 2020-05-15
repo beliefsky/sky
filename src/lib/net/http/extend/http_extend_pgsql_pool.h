@@ -49,8 +49,8 @@ typedef enum {
     pg_data_int32,
     pg_data_int64,
     pg_data_text,
-    pg_data_int32_array,
-    pg_data_text_array,
+    pg_data_array_int32,
+    pg_data_array_text,
     pg_data_uk
 } sky_pg_type_t;
 
@@ -65,6 +65,7 @@ typedef union {
 
 typedef struct {
     sky_uint32_t dimensions; // 数组深度
+    sky_uint32_t nelts; //元素数量
     sky_uint32_t *dims; // 每层数组的大小
     sky_pg_data_t *data; // 数据，以一维方式存储，多维数组应计算偏移
 } sky_pg_array_t;
