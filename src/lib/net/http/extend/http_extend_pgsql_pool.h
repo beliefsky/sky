@@ -56,6 +56,7 @@ typedef enum {
 
 typedef struct {
     sky_uint32_t dimensions; // 数组深度
+    sky_uint32_t flags;  // 0=no-nulls, 1=has-nulls
     sky_uint32_t nelts; //元素数量
     sky_uint32_t *dims; // 每层数组的大小
     sky_pg_data_t *data; // 数据，以一维方式存储，多维数组应计算偏移
