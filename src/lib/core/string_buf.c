@@ -79,7 +79,7 @@ sky_str_buf_append_int32(sky_str_buf_t *a, sky_int32_t num) {
 
 sky_bool_t
 sky_str_buf_build(sky_str_buf_t *a, sky_str_t *out) {
-    if (!sky_unlikely(!a->nelts)) {
+    if (sky_unlikely(!a->nelts)) {
         return false;
     }
     out->len = a->nelts++;
@@ -95,7 +95,7 @@ sky_str_buf_build(sky_str_buf_t *a, sky_str_t *out) {
 
 sky_bool_t
 sky_str_buf_tmp(sky_str_buf_t *a, sky_str_t *out) {
-    if (!sky_unlikely(!a->nelts)) {
+    if (sky_unlikely(!a->nelts)) {
         return false;
     }
     out->len = a->nelts;
