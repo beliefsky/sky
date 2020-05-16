@@ -122,6 +122,14 @@ sky_pg_data_array_init(sky_pg_array_t *array, sky_uint32_t *dims, sky_uint32_t d
     array->data = ds;
 }
 
+static sky_inline void
+sky_pg_data_array_one_init(sky_pg_array_t *array, sky_pg_data_t *ds, sky_uint32_t n) {
+    array->dimensions = 1;
+    array->nelts = n;
+    array->dims = &array->nelts;
+    array->data = ds;
+}
+
 static sky_inline sky_bool_t
 sky_pg_data_is_null(const sky_pg_data_t *data) {
     return data->len == (sky_size_t) -1;
