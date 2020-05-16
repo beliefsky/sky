@@ -541,19 +541,19 @@ pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_type_t *param_types, sky_p
     for (i = 0; i != param_len; ++i) {
         switch (param_types[i]) {
             case pg_data_null:
-                *((sky_uint16_t *) p) = 0;
+                *((sky_uint16_t *) p) = sky_htons(1);
                 p += 2;
                 *((sky_uint32_t *) buf->last) = sky_htonl((sky_uint32_t) -1);
                 buf->last += 4;
                 break;
             case pg_data_bool:
-                *((sky_uint16_t *) p) = 0;
+                *((sky_uint16_t *) p) = sky_htons(1);
                 p += 2;
                 *((sky_uint32_t *) buf->last) = sky_htonl(1);
                 buf->last += 4;
                 *(buf->last++) = params[i].bool ? 1 : 0;
             case pg_data_char:
-                *((sky_uint16_t *) p) = 0;
+                *((sky_uint16_t *) p) = sky_htons(0);
                 p += 2;
                 *((sky_uint32_t *) buf->last) = sky_htonl(1);
                 buf->last += 4;
@@ -584,7 +584,7 @@ pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_type_t *param_types, sky_p
                 buf->last += 8;
                 break;
             case pg_data_binary:
-                *((sky_uint16_t *) p) = 1;
+                *((sky_uint16_t *) p) = sky_htons(1);
                 p += 2;
                 *((sky_uint32_t *) buf->last) = sky_htonl((sky_uint32_t) params[i].len);
                 buf->last += 4;
@@ -594,7 +594,7 @@ pg_send_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_type_t *param_types, sky_p
                 }
                 break;
             case pg_data_text:
-                *((sky_uint16_t *) p) = 0;
+                *((sky_uint16_t *) p) = sky_htons(0);
                 p += 2;
                 *((sky_uint32_t *) buf->last) = sky_htonl((sky_uint32_t) params[i].len);
                 buf->last += 4;
