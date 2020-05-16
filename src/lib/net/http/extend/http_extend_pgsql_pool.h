@@ -51,8 +51,7 @@ typedef enum {
     pg_data_text,
     pg_data_binary,
     pg_data_array_int32,
-    pg_data_array_text,
-    pg_data_uk
+    pg_data_array_text
 } sky_pg_type_t;
 
 typedef struct {
