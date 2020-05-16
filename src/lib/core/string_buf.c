@@ -43,7 +43,7 @@ sky_str_buf_destroy(sky_str_buf_t *a) {
 
 
 void
-sky_str_buf_append_str(sky_str_buf_t *a, sky_str_t *str) {
+sky_str_buf_append_str(sky_str_buf_t *a, const sky_str_t *str) {
     if (sky_unlikely(!str || !str->len)) {
         return;
     }
@@ -53,7 +53,7 @@ sky_str_buf_append_str(sky_str_buf_t *a, sky_str_t *str) {
 }
 
 void
-sky_str_buf_append_str_len(sky_str_buf_t *a, sky_uchar_t *s, sky_uint32_t len) {
+sky_str_buf_append_str_len(sky_str_buf_t *a, const sky_uchar_t *s, sky_uint32_t len) {
     if (sky_unlikely(!len)) {
         return;
     }
