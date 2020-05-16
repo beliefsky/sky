@@ -113,7 +113,17 @@ sky_pg_result_t *sky_pg_sql_exec(sky_pg_sql_t *ps, sky_str_t *cmd, sky_pg_type_t
 
 void sky_pg_sql_connection_put(sky_pg_sql_t *ps);
 
-static sky_inline sky_bool_t sky_pg_data_is_null(sky_pg_data_t *data) {
+static sky_inline void
+sky_pg_data_array_init(sky_pg_array_t *array, sky_uint32_t *dims, sky_uint32_t dl,
+                       sky_pg_data_t *ds, sky_uint32_t n) {
+    array->dimensions = dl;
+    array->dims = dims;
+    array->nelts = n;
+    array->data = ds;
+}
+
+static sky_inline sky_bool_t
+sky_pg_data_is_null(const sky_pg_data_t *data) {
     return data->len == (sky_size_t) -1;
 }
 
