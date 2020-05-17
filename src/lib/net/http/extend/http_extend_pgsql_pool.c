@@ -129,6 +129,7 @@ sky_pg_sql_connection_get(sky_pg_connection_pool_t *ps_pool, sky_pool_t *pool, s
     conn = ps_pool->conns + (main->ev.fd & ps_pool->connection_ptr);
 
     ps = sky_palloc(pool, sizeof(sky_pg_sql_t));
+    ps->error = false;
     ps->conn = null;
     ps->ev = &main->ev;
     ps->coro = main->coro;
@@ -162,14 +163,15 @@ sky_pg_sql_connection_get(sky_pg_connection_pool_t *ps_pool, sky_pool_t *pool, s
 }
 
 sky_pg_result_t *
-sky_pg_sql_exec(sky_pg_sql_t *ps, const sky_str_t *cmd, const sky_pg_type_t *param_types, sky_pg_data_t *params,
-                sky_uint16_t param_len) {
+sky_pg_sql_exec(sky_pg_sql_t *ps, const sky_str_t *cmd, const sky_pg_type_t *param_types,
+                sky_pg_data_t *params, sky_uint16_t param_len) {
+
     sky_pg_connection_t *conn;
 
-    if (!(conn = ps->conn)) {
+    if (sky_unlikely(ps->error || !(conn = ps->conn))) {
         return null;
     }
-    if (conn->ev.fd == -1) {
+    if (sky_unlikely(conn->ev.fd == -1)) {
         if (sky_unlikely(!pg_connection(ps))) {
             return null;
         }
@@ -672,8 +674,9 @@ pg_exec_read(sky_pg_sql_t *ps) {
     for (;;) {
         n = pg_read(ps, buf->last, (sky_uint32_t) (buf->end - buf->last));
         if (sky_unlikely(!n)) {
+            ps->error = true;
             sky_log_error("pg exec read error");
-            return result;
+            return null;
         }
         buf->last += n;
         for (;;) {
@@ -704,18 +707,21 @@ pg_exec_read(sky_pg_sql_t *ps) {
                             state = ERROR;
                             break;
                         default:
+                            ps->error = true;
+
                             sky_log_error("接收数据无法识别命令");
                             for (sky_uchar_t *p = buf->pos; p != buf->last; ++p) {
                                 printf("%c", *p);
                             }
                             printf("\n\n");
-                            return result;
+                            return null;
                     }
                     *(buf->pos++) = '\0';
                     size = sky_ntohl(*((sky_uint32_t *) buf->pos));
                     buf->pos += 4;
                     if (sky_unlikely(size < 4)) {
-                        return result;
+                        ps->error = true;
+                        return null;
                     }
                     size -= 4;
                     continue;
@@ -734,9 +740,10 @@ pg_exec_read(sky_pg_sql_t *ps) {
                     for (desc = result->desc; i; --i, ++desc) {
                         desc->name.data = buf->pos;
                         buf->pos += (desc->name.len = strnlen((const sky_char_t *) buf->pos,
-                                                              (size_t) (buf->last - buf->pos))) + 1;
+                                                              (sky_size_t) (buf->last - buf->pos))) + 1;
                         if (sky_unlikely((buf->last - buf->pos) < 18)) {
-                            return result;
+                            ps->error = true;
+                            return null;
                         }
                         desc->table_id = sky_ntohl(*((sky_uint32_t *) buf->pos));
                         buf->pos += 4;
@@ -812,6 +819,7 @@ pg_exec_read(sky_pg_sql_t *ps) {
                             continue;
                         }
                         params->len = size;
+                        params->len = size;
                         switch (desc[i].type) {
                             case pg_data_bool:
                                 params->bool = *(buf->pos++);
@@ -858,8 +866,6 @@ pg_exec_read(sky_pg_sql_t *ps) {
                     }
 //                    sky_log_info("READY(%d): %s", size, buf->pos);
                     buf->pos += size;
-                    result->is_ok = true;
-
                     return result;
                 case ERROR:
                     if ((buf->last - buf->pos) < size) {
@@ -873,7 +879,9 @@ pg_exec_read(sky_pg_sql_t *ps) {
                     }
                     sky_log_error("%s", ch);
                     buf->pos += size;
-                    return false;
+
+                    ps->error = true;
+                    return null;
             }
             break;
         }

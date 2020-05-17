@@ -29,6 +29,8 @@ typedef struct {
 } sky_pg_sql_conf_t;
 
 struct sky_pg_sql_s {
+    sky_bool_t error;
+
     sky_pool_t *pool;
     sky_event_t *ev;
     sky_coro_t *coro;
@@ -100,7 +102,6 @@ typedef struct {
 
     sky_uint32_t rows;  // 行数
     sky_uint16_t lines; // 列数
-    sky_bool_t is_ok: 1;
 } sky_pg_result_t;
 
 sky_pg_connection_pool_t *sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf);
