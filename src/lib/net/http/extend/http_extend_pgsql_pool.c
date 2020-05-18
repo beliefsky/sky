@@ -1136,7 +1136,6 @@ static sky_uchar_t *
 pg_serialize_array(const sky_pg_array_t *array, sky_uchar_t *p, sky_pg_type_t type) {
     sky_uint32_t *oid;
     sky_uint32_t i;
-    sky_uchar_t *t = p;
 
     *(sky_uint32_t *) p = sky_ntohl(array->dimensions);
     p += 4;
