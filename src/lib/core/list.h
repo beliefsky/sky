@@ -27,8 +27,8 @@ sky_list_t是sky中使用的链表结构，但与我们常说的链表结构(例
 // 它自身包含了一个数组，用来存放最终的元素
 struct sky_list_part_s {
     void *elts;      //链表元素elts数组,数组申请的空间大小为size*nalloc
-    sky_uint32_t nelts;      //当前已使用的elts个数，一定要小于等于nalloc
     sky_list_part_t *next;      //指向sky_list_t中的下个链表part
+    sky_uint32_t nelts;      //当前已使用的elts个数，一定要小于等于nalloc
 };
 
 // sky_list_t结构是一个链表，链表中每个节点是ngx_list_part_t结构。

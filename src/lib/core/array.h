@@ -14,14 +14,14 @@ extern "C" {
 typedef struct {
     // elts指向数组的首地址
     void *elts;
-    // nelts是数组中已经使用的元素个数
-    sky_uint32_t nelts;
-    // 每个数组元素占用的内存大小
-    sky_size_t size;
-    // 当前数组中能够容纳元素个数的总大小
-    sky_uint32_t nalloc;
     // 内存池对象
     sky_pool_t *pool;
+    // 每个数组元素占用的内存大小
+    sky_size_t size;
+    // nelts是数组中已经使用的元素个数
+    sky_uint32_t nelts;
+    // 当前数组中能够容纳元素个数的总大小
+    sky_uint32_t nalloc;
 } sky_array_t;
 
 /*
