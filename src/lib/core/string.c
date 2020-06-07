@@ -5,8 +5,7 @@
 #include "string.h"
 
 void
-sky_strlow(sky_uchar_t *dst, sky_uchar_t *src, sky_size_t n)
-{
+sky_strlow(sky_uchar_t *dst, sky_uchar_t *src, sky_size_t n) {
     while (n) {
         *dst = sky_tolower(*src);
         ++dst;
@@ -16,8 +15,7 @@ sky_strlow(sky_uchar_t *dst, sky_uchar_t *src, sky_size_t n)
 }
 
 sky_uchar_t *
-sky_cpystrn(sky_uchar_t *dst,sky_uchar_t *src,sky_size_t n)
-{
+sky_cpystrn(sky_uchar_t *dst, sky_uchar_t *src, sky_size_t n) {
     if (n == 0) {
         return dst;
     }
@@ -31,4 +29,16 @@ sky_cpystrn(sky_uchar_t *dst,sky_uchar_t *src,sky_size_t n)
     }
     *dst = '\0';
     return dst;
+}
+
+
+void
+sky_byte_to_hex(sky_uchar_t *in, sky_size_t in_len, sky_uchar_t *out) {
+    static const sky_uchar_t *hex = (const sky_uchar_t *) "0123456789abcdef";
+
+    for (; in_len != 0; --in_len) {
+        *(out++) = hex[(*in) >> 4];
+        *(out++) = hex[(*(in++)) & 0x0F];
+    }
+    *out = '\0';
 }

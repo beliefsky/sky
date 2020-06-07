@@ -157,7 +157,7 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
     response->type = SKY_HTTP_RESPONSE_FILE;
     response->file.fd = fd;
     response->file.offset = file->left;
-    response->file.count = (sky_size_t) (file->right + 1);
+    response->file.right = file->right;
     response->file.file_size = stat_buf.st_size;
 
     file->file_defer = sky_defer_add(r->conn->coro, (sky_defer_func_t) close, (sky_uintptr_t) fd);

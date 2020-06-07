@@ -119,6 +119,10 @@ sky_strlow(str->data, str->data, str->len);
 
 sky_uchar_t *sky_cpystrn(sky_uchar_t *dst, sky_uchar_t *src, sky_size_t n);
 
+
+// out_len = in_len *2;注意\0结尾，因此申请长度为 in_len *2 + 1；
+void sky_byte_to_hex(sky_uchar_t *in, sky_size_t in_len, sky_uchar_t *out);
+
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif

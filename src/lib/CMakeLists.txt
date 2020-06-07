@@ -8,15 +8,18 @@ set(SOURCES
         core/array.c
         core/list.c
         core/cpuinfo.c
+        core/xor-filter.c
         core/hash.c
         core/rbtree.c
         core/trie.c
         core/coro.c
         core/string.c
+        core/string_buf.c
         core/number.c
         core/date.c
         core/buf.c
         core/md5.c
+        core/sha1.c
         core/base64.c
         core/uuid.c
         core/json.c
@@ -77,6 +80,7 @@ install(FILES
         core/trie.h
         core/coro.h
         core/string.h
+        core/string_buf.h
         core/number.h
         core/date.h
         core/cpuinfo.h

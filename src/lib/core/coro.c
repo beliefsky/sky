@@ -5,11 +5,13 @@
 #include <assert.h>
 #include "coro.h"
 
-#if PTHREAD_STACK_MIN <= 16384
-#  undef PTHREAD_STACK_MIN
-#  define PTHREAD_STACK_MIN 16384
+#if !defined(SIGSTKSZ)
+#define SIGSTKSZ 16384
 #endif
-#define SKY_CORO_STACK_MIN  PTHREAD_STACK_MIN
+
+#ifndef CORO_STACK_MIN
+#define CORO_STACK_MIN  SIGSTKSZ
+#endif
 
 #if defined(__x86_64__)
 typedef uintptr_t sky_coro_context_t[10];
@@ -47,8 +49,8 @@ struct sky_defer_s {
     sky_defer_t *prev;
     sky_defer_t *next;
 
-    sky_bool_t free:1;
-    sky_bool_t one_arg:1;
+    sky_bool_t free: 1;
+    sky_bool_t one_arg: 1;
 };
 
 struct sky_coro_s {
@@ -63,6 +65,8 @@ struct sky_coro_s {
     sky_uchar_t stack[] __attribute__((aligned(64)));
 };
 
+static void coro_set(sky_coro_t *coro, sky_uintptr_t func, sky_uintptr_t data);
+
 #if defined(__x86_64__)
 
 void __attribute__((noinline, visibility("internal")))
@@ -70,7 +74,7 @@ coro_swapcontext(sky_coro_context_t *current, sky_coro_context_t *other);
 
 asm(
 ".text\n\t"
-".p2align 4\n\t"
+".p2align 5\n\t"
 ASM_ROUTINE(coro_swapcontext)
 "movq    %rbx,0(%rdi)\n\t"
 "movq    %rbp,8(%rdi)\n\t"
@@ -100,7 +104,7 @@ void __attribute__((noinline, visibility("internal")))
 coro_swapcontext(sky_coro_context_t *current, sky_coro_context_t *other);
     asm(
     ".text\n\t"
-    ".p2align 16\n\t"
+    ".p2align 5\n\t"
     ASM_ROUTINE(coro_swapcontext)
     "movl   0x4(%esp),%eax\n\t"
     "movl   %ecx,0x1c(%eax)\n\t" /* ECX */
@@ -128,7 +132,7 @@ coro_swapcontext(sky_coro_context_t *current, sky_coro_context_t *other);
 
 __attribute__((used, visibility("internal"))) void
 coro_entry_point(sky_coro_t *coro, sky_coro_func_t func, sky_uintptr_t data) {
-    sky_coro_yield(coro, func(coro, data));
+    return (void) sky_coro_yield(coro, func(coro, data));
 }
 
 #ifdef __x86_64__
@@ -138,12 +142,47 @@ coro_entry_point(sky_coro_t *coro, sky_coro_func_t func, sky_uintptr_t data) {
 void __attribute__((visibility("internal"))) coro_entry_point_x86_64();
 
 asm(".text\n\t"
-    ".p2align 4\n\t"
+    ".p2align 5\n\t"
     ASM_ROUTINE(coro_entry_point_x86_64)
     "mov %r15, %rdx\n\t"
     "jmp " ASM_SYMBOL(coro_entry_point) "\n\t"
 );
 #endif
+
+
+static sky_inline void
+coro_set(sky_coro_t *coro, sky_uintptr_t func, sky_uintptr_t data) {
+#if defined(__x86_64__)
+    coro->context[5 /* R15 */] = (sky_uintptr_t) data;
+    coro->context[6 /* RDI */] = (sky_uintptr_t) coro;
+    coro->context[7 /* RSI */] = (sky_uintptr_t) func;
+    coro->context[8 /* RIP */] = (sky_uintptr_t) coro_entry_point_x86_64;
+#define STACK_PTR 9
+    coro->context[STACK_PTR /* RSP */] = (((sky_uintptr_t) coro->stack + CORO_STACK_MIN) & ~0xful) - 0x8ul;
+#elif defined(__i386__)
+    sky_uchar_t *stack = (sky_uchar_t *) (sky_uintptr_t)(coro->stack + CORO_STACK_MIN);
+    stack = (sky_uchar_t *)((sky_uintptr_t)(stack - (3 * sizeof(sky_uintptr_t))) & (sky_uintptr_t)~0x3);
+
+    sky_uintptr_t *argp = (sky_uintptr_t *)stack;
+    *argp++ = 0;
+    *argp++ = (sky_uintptr_t) coro;
+    *argp++ = (sky_uintptr_t) func;
+    *argp = (sky_uintptr_t) data;
+
+    coro->context[5 /* EIP */] = (sky_uintptr_t) coro_entry_point;
+#define STACK_PTR 6
+    coro->context[STACK_PTR /* ESP */] = (sky_uintptr_t) stack;
+#else
+    getcontext(&coro->context);
+    coro->context.uc_stack.ss_sp = coro->stack;
+    coro->context.uc_stack.ss_size = CORO_STACK_MIN;
+    coro->context.uc_stack.ss_flags = 0;
+    coro->context.uc_link = null;
+
+    makecontext(&coro->context, coro_entry_point, 3, coro, func, data);
+#endif
+}
+
 
 sky_coro_switcher_t *
 sky_coro_switcher_create(sky_pool_t *pool) {
@@ -157,40 +196,12 @@ sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func, sky_uintptr
 
     pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
 
-    coro = sky_palloc(pool, SKY_CORO_STACK_MIN + sizeof(sky_coro_t));
+    coro = sky_palloc(pool, CORO_STACK_MIN + sizeof(sky_coro_t));
     coro->switcher = switcher;
     coro->pool = pool;
     coro->defers.prev = coro->defers.next = &coro->defers;
     coro->free_defers.prev = coro->free_defers.next = &coro->free_defers;
-#if defined(__x86_64__)
-    coro->context[5 /* R15 */] = (sky_uintptr_t) data;
-    coro->context[6 /* RDI */] = (sky_uintptr_t) coro;
-    coro->context[7 /* RSI */] = (sky_uintptr_t) func;
-    coro->context[8 /* RIP */] = (sky_uintptr_t) coro_entry_point_x86_64;
-#define STACK_PTR 9
-    coro->context[STACK_PTR /* RSP */] = (((sky_uintptr_t) coro->stack + SKY_CORO_STACK_MIN) & ~0xful) - 0x8ul;
-#elif defined(__i386__)
-    sky_uchar_t *stack = (sky_uchar_t *) (sky_uintptr_t)(coro->stack + SKY_CORO_STACK_MIN);
-    stack = (sky_uchar_t *)((sky_uintptr_t)(stack - (3 * sizeof(sky_uintptr_t))) & (sky_uintptr_t)~0x3);
-
-    sky_uintptr_t *argp = (sky_uintptr_t *)stack;
-    *argp++ = 0;
-    *argp++ = (sky_uintptr_t) coro;
-    *argp++ = (sky_uintptr_t) func;
-    *argp++ = (sky_uintptr_t) data;
-
-    coro->context[5 /* EIP */] = (sky_uintptr_t) coro_entry_point;
-#define STACK_PTR 6
-    coro->context[STACK_PTR /* ESP */] = (sky_uintptr_t) stack;
-#else
-    getcontext(&coro->context);
-    coro->context.uc_stack.ss_sp = coro->stack;
-    coro->context.uc_stack.ss_size = SKY_CORO_STACK_MIN;
-    coro->context.uc_stack.ss_flags = 0;
-    coro->context.uc_link = null;
-
-    makecontext(&coro->context, coro_entry_point, 3, coro, func, data);
-#endif
+    coro_set(coro, (sky_uintptr_t) func, data);
     return coro;
 
 }
@@ -199,45 +210,16 @@ sky_coro_t *
 sky_coro_create2(sky_coro_switcher_t *switcher, sky_coro_func_t func, sky_uintptr_t *data_ptr, sky_size_t size) {
     sky_pool_t *pool;
     sky_coro_t *coro;
-    sky_uintptr_t data;
 
     pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
 
-    coro = sky_palloc(pool, SKY_CORO_STACK_MIN + sizeof(sky_coro_t));
+    coro = sky_palloc(pool, CORO_STACK_MIN + sizeof(sky_coro_t));
     coro->switcher = switcher;
     coro->pool = pool;
     coro->defers.prev = coro->defers.next = &coro->defers;
     coro->free_defers.prev = coro->free_defers.next = &coro->free_defers;
-    *data_ptr = data = (sky_uintptr_t) sky_palloc(coro->pool, size);
-#if defined(__x86_64__)
-    coro->context[5 /* R15 */] = (sky_uintptr_t) data;
-    coro->context[6 /* RDI */] = (sky_uintptr_t) coro;
-    coro->context[7 /* RSI */] = (sky_uintptr_t) func;
-    coro->context[8 /* RIP */] = (sky_uintptr_t) coro_entry_point_x86_64;
-#define STACK_PTR 9
-    coro->context[STACK_PTR /* RSP */] = (((sky_uintptr_t) coro->stack + SKY_CORO_STACK_MIN) & ~0xful) - 0x8ul;
-#elif defined(__i386__)
-    sky_uchar_t *stack = (sky_uchar_t *) (sky_uintptr_t)(coro->stack + SKY_CORO_STACK_MIN);
-    stack = (sky_uchar_t *)((sky_uintptr_t)(stack - (3 * sizeof(sky_uintptr_t))) & (sky_uintptr_t)~0x3);
 
-    sky_uintptr_t *argp = (sky_uintptr_t *)stack;
-    *argp++ = 0;
-    *argp++ = (sky_uintptr_t) coro;
-    *argp++ = (sky_uintptr_t) func;
-    *argp++ = (sky_uintptr_t) data;
-
-    coro->context[5 /* EIP */] = (sky_uintptr_t) coro_entry_point;
-#define STACK_PTR 6
-    coro->context[STACK_PTR /* ESP */] = (sky_uintptr_t) stack;
-#else
-    getcontext(&coro->context);
-    coro->context.uc_stack.ss_sp = coro->stack;
-    coro->context.uc_stack.ss_size = SKY_CORO_STACK_MIN;
-    coro->context.uc_stack.ss_flags = 0;
-    coro->context.uc_link = null;
-
-    makecontext(&coro->context, coro_entry_point, 3, coro, func, data);
-#endif
+    coro_set(coro, (sky_uintptr_t) func, *data_ptr = (sky_uintptr_t) sky_palloc(coro->pool, size));
     return coro;
 }
 
@@ -246,7 +228,7 @@ sky_int32_t
 sky_coro_resume(sky_coro_t *coro) {
 #if defined(STACK_PTR)
     assert(coro->context[STACK_PTR] >= (sky_uintptr_t) coro->stack &&
-           coro->context[STACK_PTR] <= (sky_uintptr_t) (coro->stack + SKY_CORO_STACK_MIN));
+           coro->context[STACK_PTR] <= (sky_uintptr_t) (coro->stack + CORO_STACK_MIN));
 #endif
     coro_swapcontext(&coro->switcher->caller, &coro->context);
     return coro->yield_value;
@@ -339,11 +321,8 @@ void sky_coro_destroy(sky_coro_t *coro) {
     while ((defer = coro->defers.next) != &coro->defers) {
         defer->prev->next = defer->next;
         defer->next->prev = defer->prev;
-        if (defer->one_arg) {
-            defer->func(defer->data);
-        } else {
-            defer->func2(defer->data, defer->data2);
-        }
+
+        defer->one_arg ? defer->func(defer->data) : defer->func2(defer->data, defer->data2);
     }
     sky_destroy_pool(coro->pool);
 }

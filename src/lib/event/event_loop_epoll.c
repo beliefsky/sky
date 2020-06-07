@@ -7,7 +7,6 @@
 #include <signal.h>
 #include <sys/epoll.h>
 #include "event_loop.h"
-#include "../core/palloc.h"
 #include "../core/log.h"
 #include "../core/memory.h"
 
@@ -23,17 +22,6 @@
 #endif
 #endif
 #endif
-
-
-struct sky_event_loop_s {
-    sky_pool_t *pool;
-    sky_rbtree_t rbtree;
-    sky_rbtree_node_t sentinel;
-    sky_time_t now;
-    sky_int32_t fd;
-    sky_int32_t conn_max;
-    sky_bool_t update:1;
-};
 
 
 static sky_int32_t setup_open_file_count_limits();
@@ -56,7 +44,7 @@ sky_event_loop_create(sky_pool_t *pool) {
     loop->fd = epoll_create1(EPOLL_CLOEXEC);
     loop->conn_max = setup_open_file_count_limits();
     loop->now = time(null);
-    sky_rbtree_init(&loop->rbtree, &loop->sentinel, rbtree_insert_timer);
+    sky_rbtree_init(&loop->tree, &loop->sentinel, rbtree_insert_timer);
 
     return loop;
 }
@@ -71,12 +59,12 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
     fd = loop->fd;
     timeout = -1;
-    btree = &loop->rbtree;
+    btree = &loop->tree;
 
     now = loop->now;
 
     max_events = sky_min(loop->conn_max, 1024);
-    events = sky_palloc(loop->pool, sizeof(struct epoll_event) * (sky_uint32_t) max_events);
+    events = sky_pnalloc(loop->pool, sizeof(struct epoll_event) * (sky_uint32_t) max_events);
 
 
     for (;;) {
@@ -115,9 +103,8 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 continue;
             }
             // 是否可读
-            ev->read = (event->events & EPOLLIN) != 0;
-            // 是否可写
-            ev->write = (event->events & EPOLLOUT) != 0;
+            ev->read = (event->events & EPOLLIN) == 0 ? ev->read : true;
+            ev->write = (event->events & EPOLLOUT) == 0 ? ev->read : true;
 
             if (ev->wait) {
                 continue;
@@ -191,14 +178,14 @@ sky_event_register(sky_event_t *ev, sky_int32_t timeout) {
         }
         ev->key = ev->loop->now + timeout;
         ev->node.key = (sky_uintptr_t) &ev->key;
-        sky_rbtree_insert(&ev->loop->rbtree, &ev->node);
+        sky_rbtree_insert(&ev->loop->tree, &ev->node);
     }
     ev->timeout = timeout;
     ev->reg = true;
 
     event.events = EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLERR | EPOLLET;
     event.data.ptr = ev;
-    epoll_ctl(ev->loop->fd, EPOLL_CTL_ADD, ev->fd, &event);
+    (void) epoll_ctl(ev->loop->fd, EPOLL_CTL_ADD, ev->fd, &event);
 }
 
 
@@ -210,13 +197,13 @@ sky_event_unregister(sky_event_t *ev) {
     close(ev->fd);
     ev->reg = false;
     if (ev->timeout != -1) {
-        sky_rbtree_delete(&ev->loop->rbtree, &ev->node);
+        sky_rbtree_delete(&ev->loop->tree, &ev->node);
     }
     // 此处应添加 应追加需要处理的连接
     ev->loop->update = true;
     ev->key = 0;
     ev->node.key = (sky_uintptr_t) &ev->key;
-    sky_rbtree_insert(&ev->loop->rbtree, &ev->node);
+    sky_rbtree_insert(&ev->loop->tree, &ev->node);
 }
 
 
@@ -238,7 +225,7 @@ setup_open_file_count_limits() {
             r.rlim_cur = r.rlim_max;
         } else {
             /* Shouldn't happen, so just return the current value. */
-            goto out;
+            return (sky_int32_t) r.rlim_cur;
         }
 
         if (setrlimit(RLIMIT_NOFILE, &r) < 0) {
@@ -247,8 +234,6 @@ setup_open_file_count_limits() {
             r.rlim_cur = current;
         }
     }
-
-    out:
     return (sky_int32_t) r.rlim_cur;
 }
 

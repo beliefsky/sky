@@ -24,18 +24,6 @@
 #endif
 #endif
 
-
-struct sky_event_loop_s {
-    sky_pool_t *pool;
-    sky_rbtree_t rbtree;
-    sky_rbtree_node_t sentinel;
-    sky_time_t now;
-    sky_int32_t fd;
-    sky_int32_t conn_max;
-    sky_bool_t update:1;
-};
-
-
 static sky_int32_t setup_open_file_count_limits();
 
 static void
@@ -82,8 +70,8 @@ sky_event_loop_run(sky_event_loop_t *loop) {
     now = loop->now;
 
     max_events = sky_min(loop->conn_max, 1024);
-    events = sky_palloc(loop->pool, sizeof(struct kevent) * (sky_uint32_t) max_events);
-    run_ev = sky_palloc(loop->pool, sizeof(sky_event_t *) * (sky_uint32_t) max_events);
+    events = sky_pnalloc(loop->pool, sizeof(struct kevent) * (sky_uint32_t) max_events);
+    run_ev = sky_pnalloc(loop->pool, sizeof(sky_event_t *) * (sky_uint32_t) max_events);
 
     for (;;) {
         n = kevent(fd, null, 0, events, max_events, timeout ? &timespec : null);
@@ -120,12 +108,8 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 continue;
             }
             // 是否可读
-            if (event->filter == EVFILT_READ) {
-                ev->read = true;
-            } else {
-                // 是否可写
-                ev->write = true;
-            }
+            // 是否可写
+            event->filter == EVFILT_READ ? (ev->read = true) : (ev->write = true);
 
             if (ev->wait) {
                 continue;
