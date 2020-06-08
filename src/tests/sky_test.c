@@ -251,10 +251,10 @@ hello_world(sky_http_request_t *req, sky_http_response_t *res) {
     sky_str_t cmd = sky_string("SELECT id, title, cover, creator, descript, cover_num, resources FROM tb_comic WHERE id = $1");
 
     sky_pg_type_t type = pg_data_int64;
-    sky_pg_param_t param = {.int64 = 1L};
+    sky_pg_data_t param = {.int64 = 1L};
 
     sky_pg_result_t *result = sky_pg_sql_exec(ps, &cmd, &type, &param, 1);
-    if (!result || !result->is_ok) {
+    if (!result) {
         sky_pg_sql_connection_put(ps);
 
         res->type = SKY_HTTP_RESPONSE_BUF;
@@ -279,9 +279,9 @@ hello_world(sky_http_request_t *req, sky_http_response_t *res) {
 
     sky_json_object_push(obj, sky_str_line("id"), sky_json_integer_new(req->pool, row->data[0].int64));
     sky_json_object_push(obj, sky_str_line("username"),
-                         sky_json_string_new(req->pool, &row->data[1].stream));
+                         sky_json_string_new(req->pool, &row->data[1].str));
     sky_json_object_push(obj, sky_str_line("password"),
-                         sky_json_string_new(req->pool, &row->data[2].stream));
+                         sky_json_string_new(req->pool, &row->data[2].str));
 
     sky_json_object_push(arr, sky_str_line("data"), obj);
 
