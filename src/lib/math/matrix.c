@@ -188,9 +188,8 @@ sky_matrix_trans(sky_pool_t *pool, const sky_matrix_t *matrix) {
 
     k = 0;
     ar = 0;
-    i = matrix->rows;
+    i = bc = matrix->rows;
     jt = matrix->cols;
-    bc = b->cols;
     va = matrix->vs;
 
     b = sky_palloc(pool, sizeof(sky_matrix_t));
