@@ -23,8 +23,7 @@
 #include <core/number.h>
 #include <net/inet.h>
 #include <net/http/extend/http_extend_pgsql_pool.h>
-
-#include "matrix.h"
+#include <math/matrix.h>
 
 
 static void server_start(sky_int64_t cpu_num);
@@ -41,35 +40,35 @@ main() {
 
     sky_pool_t *pool = sky_create_pool(1024);
 
-    double av[] = {
+    sky_matrix_data_t av[] = {
             1, 2, 3, 4,
             5, 6, 7, 8
     };
-    double bv[] = {
+    sky_matrix_data_t bv[] = {
             11, 12, 13,
             14, 15, 16,
             17, 18, 19,
             20, 21, 22
     };
 
-    matrix_t a = {
-            .row = 2,
-            .col = 4,
+    sky_matrix_t a = {
+            .rows = 2,
+            .cols = 4,
             .num = 8,
-            .v = av
+            .vs = av
     };
-    matrix_t b = {
-            .row = 4,
-            .col = 3,
+    sky_matrix_t b = {
+            .rows = 4,
+            .cols = 3,
             .num = 12,
-            .v = bv
+            .vs = bv
     };
 
 
-    matrix_t *c = matrix_mul(pool, &a, &b);
+    sky_matrix_t *c = sky_matrix_mul(pool, &a, &b);
 
     for (sky_uint32_t i = 0; i < c->num; ++i) {
-        sky_log_info("%lf", c->v[i]);
+        sky_log_info("%lf", c->vs[i]);
     }
     sky_log_info("==========");
 
@@ -288,10 +287,10 @@ redis_test(sky_http_request_t *req, sky_http_response_t *res) {
 
 
 typedef struct {
-    sky_uint32_t version:1;
-    sky_uint32_t msg_id_type:1;
-    sky_uint32_t msg_id:4;
-    sky_uint32_t cmd:10;
+    sky_uint32_t version: 1;
+    sky_uint32_t msg_id_type: 1;
+    sky_uint32_t msg_id: 4;
+    sky_uint32_t cmd: 10;
 } dhwork_frames_t;
 
 static sky_bool_t

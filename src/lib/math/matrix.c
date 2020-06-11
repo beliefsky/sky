@@ -51,7 +51,7 @@ sky_matrix_mul(sky_pool_t *pool, sky_matrix_t *a, sky_matrix_t *b) {
     sky_matrix_t *c;
     sky_matrix_data_t *av, *bv, *cv;
 
-    if (sky_unlikely(a->rows != b->cols)) {
+    if (sky_unlikely(a->cols != b->rows)) {
         sky_log_error("matrix mul: a->rows != b->cols");
         return false;
     }
