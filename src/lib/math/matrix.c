@@ -7,55 +7,94 @@
 
 sky_bool_t
 sky_matrix_add(sky_matrix_t *from, sky_matrix_t *to) {
+    sky_uint32_t i;
+    sky_matrix_data_t *av, *bv;
+
     if (sky_unlikely(from->rows != to->rows || from->cols != to->cols)) {
         sky_log_error("matrix add: from->rows != to->rows or from->cols != to->cols");
         return false;
     }
 
-    for (sky_uint32_t index = from->num; index; --index) {
-        to->vs[index] += from->vs[index];
+    i = from->num;
+    av = from->vs;
+    bv = to->vs;
+    while (i--) {
+        av[i] += bv[i];
     }
     return true;
 }
 
 sky_bool_t
 sky_matrix_sub(sky_matrix_t *from, sky_matrix_t *to) {
+    sky_uint32_t i;
+    sky_matrix_data_t *av, *bv;
+
     if (sky_unlikely(from->rows != to->rows && from->cols != to->cols)) {
         sky_log_error("matrix sub: from->rows != to->rows or from->cols != to->cols");
         return false;
     }
-    for (sky_uint32_t index = from->num; index; --index) {
-        to->vs[index] -= from->vs[index];
+
+    i = from->num;
+    av = from->vs;
+    bv = to->vs;
+    while (i--) {
+        av[i] -= bv[i];
     }
     return true;
 }
 
 
 sky_matrix_t *
-sky_matrix_mul(sky_pool_t *pool, sky_matrix_t *ma, sky_matrix_t *mb) {
-    if (sky_unlikely(ma->rows != mb->cols)) {
-        sky_log_error("matrix mul: from->rows != to->rows or from->cols != to->cols");
+sky_matrix_mul(sky_pool_t *pool, sky_matrix_t *a, sky_matrix_t *b) {
+    sky_uint32_t i, j, k;
+    sky_uint32_t ai, ci, bt, at, ct;
+    sky_matrix_t *c;
+    sky_matrix_data_t *av, *bv, *cv;
+
+    if (sky_unlikely(a->rows != b->cols)) {
+        sky_log_error("matrix mul: a->rows != b->cols");
         return false;
     }
-    sky_matrix_t *result = sky_palloc(pool, sizeof(sky_matrix_t));
-    result->rows = result->cols = ma->rows;
-    result->num = result->rows * result->cols;
-    result->vs = sky_pnalloc(pool, sizeof(sky_matrix_v_t) * result->num);
+    c = sky_palloc(pool, sizeof(sky_matrix_t));
+    c->rows = a->rows;
+    c->cols = b->cols;
+    c->num = c->rows * c->cols;
+    c->vs = sky_pcalloc(pool, c->num * sizeof(sky_matrix_data_t));
 
-    sky_uint32_t i, j;
-    sky_uint32_t bi;
+    i = c->rows;
 
-
-    for (i = result->rows; i; --i) {
-        for (j = mb->num; j;) {
-            mb->vs[j];
+    ai = a->num - 1;
+    ci = c->num - 1;
+    av = a->vs;
+    bv = b->vs;
+    cv = c->vs;
+    while (i--) {
+        bt = b->num - 1;
+        at = ai;
+        j = a->cols;
+        while (j--) {
+            ct = ci;
+            k = b->cols;
+            while (k--) {
+                cv[ct--] += av[at] * bv[bt--];
+            }
+            --at;
         }
+        ci -= c->cols;
+        ai -= a->cols;
     }
+    return c;
+
 }
 
 void
-sky_matrix_mul_num(sky_matrix_t *matrix, sky_matrix_v_t value) {
-    for (sky_uint32_t index = matrix->num; index; --index) {
-        matrix->vs[index] *= value;
+sky_matrix_mul_num(sky_matrix_t *matrix, sky_matrix_data_t value) {
+    sky_uint32_t i;
+    sky_matrix_data_t *mv;
+
+    i = matrix->num;
+    mv = matrix->vs;
+    while (i--) {
+        mv[i] *= value;
     }
 }
