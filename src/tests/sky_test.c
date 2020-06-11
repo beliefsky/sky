@@ -65,7 +65,7 @@ main() {
     };
 
 
-    sky_matrix_t *c = sky_matrix_mul(pool, &a, &b);
+    sky_matrix_t *c = sky_matrix_trans(pool, &b);
 
     for (sky_uint32_t i = 0; i < c->num; ++i) {
         sky_log_info("%lf", c->vs[i]);

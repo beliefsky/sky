@@ -98,3 +98,36 @@ sky_matrix_mul_num(sky_matrix_t *matrix, sky_matrix_data_t value) {
         mv[i] *= value;
     }
 }
+
+sky_matrix_t *
+sky_matrix_trans(sky_pool_t *pool, const sky_matrix_t *matrix) {
+
+    sky_uint32_t i, j, k, t, ar, jt, bc;
+    sky_matrix_t *b;
+    sky_matrix_data_t *va, *vb;
+
+    b = sky_palloc(pool, sizeof(sky_matrix_t));
+    b->rows = matrix->cols;
+    b->cols = matrix->rows;
+    b->num = matrix->num;
+    b->vs = vb = sky_palloc(pool, b->num * sizeof(sky_matrix_data_t));
+
+    va = matrix->vs;
+
+    k = 0;
+    ar = 0;
+    i = matrix->rows;
+    jt = matrix->cols;
+    bc = b->cols;
+    while (i--) {
+        t = ar;
+        j = jt;
+        while (j--) {
+            vb[t] = va[k++];
+            t += bc;
+        }
+        ++ar;
+    }
+
+    return b;
+}
