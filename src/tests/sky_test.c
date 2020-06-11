@@ -306,13 +306,8 @@ hello_world(sky_http_request_t *req, sky_http_response_t *res) {
 
     sky_str_t cmd = sky_string("SELECT int32,int64,int16,text,text_arr,int32_arr FROM tb_test WHERE int32 = $1");
 
-<<<<<<< Updated upstream
     sky_pg_type_t type = pg_data_int64;
     sky_pg_data_t param = {.int64 = 1L};
-=======
-    sky_pg_type_t type = pg_data_int32;
-    sky_pg_data_t param = {.int32 = id};
->>>>>>> Stashed changes
 
     sky_pg_result_t *result = sky_pg_sql_exec(ps, &cmd, &type, &param, 1);
     if (!result) {
@@ -339,13 +334,6 @@ hello_world(sky_http_request_t *req, sky_http_response_t *res) {
 
     sky_pg_array_t *arr = data[4].array;
 
-<<<<<<< Updated upstream
-    sky_json_object_push(obj, sky_str_line("id"), sky_json_integer_new(req->pool, row->data[0].int64));
-    sky_json_object_push(obj, sky_str_line("username"),
-                         sky_json_string_new(req->pool, &row->data[1].str));
-    sky_json_object_push(obj, sky_str_line("password"),
-                         sky_json_string_new(req->pool, &row->data[2].str));
-=======
     for (sky_uint32_t i = 0; i != arr->nelts; ++i) {
         sky_log_info("[%u]:%s", i, arr->data[i].stream);
     }
@@ -359,7 +347,6 @@ hello_world(sky_http_request_t *req, sky_http_response_t *res) {
     };
     param.array = sky_pnalloc(req->pool, sizeof(sky_pg_array_t));
     sky_pg_data_array_one_init(param.array, datas, 3);
->>>>>>> Stashed changes
 
 
     ps = sky_pg_sql_connection_get(ps_pool, req->pool, req->conn);
