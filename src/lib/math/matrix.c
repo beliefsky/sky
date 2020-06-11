@@ -6,7 +6,7 @@
 #include "../core/log.h"
 
 sky_bool_t
-sky_matrix_add(sky_matrix_t *from, sky_matrix_t *to) {
+sky_matrix_add(sky_matrix_t *from, const sky_matrix_t *to) {
     sky_uint32_t i;
     sky_matrix_data_t *av, *bv;
 
@@ -25,7 +25,7 @@ sky_matrix_add(sky_matrix_t *from, sky_matrix_t *to) {
 }
 
 sky_bool_t
-sky_matrix_sub(sky_matrix_t *from, sky_matrix_t *to) {
+sky_matrix_sub(sky_matrix_t *from, const sky_matrix_t *to) {
     sky_uint32_t i;
     sky_matrix_data_t *av, *bv;
 
@@ -45,7 +45,7 @@ sky_matrix_sub(sky_matrix_t *from, sky_matrix_t *to) {
 
 
 sky_matrix_t *
-sky_matrix_mul(sky_pool_t *pool, sky_matrix_t *a, sky_matrix_t *b) {
+sky_matrix_mul(sky_pool_t *pool, const sky_matrix_t *a, const sky_matrix_t *b) {
     sky_uint32_t i, j, k;
     sky_uint32_t ai, ci, bt, at, ct;
     sky_matrix_t *c;

@@ -19,12 +19,36 @@ typedef struct {
     sky_matrix_data_t *vs;
 } sky_matrix_t;
 
-sky_bool_t sky_matrix_add(sky_matrix_t *from, sky_matrix_t *to);
+/**
+ * 矩阵加法
+ * @param from 矩阵A，该值会改变
+ * @param to 矩阵B，
+ * @return 是否成功
+ */
+sky_bool_t sky_matrix_add(sky_matrix_t *from, const sky_matrix_t *to);
 
-sky_bool_t sky_matrix_sub(sky_matrix_t *from, sky_matrix_t *to);
+/**
+ * 矩阵减法
+ * @param from 矩阵A，该值会改变
+ * @param to 矩阵B
+ * @return 是否成功
+ */
+sky_bool_t sky_matrix_sub(sky_matrix_t *from, const sky_matrix_t *to);
 
-sky_matrix_t *sky_matrix_mul(sky_pool_t *pool, sky_matrix_t *a, sky_matrix_t *b);
+/**
+ * 矩阵乘法
+ * @param pool 内存池
+ * @param a 矩阵A
+ * @param b 矩阵B
+ * @return 新的矩阵
+ */
+sky_matrix_t *sky_matrix_mul(sky_pool_t *pool, const sky_matrix_t *a, const sky_matrix_t *b);
 
+/**
+ * 矩阵乘值
+ * @param matrix 矩阵，该值会改变
+ * @param value 值
+ */
 void sky_matrix_mul_num(sky_matrix_t *matrix, sky_matrix_data_t value);
 
 #if defined(__cplusplus)
