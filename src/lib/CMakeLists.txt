@@ -23,6 +23,7 @@ set(SOURCES
         core/base64.c
         core/uuid.c
         core/json.c
+        math/matrix.c
         event/event_loop.c
         net/tcp.c
         net/http/http_request.c
