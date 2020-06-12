@@ -33,7 +33,7 @@ sky_matrix_add2(sky_pool_t *pool, const sky_matrix_t *from, const sky_matrix_t *
 
     if (sky_unlikely(from->rows != to->rows || from->cols != to->cols)) {
         sky_log_error("matrix add: from->rows != to->rows or from->cols != to->cols");
-        return false;
+        return null;
     }
     i = from->num;
     av = from->vs;
@@ -81,7 +81,7 @@ sky_matrix_sub2(sky_pool_t *pool, const sky_matrix_t *from, const sky_matrix_t *
 
     if (sky_unlikely(from->rows != to->rows && from->cols != to->cols)) {
         sky_log_error("matrix sub: from->rows != to->rows or from->cols != to->cols");
-        return false;
+        return null;
     }
 
     i = from->num;
@@ -111,7 +111,7 @@ sky_matrix_mul(sky_pool_t *pool, const sky_matrix_t *a, const sky_matrix_t *b) {
 
     if (sky_unlikely(a->cols != b->rows)) {
         sky_log_error("matrix mul: a->rows != b->cols");
-        return false;
+        return null;
     }
     c = sky_palloc(pool, sizeof(sky_matrix_t));
     c->rows = a->rows;
