@@ -4,6 +4,7 @@
 
 #include "matrix.h"
 #include "../core/log.h"
+#include "../core/memory.h"
 
 sky_bool_t
 sky_matrix_add(sky_matrix_t *from, const sky_matrix_t *to) {
@@ -222,4 +223,34 @@ sky_matrix_det(const sky_matrix_t *matrix) {
     }
 
     return det;
+}
+
+
+sky_matrix_t *
+sky_matrix_adj(sky_pool_t *pool, const sky_matrix_t *matrix) {
+    return null;
+}
+
+sky_matrix_t *
+sky_matrix_inv(sky_pool_t *pool, const sky_matrix_t *matrix) {
+    return null;
+}
+
+
+sky_matrix_t *
+sky_matrix_copy(sky_pool_t *pool, const sky_matrix_t *matrix) {
+    sky_size_t size;
+    sky_matrix_t *out;
+
+    size = matrix->num * sizeof(sky_matrix_data_t);
+
+    out = sky_palloc(pool, sizeof(sky_matrix_t));
+    out->rows = matrix->rows;
+    out->cols = matrix->cols;
+    out->num = matrix->num;
+    out->vs = sky_pnalloc(pool, size);
+
+    sky_memcpy(matrix->vs, out->vs, size);
+
+    return out;
 }

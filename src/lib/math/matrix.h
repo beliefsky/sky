@@ -92,12 +92,19 @@ sky_matrix_t *sky_matrix_trans(sky_pool_t *pool, const sky_matrix_t *matrix);
  * @return
  */
 sky_matrix_data_t sky_matrix_det(const sky_matrix_t *matrix);
-//
-//float MatDet(Mat* mat);
-//Mat* MatAdj(Mat* src, Mat* dst);
-//Mat* MatInv(Mat* src, Mat* dst);
-//
-//void MatCopy(Mat* src, Mat* dst);
+
+sky_matrix_t *sky_matrix_adj(sky_pool_t *pool, const sky_matrix_t *matrix);
+
+sky_matrix_t *sky_matrix_inv(sky_pool_t *pool, const sky_matrix_t *matrix);
+
+/**
+ * 拷贝矩阵数据
+ * @param pool   内存池
+ * @param matrix 矩阵
+ * @return 新的矩阵
+ */
+sky_matrix_t *sky_matrix_copy(sky_pool_t *pool, const sky_matrix_t *matrix);
+
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif
