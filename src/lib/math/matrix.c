@@ -210,3 +210,16 @@ sky_matrix_trans(sky_pool_t *pool, const sky_matrix_t *matrix) {
 
     return b;
 }
+
+
+sky_matrix_data_t
+sky_matrix_det(const sky_matrix_t *matrix) {
+    sky_matrix_data_t det = 0;
+
+    if (matrix->rows != matrix->cols) {
+        sky_log_error("matrix det: a->rows != b->cols");
+        return 0;
+    }
+
+    return det;
+}

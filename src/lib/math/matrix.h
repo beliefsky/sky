@@ -86,7 +86,18 @@ sky_matrix_t *sky_matrix_mul_num2(sky_pool_t *pool, const sky_matrix_t *matrix, 
  */
 sky_matrix_t *sky_matrix_trans(sky_pool_t *pool, const sky_matrix_t *matrix);
 
-
+/**
+ * 矩阵行列式
+ * @param matrix 矩阵
+ * @return
+ */
+sky_matrix_data_t sky_matrix_det(const sky_matrix_t *matrix);
+//
+//float MatDet(Mat* mat);
+//Mat* MatAdj(Mat* src, Mat* dst);
+//Mat* MatInv(Mat* src, Mat* dst);
+//
+//void MatCopy(Mat* src, Mat* dst);
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif
