@@ -122,22 +122,22 @@ sky_matrix_mul(sky_pool_t *pool, const sky_matrix_t *a, const sky_matrix_t *b) {
 
     i = c->rows;
 
-    ai = a->num - 1;
-    ci = c->num - 1;
+    ai = a->num;
+    ci = c->num;
     av = a->vs;
     bv = b->vs;
     cv = c->vs;
     while (i--) {
-        bt = b->num - 1;
+        bt = b->num;
         at = ai;
         j = a->cols;
         while (j--) {
             ct = ci;
             k = b->cols;
-            while (k--) {
-                cv[ct--] += av[at] * bv[bt--];
-            }
             --at;
+            while (k--) {
+                cv[--ct] += av[at] * bv[--bt];
+            }
         }
         ci -= c->cols;
         ai -= a->cols;
@@ -214,12 +214,72 @@ sky_matrix_trans(sky_pool_t *pool, const sky_matrix_t *matrix) {
 
 
 sky_matrix_data_t
-sky_matrix_det(const sky_matrix_t *matrix) {
-    sky_matrix_data_t det = 0;
+sky_matrix_det(sky_pool_t *pool, const sky_matrix_t *matrix) {
+    sky_uint32_t n, i, j, k, t;
+    sky_size_t size;
+    sky_matrix_data_t det;
+    sky_matrix_data_t *mv, *tmp;
 
-    if (matrix->rows != matrix->cols) {
+    n = matrix->rows;
+    if (n != matrix->cols) {
         sky_log_error("matrix det: a->rows != b->cols");
         return 0;
+    }
+    mv = matrix->vs;
+    switch (n) {
+        case 0:
+            return 0;
+        case 1:
+            return mv[0];
+        case 2:
+            return mv[0] * mv[3] - mv[1] * mv[2];
+        default:
+            break;
+    }
+    size = n * sizeof(sky_matrix_data_t);
+    tmp = sky_pnalloc(pool, size);
+    sky_memcpy(tmp, mv, size);
+
+    i = n;
+    t = matrix->num;
+    while (--i) {
+        j = n - i;
+        while (j--) {
+            tmp[j] *= mv[--t];
+        }
+
+        j = i;
+        k = n;
+        while (j--) {
+            tmp[--k] *= mv[--t];
+        }
+    }
+    det = 0;
+
+    i = n;
+    while (i--) {
+        det += tmp[i];
+    }
+    sky_memcpy(tmp, mv, size);
+
+    i = n;
+    t = matrix->num;
+    while (--i) {
+        j = i;
+        while (j--) {
+            tmp[j] *= mv[--t];
+        }
+
+        j = n - i;
+        k = n;
+        while (j--) {
+            tmp[--k] *= mv[--t];
+        }
+    }
+
+    i = n;
+    while (i--) {
+        det -= tmp[i];
     }
 
     return det;
@@ -250,7 +310,7 @@ sky_matrix_copy(sky_pool_t *pool, const sky_matrix_t *matrix) {
     out->num = matrix->num;
     out->vs = sky_pnalloc(pool, size);
 
-    sky_memcpy(matrix->vs, out->vs, size);
+    sky_memcpy(out->vs, matrix->vs, size);
 
     return out;
 }

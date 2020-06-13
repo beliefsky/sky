@@ -91,7 +91,7 @@ sky_matrix_t *sky_matrix_trans(sky_pool_t *pool, const sky_matrix_t *matrix);
  * @param matrix 矩阵
  * @return
  */
-sky_matrix_data_t sky_matrix_det(const sky_matrix_t *matrix);
+sky_matrix_data_t sky_matrix_det(sky_pool_t *pool, const sky_matrix_t *matrix);
 
 sky_matrix_t *sky_matrix_adj(sky_pool_t *pool, const sky_matrix_t *matrix);
 
