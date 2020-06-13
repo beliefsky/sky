@@ -57,7 +57,7 @@ sky_matrix_sub(sky_matrix_t *from, const sky_matrix_t *to) {
     sky_uint32_t i;
     sky_matrix_data_t *av, *bv;
 
-    if (sky_unlikely(from->rows != to->rows && from->cols != to->cols)) {
+    if (sky_unlikely(from->rows != to->rows || from->cols != to->cols)) {
         sky_log_error("matrix sub: from->rows != to->rows or from->cols != to->cols");
         return false;
     }
@@ -79,7 +79,7 @@ sky_matrix_sub2(sky_pool_t *pool, const sky_matrix_t *from, const sky_matrix_t *
     sky_matrix_t *c;
     sky_matrix_data_t *av, *bv, *cv;
 
-    if (sky_unlikely(from->rows != to->rows && from->cols != to->cols)) {
+    if (sky_unlikely(from->rows != to->rows || from->cols != to->cols)) {
         sky_log_error("matrix sub: from->rows != to->rows or from->cols != to->cols");
         return null;
     }
