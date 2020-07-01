@@ -70,7 +70,7 @@ sky_http_module_file_init(sky_pool_t *pool, sky_http_module_t *module, sky_str_t
 
     module->prefix = *prefix;
     module->run = (sky_http_response_t *(*)(sky_http_request_t *, sky_uintptr_t)) http_run_handler;
-    module->run_next = null;
+    module->next = null;
 
     module->module_data = (sky_uintptr_t) data;
 }

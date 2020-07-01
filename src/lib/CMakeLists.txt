@@ -31,6 +31,7 @@ set(SOURCES
         net/http/http_server.c
         net/http/module/http_module_file.c
         net/http/module/http_module_dispatcher.c
+        net/http/module/http_module_websocket.c
         net/http/extend/http_extend_pgsql_pool.c
         net/http/extend/http_extend_redis_pool.c
         )
@@ -108,6 +109,7 @@ install(FILES
 install(FILES
         net/http/module/http_module_dispatcher.h
         net/http/module/http_module_file.h
+        net/http/module/http_module_websocket.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/http/module")
 install(FILES
         net/http/extend/http_extend_pgsql_pool.h

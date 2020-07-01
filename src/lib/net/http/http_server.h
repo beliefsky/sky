@@ -65,7 +65,7 @@ struct sky_http_module_s {
 
     sky_http_response_t *(*run)(sky_http_request_t *r, sky_uintptr_t module_data);
 
-    void (*run_next)(sky_http_response_t *response, sky_uintptr_t module_data);
+    sky_bool_t (*next)(sky_http_request_t *r, sky_uintptr_t module_data);
 
     sky_uintptr_t module_data;
 };

@@ -35,6 +35,7 @@ sky_http_module_dispatcher_init(sky_pool_t *pool, sky_http_module_t *module, sky
 
     module->prefix = *prefix;
     module->run = (sky_http_response_t *(*)(sky_http_request_t *, sky_uintptr_t)) http_run_handler;
+    module->next = null;
 
     module->module_data = (sky_uintptr_t) data;
 }
