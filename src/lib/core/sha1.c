@@ -124,10 +124,10 @@ sky_sha1_final(sky_sha1_t *ctx, sky_uchar_t result[20]) {
   * them as uint32_t.
   */
 
-#define GET(n)                                                                \
-    ((sky_uint32_t) p[n << 2 + 3] |                                                \
-    ((sky_uint32_t) p[n << 2 + 2] << 8) |                                          \
-    ((sky_uint32_t) p[n << 2 + 1] << 16) |                                         \
+#define GET(n)                                                              \
+    ((sky_uint32_t) p[n << 2 + 3] |                                         \
+    ((sky_uint32_t) p[n << 2 + 2] << 8) |                                   \
+    ((sky_uint32_t) p[n << 2 + 1] << 16) |                                  \
     ((sky_uint32_t) p[n << 2] << 24))
 
 
@@ -136,7 +136,7 @@ sha1_body(sky_sha1_t *ctx, const sky_uchar_t *data, sky_size_t size) {
     sky_uint32_t a, b, c, d, e, temp;
     sky_uint32_t saved_a, saved_b, saved_c, saved_d, saved_e;
     sky_uint32_t words[80];
-    sky_uint_t i;
+    sky_uint32_t i;
     const sky_uchar_t *p;
 
     p = data;
