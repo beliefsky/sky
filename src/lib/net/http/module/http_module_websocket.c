@@ -76,10 +76,9 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
 
     sky_encode_base64(key, &key2);
 
-    sky_log_info("result: %s", key->data);
-
     if (sky_likely(data->handler->open(r))) {
         r->state = 101;
+        r->conn->ev.timeout = 600;
         header = sky_list_push(&r->headers_out.headers);
         sky_str_set(&header->key, "Upgrade");
         sky_str_set(&header->value, "websocket");
@@ -109,9 +108,14 @@ module_run_next(sky_http_request_t *r, websocket_data_t *data) {
     sky_buf_t *buf = sky_buf_create(pool, 1024);
 
 
-    r->conn->read(r->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos));
+    sky_log_info("wait");
+    sky_uint32_t size = r->conn->read(r->conn, buf->pos, (sky_uint32_t) (buf->end - buf->last));
+    sky_log_info("data size %u", size);
+    for (sky_uint32_t i = 0; i < size; ++i) {
+        printf("%c\t\t", buf->last[i]);
+    }
+    printf("\n");
 
-    sky_log_info("data: %s", buf->pos);
 
     return true;
 //    return data->handler->read(r);
