@@ -12,9 +12,11 @@ extern "C" {
 #endif
 
 typedef struct {
-    // open
-    // read
-    // close
+    sky_bool_t (*open)(sky_http_request_t *request);
+
+    sky_bool_t (*read)(sky_http_request_t *request);
+
+    void (*close)(sky_http_request_t *request);
 } sky_http_websocket_handler_t;
 
 

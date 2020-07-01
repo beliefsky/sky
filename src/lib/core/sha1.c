@@ -125,9 +125,9 @@ sky_sha1_final(sky_sha1_t *ctx, sky_uchar_t result[20]) {
   */
 
 #define GET(n)                                                              \
-    ((sky_uint32_t) p[n << 2 + 3] |                                         \
-    ((sky_uint32_t) p[n << 2 + 2] << 8) |                                   \
-    ((sky_uint32_t) p[n << 2 + 1] << 16) |                                  \
+    ((sky_uint32_t) p[(n << 2) + 3] |                                       \
+    ((sky_uint32_t) p[(n << 2) + 2] << 8) |                                 \
+    ((sky_uint32_t) p[(n << 2) + 1] << 16) |                                \
     ((sky_uint32_t) p[n << 2] << 24))
 
 
