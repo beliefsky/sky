@@ -55,10 +55,9 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
     sky_sha1_t ctx;
 
     sky_sha1_init(&ctx);
-//    sky_sha1_update(&sha1, sky_str_line("kMgvb6KivsYVl2EHinJHZg=="));
+    sky_sha1_update(&ctx, key->data, key->len);
 
-//    sky_sha1_update(&sha1, sky_str_line("258EAFA5-E914-47DA-95CA-C5AB0DC85B11"));
-    sky_sha1_update(&ctx,sky_str_line("kMgvb6KivsYVl2EHinJHZg==258EAFA5-E914-47DA-95CA-C5AB0DC85B11"));
+    sky_sha1_update(&ctx, sky_str_line("258EAFA5-E914-47DA-95CA-C5AB0DC85B11"));
 
     sky_uchar_t ch[20];
 
@@ -109,10 +108,11 @@ module_run_next(sky_http_request_t *r, websocket_data_t *data) {
     sky_pool_t *pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
     sky_buf_t *buf = sky_buf_create(pool, 1024);
 
+
     r->conn->read(r->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos));
 
     sky_log_info("data: %s", buf->pos);
 
-    return false;
+    return true;
 //    return data->handler->read(r);
 }
