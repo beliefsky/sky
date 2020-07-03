@@ -109,13 +109,23 @@ module_run_next(sky_http_request_t *r, websocket_data_t *data) {
 
 
     sky_log_info("wait");
-    sky_uint32_t size = r->conn->read(r->conn, buf->pos, (sky_uint32_t) (buf->end - buf->last));
+    sky_uint32_t size = r->conn->read(r->conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
     sky_log_info("data size %u", size);
     for (sky_uint32_t i = 0; i < size; ++i) {
-        printf("%c\t\t", buf->last[i]);
+        printf("%d\t\t", buf->last[i]);
     }
     printf("\n");
 
+    sky_char_t *p = (sky_char_t *) buf->last;
+    sky_char_t *key = p + 2;
+
+    p += 6;
+    size -= 6;
+    for (sky_uint32_t i = 0; i < size; ++i) {
+        p[i] ^= key[i & 3];
+    }
+    p[size] = '\0';
+    sky_log_info("data: %s", p);
 
     return true;
 //    return data->handler->read(r);
