@@ -116,16 +116,43 @@ module_run_next(sky_http_request_t *r, websocket_data_t *data) {
     }
     printf("\n");
 
-    sky_char_t *p = (sky_char_t *) buf->last;
-    sky_char_t *key = p + 2;
+    sky_uchar_t *p = buf->last;
+    sky_uchar_t *key = p + 2;
 
     p += 6;
     size -= 6;
-    for (sky_uint32_t i = 0; i < size; ++i) {
-        p[i] ^= key[i & 3];
-    }
+
     p[size] = '\0';
-    sky_log_info("data: %s", p);
+
+    for (;;) {
+        switch (size) {
+            case 0:
+                break;
+            case 1:
+                *p++ ^= key[0];
+                --size;
+                continue;
+            case 2:
+                *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) key;
+                p += 2;
+                size -= 2;
+                continue;
+            case 3:
+                *p++ ^= key[0];
+                *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) (key + 1);
+                p += 2;
+                size -= 3;
+                continue;
+            default:
+                *(sky_uint32_t *) (p) ^= *(sky_uint32_t *) key;
+                p += 4;
+                size -= 4;
+                continue;
+        }
+        break;
+    }
+
+    sky_log_info("data: %s", buf->last + 6);
 
     return true;
 //    return data->handler->read(r);
