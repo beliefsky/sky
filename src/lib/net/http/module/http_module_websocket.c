@@ -7,6 +7,8 @@
 #include "../../../core/log.h"
 #include "../../../core/base64.h"
 #include "../../../core/sha1.h"
+#include "../../inet.h"
+#include "../../../core/memory.h"
 
 typedef struct {
     sky_http_websocket_handler_t *handler;
@@ -109,50 +111,132 @@ module_run_next(sky_http_request_t *r, websocket_data_t *data) {
 
 
     sky_log_info("wait");
-    sky_uint32_t size = r->conn->read(r->conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
-    sky_log_info("data size %u", size);
+    sky_uint64_t size = r->conn->read(r->conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
+    sky_log_info("data size %lu", size);
     for (sky_uint32_t i = 0; i < size; ++i) {
         printf("%d\t\t", buf->last[i]);
     }
     printf("\n");
 
     sky_uchar_t *p = buf->last;
-    sky_uchar_t *key = p + 2;
 
-    p += 6;
-    size -= 6;
+    sky_uint8_t flag = p[0];
 
-    p[size] = '\0';
+    if (flag & 0x80) {
+        sky_log_info("fin is true");
+    } else {
+        sky_log_info("fin is false");
+    }
+    if (flag & 0x70) {
+        sky_log_error("RSV NOT IS ZERO");
+    }
+    sky_log_info("code %u", flag & 0xf);
 
-    for (;;) {
-        switch (size) {
-            case 0:
-                break;
-            case 1:
-                *p++ ^= key[0];
-                --size;
-                continue;
-            case 2:
-                *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) key;
-                p += 2;
-                size -= 2;
-                continue;
-            case 3:
-                *p++ ^= key[0];
-                *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) (key + 1);
-                p += 2;
-                size -= 3;
-                continue;
-            default:
-                *(sky_uint32_t *) (p) ^= *(sky_uint32_t *) key;
-                p += 4;
-                size -= 4;
-                continue;
-        }
-        break;
+    flag = p[1];
+    if (flag & 0x80) {
+        sky_log_info("mask is true");
+    } else {
+        sky_log_info("mask is true");
     }
 
-    sky_log_info("data: %s", buf->last + 6);
+    sky_uint64_t payload_size = flag & 0x7f;
+
+    p += 2;
+    if (payload_size > 125) {
+        if (payload_size == 126) {
+            payload_size = sky_htons(*(sky_uint16_t *) p);
+            p += 2;
+        } else {
+            payload_size = sky_htonll(*(sky_uint64_t *) p);
+            p += 8;
+        }
+    }
+    sky_log_info("payload len %lu", payload_size);
+
+    sky_uchar_t *key = p;
+
+    p += 4;
+    p[payload_size] = '\0';
+#if defined(__x86_64__)
+    size = payload_size >> 3;
+    if (size) {
+        sky_uint64_t mask;
+
+        ((sky_uint32_t *) (&mask))[0] = *(sky_uint32_t *) key;
+        ((sky_uint32_t *) (&mask))[1] = *(sky_uint32_t *) key;
+        do {
+            *(sky_uint64_t *) (p) ^= mask;
+            p += 8;
+        } while (--size);
+    }
+    switch (payload_size & 7) {
+        case 1:
+            *p++ ^= key[0];
+            break;
+        case 2:
+            *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) key;
+            p += 2;
+            break;
+        case 3:
+            *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) (key);
+            p += 2;
+            *p++ ^= key[2];
+            break;
+        case 4:
+            *(sky_uint32_t *) (p) ^= *(sky_uint32_t *) key;
+
+            p += 4;
+            break;
+        case 5:
+            *(sky_uint32_t *) (p) ^= *(sky_uint32_t *) key;
+            p += 4;
+            *p++ ^= key[0];
+            break;
+        case 6:
+            *(sky_uint32_t *) (p) ^= *(sky_uint32_t *) key;
+            p += 4;
+            *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) key;
+            p += 2;
+            break;
+        case 7:
+            *(sky_uint32_t *) (p) ^= *(sky_uint32_t *) key;
+            p += 4;
+            *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) (key);
+            p += 2;
+            *p++ ^= key[2];
+            break;
+        default:
+            break;
+    }
+#else
+    size = payload_size >> 2;
+    if (size) {
+        sky_uint32_t mask = *(sky_uint32_t *) key;
+        do {
+            *(sky_uint32_t *) (p) ^= mask;
+            p += 4;
+        } while (--size);
+    }
+
+    switch (payload_size & 0x3) {
+        case 1:
+            *p++ ^= key[0];
+            break;
+        case 2:
+            *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) key;
+            p += 2;
+            break;
+        case 3:
+            *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) (key);
+            p += 2;
+            *p++ ^= key[2];
+            break;
+        default:
+            break;
+    }
+#endif
+
+    sky_log_info("data: %s", key + 4);
 
     return true;
 //    return data->handler->read(r);
