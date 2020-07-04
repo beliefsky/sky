@@ -8,7 +8,6 @@
 #include "../../../core/base64.h"
 #include "../../../core/sha1.h"
 #include "../../inet.h"
-#include "../../../core/memory.h"
 
 typedef struct {
     sky_http_websocket_handler_t *handler;
@@ -18,6 +17,8 @@ typedef struct {
 static sky_http_response_t *module_run(sky_http_request_t *r, websocket_data_t *data);
 
 static sky_bool_t module_run_next(sky_http_request_t *r, websocket_data_t *data);
+
+static void websocket_decoding(sky_uchar_t *p, const sky_uchar_t *key, sky_uint64_t payload_size);
 
 void
 sky_http_module_websocket_init(sky_pool_t *pool, sky_http_module_t *module, sky_str_t *prefix,
@@ -129,15 +130,11 @@ module_run_next(sky_http_request_t *r, websocket_data_t *data) {
     }
     if (flag & 0x70) {
         sky_log_error("RSV NOT IS ZERO");
+        return false;
     }
     sky_log_info("code %u", flag & 0xf);
 
     flag = p[1];
-    if (flag & 0x80) {
-        sky_log_info("mask is true");
-    } else {
-        sky_log_info("mask is true");
-    }
 
     sky_uint64_t payload_size = flag & 0x7f;
 
@@ -152,11 +149,22 @@ module_run_next(sky_http_request_t *r, websocket_data_t *data) {
         }
     }
     sky_log_info("payload len %lu", payload_size);
-
-    sky_uchar_t *key = p;
-
-    p += 4;
+    if (flag & 0x80) { // mask is true
+        websocket_decoding(p + 4, p, payload_size);
+        p += 4;
+    }
     p[payload_size] = '\0';
+
+    sky_log_info("data: %s", p);
+
+    return true;
+//    return data->handler->read(r);
+}
+
+static void
+websocket_decoding(sky_uchar_t *p, const sky_uchar_t *key, sky_uint64_t payload_size) {
+    sky_uint64_t size;
+
 #if defined(__x86_64__)
     size = payload_size >> 3;
     if (size) {
@@ -171,39 +179,35 @@ module_run_next(sky_http_request_t *r, websocket_data_t *data) {
     }
     switch (payload_size & 7) {
         case 1:
-            *p++ ^= key[0];
+            *p ^= key[0];
             break;
         case 2:
             *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) key;
-            p += 2;
             break;
         case 3:
             *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) (key);
             p += 2;
-            *p++ ^= key[2];
+            *p ^= key[2];
             break;
         case 4:
             *(sky_uint32_t *) (p) ^= *(sky_uint32_t *) key;
-
-            p += 4;
             break;
         case 5:
             *(sky_uint32_t *) (p) ^= *(sky_uint32_t *) key;
             p += 4;
-            *p++ ^= key[0];
+            *p ^= key[0];
             break;
         case 6:
             *(sky_uint32_t *) (p) ^= *(sky_uint32_t *) key;
             p += 4;
             *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) key;
-            p += 2;
             break;
         case 7:
             *(sky_uint32_t *) (p) ^= *(sky_uint32_t *) key;
             p += 4;
             *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) (key);
             p += 2;
-            *p++ ^= key[2];
+            *p ^= key[2];
             break;
         default:
             break;
@@ -220,24 +224,18 @@ module_run_next(sky_http_request_t *r, websocket_data_t *data) {
 
     switch (payload_size & 0x3) {
         case 1:
-            *p++ ^= key[0];
+            *p ^= key[0];
             break;
         case 2:
             *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) key;
-            p += 2;
             break;
         case 3:
             *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) (key);
             p += 2;
-            *p++ ^= key[2];
+            *p ^= key[2];
             break;
         default:
             break;
     }
 #endif
-
-    sky_log_info("data: %s", key + 4);
-
-    return true;
-//    return data->handler->read(r);
 }
