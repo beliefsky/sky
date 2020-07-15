@@ -114,9 +114,20 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             if (ev->wait) {
                 continue;
             }
-            if (ev->index == -1) {
-                ev->index = index;
-                run_ev[index++] = ev;
+            if (event->filter == EVFILT_READ) {
+                if (!ev->read_run(ev)) {
+                    if (ev->index == -1) {
+                        ev->index = index;
+                        run_ev[index++] = ev;
+                    }
+                }
+            } else {
+                if (!ev->write_run(ev)) {
+                    if (ev->index == -1) {
+                        ev->index = index;
+                        run_ev[index++] = ev;
+                    }
+                }
             }
         }
         loop->now = time(null);
@@ -124,25 +135,15 @@ sky_event_loop_run(sky_event_loop_t *loop) {
         for (i = 0; i != index; ++i) {
             ev = run_ev[i];
             ev->index = -1;
-            if (!ev->reg) {
-                if (ev->timeout != -1) {
-                    sky_rbtree_delete(btree, &ev->node);
-                }
-                // 触发回收资源待解决
-                ev->close(ev);
-                continue;
-            }
-            if (!ev->run(ev)) {
+            if (ev->reg) {
                 close(ev->fd);
                 ev->reg = false;
-                if (ev->timeout != -1) {
-                    sky_rbtree_delete(btree, &ev->node);
-                }
-                // 触发回收资源待解决
-                ev->close(ev);
-                continue;
             }
-            ev->now = loop->now;
+            if (ev->timeout != -1) {
+                sky_rbtree_delete(btree, &ev->node);
+            }
+            // 触发回收资源待解决
+            ev->close(ev);
         }
 
         if (loop->update) {

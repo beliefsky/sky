@@ -211,7 +211,7 @@ pg_run(sky_pg_connection_t *conn) {
 
     for (;;) {
         if ((ps = conn->current)) {
-            if (ps->ev->run(ps->ev)) {
+            if (ps->ev->read_run(ps->ev)) {
                 if (conn->current) {
                     return true;
                 }
@@ -247,7 +247,7 @@ pg_connection(sky_pg_sql_t *ps) {
     if (sky_unlikely(fd < 0)) {
         return false;
     }
-    sky_event_init(ps->ev->loop, ev, fd, pg_run, pg_close);
+    sky_event_init(ps->ev->loop, ev, fd, pg_run, pg_run, pg_close);
 
     if (connect(fd, ps->ps_pool->addr, ps->ps_pool->addr_len) < 0) {
         switch (errno) {

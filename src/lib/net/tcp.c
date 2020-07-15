@@ -83,7 +83,7 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
             l->run = conf->run;
             l->data = conf->data;
             l->timeout = conf->timeout;
-            sky_event_init(loop, &l->ev, fd, tcp_listener_accept, tcp_listener_error);
+            sky_event_init(loop, &l->ev, fd, tcp_listener_accept, tcp_listener_accept, tcp_listener_error);
             sky_event_register(&l->ev, -1);
 
             continue;
