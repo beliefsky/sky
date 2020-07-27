@@ -15,15 +15,14 @@ extern "C" {
 typedef struct sky_event_loop_s sky_event_loop_t;
 typedef struct sky_event_s sky_event_t;
 
-typedef sky_bool_t (*sky_event_run_pt)(sky_event_t *ev);
+typedef sky_bool_t (*sky_event_run_pt)(sky_event_t *ev, sky_bool_t read, sky_bool_t write);
 
 typedef void (*sky_event_close_pt)(sky_event_t *ev);
 
 struct sky_event_s {
     sky_rbtree_node_t node;  // 注册节点，用于超时时处理
     sky_event_loop_t *loop; //该事件监听的主程
-    sky_event_run_pt read_run; // 读事件触发
-    sky_event_run_pt write_run; // 写事件触发
+    sky_event_run_pt run; // 读事件触发
     sky_event_close_pt close; // 异常事件或主动要求关闭时触发回调函数
     sky_time_t now; // 当前时间
     sky_time_t key; // 节点关键key
@@ -46,16 +45,15 @@ struct sky_event_loop_s {
     sky_bool_t update:1;
 };
 
-#define sky_event_init(_loop, _ev, _fd, _read_run, _write_run, _close)      \
-    (_ev)->fd = (_fd);                                                      \
-    (_ev)->loop = (_loop);                                                  \
-    (_ev)->now = (_loop)->now;                                              \
-    (_ev)->read_run = (sky_event_run_pt)(_read_run);                        \
-    (_ev)->write_run = (sky_event_run_pt)(_write_run);                      \
-    (_ev)->close = (sky_event_close_pt)(_close);                            \
-    (_ev)->reg = false;                                                     \
-    (_ev)->wait = false;                                                    \
-    (_ev)->read = true;                                                     \
+#define sky_event_init(_loop, _ev, _fd, _run, _close)       \
+    (_ev)->fd = (_fd);                                      \
+    (_ev)->loop = (_loop);                                  \
+    (_ev)->now = (_loop)->now;                              \
+    (_ev)->run = (sky_event_run_pt)(_run);                  \
+    (_ev)->close = (sky_event_close_pt)(_close);            \
+    (_ev)->reg = false;                                     \
+    (_ev)->wait = false;                                    \
+    (_ev)->read = true;                                     \
     (_ev)->write = true
 
 /**

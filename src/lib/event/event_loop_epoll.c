@@ -109,29 +109,15 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 continue;
             }
 
-            if ((event->events & EPOLLIN) != 0) {
-                if (!ev->read_run(ev)) {
-                    close(ev->fd);
-                    ev->reg = false;
-                    if (ev->timeout != -1) {
-                        sky_rbtree_delete(btree, &ev->node);
-                    }
-                    // 触发回收资源待解决
-                    ev->close(ev);
-                    continue;
+            if (!ev->run(ev, event->events & EPOLLIN, event->events & EPOLLOUT)) {
+                close(ev->fd);
+                ev->reg = false;
+                if (ev->timeout != -1) {
+                    sky_rbtree_delete(btree, &ev->node);
                 }
-            }
-            if ((event->events & EPOLLOUT) != 0) {
-                if (!ev->write_run(ev)) {
-                    close(ev->fd);
-                    ev->reg = false;
-                    if (ev->timeout != -1) {
-                        sky_rbtree_delete(btree, &ev->node);
-                    }
-                    // 触发回收资源待解决
-                    ev->close(ev);
-                    continue;
-                }
+                // 触发回收资源待解决
+                ev->close(ev);
+                continue;
             }
             ev->now = loop->now;
         }

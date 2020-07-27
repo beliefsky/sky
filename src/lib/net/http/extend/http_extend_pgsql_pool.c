@@ -39,7 +39,7 @@ struct sky_pg_connection_pool_s {
 
 static void pg_sql_connection_defer(sky_pg_sql_t *ps);
 
-static sky_bool_t pg_run(sky_pg_connection_t *conn);
+static sky_bool_t pg_run(sky_pg_connection_t *conn, sky_bool_t read, sky_bool_t write);
 
 static void pg_close(sky_pg_connection_t *conn);
 
@@ -206,12 +206,12 @@ pg_sql_connection_defer(sky_pg_sql_t *ps) {
 }
 
 static sky_bool_t
-pg_run(sky_pg_connection_t *conn) {
+pg_run(sky_pg_connection_t *conn, sky_bool_t read, sky_bool_t write) {
     sky_pg_sql_t *ps;
 
     for (;;) {
         if ((ps = conn->current)) {
-            if (ps->ev->read_run(ps->ev)) {
+            if (ps->ev->run(ps->ev, read, write)) {
                 if (conn->current) {
                     return true;
                 }
@@ -233,7 +233,7 @@ static void
 pg_close(sky_pg_connection_t *conn) {
     sky_log_error("pg con %d close", conn->ev.fd);
     conn->ev.fd = -1;
-    pg_run(conn);
+    pg_run(conn, true, true);
 }
 
 
@@ -247,7 +247,7 @@ pg_connection(sky_pg_sql_t *ps) {
     if (sky_unlikely(fd < 0)) {
         return false;
     }
-    sky_event_init(ps->ev->loop, ev, fd, pg_run, pg_run, pg_close);
+    sky_event_init(ps->ev->loop, ev, fd, pg_run, pg_close);
 
     if (connect(fd, ps->ps_pool->addr, ps->ps_pool->addr_len) < 0) {
         switch (errno) {

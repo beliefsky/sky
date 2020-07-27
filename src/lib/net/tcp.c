@@ -25,7 +25,7 @@ typedef struct {
 } listener_t;
 
 
-static sky_bool_t tcp_listener_accept(sky_event_t *ev);
+static sky_bool_t tcp_listener_accept(sky_event_t *ev, sky_bool_t read, sky_bool_t write);
 
 static void tcp_listener_error(sky_event_t *ev);
 
@@ -83,7 +83,7 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
             l->run = conf->run;
             l->data = conf->data;
             l->timeout = conf->timeout;
-            sky_event_init(loop, &l->ev, fd, tcp_listener_accept, tcp_listener_accept, tcp_listener_error);
+            sky_event_init(loop, &l->ev, fd, tcp_listener_accept, tcp_listener_error);
             sky_event_register(&l->ev, -1);
 
             continue;
@@ -94,13 +94,15 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
 }
 
 static sky_bool_t
-tcp_listener_accept(sky_event_t *ev) {
+tcp_listener_accept(sky_event_t *ev, sky_bool_t read, sky_bool_t write) {
+    (void) write;
+
     listener_t *l;
     sky_int32_t listener, fd;
     sky_event_loop_t *loop;
     sky_event_t *event;
 
-    if (!ev->read) {
+    if (!read) {
         return true;
     }
     l = (listener_t *) ev;

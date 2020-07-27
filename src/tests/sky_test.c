@@ -24,6 +24,7 @@
 #include <net/inet.h>
 #include <net/http/extend/http_extend_pgsql_pool.h>
 #include <math/matrix.h>
+#include <net/http/module/http_module_websocket.h>
 
 
 static void server_start(sky_int64_t cpu_num);
@@ -34,45 +35,14 @@ static sky_bool_t redis_test(sky_http_request_t *req, sky_http_response_t *res);
 
 static sky_bool_t hello_world(sky_http_request_t *req, sky_http_response_t *res);
 
+static sky_bool_t websocket_open(sky_http_request_t *request);
+
+static sky_bool_t websocket_message(sky_http_request_t *request);
+
 
 int
 main() {
 
-    sky_pool_t *pool = sky_create_pool(1024);
-
-    sky_matrix_data_t av[] = {
-            1, 2, 3, 4,
-            5, 6, 7, 8
-    };
-    sky_matrix_data_t bv[] = {
-            11, 12, 13,
-            14, 15, 16,
-            17, 18, 19,
-            20, 21, 22
-    };
-
-    sky_matrix_t a = {
-            .rows = 2,
-            .cols = 4,
-            .num = 8,
-            .vs = av
-    };
-    sky_matrix_t b = {
-            .rows = 4,
-            .cols = 3,
-            .num = 12,
-            .vs = bv
-    };
-
-
-    sky_matrix_t *c = sky_matrix_trans(pool, &b);
-
-    for (sky_uint32_t i = 0; i < c->num; ++i) {
-        sky_log_info("%lf", c->vs[i]);
-    }
-    sky_log_info("==========");
-
-    return 0;
     sky_int64_t cpu_num;
     sky_uint32_t i;
 
@@ -180,6 +150,13 @@ server_start(sky_int64_t cpu_num) {
     sky_http_module_file_init(pool, sky_array_push(&modules), &prefix, &file_path);
 
     build_http_dispatcher(pool, sky_array_push(&modules));
+
+    sky_http_websocket_handler_t *handler = sky_pcalloc(pool, sizeof(sky_http_websocket_handler_t));
+    handler->open = websocket_open;
+    handler->read = websocket_message;
+
+    sky_str_set(&prefix, "/ws");
+    sky_http_module_websocket_init(pool, sky_array_push(&modules), &prefix, handler);
 
     sky_http_module_host_t hosts[] = {
             {
@@ -305,8 +282,8 @@ hello_world(sky_http_request_t *req, sky_http_response_t *res) {
 
     sky_str_t cmd = sky_string("SELECT int32,int64,int16,text,text_arr,int32_arr FROM tb_test WHERE int32 = $1");
 
-    sky_pg_type_t type = pg_data_int64;
-    sky_pg_data_t param = {.int64 = 1L};
+    sky_pg_type_t type = pg_data_int32;
+    sky_pg_data_t param = {.int32 = 1L};
 
     sky_pg_result_t *result = sky_pg_sql_exec(ps, &cmd, &type, &param, 1);
     if (!result) {
@@ -359,3 +336,11 @@ hello_world(sky_http_request_t *req, sky_http_response_t *res) {
     return true;
 }
 
+
+static sky_bool_t websocket_open(sky_http_request_t *request) {
+    return true;
+}
+
+static sky_bool_t websocket_message(sky_http_request_t *request) {
+    return true;
+}

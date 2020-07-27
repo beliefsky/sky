@@ -114,19 +114,10 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             if (ev->wait) {
                 continue;
             }
-            if (event->filter == EVFILT_READ) {
-                if (!ev->read_run(ev)) {
-                    if (ev->index == -1) {
-                        ev->index = index;
-                        run_ev[index++] = ev;
-                    }
-                }
-            } else {
-                if (!ev->write_run(ev)) {
-                    if (ev->index == -1) {
-                        ev->index = index;
-                        run_ev[index++] = ev;
-                    }
+            if (!ev->run(ev, event->filter == EVFILT_READ, event->filter == EVFILT_WRITE)) {
+                if (ev->index == -1) {
+                    ev->index = index;
+                    run_ev[index++] = ev;
                 }
             }
         }

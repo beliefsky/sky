@@ -170,7 +170,7 @@ http_connection_accept_cb(sky_event_loop_t *loop, sky_int32_t fd, sky_http_serve
     conn->read = http_read;
     conn->write = http_write;
     conn->free = null;
-    sky_event_init(loop, &conn->ev, fd, http_connection_run, http_connection_run, http_connection_close);
+    sky_event_init(loop, &conn->ev, fd, http_connection_run, http_connection_close);
 
     if (sky_coro_resume(coro) != SKY_CORO_MAY_RESUME) {
         sky_coro_destroy(coro);

@@ -28,7 +28,7 @@ struct sky_redis_connection_pool_s {
 
 static void redis_connection_defer(sky_redis_cmd_t *rc);
 
-static sky_bool_t redis_run(sky_redis_connection_t *conn);
+static sky_bool_t redis_run(sky_redis_connection_t *conn, sky_bool_t read, sky_bool_t write);
 
 static void redis_close(sky_redis_connection_t *conn);
 
@@ -158,12 +158,12 @@ redis_connection_defer(sky_redis_cmd_t *rc) {
 }
 
 static sky_bool_t
-redis_run(sky_redis_connection_t *conn) {
+redis_run(sky_redis_connection_t *conn, sky_bool_t read, sky_bool_t write) {
     sky_redis_cmd_t *rc;
 
     for (;;) {
         if ((rc = conn->current)) {
-            if (rc->ev->read_run(rc->ev)) {
+            if (rc->ev->run(rc->ev, read, write)) {
                 if (conn->current) {
                     return true;
                 }
@@ -185,7 +185,7 @@ static void
 redis_close(sky_redis_connection_t *conn) {
     sky_log_error("redis con %d close", conn->ev.fd);
     conn->ev.fd = -1;
-    redis_run(conn);
+    redis_run(conn, true, true);
 }
 
 static sky_bool_t
@@ -637,7 +637,7 @@ redis_connection(sky_redis_cmd_t *rc) {
     if (sky_unlikely(fd < 0)) {
         return false;
     }
-    sky_event_init(rc->ev->loop, ev, fd, redis_run, redis_run, redis_close);
+    sky_event_init(rc->ev->loop, ev, fd, redis_run, redis_close);
 
     if (connect(fd, rc->redis_pool->addr, rc->redis_pool->addr_len) < 0) {
         switch (errno) {
