@@ -105,12 +105,12 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
 
 static void
 module_run_next(sky_http_request_t *r, websocket_data_t *data) {
-    sky_bool_t flag;
+    sky_bool_t tag;
 
     if (sky_unlikely(r->state != 101)) {
         return;
     }
-    flag = false;
+    tag = false;
     for (;;) {
         if (r->conn->ev.read) {
             sky_pool_t *pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
@@ -168,8 +168,8 @@ module_run_next(sky_http_request_t *r, websocket_data_t *data) {
 //    return data->handler->read(r);
         }
 
-        if (flag) {
-            flag = false;
+        if (tag) {
+            tag = false;
         } else {
             sky_coro_yield(r->conn->coro, SKY_CORO_MAY_RESUME);
         }
