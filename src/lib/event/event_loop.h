@@ -22,7 +22,7 @@ typedef void (*sky_event_close_pt)(sky_event_t *ev);
 struct sky_event_s {
     sky_rbtree_node_t node;  // 注册节点，用于超时时处理
     sky_event_loop_t *loop; //该事件监听的主程
-    sky_event_run_pt run; // 读事件触发
+    sky_event_run_pt run; // 普通事件触发的回调函数
     sky_event_close_pt close; // 异常事件或主动要求关闭时触发回调函数
     sky_time_t now; // 当前时间
     sky_time_t key; // 节点关键key
@@ -45,15 +45,15 @@ struct sky_event_loop_s {
     sky_bool_t update:1;
 };
 
-#define sky_event_init(_loop, _ev, _fd, _run, _close)       \
-    (_ev)->fd = (_fd);                                      \
-    (_ev)->loop = (_loop);                                  \
-    (_ev)->now = (_loop)->now;                              \
-    (_ev)->run = (sky_event_run_pt)(_run);                  \
-    (_ev)->close = (sky_event_close_pt)(_close);            \
-    (_ev)->reg = false;                                     \
-    (_ev)->wait = false;                                    \
-    (_ev)->read = true;                                     \
+#define sky_event_init(_loop, _ev, _fd, _run, _close)   \
+    (_ev)->fd = (_fd);                                  \
+    (_ev)->loop = (_loop);                              \
+    (_ev)->now = (_loop)->now;                          \
+    (_ev)->run = (sky_event_run_pt)(_run);              \
+    (_ev)->close = (sky_event_close_pt)(_close);        \
+    (_ev)->reg = false;                                 \
+    (_ev)->wait = false;                                \
+    (_ev)->read = true;                                 \
     (_ev)->write = true
 
 /**

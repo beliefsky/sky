@@ -102,13 +102,13 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 ev->close(ev);
                 continue;
             }
-
+            // 是否可读
             ev->read = (event->events & EPOLLIN) == 0 ? ev->read : true;
             ev->write = (event->events & EPOLLOUT) == 0 ? ev->read : true;
+
             if (ev->wait) {
                 continue;
             }
-
             if (!ev->run(ev)) {
                 close(ev->fd);
                 ev->reg = false;
