@@ -71,9 +71,7 @@ sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
             response = module->run(r, module->module_data);
             http_response(r, response);
             if (module->next) {
-                while (module->next(r, module->module_data)) {
-                    // none
-                }
+                module->next(r, module->module_data);
             }
         } else {
             r->state = 404;

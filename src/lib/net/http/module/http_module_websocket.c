@@ -18,7 +18,7 @@ typedef struct {
 
 static sky_http_response_t *module_run(sky_http_request_t *r, websocket_data_t *data);
 
-static sky_bool_t module_run_next(sky_http_request_t *r, websocket_data_t *data);
+static void module_run_next(sky_http_request_t *r, websocket_data_t *data);
 
 static void websocket_decoding(sky_uchar_t *p, const sky_uchar_t *key, sky_uint64_t payload_size);
 
@@ -33,7 +33,7 @@ sky_http_module_websocket_init(sky_pool_t *pool, sky_http_module_t *module, sky_
 
     module->prefix = *prefix;
     module->run = (sky_http_response_t *(*)(sky_http_request_t *, sky_uintptr_t)) module_run;
-    module->next = (sky_bool_t (*)(sky_http_request_t *, sky_uintptr_t)) module_run_next;
+    module->next = (void (*)(sky_http_request_t *, sky_uintptr_t)) module_run_next;
     module->module_data = (sky_uintptr_t) data;
 
 }
@@ -103,70 +103,77 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
     return response;
 }
 
-static sky_bool_t
+static void
 module_run_next(sky_http_request_t *r, websocket_data_t *data) {
+    sky_bool_t flag;
+
     if (sky_unlikely(r->state != 101)) {
-        return false;
+        return;
     }
-    while (!r->conn->ev.read) {
-        sky_coro_yield(r->conn->coro, SKY_CORO_MAY_RESUME);
-    }
-    sky_pool_t *pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
-    sky_buf_t *buf = sky_buf_create(pool, 1024);
+    flag = false;
+    for (;;) {
+        if (r->conn->ev.read) {
+            sky_pool_t *pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
+            sky_buf_t *buf = sky_buf_create(pool, 1024);
 
+            sky_log_info("wait");
+            sky_uint64_t size = websocket_read(r->conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
+            if (size) {
+                sky_log_info("data size %lu", size);
+                for (sky_uint32_t i = 0; i < size; ++i) {
+                    printf("%d\t\t", buf->last[i]);
+                }
+                printf("\n");
 
-    sky_log_info("wait");
-    sky_uint64_t size = websocket_read(r->conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
-    if (size) {
-        sky_log_info("data size %lu", size);
-        for (sky_uint32_t i = 0; i < size; ++i) {
-            printf("%d\t\t", buf->last[i]);
-        }
-        printf("\n");
+                sky_uchar_t *p = buf->last;
 
-        sky_uchar_t *p = buf->last;
+                sky_uint8_t flag = p[0];
 
-        sky_uint8_t flag = p[0];
+                if (flag & 0x80) {
+                    sky_log_info("fin is true");
+                } else {
+                    sky_log_info("fin is false");
+                }
+                if (flag & 0x70) {
+                    sky_log_error("RSV NOT IS ZERO");
+                    return;
+                }
+                sky_log_info("code %u", flag & 0xf);
 
-        if (flag & 0x80) {
-            sky_log_info("fin is true");
-        } else {
-            sky_log_info("fin is false");
-        }
-        if (flag & 0x70) {
-            sky_log_error("RSV NOT IS ZERO");
-            return false;
-        }
-        sky_log_info("code %u", flag & 0xf);
+                flag = p[1];
 
-        flag = p[1];
+                sky_uint64_t payload_size = flag & 0x7f;
 
-        sky_uint64_t payload_size = flag & 0x7f;
-
-        p += 2;
-        if (payload_size > 125) {
-            if (payload_size == 126) {
-                payload_size = sky_htons(*(sky_uint16_t *) p);
                 p += 2;
-            } else {
-                payload_size = sky_htonll(*(sky_uint64_t *) p);
-                p += 8;
+                if (payload_size > 125) {
+                    if (payload_size == 126) {
+                        payload_size = sky_htons(*(sky_uint16_t *) p);
+                        p += 2;
+                    } else {
+                        payload_size = sky_htonll(*(sky_uint64_t *) p);
+                        p += 8;
+                    }
+                }
+                sky_log_info("payload len %lu", payload_size);
+                if (flag & 0x80) { // mask is true
+                    websocket_decoding(p + 4, p, payload_size);
+                    p += 4;
+                }
+                p[payload_size] = '\0';
+
+                sky_log_info("data: %s", p);
             }
-        }
-        sky_log_info("payload len %lu", payload_size);
-        if (flag & 0x80) { // mask is true
-            websocket_decoding(p + 4, p, payload_size);
-            p += 4;
-        }
-        p[payload_size] = '\0';
 
-        sky_log_info("data: %s", p);
-    }
-
-    sky_log_info("xxxxx");
-
-    return true;
+            sky_log_info("xxxxx");
 //    return data->handler->read(r);
+        }
+
+        if (flag) {
+            flag = false;
+        } else {
+            sky_coro_yield(r->conn->coro, SKY_CORO_MAY_RESUME);
+        }
+    }
 }
 
 static void
