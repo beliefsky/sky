@@ -2,6 +2,8 @@
 // Created by weijing on 2020/7/1.
 //
 
+#include <unistd.h>
+#include <errno.h>
 #include "http_module_websocket.h"
 #include "../http_request.h"
 #include "../../../core/log.h"
@@ -19,6 +21,8 @@ static sky_http_response_t *module_run(sky_http_request_t *r, websocket_data_t *
 static sky_bool_t module_run_next(sky_http_request_t *r, websocket_data_t *data);
 
 static void websocket_decoding(sky_uchar_t *p, const sky_uchar_t *key, sky_uint64_t payload_size);
+
+static sky_uint32_t websocket_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size);
 
 void
 sky_http_module_websocket_init(sky_pool_t *pool, sky_http_module_t *module, sky_str_t *prefix,
@@ -112,50 +116,54 @@ module_run_next(sky_http_request_t *r, websocket_data_t *data) {
 
 
     sky_log_info("wait");
-    sky_uint64_t size = r->conn->read(r->conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
-    sky_log_info("data size %lu", size);
-    for (sky_uint32_t i = 0; i < size; ++i) {
-        printf("%d\t\t", buf->last[i]);
-    }
-    printf("\n");
-
-    sky_uchar_t *p = buf->last;
-
-    sky_uint8_t flag = p[0];
-
-    if (flag & 0x80) {
-        sky_log_info("fin is true");
-    } else {
-        sky_log_info("fin is false");
-    }
-    if (flag & 0x70) {
-        sky_log_error("RSV NOT IS ZERO");
-        return false;
-    }
-    sky_log_info("code %u", flag & 0xf);
-
-    flag = p[1];
-
-    sky_uint64_t payload_size = flag & 0x7f;
-
-    p += 2;
-    if (payload_size > 125) {
-        if (payload_size == 126) {
-            payload_size = sky_htons(*(sky_uint16_t *) p);
-            p += 2;
-        } else {
-            payload_size = sky_htonll(*(sky_uint64_t *) p);
-            p += 8;
+    sky_uint64_t size = websocket_read(r->conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
+    if (size) {
+        sky_log_info("data size %lu", size);
+        for (sky_uint32_t i = 0; i < size; ++i) {
+            printf("%d\t\t", buf->last[i]);
         }
-    }
-    sky_log_info("payload len %lu", payload_size);
-    if (flag & 0x80) { // mask is true
-        websocket_decoding(p + 4, p, payload_size);
-        p += 4;
-    }
-    p[payload_size] = '\0';
+        printf("\n");
 
-    sky_log_info("data: %s", p);
+        sky_uchar_t *p = buf->last;
+
+        sky_uint8_t flag = p[0];
+
+        if (flag & 0x80) {
+            sky_log_info("fin is true");
+        } else {
+            sky_log_info("fin is false");
+        }
+        if (flag & 0x70) {
+            sky_log_error("RSV NOT IS ZERO");
+            return false;
+        }
+        sky_log_info("code %u", flag & 0xf);
+
+        flag = p[1];
+
+        sky_uint64_t payload_size = flag & 0x7f;
+
+        p += 2;
+        if (payload_size > 125) {
+            if (payload_size == 126) {
+                payload_size = sky_htons(*(sky_uint16_t *) p);
+                p += 2;
+            } else {
+                payload_size = sky_htonll(*(sky_uint64_t *) p);
+                p += 8;
+            }
+        }
+        sky_log_info("payload len %lu", payload_size);
+        if (flag & 0x80) { // mask is true
+            websocket_decoding(p + 4, p, payload_size);
+            p += 4;
+        }
+        p[payload_size] = '\0';
+
+        sky_log_info("data: %s", p);
+    }
+
+    sky_log_info("xxxxx");
 
     return true;
 //    return data->handler->read(r);
@@ -238,4 +246,35 @@ websocket_decoding(sky_uchar_t *p, const sky_uchar_t *key, sky_uint64_t payload_
             break;
     }
 #endif
+}
+
+static sky_uint32_t
+websocket_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size) {
+    ssize_t n;
+    sky_int32_t fd;
+
+
+    fd = conn->ev.fd;
+    for (;;) {
+        if (sky_unlikely(!conn->ev.read)) {
+            return 0;
+        }
+
+        if ((n = read(fd, data, size)) < 1) {
+            conn->ev.read = false;
+            if (sky_unlikely(!n)) {
+                sky_coro_yield(conn->coro, SKY_CORO_ABORT);
+                sky_coro_exit();
+            }
+            switch (errno) {
+                case EINTR:
+                case EAGAIN:
+                    return 0;
+                default:
+                    sky_coro_yield(conn->coro, SKY_CORO_ABORT);
+                    sky_coro_exit();
+            }
+        }
+        return (sky_uint32_t) n;
+    }
 }

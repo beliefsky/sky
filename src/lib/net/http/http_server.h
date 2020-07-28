@@ -72,16 +72,9 @@ struct sky_http_module_s {
 
 struct sky_http_connection_s {
     sky_event_t ev;
-
-    sky_http_read_pt read;
-    sky_http_write_pt write;
-
     sky_coro_t *coro;
-
     sky_http_server_t *server;
-
     sky_pool_t *pool;
-
     sky_buf_t *free;
 };
 
