@@ -39,7 +39,7 @@ struct sky_pg_connection_pool_s {
 
 static void pg_sql_connection_defer(sky_pg_sql_t *ps);
 
-static sky_bool_t pg_run(sky_pg_connection_t *conn, sky_bool_t read, sky_bool_t write);
+static sky_bool_t pg_run(sky_pg_connection_t *conn);
 
 static void pg_close(sky_pg_connection_t *conn);
 
@@ -206,12 +206,12 @@ pg_sql_connection_defer(sky_pg_sql_t *ps) {
 }
 
 static sky_bool_t
-pg_run(sky_pg_connection_t *conn, sky_bool_t read, sky_bool_t write) {
+pg_run(sky_pg_connection_t *conn) {
     sky_pg_sql_t *ps;
 
     for (;;) {
         if ((ps = conn->current)) {
-            if (ps->ev->run(ps->ev, read, write)) {
+            if (ps->ev->run(ps->ev)) {
                 if (conn->current) {
                     return true;
                 }
@@ -233,7 +233,7 @@ static void
 pg_close(sky_pg_connection_t *conn) {
     sky_log_error("pg con %d close", conn->ev.fd);
     conn->ev.fd = -1;
-    pg_run(conn, true, true);
+    pg_run(conn);
 }
 
 

@@ -15,7 +15,7 @@ extern "C" {
 typedef struct sky_event_loop_s sky_event_loop_t;
 typedef struct sky_event_s sky_event_t;
 
-typedef sky_bool_t (*sky_event_run_pt)(sky_event_t *ev, sky_bool_t read, sky_bool_t write);
+typedef sky_bool_t (*sky_event_run_pt)(sky_event_t *ev);
 
 typedef void (*sky_event_close_pt)(sky_event_t *ev);
 

@@ -109,7 +109,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 continue;
             }
 
-            if (!ev->run(ev, event->events & EPOLLIN, event->events & EPOLLOUT)) {
+            if (!ev->run(ev)) {
                 close(ev->fd);
                 ev->reg = false;
                 if (ev->timeout != -1) {
