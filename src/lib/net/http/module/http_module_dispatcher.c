@@ -74,21 +74,14 @@ http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
     }
 
     flag = false;
-    if (handler[0]) {
-        if (!handler[0](r)) {
-            return;
+
+    for (sky_uint32_t i = 0; i != 3; ++i) {
+        if (handler[i]) {
+            if (!handler[i](r)) {
+                return;
+            }
+            flag = true;
         }
-        flag = true;
-    }
-    if (handler[1]) {
-        if (!handler[1](r)) {
-            return;
-        }
-        flag = true;
-    }
-    if (handler[2]) {
-        handler[2](r);
-        flag = true;
     }
     if (!flag) {
         r->state = 405;
