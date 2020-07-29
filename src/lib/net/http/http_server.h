@@ -20,12 +20,6 @@ typedef struct sky_http_connection_s sky_http_connection_t;
 typedef struct sky_http_request_s sky_http_request_t;
 typedef struct sky_http_module_s sky_http_module_t;
 
-typedef sky_uint32_t (*sky_http_read_pt)(sky_http_connection_t *conn,
-                                         sky_uchar_t *data, sky_uint32_t size);
-
-typedef void (*sky_http_write_pt)(sky_http_connection_t *conn,
-                                  sky_uchar_t *data, sky_uint32_t size);
-
 typedef struct {
     sky_str_t host;
     sky_http_module_t *modules;
