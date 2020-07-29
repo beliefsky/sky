@@ -19,7 +19,7 @@ typedef struct {
 
 static void module_run(sky_http_request_t *r, websocket_data_t *data);
 
-static void module_run_next(sky_http_request_t *r, websocket_data_t *data);
+static void module_run_next(sky_websocket_session_t *session);
 
 static void websocket_decoding(sky_uchar_t *p, const sky_uchar_t *key, sky_uint64_t payload_size);
 
@@ -85,7 +85,6 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
     session = sky_pcalloc(r->pool, sizeof(sky_websocket_session_t));
     session->request = r;
 
-    r->data = session;
     if (sky_unlikely(!data->handler->open(session))) {
         sky_http_response_nobody(r);
         return;
@@ -107,23 +106,23 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
 
     sky_http_response_nobody(r);
 
-    module_run_next(r, data);
+    module_run_next(session);
 
     return;
 }
 
 static void
-module_run_next(sky_http_request_t *r, websocket_data_t *data) {
-    if (sky_unlikely(r->state != 101)) {
-        return;
-    }
+module_run_next(sky_websocket_session_t *session) {
+    sky_http_connection_t *conn;
+
+    conn = session->request->conn;
     for (;;) {
-        if (r->conn->ev.read) {
+        if (conn->ev.read) {
             sky_pool_t *pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
             sky_buf_t *buf = sky_buf_create(pool, 1024);
 
             sky_log_info("wait");
-            sky_uint64_t size = websocket_read(r->conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
+            sky_uint64_t size = websocket_read(conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
             if (size) {
                 sky_log_info("data size %lu", size);
                 for (sky_uint32_t i = 0; i < size; ++i) {
@@ -174,7 +173,7 @@ module_run_next(sky_http_request_t *r, websocket_data_t *data) {
 //    return data->handler->read(r);
         }
 
-        sky_coro_yield(r->conn->coro, SKY_CORO_MAY_RESUME);
+        sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
     }
 }
 

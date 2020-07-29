@@ -36,9 +36,9 @@ static sky_bool_t redis_test(sky_http_request_t *req);
 
 static sky_bool_t hello_world(sky_http_request_t *req);
 
-static sky_bool_t websocket_open(sky_http_request_t *request);
+static sky_bool_t websocket_open(sky_websocket_session_t *session);
 
-static sky_bool_t websocket_message(sky_http_request_t *request);
+static sky_bool_t websocket_message(sky_websocket_session_t *session);
 
 
 int
@@ -253,14 +253,6 @@ redis_test(sky_http_request_t *req) {
     return true;
 }
 
-
-typedef struct {
-    sky_uint32_t version: 1;
-    sky_uint32_t msg_id_type: 1;
-    sky_uint32_t msg_id: 4;
-    sky_uint32_t cmd: 10;
-} dhwork_frames_t;
-
 static sky_bool_t
 hello_world(sky_http_request_t *req) {
 
@@ -324,10 +316,10 @@ hello_world(sky_http_request_t *req) {
 }
 
 
-static sky_bool_t websocket_open(sky_http_request_t *request) {
+static sky_bool_t websocket_open(sky_websocket_session_t *session) {
     return true;
 }
 
-static sky_bool_t websocket_message(sky_http_request_t *request) {
+static sky_bool_t websocket_message(sky_websocket_session_t *session) {
     return true;
 }
