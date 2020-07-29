@@ -47,11 +47,20 @@ sky_http_response_static(sky_http_request_t *r, sky_str_t *buf) {
     sky_table_elt_t *header;
     sky_size_t size;
 
-    data = sky_palloc(r->pool, 16);
     header = sky_list_push(&r->headers_out.headers);
     sky_str_set(&header->key, "Content-Length");
+
+    if (!buf || !buf->len) {
+        sky_str_set(&header->value, "0");
+        size = http_header_size(r);
+        data = sky_palloc(r->pool, size);
+        (void) http_header_build(r, data);
+        http_write(r->conn, data, (sky_uint32_t) size);
+        return;
+    }
+
+    header->value.data = data = sky_palloc(r->pool, 16);
     header->value.len = sky_uint64_to_str(buf->len, data);
-    header->value.data = data;
 
     size = http_header_size(r);
 
@@ -59,7 +68,6 @@ sky_http_response_static(sky_http_request_t *r, sky_str_t *buf) {
         size += buf->len;
         data = sky_palloc(r->pool, size);
         sky_memcpy(http_header_build(r, data), buf->data, buf->len);
-
         http_write(r->conn, data, (sky_uint32_t) size);
     } else {
         data = sky_palloc(r->pool, size);
@@ -75,11 +83,20 @@ sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_uint32
     sky_table_elt_t *header;
     sky_size_t size;
 
-    data = sky_palloc(r->pool, 16);
+
     header = sky_list_push(&r->headers_out.headers);
     sky_str_set(&header->key, "Content-Length");
+    if (!buf_len) {
+        sky_str_set(&header->value, "0");
+        size = http_header_size(r);
+        data = sky_palloc(r->pool, size);
+        (void) http_header_build(r, data);
+        http_write(r->conn, data, (sky_uint32_t) size);
+        return;
+    }
+
+    header->value.data = data = sky_palloc(r->pool, 16);
     header->value.len = sky_uint64_to_str(buf_len, data);
-    header->value.data = data;
 
     size = http_header_size(r);
 
