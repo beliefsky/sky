@@ -10,13 +10,14 @@
 #include "../../../core/base64.h"
 #include "../../../core/sha1.h"
 #include "../../inet.h"
+#include "../http_response.h"
 
 typedef struct {
     sky_http_websocket_handler_t *handler;
     sky_hash_t hash;
 } websocket_data_t;
 
-static sky_http_response_t *module_run(sky_http_request_t *r, websocket_data_t *data);
+static void module_run(sky_http_request_t *r, websocket_data_t *data);
 
 static void module_run_next(sky_http_request_t *r, websocket_data_t *data);
 
@@ -32,19 +33,15 @@ sky_http_module_websocket_init(sky_pool_t *pool, sky_http_module_t *module, sky_
     data->handler = handler;
 
     module->prefix = *prefix;
-    module->run = (sky_http_response_t *(*)(sky_http_request_t *, sky_uintptr_t)) module_run;
-    module->next = (void (*)(sky_http_request_t *, sky_uintptr_t)) module_run_next;
+    module->run = (void (*)(sky_http_request_t *, sky_uintptr_t)) module_run;
     module->module_data = (sky_uintptr_t) data;
 
 }
 
-static sky_http_response_t *
+static void
 module_run(sky_http_request_t *r, websocket_data_t *data) {
-    sky_http_response_t *response;
+    sky_websocket_session_t *session;
     sky_table_elt_t *header;
-
-    response = sky_palloc(r->pool, sizeof(sky_http_response_t));
-    response->type = SKY_HTTP_RESPONSE_EMPTY;
 
     r->keep_alive = false;
 
@@ -57,7 +54,8 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
     })
 
     if (sky_unlikely(!key)) {
-        return response;
+        sky_http_response_nobody(r);
+        return;
     }
     sky_sha1_t ctx;
 
@@ -83,24 +81,35 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
 
     sky_encode_base64(key, &key2);
 
-    if (sky_likely(data->handler->open(r))) {
-        r->state = 101;
-        r->conn->ev.timeout = 600;
-        header = sky_list_push(&r->headers_out.headers);
-        sky_str_set(&header->key, "Upgrade");
-        sky_str_set(&header->value, "websocket");
 
-        header = sky_list_push(&r->headers_out.headers);
-        sky_str_set(&header->key, "Connection");
-        sky_str_set(&header->value, "upgrade");
+    session = sky_pcalloc(r->pool, sizeof(sky_websocket_session_t));
+    session->request = r;
 
-
-        header = sky_list_push(&r->headers_out.headers);
-        sky_str_set(&header->key, "Sec-WebSocket-Accept");
-        header->value = *key;
+    r->data = session;
+    if (sky_unlikely(!data->handler->open(session))) {
+        sky_http_response_nobody(r);
+        return;
     }
+    r->state = 101;
+    r->conn->ev.timeout = 600;
+    header = sky_list_push(&r->headers_out.headers);
+    sky_str_set(&header->key, "Upgrade");
+    sky_str_set(&header->value, "websocket");
 
-    return response;
+    header = sky_list_push(&r->headers_out.headers);
+    sky_str_set(&header->key, "Connection");
+    sky_str_set(&header->value, "upgrade");
+
+
+    header = sky_list_push(&r->headers_out.headers);
+    sky_str_set(&header->key, "Sec-WebSocket-Accept");
+    header->value = *key;
+
+    sky_http_response_nobody(r);
+
+    module_run_next(r, data);
+
+    return;
 }
 
 static void

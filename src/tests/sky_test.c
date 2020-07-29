@@ -25,15 +25,16 @@
 #include <net/http/extend/http_extend_pgsql_pool.h>
 #include <math/matrix.h>
 #include <net/http/module/http_module_websocket.h>
+#include <net/http/http_response.h>
 
 
 static void server_start(sky_int64_t cpu_num);
 
 static void build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module);
 
-static sky_bool_t redis_test(sky_http_request_t *req, sky_http_response_t *res);
+static sky_bool_t redis_test(sky_http_request_t *req);
 
-static sky_bool_t hello_world(sky_http_request_t *req, sky_http_response_t *res);
+static sky_bool_t hello_world(sky_http_request_t *req);
 
 static sky_bool_t websocket_open(sky_http_request_t *request);
 
@@ -146,7 +147,7 @@ server_start(sky_int64_t cpu_num) {
     sky_array_init(&modules, pool, 32, sizeof(sky_http_module_t));
 
     sky_str_set(&prefix, "");
-    sky_str_set(&file_path, "/home/weijing/Downloads/test");
+    sky_str_set(&file_path, "/mnt/c/Users/weijing/Downloads/test");
     sky_http_module_file_init(pool, sky_array_push(&modules), &prefix, &file_path);
 
     build_http_dispatcher(pool, sky_array_push(&modules));
@@ -170,7 +171,7 @@ server_start(sky_int64_t cpu_num) {
                     .modules_n = (sky_uint16_t) modules.nelts
             },
             {
-                    .host = sky_string("192.168.1.4:8080"),
+                    .host = sky_string("192.168.10.107:8080"),
                     .modules = modules.elts,
                     .modules_n = (sky_uint16_t) modules.nelts
             }
@@ -212,7 +213,7 @@ build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module) {
 }
 
 static sky_bool_t
-redis_test(sky_http_request_t *req, sky_http_response_t *res) {
+redis_test(sky_http_request_t *req) {
 //    sky_redis_cmd_t *rc = sky_redis_connection_get(redis_pool, req->pool, req->conn);
 //
 //    sky_redis_data_t params[] = {
@@ -247,17 +248,7 @@ redis_test(sky_http_request_t *req, sky_http_response_t *res) {
 //        }
 //    }
 
-    res->type = SKY_HTTP_RESPONSE_BUF;
-    sky_str_set(&res->buf, "{\"status\": 200, \"msg\": \"success\"}");
-
-    sky_json_t *value = sky_json_parse(req->pool, &res->buf);
-    if (!value) {
-        sky_log_info("111");
-        return true;
-    }
-    sky_json_object_t *e = value->object.values;
-//    sky_log_info("%s : %ld", e[0].key.data, e[0].value->integer);
-//    sky_log_info("%s : %s", e[1].key.data, e[1].value->string.data);
+    sky_http_response_static_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\"}"));
 
     return true;
 }
@@ -271,7 +262,7 @@ typedef struct {
 } dhwork_frames_t;
 
 static sky_bool_t
-hello_world(sky_http_request_t *req, sky_http_response_t *res) {
+hello_world(sky_http_request_t *req) {
 
     sky_int32_t id;
 
@@ -288,16 +279,13 @@ hello_world(sky_http_request_t *req, sky_http_response_t *res) {
     sky_pg_result_t *result = sky_pg_sql_exec(ps, &cmd, &type, &param, 1);
     if (!result) {
         sky_pg_sql_connection_put(ps);
-
-        res->type = SKY_HTTP_RESPONSE_BUF;
-        sky_str_set(&res->buf, "{\"status\": 500, \"msg\": \"database error\"}");
+        sky_http_response_static_len(req, sky_str_line("{\"status\": 500, \"msg\": \"database error\"}"));
         return false;
     }
     sky_pg_sql_connection_put(ps);
 
     if (!result->rows) {
-        res->type = SKY_HTTP_RESPONSE_BUF;
-        sky_str_set(&res->buf, "{\"status\": 200, \"msg\": \"success\", \"data\": null}");
+        sky_http_response_static_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\", \"data\": null}"));
         return false;
     }
 
@@ -330,8 +318,7 @@ hello_world(sky_http_request_t *req, sky_http_response_t *res) {
     sky_pg_sql_connection_put(ps);
 //======================================================================================
 
-    res->type = SKY_HTTP_RESPONSE_BUF;
-    sky_str_set(&res->buf, "{\"status\": 200, \"msg\": \"success\", \"data\": null}");
+    sky_http_response_static_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\", \"data\": null}"));
 
     return true;
 }

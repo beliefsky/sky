@@ -6,21 +6,20 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include "http_module_file.h"
-#include "../http_request.h"
+#include "../http_response.h"
 #include "../../../core/date.h"
 #include "../../../core/memory.h"
 #include "../../../core/cpuinfo.h"
 #include "../../../core/log.h"
 
-#define http_error_page(_r, _w, _status, _msg)                      \
-    (_r)->state = _status;                                          \
-    sky_str_set(&(_r)->headers_out.content_type, "text/html");      \
-    (_w)->type = SKY_HTTP_RESPONSE_BUF;                             \
-    sky_str_set(&(_w)->buf, "<html>\n<head><title>"                 \
-    _msg                                                            \
-    "</title></head>\n<body bgcolor=\"white\">\n<center><h1>"       \
-    _msg                                                            \
-    "</h1></center>\n<hr><center>sky</center>\n</body>\n</html>")
+#define http_error_page(_r, _status, _msg)                              \
+    (_r)->state = _status;                                              \
+    sky_str_set(&(_r)->headers_out.content_type, "text/html");          \
+    sky_http_response_static_len(r,sky_str_line("<html>\n<head><title>" \
+    _msg                                                                \
+    "</title></head>\n<body bgcolor=\"white\">\n<center><h1>"           \
+    _msg                                                                \
+    "</h1></center>\n<hr><center>sky</center>\n</body>\n</html>"))
 
 
 typedef struct {
@@ -48,7 +47,7 @@ typedef struct {
     sky_str_t path;
 } http_module_file_t;
 
-static sky_http_response_t *http_run_handler(sky_http_request_t *r, http_module_file_t *data);
+static void http_run_handler(sky_http_request_t *r, http_module_file_t *data);
 
 static sky_bool_t http_header_range(http_file_t *file, sky_str_t *value);
 
@@ -69,29 +68,21 @@ sky_http_module_file_init(sky_pool_t *pool, sky_http_module_t *module, sky_str_t
     data->tmp_pool = null;
 
     module->prefix = *prefix;
-    module->run = (sky_http_response_t *(*)(sky_http_request_t *, sky_uintptr_t)) http_run_handler;
-    module->next = null;
+    module->run = (void (*)(sky_http_request_t *, sky_uintptr_t)) http_run_handler;
 
     module->module_data = (sky_uintptr_t) data;
 }
 
-static sky_http_response_t *
+static void
 http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
-    sky_http_response_t *response;
     http_file_t *file;
     http_mime_type_t *mime_type;
     sky_char_t *path;
     sky_int32_t fd;
     struct stat stat_buf;
 
-    response = sky_pcalloc(r->pool, sizeof(sky_http_response_t));
-    file = sky_pcalloc(r->pool, sizeof(http_file_t));
-    response->data = (sky_uintptr_t) file;
-
     if (!r->uri.len) {
-        http_error_page(r, response, 404, "404 Not Found");
-
-        return response;
+        http_error_page(r, 404, "404 Not Found");
     }
     if (r->uri.len == 1 && *r->uri.data == '/') {
         sky_str_set(&r->uri, "/index.html");
@@ -104,6 +95,8 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
     if (!mime_type) {
         mime_type = &data->default_mime_type;
     }
+
+    file = sky_pcalloc(r->pool, sizeof(http_file_t));
 
     if (r->headers_in.if_modified_since) {
         file->modified = true;
@@ -123,9 +116,8 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
     sky_memcpy(path + data->path.len, r->uri.data, r->uri.len + 1);
     fd = open(path, O_RDONLY | O_NONBLOCK | O_CLOEXEC);
     if (fd < 0) {
-        http_error_page(r, response, 404, "404 Not Found");
-
-        return response;
+        http_error_page(r, 404, "404 Not Found");
+        return;
     }
     r->headers_out.content_type = mime_type->val;
 
@@ -138,8 +130,9 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
         header->value = r->headers_in.if_modified_since->value;
 
         r->state = 304;
-        response->type = SKY_HTTP_RESPONSE_EMPTY;
-        return response;
+
+        sky_http_response_nobody(r);
+        return;
     }
     header->value.data = sky_palloc(r->pool, 30);
     header->value.len = sky_date_to_rfc_str(stat_buf.st_mtim.tv_sec, header->value.data);
@@ -153,16 +146,13 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
         file->left = 0;
         file->right = stat_buf.st_size - 1;
     }
-
-    response->type = SKY_HTTP_RESPONSE_FILE;
-    response->file.fd = fd;
-    response->file.offset = file->left;
-    response->file.right = file->right;
-    response->file.file_size = stat_buf.st_size;
-
     file->file_defer = sky_defer_add(r->conn->coro, (sky_defer_func_t) close, (sky_uintptr_t) fd);
 
-    return response;
+    sky_http_sendfile(r, fd, (sky_size_t) file->left, (sky_size_t) (file->right - file->left + 1),
+                      (sky_size_t) stat_buf.st_size);
+
+    sky_defer_remove(r->conn->coro, file->file_defer);
+    close(fd);
 }
 
 static sky_bool_t
