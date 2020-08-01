@@ -109,7 +109,9 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             if (ev->wait) {
                 continue;
             }
-            if (!ev->run(ev)) {
+            if (ev->run(ev)) {
+                ev->now = loop->now;
+            } else {
                 close(ev->fd);
                 ev->reg = false;
                 if (ev->timeout != -1) {
@@ -117,9 +119,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 }
                 // 触发回收资源待解决
                 ev->close(ev);
-                continue;
             }
-            ev->now = loop->now;
         }
 
         if (loop->update) {
@@ -135,7 +135,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 break;
             }
             ev = (sky_event_t *) sky_rbtree_min(btree->root, btree->sentinel);
-            if (loop->now < ev->key) {
+            if (now < ev->key) {
                 timeout = (sky_int32_t) ((ev->key - now) * 1000);
                 break;
             }

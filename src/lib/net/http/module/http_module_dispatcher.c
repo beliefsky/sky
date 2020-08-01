@@ -4,7 +4,7 @@
 
 #include "http_module_dispatcher.h"
 #include "../../../core/trie.h"
-#include "../http_request.h"
+#include "../http_response.h"
 #include "../../../core/memory.h"
 
 typedef struct {
@@ -13,7 +13,7 @@ typedef struct {
 } http_module_dispatcher_t;
 
 
-static sky_http_response_t *http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data);
+static void http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data);
 
 void
 sky_http_module_dispatcher_init(sky_pool_t *pool, sky_http_module_t *module, sky_str_t *prefix,
@@ -34,26 +34,25 @@ sky_http_module_dispatcher_init(sky_pool_t *pool, sky_http_module_t *module, sky
     }
 
     module->prefix = *prefix;
-    module->run = (sky_http_response_t *(*)(sky_http_request_t *, sky_uintptr_t)) http_run_handler;
+    module->run = (void (*)(sky_http_request_t *, sky_uintptr_t)) http_run_handler;
 
     module->module_data = (sky_uintptr_t) data;
 }
 
-static sky_http_response_t *
+static void
 http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
-    sky_http_response_t *response;
     sky_http_mapper_pt *handler;
     sky_bool_t flag;
 
-    response = sky_palloc(r->pool, sizeof(sky_http_response_t));
+
     sky_str_set(&r->headers_out.content_type, "application/json");
 
     handler = (sky_http_mapper_pt *) sky_trie_contains(data->mappers, &r->uri);
     if (!handler) {
         r->state = 404;
-        response->type = SKY_HTTP_RESPONSE_BUF;
-        sky_str_set(&response->buf, "{\"errcode\": 404, \"errmsg\": \"404 Not Found\"}");
-        return response;
+
+        sky_http_response_static_len(r, sky_str_line("{\"errcode\": 404, \"errmsg\": \"404 Not Found\"}"));
+        return;
     }
 
     switch (r->method) {
@@ -70,33 +69,22 @@ http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
             break;
         default:
             r->state = 405;
-            response->type = SKY_HTTP_RESPONSE_BUF;
-            sky_str_set(&response->buf, "{\"errcode\": 405, \"errmsg\": \"405 Method Not Allowed\"}");
-            return response;
+            sky_http_response_static_len(r, sky_str_line("{\"errcode\": 405, \"errmsg\": \"405 Method Not Allowed\"}"));
+            return;
     }
 
     flag = false;
-    if (handler[0]) {
-        if (!handler[0](r, response)) {
-            return response;
+
+    for (sky_uint32_t i = 0; i != 3; ++i) {
+        if (handler[i]) {
+            if (!handler[i](r)) {
+                return;
+            }
+            flag = true;
         }
-        flag = true;
-    }
-    if (handler[1]) {
-        if (!handler[1](r, response)) {
-            return response;
-        }
-        flag = true;
-    }
-    if (handler[2]) {
-        handler[2](r, response);
-        flag = true;
     }
     if (!flag) {
         r->state = 405;
-        response->type = SKY_HTTP_RESPONSE_BUF;
-        sky_str_set(&response->buf, "{\"errcode\": 405, \"errmsg\": \"405 Method Not Allowed\"}");
+        sky_http_response_static_len(r, sky_str_line("{\"errcode\": 405, \"errmsg\": \"405 Method Not Allowed\"}"));
     }
-
-    return response;
 }

@@ -18,14 +18,7 @@ extern "C" {
 typedef struct sky_http_server_s sky_http_server_t;
 typedef struct sky_http_connection_s sky_http_connection_t;
 typedef struct sky_http_request_s sky_http_request_t;
-typedef struct sky_http_response_s sky_http_response_t;
 typedef struct sky_http_module_s sky_http_module_t;
-
-typedef sky_uint32_t (*sky_http_read_pt)(sky_http_connection_t *conn,
-                                         sky_uchar_t *data, sky_uint32_t size);
-
-typedef void (*sky_http_write_pt)(sky_http_connection_t *conn,
-                                  sky_uchar_t *data, sky_uint32_t size);
 
 typedef struct {
     sky_str_t host;
@@ -63,25 +56,16 @@ struct sky_http_server_s {
 struct sky_http_module_s {
     sky_str_t prefix;
 
-    sky_http_response_t *(*run)(sky_http_request_t *r, sky_uintptr_t module_data);
-
-    void (*run_next)(sky_http_response_t *response, sky_uintptr_t module_data);
+    void (*run)(sky_http_request_t *r, sky_uintptr_t module_data);
 
     sky_uintptr_t module_data;
 };
 
 struct sky_http_connection_s {
     sky_event_t ev;
-
-    sky_http_read_pt read;
-    sky_http_write_pt write;
-
     sky_coro_t *coro;
-
     sky_http_server_t *server;
-
     sky_pool_t *pool;
-
     sky_buf_t *free;
 };
 

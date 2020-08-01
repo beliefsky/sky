@@ -20,17 +20,30 @@
 
 #include <core/log.h>
 #include <core/json.h>
+#include <core/number.h>
+#include <net/inet.h>
+#include <net/http/extend/http_extend_pgsql_pool.h>
+#include <math/matrix.h>
+#include <net/http/module/http_module_websocket.h>
+#include <net/http/http_response.h>
+
 
 static void server_start(sky_int64_t cpu_num);
 
 static void build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module);
 
-static sky_bool_t redis_test(sky_http_request_t *req, sky_http_response_t *res);
+static sky_bool_t redis_test(sky_http_request_t *req);
 
-static sky_bool_t hello_world(sky_http_request_t *req, sky_http_response_t *res);
+static sky_bool_t hello_world(sky_http_request_t *req);
+
+static sky_bool_t websocket_open(sky_websocket_session_t *session);
+
+static sky_bool_t websocket_message(sky_websocket_session_t *session);
+
 
 int
 main() {
+
     sky_int64_t cpu_num;
     sky_uint32_t i;
 
@@ -134,10 +147,17 @@ server_start(sky_int64_t cpu_num) {
     sky_array_init(&modules, pool, 32, sizeof(sky_http_module_t));
 
     sky_str_set(&prefix, "");
-    sky_str_set(&file_path, "/home/weijing/Downloads/test");
+    sky_str_set(&file_path, "/mnt/c/Users/weijing/Downloads/test");
     sky_http_module_file_init(pool, sky_array_push(&modules), &prefix, &file_path);
 
     build_http_dispatcher(pool, sky_array_push(&modules));
+
+    sky_http_websocket_handler_t *handler = sky_pcalloc(pool, sizeof(sky_http_websocket_handler_t));
+    handler->open = websocket_open;
+    handler->read = websocket_message;
+
+    sky_str_set(&prefix, "/ws");
+    sky_http_module_websocket_init(pool, sky_array_push(&modules), &prefix, handler);
 
     sky_http_module_host_t hosts[] = {
             {
@@ -151,7 +171,7 @@ server_start(sky_int64_t cpu_num) {
                     .modules_n = (sky_uint16_t) modules.nelts
             },
             {
-                    .host = sky_string("192.168.1.4:8080"),
+                    .host = sky_string("192.168.10.107:8080"),
                     .modules = modules.elts,
                     .modules_n = (sky_uint16_t) modules.nelts
             }
@@ -193,7 +213,7 @@ build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module) {
 }
 
 static sky_bool_t
-redis_test(sky_http_request_t *req, sky_http_response_t *res) {
+redis_test(sky_http_request_t *req) {
 //    sky_redis_cmd_t *rc = sky_redis_connection_get(redis_pool, req->pool, req->conn);
 //
 //    sky_redis_data_t params[] = {
@@ -228,67 +248,78 @@ redis_test(sky_http_request_t *req, sky_http_response_t *res) {
 //        }
 //    }
 
-    res->type = SKY_HTTP_RESPONSE_BUF;
-    sky_str_set(&res->buf, "{\"status\": 200, \"msg\": \"success\"}");
-
-    sky_json_t *value = sky_json_parse(req->pool, &res->buf);
-    if (!value) {
-        sky_log_info("111");
-        return true;
-    }
-    sky_json_object_t *e = value->object.values;
-//    sky_log_info("%s : %ld", e[0].key.data, e[0].value->integer);
-//    sky_log_info("%s : %s", e[1].key.data, e[1].value->string.data);
+    sky_http_response_static_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\"}"));
 
     return true;
 }
 
 static sky_bool_t
-hello_world(sky_http_request_t *req, sky_http_response_t *res) {
+hello_world(sky_http_request_t *req) {
+
+    sky_int32_t id;
+
+    sky_str_to_int32(&req->args, &id);
+
     sky_pg_sql_t *ps = sky_pg_sql_connection_get(ps_pool, req->pool, req->conn);
 
 
-    sky_str_t cmd = sky_string("SELECT id, title, cover, creator, descript, cover_num, resources FROM tb_comic WHERE id = $1");
+    sky_str_t cmd = sky_string("SELECT int32,int64,int16,text,text_arr,int32_arr FROM tb_test WHERE int32 = $1");
 
-    sky_pg_type_t type = pg_data_int64;
-    sky_pg_param_t param = {.int64 = 1L};
+    sky_pg_type_t type = pg_data_int32;
+    sky_pg_data_t param = {.int32 = 1L};
 
     sky_pg_result_t *result = sky_pg_sql_exec(ps, &cmd, &type, &param, 1);
-    if (!result || !result->is_ok) {
+    if (!result) {
         sky_pg_sql_connection_put(ps);
-
-        res->type = SKY_HTTP_RESPONSE_BUF;
-        sky_str_set(&res->buf, "{\"status\": 500, \"msg\": \"database error\"}");
+        sky_http_response_static_len(req, sky_str_line("{\"status\": 500, \"msg\": \"database error\"}"));
         return false;
     }
     sky_pg_sql_connection_put(ps);
 
-    if (!result->lines) {
-        res->type = SKY_HTTP_RESPONSE_BUF;
-        sky_str_set(&res->buf, "{\"status\": 200, \"msg\": \"success\", \"data\": null}");
+    if (!result->rows) {
+        sky_http_response_static_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\", \"data\": null}"));
         return false;
     }
-    sky_pg_row_t *row = result->data;
 
-    res->type = SKY_HTTP_RESPONSE_BUF;
+    sky_pg_data_t *data = result->data->data;
 
-    sky_json_t *arr = sky_json_object_new(req->pool, 4);
-    sky_json_t *obj = sky_json_object_new(req->pool, 3);
-    sky_json_object_push(arr, sky_str_line("status"), sky_json_integer_new(req->pool, 200));
-    sky_json_object_push(arr, sky_str_line("msg"), sky_json_str_len_new(req->pool, sky_str_line("success")));
+    sky_log_info("int32: %d", data[0].int32);
+//    sky_log_info("int64: %ld", data[1].int64);
+//    sky_log_info("int16: %d", data[2].int16);
+//    sky_log_info("text: %s", data[3].stream.data);
 
-    sky_json_object_push(obj, sky_str_line("id"), sky_json_integer_new(req->pool, row->data[0].int64));
-    sky_json_object_push(obj, sky_str_line("username"),
-                         sky_json_string_new(req->pool, &row->data[1].stream));
-    sky_json_object_push(obj, sky_str_line("password"),
-                         sky_json_string_new(req->pool, &row->data[2].stream));
+    sky_pg_array_t *arr = data[4].array;
 
-    sky_json_object_push(arr, sky_str_line("data"), obj);
+    for (sky_uint32_t i = 0; i != arr->nelts; ++i) {
+        sky_log_info("[%u]:%s", i, arr->data[i].stream);
+    }
+//======================================================================================
+    sky_str_set(&cmd, "UPDATE tb_test SET text_arr = $1 WHERE int32 = 2");
+    type = pg_data_array_text;
+    sky_pg_data_t datas[] = {
+            {.str = sky_string("text1")},
+            {.str = sky_string("text2")},
+            {.str = sky_string("text3")}
+    };
+    param.array = sky_pnalloc(req->pool, sizeof(sky_pg_array_t));
+    sky_pg_data_array_one_init(param.array, datas, 3);
 
-    res->buf.data = sky_palloc(req->pool, (res->buf.len = sky_json_measure(arr)));
-    --res->buf.len;
-    sky_json_serialize(res->buf.data, arr);
+
+    ps = sky_pg_sql_connection_get(ps_pool, req->pool, req->conn);
+    sky_pg_sql_exec(ps, &cmd, &type, &param, 1);
+    sky_pg_sql_connection_put(ps);
+//======================================================================================
+
+    sky_http_response_static_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\", \"data\": null}"));
 
     return true;
 }
 
+
+static sky_bool_t websocket_open(sky_websocket_session_t *session) {
+    return true;
+}
+
+static sky_bool_t websocket_message(sky_websocket_session_t *session) {
+    return true;
+}

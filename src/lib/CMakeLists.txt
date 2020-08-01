@@ -23,13 +23,16 @@ set(SOURCES
         core/base64.c
         core/uuid.c
         core/json.c
+        math/matrix.c
         event/event_loop.c
         net/tcp.c
         net/http/http_request.c
+        net/http/http_response.c
         net/http/http_parse.c
         net/http/http_server.c
         net/http/module/http_module_file.c
         net/http/module/http_module_dispatcher.c
+        net/http/module/http_module_websocket.c
         net/http/extend/http_extend_pgsql_pool.c
         net/http/extend/http_extend_redis_pool.c
         )
@@ -102,11 +105,13 @@ install(FILES
 install(FILES
         net/http/http_parse.h
         net/http/http_request.h
+        net/http/http_response.h
         net/http/http_server.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/http")
 install(FILES
         net/http/module/http_module_dispatcher.h
         net/http/module/http_module_file.h
+        net/http/module/http_module_websocket.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/http/module")
 install(FILES
         net/http/extend/http_extend_pgsql_pool.h

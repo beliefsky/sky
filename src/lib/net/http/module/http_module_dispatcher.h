@@ -13,7 +13,7 @@ extern "C" {
 
 typedef struct sky_http_mapper_s sky_http_mapper_t;
 
-typedef sky_bool_t (*sky_http_mapper_pt)(sky_http_request_t *req, sky_http_response_t *res);
+typedef sky_bool_t (*sky_http_mapper_pt)(sky_http_request_t *req);
 
 struct sky_http_mapper_s {
     sky_str_t path;

@@ -62,12 +62,12 @@ sky_trie_put(sky_trie_t *trie, sky_str_t *key, sky_uintptr_t value) {
          k_node = &pre_node->next[*tmp_key++ & NODE_PTR]) {
         if (!(tmp = *k_node)) {
             *k_node = tmp = sky_pcalloc(trie->pool, sizeof(sky_trie_node_t));
-            tmp->key_n = key->len - (sky_size_t)(tmp_key - key->data);
+            tmp->key_n = key->len - (sky_size_t) (tmp_key - key->data);
             tmp->key = tmp_key;
             tmp->value = value;
             return;
         }
-        len = key->len - (sky_size_t)(tmp_key - key->data);
+        len = key->len - (sky_size_t) (tmp_key - key->data);
         if (len == tmp->key_n) {
             if (!len) {
                 tmp->value = value;
@@ -121,7 +121,8 @@ sky_trie_put(sky_trie_t *trie, sky_str_t *key, sky_uintptr_t value) {
 
 sky_uintptr_t
 sky_trie_find(sky_trie_t *trie, sky_str_t *key) {
-    sky_trie_node_t *node, *previous_node;
+    sky_trie_node_t *node;
+    sky_uintptr_t previous_value;
     sky_uchar_t *tmp_key;
     sky_size_t len;
 
@@ -129,25 +130,31 @@ sky_trie_find(sky_trie_t *trie, sky_str_t *key) {
         return trie->root.value;
     }
     tmp_key = key->data;
-    for (previous_node = node = &trie->root; node && *tmp_key; node = node->next[*tmp_key++ & NODE_PTR]) {
+    previous_value = 0;
+    for (node = &trie->root; node && *tmp_key; node = node->next[*tmp_key++ & NODE_PTR]) {
         if (!node->key_n) {
-            previous_node = node;
+            if (node->value) {
+                previous_value = node->value;
+            }
             continue;
         }
-        len = key->len - (sky_size_t)(tmp_key - key->data);
+        len = key->len - (sky_size_t) (tmp_key - key->data);
         if (len < node->key_n) {
-            return previous_node->value;
+            return previous_value;
         }
         if (sky_strncmp(tmp_key, node->key, node->key_n) != 0) {
-            return previous_node->value;
+            return previous_value;
         }
         if (len == node->key_n) {
             return node->value;
         }
         tmp_key += node->key_n;
-        previous_node = node;
+
+        if (node->value) {
+            previous_value = node->value;
+        }
     }
-    return previous_node->value;
+    return previous_value;
 }
 
 
@@ -164,7 +171,7 @@ sky_uintptr_t sky_trie_contains(sky_trie_t *trie, sky_str_t *key) {
         if (!node->key_n) {
             continue;
         }
-        len = key->len - (sky_size_t)(tmp_key - key->data);
+        len = key->len - (sky_size_t) (tmp_key - key->data);
         if (len < node->key_n) {
             return 0;
         }

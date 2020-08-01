@@ -24,12 +24,6 @@ extern "C" {
 #define SKY_HTTP_OPTIONS                   0x0020
 #define SKY_HTTP_PATCH                     0x0040
 
-#define SKY_HTTP_RESPONSE_EMPTY 0
-#define SKY_HTTP_RESPONSE_FILE  1
-#define SKY_HTTP_RESPONSE_BUF   2
-#define SKY_HTTP_RESPONSE_BUF_N 3
-#define SKY_HTTP_RESPONSE_FUNC  4
-
 typedef sky_bool_t (*sky_http_header_handler_pt)(sky_http_request_t *r, sky_table_elt_t *h, sky_uintptr_t data);
 
 typedef struct {
@@ -105,20 +99,6 @@ struct sky_http_request_s {
     sky_uint8_t method:7;
     sky_bool_t keep_alive:1;
     sky_bool_t quoted_uri:1;
-};
-
-struct sky_http_response_s {
-    union {
-        struct {
-            sky_int32_t fd;
-            sky_int64_t offset;
-            sky_int64_t right;
-            sky_int64_t file_size;
-        } file;
-        sky_str_t buf;
-    };
-    sky_uintptr_t data;
-    sky_uint8_t type;
 };
 
 void sky_http_request_init(sky_http_server_t *server);
