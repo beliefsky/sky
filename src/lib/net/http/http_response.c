@@ -244,7 +244,6 @@ http_write(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size) {
         }
 
         if ((n = write(fd, data, size)) < 1) {
-            conn->ev.write = false;
             if (sky_unlikely(!n)) {
                 sky_coro_yield(conn->coro, SKY_CORO_ABORT);
                 sky_coro_exit();
@@ -252,6 +251,7 @@ http_write(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size) {
             switch (errno) {
                 case EINTR:
                 case EAGAIN:
+                    conn->ev.write = false;
                     sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
                     continue;
                 default:
@@ -294,6 +294,7 @@ http_send_file(sky_http_connection_t *conn, sky_int32_t fd, off_t offset, sky_si
             switch (errno) {
                 case EAGAIN:
                 case EINTR:
+                    conn->ev.write = false;
                     sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
                     continue;
                 default:
@@ -305,6 +306,7 @@ http_send_file(sky_http_connection_t *conn, sky_int32_t fd, off_t offset, sky_si
         if (!size) {
             return;
         }
+        conn->ev.write = false;
         sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
     }
 }
@@ -324,6 +326,10 @@ http_send_file(sky_http_connection_t *conn, sky_int32_t fd, off_t offset, sky_si
                               .hdr_cnt = 1};
     sbytes = (sky_int64_t)size;
     for (;;) {
+        if (sky_unlikely(!conn->ev.write)) {
+            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+            continue;
+        }
 #ifdef __APPLE__
         n = sendfile(fd, socket_fd, offset, &sbytes, null, 0);
 #else
@@ -334,6 +340,7 @@ http_send_file(sky_http_connection_t *conn, sky_int32_t fd, off_t offset, sky_si
                 case EAGAIN:
                 case EBUSY:
                 case EINTR:
+                     conn->ev.write = false;
                      sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
                      continue;
                 default:
@@ -345,6 +352,7 @@ http_send_file(sky_http_connection_t *conn, sky_int32_t fd, off_t offset, sky_si
         if(!size) {
             return;
         }
+         conn->ev.write = false;
          sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
     }
 }
