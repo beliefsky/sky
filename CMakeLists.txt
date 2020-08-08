@@ -148,9 +148,9 @@ add_definitions("-D_FILE_OFFSET_BITS=64")
 add_definitions("-D_TIME_BITS=64")
 
 if (APPLE)
-    set(SKY_COMMON_LIBS -Wl,-force_load sky_static)
+    set(SKY_COMMON_LIBS m -Wl,-force_load sky_static)
 else ()
-    set(SKY_COMMON_LIBS -Wl,-whole-archive sky_static -Wl,-no-whole-archive)
+    set(SKY_COMMON_LIBS m -Wl,-whole-archive sky_static -Wl,-no-whole-archive)
 endif ()
 
 

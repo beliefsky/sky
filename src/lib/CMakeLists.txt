@@ -49,7 +49,6 @@ add_library(sky_shared SHARED "${CMAKE_BINARY_DIR}/empty.c")
 target_link_libraries(sky_shared
         ${SKY_COMMON_LIBS}
         ${ADDITIONAL_LIBRARIES}
-        m
         )
 #if (NOT APPLE)
 #	target_link_libraries(sky_shared
