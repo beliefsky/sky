@@ -11,6 +11,7 @@
 #include "../../../core/sha1.h"
 #include "../../inet.h"
 #include "../http_response.h"
+#include "../../../core/memory.h"
 
 typedef struct {
     sky_http_websocket_handler_t *handler;
@@ -24,6 +25,10 @@ static void module_run_next(sky_websocket_session_t *session);
 static void websocket_decoding(sky_uchar_t *p, const sky_uchar_t *key, sky_uint64_t payload_size);
 
 static sky_uint32_t websocket_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size);
+
+static void websocket_write(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size);
+
+static void write_test(sky_http_connection_t *conn, sky_pool_t *pool, sky_uchar_t *data, sky_uint32_t size);
 
 void
 sky_http_module_websocket_init(sky_pool_t *pool, sky_http_module_t *module, sky_str_t *prefix,
@@ -167,8 +172,8 @@ module_run_next(sky_websocket_session_t *session) {
                 p[payload_size] = '\0';
 
                 sky_log_info("data: %s", p);
+                write_test(conn, pool, p, (sky_uint32_t)payload_size);
             }
-
             sky_log_info("xxxxx");
 //    return data->handler->read(r);
         }
@@ -256,6 +261,20 @@ websocket_decoding(sky_uchar_t *p, const sky_uchar_t *key, sky_uint64_t payload_
 #endif
 }
 
+
+static void
+write_test(sky_http_connection_t *conn, sky_pool_t *pool, sky_uchar_t *data, sky_uint32_t size) {
+    sky_uchar_t *p = sky_palloc(pool, 128);
+
+
+    *p++ = 0x1 << 7 | 0x01;
+
+    *p++ = (sky_uchar_t) size;
+    sky_memcpy(p, data, size);
+
+    websocket_write(conn, p - 2, (sky_uint32_t) size + 2);
+}
+
 static sky_uint32_t
 websocket_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size) {
     ssize_t n;
@@ -284,5 +303,44 @@ websocket_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size
             }
         }
         return (sky_uint32_t) n;
+    }
+}
+
+static void
+websocket_write(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size) {
+    ssize_t n;
+    sky_int32_t fd;
+
+    fd = conn->ev.fd;
+    for (;;) {
+        if (sky_unlikely(!conn->ev.write)) {
+            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+            continue;
+        }
+
+        if ((n = write(fd, data, size)) < 1) {
+            conn->ev.write = false;
+            if (sky_unlikely(!n)) {
+                sky_coro_yield(conn->coro, SKY_CORO_ABORT);
+                sky_coro_exit();
+            }
+            switch (errno) {
+                case EINTR:
+                case EAGAIN:
+                    sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+                    continue;
+                default:
+                    sky_coro_yield(conn->coro, SKY_CORO_ABORT);
+                    sky_coro_exit();
+            }
+        }
+
+        if (n < size) {
+            data += n, size -= (sky_uint32_t) n;
+            conn->ev.write = false;
+            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+            continue;
+        }
+        break;
     }
 }
