@@ -7,11 +7,14 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/src/cmake")
 include(CheckCCompilerFlag)
 include(CheckCSourceCompiles)
 include(CheckFunctionExists)
+include(CheckSymbolExists)
 include(CheckIncludeFile)
+include(CheckIncludeFiles)
 include(CodeCoverage)
 include(EnableCFlag)
 include(FindPkgConfig)
 include(TrySanitizer)
+include(GNUInstallDirs)
 
 if (NOT CMAKE_BUILD_TYPE)
     message(STATUS "No build type selected, defaulting to Debug")
@@ -55,6 +58,7 @@ check_c_source_compiles("int main(void) { __builtin_bswap64(123); }" HAVE_BUILTI
 
 check_c_source_compiles("int main(void) { __builtin_cpu_init(); }" HAVE_BUILTIN_CPU_INIT)
 check_c_source_compiles("int main(void) { __builtin_clzll(0); }" HAVE_BUILTIN_CLZLL)
+check_c_source_compiles("int main(void) { __builtin_fpclassify(0, 0, 0, 0, 0, 0.0f); }" HAVE_BUILTIN_FPCLASSIFY)
 check_c_source_compiles("int main(void) { unsigned long long p; (void)__builtin_mul_overflow(0, 0, &p); }" HAVE_BUILTIN_MUL_OVERFLOW)
 check_c_source_compiles("int main(void) { unsigned long long p; (void)__builtin_add_overflow(0, 0, &p); }" HAVE_BUILTIN_ADD_OVERFLOW)
 check_c_source_compiles("int main(void) { _Static_assert(1, \"\"); }" HAVE_STATIC_ASSERT)
@@ -95,17 +99,18 @@ endif ()
 if (${CMAKE_BUILD_TYPE} MATCHES "Rel")
     enable_c_flag_if_avail(-falign-functions=32 C_FLAGS_REL HAVE_ALIGN_FNS)
     enable_c_flag_if_avail(-fno-semantic-interposition C_FLAGS_REL HAVE_NO_SEMANTIC_INTERPOSITION)
-    enable_c_flag_if_avail(-malign-data=abi C_FLAGS_REL HAS_ALIGN_DATA)
-    enable_c_flag_if_avail(-fno-asynchronous-unwind-tables C_FLAGS_REL HAS_NO_ASYNC_UNWIND_TABLES)
+    enable_c_flag_if_avail(-malign-data=abi C_FLAGS_REL HAVE_ALIGN_DATA)
+    enable_c_flag_if_avail(-fno-asynchronous-unwind-tables C_FLAGS_REL HAVE_NO_ASYNC_UNWIND_TABLES)
 
-    enable_c_flag_if_avail(-flto=jobserver C_FLAGS_REL HAS_LTO_JOBSERVER)
-    if (NOT HAS_LTO_JOBSERVER)
-        enable_c_flag_if_avail(-flto C_FLAGS_REL HAS_LTO)
+    enable_c_flag_if_avail(-flto=jobserver C_FLAGS_REL HAVE_LTO_JOBSERVER)
+    if (NOT HAVE_LTO_JOBSERVER)
+        enable_c_flag_if_avail(-flto C_FLAGS_REL HAVE_LTO)
     endif ()
 
-    enable_c_flag_if_avail(-ffat-lto-objects C_FLAGS_REL HAS_LTO_FAT_OBJS)
+    enable_c_flag_if_avail(-ffat-lto-objects C_FLAGS_REL HAVE_LTO_FAT_OBJS)
     enable_c_flag_if_avail(-mcrc32 C_FLAGS_REL HAVE_BUILTIN_IA32_CRC32)
-else ()
+endif ()
+if (${CMAKE_BUILD_TYPE} MATCHES "Deb")
     option(SANITIZER "Use sanitizer (undefined, address, thread, none)" "none")
 
     if (${SANITIZER} MATCHES "(undefined|ub|ubsan)")
@@ -119,7 +124,6 @@ else ()
     endif ()
 endif ()
 
-
 #
 # These warnings are only supported by GCC, and some only in newer versions.
 #
@@ -129,6 +133,12 @@ enable_warning_if_supported(-Wlogical-op)
 enable_warning_if_supported(-Wrestrict)
 enable_warning_if_supported(-Wdouble-promotion)
 enable_warning_if_supported(-Wno-unused-parameter)
+enable_warning_if_supported(-Wstringop-truncation)
+enable_warning_if_supported(-Wvla)
+enable_warning_if_supported(-Wunsequenced)
+
+# While a useful warning, this is giving false positives.
+enable_warning_if_supported(-Wno-free-nonheap-object)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wshadow -Wconversion -std=gnu11")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${C_FLAGS_REL}")
