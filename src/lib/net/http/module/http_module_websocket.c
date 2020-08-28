@@ -22,9 +22,11 @@ static void module_run(sky_http_request_t *r, websocket_data_t *data);
 
 static void module_run_next(sky_websocket_session_t *session);
 
+static sky_int8_t read_message(sky_coro_t *coro, sky_websocket_session_t *session);
+
 static void websocket_decoding(sky_uchar_t *p, const sky_uchar_t *key, sky_uint64_t payload_size);
 
-static sky_uint32_t websocket_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size);
+static sky_uint32_t websocket_read(sky_websocket_session_t *session, sky_uchar_t *data, sky_uint32_t size);
 
 static void websocket_write(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size);
 
@@ -89,6 +91,7 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
 
     session = sky_pcalloc(r->pool, sizeof(sky_websocket_session_t));
     session->request = r;
+    session->event = &r->conn->ev;
 
     if (sky_unlikely(!data->handler->open(session))) {
         sky_http_response_nobody(r);
@@ -111,6 +114,7 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
 
     sky_http_response_nobody(r);
 
+
     module_run_next(session);
 
     return;
@@ -119,67 +123,105 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
 static void
 module_run_next(sky_websocket_session_t *session) {
     sky_http_connection_t *conn;
+    sky_coro_switcher_t *switcher;
+    sky_coro_t *read_work;
+    sky_int32_t result;
 
     conn = session->request->conn;
+
+    switcher = sky_coro_switcher_create(conn->pool);
+
+    session->read_coro = read_work = sky_coro_create(switcher, (sky_coro_func_t) read_message, (sky_uintptr_t) session);
     for (;;) {
         if (conn->ev.read) {
-            sky_pool_t *pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
-            sky_buf_t *buf = sky_buf_create(pool, 1024);
-
-            sky_log_info("wait");
-            sky_uint64_t size = websocket_read(conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
-            if (size) {
-                sky_log_info("data size %lu", size);
-                for (sky_uint32_t i = 0; i < size; ++i) {
-                    printf("%d\t\t", buf->last[i]);
-                }
-                printf("\n");
-
-                sky_uchar_t *p = buf->last;
-
-                sky_uint8_t flag = p[0];
-
-                if (flag & 0x80) {
-                    sky_log_info("fin is true");
-                } else {
-                    sky_log_info("fin is false");
-                }
-                if (flag & 0x70) {
-                    sky_log_error("RSV NOT IS ZERO");
-                    return;
-                }
-                sky_log_info("code %u", flag & 0xf);
-
-                flag = p[1];
-
-                sky_uint64_t payload_size = flag & 0x7f;
-
-                p += 2;
-                if (payload_size > 125) {
-                    if (payload_size == 126) {
-                        payload_size = sky_htons(*(sky_uint16_t *) p);
-                        p += 2;
-                    } else {
-                        payload_size = sky_htonll(*(sky_uint64_t *) p);
-                        p += 8;
-                    }
-                }
-                sky_log_info("payload len %lu", payload_size);
-                if (flag & 0x80) { // mask is true
-                    websocket_decoding(p + 4, p, payload_size);
-                    p += 4;
-                }
-                p[payload_size] = '\0';
-
-                sky_log_info("data: %s", p);
-                write_test(conn, pool, p, (sky_uint32_t)payload_size);
+            result = sky_coro_resume(read_work);
+            if (sky_unlikely(result != SKY_CORO_MAY_RESUME)) {
+                sky_coro_destroy(read_work);
+                return;
             }
-            sky_log_info("xxxxx");
-//    return data->handler->read(r);
         }
 
         sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
     }
+
+}
+
+static sky_int8_t
+read_message(sky_coro_t *coro, sky_websocket_session_t *session) {
+    sky_pool_t *pool;
+    sky_websocket_message_t *message;
+    sky_buf_t *buf;
+    sky_uint32_t size;
+
+
+    for (;;) {
+        pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
+        message = sky_pcalloc(pool, sizeof(sky_websocket_message_t));
+        message->session = session;
+        message->pool = pool;
+
+        buf = sky_buf_create(pool, 1024);
+
+
+        for (;;) {
+            size = websocket_read(session, buf->last, (sky_uint32_t) (buf->end - buf->last));
+
+            sky_log_info("data size %u", size);
+            for (sky_uint32_t i = 0; i < size; ++i) {
+                printf("%d\t\t", buf->last[i]);
+            }
+            printf("\n");
+
+            sky_uchar_t *p = buf->last;
+
+            sky_uint8_t flag = p[0];
+
+            if (flag & 0x80) { // 是否是最后分片
+                sky_log_info("fin is true");
+            } else {
+                sky_log_info("fin is false");
+            }
+            if (flag & 0x70) {
+                sky_log_error("RSV NOT IS ZERO");
+                sky_destroy_pool(pool);
+                return SKY_CORO_ABORT;
+            }
+            sky_log_info("code %u", flag & 0xf); // 0数据分片;1文本;2二进制;8断开;9 PING;10 PONG
+
+
+            flag = p[1];
+
+            sky_uint64_t payload_size = flag & 0x7f;
+
+            p += 2;
+            if (payload_size > 125) {
+                if (payload_size == 126) {
+                    payload_size = sky_htons(*(sky_uint16_t *) p);
+                    p += 2;
+                } else {
+                    payload_size = sky_htonll(*(sky_uint64_t *) p);
+                    p += 8;
+                }
+            }
+            sky_log_info("payload len %lu", payload_size);
+            if (flag & 0x80) { // mask is true
+                // read data
+                websocket_decoding(p + 4, p, payload_size);
+                p += 4;
+            } else {
+                // read data
+            }
+            p[payload_size] = '\0';
+
+            sky_log_info("data: %s", p);
+
+            break;
+        }
+        sky_destroy_pool(pool);
+
+        sky_coro_yield(coro, SKY_CORO_MAY_RESUME);
+    }
+
 }
 
 static void
@@ -276,29 +318,31 @@ write_test(sky_http_connection_t *conn, sky_pool_t *pool, sky_uchar_t *data, sky
 }
 
 static sky_uint32_t
-websocket_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size) {
+websocket_read(sky_websocket_session_t *session, sky_uchar_t *data, sky_uint32_t size) {
     ssize_t n;
     sky_int32_t fd;
 
 
-    fd = conn->ev.fd;
+    fd = session->event->fd;
     for (;;) {
-        if (sky_unlikely(!conn->ev.read)) {
-            return 0;
+        if (sky_unlikely(!session->event->read)) {
+            sky_coro_yield(session->read_coro, SKY_CORO_MAY_RESUME);
+            continue;
         }
 
         if ((n = read(fd, data, size)) < 1) {
-            conn->ev.read = false;
+            session->event->read = false;
             if (sky_unlikely(!n)) {
-                sky_coro_yield(conn->coro, SKY_CORO_ABORT);
+                sky_coro_yield(session->read_coro, SKY_CORO_ABORT);
                 sky_coro_exit();
             }
             switch (errno) {
                 case EINTR:
                 case EAGAIN:
-                    return 0;
+                    sky_coro_yield(session->read_coro, SKY_CORO_MAY_RESUME);
+                    continue;
                 default:
-                    sky_coro_yield(conn->coro, SKY_CORO_ABORT);
+                    sky_coro_yield(session->read_coro, SKY_CORO_ABORT);
                     sky_coro_exit();
             }
         }

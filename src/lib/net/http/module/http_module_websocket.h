@@ -11,9 +11,19 @@
 extern "C" {
 #endif
 
-typedef struct {
+typedef struct sky_websocket_session_s sky_websocket_session_t;
+typedef struct sky_websocket_message_s sky_websocket_message_t;
+
+struct sky_websocket_session_s {
     sky_http_request_t *request;
-} sky_websocket_session_t;
+    sky_event_t *event;
+    sky_coro_t *read_coro;
+};
+
+struct sky_websocket_message_s {
+    sky_websocket_session_t *session;
+    sky_pool_t *pool;
+};
 
 typedef struct {
     sky_bool_t (*open)(sky_websocket_session_t *session);
