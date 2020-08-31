@@ -18,6 +18,7 @@ set(SOURCES
         core/number.c
         core/date.c
         core/buf.c
+        core/crc32.c
         core/md5.c
         core/sha1.c
         core/base64.c
@@ -87,7 +88,9 @@ install(FILES
         core/date.h
         core/cpuinfo.h
         core/buf.h
+        core/crc32.h
         core/md5.h
+        core/sha1.h
         core/base64.h
         core/uuid.h
         core/log.h
