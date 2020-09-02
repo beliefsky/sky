@@ -91,11 +91,7 @@ sky_redis_connection_get(sky_redis_connection_pool_t *redis_pool, sky_pool_t *po
     rc->pool = pool;
     rc->redis_pool = redis_pool;
     rc->query_buf = null;
-    rc->defer = sky_defer_add(
-            main->coro,
-            (sky_defer_func_t) redis_connection_defer,
-            (sky_uintptr_t) rc
-    );
+    rc->defer = sky_defer_add(main->coro,(sky_defer_func_t) redis_connection_defer,rc);
 
     if (conn->tasks.next != &conn->tasks) {
         rc->next = conn->tasks.next;

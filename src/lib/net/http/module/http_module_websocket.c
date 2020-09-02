@@ -131,7 +131,8 @@ module_run_next(sky_websocket_session_t *session) {
 
     switcher = sky_coro_switcher_create(conn->pool);
 
-    session->read_coro = read_work = sky_coro_create(switcher, (sky_coro_func_t) read_message, (sky_uintptr_t) session);
+    session->read_coro = read_work = sky_coro_create(switcher, (sky_coro_func_t) read_message, session);
+    sky_defer_add(conn->coro, (sky_defer_func_t) sky_coro_destroy, session->read_coro);
     for (;;) {
         if (conn->ev.read) {
             result = sky_coro_resume(read_work);

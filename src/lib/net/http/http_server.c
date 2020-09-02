@@ -156,7 +156,8 @@ http_connection_accept_cb(sky_event_loop_t *loop, sky_int32_t fd, sky_http_serve
     sky_coro_t *coro;
     sky_http_connection_t *conn;
 
-    coro = sky_coro_create2(server->switcher, (sky_coro_func_t) sky_http_request_process, (sky_uintptr_t *) &conn,
+    coro = sky_coro_create2(server->switcher, (sky_coro_func_t) sky_http_request_process,
+                            (void **) (sky_uintptr_t *) &conn,
                             sizeof(sky_http_connection_t));
     conn->coro = coro;
     conn->pool = sky_coro_pool_get(coro);

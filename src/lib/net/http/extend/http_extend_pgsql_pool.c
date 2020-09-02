@@ -137,11 +137,7 @@ sky_pg_sql_connection_get(sky_pg_connection_pool_t *ps_pool, sky_pool_t *pool, s
     ps->ps_pool = ps_pool;
     ps->query_buf = null;
     ps->read_buf = null;
-    ps->defer = sky_defer_add(
-            main->coro,
-            (sky_defer_func_t) pg_sql_connection_defer,
-            (sky_uintptr_t) ps
-    );
+    ps->defer = sky_defer_add(main->coro,(sky_defer_func_t) pg_sql_connection_defer,ps);
 
     if (conn->tasks.next != &conn->tasks) {
         ps->next = conn->tasks.next;
