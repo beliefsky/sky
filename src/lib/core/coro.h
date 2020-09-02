@@ -20,11 +20,11 @@ typedef struct sky_coro_switcher_s sky_coro_switcher_t;
 typedef struct sky_coro_s sky_coro_t;
 typedef struct sky_defer_s sky_defer_t;
 
-typedef sky_int8_t (*sky_coro_func_t)(sky_coro_t *coro, sky_uintptr_t data);
+typedef sky_int8_t (*sky_coro_func_t)(sky_coro_t *coro, void *data);
 
-typedef void (*sky_defer_func_t)(sky_uintptr_t data);
+typedef void (*sky_defer_func_t)(void *data);
 
-typedef void (*sky_defer_func2_t)(sky_uintptr_t data1, sky_uintptr_t data2);
+typedef void (*sky_defer_func2_t)(void *data1, void *data2);
 
 sky_coro_switcher_t *sky_coro_switcher_create(sky_pool_t *pool);
 
@@ -35,7 +35,7 @@ sky_coro_switcher_t *sky_coro_switcher_create(sky_pool_t *pool);
  * @param data 异步函数参数
  * @return 协程
  */
-sky_coro_t *sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func, sky_uintptr_t data);
+sky_coro_t *sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func, void *data);
 
 /**
  * 创建协程
@@ -46,7 +46,7 @@ sky_coro_t *sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func,
  * @return 协程
  */
 sky_coro_t *
-sky_coro_create2(sky_coro_switcher_t *switcher, sky_coro_func_t func, sky_uintptr_t *data_ptr, sky_size_t size);
+sky_coro_create2(sky_coro_switcher_t *switcher, sky_coro_func_t func, void **data_ptr, sky_size_t size);
 
 /**
  * 执行协程
@@ -64,7 +64,6 @@ sky_int32_t sky_coro_resume(sky_coro_t *coro);
 sky_int32_t sky_coro_yield(sky_coro_t *coro, sky_int32_t value);
 
 
-
 /**
  * 销毁协程
  * @param coro 协程
@@ -73,9 +72,9 @@ void sky_coro_destroy(sky_coro_t *coro);
 
 #define sky_coro_exit()   __builtin_unreachable()
 
-sky_defer_t *sky_defer_add(sky_coro_t *coro, sky_defer_func_t func, sky_uintptr_t data);
+sky_defer_t *sky_defer_add(sky_coro_t *coro, sky_defer_func_t func, void *data);
 
-sky_defer_t *sky_defer_add2(sky_coro_t *coro, sky_defer_func2_t func, sky_uintptr_t data1, sky_uintptr_t data2);
+sky_defer_t *sky_defer_add2(sky_coro_t *coro, sky_defer_func2_t func, void *data1, void *data2);
 
 void sky_defer_remove(sky_coro_t *coro, sky_defer_t *defer);
 
