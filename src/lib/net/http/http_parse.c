@@ -258,16 +258,7 @@ sky_http_request_line_parse(sky_http_request_t *r, sky_buf_t *b) {
                         case '.':
                             state = sw_version_suffix;
                             break;
-                        case '0':
-                        case '1':
-                        case '2':
-                        case '3':
-                        case '4':
-                        case '5':
-                        case '6':
-                        case '7':
-                        case '8':
-                        case '9':
+                        case '0'...'9':
                             r->version = r->version * 10 + ch - '0';
                             ++p;
                             continue;
