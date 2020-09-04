@@ -377,21 +377,18 @@ sky_uint32_to_hex_str(sky_uint32_t data, sky_uchar_t *src, sky_bool_t lower_alph
     *(sky_uint64_t *) src = x;
 
 
-
     return 8;
 }
 
 
 static sky_inline sky_uint64_t
 fast_str_parse_mask(const sky_uchar_t *chars, sky_size_t len) {
-    sky_uint64_t val;
-
     if (len > 8) {
-        val = *(sky_uint64_t *) chars;
-    } else {
-        val = 0x3030303030303030UL;
-        sky_memcpy(((sky_uchar_t *) (&val) + (8 - len)), chars, len);
+        return *(sky_uint64_t *) chars;
     }
+    sky_uint64_t val = 0x3030303030303030UL;
+    sky_memcpy(((sky_uchar_t *) (&val) + (8 - len)), chars, len);
+
     return val;
 }
 
@@ -419,14 +416,13 @@ small_decimal_toStr(sky_uint64_t x, sky_uchar_t *s) {
     if (x <= 9) {
         *s = sky_num_to_uchar(x);
         return 1;
-    } else {
-        sky_uint64_t low = x;
-        sky_uint64_t ll = ((low * 103) >> 9) & 0x1E;
-        low += ll * 3;
-        ll = ((low & 0xF0) >> 4) | ((low & 0x0F) << 8);
-        *(sky_uint16_t *) s = (sky_uint16_t) (ll | 0x3030);
-        return 2;
     }
+    sky_uint64_t low = x;
+    sky_uint64_t ll = ((low * 103) >> 9) & 0x1E;
+    low += ll * 3;
+    ll = ((low & 0xF0) >> 4) | ((low & 0x0F) << 8);
+    *(sky_uint16_t *) s = (sky_uint16_t) (ll | 0x3030);
+    return 2;
 }
 
 /**
