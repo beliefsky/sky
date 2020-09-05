@@ -23,6 +23,7 @@ struct sky_websocket_session_s {
 struct sky_websocket_message_s {
     sky_websocket_session_t *session;
     sky_pool_t *pool;
+    sky_str_t data;
 };
 
 typedef struct {

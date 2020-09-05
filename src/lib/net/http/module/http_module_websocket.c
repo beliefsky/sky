@@ -155,6 +155,7 @@ static sky_int8_t
 read_message(sky_coro_t *coro, sky_websocket_session_t *session) {
     sky_uint64_t payload_size;
     sky_pool_t *pool;
+    sky_defer_t *defer;
     sky_websocket_message_t *message;
     sky_uchar_t *p;
     sky_uchar_t head[10];
@@ -163,8 +164,9 @@ read_message(sky_coro_t *coro, sky_websocket_session_t *session) {
     sky_uint8_t offset;
 
 
+    pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
+    defer = sky_defer_add(coro, (sky_defer_func_t) sky_destroy_pool, pool);
     for (;;) {
-        pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
         message = sky_pcalloc(pool, sizeof(sky_websocket_message_t));
         message->session = session;
         message->pool = pool;
@@ -219,7 +221,7 @@ read_message(sky_coro_t *coro, sky_websocket_session_t *session) {
                 size -= 1;
             }
             if (flag & 0x80) {
-                p = sky_palloc(pool, payload_size + 4);
+                p = sky_palloc(pool, payload_size + 5);
                 if (sky_likely(size)) {
                     sky_memcpy(p, head + offset, size);
                     websocket_read_wait(session, p + size, (sky_uint32_t) payload_size - size + 4);
@@ -229,7 +231,7 @@ read_message(sky_coro_t *coro, sky_websocket_session_t *session) {
                 websocket_decoding(p + 4, p, payload_size);
                 p += 4;
             } else {
-                p = sky_palloc(pool, payload_size);
+                p = sky_palloc(pool, payload_size + 1);
                 if (sky_likely(size)) {
                     sky_memcpy(p, head + offset, size);
                     websocket_read_wait(session, p + size, (sky_uint32_t) payload_size - size);
@@ -240,10 +242,14 @@ read_message(sky_coro_t *coro, sky_websocket_session_t *session) {
 
             p[payload_size] = '\0';
 
-            sky_log_info("data: %s", p);
+
+            message->data.data = p;
+            message->data.len = payload_size;
             break;
         }
-        sky_destroy_pool(pool);
+
+
+        sky_reset_pool(pool);
 
         sky_coro_yield(coro, SKY_CORO_MAY_RESUME);
     }
