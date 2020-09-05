@@ -95,6 +95,7 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
     session = sky_pcalloc(r->pool, sizeof(sky_websocket_session_t));
     session->request = r;
     session->event = &r->conn->ev;
+    session->server = data;
 
     if (sky_unlikely(!data->handler->open(session))) {
         sky_http_response_nobody(r);
@@ -135,7 +136,7 @@ module_run_next(sky_websocket_session_t *session) {
     switcher = sky_coro_switcher_create(conn->pool);
 
     session->read_coro = read_work = sky_coro_create(switcher, (sky_coro_func_t) read_message, session);
-    (void )sky_defer_add(conn->coro, (sky_defer_func_t) sky_coro_destroy, session->read_coro);
+    (void) sky_defer_add(conn->coro, (sky_defer_func_t) sky_coro_destroy, session->read_coro);
     for (;;) {
         if (conn->ev.read) {
             result = sky_coro_resume(read_work);
@@ -155,6 +156,7 @@ static sky_int8_t
 read_message(sky_coro_t *coro, sky_websocket_session_t *session) {
     sky_uint64_t payload_size;
     sky_pool_t *pool;
+    websocket_data_t *w_data;
     sky_websocket_message_t *message;
     sky_uchar_t *p;
     sky_uchar_t head[10];
@@ -163,8 +165,9 @@ read_message(sky_coro_t *coro, sky_websocket_session_t *session) {
     sky_uint8_t offset;
 
 
+    w_data = session->server;
     pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
-    (void )sky_defer_add(coro, (sky_defer_func_t) sky_destroy_pool, pool);
+    (void) sky_defer_add(coro, (sky_defer_func_t) sky_destroy_pool, pool);
     for (;;) {
         message = sky_pcalloc(pool, sizeof(sky_websocket_message_t));
         message->session = session;
@@ -247,6 +250,7 @@ read_message(sky_coro_t *coro, sky_websocket_session_t *session) {
             break;
         }
 
+        w_data->handler->read(message);
 
         sky_reset_pool(pool);
 

@@ -18,6 +18,7 @@ struct sky_websocket_session_s {
     sky_http_request_t *request;
     sky_event_t *event;
     sky_coro_t *read_coro;
+    void *server;
 };
 
 struct sky_websocket_message_s {
@@ -29,7 +30,7 @@ struct sky_websocket_message_s {
 typedef struct {
     sky_bool_t (*open)(sky_websocket_session_t *session);
 
-    sky_bool_t (*read)(sky_websocket_session_t *session);
+    sky_bool_t (*read)(sky_websocket_message_t *message);
 
     void (*close)(sky_websocket_session_t *session);
 } sky_http_websocket_handler_t;
