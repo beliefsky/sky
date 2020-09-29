@@ -207,7 +207,7 @@ sky_coro_create2(sky_coro_switcher_t *switcher, sky_coro_func_t func, void **dat
 }
 
 
-sky_int32_t
+sky_inline sky_int32_t
 sky_coro_resume(sky_coro_t *coro) {
 #if defined(STACK_PTR)
     assert(coro->context[STACK_PTR] >= (sky_uintptr_t) coro->stack &&
@@ -217,7 +217,7 @@ sky_coro_resume(sky_coro_t *coro) {
     return coro->yield_value;
 }
 
-sky_int32_t
+sky_inline sky_int32_t
 sky_coro_yield(sky_coro_t *coro, sky_int32_t value) {
     coro->yield_value = value;
     coro_swapcontext(&coro->context, &coro->switcher->caller);
