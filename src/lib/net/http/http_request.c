@@ -39,9 +39,12 @@ sky_http_request_init(sky_http_server_t *server) {
 
 sky_int8_t
 sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
+    sky_defer_t *defer;
     sky_http_request_t *r;
     sky_http_module_t *module;
 
+    conn->pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
+    defer = sky_defer_add(coro, (sky_defer_func_t) sky_destroy_pool, conn->pool);
     for (;;) {
         // read buf and parse
         r = http_header_read(conn);
@@ -64,7 +67,11 @@ sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
         if (!r->keep_alive) {
             return SKY_CORO_FINISHED;
         }
+        sky_defer_cancel(coro, defer);
         sky_defer_run(coro);
+        sky_reset_pool(conn->pool);
+
+        defer = sky_defer_add(coro, (sky_defer_func_t) sky_destroy_pool, conn->pool);
         if (!conn->ev.read) {
             sky_coro_yield(coro, SKY_CORO_MAY_RESUME);
         }
@@ -73,7 +80,6 @@ sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
 
 static sky_http_request_t *
 http_header_read(sky_http_connection_t *conn) {
-    sky_pool_t *pool;
     sky_http_request_t *r;
     sky_buf_t *buf;
     sky_uint32_t n;
@@ -90,11 +96,9 @@ http_header_read(sky_http_connection_t *conn) {
     } else {
         buf = sky_buf_create(conn->pool, buf_size);
     }
-    (void )sky_defer_add2(conn->coro, (sky_defer_func2_t) connection_buf_free, conn, buf);
+    (void) sky_defer_add2(conn->coro, (sky_defer_func2_t) connection_buf_free, conn, buf);
 
-    pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
-    (void )sky_defer_add(conn->coro, (sky_defer_func_t) sky_destroy_pool, pool);
-    r = sky_pcalloc(pool, sizeof(sky_http_request_t));
+    r = sky_pcalloc(conn->pool, sizeof(sky_http_request_t));
 
     for (;;) {
         n = http_read(conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
@@ -112,9 +116,9 @@ http_header_read(sky_http_connection_t *conn) {
         return null;
     }
 
-    r->pool = pool;
+    r->pool = conn->pool;
     r->conn = conn;
-    sky_list_init(&r->headers_in.headers, pool, 32, sizeof(sky_table_elt_t));
+    sky_list_init(&r->headers_in.headers, conn->pool, 32, sizeof(sky_table_elt_t));
 
     for (;;) {
         i = sky_http_request_header_parse(r, buf);
@@ -134,7 +138,7 @@ http_header_read(sky_http_connection_t *conn) {
                     } else {
                         buf = sky_buf_create(conn->pool, buf_size);
                     }
-                    (void )sky_defer_add2(conn->coro, (sky_defer_func2_t) connection_buf_free, conn, buf);
+                    (void) sky_defer_add2(conn->coro, (sky_defer_func2_t) connection_buf_free, conn, buf);
 
                     sky_memcpy(buf->pos, r->req_pos, n);
                     r->req_pos = buf->pos;
@@ -146,7 +150,7 @@ http_header_read(sky_http_connection_t *conn) {
                     } else {
                         buf = sky_buf_create(conn->pool, buf_size);
                     }
-                    (void )sky_defer_add2(conn->coro, (sky_defer_func2_t) connection_buf_free, conn, buf);
+                    (void) sky_defer_add2(conn->coro, (sky_defer_func2_t) connection_buf_free, conn, buf);
                 }
             }
         }
@@ -180,7 +184,7 @@ http_header_read(sky_http_connection_t *conn) {
             }
         }
     }
-    sky_list_init(&r->headers_out.headers, pool, 32, sizeof(sky_table_elt_t));
+    sky_list_init(&r->headers_out.headers, conn->pool, 32, sizeof(sky_table_elt_t));
 
     return r;
 }

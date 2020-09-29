@@ -159,7 +159,6 @@ http_connection_accept_cb(sky_event_loop_t *loop, sky_int32_t fd, sky_http_serve
                             (void **) (sky_uintptr_t *) &conn,
                             sizeof(sky_http_connection_t));
     conn->coro = coro;
-    conn->pool = sky_coro_pool_get(coro);
     conn->server = server;
     conn->free = null;
     sky_event_init(loop, &conn->ev, fd, http_connection_run, http_connection_close);
