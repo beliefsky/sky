@@ -306,7 +306,8 @@ void sky_coro_destroy(sky_coro_t *coro) {
         defer->prev->next = defer->next;
         defer->next->prev = defer->prev;
 
-        defer->one_arg ? defer->func(defer->data) : defer->func2(defer->data, defer->data2);
+        defer->one_arg ? defer->func(defer->data)
+                       : defer->func2(defer->data, defer->data2);
     }
     sky_destroy_pool(coro->pool);
 }
