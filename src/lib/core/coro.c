@@ -6,7 +6,7 @@
 #include "coro.h"
 
 #if !defined(SIGSTKSZ)
-#define SIGSTKSZ 2256
+#define SIGSTKSZ 4096
 #endif
 
 #ifndef CORO_STACK_MIN
