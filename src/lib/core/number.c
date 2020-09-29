@@ -113,7 +113,7 @@ sky_str_to_int32(const sky_str_t *in, sky_int32_t *out) {
         return false;
     }
     p = in->data;
-    if (*p == '-') {
+    if (p[0] == '-') {
         ++p;
         mask = fast_str_parse_mask(p, in->len - 1);
         if (in->len < 10) {
@@ -139,34 +139,37 @@ sky_str_to_int32(const sky_str_t *in, sky_int32_t *out) {
         } else {
             *out = ~((*out) * 100 + (sky_int32_t) fast_str_parse_uint32(mask)) + 1;
         }
-        return true;
-    } else {
-        mask = fast_str_parse_mask(p, in->len);
-        if (in->len < 9) {
-            if (sky_unlikely((!fast_str_all_number(mask)))) {
-                return false;
-            }
-            *out = ((sky_int32_t) fast_str_parse_uint32(mask));
-            return true;
-        }
-        if (sky_unlikely((!fast_str_all_number(mask)))) {
-            return false;
-        }
-        *out = (sky_int32_t) fast_str_parse_uint32(mask);
 
-        data = in->len - 8;
+        *out = data == 1 ? (~((*out) * 10 + (p[8] - '0')) + 1)
+                         : (~((*out) * 100 + (sky_int32_t) fast_str_parse_uint32(mask)) + 1);
 
-        mask = fast_str_parse_mask(&p[8], data);
-        if (sky_unlikely((!fast_str_all_number(mask)))) {
-            return false;
-        }
-        if (data == 1) {
-            *out = (*out) * 10 + (p[8] - '0');
-        } else {
-            *out = (*out) * 100 + (sky_int32_t) fast_str_parse_uint32(mask);
-        }
         return true;
     }
+
+    mask = fast_str_parse_mask(p, in->len);
+    if (in->len < 9) {
+        if (sky_unlikely((!fast_str_all_number(mask)))) {
+            return false;
+        }
+        *out = ((sky_int32_t) fast_str_parse_uint32(mask));
+        return true;
+    }
+    if (sky_unlikely((!fast_str_all_number(mask)))) {
+        return false;
+    }
+    *out = (sky_int32_t) fast_str_parse_uint32(mask);
+
+    data = in->len - 8;
+
+    mask = fast_str_parse_mask(&p[8], data);
+    if (sky_unlikely((!fast_str_all_number(mask)))) {
+        return false;
+    }
+
+    *out = data == 1 ? ((*out) * 10 + (p[8] - '0'))
+                     : ((*out) * 100 + (sky_int32_t) fast_str_parse_uint32(mask));
+
+    return true;
 }
 
 
@@ -196,11 +199,9 @@ sky_str_to_uint32(const sky_str_t *in, sky_uint32_t *out) {
     if (sky_unlikely((!fast_str_all_number(mask)))) {
         return false;
     }
-    if (data == 1) {
-        *out = (*out) * 10 + (p[8] - '0');
-    } else {
-        *out = (*out) * 100 + fast_str_parse_uint32(mask);
-    }
+
+    *out = data == 1 ? ((*out) * 10 + (p[8] - '0'))
+                     : ((*out) * 100 + fast_str_parse_uint32(mask));
 
     return true;
 }
@@ -208,20 +209,19 @@ sky_str_to_uint32(const sky_str_t *in, sky_uint32_t *out) {
 
 sky_bool_t
 sky_str_to_int64(const sky_str_t *in, sky_int64_t *out) {
-    if (*in->data == '-') {
+    if (in->data[0] == '-') {
         sky_str_t tmp = {
                 .data = &in->data[1],
                 .len = in->len - 1
         };
-        if (sky_str_to_uint64(&tmp, (sky_uint64_t *) out)) {
+
+        if (sky_likely(sky_str_to_uint64(&tmp, (sky_uint64_t *) out))) {
             *out = ~(*out) + 1;
             return true;
-        } else {
-            return false;
         }
-    } else {
-        return sky_str_to_uint64(in, (sky_uint64_t *) out);
+        return false;
     }
+    return sky_str_to_uint64(in, (sky_uint64_t *) out);
 }
 
 
