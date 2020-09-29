@@ -277,6 +277,9 @@ sky_defer_remove(sky_coro_t *coro, sky_defer_t *defer) {
     defer->prev = &coro->free_defers;
     defer->next = defer->prev->next;
     defer->next->prev = defer->prev->next = defer;
+
+    defer->one_arg ? defer->func(defer->data)
+                   : defer->func2(defer->data, defer->data2);
 }
 
 void sky_defer_run(sky_coro_t *coro) {
@@ -286,11 +289,9 @@ void sky_defer_run(sky_coro_t *coro) {
         defer->prev->next = defer->next;
         defer->next->prev = defer->prev;
         defer->free = true;
-        if (defer->one_arg) {
-            defer->func(defer->data);
-        } else {
-            defer->func2(defer->data, defer->data2);
-        }
+
+        defer->one_arg ? defer->func(defer->data)
+                       : defer->func2(defer->data, defer->data2);
 
         defer->prev = &coro->free_defers;
         defer->next = defer->prev->next;

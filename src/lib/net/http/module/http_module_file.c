@@ -152,7 +152,6 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
                       (sky_size_t) stat_buf.st_size);
 
     sky_defer_remove(r->conn->coro, file->file_defer);
-    close(fd);
 }
 
 static sky_bool_t

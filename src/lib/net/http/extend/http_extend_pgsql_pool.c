@@ -184,7 +184,6 @@ sky_pg_sql_exec(sky_pg_sql_t *ps, const sky_str_t *cmd, const sky_pg_type_t *par
 void
 sky_pg_sql_connection_put(sky_pg_sql_t *ps) {
     sky_defer_remove(ps->coro, ps->defer);
-    pg_sql_connection_defer(ps);
 }
 
 static sky_inline void
