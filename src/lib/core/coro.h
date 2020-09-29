@@ -16,7 +16,15 @@
 #define SKY_CORO_MAY_RESUME 0
 #define SKY_CORO_FINISHED   1
 
-typedef struct sky_coro_switcher_s sky_coro_switcher_t;
+#if defined(__x86_64__)
+typedef uintptr_t sky_coro_context_t[10];
+#elif defined(__i386__)
+typedef uintptr_t sky_coro_context_t[7];
+#else
+#include <ucontext.h>
+typedef ucontext_t sky_coro_context_t;
+#endif
+
 typedef struct sky_coro_s sky_coro_t;
 typedef struct sky_defer_s sky_defer_t;
 
@@ -26,7 +34,10 @@ typedef void (*sky_defer_func_t)(void *data);
 
 typedef void (*sky_defer_func2_t)(void *data1, void *data2);
 
-sky_coro_switcher_t *sky_coro_switcher_create(sky_pool_t *pool);
+typedef struct {
+    sky_coro_context_t caller;
+} sky_coro_switcher_t;
+
 
 /**
  * 创建协程

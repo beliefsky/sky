@@ -6,20 +6,11 @@
 #include "coro.h"
 
 #if !defined(SIGSTKSZ)
-#define SIGSTKSZ 16384
+#define SIGSTKSZ 2256
 #endif
 
 #ifndef CORO_STACK_MIN
 #define CORO_STACK_MIN  SIGSTKSZ
-#endif
-
-#if defined(__x86_64__)
-typedef uintptr_t sky_coro_context_t[10];
-#elif defined(__i386__)
-typedef uintptr_t sky_coro_context_t[7];
-#else
-#include <ucontext.h>
-typedef ucontext_t sky_coro_context_t;
 #endif
 
 #if defined(__APPLE__)
@@ -31,9 +22,6 @@ typedef ucontext_t sky_coro_context_t;
 #define ASM_ROUTINE(name_)                                      \
     ".globl " ASM_SYMBOL(name_) "\n\t" ASM_SYMBOL(name_) ":\n\t"
 
-struct sky_coro_switcher_s {
-    sky_coro_context_t caller;
-};
 
 struct sky_defer_s {
     union {
@@ -183,11 +171,6 @@ coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
 #endif
 }
 
-
-sky_coro_switcher_t *
-sky_coro_switcher_create(sky_pool_t *pool) {
-    return sky_palloc(pool, sizeof(sky_coro_switcher_t));
-}
 
 sky_coro_t *
 sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func, void *data) {

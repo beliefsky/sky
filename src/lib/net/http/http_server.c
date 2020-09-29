@@ -53,7 +53,6 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
     server->port = conf->port;
     server->pool = pool;
     server->tmp_pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
-    server->switcher = sky_coro_switcher_create(pool);
 
     if (!conf->header_buf_n) {
         conf->header_buf_n = 4; // 4 buff
@@ -156,7 +155,7 @@ http_connection_accept_cb(sky_event_loop_t *loop, sky_int32_t fd, sky_http_serve
     sky_coro_t *coro;
     sky_http_connection_t *conn;
 
-    coro = sky_coro_create2(server->switcher, (sky_coro_func_t) sky_http_request_process,
+    coro = sky_coro_create2(&server->switcher, (sky_coro_func_t) sky_http_request_process,
                             (void **) (sky_uintptr_t *) &conn,
                             sizeof(sky_http_connection_t));
     conn->coro = coro;

@@ -127,15 +127,13 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
 static void
 module_run_next(sky_websocket_session_t *session) {
     sky_http_connection_t *conn;
-    sky_coro_switcher_t *switcher;
+    sky_coro_switcher_t switcher;
     sky_coro_t *read_work;
     sky_int32_t result;
 
     conn = session->request->conn;
 
-    switcher = sky_coro_switcher_create(conn->pool);
-
-    session->read_coro = read_work = sky_coro_create(switcher, (sky_coro_func_t) read_message, session);
+    session->read_coro = read_work = sky_coro_create(&switcher, (sky_coro_func_t) read_message, session);
     (void) sky_defer_add(conn->coro, (sky_defer_func_t) sky_coro_destroy, session->read_coro);
     for (;;) {
         if (conn->ev.read) {
