@@ -2,7 +2,6 @@
 // Created by weijing on 18-11-7.
 //
 
-#include <errno.h>
 #include "http_server.h"
 #include "../tcp.h"
 #include "http_request.h"
@@ -10,11 +9,10 @@
 #include "../../core/cpuinfo.h"
 #include "../../core/number.h"
 #include "../../core/trie.h"
-#include "../../core/log.h"
 
 typedef struct {
     sky_str_t msg;
-    sky_uint16_t status:9;
+    sky_uint16_t status: 9;
 } status_t;
 
 static sky_event_t *http_connection_accept_cb(sky_event_loop_t *loop, sky_int32_t fd, sky_http_server_t *server);
@@ -155,9 +153,13 @@ http_connection_accept_cb(sky_event_loop_t *loop, sky_int32_t fd, sky_http_serve
     sky_coro_t *coro;
     sky_http_connection_t *conn;
 
-    coro = sky_coro_create2(&server->switcher, (sky_coro_func_t) sky_http_request_process,
-                            (void **) (sky_uintptr_t *) &conn,
-                            sizeof(sky_http_connection_t));
+    coro = sky_coro_create2(
+            &server->switcher,
+            (sky_coro_func_t) sky_http_request_process,
+            (void **) &conn,
+            sizeof(sky_http_connection_t)
+    );
+
     conn->coro = coro;
     conn->server = server;
     conn->free = null;
