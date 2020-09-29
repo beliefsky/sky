@@ -103,8 +103,8 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 continue;
             }
             // 是否可读
-            ev->read = (event->events & EPOLLIN) == 0 ? ev->read : true;
-            ev->write = (event->events & EPOLLOUT) == 0 ? ev->read : true;
+            ev->read = (event->events & EPOLLIN) ? true : ev->read;
+            ev->write = (event->events & EPOLLOUT) ? true : ev->write;
 
             if (ev->wait) {
                 continue;
