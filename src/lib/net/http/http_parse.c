@@ -690,6 +690,8 @@ parse_url_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end)
                 }
                 *(post++) = '\0';
 
+                sky_http_url_decode(&r->uri);
+
                 r->state = sw_http;
                 r->req_pos = null;
                 return (post - start);
@@ -706,8 +708,11 @@ parse_url_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end)
                     r->index = 0;
                 }
                 *(post++) = '\0';
-                r->req_pos = post;
+
+                sky_http_url_decode(&r->uri);
+
                 r->state = sw_args;
+                r->req_pos = post;
                 return (post - start);
             default:
                 if (sky_unlikely(!IS_PRINTABLE_ASCII(*post))) {
