@@ -65,8 +65,6 @@ struct sky_http_connection_s {
     sky_event_t ev;
     sky_coro_t *coro;
     sky_http_server_t *server;
-    sky_pool_t *pool;
-    sky_buf_t *free;
 };
 
 sky_http_server_t *sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf);

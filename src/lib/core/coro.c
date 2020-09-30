@@ -287,18 +287,20 @@ sky_defer_add2(sky_coro_t *coro, sky_defer_func2_t func, void *data1, void *data
     return defer;
 }
 
-void
-sky_defer_cancel(sky_coro_t *coro, sky_defer_t *defer) {
-    if (defer->free) {
+sky_inline void
+sky_defer_reset(sky_defer_t *defer, sky_defer_func_t func) {
+    if (defer->free || !defer->one_arg) {
         return;
     }
-    defer->prev->next = defer->next;
-    defer->next->prev = defer->prev;
-    defer->free = true;
+    defer->func = func;
+}
 
-    defer->prev = &coro->free_defers;
-    defer->next = defer->prev->next;
-    defer->next->prev = defer->prev->next = defer;
+sky_inline void
+sky_defer_reset2(sky_defer_t *defer, sky_defer_func2_t func) {
+    if (defer->free || defer->one_arg) {
+        return;
+    }
+    defer->func2 = func;
 }
 
 void
