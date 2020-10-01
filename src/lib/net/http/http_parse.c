@@ -46,7 +46,6 @@ static sky_bool_t find_char_fast(sky_uchar_t **buf, sky_size_t buf_size,
 
 sky_int8_t
 sky_http_request_line_parse(sky_http_request_t *r, sky_buf_t *b) {
-    sky_uchar_t ch;
     line_state_t state;
     sky_int_t index;
     sky_uchar_t *p, *end;
