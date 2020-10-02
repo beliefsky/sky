@@ -2,7 +2,6 @@
 // Created by weijing on 18-2-23.
 //
 #include "http_parse.h"
-#include "../../core/log.h"
 
 #ifdef __SSE4_2__
 #ifdef _MSC_VER
