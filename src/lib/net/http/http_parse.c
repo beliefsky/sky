@@ -83,7 +83,7 @@ sky_http_request_line_parse(sky_http_request_t *r, sky_buf_t *b) {
                 index = parse_token(p, end, ' ');
 
                 if (sky_unlikely(index < 0)) {
-                    if (sky_likely(index == -2)) {
+                    if (sky_unlikely(index == -2)) {
                         return -1;
                     }
                     p = end;
@@ -104,7 +104,7 @@ sky_http_request_line_parse(sky_http_request_t *r, sky_buf_t *b) {
                 index = parse_url_no_code(r, p, end);
 
                 if (sky_unlikely(index < 0)) {
-                    if (sky_likely(index == -2)) {
+                    if (sky_unlikely(index == -2)) {
                         return -1;
                     }
                     p = end;
@@ -117,7 +117,7 @@ sky_http_request_line_parse(sky_http_request_t *r, sky_buf_t *b) {
                 index = parse_url_code(r, p, end);
 
                 if (sky_unlikely(index < 0)) {
-                    if (sky_likely(index == -2)) {
+                    if (sky_unlikely(index == -2)) {
                         return -1;
                     }
                     p = end;
@@ -130,7 +130,7 @@ sky_http_request_line_parse(sky_http_request_t *r, sky_buf_t *b) {
                 index = advance_token(p, end);
 
                 if (sky_unlikely(index < 0)) {
-                    if (sky_likely(index == -2)) {
+                    if (sky_unlikely(index == -2)) {
                         return -1;
                     }
                     p = end;
@@ -246,7 +246,7 @@ sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
                 index = parse_token(p, end, ':');
 
                 if (sky_unlikely(index < 0)) {
-                    if (sky_likely(index == -2)) {
+                    if (sky_unlikely(index == -2)) {
                         return -1;
                     }
                     p = end;
@@ -279,7 +279,7 @@ sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
                 index = parse_header_val(r, p, end);
 
                 if (sky_unlikely(index < 0)) {
-                    if (sky_likely(index == -2)) {
+                    if (sky_unlikely(index == -2)) {
                         return -1;
                     }
                     p = end;
