@@ -26,8 +26,12 @@ typedef enum {
     sw_uri_code,
     sw_args,
     sw_http,
-    sw_line
-} line_state_t;
+    sw_line,
+    sw_header_name,
+    sw_header_value_first,
+    sw_header_value,
+    sw_line_LF
+} parse_state_t;
 
 
 static sky_bool_t http_method_identify(sky_http_request_t *r);
@@ -37,7 +41,9 @@ static sky_int_t parse_token(sky_uchar_t *buf, const sky_uchar_t *end, sky_uchar
 
 static sky_int_t parse_url_no_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end);
 
-static sky_inline sky_int_t parse_url_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end);
+static sky_int_t parse_url_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end);
+
+static sky_int_t parse_header_val(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end);
 
 static sky_int_t advance_token(sky_uchar_t *buf, const sky_uchar_t *end);
 
@@ -46,7 +52,7 @@ static sky_bool_t find_char_fast(sky_uchar_t **buf, sky_size_t buf_size,
 
 sky_int8_t
 sky_http_request_line_parse(sky_http_request_t *r, sky_buf_t *b) {
-    line_state_t state;
+    parse_state_t state;
     sky_int_t index;
     sky_uchar_t *p, *end;
 
@@ -204,28 +210,11 @@ sky_http_request_line_parse(sky_http_request_t *r, sky_buf_t *b) {
 
 sky_int8_t
 sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
-    sky_uchar_t ch, *p, *q, *end;
+    parse_state_t state;
     sky_int_t index;
+    sky_uchar_t *p, *end;
     sky_table_elt_t *h;
     sky_http_header_t *hh;
-
-    enum {
-        sw_start = 0,
-        sw_header_name,
-        sw_header_value_first,
-        sw_header_value,
-        sw_line_LF
-    } state;
-
-    static sky_uchar_t lowcase[] =
-            "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-            "\0\0\0\0\0\0\0\0\0\0\0\0\0-\0\0" "0123456789\0\0\0\0\0\0"
-            "\0abcdefghijklmnopqrstuvwxyz\0\0\0\0\0"
-            "\0abcdefghijklmnopqrstuvwxyz\0\0\0\0\0"
-            "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-            "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-            "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-            "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 
     state = r->state;
     p = b->pos;
@@ -236,7 +225,7 @@ sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
         switch (state) {
             case sw_start:
                 for (;;) {
-                    switch (ch = *p) {
+                    switch (*p) {
                         case '\0':
                             goto again;
                         case '\r':
@@ -246,13 +235,8 @@ sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
                             ++p;
                             goto done;
                         default:
-                            ch = lowcase[ch];
-                            if (sky_unlikely(!ch)) {
-                                return -1;
-                            }
                             break;
                     }
-                    r->index = sky_hash(0, ch);
                     r->req_pos = p++;
                     state = sw_header_name;
                     break;
@@ -273,17 +257,16 @@ sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
                 r->header_name.data = r->req_pos;
                 r->header_name.len = (sky_uint32_t) (p - r->req_pos);
                 *(p++) = '\0';
-                r->index = sky_hash_key_lc(r->header_name.data, r->header_name.len);
                 state = sw_header_value_first;
                 r->req_pos = null;
 
                 break;
             case sw_header_value_first:
                 for (;;) {
-                    if (sky_unlikely(!(ch = *p))) {
+                    if (sky_unlikely(p == end)) {
                         goto again;
                     }
-                    if (ch == ' ') {
+                    if (*p == ' ') {
                         ++p;
                         continue;
                     }
@@ -293,45 +276,40 @@ sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
                 }
                 break;
             case sw_header_value:
-                for (;;) {
-                    switch (*p) {
-                        case '\0':
-                            goto again;
-                        case '\r':
-                            state = sw_line_LF;
-                            break;
-                        case '\n':
-                            state = sw_header_value_first;
-                            break;
-                        default:
-                            ++p;
-                            continue;
+                index = parse_header_val(r, p, end);
+
+                if (sky_unlikely(index < 0)) {
+                    if (sky_likely(index == -2)) {
+                        return -1;
                     }
-                    h = sky_list_push(&r->headers_in.headers);
-                    h->hash = r->index;
-                    h->key = r->header_name;
-                    h->value.data = r->req_pos;
-                    h->value.len = (sky_uint32_t) (p - r->req_pos);
-                    *(p++) = '\0';
-                    r->req_pos = h->lowcase_key = sky_palloc(r->pool, h->key.len + 1);
-                    q = h->key.data;
-                    while (*q) {
-                        *(r->req_pos++) = lowcase[*(q++)];
-                    }
-                    *(r->req_pos) = '\0';
-                    r->req_pos = null;
-                    break;
+                    p = end;
+                    goto again;
                 }
+                p += index;
+                state = r->state;
+
+
+                h = sky_list_push(&r->headers_in.headers);
+                h->value.data = r->req_pos;
+                h->value.len = (sky_uint32_t) (p - r->req_pos);
+                *(p++) = '\0';
+
+                h->key = r->header_name;
+                r->req_pos = h->lowcase_key = sky_palloc(r->pool, h->key.len + 1);
+                *(r->req_pos + h->key.len) = '\0';
+                h->hash = sky_hash_strlow(r->req_pos, h->key.data, h->key.len);
+                r->req_pos = null;
+
                 hh = sky_hash_find(&r->conn->server->headers_in_hash, h->hash, h->lowcase_key, h->key.len);
                 if (sky_unlikely(hh && !hh->handler(r, h, hh->data))) {
                     return -1;
                 }
                 break;
             case sw_line_LF:
-                if (sky_unlikely(!(ch = *p))) {
+                if (sky_unlikely(p == end)) {
                     goto again;
                 }
-                if (sky_unlikely(ch != '\n')) {
+                if (sky_unlikely(*p != '\n')) {
                     return -1;
                 }
                 ++p;
@@ -719,6 +697,96 @@ parse_url_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end)
     }
 }
 
+static sky_inline sky_int_t
+parse_header_val(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end) {
+    sky_uchar_t *start = post;
+#if __SSE4_2__
+    static const sky_uchar_t ALIGNED(16) ranges[16] = "\0\010"    /* allow HT */
+                                                      "\012\037"  /* allow SP and up to but not including DEL */
+                                                      "\177\177"; /* allow chars w. MSB set */
+    if (find_char_fast(&post, (sky_size_t) (end - start), ranges, 6)) {
+        if (*post == '\r') {
+            r->state = sw_line_LF;
+        } else if (*post == '\n') {
+            r->state = sw_header_value_first;
+        } else {
+            return -2;
+        }
+
+        return (post - start);
+    }
+#else
+    while (sky_likely(end - post >= 8)) {
+        if (sky_unlikely(!IS_PRINTABLE_ASCII(*post))) {
+            goto NonPrintable;
+        }
+        ++post;
+        if (sky_unlikely(!IS_PRINTABLE_ASCII(*post))) {
+            goto NonPrintable;
+        }
+        ++post;
+        if (sky_unlikely(!IS_PRINTABLE_ASCII(*post))) {
+            goto NonPrintable;
+        }
+        ++post;
+        if (sky_unlikely(!IS_PRINTABLE_ASCII(*post))) {
+            goto NonPrintable;
+        }
+        ++post;
+        if (sky_unlikely(!IS_PRINTABLE_ASCII(*post))) {
+            goto NonPrintable;
+        }
+        ++post;
+        if (sky_unlikely(!IS_PRINTABLE_ASCII(*post))) {
+            goto NonPrintable;
+        }
+        ++post;
+        if (sky_unlikely(!IS_PRINTABLE_ASCII(*post))) {
+            goto NonPrintable;
+        }
+        ++post;
+        if (sky_unlikely(!IS_PRINTABLE_ASCII(*post))) {
+            goto NonPrintable;
+        }
+        ++post;
+        continue;
+
+        NonPrintable:
+        if ((sky_likely(*post < '\040') && sky_likely(*post != '\011')) || sky_unlikely(*post == '\177')) {
+            if (*post == '\r') {
+                r->state = sw_line_LF;
+            } else if (*post == '\n') {
+                r->state = sw_header_value_first;
+            } else {
+                return -2;
+            }
+
+            return (post - start);
+        }
+        ++post;
+    }
+#endif
+
+    for (;; ++post) {
+        if (sky_unlikely(post == end)) {
+            return -1;
+        }
+        if (sky_unlikely(!IS_PRINTABLE_ASCII(*post))) {
+            if ((sky_likely(*post < '\040') && sky_likely(*post != '\011')) || sky_unlikely(*post == '\177')) {
+                if (*post == '\r') {
+                    r->state = sw_line_LF;
+                } else if (*post == '\n') {
+                    r->state = sw_header_value_first;
+                } else {
+                    return -2;
+                }
+
+                return (post - start);
+            }
+        }
+    }
+}
+
 
 static sky_int_t
 parse_token(sky_uchar_t *buf, const sky_uchar_t *end, sky_uchar_t next_char) {
@@ -768,46 +836,6 @@ parse_token(sky_uchar_t *buf, const sky_uchar_t *end, sky_uchar_t next_char) {
         }
     }
 }
-
-static sky_int_t
-get_token_eol(sky_uchar_t *post, const sky_uchar_t *end) {
-    sky_uchar_t *start = post;
-#if __SSE4_2__
-    static const sky_uchar_t ALIGNED(16) ranges[16] = "\0\010"    /* allow HT */
-                                                      "\012\037"  /* allow SP and up to but not including DEL */
-                                                      "\177\177"; /* allow chars w. MSB set */
-    if (find_char_fast(&post, (sky_size_t) (end - start), ranges, 6)) {
-        if (sky_likely(*post == '\r' || *post == '\n')) {
-            return (post - start);
-        }
-        return -2;
-    }
-#else
-
-#endif
-
-    while (sky_likely(end - post >= 8)) {
-        if (sky_unlikely(!IS_PRINTABLE_ASCII(*post))) {
-            break;
-        }
-        ++post;
-    }
-
-    for (;; ++post) {
-        if (post == end) {
-            return -1;
-        }
-        if (sky_unlikely(!IS_PRINTABLE_ASCII(*post))) {
-            if ((sky_likely(*post < '\040') && sky_likely(*post != '\011')) || sky_unlikely(*post == '\177')) {
-                if (sky_likely(*post == '\r' || *post == '\n')) {
-                    return (post - start);
-                }
-                return -2;
-            }
-        }
-    }
-}
-
 
 #if __SSE4_2__
 
