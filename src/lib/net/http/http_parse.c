@@ -333,63 +333,75 @@ sky_bool_t
 sky_http_url_decode(sky_str_t *str) {
     sky_uchar_t *s, *p, ch;
 
-    enum {
-        sw_default = 0,
-        sw_quoted,
-        sw_quoted_second
-    } state;
+    p = str->data;
+#if __SSE4_2__
+    static const sky_uchar_t ALIGNED(16) ranges[16] = "\000\040"
+                                                      "%%"
+                                                      "\177\177";
 
-    state = sw_default;
-    s = p = str->data;
+
+    if (!find_char_fast(&p, str->len, ranges, 6)) {
+        for (;;) {
+            if (*p == '\0') {
+                return true;
+            }
+            if (*p == '%') {
+                break;
+            }
+            ++p;
+        }
+    }
+#else
+    for (;;) {
+        if (*p == '\0') {
+            return true;
+        }
+        if (*p == '%') {
+            break;
+        }
+        ++p;
+    }
+#endif
+
+    s = p++;
 
     for (;;) {
-        switch (state) {
-            case sw_default:
-                for (;;) {
-                    switch (*p) {
-                        case '\0':
-                            *s = '\0';
-                            str->len = (sky_uint32_t) (s - str->data);
-                            return true;
-                        case '%':
-                            break;
-                        default:
-                            *(s++) = *(p++);
-                            continue;
-                    }
-                    state = sw_quoted;
-                    ++p;
-                    break;
-                }
-                break;
-            case sw_quoted:
-                ch = *(p++);
-                if (ch >= '0' && ch <= '9') {
-                    *s = (sky_uchar_t) ((ch - '0') << 4);
-                    state = sw_quoted_second;
-                    break;
-                }
-                ch |= 0x20;
-                if (ch >= 'a' && ch <= 'f') {
-                    *s = (sky_uchar_t) ((ch - 'a' + 10) << 4);
-                    state = sw_quoted_second;
-                    break;
-                }
+        ch = *(p++);
+        if (ch >= '0' && ch <= '9') {
+            *s = (sky_uchar_t) ((ch - '0') << 4);
+        } else {
+            ch |= 0x20;
+            if (sky_unlikely(ch < 'a' && ch > 'f')) {
                 return false;
-            case sw_quoted_second:
-                ch = *(p++);
-                if (ch >= '0' && ch <= '9') {
-                    *(s++) += ch - '0';
-                    state = sw_default;
-                    break;
-                }
-                ch |= 0x20;
-                if (ch >= 'a' && ch <= 'f') {
-                    *(s++) += ch - 'a' + 10;
-                    state = sw_default;
-                    break;
-                }
+            }
+            *s = (sky_uchar_t) ((ch - 'a' + 10) << 4);
+        }
+
+        ch = *(p++);
+        if (ch >= '0' && ch <= '9') {
+            *(s++) += ch - '0';
+        } else {
+            ch |= 0x20;
+            if (sky_unlikely(ch < 'a' && ch > 'f')) {
                 return false;
+            }
+            *(s++) += ch - 'a' + 10;
+        }
+
+        for (;;) {
+            switch (*p) {
+                case '\0':
+                    *s = '\0';
+                    str->len = (sky_uint32_t) (s - str->data);
+                    return true;
+                case '%':
+                    break;
+                default:
+                    *(s++) = *(p++);
+                    continue;
+            }
+            ++p;
+            break;
         }
     }
 }
