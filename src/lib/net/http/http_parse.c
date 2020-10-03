@@ -57,6 +57,7 @@ sky_http_request_line_parse(sky_http_request_t *r, sky_buf_t *b) {
     state = r->state;
     p = b->pos;
     end = b->last;
+    *end = '\0';
 
     for (;;) {
         switch (state) {
@@ -183,14 +184,14 @@ sky_http_request_line_parse(sky_http_request_t *r, sky_buf_t *b) {
                 break;
 
             case sw_line:
-                if (sky_unlikely(p == end)) {
-                    goto again;
+                if (sky_unlikely(*p != '\n')) {
+                    if (sky_likely(p == end)) {
+                        goto again;
+                    }
+                    return -1;
                 }
-                if (sky_likely(*p == '\n')) {
-                    ++p;
-
-                    goto done;
-                }
+                ++p;
+                goto done;
             default:
                 return -1;
         }
@@ -303,10 +304,10 @@ sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
                 }
                 break;
             case sw_line_LF:
-                if (sky_unlikely(p == end)) {
-                    goto again;
-                }
                 if (sky_unlikely(*p != '\n')) {
+                    if (sky_likely(p == end)) {
+                        goto again;
+                    }
                     return -1;
                 }
                 ++p;
