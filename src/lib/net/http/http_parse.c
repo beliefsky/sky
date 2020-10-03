@@ -4,14 +4,12 @@
 #include "http_parse.h"
 
 #ifdef __SSE4_2__
-#ifdef _MSC_VER
+
 #include <nmmintrin.h>
 
+#ifdef _MSC_VER
 #define ALIGNED(_n) _declspec(align(_n))
 #else
-
-#include <x86intrin.h>
-
 #define ALIGNED(_n) __attribute__((aligned(_n)))
 #endif
 #endif
@@ -47,7 +45,7 @@ static sky_int_t parse_header_val(sky_http_request_t *r, sky_uchar_t *post, cons
 static sky_int_t advance_token(sky_uchar_t *buf, const sky_uchar_t *end);
 
 static sky_bool_t find_char_fast(sky_uchar_t **buf, sky_size_t buf_size,
-                                 const sky_uchar_t *ranges, sky_size_t ranges_size);
+                                 const sky_uchar_t *ranges, sky_int32_t ranges_size);
 
 sky_int8_t
 sky_http_request_line_parse(sky_http_request_t *r, sky_buf_t *b) {
@@ -851,7 +849,7 @@ parse_token(sky_uchar_t *buf, const sky_uchar_t *end, sky_uchar_t next_char) {
 #if __SSE4_2__
 
 static sky_inline sky_bool_t
-find_char_fast(sky_uchar_t **buf, sky_size_t buf_size, const sky_uchar_t *ranges, sky_size_t ranges_size) {
+find_char_fast(sky_uchar_t **buf, sky_size_t buf_size, const sky_uchar_t *ranges, sky_int32_t ranges_size) {
     if (sky_likely(buf_size >= 16)) {
         sky_uchar_t *tmp = *buf;
         sky_size_t left = buf_size & ~15U;
