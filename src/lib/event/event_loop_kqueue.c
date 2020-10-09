@@ -54,8 +54,8 @@ sky_event_loop_run(sky_event_loop_t *loop) {
     sky_bool_t timeout;
     sky_int16_t index, i;
     sky_int32_t fd, max_events, n;
-    sky_rbtree_t *btree;
     sky_time_t now;
+    sky_rbtree_t *btree;
     sky_event_t *ev, **run_ev;
     struct kevent *events, *event;
     struct timespec timespec = {

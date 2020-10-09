@@ -52,8 +52,8 @@ sky_event_loop_create(sky_pool_t *pool) {
 void
 sky_event_loop_run(sky_event_loop_t *loop) {
     sky_int32_t fd, max_events, n, timeout;
-    sky_rbtree_t *btree;
     sky_time_t now;
+    sky_rbtree_t *btree;
     sky_event_t *ev;
     struct epoll_event *events, *event;
 
