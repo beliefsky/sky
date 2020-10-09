@@ -102,18 +102,11 @@ sky_defer_t *sky_defer_add(sky_coro_t *coro, sky_defer_func_t func, void *data);
 sky_defer_t *sky_defer_add2(sky_coro_t *coro, sky_defer_func2_t func, void *data1, void *data2);
 
 /**
- * 重新选择回收器
+ * 取消清除回收器
  * @param coro  协程
- * @param func  回收函数
+ * @param defer  回收标记
  */
-void sky_defer_reset(sky_defer_t *defer, sky_defer_func_t func);
-
-/**
- * 重新选择回收器
- * @param coro  协程
- * @param func  回收函数
- */
-void sky_defer_reset2(sky_defer_t *defer, sky_defer_func2_t func);
+void sky_defer_cancel(sky_coro_t *coro, sky_defer_t *defer);
 
 /**
  * 出发回收器并删除
