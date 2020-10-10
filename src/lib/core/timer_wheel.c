@@ -83,6 +83,55 @@ void sky_timer_wheel_destory(sky_timer_wheel_t *ctx) {
     }
 }
 
+sky_uint64_t
+sky_timer_wheel_wake_at(sky_timer_wheel_t *ctx) {
+    sky_size_t wheel, slot, slot_base, si;
+    sky_uint64_t at = ctx->last_run, at_incr;
+    timer_wheel_slot_t *s;
+
+
+    for (wheel = 0; wheel < ctx->num_wheels; ++wheel) {
+        at_incr = 1UL << (wheel * TIMER_WHEEL_BITS);
+        slot_base = timer_slot(wheel, at);
+        for (slot = slot_base; slot < TIMER_WHEEL_SLOTS; ++slot) {
+            s = &ctx->wheels[wheel][slot];
+            if (s->next != s) {
+                return at;
+            }
+            at += at_incr;
+        }
+
+        for (;;) {
+            if (wheel + 1 < ctx->num_wheels) {
+                for (slot = wheel + 1; slot < ctx->num_wheels; ++slot) {
+                    si = timer_slot(wheel, at);
+                    s = &ctx->wheels[slot][si];
+                    if (s->next != s) {
+                        return at;
+                    }
+                    if (!si) {
+                        break;
+                    }
+                }
+            }
+            if (!slot_base) {
+                break;
+            }
+            for (slot = 0; slot < slot_base; ++slot) {
+                s = &ctx->wheels[wheel][slot];
+                if (s->next != s) {
+                    return at;
+                }
+                at += at_incr;
+            }
+            at += at_incr * (TIMER_WHEEL_SLOTS - slot_base);
+            slot_base = 0;
+        }
+    }
+
+    return SKY_UINT64_MAX;
+}
+
 void
 sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_uint64_t now) {
     sky_size_t wheel = 0, slot, slot_start;
@@ -140,10 +189,21 @@ sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_uint64_t now) {
 
 }
 
-void
+sky_inline void
 sky_timer_wheel_link(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky_uint64_t at) {
     entry->expire_at = at < ctx->last_run ? ctx->last_run : at;
     link_timer(ctx, entry);
+}
+
+void
+sky_timer_wheel_expired(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky_uint64_t at) {
+    if (entry->next) {
+        entry->next->prev = entry->prev;
+        entry->prev->next = entry->next;
+        entry->next = entry->prev = null;
+
+        sky_timer_wheel_link(ctx, entry, at);
+    }
 }
 
 static sky_inline void

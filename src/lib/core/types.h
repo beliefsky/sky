@@ -20,6 +20,8 @@ extern "C" {
 
 #define null    (void *)0x0
 
+#define SKY_UINT64_MAX UINT64_MAX
+
 typedef _Bool sky_bool_t;
 typedef char sky_char_t;             /*-128 ~ +127*/
 typedef unsigned char sky_uchar_t;            /*0 ~ 255*/

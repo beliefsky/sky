@@ -32,9 +32,13 @@ sky_timer_wheel_t *sky_timer_wheel_create(sky_pool_t *pool, sky_size_t num_wheel
 
 void sky_timer_wheel_destory(sky_timer_wheel_t *ctx);
 
+sky_uint64_t sky_timer_wheel_wake_at(sky_timer_wheel_t *ctx);
+
 void sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_uint64_t now);
 
 void sky_timer_wheel_link(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky_uint64_t at);
+
+void sky_timer_wheel_expired(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky_uint64_t at);
 
 
 static sky_inline void
