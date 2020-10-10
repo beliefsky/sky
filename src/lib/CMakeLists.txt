@@ -24,6 +24,7 @@ set(SOURCES
         core/base64.c
         core/uuid.c
         core/json.c
+        core/timer_wheel.c
         math/matrix.c
         event/event_loop.c
         net/tcp.c
