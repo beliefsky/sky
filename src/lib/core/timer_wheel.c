@@ -12,9 +12,6 @@
 #define timer_slot(_wheel, _expire) \
     (TIMER_WHEEL_SLOTS_MASK & ((_expire) >> (_wheel) * TIMER_WHEEL_BITS))
 
-#define timer_wheel(_nws, _delta)   \
-    ((_delta) == 0 ? 0 : (63 - __builtin_clzll(_delta)) / TIMER_WHEEL_BITS)
-
 
 typedef struct timer_wheel_slot_s timer_wheel_slot_t;
 
@@ -244,12 +241,14 @@ cascade_all(sky_timer_wheel_t *ctx, sky_size_t wheel) {
 static sky_inline void
 link_timer(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry) {
     sky_size_t wheel, slot;
-    sky_uint64_t wheel_abs = entry->expire_at;
+    sky_uint64_t wheel_abs, tmp;
 
-    if (wheel_abs > ctx->last_run + ctx->max_ticks)
-        wheel_abs = ctx->last_run + ctx->max_ticks;
+    tmp = ctx->last_run + ctx->max_ticks;
+    wheel_abs = sky_min(entry->expire_at, tmp);
+    tmp = wheel_abs - ctx->last_run;
 
-    wheel = (sky_size_t) timer_wheel(ctx->num_wheels, wheel_abs - ctx->last_run);
+    wheel = (sky_size_t) (tmp == 0 ? 0 : ((63 - __builtin_clzll(tmp)) / TIMER_WHEEL_BITS));
+
     slot = timer_slot(wheel, wheel_abs);
 
     entry->next = (sky_timer_wheel_entry_t *) &ctx->wheels[wheel][slot];
