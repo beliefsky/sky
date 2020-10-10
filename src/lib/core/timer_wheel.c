@@ -32,7 +32,7 @@ struct sky_timer_wheel_s {
     timer_wheel_slot_t wheels[1][TIMER_WHEEL_SLOTS];
 };
 
-static void cascade_one(sky_timer_wheel_t *ctx, sky_size_t wheel, sky_size_t slot);
+static void cascade_one(sky_timer_wheel_t *ctx, timer_wheel_slot_t *s);
 
 static sky_bool_t cascade_all(sky_timer_wheel_t *ctx, sky_size_t wheel);
 
@@ -165,7 +165,7 @@ sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_uint64_t now) {
             continue;
         }
         if (s->next != s) {
-            cascade_one(ctx, wheel, slot);
+            cascade_one(ctx, s);
             wheel = 0;
             goto redo;
         }
@@ -207,11 +207,8 @@ sky_timer_wheel_expired(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, 
 }
 
 static sky_inline void
-cascade_one(sky_timer_wheel_t *ctx, sky_size_t wheel, sky_size_t slot) {
-    timer_wheel_slot_t *s;
+cascade_one(sky_timer_wheel_t *ctx, timer_wheel_slot_t *s) {
     sky_timer_wheel_entry_t *e;
-
-    s = &ctx->wheels[wheel][slot];
 
     while (s->next != s) {
         e = (sky_timer_wheel_entry_t *) s->next;
@@ -226,13 +223,16 @@ cascade_one(sky_timer_wheel_t *ctx, sky_size_t wheel, sky_size_t slot) {
 static sky_inline sky_bool_t
 cascade_all(sky_timer_wheel_t *ctx, sky_size_t wheel) {
     sky_bool_t cascaded = false;
+    sky_size_t slot;
+    timer_wheel_slot_t *s;
 
     for (; wheel < ctx->num_wheels; ++wheel) {
-        size_t slot = timer_slot(wheel, ctx->last_run);
-        if (ctx->wheels[wheel][slot].next != &ctx->wheels[wheel][slot]) {
+        slot = timer_slot(wheel, ctx->last_run);
+        s = &ctx->wheels[wheel][slot];
+        if (s->next != s) {
             cascaded = true;
         }
-        cascade_one(ctx, wheel, slot);
+        cascade_one(ctx, s);
         if (slot != 0) {
             break;
         }
