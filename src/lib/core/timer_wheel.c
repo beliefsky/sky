@@ -63,7 +63,7 @@ sky_timer_wheel_create(sky_pool_t *pool, sky_size_t num_wheels, sky_uint64_t now
     return ctx;
 }
 
-void sky_timer_wheel_destory(sky_timer_wheel_t *ctx) {
+void sky_timer_wheel_destroy(sky_timer_wheel_t *ctx) {
     sky_size_t i, j;
     timer_wheel_slot_t *s;
     sky_timer_wheel_entry_t *e;

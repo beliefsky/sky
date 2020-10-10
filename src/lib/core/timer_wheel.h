@@ -21,16 +21,16 @@ struct sky_timer_wheel_entry_s {
     sky_timer_wheel_pt cb;
 };
 
-#define sky_timer_entry_init(_entry, _cb)   \
-    (_entry)->expire_at = 0;                \
-    (_entry)->cb = (_cb);                   \
-    (_entry)->prev = null;                  \
+#define sky_timer_entry_init(_entry, _cb)       \
+    (_entry)->expire_at = 0;                    \
+    (_entry)->cb = (sky_timer_wheel_pt)(_cb);   \
+    (_entry)->prev = null;                      \
     (_entry)->next = null
 
 
 sky_timer_wheel_t *sky_timer_wheel_create(sky_pool_t *pool, sky_size_t num_wheels, sky_uint64_t now);
 
-void sky_timer_wheel_destory(sky_timer_wheel_t *ctx);
+void sky_timer_wheel_destroy(sky_timer_wheel_t *ctx);
 
 sky_uint64_t sky_timer_wheel_wake_at(sky_timer_wheel_t *ctx);
 

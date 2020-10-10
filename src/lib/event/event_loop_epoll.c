@@ -26,10 +26,6 @@
 
 static sky_int32_t setup_open_file_count_limits();
 
-static void
-rbtree_insert_timer(sky_rbtree_node_t *temp, sky_rbtree_node_t *node,
-                    sky_rbtree_node_t *sentinel);
-
 sky_event_loop_t *
 sky_event_loop_create(sky_pool_t *pool) {
     sky_event_loop_t *loop;
@@ -44,7 +40,7 @@ sky_event_loop_create(sky_pool_t *pool) {
     loop->fd = epoll_create1(EPOLL_CLOEXEC);
     loop->conn_max = setup_open_file_count_limits();
     loop->now = time(null);
-    sky_rbtree_init(&loop->tree, &loop->sentinel, rbtree_insert_timer);
+    loop->ctx = sky_timer_wheel_create(pool, 3, (sky_uint64_t) loop->now);
 
     return loop;
 }
@@ -53,13 +49,14 @@ void
 sky_event_loop_run(sky_event_loop_t *loop) {
     sky_int32_t fd, max_events, n, timeout;
     sky_time_t now;
-    sky_rbtree_t *btree;
+    sky_uint64_t next_time;
+    sky_timer_wheel_t *ctx;
     sky_event_t *ev;
     struct epoll_event *events, *event;
 
     fd = loop->fd;
     timeout = -1;
-    btree = &loop->tree;
+    ctx = loop->ctx;
 
     now = loop->now;
 
@@ -87,39 +84,35 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
             // 需要处理被移除的请求
             if (!ev->reg) {
-                sky_rbtree_delete(btree, &ev->node);
-                ev->close(ev);
+                sky_timer_wheel_unlink(&ev->timer);
+                ev->timer.cb(&ev->timer);
                 continue;
             }
             // 是否出现异常
             if (sky_unlikely(event->events & (EPOLLRDHUP | EPOLLHUP))) {
-                close(ev->fd);
-                ev->reg = false;
-                if (ev->timeout != -1) {
-                    sky_rbtree_delete(btree, &ev->node);
-                }
+                sky_timer_wheel_unlink(&ev->timer);
                 // 触发回收资源待解决
-                ev->close(ev);
+                sky_event_clean(ev);
+
+                ev->timer.cb(&ev->timer);
                 continue;
             }
             // 是否可读
+            ev->now = loop->now;
             ev->read = (event->events & EPOLLIN) ? true : ev->read;
             ev->write = (event->events & EPOLLOUT) ? true : ev->write;
 
             if (ev->wait) {
                 continue;
             }
-            if (ev->run(ev)) {
-                ev->now = loop->now;
-            } else {
-                close(ev->fd);
-                ev->reg = false;
-                if (ev->timeout != -1) {
-                    sky_rbtree_delete(btree, &ev->node);
-                }
+            if (!ev->run(ev)) {
+                sky_timer_wheel_unlink(&ev->timer);
+                sky_event_clean(ev);
                 // 触发回收资源待解决
-                ev->close(ev);
+                ev->timer.cb(&ev->timer);
+                continue;
             }
+            sky_timer_wheel_expired(ctx, &ev->timer, (sky_uint64_t) (ev->now + ev->timeout));
         }
 
         if (loop->update) {
@@ -129,33 +122,10 @@ sky_event_loop_run(sky_event_loop_t *loop) {
         }
         now = loop->now;
         // 处理超时的连接
-        for (;;) {
-            if (btree->root == btree->sentinel) {
-                timeout = -1;
-                break;
-            }
-            ev = (sky_event_t *) sky_rbtree_min(btree->root, btree->sentinel);
-            if (now < ev->key) {
-                timeout = (sky_int32_t) ((ev->key - now) * 1000);
-                break;
-            }
-            sky_rbtree_delete(btree, &ev->node);
-            if (ev->reg) {
-                ev->key = ev->now + ev->timeout;
-                if (ev->key > now) {
-                    ev->node.key = (sky_uintptr_t) &ev->key;
-                    sky_rbtree_insert(btree, &ev->node);
-                } else {
-                    close(ev->fd);
-                    ev->reg = false;
-                    // 触发回收资源待解决
-                    ev->close(ev);
-                }
-            } else {
-                // 触发回收资源待解决
-                ev->close(ev);
-            }
-        }
+
+        sky_timer_wheel_run(ctx, (sky_uint64_t) now);
+        next_time = sky_timer_wheel_wake_at(ctx);
+        timeout = next_time == SKY_UINT64_MAX ? -1 : (sky_int32_t) (next_time - (sky_uint64_t) now) * 1000;
     }
 }
 
@@ -176,9 +146,7 @@ sky_event_register(sky_event_t *ev, sky_int32_t timeout) {
         if (timeout == 0) {
             ev->loop->update = true;
         }
-        ev->key = ev->loop->now + timeout;
-        ev->node.key = (sky_uintptr_t) &ev->key;
-        sky_rbtree_insert(&ev->loop->tree, &ev->node);
+        sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_uint64_t) (ev->loop->now + timeout));
     }
     ev->timeout = timeout;
     ev->reg = true;
@@ -194,16 +162,13 @@ sky_event_unregister(sky_event_t *ev) {
     if (sky_unlikely(!ev->reg)) {
         return;
     }
+    sky_timer_wheel_unlink(&ev->timer);
     close(ev->fd);
     ev->reg = false;
-    if (ev->timeout != -1) {
-        sky_rbtree_delete(&ev->loop->tree, &ev->node);
-    }
+    ev->fd = -1;
     // 此处应添加 应追加需要处理的连接
     ev->loop->update = true;
-    ev->key = 0;
-    ev->node.key = (sky_uintptr_t) &ev->key;
-    sky_rbtree_insert(&ev->loop->tree, &ev->node);
+    sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_uint64_t) ev->loop->now);
 }
 
 
@@ -235,26 +200,4 @@ setup_open_file_count_limits() {
         }
     }
     return (sky_int32_t) r.rlim_cur;
-}
-
-
-static void
-rbtree_insert_timer(sky_rbtree_node_t *temp, sky_rbtree_node_t *node,
-                    sky_rbtree_node_t *sentinel) {
-    sky_rbtree_node_t **p;
-    sky_time_t node_key;
-
-    node_key = *(time_t *) (node->key);
-    for (;;) {
-        p = (node_key < (*(time_t *) (temp->key))) ? &temp->left : &temp->right;
-        if (*p == sentinel) {
-            break;
-        }
-        temp = *p;
-    }
-    *p = node;
-    node->parent = temp;
-    node->left = sentinel;
-    node->right = sentinel;
-    sky_rbt_red(node);
 }
