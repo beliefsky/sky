@@ -12,6 +12,7 @@
 #define timer_slot(_wheel, _expire) \
     (TIMER_WHEEL_SLOTS_MASK & ((_expire) >> ((_wheel) << TIMER_WHEEL_SHIFT)))
 
+#define clz64(n) __builtin_clzll(n)
 
 typedef struct timer_wheel_slot_s timer_wheel_slot_t;
 
@@ -243,7 +244,7 @@ link_timer(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry) {
     wheel_abs = sky_min(entry->expire_at, tmp);
     tmp = wheel_abs - ctx->last_run;
 
-    wheel = (sky_size_t) (tmp == 0 ? 0 : ((63 - __builtin_clzll(tmp)) >> TIMER_WHEEL_SHIFT));
+    wheel = (sky_size_t) (tmp == 0 ? 0 : ((63 - clz64(tmp)) >> TIMER_WHEEL_SHIFT));
 
     slot = timer_slot(wheel, wheel_abs);
 
