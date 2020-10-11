@@ -44,7 +44,7 @@ sky_timer_wheel_create(sky_pool_t *pool, sky_uint64_t now) {
 
     ctx = sky_palloc(pool, sizeof(sky_timer_wheel_t));
     ctx->last_run = now;
-    ctx->max_ticks = (1UL << (TIMER_WHEEL_BITS * (TIMER_WHEEL_NUM - 1))) * (TIMER_WHEEL_SLOTS - 1);
+    ctx->max_ticks = (UINT64_C(1) << (TIMER_WHEEL_BITS * (TIMER_WHEEL_NUM - 1))) * (TIMER_WHEEL_SLOTS - 1);
 
     for (i = 0; i < TIMER_WHEEL_NUM; ++i) {
         for (j = 0; j < TIMER_WHEEL_SLOTS; ++j) {
@@ -163,7 +163,7 @@ redo:
             wheel = 0;
             goto redo;
         }
-        ctx->last_run += 1 << (wheel << TIMER_WHEEL_SHIFT);
+        ctx->last_run += UINT64_C(1) << (wheel << TIMER_WHEEL_SHIFT);
         if (ctx->last_run > now) {
             ctx->last_run = now;
             return;
