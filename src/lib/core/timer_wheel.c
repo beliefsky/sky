@@ -137,8 +137,8 @@ sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_uint64_t now) {
         return;
     }
 
+redo:
     slot_start = timer_slot(wheel, ctx->last_run);
-    redo:
     for (slot = slot_start; slot < TIMER_WHEEL_SLOTS; ++slot) {
         s = &ctx->wheels[wheel][slot];
 
