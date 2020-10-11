@@ -10,7 +10,7 @@
 #define TIMER_WHEEL_SLOTS_MASK (TIMER_WHEEL_SLOTS - 1)
 
 #define timer_slot(_wheel, _expire) \
-    (TIMER_WHEEL_SLOTS_MASK & ((_expire) >> (_wheel) * TIMER_WHEEL_BITS))
+    (TIMER_WHEEL_SLOTS_MASK & ((_expire) >> ((_wheel) * TIMER_WHEEL_BITS)))
 
 
 typedef struct timer_wheel_slot_s timer_wheel_slot_t;
