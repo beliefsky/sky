@@ -36,12 +36,10 @@ static void link_timer(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry);
 
 
 sky_timer_wheel_t *
-sky_timer_wheel_create(sky_pool_t *pool, sky_size_t num_wheels, sky_uint64_t now) {
+sky_timer_wheel_create(sky_pool_t *pool, sky_uint64_t now) {
     sky_timer_wheel_t *ctx;
     timer_wheel_slot_t *s;
     sky_size_t i, j;
-
-    num_wheels = 4;
 
     ctx = sky_palloc(pool, sizeof(sky_timer_wheel_t));
     ctx->last_run = now;

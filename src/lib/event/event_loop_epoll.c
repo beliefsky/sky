@@ -40,7 +40,7 @@ sky_event_loop_create(sky_pool_t *pool) {
     loop->fd = epoll_create1(EPOLL_CLOEXEC);
     loop->conn_max = setup_open_file_count_limits();
     loop->now = time(null);
-    loop->ctx = sky_timer_wheel_create(pool, 3, (sky_uint64_t) loop->now);
+    loop->ctx = sky_timer_wheel_create(pool, (sky_uint64_t) loop->now);
 
     return loop;
 }
@@ -112,7 +112,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 ev->timer.cb(&ev->timer);
                 continue;
             }
-            sky_timer_wheel_expired(ctx, &ev->timer, (sky_uint64_t) (ev->now + ev->timeout));
+            sky_timer_wheel_expired(ctx, &ev->timer, (sky_uint64_t)(ev->now + ev->timeout));
         }
 
         if (loop->update) {
@@ -125,7 +125,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
         sky_timer_wheel_run(ctx, (sky_uint64_t) now);
         next_time = sky_timer_wheel_wake_at(ctx);
-        timeout = next_time == SKY_UINT64_MAX ? -1 : (sky_int32_t) (next_time - (sky_uint64_t) now) * 1000;
+        timeout = next_time == SKY_UINT64_MAX ? -1 : (sky_int32_t)(next_time - (sky_uint64_t) now) * 1000;
     }
 }
 
@@ -133,6 +133,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 void
 sky_event_loop_shutdown(sky_event_loop_t *loop) {
     close(loop->fd);
+    sky_timer_wheel_destroy(loop->ctx);
     sky_destroy_pool(loop->pool);
 }
 

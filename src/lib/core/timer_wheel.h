@@ -28,7 +28,7 @@ struct sky_timer_wheel_entry_s {
     (_entry)->next = null
 
 
-sky_timer_wheel_t *sky_timer_wheel_create(sky_pool_t *pool, sky_size_t num_wheels, sky_uint64_t now);
+sky_timer_wheel_t *sky_timer_wheel_create(sky_pool_t *pool, sky_uint64_t now);
 
 void sky_timer_wheel_destroy(sky_timer_wheel_t *ctx);
 
