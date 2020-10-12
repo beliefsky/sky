@@ -22,6 +22,43 @@ if (NOT CMAKE_BUILD_TYPE)
 endif ()
 
 
+if (CMAKE_SYSTEM_PROCESSOR MATCHES "^arm")
+    message(STATUS "${CMAKE_SYSTEM_PROCESSOR} processor detected, looking for libucontext")
+
+    find_library(LIBUCONTEXT_LIBRARY NAMES libucontext.a)
+    if (LIBUCONTEXT_LIBRARY)
+        message(STATUS "libucontext found, using it for context switching routines")
+        list(APPEND ADDITIONAL_LIBRARIES "${LIBUCONTEXT_LIBRARY}")
+    else ()
+        message(STATUS "Trying to use libc context switching; this might not work!")
+    endif ()
+else ()
+    message(STATUS "Using built-in context switching routines for ${CMAKE_SYSTEM_PROCESSOR} processors")
+endif ()
+
+option(USE_ALTERNATIVE_MALLOC "Use alternative malloc implementations" "OFF")
+if (USE_ALTERNATIVE_MALLOC)
+    unset(ALTMALLOC_LIBS CACHE)
+    unset(ALTMALLOC_LIBRARY CACHE)
+
+    if (${USE_ALTERNATIVE_MALLOC} STREQUAL "mimalloc")
+        set(ALTMALLOC_LIBS mimalloc)
+    elseif (${USE_ALTERNATIVE_MALLOC} STREQUAL "tcmalloc")
+        set(ALTMALLOC_LIBS tcmalloc_minimal tcmalloc)
+    elseif (${USE_ALTERNATIVE_MALLOC} STREQUAL "jemalloc")
+        set(ALTMALLOC_LIBS jemalloc)
+    else ()
+        set(ALTMALLOC_LIBS "mimalloc tcmalloc_minimal tcmalloc jemalloc")
+    endif()
+
+    find_library(ALTMALLOC_LIBRARY NAMES ${ALTMALLOC_LIBS})
+    if (ALTMALLOC_LIBRARY)
+        message(STATUS "Using alternative malloc (${USE_ALTERNATIVE_MALLOC}): ${ALTMALLOC_LIBRARY}")
+        list(PREPEND ADDITIONAL_LIBRARIES ${ALTMALLOC_LIBRARY})
+    endif ()
+endif ()
+
+
 #
 # Find libraries
 #
