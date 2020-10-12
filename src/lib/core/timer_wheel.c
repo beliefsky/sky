@@ -63,9 +63,7 @@ void sky_timer_wheel_destroy(sky_timer_wheel_t *ctx) {
         for (j = 0; j < TIMER_WHEEL_SLOTS; ++j) {
 
             s = &ctx->wheels[i][j];
-            while (s != s->next) {
-                e = s->next;
-
+            while ((e = s->next) != s) {
                 e->next->prev = e->prev;
                 e->prev->next = e->next;
                 e->next = e->prev = null;
@@ -139,8 +137,7 @@ sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_uint64_t now) {
         s = &ctx->wheels[wheel][slot];
 
         if (!wheel) {
-            while (s->next != s) {
-                e = s->next;
+            while ((e = s->next) != s) {
                 e->next->prev = e->prev;
                 e->prev->next = e->next;
                 e->next = e->prev = null;
@@ -154,14 +151,13 @@ sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_uint64_t now) {
             ++ctx->last_run;
             continue;
         }
-        if (s->next != s) {
+        if ((e = s->next) != s) {
             do {
-                e = s->next;
                 e->next->prev = e->prev;
                 e->prev->next = e->next;
 
                 link_timer(ctx, (sky_timer_wheel_entry_t *) e);
-            } while (s->next != s);
+            } while ((e = s->next) != s);
             wheel = 0;
             goto redo;
         }
@@ -207,15 +203,14 @@ cascade_all(sky_timer_wheel_t *ctx, sky_size_t wheel) {
     for (; wheel < TIMER_WHEEL_NUM; ++wheel) {
         slot = timer_slot(wheel, ctx->last_run);
         s = &ctx->wheels[wheel][slot];
-        if (s->next != s) {
+        if ((e = s->next) != s) {
             cascaded = true;
             do {
-                e = s->next;
                 e->next->prev = e->prev;
                 e->prev->next = e->next;
 
                 link_timer(ctx, (sky_timer_wheel_entry_t *) e);
-            } while (s->next != s);
+            } while ((e = s->next) != s);
         }
         if (slot != 0) {
             break;
