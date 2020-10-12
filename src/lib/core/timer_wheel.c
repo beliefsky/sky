@@ -137,7 +137,7 @@ sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_uint64_t now) {
         return;
     }
 
-redo:
+    redo:
     slot_start = timer_slot(wheel, ctx->last_run);
     for (slot = slot_start; slot < TIMER_WHEEL_SLOTS; ++slot) {
         s = &ctx->wheels[wheel][slot];
@@ -177,15 +177,12 @@ redo:
     if (slot_start != 0 || ++wheel < TIMER_WHEEL_NUM) {
         goto redo;
     }
-    if (ctx->last_run < now) {
-        ctx->last_run = now;
-    }
-
+    ctx->last_run = sky_max(ctx->last_run, now);
 }
 
 sky_inline void
 sky_timer_wheel_link(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky_uint64_t at) {
-    entry->expire_at = at < ctx->last_run ? ctx->last_run : at;
+    entry->expire_at = sky_max(at, ctx->last_run);
     link_timer(ctx, entry);
 }
 
@@ -204,14 +201,14 @@ static sky_inline void
 cascade_one(sky_timer_wheel_t *ctx, timer_wheel_slot_t *s) {
     sky_timer_wheel_entry_t *e;
 
-    while (s->next != s) {
+    do {
         e = (sky_timer_wheel_entry_t *) s->next;
         e->next->prev = e->prev;
         e->prev->next = e->next;
         e->next = e->prev = null;
 
         link_timer(ctx, e);
-    }
+    } while (s->next != s);
 }
 
 static sky_inline sky_bool_t
@@ -225,8 +222,8 @@ cascade_all(sky_timer_wheel_t *ctx, sky_size_t wheel) {
         s = &ctx->wheels[wheel][slot];
         if (s->next != s) {
             cascaded = true;
+            cascade_one(ctx, s);
         }
-        cascade_one(ctx, s);
         if (slot != 0) {
             break;
         }
