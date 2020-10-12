@@ -103,7 +103,7 @@ sky_timer_wheel_wake_at(sky_timer_wheel_t *ctx) {
                     if (s->next != s) {
                         return at;
                     }
-                    if (!si) {
+                    if (si) {
                         break;
                     }
                 }
