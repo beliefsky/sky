@@ -22,10 +22,10 @@ struct sky_timer_wheel_entry_s {
 };
 
 #define sky_timer_entry_init(_entry, _cb)       \
-    (_entry)->expire_at = 0;                    \
-    (_entry)->cb = (sky_timer_wheel_pt)(_cb);   \
     (_entry)->prev = null;                      \
-    (_entry)->next = null
+    (_entry)->next = null;                      \
+    (_entry)->expire_at = 0;                    \
+    (_entry)->cb = (sky_timer_wheel_pt)(_cb)
 
 
 sky_timer_wheel_t *sky_timer_wheel_create(sky_pool_t *pool, sky_uint64_t now);
