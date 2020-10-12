@@ -96,6 +96,7 @@ install(FILES
         core/uuid.h
         core/log.h
         core/json.h
+        core/timer_wheel.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/core")
 
 install(FILES
