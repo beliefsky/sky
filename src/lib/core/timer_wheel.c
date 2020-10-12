@@ -98,7 +98,7 @@ sky_timer_wheel_wake_at(sky_timer_wheel_t *ctx) {
         for (;;) {
             if (wheel + 1 < TIMER_WHEEL_NUM) {
                 for (slot = wheel + 1; slot < TIMER_WHEEL_NUM; ++slot) {
-                    si = timer_slot(wheel, at);
+                    si = timer_slot(slot, at);
                     s = &ctx->wheels[slot][si];
                     if (s->next != s) {
                         return at;
