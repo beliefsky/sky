@@ -74,6 +74,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 default:
                     continue;
             }
+            sky_log_error("event error: fd ->%d", fd);
             break;
         }
 

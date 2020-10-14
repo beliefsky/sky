@@ -49,6 +49,8 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
     server = sky_palloc(pool, sizeof(sky_http_server_t));
     server->host = conf->host;
     server->port = conf->port;
+    server->reuse_port = conf->reuse_port;
+    server->pipe_fd = conf->pipe_fd;
     server->pool = pool;
     server->tmp_pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
 
@@ -112,7 +114,9 @@ sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *loop) {
             .port = server->port,
             .run = (sky_tcp_accept_cb_pt) http_connection_accept_cb,
             .data = server,
-            .timeout = 60
+            .timeout = 60,
+            .pipe_fd = server->pipe_fd,
+            .reuse_port = server->reuse_port
     };
 
     sky_http_request_init(server);

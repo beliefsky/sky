@@ -30,9 +30,10 @@
 #include <core/crc32.h>
 #include <arpa/inet.h>
 #include <wait.h>
+#include <net/tcp.h>
 
 
-static void server_start(sky_int64_t cpu_num);
+static void server_start(sky_uint32_t index, sky_tcp_pipe_t *tcp_pipe);
 
 static void build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module);
 
@@ -105,13 +106,30 @@ main() {
 
     sky_int64_t cpu_num;
     sky_uint32_t i;
+    sky_pool_t *pool;
 
-    cpu_num = sysconf(_SC_NPROCESSORS_ONLN);
+//    cpu_num = sysconf(_SC_NPROCESSORS_ONLN);
+    cpu_num = 1;
     if ((--cpu_num) < 0) {
         cpu_num = 0;
     }
 
     i = (sky_uint32_t) cpu_num;
+
+    pool = sky_create_pool(1024);
+
+    sky_tcp_conf_t pipe_conf = {
+            .pipe_num = (sky_uint16_t) (i + 1),
+            .host = sky_string("0.0.0.0"),
+            .port = sky_string("8080")
+    };
+    sky_tcp_pipe_t *tcp_pipe = sky_tcp_pipe_create(pool, &pipe_conf);
+    if (!tcp_pipe) {
+        return 0;
+    }
+    server_start(0, tcp_pipe);
+
+    /*
     for (;;) {
         pid_t pid = fork();
         switch (pid) {
@@ -129,7 +147,7 @@ main() {
                 }
                 sky_setaffinity(&mask);
 
-                server_start(cpu_num);
+                server_start(i, tcp_pipe);
             }
                 break;
             default:
@@ -142,6 +160,7 @@ main() {
         }
         break;
     }
+    */
 
     return 0;
 }
@@ -150,7 +169,7 @@ sky_pg_connection_pool_t *ps_pool;
 sky_redis_connection_pool_t *redis_pool;
 
 static void
-server_start(sky_int64_t cpu_num) {
+server_start(sky_uint32_t index, sky_tcp_pipe_t *tcp_pipe) {
     sky_pool_t *pool;
     sky_event_loop_t *loop;
     sky_http_server_t *server;
@@ -169,7 +188,7 @@ server_start(sky_int64_t cpu_num) {
             .database = sky_string("beliefsky"),
             .username = sky_string("postgres"),
             .password = sky_string("123456"),
-            .connection_size = cpu_num ? 2 : 8
+            .connection_size = 2
     };
 
     ps_pool = sky_pg_sql_pool_create(pool, &pg_conf);
@@ -181,7 +200,7 @@ server_start(sky_int64_t cpu_num) {
     sky_redis_conf_t redis_conf = {
             .host = sky_string("127.0.0.1"),
             .port = sky_string("6379"),
-            .connection_size = cpu_num ? 2 : 8
+            .connection_size = 2
     };
 
     redis_pool = sky_redis_pool_create(pool, &redis_conf);
@@ -229,7 +248,9 @@ server_start(sky_int64_t cpu_num) {
             .header_buf_size = 2048,
             .header_buf_n = 4,
             .modules_host = hosts,
-            .modules_n = 3
+            .modules_n = 3,
+            .reuse_port = tcp_pipe == null,
+            .pipe_fd = tcp_pipe != null ? tcp_pipe->read_fd[index] : 0
     };
 
     server = sky_http_server_create(pool, &conf);
