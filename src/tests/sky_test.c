@@ -107,7 +107,6 @@ main() {
     sky_uint32_t i;
 
     cpu_num = sysconf(_SC_NPROCESSORS_ONLN);
-//    cpu_num = 0;
     if ((--cpu_num) < 0) {
         cpu_num = 0;
     }
@@ -124,7 +123,8 @@ main() {
                 CPU_SET(i, &mask);
                 for (sky_uint32_t j = 0; j < CPU_SETSIZE; ++j) {
                     if (CPU_ISSET(j, &mask)) {
-                        sky_log_error("sky_setaffinity(): using cpu #%u", j);
+                        sky_log_info("sky_setaffinity(): using cpu #%u", j);
+                        break;
                     }
                 }
                 sky_setaffinity(&mask);
@@ -224,7 +224,7 @@ server_start(sky_int64_t cpu_num) {
     };
 
     sky_http_conf_t conf = {
-            .host = sky_string("*"),
+            .host = sky_string("0.0.0.0"),
             .port = sky_string("8080"),
             .header_buf_size = 2048,
             .header_buf_n = 4,
