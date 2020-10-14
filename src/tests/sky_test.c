@@ -29,10 +29,9 @@
 #include <core/base64.h>
 #include <core/crc32.h>
 #include <arpa/inet.h>
-#include <pthread.h>
 
 
-static void *server_start(sky_int32_t index);
+static void server_start(sky_int64_t cpu_num);
 
 static void build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module);
 
@@ -113,14 +112,48 @@ main() {
     }
 
     i = (sky_uint32_t) cpu_num;
-
-    for (sky_uint32_t j = 1; j < i; ++j) {
-        pthread_t th;
-
-        pthread_create(&th, null, (void *(*)(void *)) server_start, (void *) j);
+    if (!i) {
+        server_start(cpu_num);
+        return 0;
     }
+    for (;;) {
+        pid_t pid = fork();
+        switch (pid) {
+            case -1:
+                return 0;
+            case 0: {
+                sky_cpu_set_t mask;
+                CPU_ZERO(&mask);
+                CPU_SET(i, &mask);
+                for (sky_uint32_t j = 0; j < CPU_SETSIZE; ++j) {
+                    if (CPU_ISSET(j, &mask)) {
+                        sky_log_error("sky_setaffinity(): using cpu #%u", j);
+                    }
+                }
+                sky_setaffinity(&mask);
 
-    (void) server_start(0);
+                server_start(cpu_num);
+            }
+                break;
+            default:
+                if (--i) {
+                    continue;
+                }
+                sky_cpu_set_t mask;
+                CPU_ZERO(&mask);
+                CPU_SET(i, &mask);
+                for (sky_uint32_t j = 0; j < CPU_SETSIZE; ++j) {
+                    if (CPU_ISSET(j, &mask)) {
+                        sky_log_error("sky_setaffinity(): using cpu #%u", j);
+                    }
+                }
+                sky_setaffinity(&mask);
+
+                server_start(cpu_num);
+                break;
+        }
+        break;
+    }
 
     return 0;
 }
@@ -128,8 +161,8 @@ main() {
 sky_pg_connection_pool_t *ps_pool;
 sky_redis_connection_pool_t *redis_pool;
 
-static void *
-server_start(sky_int32_t index) {
+static void
+server_start(sky_int64_t cpu_num) {
     sky_pool_t *pool;
     sky_event_loop_t *loop;
     sky_http_server_t *server;
@@ -137,7 +170,6 @@ server_start(sky_int32_t index) {
     sky_str_t prefix, file_path;
 
     sky_cpu_info();
-
 
     pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
     loop = sky_event_loop_create(pool);
@@ -149,25 +181,25 @@ server_start(sky_int32_t index) {
             .database = sky_string("beliefsky"),
             .username = sky_string("postgres"),
             .password = sky_string("123456"),
-            .connection_size = 2
+            .connection_size = cpu_num ? 2 : 8
     };
 
     ps_pool = sky_pg_sql_pool_create(pool, &pg_conf);
     if (!ps_pool) {
         sky_log_error("create postgresql connection pool error");
-        return null;
+        return;
     }
 
     sky_redis_conf_t redis_conf = {
             .host = sky_string("127.0.0.1"),
             .port = sky_string("6379"),
-            .connection_size = 2
+            .connection_size = cpu_num ? 2 : 8
     };
 
     redis_pool = sky_redis_pool_create(pool, &redis_conf);
     if (!redis_pool) {
         sky_log_error("create redis connection pool error");
-        return null;
+        return;
     }
 
     sky_array_init(&modules, pool, 32, sizeof(sky_http_module_t));
@@ -180,7 +212,7 @@ server_start(sky_int32_t index) {
 
     sky_http_websocket_handler_t *handler = sky_pcalloc(pool, sizeof(sky_http_websocket_handler_t));
     handler->open = websocket_open;
-    handler->read = (sky_bool_t (*)(sky_websocket_message_t *)) websocket_message;
+    handler->read = websocket_message;
 
     sky_str_set(&prefix, "/ws");
     sky_http_module_websocket_init(pool, sky_array_push(&modules), &prefix, handler);
@@ -218,8 +250,6 @@ server_start(sky_int32_t index) {
 
     sky_event_loop_run(loop);
     sky_event_loop_shutdown(loop);
-
-    return null;
 }
 
 static void
