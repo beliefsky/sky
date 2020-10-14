@@ -65,37 +65,37 @@ sky_sha1_final(sky_sha1_t *ctx, sky_uchar_t result[20]) {
     sky_memzero(&ctx->buffer[used], free - 8);
 
     ctx->bytes <<= 3;
-    ctx->buffer[56] = (u_char) (ctx->bytes >> 56);
-    ctx->buffer[57] = (u_char) (ctx->bytes >> 48);
-    ctx->buffer[58] = (u_char) (ctx->bytes >> 40);
-    ctx->buffer[59] = (u_char) (ctx->bytes >> 32);
-    ctx->buffer[60] = (u_char) (ctx->bytes >> 24);
-    ctx->buffer[61] = (u_char) (ctx->bytes >> 16);
-    ctx->buffer[62] = (u_char) (ctx->bytes >> 8);
-    ctx->buffer[63] = (u_char) ctx->bytes;
+    ctx->buffer[56] = (sky_uchar_t) (ctx->bytes >> 56);
+    ctx->buffer[57] = (sky_uchar_t) (ctx->bytes >> 48);
+    ctx->buffer[58] = (sky_uchar_t) (ctx->bytes >> 40);
+    ctx->buffer[59] = (sky_uchar_t) (ctx->bytes >> 32);
+    ctx->buffer[60] = (sky_uchar_t) (ctx->bytes >> 24);
+    ctx->buffer[61] = (sky_uchar_t) (ctx->bytes >> 16);
+    ctx->buffer[62] = (sky_uchar_t) (ctx->bytes >> 8);
+    ctx->buffer[63] = (sky_uchar_t) ctx->bytes;
 
     (void) sha1_body(ctx, ctx->buffer, 64);
 
-    result[0] = (u_char) (ctx->a >> 24);
-    result[1] = (u_char) (ctx->a >> 16);
-    result[2] = (u_char) (ctx->a >> 8);
-    result[3] = (u_char) ctx->a;
-    result[4] = (u_char) (ctx->b >> 24);
-    result[5] = (u_char) (ctx->b >> 16);
-    result[6] = (u_char) (ctx->b >> 8);
-    result[7] = (u_char) ctx->b;
-    result[8] = (u_char) (ctx->c >> 24);
-    result[9] = (u_char) (ctx->c >> 16);
-    result[10] = (u_char) (ctx->c >> 8);
-    result[11] = (u_char) ctx->c;
-    result[12] = (u_char) (ctx->d >> 24);
-    result[13] = (u_char) (ctx->d >> 16);
-    result[14] = (u_char) (ctx->d >> 8);
-    result[15] = (u_char) ctx->d;
-    result[16] = (u_char) (ctx->e >> 24);
-    result[17] = (u_char) (ctx->e >> 16);
-    result[18] = (u_char) (ctx->e >> 8);
-    result[19] = (u_char) ctx->e;
+    result[0] = (sky_uchar_t) (ctx->a >> 24);
+    result[1] = (sky_uchar_t) (ctx->a >> 16);
+    result[2] = (sky_uchar_t) (ctx->a >> 8);
+    result[3] = (sky_uchar_t) ctx->a;
+    result[4] = (sky_uchar_t) (ctx->b >> 24);
+    result[5] = (sky_uchar_t) (ctx->b >> 16);
+    result[6] = (sky_uchar_t) (ctx->b >> 8);
+    result[7] = (sky_uchar_t) ctx->b;
+    result[8] = (sky_uchar_t) (ctx->c >> 24);
+    result[9] = (sky_uchar_t) (ctx->c >> 16);
+    result[10] = (sky_uchar_t) (ctx->c >> 8);
+    result[11] = (sky_uchar_t) ctx->c;
+    result[12] = (sky_uchar_t) (ctx->d >> 24);
+    result[13] = (sky_uchar_t) (ctx->d >> 16);
+    result[14] = (sky_uchar_t) (ctx->d >> 8);
+    result[15] = (sky_uchar_t) ctx->d;
+    result[16] = (sky_uchar_t) (ctx->e >> 24);
+    result[17] = (sky_uchar_t) (ctx->e >> 16);
+    result[18] = (sky_uchar_t) (ctx->e >> 8);
+    result[19] = (sky_uchar_t) ctx->e;
 
     sky_memzero(ctx, sizeof(*ctx));
 }
