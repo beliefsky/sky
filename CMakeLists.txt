@@ -61,12 +61,12 @@ endif ()
 #
 # Find libraries
 #
-#find_package(Threads REQUIRED)
+find_package(Threads REQUIRED)
 #find_package(OpenSSL REQUIRED)
 #find_package(ZLIB REQUIRED)
 #set(PostgreSQL_TYPE_INCLUDE_DIR /usr/include/postgresql)
 #find_package(PostgreSQL REQUIRED)
-set(ADDITIONAL_LIBRARIES #[[${CMAKE_THREAD_LIBS_INIT}]] #[[${OPENSSL_LIBRARIES]] #[[${ZLIB_LIBRARIES}]] #[[${PostgreSQL_LIBRARIES}]])
+set(ADDITIONAL_LIBRARIES ${CMAKE_THREAD_LIBS_INIT} #[[${OPENSSL_LIBRARIES]] #[[${ZLIB_LIBRARIES}]] #[[${PostgreSQL_LIBRARIES}]])
 
 
 set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
