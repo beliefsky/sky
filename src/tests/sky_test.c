@@ -29,6 +29,7 @@
 #include <core/base64.h>
 #include <core/crc32.h>
 #include <arpa/inet.h>
+#include <wait.h>
 
 
 static void server_start(sky_int64_t cpu_num);
@@ -112,10 +113,6 @@ main() {
     }
 
     i = (sky_uint32_t) cpu_num;
-    if (!i) {
-        server_start(cpu_num);
-        return 0;
-    }
     for (;;) {
         pid_t pid = fork();
         switch (pid) {
@@ -136,20 +133,11 @@ main() {
             }
                 break;
             default:
-                if (--i) {
+                if (i--) {
                     continue;
                 }
-                sky_cpu_set_t mask;
-                CPU_ZERO(&mask);
-                CPU_SET(i, &mask);
-                for (sky_uint32_t j = 0; j < CPU_SETSIZE; ++j) {
-                    if (CPU_ISSET(j, &mask)) {
-                        sky_log_error("sky_setaffinity(): using cpu #%u", j);
-                    }
-                }
-                sky_setaffinity(&mask);
-
-                server_start(cpu_num);
+                sky_int32_t status;
+                wait(&status);
                 break;
         }
         break;
