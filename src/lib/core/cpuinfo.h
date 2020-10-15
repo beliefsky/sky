@@ -23,7 +23,7 @@ typedef cpu_set_t sky_cpu_set_t;
 #include <sys/cpuset.h>
 typedef cpuset_t sky_cpu_set_t;
 #define sky_setaffinity(_c) \
-    cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1, sizeof(cpuset_t), _c)
+    cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1, sizeof(sky_cpu_set_t), _c)
 #endif
 
 extern sky_uint_t sky_cache_line_size;
