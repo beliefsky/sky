@@ -33,7 +33,7 @@
 #include <net/tcp.h>
 
 
-static void server_start(sky_uint32_t index, sky_tcp_pipe_t *tcp_pipe);
+static void server_start();
 
 static void build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module);
 
@@ -166,7 +166,7 @@ sky_pg_connection_pool_t *ps_pool;
 sky_redis_connection_pool_t *redis_pool;
 
 static void
-server_start(sky_uint32_t index, sky_tcp_pipe_t *tcp_pipe) {
+server_start() {
     sky_pool_t *pool;
     sky_event_loop_t *loop;
     sky_http_server_t *server;
@@ -245,9 +245,7 @@ server_start(sky_uint32_t index, sky_tcp_pipe_t *tcp_pipe) {
             .header_buf_size = 2048,
             .header_buf_n = 4,
             .modules_host = hosts,
-            .modules_n = 3,
-            .reuse_port = tcp_pipe == null,
-            .pipe_fd = tcp_pipe != null ? tcp_pipe->read_fd[index] : 0
+            .modules_n = 3
     };
 
     server = sky_http_server_create(pool, &conf);
