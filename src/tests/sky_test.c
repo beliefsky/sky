@@ -23,7 +23,7 @@
 #include <net/http/module/http_module_websocket.h>
 #include <net/http/http_response.h>
 #include <arpa/inet.h>
-#include <wait.h>
+#include <sys/wait.h>
 
 
 static void server_start();
@@ -113,16 +113,16 @@ main() {
             case -1:
                 return 0;
             case 0: {
-//                sky_cpu_set_t mask;
-//                CPU_ZERO(&mask);
-//                CPU_SET(i, &mask);
-//                for (sky_uint_t j = 0; j < CPU_SETSIZE; ++j) {
-//                    if (CPU_ISSET(j, &mask)) {
-//                        sky_log_info("sky_setaffinity(): using cpu #%lu", j);
-//                        break;
-//                    }
-//                }
-//                sky_setaffinity(&mask);
+                sky_cpu_set_t mask;
+                CPU_ZERO(&mask);
+                CPU_SET(i, &mask);
+                for (sky_uint_t j = 0; j < CPU_SETSIZE; ++j) {
+                    if (CPU_ISSET(j, &mask)) {
+                        sky_log_info("sky_setaffinity(): using cpu #%lu", j);
+                        break;
+                    }
+                }
+                sky_setaffinity(&mask);
 
                 server_start();
             }
