@@ -1,5 +1,6 @@
 project(sky C)
 cmake_minimum_required(VERSION 2.8.10)
+set(CMAKE_C_STANDARD 11)
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/src/cmake")
 
