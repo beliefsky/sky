@@ -19,10 +19,8 @@
 
 #include <core/log.h>
 #include <core/number.h>
-#include <net/inet.h>
 #include <net/http/module/http_module_websocket.h>
 #include <net/http/http_response.h>
-#include <arpa/inet.h>
 #include <sys/wait.h>
 
 
