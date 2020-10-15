@@ -19,7 +19,7 @@ typedef cpu_set_t sky_cpu_set_t;
 
 #define sky_setaffinity(_c)   sched_setaffinity(0, sizeof(sky_cpu_set_t), _c)
 #elif defined(__FreeBSD__) || defined(__APPLE__)
-
+#include <sys/param.h>
 #include <sys/cpuset.h>
 typedef cpuset_t sky_cpu_set_t;
 #define sky_setaffinity(_c) \
