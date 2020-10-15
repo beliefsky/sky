@@ -39,59 +39,6 @@ static sky_bool_t websocket_open(sky_websocket_session_t *session);
 static sky_bool_t websocket_message(sky_websocket_message_t *message);
 
 
-void test() {
-    int sockfd;
-
-    sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (-1 == sockfd) {
-        perror("sock created");
-    }
-
-    struct sockaddr_in server;
-    memset(&server, 0, sizeof(struct sockaddr_in));
-    server.sin_family = AF_INET;
-    server.sin_port = sky_htons(9090);
-    server.sin_addr.s_addr = inet_addr("192.168.10.131");
-
-    int res;
-    res = connect(sockfd, (struct sockaddr *) &server, sizeof(server));
-    if (-1 == res) {
-        perror("sock connect");
-    }
-
-    char recvBuf[10240] = {0};
-
-    sky_str_t str = sky_string("GET /api/redis HTTP/1.1\r\n"
-                               "Host: 192.168.10.131:9090\r\n"
-                               "Connection: keep-alive\r\n"
-                               "Cache-Control: max-age=0\r\n"
-                               "sec-ch-ua: \"\\\\Not;A\\\"Brand\";v=\"99\", \"Google Chrome\";v=\"85\", \"Chromium\";v=\"85\"\r\n"
-                               "sec-ch-ua-mobile: ?0\r\n"
-                               "Upgrade-Insecure-Requests: 1\r\n"
-                               "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36\n"
-                               "Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9\r\n");
-
-    sky_str_t str2 = sky_string("Sec-Fetch-Site: cross-site\r\n"
-                                "Sec-Fetch-Mode: navigate\r\n"
-                                "Sec-Fetch-User: ?1\r\n"
-                                "Sec-Fetch-Dest: document\r\n"
-                                "Accept-Encoding: gzip, deflate, br\r\n"
-                                "Accept-Language: zh-CN,zh;q=0.9\r\n");
-
-    sky_str_t str3 = sky_string("\r\n");
-
-    (void) write(sockfd, str.data, str.len);
-    (void) write(sockfd, str2.data, str2.len);
-    (void) write(sockfd, str3.data, str3.len);
-    (void) read(sockfd, recvBuf, sizeof(recvBuf));
-
-    sky_log_info("%s", recvBuf);
-
-
-    close(sockfd);
-}
-
-
 int
 main() {
 
