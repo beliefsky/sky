@@ -116,7 +116,7 @@ main() {
                 sky_cpu_set_t mask;
                 CPU_ZERO(&mask);
                 CPU_SET(i, &mask);
-                for (sky_uint32_t j = 0; j < CPU_SETSIZE; ++j) {
+                for (sky_uint_t j = 0; j < CPU_SETSIZE; ++j) {
                     if (CPU_ISSET(j, &mask)) {
                         sky_log_info("sky_setaffinity(): using cpu #%u", j);
                         break;
