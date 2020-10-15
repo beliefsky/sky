@@ -235,8 +235,12 @@ server_start() {
     };
 
     server = sky_http_server_create(pool, &conf);
-
     sky_http_server_bind(server, loop);
+
+    sky_str_set(&conf.host, "::");
+    server = sky_http_server_create(pool, &conf);
+    sky_http_server_bind(server, loop);
+
 
     sky_event_loop_run(loop);
     sky_event_loop_shutdown(loop);
