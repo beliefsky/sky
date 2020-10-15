@@ -106,30 +106,28 @@ main() {
 
     sky_int64_t cpu_num;
     sky_uint32_t i;
-    sky_pool_t *pool;
 
-//    cpu_num = sysconf(_SC_NPROCESSORS_ONLN);
-    cpu_num = 1;
+    cpu_num = sysconf(_SC_NPROCESSORS_ONLN);
     if ((--cpu_num) < 0) {
         cpu_num = 0;
     }
 
     i = (sky_uint32_t) cpu_num;
 
-    pool = sky_create_pool(1024);
+//    sky_pool_t *pool = sky_create_pool(1024);
+//
+//    sky_tcp_conf_t pipe_conf = {
+//            .pipe_num = (sky_uint16_t) (i + 1),
+//            .host = sky_string("0.0.0.0"),
+//            .port = sky_string("8080")
+//    };
+//    sky_tcp_pipe_t *tcp_pipe = sky_tcp_pipe_create(pool, &pipe_conf);
+//    if (!tcp_pipe) {
+//        return 0;
+//    }
 
-    sky_tcp_conf_t pipe_conf = {
-            .pipe_num = (sky_uint16_t) (i + 1),
-            .host = sky_string("0.0.0.0"),
-            .port = sky_string("8080")
-    };
-    sky_tcp_pipe_t *tcp_pipe = sky_tcp_pipe_create(pool, &pipe_conf);
-    if (!tcp_pipe) {
-        return 0;
-    }
-    server_start(0, tcp_pipe);
 
-    /*
+
     for (;;) {
         pid_t pid = fork();
         switch (pid) {
@@ -147,7 +145,7 @@ main() {
                 }
                 sky_setaffinity(&mask);
 
-                server_start(i, tcp_pipe);
+                server_start(i, null);
             }
                 break;
             default:
@@ -160,7 +158,6 @@ main() {
         }
         break;
     }
-    */
 
     return 0;
 }
