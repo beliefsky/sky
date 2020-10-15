@@ -226,8 +226,10 @@ pg_run(sky_pg_connection_t *conn) {
 
 static void
 pg_close(sky_pg_connection_t *conn) {
-    sky_log_error("pg con %d close", conn->ev.fd);
-    conn->ev.fd = -1;
+    if (conn->ev.fd != -1) {
+        sky_event_clean(&conn->ev);
+    }
+    sky_log_error("pg con close");
     pg_run(conn);
 }
 

@@ -91,7 +91,7 @@ sky_redis_connection_get(sky_redis_connection_pool_t *redis_pool, sky_pool_t *po
     rc->pool = pool;
     rc->redis_pool = redis_pool;
     rc->query_buf = null;
-    rc->defer = sky_defer_add(main->coro,(sky_defer_func_t) redis_connection_defer,rc);
+    rc->defer = sky_defer_add(main->coro, (sky_defer_func_t) redis_connection_defer, rc);
 
     if (conn->tasks.next != &conn->tasks) {
         rc->next = conn->tasks.next;
@@ -178,8 +178,10 @@ redis_run(sky_redis_connection_t *conn) {
 
 static void
 redis_close(sky_redis_connection_t *conn) {
-    sky_log_error("redis con %d close", conn->ev.fd);
-    conn->ev.fd = -1;
+    if (conn->ev.fd != -1) {
+        sky_event_clean(&conn->ev);
+    }
+    sky_log_error("redis con close");
     redis_run(conn);
 }
 
