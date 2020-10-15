@@ -114,20 +114,6 @@ main() {
 
     i = (sky_uint32_t) cpu_num;
 
-//    sky_pool_t *pool = sky_create_pool(1024);
-//
-//    sky_tcp_conf_t pipe_conf = {
-//            .pipe_num = (sky_uint16_t) (i + 1),
-//            .host = sky_string("0.0.0.0"),
-//            .port = sky_string("8080")
-//    };
-//    sky_tcp_pipe_t *tcp_pipe = sky_tcp_pipe_create(pool, &pipe_conf);
-//    if (!tcp_pipe) {
-//        return 0;
-//    }
-
-
-
     for (;;) {
         pid_t pid = fork();
         switch (pid) {
