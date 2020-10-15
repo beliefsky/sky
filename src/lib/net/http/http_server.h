@@ -31,11 +31,9 @@ typedef struct {
     sky_str_t host;
     sky_str_t port;
     sky_uint32_t body_max_size;
-    sky_int32_t pipe_fd;
     sky_uint16_t modules_n;
     sky_uint16_t header_buf_size;
     sky_uint8_t header_buf_n;
-    sky_bool_t reuse_port;
 } sky_http_conf_t;
 
 struct sky_http_server_s {
@@ -49,11 +47,10 @@ struct sky_http_server_s {
     sky_hash_t headers_in_hash;
     sky_hash_t modules_hash;
     sky_array_t status;
-    sky_int32_t pipe_fd;
+
     sky_uint32_t body_max_size;
     sky_uint16_t header_buf_size;
     sky_uint8_t header_buf_n;
-    sky_bool_t reuse_port;
 };
 
 struct sky_http_module_s {
