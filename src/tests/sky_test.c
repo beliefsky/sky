@@ -118,7 +118,7 @@ main() {
                 CPU_SET(i, &mask);
                 for (sky_uint_t j = 0; j < CPU_SETSIZE; ++j) {
                     if (CPU_ISSET(j, &mask)) {
-                        sky_log_info("sky_setaffinity(): using cpu #%u", j);
+                        sky_log_info("sky_setaffinity(): using cpu #%lu", j);
                         break;
                     }
                 }
