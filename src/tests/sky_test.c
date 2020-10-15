@@ -9,7 +9,6 @@
 #include <event/event_loop.h>
 #include <unistd.h>
 
-#include <core/palloc.h>
 #include <net/http/http_server.h>
 #include <core/cpuinfo.h>
 #include <net/http/module/http_module_file.h>
@@ -19,18 +18,12 @@
 #include <net/http/extend/http_extend_redis_pool.h>
 
 #include <core/log.h>
-#include <core/json.h>
 #include <core/number.h>
 #include <net/inet.h>
-#include <net/http/extend/http_extend_pgsql_pool.h>
-#include <math/matrix.h>
 #include <net/http/module/http_module_websocket.h>
 #include <net/http/http_response.h>
-#include <core/base64.h>
-#include <core/crc32.h>
 #include <arpa/inet.h>
 #include <wait.h>
-#include <net/tcp.h>
 
 
 static void server_start();
@@ -43,7 +36,7 @@ static sky_bool_t hello_world(sky_http_request_t *req);
 
 static sky_bool_t websocket_open(sky_websocket_session_t *session);
 
-static sky_bool_t websocket_message(sky_websocket_session_t *session);
+static sky_bool_t websocket_message(sky_websocket_message_t *message);
 
 
 void test() {
@@ -87,10 +80,10 @@ void test() {
 
     sky_str_t str3 = sky_string("\r\n");
 
-    write(sockfd, str.data, str.len);
-    write(sockfd, str2.data, str2.len);
-    write(sockfd, str3.data, str3.len);
-    read(sockfd, recvBuf, sizeof(recvBuf));
+    (void) write(sockfd, str.data, str.len);
+    (void) write(sockfd, str2.data, str2.len);
+    (void) write(sockfd, str3.data, str3.len);
+    (void) read(sockfd, recvBuf, sizeof(recvBuf));
 
     sky_log_info("%s", recvBuf);
 
@@ -369,9 +362,11 @@ hello_world(sky_http_request_t *req) {
 
 
 static sky_bool_t websocket_open(sky_websocket_session_t *session) {
+    sky_log_info("websocket open: fd ->%d", session->event->fd);
     return true;
 }
 
-static sky_bool_t websocket_message(sky_websocket_session_t *session) {
+static sky_bool_t websocket_message(sky_websocket_message_t *message) {
+    sky_log_info("websocket message: fd->%d->%s", message->session->event->fd, message->data.data);
     return true;
 }
