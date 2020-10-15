@@ -62,10 +62,10 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
         }
         opt = 1;
         setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_int32_t));
-#if defined(__linux__)
-        setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_int32_t));
-#elif defined(__FreeBSD__) || defined(__APPLE__)
+#ifdef SO_REUSEPORT_LB
         setsockopt(fd, SOL_SOCKET, SO_REUSEPORT_LB, &opt, sizeof(sky_int32_t));
+#else
+        setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_int32_t));
 #endif
 #ifdef TCP_DEFER_ACCEPT
         setsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &opt, sizeof(sky_int32_t));
