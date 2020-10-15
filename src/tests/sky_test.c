@@ -131,7 +131,7 @@ main() {
                 }
                 sky_setaffinity(&mask);
 
-                server_start(i, null);
+                server_start();
             }
                 break;
             default:
