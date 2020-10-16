@@ -7,7 +7,7 @@
 #include "memory.h"
 
 #if !defined(SIGSTKSZ)
-#define SIGSTKSZ 4096
+#define SIGSTKSZ 8192
 #endif
 
 #ifndef CORO_STACK_MIN
