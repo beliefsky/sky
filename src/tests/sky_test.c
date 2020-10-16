@@ -39,6 +39,8 @@ static sky_bool_t websocket_message(sky_websocket_message_t *message);
 
 int
 main() {
+    setvbuf(stdout, null, _IOLBF, 0);
+    setvbuf(stderr, null, _IOLBF, 0);
 
 //    test();
 
