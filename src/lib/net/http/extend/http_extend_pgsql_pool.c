@@ -137,7 +137,7 @@ sky_pg_sql_connection_get(sky_pg_connection_pool_t *ps_pool, sky_pool_t *pool, s
     ps->ps_pool = ps_pool;
     ps->query_buf = null;
     ps->read_buf = null;
-    ps->defer = sky_defer_add(main->coro,(sky_defer_func_t) pg_sql_connection_defer,ps);
+    ps->defer = sky_defer_add(main->coro, (sky_defer_func_t) pg_sql_connection_defer, ps);
 
     if (conn->tasks.next != &conn->tasks) {
         ps->next = conn->tasks.next;
@@ -183,7 +183,8 @@ sky_pg_sql_exec(sky_pg_sql_t *ps, const sky_str_t *cmd, const sky_pg_type_t *par
 
 void
 sky_pg_sql_connection_put(sky_pg_sql_t *ps) {
-    sky_defer_remove(ps->coro, ps->defer);
+    sky_defer_cancel(ps->coro, ps->defer);
+    pg_sql_connection_defer(ps);
 }
 
 static sky_inline void
