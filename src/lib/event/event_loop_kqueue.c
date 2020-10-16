@@ -26,10 +26,6 @@
 
 static sky_int32_t setup_open_file_count_limits();
 
-static void
-rbtree_insert_timer(sky_rbtree_node_t *temp, sky_rbtree_node_t *node,
-                    sky_rbtree_node_t *sentinel);
-
 sky_event_loop_t *
 sky_event_loop_create(sky_pool_t *pool) {
     sky_event_loop_t *loop;
@@ -44,7 +40,7 @@ sky_event_loop_create(sky_pool_t *pool) {
     loop->fd = kqueue();
     loop->conn_max = setup_open_file_count_limits();
     loop->now = time(null);
-    sky_rbtree_init(&loop->rbtree, &loop->sentinel, rbtree_insert_timer);
+    loop->ctx = sky_timer_wheel_create(pool, (sky_uint64_t) loop->now);
 
     return loop;
 }
@@ -54,9 +50,10 @@ sky_event_loop_run(sky_event_loop_t *loop) {
     sky_bool_t timeout;
     sky_int16_t index, i;
     sky_int32_t fd, max_events, n;
-    sky_rbtree_t *btree;
     sky_time_t now;
+    sky_timer_wheel_t *ctx;
     sky_event_t *ev, **run_ev;
+    sky_uint64_t next_time;
     struct kevent *events, *event;
     struct timespec timespec = {
             .tv_sec = 0,
@@ -65,7 +62,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
     fd = loop->fd;
     timeout = false;
-    btree = &loop->rbtree;
+    ctx = loop->ctx;
 
     now = loop->now;
 
@@ -99,8 +96,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             }
             // 是否出现异常
             if (sky_unlikely(event->flags & EV_ERROR)) {
-                close(ev->fd);
-                ev->reg = false;
+                sky_event_clean(ev);
                 if (ev->index == -1) {
                     ev->index = index;
                     run_ev[index++] = ev;
@@ -109,6 +105,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             }
             // 是否可读
             // 是否可写
+            ev->now = loop->now;
             event->filter == EVFILT_READ ? (ev->read = true) : (ev->write = true);
 
             if (ev->wait) {
@@ -125,24 +122,19 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             ev = run_ev[i];
             ev->index = -1;
             if (!ev->reg) {
-                if (ev->timeout != -1) {
-                    sky_rbtree_delete(btree, &ev->node);
-                }
+                sky_timer_wheel_unlink(&ev->timer);
                 // 触发回收资源待解决
-                ev->close(ev);
+                ev->timer.cb(&ev->timer);
                 continue;
             }
             if (!ev->run(ev)) {
-                close(ev->fd);
-                ev->reg = false;
-                if (ev->timeout != -1) {
-                    sky_rbtree_delete(btree, &ev->node);
-                }
+                sky_timer_wheel_unlink(&ev->timer);
+                sky_event_clean(ev);
                 // 触发回收资源待解决
-                ev->close(ev);
+                ev->timer.cb(&ev->timer);
                 continue;
             }
-            ev->now = loop->now;
+            sky_timer_wheel_expired(ctx, &ev->timer, (sky_uint64_t)(ev->now + ev->timeout));
         }
 
         if (loop->update) {
@@ -150,35 +142,14 @@ sky_event_loop_run(sky_event_loop_t *loop) {
         } else if (now == loop->now) {
             continue;
         }
-        now = loop->now;
-        // 处理超时的连接
-        for (;;) {
-            if (btree->root == btree->sentinel) {
-                timeout = false;
-                break;
-            }
-            ev = (sky_event_t *) sky_rbtree_min(btree->root, btree->sentinel);
-            if (loop->now < ev->key) {
-                timeout = true;
-                timespec.tv_sec = (ev->key - now);
-                break;
-            }
-            sky_rbtree_delete(btree, &ev->node);
-            if (ev->reg) {
-                ev->key = ev->now + ev->timeout;
-                if (ev->key > now) {
-                    ev->node.key = (sky_uintptr_t) &ev->key;
-                    sky_rbtree_insert(btree, &ev->node);
-                } else {
-                    close(ev->fd);
-                    ev->reg = false;
-                    // 触发回收资源待解决
-                    ev->close(ev);
-                }
-            } else {
-                // 触发回收资源待解决
-                ev->close(ev);
-            }
+
+        sky_timer_wheel_run(ctx, (sky_uint64_t) now);
+        next_time = sky_timer_wheel_wake_at(ctx);
+        if (next_time == SKY_UINT64_MAX) {
+            timeout = false;
+        } else {
+            timeout = true;
+            timespec.tv_sec = ((__time_t) (next_time - (sky_uint32_t) now));
         }
     }
 }
@@ -200,9 +171,7 @@ sky_event_register(sky_event_t *ev, sky_int32_t timeout) {
         if (timeout == 0) {
             ev->loop->update = true;
         }
-        ev->key = ev->loop->now + timeout;
-        ev->node.key = (sky_uintptr_t) &ev->key;
-        sky_rbtree_insert(&ev->loop->rbtree, &ev->node);
+        sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_uint64_t) (ev->loop->now + timeout));
     }
     ev->timeout = timeout;
     ev->reg = true;
@@ -219,18 +188,13 @@ sky_event_unregister(sky_event_t *ev) {
     if (!ev->reg) {
         return;
     }
+    sky_timer_wheel_unlink(&ev->timer);
     close(ev->fd);
     ev->reg = false;
-    if (ev->timeout != -1) {
-        sky_rbtree_delete(&ev->loop->rbtree, &ev->node);
-    } else {
-        ev->timeout = 0;
-    }
+    ev->fd = -1;
     // 此处应添加 应追加需要处理的连接
     ev->loop->update = true;
-    ev->key = 0;
-    ev->node.key = (sky_uintptr_t) &ev->key;
-    sky_rbtree_insert(&ev->loop->rbtree, &ev->node);
+    sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_uint64_t) ev->loop->now);
 }
 
 
@@ -264,26 +228,4 @@ setup_open_file_count_limits() {
 
     out:
     return (sky_int32_t) r.rlim_cur;
-}
-
-
-static void
-rbtree_insert_timer(sky_rbtree_node_t *temp, sky_rbtree_node_t *node,
-                    sky_rbtree_node_t *sentinel) {
-    sky_rbtree_node_t **p;
-    sky_time_t node_key;
-
-    node_key = *(time_t *) (node->key);
-    for (;;) {
-        p = (node_key < (*(time_t *) (temp->key))) ? &temp->left : &temp->right;
-        if (*p == sentinel) {
-            break;
-        }
-        temp = *p;
-    }
-    *p = node;
-    node->parent = temp;
-    node->left = sentinel;
-    node->right = sentinel;
-    sky_rbt_red(node);
 }

@@ -146,13 +146,12 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
         file->left = 0;
         file->right = stat_buf.st_size - 1;
     }
-    file->file_defer = sky_defer_add(r->conn->coro, (sky_defer_func_t) close, (sky_uintptr_t) fd);
+    file->file_defer = sky_defer_add(r->conn->coro, (sky_defer_func_t) close, (void *)(sky_uintptr_t) fd);
 
     sky_http_sendfile(r, fd, (sky_size_t) file->left, (sky_size_t) (file->right - file->left + 1),
                       (sky_size_t) stat_buf.st_size);
 
     sky_defer_remove(r->conn->coro, file->file_defer);
-    close(fd);
 }
 
 static sky_bool_t

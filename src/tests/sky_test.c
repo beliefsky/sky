@@ -9,7 +9,6 @@
 #include <event/event_loop.h>
 #include <unistd.h>
 
-#include <core/palloc.h>
 #include <net/http/http_server.h>
 #include <core/cpuinfo.h>
 #include <net/http/module/http_module_file.h>
@@ -19,16 +18,13 @@
 #include <net/http/extend/http_extend_redis_pool.h>
 
 #include <core/log.h>
-#include <core/json.h>
 #include <core/number.h>
-#include <net/inet.h>
-#include <net/http/extend/http_extend_pgsql_pool.h>
-#include <math/matrix.h>
 #include <net/http/module/http_module_websocket.h>
 #include <net/http/http_response.h>
+#include <sys/wait.h>
 
 
-static void server_start(sky_int64_t cpu_num);
+static void server_start();
 
 static void build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module);
 
@@ -38,26 +34,24 @@ static sky_bool_t hello_world(sky_http_request_t *req);
 
 static sky_bool_t websocket_open(sky_websocket_session_t *session);
 
-static sky_bool_t websocket_message(sky_websocket_session_t *session);
+static sky_bool_t websocket_message(sky_websocket_message_t *message);
 
 
 int
 main() {
 
+//    test();
+
     sky_int64_t cpu_num;
     sky_uint32_t i;
 
-//    cpu_num = sysconf(_SC_NPROCESSORS_ONLN);
-    cpu_num = 0;
+    cpu_num = sysconf(_SC_NPROCESSORS_ONLN);
     if ((--cpu_num) < 0) {
         cpu_num = 0;
     }
 
     i = (sky_uint32_t) cpu_num;
-    if (!i) {
-        server_start(cpu_num);
-        return 0;
-    }
+
     for (;;) {
         pid_t pid = fork();
         switch (pid) {
@@ -67,31 +61,23 @@ main() {
                 sky_cpu_set_t mask;
                 CPU_ZERO(&mask);
                 CPU_SET(i, &mask);
-                for (sky_uint32_t j = 0; j < CPU_SETSIZE; ++j) {
+                for (sky_uint_t j = 0; j < CPU_SETSIZE; ++j) {
                     if (CPU_ISSET(j, &mask)) {
-                        sky_log_error("sky_setaffinity(): using cpu #%u", j);
+                        sky_log_info("sky_setaffinity(): using cpu #%lu", j);
+                        break;
                     }
                 }
                 sky_setaffinity(&mask);
 
-                server_start(cpu_num);
+                server_start();
             }
                 break;
             default:
-                if (--i) {
+                if (i--) {
                     continue;
                 }
-                sky_cpu_set_t mask;
-                CPU_ZERO(&mask);
-                CPU_SET(i, &mask);
-                for (sky_uint32_t j = 0; j < CPU_SETSIZE; ++j) {
-                    if (CPU_ISSET(j, &mask)) {
-                        sky_log_error("sky_setaffinity(): using cpu #%u", j);
-                    }
-                }
-                sky_setaffinity(&mask);
-
-                server_start(cpu_num);
+                sky_int32_t status;
+                wait(&status);
                 break;
         }
         break;
@@ -104,7 +90,7 @@ sky_pg_connection_pool_t *ps_pool;
 sky_redis_connection_pool_t *redis_pool;
 
 static void
-server_start(sky_int64_t cpu_num) {
+server_start() {
     sky_pool_t *pool;
     sky_event_loop_t *loop;
     sky_http_server_t *server;
@@ -123,7 +109,7 @@ server_start(sky_int64_t cpu_num) {
             .database = sky_string("beliefsky"),
             .username = sky_string("postgres"),
             .password = sky_string("123456"),
-            .connection_size = cpu_num ? 2 : 8
+            .connection_size = 2
     };
 
     ps_pool = sky_pg_sql_pool_create(pool, &pg_conf);
@@ -135,7 +121,7 @@ server_start(sky_int64_t cpu_num) {
     sky_redis_conf_t redis_conf = {
             .host = sky_string("127.0.0.1"),
             .port = sky_string("6379"),
-            .connection_size = cpu_num ? 2 : 8
+            .connection_size = 2
     };
 
     redis_pool = sky_redis_pool_create(pool, &redis_conf);
@@ -178,7 +164,7 @@ server_start(sky_int64_t cpu_num) {
     };
 
     sky_http_conf_t conf = {
-            .host = sky_string("*"),
+            .host = sky_string("0.0.0.0"),
             .port = sky_string("8080"),
             .header_buf_size = 2048,
             .header_buf_n = 4,
@@ -187,8 +173,12 @@ server_start(sky_int64_t cpu_num) {
     };
 
     server = sky_http_server_create(pool, &conf);
-
     sky_http_server_bind(server, loop);
+
+    sky_str_set(&conf.host, "::");
+    server = sky_http_server_create(pool, &conf);
+    sky_http_server_bind(server, loop);
+
 
     sky_event_loop_run(loop);
     sky_event_loop_shutdown(loop);
@@ -317,9 +307,11 @@ hello_world(sky_http_request_t *req) {
 
 
 static sky_bool_t websocket_open(sky_websocket_session_t *session) {
+    sky_log_info("websocket open: fd ->%d", session->event->fd);
     return true;
 }
 
-static sky_bool_t websocket_message(sky_websocket_session_t *session) {
+static sky_bool_t websocket_message(sky_websocket_message_t *message) {
+    sky_log_info("websocket message: fd->%d->%s", message->session->event->fd, message->data.data);
     return true;
 }

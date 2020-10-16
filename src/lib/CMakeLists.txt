@@ -18,11 +18,13 @@ set(SOURCES
         core/number.c
         core/date.c
         core/buf.c
+        core/crc32.c
         core/md5.c
         core/sha1.c
         core/base64.c
         core/uuid.c
         core/json.c
+        core/timer_wheel.c
         math/matrix.c
         event/event_loop.c
         net/tcp.c
@@ -49,7 +51,6 @@ add_library(sky_shared SHARED "${CMAKE_BINARY_DIR}/empty.c")
 target_link_libraries(sky_shared
         ${SKY_COMMON_LIBS}
         ${ADDITIONAL_LIBRARIES}
-        m
         )
 #if (NOT APPLE)
 #	target_link_libraries(sky_shared
@@ -88,11 +89,14 @@ install(FILES
         core/date.h
         core/cpuinfo.h
         core/buf.h
+        core/crc32.h
         core/md5.h
+        core/sha1.h
         core/base64.h
         core/uuid.h
         core/log.h
         core/json.h
+        core/timer_wheel.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/core")
 
 install(FILES

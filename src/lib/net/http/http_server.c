@@ -2,7 +2,6 @@
 // Created by weijing on 18-11-7.
 //
 
-#include <errno.h>
 #include "http_server.h"
 #include "../tcp.h"
 #include "http_request.h"
@@ -10,11 +9,10 @@
 #include "../../core/cpuinfo.h"
 #include "../../core/number.h"
 #include "../../core/trie.h"
-#include "../../core/log.h"
 
 typedef struct {
     sky_str_t msg;
-    sky_uint16_t status:9;
+    sky_uint16_t status: 9;
 } status_t;
 
 static sky_event_t *http_connection_accept_cb(sky_event_loop_t *loop, sky_int32_t fd, sky_http_server_t *server);
@@ -53,7 +51,6 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
     server->port = conf->port;
     server->pool = pool;
     server->tmp_pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
-    server->switcher = sky_coro_switcher_create(pool);
 
     if (!conf->header_buf_n) {
         conf->header_buf_n = 4; // 4 buff
@@ -156,12 +153,15 @@ http_connection_accept_cb(sky_event_loop_t *loop, sky_int32_t fd, sky_http_serve
     sky_coro_t *coro;
     sky_http_connection_t *conn;
 
-    coro = sky_coro_create2(server->switcher, (sky_coro_func_t) sky_http_request_process, (sky_uintptr_t *) &conn,
-                            sizeof(sky_http_connection_t));
+    coro = sky_coro_create2(
+            &server->switcher,
+            (sky_coro_func_t) sky_http_request_process,
+            (void **) &conn,
+            sizeof(sky_http_connection_t)
+    );
+
     conn->coro = coro;
-    conn->pool = sky_coro_pool_get(coro);
     conn->server = server;
-    conn->free = null;
     sky_event_init(loop, &conn->ev, fd, http_connection_run, http_connection_close);
 
     if (sky_coro_resume(coro) != SKY_CORO_MAY_RESUME) {
@@ -180,6 +180,9 @@ http_connection_run(sky_http_connection_t *conn) {
 
 static void
 http_connection_close(sky_http_connection_t *conn) {
+    if (conn->ev.fd != -1) {
+        sky_event_clean(&conn->ev);
+    }
     sky_coro_destroy(conn->coro);
 }
 

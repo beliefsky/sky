@@ -23,9 +23,7 @@
 #include "../../core/date.h"
 #include "http_response.h"
 
-static void connection_buf_free(sky_http_connection_t *conn, sky_buf_t *buf);
-
-static sky_http_request_t *http_header_read(sky_http_connection_t *conn);
+static sky_http_request_t *http_header_read(sky_http_connection_t *conn, sky_pool_t *pool);
 
 static sky_http_module_t *find_http_module(sky_http_request_t *r);
 
@@ -39,12 +37,16 @@ sky_http_request_init(sky_http_server_t *server) {
 
 sky_int8_t
 sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
+    sky_pool_t *pool;
+    sky_defer_t *defer;
     sky_http_request_t *r;
     sky_http_module_t *module;
 
+    pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
+    defer = sky_defer_add(coro, (sky_defer_func_t) sky_destroy_pool, pool);
     for (;;) {
         // read buf and parse
-        r = http_header_read(conn);
+        r = http_header_read(conn, pool);
         if (r == null) {
             return SKY_CORO_ABORT;
         }
@@ -64,7 +66,11 @@ sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
         if (!r->keep_alive) {
             return SKY_CORO_FINISHED;
         }
+        sky_defer_cancel(coro, defer);
         sky_defer_run(coro);
+
+        sky_reset_pool(pool);
+        defer = sky_defer_add(coro, (sky_defer_func_t) sky_destroy_pool, pool);
         if (!conn->ev.read) {
             sky_coro_yield(coro, SKY_CORO_MAY_RESUME);
         }
@@ -72,8 +78,7 @@ sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
 }
 
 static sky_http_request_t *
-http_header_read(sky_http_connection_t *conn) {
-    sky_pool_t *pool;
+http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
     sky_http_request_t *r;
     sky_buf_t *buf;
     sky_uint32_t n;
@@ -84,16 +89,9 @@ http_header_read(sky_http_connection_t *conn) {
     buf_n = conn->server->header_buf_n;
     buf_size = conn->server->header_buf_size;
 
-    if (conn->free) {
-        buf = conn->free;
-        conn->free = buf->next;
-    } else {
-        buf = sky_buf_create(conn->pool, buf_size);
-    }
-    sky_defer_add2(conn->coro, (sky_defer_func2_t) connection_buf_free, (sky_uintptr_t) conn, (sky_uintptr_t) buf);
 
-    pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
-    sky_defer_add(conn->coro, (sky_defer_func_t) sky_destroy_pool, (sky_uintptr_t) pool);
+    buf = sky_buf_create(pool, buf_size);
+
     r = sky_pcalloc(pool, sizeof(sky_http_request_t));
 
     for (;;) {
@@ -126,29 +124,14 @@ http_header_read(sky_http_connection_t *conn) {
         }
         if (sky_unlikely(buf->last == buf->end)) {
             if (--buf_n) {
+                buf = sky_buf_create(pool, buf_size);
+
                 if (r->req_pos) {
                     n = (sky_uint32_t) (buf->last - r->req_pos);
-                    if (conn->free) {
-                        buf = conn->free;
-                        conn->free = buf->next;
-                    } else {
-                        buf = sky_buf_create(conn->pool, buf_size);
-                    }
-                    sky_defer_add2(conn->coro, (sky_defer_func2_t) connection_buf_free, (sky_uintptr_t) conn,
-                                   (sky_uintptr_t) buf);
 
                     sky_memcpy(buf->pos, r->req_pos, n);
                     r->req_pos = buf->pos;
                     buf->last = buf->pos += n;
-                } else {
-                    if (conn->free) {
-                        buf = conn->free;
-                        conn->free = buf->next;
-                    } else {
-                        buf = sky_buf_create(conn->pool, buf_size);
-                    }
-                    sky_defer_add2(conn->coro, (sky_defer_func2_t) connection_buf_free, (sky_uintptr_t) conn,
-                                   (sky_uintptr_t) buf);
                 }
             }
         }
@@ -202,13 +185,6 @@ find_http_module(sky_http_request_t *r) {
     return (sky_http_module_t *) sky_trie_find(trie_prefix, &r->uri);
 }
 
-
-static
-void connection_buf_free(sky_http_connection_t *conn, sky_buf_t *buf) {
-    sky_buf_reset(buf);
-    buf->next = conn->free;
-    conn->free = buf;
-}
 
 static sky_uint32_t
 http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size) {
