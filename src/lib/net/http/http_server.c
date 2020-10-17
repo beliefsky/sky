@@ -264,7 +264,6 @@ https_connection_handle_run(sky_http_connection_t *conn) {
 
 static sky_bool_t
 https_connection_run(sky_http_connection_t *conn) {
-
     return sky_coro_resume(conn->coro) == SKY_CORO_MAY_RESUME;
 }
 
@@ -451,14 +450,10 @@ http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size) {
         }
 
         if ((n = read(fd, data, size)) < 1) {
-            conn->ev.read = false;
-            if (sky_unlikely(!n)) {
-                sky_coro_yield(conn->coro, SKY_CORO_ABORT);
-                sky_coro_exit();
-            }
             switch (errno) {
                 case EINTR:
                 case EAGAIN:
+                    conn->ev.read = false;
                     sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
                     continue;
                 default:
@@ -484,13 +479,13 @@ https_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size) {
         }
 
         if ((n = SSL_read(ssl, data, (sky_int32_t) size)) < 1) {
-            conn->ev.read = false;
-            if (sky_unlikely(!n || SSL_get_error(conn->ssl, -1) != SSL_ERROR_WANT_READ)) {
-                sky_coro_yield(conn->coro, SKY_CORO_ABORT);
-                sky_coro_exit();
+            if (sky_unlikely(!n || SSL_get_error(conn->ssl, -1) == SSL_ERROR_WANT_READ)) {
+                conn->ev.read = false;
+                sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+                continue;
             }
-            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-            continue;
+            sky_coro_yield(conn->coro, SKY_CORO_ABORT);
+            sky_coro_exit();
         }
         return (sky_uint32_t) n;
     }
@@ -509,10 +504,6 @@ http_write(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size) {
         }
 
         if ((n = write(fd, data, size)) < 1) {
-            if (sky_unlikely(!n)) {
-                sky_coro_yield(conn->coro, SKY_CORO_ABORT);
-                sky_coro_exit();
-            }
             switch (errno) {
                 case EINTR:
                 case EAGAIN:
@@ -548,12 +539,13 @@ https_write(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size) {
         }
 
         if ((n = SSL_write(ssl, data, (sky_int32_t) size)) < 1) {
-            if (sky_unlikely(!n || SSL_get_error(conn->ssl, -1) != SSL_ERROR_WANT_WRITE)) {
-                sky_coro_yield(conn->coro, SKY_CORO_ABORT);
-                sky_coro_exit();
+            if (sky_unlikely(!n || SSL_get_error(conn->ssl, -1) == SSL_ERROR_WANT_WRITE)) {
+                conn->ev.write = false;
+                sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+                continue;
             }
-            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-            continue;
+            sky_coro_yield(conn->coro, SKY_CORO_ABORT);
+            sky_coro_exit();
         }
 
         if (n < (sky_int32_t) size) {
