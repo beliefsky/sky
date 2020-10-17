@@ -53,9 +53,7 @@ sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
 
         sky_reset_pool(pool);
         defer = sky_defer_add(coro, (sky_defer_func_t) sky_destroy_pool, pool);
-        if (!conn->ev.read) {
-            sky_coro_yield(coro, SKY_CORO_MAY_RESUME);
-        }
+        sky_coro_yield(coro, SKY_CORO_MAY_RESUME);
     }
 }
 
