@@ -22,6 +22,7 @@
 #include <net/http/module/http_module_websocket.h>
 #include <net/http/http_response.h>
 #include <sys/wait.h>
+#include <openssl/ssl.h>
 
 
 static void server_start();
@@ -44,46 +45,48 @@ main() {
 
 //    test();
 
-    sky_int64_t cpu_num;
-    sky_uint32_t i;
+    server_start();
 
-    cpu_num = sysconf(_SC_NPROCESSORS_ONLN);
-    if ((--cpu_num) < 0) {
-        cpu_num = 0;
-    }
-
-    i = (sky_uint32_t) cpu_num;
-
-    for (;;) {
-        pid_t pid = fork();
-        switch (pid) {
-            case -1:
-                return 0;
-            case 0: {
-                sky_cpu_set_t mask;
-                CPU_ZERO(&mask);
-                CPU_SET(i, &mask);
-                for (sky_uint_t j = 0; j < CPU_SETSIZE; ++j) {
-                    if (CPU_ISSET(j, &mask)) {
-                        sky_log_info("sky_setaffinity(): using cpu #%lu", j);
-                        break;
-                    }
-                }
-                sky_setaffinity(&mask);
-
-                server_start();
-            }
-                break;
-            default:
-                if (i--) {
-                    continue;
-                }
-                sky_int32_t status;
-                wait(&status);
-                break;
-        }
-        break;
-    }
+//    sky_int64_t cpu_num;
+//    sky_uint32_t i;
+//
+//    cpu_num = sysconf(_SC_NPROCESSORS_ONLN);
+//    if ((--cpu_num) < 0) {
+//        cpu_num = 0;
+//    }
+//
+//    i = (sky_uint32_t) cpu_num;
+//
+//    for (;;) {
+//        pid_t pid = fork();
+//        switch (pid) {
+//            case -1:
+//                return 0;
+//            case 0: {
+//                sky_cpu_set_t mask;
+//                CPU_ZERO(&mask);
+//                CPU_SET(i, &mask);
+//                for (sky_uint_t j = 0; j < CPU_SETSIZE; ++j) {
+//                    if (CPU_ISSET(j, &mask)) {
+//                        sky_log_info("sky_setaffinity(): using cpu #%lu", j);
+//                        break;
+//                    }
+//                }
+//                sky_setaffinity(&mask);
+//
+//                server_start();
+//            }
+//                break;
+//            default:
+//                if (i--) {
+//                    continue;
+//                }
+//                sky_int32_t status;
+//                wait(&status);
+//                break;
+//        }
+//        break;
+//    }
 
     return 0;
 }
@@ -165,22 +168,24 @@ server_start() {
             }
     };
 
+    OPENSSL_init_ssl(OPENSSL_INIT_LOAD_CONFIG, NULL);
     sky_http_conf_t conf = {
-            .host = sky_string("0.0.0.0"),
+            .host = sky_string("::"),
             .port = sky_string("8080"),
             .header_buf_size = 2048,
             .header_buf_n = 4,
             .modules_host = hosts,
-            .modules_n = 3
+            .modules_n = 3,
+            .ssl = true,
+            .ssl_ctx = SSL_CTX_new(SSLv23_server_method())
     };
 
-    server = sky_http_server_create(pool, &conf);
-    sky_http_server_bind(server, loop);
+    SSL_CTX_use_certificate_file(conf.ssl_ctx, "../../../conf/localhost.crt", SSL_FILETYPE_PEM);
+    SSL_CTX_use_PrivateKey_file(conf.ssl_ctx, "../../../conf/localhost.key", SSL_FILETYPE_PEM);
 
-    sky_str_set(&conf.host, "::");
     server = sky_http_server_create(pool, &conf);
-    sky_http_server_bind(server, loop);
 
+    sky_http_server_bind(server, loop);
 
     sky_event_loop_run(loop);
     sky_event_loop_shutdown(loop);

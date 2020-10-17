@@ -39,6 +39,11 @@ set(SOURCES
         net/http/extend/http_extend_redis_pool.c
         )
 add_library(sky_static STATIC ${SOURCES})
+
+target_link_libraries(sky_static
+        m
+        )
+
 set_target_properties(sky_static PROPERTIES
         OUTPUT_NAME sky CLEAN_DIRECT_OUTPUT 1)
 set_target_properties(sky_static PROPERTIES COMPILE_FLAGS "-fPIC")

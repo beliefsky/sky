@@ -62,12 +62,9 @@ endif ()
 #
 # Find libraries
 #
-#find_package(Threads REQUIRED)
-#find_package(OpenSSL REQUIRED)
+find_package(OpenSSL REQUIRED)
 #find_package(ZLIB REQUIRED)
-#set(PostgreSQL_TYPE_INCLUDE_DIR /usr/include/postgresql)
-#find_package(PostgreSQL REQUIRED)
-set(ADDITIONAL_LIBRARIES #[[${CMAKE_THREAD_LIBS_INIT}]] #[[${OPENSSL_LIBRARIES]] #[[${ZLIB_LIBRARIES}]] #[[${PostgreSQL_LIBRARIES}]])
+set(ADDITIONAL_LIBRARIES ${OPENSSL_LIBRARIES} #[[${ZLIB_LIBRARIES}]])
 
 
 set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
@@ -185,9 +182,9 @@ add_definitions("-D_FILE_OFFSET_BITS=64")
 add_definitions("-D_TIME_BITS=64")
 
 if (APPLE)
-    set(SKY_COMMON_LIBS m -Wl,-force_load sky_static)
+    set(SKY_COMMON_LIBS -Wl,-force_load sky_static)
 else ()
-    set(SKY_COMMON_LIBS m -Wl,-whole-archive sky_static -Wl,-no-whole-archive)
+    set(SKY_COMMON_LIBS -Wl,-whole-archive sky_static -Wl,-no-whole-archive)
 endif ()
 
 
