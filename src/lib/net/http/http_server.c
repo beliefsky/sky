@@ -472,7 +472,7 @@ http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size) {
 
 static sky_uint32_t
 https_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size) {
-    ssize_t n;
+    sky_int32_t n;
     void *ssl;
 
 
@@ -490,6 +490,7 @@ https_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size) {
                 sky_coro_exit();
             }
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+            continue;
         }
         return (sky_uint32_t) n;
     }
