@@ -252,7 +252,10 @@ server_start() {
     SSL_CTX_use_PrivateKey_file(conf.ssl_ctx, "../../../conf/localhost.key", SSL_FILETYPE_PEM);
 
     server = sky_http_server_create(pool, &conf);
+    sky_http_server_bind(server, loop);
 
+    sky_str_set(&conf.host, "0.0.0.0");
+    server = sky_http_server_create(pool, &conf);
     sky_http_server_bind(server, loop);
 
     sky_event_loop_run(loop);
