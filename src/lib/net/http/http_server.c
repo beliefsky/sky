@@ -139,7 +139,7 @@ sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *loop) {
     sky_tcp_conf_t conf = {
             .host = server->host,
             .port = server->port,
-            .run = (sky_tcp_accept_cb_pt)(server->ssl ? https_connection_accept_cb : http_connection_accept_cb),
+            .run = (sky_tcp_accept_cb_pt) (server->ssl ? https_connection_accept_cb : http_connection_accept_cb),
             .data = server,
             .timeout = 60
     };
@@ -219,6 +219,10 @@ https_connection_accept_cb(sky_event_loop_t *loop, sky_int32_t fd, sky_http_serv
     sky_event_init(loop, &conn->ev, fd, https_connection_handle_run, https_connection_close);
     conn->ssl = SSL_new(server->ssl_ctx);
     SSL_set_fd(conn->ssl, fd);
+    SSL_set_accept_state(conn->ssl);
+#ifdef SSL_OP_NO_RENEGOTIATION
+    SSL_set_options(conn->ssl, SSL_OP_NO_RENEGOTIATION);
+#endif
 
     if (!https_connection_handle_run(conn)) {
         SSL_free(conn->ssl);
@@ -248,7 +252,7 @@ http_connection_close(sky_http_connection_t *conn) {
 static sky_bool_t
 https_connection_handle_run(sky_http_connection_t *conn) {
 
-    if (SSL_accept(conn->ssl) == -1) {
+    if (SSL_do_handshake(conn->ssl) == -1) {
         switch (SSL_get_error(conn->ssl, -1)) {
             case SSL_ERROR_WANT_READ:
             case SSL_ERROR_WANT_WRITE:
@@ -373,7 +377,7 @@ static sky_bool_t
 http_process_header_line(sky_http_request_t *r, sky_table_elt_t *h, sky_uintptr_t data) {
     sky_table_elt_t **ph;
 
-    ph = (sky_table_elt_t * *)((sky_uintptr_t)(&r->headers_in) + data);
+    ph = (sky_table_elt_t **) ((sky_uintptr_t) (&r->headers_in) + data);
     if (sky_likely(!(*ph))) {
         *ph = h;
     }
@@ -385,7 +389,7 @@ static sky_bool_t
 http_process_unique_header_line(sky_http_request_t *r, sky_table_elt_t *h, sky_uintptr_t data) {
     sky_table_elt_t **ph;
 
-    ph = (sky_table_elt_t * *)((sky_uintptr_t)(&r->headers_in) + data);
+    ph = (sky_table_elt_t **) ((sky_uintptr_t) (&r->headers_in) + data);
     if (sky_likely(!(*ph))) {
         *ph = h;
         return true;

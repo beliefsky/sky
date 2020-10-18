@@ -23,6 +23,7 @@
 #include <net/http/http_response.h>
 #include <sys/wait.h>
 #include <openssl/ssl.h>
+#include <openssl/err.h>
 
 
 static void server_start();
@@ -169,6 +170,7 @@ server_start() {
     };
 
     OPENSSL_init_ssl(OPENSSL_INIT_LOAD_CONFIG, NULL);
+    ERR_clear_error();
     sky_http_conf_t conf = {
             .host = sky_string("::"),
             .port = sky_string("8080"),
@@ -179,6 +181,72 @@ server_start() {
             .ssl = true,
             .ssl_ctx = SSL_CTX_new(SSLv23_server_method())
     };
+#ifdef SSL_OP_SSLREF2_REUSE_CERT_TYPE_BUG
+    SSL_CTX_set_options(conf.ssl_ctx, SSL_OP_SSLREF2_REUSE_CERT_TYPE_BUG);
+#endif
+
+#ifdef SSL_OP_MICROSOFT_BIG_SSLV3_BUFFER
+    SSL_CTX_set_options(conf.ssl_ctx, SSL_OP_MICROSOFT_BIG_SSLV3_BUFFER);
+#endif
+
+#ifdef SSL_OP_MSIE_SSLV2_RSA_PADDING
+    /* this option allow a potential SSL 2.0 rollback (CAN-2005-2969) */
+    SSL_CTX_set_options(conf.ssl_ctx, SSL_OP_MSIE_SSLV2_RSA_PADDING);
+#endif
+
+#ifdef SSL_OP_SSLEAY_080_CLIENT_DH_BUG
+    SSL_CTX_set_options(conf.ssl_ctx, SSL_OP_SSLEAY_080_CLIENT_DH_BUG);
+#endif
+
+#ifdef SSL_OP_TLS_D5_BUG
+    SSL_CTX_set_options(conf.ssl_ctx, SSL_OP_TLS_D5_BUG);
+#endif
+
+#ifdef SSL_OP_TLS_BLOCK_PADDING_BUG
+    SSL_CTX_set_options(conf.ssl_ctx, SSL_OP_TLS_BLOCK_PADDING_BUG);
+#endif
+
+#ifdef SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS
+    SSL_CTX_set_options(conf.ssl_ctx, SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS);
+#endif
+
+    SSL_CTX_set_options(conf.ssl_ctx, SSL_OP_SINGLE_DH_USE);
+
+#if OPENSSL_VERSION_NUMBER >= 0x009080dfL
+    /* only in 0.9.8m+ */
+    SSL_CTX_clear_options(conf.ssl_ctx,SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1);
+#endif
+
+
+#ifdef SSL_CTX_set_min_proto_version
+    SSL_CTX_set_min_proto_version(conf.ssl_ctx, 0);
+    SSL_CTX_set_max_proto_version(conf.ssl_ctx, TLS1_2_VERSION);
+#endif
+
+#ifdef TLS1_3_VERSION
+    SSL_CTX_set_min_proto_version(conf.ssl_ctx, 0);
+    SSL_CTX_set_max_proto_version(conf.ssl_ctx, TLS1_3_VERSION);
+#endif
+
+#ifdef SSL_OP_NO_COMPRESSION
+    SSL_CTX_set_options(conf.ssl_ctx, SSL_OP_NO_COMPRESSION);
+#endif
+
+#ifdef SSL_OP_NO_ANTI_REPLAY
+    SSL_CTX_set_options(conf.ssl_ctx, SSL_OP_NO_ANTI_REPLAY);
+#endif
+
+#ifdef SSL_OP_NO_CLIENT_RENEGOTIATION
+    SSL_CTX_set_options(conf.ssl_ctx, SSL_OP_NO_CLIENT_RENEGOTIATION);
+#endif
+
+#ifdef SSL_MODE_RELEASE_BUFFERS
+    SSL_CTX_set_mode(conf.ssl_ctx, SSL_MODE_RELEASE_BUFFERS);
+#endif
+
+#ifdef SSL_MODE_NO_AUTO_CHAIN
+    SSL_CTX_set_mode(conf.ssl_ctx, SSL_MODE_NO_AUTO_CHAIN);
+#endif
 
     SSL_CTX_use_certificate_file(conf.ssl_ctx, "../../../conf/localhost.crt", SSL_FILETYPE_PEM);
     SSL_CTX_use_PrivateKey_file(conf.ssl_ctx, "../../../conf/localhost.key", SSL_FILETYPE_PEM);
