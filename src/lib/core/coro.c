@@ -361,7 +361,7 @@ sky_coro_destroy(sky_coro_t *coro) {
         block->prev->next = block->next;
         block->next->prev = block->prev;
 
-        munmap(coro, PAGE_SIZE);
+        munmap(block, PAGE_SIZE);
     }
     munmap(coro, CORE_BLOCK_SIZE);
 }
