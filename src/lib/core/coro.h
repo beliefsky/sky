@@ -91,6 +91,14 @@ void sky_coro_destroy(sky_coro_t *coro);
 #define sky_coro_exit()   __builtin_unreachable()
 
 /**
+ * 协程分配内存，销毁时回收（适用于小于2k的内存）
+ * @param coro 协程
+ * @param size 分配大小
+ * @return 回收标记
+ */
+void *sky_coro_malloc(sky_coro_t *coro, sky_size_t size);
+
+/**
  * 添加回收器
  * @param coro 协程
  * @param func 回收函数
