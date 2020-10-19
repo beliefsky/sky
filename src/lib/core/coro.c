@@ -213,7 +213,7 @@ sky_coro_t *
 sky_coro_create2(sky_coro_switcher_t *switcher, sky_coro_func_t func, void **data_ptr, sky_size_t ptr_size) {
     sky_coro_t *coro;
 
-    coro = mmap(NULL, CORE_BLOCK_SIZE, PROT_READ | PROT_WRITE,
+    coro = mmap(null, CORE_BLOCK_SIZE, PROT_READ | PROT_WRITE,
                 MAP_STACK | MAP_ANON | MAP_PRIVATE, -1, 0);
 
     coro->switcher = switcher;
@@ -388,7 +388,7 @@ static sky_inline void
 mem_block_add(sky_coro_t *coro) {
     mem_block_t *block;
 
-    block = mmap(NULL, PAGE_SIZE, PROT_READ | PROT_WRITE,
+    block = mmap(null, PAGE_SIZE, PROT_READ | PROT_WRITE,
                  MAP_STACK | MAP_ANON | MAP_PRIVATE, -1, 0);
 
     block->prev = &coro->blocks;
