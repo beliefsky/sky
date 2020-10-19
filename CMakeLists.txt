@@ -36,29 +36,6 @@ else ()
     message(STATUS "Using built-in context switching routines for ${CMAKE_SYSTEM_PROCESSOR} processors")
 endif ()
 
-option(USE_ALTERNATIVE_MALLOC "Use alternative malloc implementations" "OFF")
-if (USE_ALTERNATIVE_MALLOC)
-    unset(ALTMALLOC_LIBS CACHE)
-    unset(ALTMALLOC_LIBRARY CACHE)
-
-    if (${USE_ALTERNATIVE_MALLOC} STREQUAL "mimalloc")
-        set(ALTMALLOC_LIBS mimalloc)
-    elseif (${USE_ALTERNATIVE_MALLOC} STREQUAL "tcmalloc")
-        set(ALTMALLOC_LIBS tcmalloc_minimal tcmalloc)
-    elseif (${USE_ALTERNATIVE_MALLOC} STREQUAL "jemalloc")
-        set(ALTMALLOC_LIBS jemalloc)
-    else ()
-        set(ALTMALLOC_LIBS "mimalloc tcmalloc_minimal tcmalloc jemalloc")
-    endif()
-
-    find_library(ALTMALLOC_LIBRARY NAMES ${ALTMALLOC_LIBS})
-    if (ALTMALLOC_LIBRARY)
-        message(STATUS "Using alternative malloc (${USE_ALTERNATIVE_MALLOC}): ${ALTMALLOC_LIBRARY}")
-        list(PREPEND ADDITIONAL_LIBRARIES ${ALTMALLOC_LIBRARY})
-    endif ()
-endif ()
-
-
 #
 # Find libraries
 #
