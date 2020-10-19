@@ -4,7 +4,6 @@
 
 #include <assert.h>
 #include "coro.h"
-#include "log.h"
 
 #include <sys/mman.h>
 
@@ -214,7 +213,7 @@ sky_coro_create2(sky_coro_switcher_t *switcher, sky_coro_func_t func, void **dat
     sky_coro_t *coro;
 
     coro = mmap(null, CORE_BLOCK_SIZE, PROT_READ | PROT_WRITE,
-                MAP_STACK | MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+                MAP_STACK | MAP_ANON | MAP_PRIVATE, -1, 0);
 
     coro->switcher = switcher;
     coro->defers.prev = coro->defers.next = &coro->defers;
@@ -389,7 +388,7 @@ mem_block_add(sky_coro_t *coro) {
     mem_block_t *block;
 
     block = mmap(null, PAGE_SIZE, PROT_READ | PROT_WRITE,
-                 MAP_STACK | MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+                 MAP_STACK | MAP_ANON | MAP_PRIVATE, -1, 0);
 
     block->prev = &coro->blocks;
     block->next = block->prev->next;
