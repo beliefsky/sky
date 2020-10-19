@@ -12,7 +12,7 @@
 
 #define CORE_BLOCK_SIZE 12288
 
-#define CORO_STACK_MIN 10240
+#define CORO_STACK_MIN 8096
 
 #if defined(__APPLE__)
 #define ASM_SYMBOL(name_) "_" #name_
