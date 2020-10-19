@@ -222,6 +222,12 @@ sky_coro_create2(sky_coro_switcher_t *switcher, sky_coro_func_t func, void **dat
     return coro;
 }
 
+void
+sky_core_reset(sky_coro_t *coro, sky_coro_func_t func, void *data) {
+    sky_defer_run(coro);
+    coro_set(coro, func, data);
+}
+
 
 sky_inline sky_int32_t
 sky_coro_resume(sky_coro_t *coro) {
@@ -287,7 +293,8 @@ sky_defer_add2(sky_coro_t *coro, sky_defer_func2_t func, void *data1, void *data
     return defer;
 }
 
-void sky_defer_cancel(sky_coro_t *coro,sky_defer_t *defer) {
+sky_inline void
+sky_defer_cancel(sky_coro_t *coro, sky_defer_t *defer) {
     if (defer->free) {
         return;
     }
@@ -300,7 +307,7 @@ void sky_defer_cancel(sky_coro_t *coro,sky_defer_t *defer) {
     defer->next->prev = defer->prev->next = defer;
 }
 
-void
+sky_inline void
 sky_defer_remove(sky_coro_t *coro, sky_defer_t *defer) {
     if (defer->free) {
         return;
@@ -317,7 +324,8 @@ sky_defer_remove(sky_coro_t *coro, sky_defer_t *defer) {
                    : defer->func2(defer->data, defer->data2);
 }
 
-void sky_defer_run(sky_coro_t *coro) {
+sky_inline void
+sky_defer_run(sky_coro_t *coro) {
     sky_defer_t *defer;
 
     while ((defer = coro->defers.next) != &coro->defers) {
@@ -334,7 +342,8 @@ void sky_defer_run(sky_coro_t *coro) {
     }
 }
 
-void sky_coro_destroy(sky_coro_t *coro) {
+void
+sky_coro_destroy(sky_coro_t *coro) {
     sky_defer_t *defer;
     mem_block_t *block;
 

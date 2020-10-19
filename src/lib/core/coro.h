@@ -59,6 +59,14 @@ sky_coro_t *
 sky_coro_create2(sky_coro_switcher_t *switcher, sky_coro_func_t func, void **data_ptr, sky_size_t size);
 
 /**
+ * 重置协程
+ * @param coro 协程
+ * @param func 异步函数
+ * @param data 异步函数参数
+ */
+void sky_core_reset(sky_coro_t *coro, sky_coro_func_t func, void *data);
+
+/**
  * 执行协程
  * @param coro 协程
  * @return 协程执行状态
