@@ -315,6 +315,7 @@ build_headers_in(sky_array_t *array, sky_pool_t *pool) {
     http_header_push("If-Modified-Since", http_process_header_line,
                      sky_offset_of(sky_http_headers_in_t, if_modified_since));
 
+#undef http_header_push
 }
 
 void
@@ -370,6 +371,8 @@ http_status_build(sky_http_server_t *server) {
     http_status_push(status, tmp, 503, "503 Service Unavailable");
     http_status_push(status, tmp, 504, "504 Gateway Time-out");
     http_status_push(status, tmp, 505, "505 HTTP Version not supported");
+
+#undef http_status_push
 }
 
 //=========================== header func ============================
