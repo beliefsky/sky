@@ -130,8 +130,6 @@ module_run_next(sky_websocket_session_t *session) {
     sky_int32_t result;
 
     conn = session->request->conn;
-
-    sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
     conn->ev.timeout = 600;
 
 
