@@ -178,7 +178,7 @@ server_start() {
             .header_buf_n = 4,
             .modules_host = hosts,
             .modules_n = 3,
-            .ssl = true,
+            .ssl = false,
             .ssl_ctx = SSL_CTX_new(SSLv23_server_method())
     };
 #ifdef SSL_OP_SSLREF2_REUSE_CERT_TYPE_BUG
