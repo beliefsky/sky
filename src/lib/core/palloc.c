@@ -1,18 +1,13 @@
 #include "palloc.h"
 #include "memory.h"
+#include <sys/mman.h>
 
-#define SKY_ALIGNMENT   sizeof(unsigned long)
+#define SKY_ALIGNMENT   sizeof(sky_uint_t)
 
 /**
  * 4095(SKY_PAGESIZE - 1)
  */
-#define SKY_MAX_ALLOC_FROM_POOL  0xFFF
-/**
- * 32 位系统 8
- * 64 位系统 16
- * 16
- */
-#define SKY_POOL_ALIGNMENT       0x10
+#define SKY_MAX_ALLOC_FROM_POOL  16383
 
 static void *sky_palloc_small(sky_pool_t *pool, sky_size_t size, sky_bool_t align);
 
@@ -24,7 +19,10 @@ sky_pool_t *
 sky_create_pool(sky_size_t size) {
     sky_pool_t *p;
 
-    p = sky_memalign(SKY_POOL_ALIGNMENT, size);
+    size = sky_align(size, 4096U);
+
+    p = mmap(NULL, size, PROT_READ | PROT_WRITE,
+             MAP_STACK | MAP_ANON | MAP_PRIVATE, -1, 0);
     if (sky_unlikely(!p)) {
         return null;
     }
@@ -46,6 +44,7 @@ sky_destroy_pool(sky_pool_t *pool) {
     sky_pool_t *p, *n;
     sky_pool_large_t *l;
     sky_pool_cleanup_t *c;
+    sky_size_t size;
 
     for (c = pool->cleanup; c; c = c->next) {
         if (c->handler) {
@@ -57,8 +56,11 @@ sky_destroy_pool(sky_pool_t *pool) {
             sky_free(l->alloc);
         }
     }
+    size = (sky_size_t) (pool->d.end - (sky_uchar_t *) pool);
+
     for (p = pool, n = pool->d.next; /* void */; p = n, n = n->d.next) {
-        sky_free(p);
+
+        munmap(p, size);
         if (!n) {
             break;
         }
@@ -129,7 +131,10 @@ sky_palloc_block(sky_pool_t *pool, sky_size_t size) {
     sky_pool_t *p, *new;
 
     psize = (sky_size_t) (pool->d.end - (sky_uchar_t *) pool);
-    m = sky_memalign(SKY_POOL_ALIGNMENT, psize);
+
+    m = mmap(NULL, psize, PROT_READ | PROT_WRITE,
+             MAP_STACK | MAP_ANON | MAP_PRIVATE, -1, 0);
+
     if (sky_unlikely(!m)) {
         return null;
     }
