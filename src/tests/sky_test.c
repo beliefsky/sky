@@ -26,7 +26,7 @@
 #include <openssl/err.h>
 
 
-static void server_start();
+static void server_start(void *ssl);
 
 static void build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module);
 
@@ -37,6 +37,8 @@ static sky_bool_t hello_world(sky_http_request_t *req);
 static sky_bool_t websocket_open(sky_websocket_session_t *session);
 
 static sky_bool_t websocket_message(sky_websocket_message_t *message);
+
+static void *create_ssl();
 
 
 int
@@ -75,7 +77,7 @@ main() {
                 }
                 sky_setaffinity(&mask);
 
-                server_start();
+                server_start(null);
             }
                 break;
             default:
@@ -96,7 +98,7 @@ sky_pg_connection_pool_t *ps_pool;
 sky_redis_connection_pool_t *redis_pool;
 
 static void
-server_start() {
+server_start(void *ssl) {
     sky_pool_t *pool;
     sky_event_loop_t *loop;
     sky_http_server_t *server;
@@ -168,17 +170,6 @@ server_start() {
                     .modules_n = (sky_uint16_t) modules.nelts
             }
     };
-#if OPENSSL_VERSION_NUMBER >= 0x10100003L
-    OPENSSL_init_ssl(OPENSSL_INIT_LOAD_CONFIG, NULL);
-    ERR_clear_error();
-#else
-    OPENSSL_config(NULL);
-
-    SSL_library_init();
-    SSL_load_error_strings();
-
-    OpenSSL_add_all_algorithms();
-#endif
     sky_http_conf_t conf = {
             .host = sky_string("::"),
             .port = sky_string("8080"),
@@ -186,78 +177,9 @@ server_start() {
             .header_buf_n = 4,
             .modules_host = hosts,
             .modules_n = 3,
-            .ssl = false,
-            .ssl_ctx = SSL_CTX_new(SSLv23_server_method())
+            .ssl = (ssl != null),
+            .ssl_ctx = ssl
     };
-#ifdef SSL_OP_SSLREF2_REUSE_CERT_TYPE_BUG
-    SSL_CTX_set_options(conf.ssl_ctx, SSL_OP_SSLREF2_REUSE_CERT_TYPE_BUG);
-#endif
-
-#ifdef SSL_OP_MICROSOFT_BIG_SSLV3_BUFFER
-    SSL_CTX_set_options(conf.ssl_ctx, SSL_OP_MICROSOFT_BIG_SSLV3_BUFFER);
-#endif
-
-#ifdef SSL_OP_MSIE_SSLV2_RSA_PADDING
-    /* this option allow a potential SSL 2.0 rollback (CAN-2005-2969) */
-    SSL_CTX_set_options(conf.ssl_ctx, SSL_OP_MSIE_SSLV2_RSA_PADDING);
-#endif
-
-#ifdef SSL_OP_SSLEAY_080_CLIENT_DH_BUG
-    SSL_CTX_set_options(conf.ssl_ctx, SSL_OP_SSLEAY_080_CLIENT_DH_BUG);
-#endif
-
-#ifdef SSL_OP_TLS_D5_BUG
-    SSL_CTX_set_options(conf.ssl_ctx, SSL_OP_TLS_D5_BUG);
-#endif
-
-#ifdef SSL_OP_TLS_BLOCK_PADDING_BUG
-    SSL_CTX_set_options(conf.ssl_ctx, SSL_OP_TLS_BLOCK_PADDING_BUG);
-#endif
-
-#ifdef SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS
-    SSL_CTX_set_options(conf.ssl_ctx, SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS);
-#endif
-
-    SSL_CTX_set_options(conf.ssl_ctx, SSL_OP_SINGLE_DH_USE);
-
-#if OPENSSL_VERSION_NUMBER >= 0x009080dfL
-    /* only in 0.9.8m+ */
-    SSL_CTX_clear_options(conf.ssl_ctx, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1);
-#endif
-
-
-#ifdef SSL_CTX_set_min_proto_version
-    SSL_CTX_set_min_proto_version(conf.ssl_ctx, 0);
-    SSL_CTX_set_max_proto_version(conf.ssl_ctx, TLS1_2_VERSION);
-#endif
-
-#ifdef TLS1_3_VERSION
-    SSL_CTX_set_min_proto_version(conf.ssl_ctx, 0);
-    SSL_CTX_set_max_proto_version(conf.ssl_ctx, TLS1_3_VERSION);
-#endif
-
-#ifdef SSL_OP_NO_COMPRESSION
-    SSL_CTX_set_options(conf.ssl_ctx, SSL_OP_NO_COMPRESSION);
-#endif
-
-#ifdef SSL_OP_NO_ANTI_REPLAY
-    SSL_CTX_set_options(conf.ssl_ctx, SSL_OP_NO_ANTI_REPLAY);
-#endif
-
-#ifdef SSL_OP_NO_CLIENT_RENEGOTIATION
-    SSL_CTX_set_options(conf.ssl_ctx, SSL_OP_NO_CLIENT_RENEGOTIATION);
-#endif
-
-#ifdef SSL_MODE_RELEASE_BUFFERS
-    SSL_CTX_set_mode(conf.ssl_ctx, SSL_MODE_RELEASE_BUFFERS);
-#endif
-
-#ifdef SSL_MODE_NO_AUTO_CHAIN
-    SSL_CTX_set_mode(conf.ssl_ctx, SSL_MODE_NO_AUTO_CHAIN);
-#endif
-
-    SSL_CTX_use_certificate_file(conf.ssl_ctx, "../../../conf/localhost.crt", SSL_FILETYPE_PEM);
-    SSL_CTX_use_PrivateKey_file(conf.ssl_ctx, "../../../conf/localhost.key", SSL_FILETYPE_PEM);
 
     server = sky_http_server_create(pool, &conf);
     sky_http_server_bind(server, loop);
@@ -400,4 +322,93 @@ static sky_bool_t websocket_open(sky_websocket_session_t *session) {
 static sky_bool_t websocket_message(sky_websocket_message_t *message) {
     sky_log_info("websocket message: fd->%d->%s", message->session->event->fd, message->data.data);
     return true;
+}
+
+static void *create_ssl() {
+    void *ssl;
+
+#if OPENSSL_VERSION_NUMBER >= 0x10100003L
+    OPENSSL_init_ssl(OPENSSL_INIT_LOAD_CONFIG, NULL);
+    ERR_clear_error();
+#else
+    OPENSSL_config(NULL);
+
+    SSL_library_init();
+    SSL_load_error_strings();
+
+    OpenSSL_add_all_algorithms();
+#endif
+    ssl = SSL_CTX_new(SSLv23_server_method());
+
+#ifdef SSL_OP_SSLREF2_REUSE_CERT_TYPE_BUG
+    SSL_CTX_set_options(ssl, SSL_OP_SSLREF2_REUSE_CERT_TYPE_BUG);
+#endif
+
+#ifdef SSL_OP_MICROSOFT_BIG_SSLV3_BUFFER
+    SSL_CTX_set_options(ssl, SSL_OP_MICROSOFT_BIG_SSLV3_BUFFER);
+#endif
+
+#ifdef SSL_OP_MSIE_SSLV2_RSA_PADDING
+    /* this option allow a potential SSL 2.0 rollback (CAN-2005-2969) */
+    SSL_CTX_set_options(ssl, SSL_OP_MSIE_SSLV2_RSA_PADDING);
+#endif
+
+#ifdef SSL_OP_SSLEAY_080_CLIENT_DH_BUG
+    SSL_CTX_set_options(ssl, SSL_OP_SSLEAY_080_CLIENT_DH_BUG);
+#endif
+
+#ifdef SSL_OP_TLS_D5_BUG
+    SSL_CTX_set_options(ssl, SSL_OP_TLS_D5_BUG);
+#endif
+
+#ifdef SSL_OP_TLS_BLOCK_PADDING_BUG
+    SSL_CTX_set_options(ssl, SSL_OP_TLS_BLOCK_PADDING_BUG);
+#endif
+
+#ifdef SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS
+    SSL_CTX_set_options(ssl, SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS);
+#endif
+
+    SSL_CTX_set_options(ssl, SSL_OP_SINGLE_DH_USE);
+
+#if OPENSSL_VERSION_NUMBER >= 0x009080dfL
+    /* only in 0.9.8m+ */
+    SSL_CTX_clear_options(ssl, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1);
+#endif
+
+
+#ifdef SSL_CTX_set_min_proto_version
+    SSL_CTX_set_min_proto_version(ssl, 0);
+    SSL_CTX_set_max_proto_version(ssl, TLS1_2_VERSION);
+#endif
+
+#ifdef TLS1_3_VERSION
+    SSL_CTX_set_min_proto_version(ssl, 0);
+    SSL_CTX_set_max_proto_version(ssl, TLS1_3_VERSION);
+#endif
+
+#ifdef SSL_OP_NO_COMPRESSION
+    SSL_CTX_set_options(ssl, SSL_OP_NO_COMPRESSION);
+#endif
+
+#ifdef SSL_OP_NO_ANTI_REPLAY
+    SSL_CTX_set_options(ssl, SSL_OP_NO_ANTI_REPLAY);
+#endif
+
+#ifdef SSL_OP_NO_CLIENT_RENEGOTIATION
+    SSL_CTX_set_options(ssl, SSL_OP_NO_CLIENT_RENEGOTIATION);
+#endif
+
+#ifdef SSL_MODE_RELEASE_BUFFERS
+    SSL_CTX_set_mode(ssl, SSL_MODE_RELEASE_BUFFERS);
+#endif
+
+#ifdef SSL_MODE_NO_AUTO_CHAIN
+    SSL_CTX_set_mode(ssl, SSL_MODE_NO_AUTO_CHAIN);
+#endif
+
+    SSL_CTX_use_certificate_file(ssl, "../../../conf/localhost.crt", SSL_FILETYPE_PEM);
+    SSL_CTX_use_PrivateKey_file(ssl, "../../../conf/localhost.key", SSL_FILETYPE_PEM);
+
+    return ssl;
 }
