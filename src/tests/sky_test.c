@@ -168,9 +168,17 @@ server_start() {
                     .modules_n = (sky_uint16_t) modules.nelts
             }
     };
-
+#if OPENSSL_VERSION_NUMBER >= 0x10100003L
     OPENSSL_init_ssl(OPENSSL_INIT_LOAD_CONFIG, NULL);
     ERR_clear_error();
+#else
+    OPENSSL_config(NULL);
+
+    SSL_library_init();
+    SSL_load_error_strings();
+
+    OpenSSL_add_all_algorithms();
+#endif
     sky_http_conf_t conf = {
             .host = sky_string("::"),
             .port = sky_string("8080"),
@@ -214,7 +222,7 @@ server_start() {
 
 #if OPENSSL_VERSION_NUMBER >= 0x009080dfL
     /* only in 0.9.8m+ */
-    SSL_CTX_clear_options(conf.ssl_ctx,SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1);
+    SSL_CTX_clear_options(conf.ssl_ctx, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1);
 #endif
 
 
