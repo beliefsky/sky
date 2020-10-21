@@ -53,15 +53,12 @@ struct sky_coro_s {
     sky_coro_switcher_t *switcher;
     sky_coro_context_t context;
     sky_int32_t yield_value;
-
+//===================================
+    sky_uint32_t ptr_size;
     sky_defer_t defers;
     sky_defer_t free_defers;
-
-    sky_uchar_t *ptr;
-    sky_uint32_t ptr_size;
-
     mem_block_t blocks;
-
+    sky_uchar_t *ptr;
     sky_uchar_t *stack;
 };
 
