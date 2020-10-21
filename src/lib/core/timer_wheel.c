@@ -168,7 +168,7 @@ sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_uint64_t now) {
         }
     }
 
-    if (cascade_all(ctx, wheel != 0 ? wheel : 1)) {
+    if (cascade_all(ctx, wheel ?: 1)) {
         wheel = 0;
         goto redo;
     }
