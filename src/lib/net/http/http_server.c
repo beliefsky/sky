@@ -111,14 +111,14 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
     // ====================================================================================
     sky_array_init(&arrays, server->tmp_pool, conf->modules_n, sizeof(sky_hash_key_t));
     host = conf->modules_host;
-    for (sky_uint16_t i = 0; i != conf->modules_n; ++i) {
+    for (sky_uint16_t i = 0; i < conf->modules_n; ++i) {
         key = sky_array_push(&arrays);
         key->key = host->host;
         key->key_hash = sky_hash_key(key->key.data, key->key.len);
         key->value = trie = sky_trie_create(pool);
 
         module = host->modules;
-        for (sky_uint16_t j = 0; j != host->modules_n; ++j) {
+        for (sky_uint16_t j = 0; j < host->modules_n; ++j) {
             sky_trie_put(trie, &module->prefix, (sky_uintptr_t) module);
             ++module;
         }
