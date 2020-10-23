@@ -10,6 +10,7 @@
 #include "../../core/number.h"
 #include "../../core/trie.h"
 #include "../../core/log.h"
+#include "../inet.h"
 
 #include <openssl/ssl.h>
 #include <errno.h>
@@ -264,6 +265,91 @@ https_connection_handle_run(sky_http_connection_t *conn) {
     conn->ev.run = (sky_event_run_pt) https_connection_run;
 
     return sky_coro_resume(conn->coro) == SKY_CORO_MAY_RESUME;
+
+//    sky_uchar_t *buff = sky_coro_malloc(conn->coro, 2048);
+//
+//    ssize_t len = read(conn->ev.fd, buff, 2048);
+//
+//    for (ssize_t i = 0; i < len; ++i) {
+//        printf("%c\t", buff[i]);
+//    }
+//    printf("\n");
+//
+//    for (ssize_t i = 0; i < len; ++i) {
+//        printf("%d\t", buff[i]);
+//    }
+//    printf("\n");
+//
+//    sky_log_info("======================== %ld", len);
+//
+//    // https://www.cnblogs.com/20179204gege/p/7858070.html
+//    sky_log_info("content-type: %d", *buff++);
+//    sky_log_info("version: %#x", sky_ntohs(*((sky_uint16_t *) buff)));
+//    buff += 2;
+//    sky_log_info("length: %d", sky_ntohs(*((sky_uint16_t *) buff)));
+//    buff += 2;
+//    // bufSize = length + 5
+//
+//    //===========================
+//    sky_log_info("\thandshake-type: %d", *buff++);
+//    ++buff;
+//    sky_log_info("\tlength: %d", sky_ntohs(*((sky_uint16_t *) buff))); // next buff length
+//    buff += 2;
+//    sky_log_info("\t\tversion: %#x", sky_ntohs(*((sky_uint16_t *) buff)));
+//    buff += 2;
+//    sky_log_info("\t\trandom: byte<%d>", 32);
+//    buff += 32;
+//
+//    sky_uint32_t tmp_len = *buff++;
+//    sky_log_info("\t\tsession-id-length: %u", tmp_len);
+//    sky_log_info("\t\tsession-id: byte<%u>", tmp_len);
+//    buff += tmp_len;
+//
+//    tmp_len = sky_ntohs(*((sky_uint16_t *) buff));
+//    buff += 2;
+//
+//    sky_log_info("\t\tcipher-suites: %#x", tmp_len);
+//    for (tmp_len >>= 1; tmp_len ; --tmp_len) {
+//        sky_log_info("\t\t\ttype: %#x", sky_ntohs(*((sky_uint16_t *) buff)));
+//        buff += 2;
+//    }
+//    tmp_len = *buff++;
+//    sky_log_info("\t\tcompression-methods-length: %u", tmp_len);
+//    for (; tmp_len ; --tmp_len) {
+//        sky_log_info("\t\t\tmethod: %d", *buff++);
+//    }
+//
+//    tmp_len = sky_ntohs(*((sky_uint16_t *) buff));
+//    buff += 2;
+//    sky_log_info("\t\textensions-length: %u", tmp_len);
+//
+//    sky_uint32_t type;
+//    sky_uint32_t tmp;
+//    while (tmp_len) {
+//        type = sky_ntohs(*((sky_uint16_t *) buff));
+//        buff += 2;
+//        sky_log_info("\t\t\ttype: %d", type);
+//        tmp = sky_ntohs(*((sky_uint16_t *) buff));
+//        buff += 2;
+//        sky_log_info("\t\t\tlength: %d", tmp);
+//
+//
+//        switch (type) {
+//            case 0:
+//                sky_log_info("\t\t\tdata[name]: %s", buff + 5);
+//                break;
+//            default:
+//                sky_log_info("\t\t\tdata[other]: %s", buff);
+//                break;
+//        }
+//
+//
+//        buff += tmp;
+//        tmp_len -= tmp + 4;
+//    }
+//
+//    return false;
+
 }
 
 static sky_bool_t
