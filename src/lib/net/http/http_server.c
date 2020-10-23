@@ -162,7 +162,7 @@ sky_http_status_find(sky_http_server_t *server, sky_uint16_t status) {
     right = (sky_int32_t) server->status.nelts - 1;
 
     while (left <= right) {
-        mid = (left + right) >> 1;
+        mid = sky_two_avg(left, right);
         tmp = (sky_uint16_t) arrays[mid].status;
         if (tmp == status) {
             return &arrays[mid].msg;
