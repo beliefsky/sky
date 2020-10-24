@@ -44,11 +44,7 @@ static sky_bool_t http_process_content_length(sky_http_request_t *r, sky_table_e
 
 static sky_uint32_t http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size);
 
-static sky_uint32_t https_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size);
-
 static void http_write(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size);
-
-static void https_write(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size);
 
 
 sky_http_server_t *
@@ -84,8 +80,8 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
     server->ssl = conf->ssl;
     if (conf->ssl) {
         server->ssl_ctx = conf->ssl_ctx;
-        server->http_read = https_read;
-        server->http_write = https_write;
+        server->http_read = http_read;
+        server->http_write = http_write;
     } else {
         server->http_read = http_read;
         server->http_write = http_write;
