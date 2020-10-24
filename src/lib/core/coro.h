@@ -27,7 +27,7 @@ typedef ucontext_t sky_coro_context_t;
 typedef struct sky_coro_s sky_coro_t;
 typedef struct sky_defer_s sky_defer_t;
 
-typedef sky_int8_t (*sky_coro_func_t)(sky_coro_t *coro, void *data);
+typedef sky_int32_t (*sky_coro_func_t)(sky_coro_t *coro, void *data);
 
 typedef void (*sky_defer_func_t)(void *data);
 
