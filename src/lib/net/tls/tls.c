@@ -10,6 +10,26 @@
 #include "../../core/string.h"
 #include "../../core/memory.h"
 
+
+#define CONTENT_TYPE_CHANGE_CIPHER_SPEC         20
+#define CONTENT_TYPE_ALERT                      21
+#define CONTENT_TYPE_HANDSHAKE                  22
+#define CONTENT_TYPE_APPDATA                    23
+
+#define EXTENSION_TYPE_SERVER_NAME              0
+#define EXTENSION_TYPE_STATUS_REQUEST           5
+#define EXTENSION_TYPE_SUPPORTED_GROUPS         10
+#define EXTENSION_TYPE_SIGNATURE_ALGORITHMS     13
+#define EXTENSION_TYPE_ALPN                     16
+#define EXTENSION_TYPE_COMPRESS_CERTIFICATE     27
+#define EXTENSION_TYPE_PRE_SHARED_KET           41
+#define EXTENSION_TYPE_EARLY_DATA               42
+#define EXTENSION_TYPE_SUPPORTED_VERSIONS       43
+#define EXTENSION_TYPE_COOKIE                   44
+#define EXTENSION_TYPE_PSK_KEY_EXCHANGE_MODES   45
+#define EXTENSION_TYPE_KEY_SHARE                51
+#define EXTENSION_TYPE_ENCRYPTED_SERVER_NAME    0xFFCE
+
 struct sky_ssl_ctx_s {
 
 };
@@ -153,7 +173,7 @@ write_handshake(sky_ssl_t *ssl) {
     sky_uint32_t size, total;
     sky_uchar_t *buff, *post;
 
-    size = (sky_uchar_t)ssl->session_id.len + 42;
+    size = (sky_uchar_t) ssl->session_id.len + 42;
     total = size + 5;
 
     buff = post = sky_coro_malloc(ssl->coro, total);
