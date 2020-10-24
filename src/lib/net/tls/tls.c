@@ -24,9 +24,9 @@ struct sky_ssl_s {
 };
 
 
-static void client_hello(sky_ssl_t *ssl);
+static void read_handshake(sky_ssl_t *ssl);
 
-static void server_hello(sky_ssl_t *ssl);
+static void write_handshake(sky_ssl_t *ssl);
 
 static void tls_read_wait(sky_ssl_t *ssl, sky_uchar_t *data, sky_uint32_t size);
 
@@ -47,8 +47,8 @@ sky_ssl_accept(sky_ssl_ctx_t *ctx, sky_event_t *ev, sky_coro_t *coro, void *data
     ssl->ctx = ctx;
     ssl->data = data;
 
-    client_hello(ssl);
-    server_hello(ssl);
+    read_handshake(ssl);
+    write_handshake(ssl);
 
 
     return ssl;
@@ -56,7 +56,7 @@ sky_ssl_accept(sky_ssl_ctx_t *ctx, sky_event_t *ev, sky_coro_t *coro, void *data
 
 
 static void
-client_hello(sky_ssl_t *ssl) {
+read_handshake(sky_ssl_t *ssl) {
     sky_uchar_t *buff, flag[5];
     sky_uint16_t size;
 
@@ -145,11 +145,15 @@ client_hello(sky_ssl_t *ssl) {
 
 
 static void
-server_hello(sky_ssl_t *ssl) {
+write_handshake(sky_ssl_t *ssl) {
+    // server hello
+    //
+
+
     sky_uint32_t size, total;
     sky_uchar_t *buff, *post;
 
-    size = (sky_uchar_t)ssl->session_id.len + 40;
+    size = (sky_uchar_t)ssl->session_id.len + 42;
     total = size + 5;
 
     buff = post = sky_coro_malloc(ssl->coro, total);
@@ -170,12 +174,18 @@ server_hello(sky_ssl_t *ssl) {
     //...
     buff += 32;
 
-    *(buff++) = (sky_uchar_t) ssl->session_id.len;
-    sky_memcpy(buff, ssl->session_id.data, ssl->session_id.len);
-     buff += ssl->session_id.len;
-
+    if (ssl->session_id.len) {
+        *(buff++) = (sky_uchar_t) ssl->session_id.len;
+        sky_memcpy(buff, ssl->session_id.data, ssl->session_id.len);
+        buff += ssl->session_id.len;
+    } else {
+        *(buff++) = 32;
+        buff += 32;
+    }
+    *(sky_uint16_t *) buff = sky_htons(0xc030); // cipher suite
+    buff += 2;
     *(buff++) = 0; // method
-    *(sky_uint16_t *) buff = sky_htons(0xc014); // length
+    *(sky_uint16_t *) buff = sky_htons(0); // extensions length
     buff += 2;
 
     tls_write_wait(ssl, post, total);
