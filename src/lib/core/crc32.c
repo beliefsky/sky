@@ -3,6 +3,7 @@
 //
 #include "crc32.h"
 
+
 static sky_uint32_t
 s_crc_generic_sb1(const sky_uchar_t *input, sky_size_t length, sky_uint32_t crc, const sky_uint32_t *table_ptr);
 
@@ -91,17 +92,19 @@ sky_uint32_t sky_crc32c_update(sky_uint32_t crc, const sky_uchar_t *p, sky_size_
     const sky_uint_t *temp = (sky_uint_t *) p;
 
 #if defined(__x86_64__)
-    sky_uint8_t alignment_offset = (sizeof(sky_int_t) - ((sky_int_t) temp & 7)) & 7;
+    sky_uint8_t alignment_offset = (sizeof(sky_uint_t) - ((sky_uint_t) temp & 7)) & 7;
 #else
-    sky_uint8_t alignment_offset = (sizeof(sky_int_t) - ((sky_int_t) temp & 3)) & 3;
+    sky_uint8_t alignment_offset = (sizeof(sky_uint_t) - ((sky_uint_t) temp & 3)) & 3;
 #endif
+    if (alignment_offset != 0 && len) {
 
-    while (alignment_offset != 0 && len) {
-        p = (sky_uchar_t *) temp;
-        crc = _mm_crc32_u8(crc, *p++);
+        do {
+            crc = _mm_crc32_u8(crc, *p++);
+            --alignment_offset;
+            --len;
+        } while (alignment_offset != 0 && len);
+
         temp = (const sky_uint_t *) p;
-        --alignment_offset;
-        --len;
     }
 
 #if defined(__x86_64__)
