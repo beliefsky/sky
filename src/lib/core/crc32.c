@@ -646,7 +646,7 @@ static const sky_uint32_t CRC32_TABLE[16][256] = {
         }};
 
 /** Castagnoli CRC32c (iSCSI) lookup table for slice-by-4/8/16 */
-const uint32_t CRC32C_TABLE[16][256] = {
+static const sky_uint32_t CRC32C_TABLE[16][256] = {
         {
                 0x00000000, 0xF26B8303, 0xE13B70F7, 0x1350F3F4, 0xC79A971F, 0x35F1141C, 0x26A1E7E8, 0xD4CA64EB, /* [0][0x08]*/
                 0x8AD958CF, 0x78B2DBCC, 0x6BE22838, 0x9989AB3B, 0x4D43CFD0, 0xBF284CD3, 0xAC78BF27, 0x5E133C24, /* [0][0x10]*/
