@@ -1,8 +1,6 @@
 //
 // Created by weijing on 2020/8/30.
 //
-
-#include <smmintrin.h>
 #include "crc32.h"
 
 static sky_uint32_t
@@ -53,6 +51,10 @@ static sky_uint32_t s_crc32c_sb8(const sky_uchar_t *input, sky_size_t length, sk
 
 /* Computes the Castagnoli CRC32c (iSCSI) using slice-by-16. */
 static sky_uint32_t s_crc32c_sb16(const sky_uchar_t *input, sky_size_t length, sky_uint32_t previousCrc32);
+#else
+
+#include <smmintrin.h>
+
 #endif
 
 
