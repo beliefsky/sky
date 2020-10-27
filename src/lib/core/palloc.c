@@ -21,8 +21,7 @@ sky_create_pool(sky_size_t size) {
 
     size = sky_align(size, 4096U);
 
-    p = mmap(null, size, PROT_READ | PROT_WRITE,
-              MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    p = mmap(null, size, PROT_READ | PROT_WRITE,MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     if (sky_unlikely(!p)) {
         return null;
     }
@@ -132,8 +131,7 @@ sky_palloc_block(sky_pool_t *pool, sky_size_t size) {
 
     psize = (sky_size_t) (pool->d.end - (sky_uchar_t *) pool);
 
-    m = mmap(null, psize, PROT_READ | PROT_WRITE,
-              MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    m = mmap(null, psize, PROT_READ | PROT_WRITE,MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
 
     if (sky_unlikely(!m)) {
         return null;
