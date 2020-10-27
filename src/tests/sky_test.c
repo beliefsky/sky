@@ -116,6 +116,13 @@ server_start(void *ssl) {
     sky_cpu_info();
 
     pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
+
+    if(sky_unlikely(!pool)) {
+        sky_log_info("你妹 mmap不成功");
+
+        return;
+    }
+
     loop = sky_event_loop_create(pool);
 
     sky_pg_sql_conf_t pg_conf = {
