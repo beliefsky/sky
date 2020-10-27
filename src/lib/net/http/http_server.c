@@ -235,7 +235,7 @@ http_connection_close(sky_http_connection_t *conn) {
 
 static sky_int32_t
 https_connection_process(sky_coro_t *coro, sky_http_connection_t *conn) {
-    sky_ssl_accept(null, &conn->ev, coro, conn);
+    sky_tls_accept(null, &conn->ev, coro, conn);
 
     return SKY_CORO_FINISHED;
 
