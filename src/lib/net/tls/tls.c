@@ -30,38 +30,38 @@
 #define EXTENSION_TYPE_KEY_SHARE                51
 #define EXTENSION_TYPE_ENCRYPTED_SERVER_NAME    0xFFCE
 
-struct sky_ssl_ctx_s {
+struct sky_tls_ctx_s {
 
 };
 
-struct sky_ssl_s {
+struct sky_tls_s {
     sky_event_t *ev;
     sky_coro_t *coro;
-    sky_ssl_ctx_t *ctx;
+    sky_tls_ctx_t *ctx;
     void *data;
 
     sky_str_t session_id;
 };
 
 
-static void read_handshake(sky_ssl_t *ssl);
+static void read_handshake(sky_tls_t *ssl);
 
-static void write_handshake(sky_ssl_t *ssl);
+static void write_handshake(sky_tls_t *ssl);
 
-static void tls_read_wait(sky_ssl_t *ssl, sky_uchar_t *data, sky_uint32_t size);
+static void tls_read_wait(sky_tls_t *ssl, sky_uchar_t *data, sky_uint32_t size);
 
-static void tls_write_wait(sky_ssl_t *ssl, sky_uchar_t *data, sky_uint32_t size);
+static void tls_write_wait(sky_tls_t *ssl, sky_uchar_t *data, sky_uint32_t size);
 
-sky_ssl_ctx_t *
-sky_ssl_ctx_init() {
+sky_tls_ctx_t *
+sky_tls_ctx_init() {
 }
 
 
-sky_ssl_t *
-sky_ssl_accept(sky_ssl_ctx_t *ctx, sky_event_t *ev, sky_coro_t *coro, void *data) {
-    sky_ssl_t *ssl;
+sky_tls_t *
+sky_tls_accept(sky_tls_ctx_t *ctx, sky_event_t *ev, sky_coro_t *coro, void *data) {
+    sky_tls_t *ssl;
 
-    ssl = sky_coro_malloc(coro, sizeof(sky_ssl_t));
+    ssl = sky_coro_malloc(coro, sizeof(sky_tls_t));
     ssl->ev = ev;
     ssl->coro = coro;
     ssl->ctx = ctx;
@@ -76,13 +76,13 @@ sky_ssl_accept(sky_ssl_ctx_t *ctx, sky_event_t *ev, sky_coro_t *coro, void *data
 
 
 static void
-read_handshake(sky_ssl_t *ssl) {
+read_handshake(sky_tls_t *ssl) {
     sky_uchar_t *buff, flag[5];
     sky_uint16_t size;
 
     tls_read_wait(ssl, flag, 5);
 
-    if (sky_unlikely(flag[0] != 22)) {
+    if (sky_unlikely(flag[0] != CONTENT_TYPE_HANDSHAKE)) {
         sky_coro_yield(ssl->coro, SKY_CORO_ABORT);
         sky_coro_exit();
     }
@@ -165,7 +165,7 @@ read_handshake(sky_ssl_t *ssl) {
 
 
 static void
-write_handshake(sky_ssl_t *ssl) {
+write_handshake(sky_tls_t *ssl) {
     // server hello
     //
 
@@ -212,7 +212,7 @@ write_handshake(sky_ssl_t *ssl) {
 }
 
 static void
-tls_read_wait(sky_ssl_t *ssl, sky_uchar_t *data, sky_uint32_t size) {
+tls_read_wait(sky_tls_t *ssl, sky_uchar_t *data, sky_uint32_t size) {
     ssize_t n;
     sky_int32_t fd;
 
@@ -248,7 +248,7 @@ tls_read_wait(sky_ssl_t *ssl, sky_uchar_t *data, sky_uint32_t size) {
 }
 
 static void
-tls_write_wait(sky_ssl_t *ssl, sky_uchar_t *data, sky_uint32_t size) {
+tls_write_wait(sky_tls_t *ssl, sky_uchar_t *data, sky_uint32_t size) {
     ssize_t n;
     sky_int32_t fd;
 
