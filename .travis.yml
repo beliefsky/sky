@@ -1,10 +1,10 @@
 language: c
 arch: amd64
+dist: focal
 matrix:
   fast_finish: true
   include:
     - os: linux
-      dist: focal
       compiler: gcc
       addons:
         apt:
