@@ -56,7 +56,7 @@ sky_coro_t *sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func,
  * @return 协程
  */
 sky_coro_t *
-sky_coro_create2(sky_coro_switcher_t *switcher, sky_coro_func_t func, void **data_ptr, sky_size_t size);
+sky_coro_create2(sky_coro_switcher_t *switcher, sky_coro_func_t func, void **data_ptr, sky_uint32_t size);
 
 /**
  * 重置协程
@@ -96,7 +96,7 @@ void sky_coro_destroy(sky_coro_t *coro);
  * @param size 分配大小
  * @return 回收标记
  */
-void *sky_coro_malloc(sky_coro_t *coro, sky_size_t size);
+void *sky_coro_malloc(sky_coro_t *coro, sky_uint32_t size);
 
 /**
  * 添加回收器

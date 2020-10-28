@@ -205,7 +205,7 @@ sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func, void *data)
 }
 
 sky_coro_t *
-sky_coro_create2(sky_coro_switcher_t *switcher, sky_coro_func_t func, void **data_ptr, sky_size_t ptr_size) {
+sky_coro_create2(sky_coro_switcher_t *switcher, sky_coro_func_t func, void **data_ptr, sky_uint32_t ptr_size) {
     sky_coro_t *coro;
 
     coro = mmap(null, CORE_BLOCK_SIZE, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
@@ -362,7 +362,7 @@ sky_coro_destroy(sky_coro_t *coro) {
 }
 
 sky_inline void *
-sky_coro_malloc(sky_coro_t *coro, sky_size_t size) {
+sky_coro_malloc(sky_coro_t *coro, sky_uint32_t size) {
     sky_uchar_t *ptr;
     if (sky_unlikely(coro->ptr_size < size)) {
         if (sky_unlikely(size > 2048)) {
