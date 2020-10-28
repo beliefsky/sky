@@ -44,6 +44,14 @@ static sky_bool_t redis_write(sky_redis_cmd_t *rc, sky_uchar_t *data, sky_uint32
 
 static sky_uint32_t redis_read(sky_redis_cmd_t *rc, sky_uchar_t *data, sky_uint32_t size);
 
+#ifndef HAVE_ACCEPT4
+
+#include <fcntl.h>
+
+static sky_bool_t set_socket_nonblock(sky_int32_t fd);
+
+#endif
+
 
 sky_redis_connection_pool_t *
 sky_redis_pool_create(sky_pool_t *pool, sky_redis_conf_t *conf) {
@@ -591,7 +599,12 @@ set_address(sky_redis_connection_pool_t *redis_pool, sky_redis_conf_t *conf) {
         redis_pool->addr = (struct sockaddr *) addr;
         redis_pool->addr_len = sizeof(struct sockaddr_un);
         redis_pool->family = AF_UNIX;
+
+#ifdef HAVE_ACCEPT4
         redis_pool->sock_type = SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC;
+#else
+        redis_pool->sock_type = SOCK_STREAM;
+#endif
         redis_pool->protocol = 0;
 
         addr->sun_family = AF_UNIX;
@@ -613,7 +626,11 @@ set_address(sky_redis_connection_pool_t *redis_pool, sky_redis_conf_t *conf) {
         return false;
     }
     redis_pool->family = addrs->ai_family;
+#ifdef HAVE_ACCEPT4
     redis_pool->sock_type = addrs->ai_socktype | SOCK_NONBLOCK | SOCK_CLOEXEC;
+#else
+    redis_pool->sock_type = addrs->ai_socktype;
+#endif
     redis_pool->protocol = addrs->ai_protocol;
     redis_pool->addr = sky_palloc(redis_pool->mem_pool, addrs->ai_addrlen);
     redis_pool->addr_len = addrs->ai_addrlen;
@@ -635,6 +652,12 @@ redis_connection(sky_redis_cmd_t *rc) {
     if (sky_unlikely(fd < 0)) {
         return false;
     }
+#ifndef HAVE_ACCEPT4
+    if (sky_unlikely(!set_socket_nonblock(fd))) {
+        close(fd);
+        return false;
+    }
+#endif
     sky_event_init(rc->ev->loop, ev, fd, redis_run, redis_close);
 
     if (connect(fd, rc->redis_pool->addr, rc->redis_pool->addr_len) < 0) {
@@ -808,3 +831,34 @@ redis_read(sky_redis_cmd_t *rc, sky_uchar_t *data, sky_uint32_t size) {
         }
     }
 }
+
+#ifndef HAVE_ACCEPT4
+
+static sky_inline sky_bool_t
+set_socket_nonblock(sky_int32_t fd) {
+    sky_int32_t flags;
+
+    flags = fcntl(fd, F_GETFD);
+
+    if (sky_unlikely(flags < 0)) {
+        return false;
+    }
+
+    if (sky_unlikely(fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0)) {
+        return false;
+    }
+
+    flags = fcntl(fd, F_GETFD);
+
+    if (sky_unlikely(flags < 0)) {
+        return false;
+    }
+
+    if (sky_unlikely(fcntl(fd, F_SETFD, flags | O_NONBLOCK) < 0)) {
+        return false;
+    }
+
+    return true;
+}
+
+#endif

@@ -1,12 +1,16 @@
 language: c
 matrix:
   include:
-    - compiler: gcc
-      os: linux
+    - os: linux
+      compiler: gcc
       addons:
         apt:
           sources:
             - ubuntu-toolchain-r-test
+    - os: osx
+      osx_image: xcode12.2
+      compiler: gcc
+
 script:
   - mkdir build
   - cd build

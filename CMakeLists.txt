@@ -43,10 +43,8 @@ endif ()
 set(ADDITIONAL_LIBRARIES #[[${OPENSSL_LIBRARIES}]] #[[${ZLIB_LIBRARIES}]])
 
 
-set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
-
-check_function_exists(mempcpy HAS_MEMPCPY)
-check_function_exists(accept4 HAS_ACCEPT4)
+check_function_exists(mempcpy HAVE_MEMPCPY)
+check_function_exists(accept4 HAVE_ACCEPT4)
 
 if (NOT HAS_CLOCK_GETTIME AND ${CMAKE_SYSTEM_NAME} MATCHES "Linux")
     list(APPEND ADDITIONAL_LIBRARIES rt)
@@ -55,8 +53,8 @@ endif ()
 #
 # Ensure compiler is compatible with GNU11 standard
 #
-check_c_compiler_flag(-std=gnu11 HAS_STD_GNU11)
-if (NOT HAS_STD_GNU11)
+check_c_compiler_flag(-std=gnu11 HAVE_STD_GNU11)
+if (NOT HAVE_STD_GNU11)
     message(FATAL_ERROR "Compiler does not support -std=gnu11. Consider using a newer compiler")
 endif ()
 
@@ -85,8 +83,8 @@ else ()
 endif ()
 
 
-enable_c_flag_if_avail(-mtune=native C_FLAGS_REL HAS_MTUNE_NATIVE)
-enable_c_flag_if_avail(-march=native C_FLAGS_REL HAS_MARCH_NATIVE)
+enable_c_flag_if_avail(-mtune=native C_FLAGS_REL HAVE_MTUNE_NATIVE)
+enable_c_flag_if_avail(-march=native C_FLAGS_REL HAVE_MARCH_NATIVE)
 enable_c_flag_if_avail(-fstack-protector-explicit CMAKE_C_FLAGS HAVE_STACK_PROTECTOR_EXPLICIT)
 #
 # Check if immediate binding and read-only global offset table flags
@@ -94,14 +92,14 @@ enable_c_flag_if_avail(-fstack-protector-explicit CMAKE_C_FLAGS HAVE_STACK_PROTE
 #
 if (APPLE)
     enable_c_flag_if_avail(-Wl,-bind_at_load CMAKE_EXE_LINKER_FLAGS
-            HAS_IMMEDIATE_BINDING)
+            HAVE_IMMEDIATE_BINDING)
 else ()
     enable_c_flag_if_avail(-Wl,-z,now CMAKE_EXE_LINKER_FLAGS
-            HAS_IMMEDIATE_BINDING)
+            HAVE_IMMEDIATE_BINDING)
     enable_c_flag_if_avail(-Wl,-z,relro CMAKE_EXE_LINKER_FLAGS
-            HAS_READ_ONLY_GOT)
+            HAVE_READ_ONLY_GOT)
     enable_c_flag_if_avail(-fno-plt CMAKE_C_FLAGS
-            HAS_NO_PLT)
+            HAVE_NO_PLT)
     enable_c_flag_if_avail(-Wl,-z,noexecstack CMAKE_EXE_LINKER_FLAGS
             HAVE_NOEXEC_STACK)
 endif ()
