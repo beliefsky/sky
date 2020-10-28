@@ -27,7 +27,7 @@ typedef ucontext_t sky_coro_context_t;
 typedef struct sky_coro_s sky_coro_t;
 typedef struct sky_defer_s sky_defer_t;
 
-typedef sky_int8_t (*sky_coro_func_t)(sky_coro_t *coro, void *data);
+typedef sky_int32_t (*sky_coro_func_t)(sky_coro_t *coro, void *data);
 
 typedef void (*sky_defer_func_t)(void *data);
 
@@ -56,7 +56,15 @@ sky_coro_t *sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func,
  * @return 协程
  */
 sky_coro_t *
-sky_coro_create2(sky_coro_switcher_t *switcher, sky_coro_func_t func, void **data_ptr, sky_size_t size);
+sky_coro_create2(sky_coro_switcher_t *switcher, sky_coro_func_t func, void **data_ptr, sky_uint32_t size);
+
+/**
+ * 重置协程
+ * @param coro 协程
+ * @param func 异步函数
+ * @param data 异步函数参数
+ */
+void sky_core_reset(sky_coro_t *coro, sky_coro_func_t func, void *data);
 
 /**
  * 执行协程
@@ -81,6 +89,14 @@ sky_int32_t sky_coro_yield(sky_coro_t *coro, sky_int32_t value);
 void sky_coro_destroy(sky_coro_t *coro);
 
 #define sky_coro_exit()   __builtin_unreachable()
+
+/**
+ * 协程分配内存，销毁时回收（适用于小于2k的内存）
+ * @param coro 协程
+ * @param size 分配大小
+ * @return 回收标记
+ */
+void *sky_coro_malloc(sky_coro_t *coro, sky_uint32_t size);
 
 /**
  * 添加回收器

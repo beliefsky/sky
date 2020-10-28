@@ -24,7 +24,7 @@
 #include <sys/wait.h>
 
 
-static void server_start();
+static void server_start(void *ssl);
 
 static void build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module);
 
@@ -39,8 +39,9 @@ static sky_bool_t websocket_message(sky_websocket_message_t *message);
 
 int
 main() {
+    setvbuf(stdout, null, _IOLBF, 0);
+    setvbuf(stderr, null, _IOLBF, 0);
 
-//    test();
 
     sky_int64_t cpu_num;
     sky_uint32_t i;
@@ -69,7 +70,7 @@ main() {
                 }
                 sky_setaffinity(&mask);
 
-                server_start();
+                server_start(null);
             }
                 break;
             default:
@@ -90,7 +91,7 @@ sky_pg_connection_pool_t *ps_pool;
 sky_redis_connection_pool_t *redis_pool;
 
 static void
-server_start() {
+server_start(void *ssl) {
     sky_pool_t *pool;
     sky_event_loop_t *loop;
     sky_http_server_t *server;
@@ -100,6 +101,7 @@ server_start() {
     sky_cpu_info();
 
     pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
+
     loop = sky_event_loop_create(pool);
 
     sky_pg_sql_conf_t pg_conf = {
@@ -162,23 +164,23 @@ server_start() {
                     .modules_n = (sky_uint16_t) modules.nelts
             }
     };
-
     sky_http_conf_t conf = {
-            .host = sky_string("0.0.0.0"),
+            .host = sky_string("::"),
             .port = sky_string("8080"),
             .header_buf_size = 2048,
             .header_buf_n = 4,
             .modules_host = hosts,
-            .modules_n = 3
+            .modules_n = 3,
+            .ssl = (ssl != null),
+            .ssl_ctx = ssl
     };
 
     server = sky_http_server_create(pool, &conf);
     sky_http_server_bind(server, loop);
 
-    sky_str_set(&conf.host, "::");
+    sky_str_set(&conf.host, "0.0.0.0");
     server = sky_http_server_create(pool, &conf);
     sky_http_server_bind(server, loop);
-
 
     sky_event_loop_run(loop);
     sky_event_loop_shutdown(loop);

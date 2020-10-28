@@ -1,41 +1,23 @@
 //
 // Created by weijing on 18-11-9.
 //
-
-#if defined(__linux__)
-
-#include <sys/sendfile.h>
-
-#elif defined(__FreeBSD__) || defined(__APPLE__)
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/uio.h>
-#endif
-
-#include <errno.h>
 #include <unistd.h>
 #include "http_request.h"
 #include "http_parse.h"
 #include "../../core/memory.h"
 #include "../../core/trie.h"
-#include "../../core/log.h"
-#include "../../core/number.h"
-#include "../../core/date.h"
 #include "http_response.h"
 
 static sky_http_request_t *http_header_read(sky_http_connection_t *conn, sky_pool_t *pool);
 
 static sky_http_module_t *find_http_module(sky_http_request_t *r);
 
-static sky_uint32_t http_read(sky_http_connection_t *conn,
-                              sky_uchar_t *data, sky_uint32_t size);
-
 void
 sky_http_request_init(sky_http_server_t *server) {
 
 }
 
-sky_int8_t
+sky_int32_t
 sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
     sky_pool_t *pool;
     sky_defer_t *defer;
@@ -71,31 +53,29 @@ sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
 
         sky_reset_pool(pool);
         defer = sky_defer_add(coro, (sky_defer_func_t) sky_destroy_pool, pool);
-        if (!conn->ev.read) {
-            sky_coro_yield(coro, SKY_CORO_MAY_RESUME);
-        }
+        sky_coro_yield(coro, SKY_CORO_MAY_RESUME);
     }
 }
 
 static sky_http_request_t *
 http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
     sky_http_request_t *r;
+    sky_http_server_t *server;
     sky_buf_t *buf;
     sky_uint32_t n;
-    sky_uint16_t buf_size;
     sky_uint8_t buf_n;
     sky_int8_t i;
 
-    buf_n = conn->server->header_buf_n;
-    buf_size = conn->server->header_buf_size;
+    server = conn->server;
+    buf_n = server->header_buf_n;
 
 
-    buf = sky_buf_create(pool, buf_size);
+    buf = sky_buf_create(pool, server->header_buf_size);
 
     r = sky_pcalloc(pool, sizeof(sky_http_request_t));
 
     for (;;) {
-        n = http_read(conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
+        n = server->http_read(conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
         buf->last += n;
         i = sky_http_request_line_parse(r, buf);
         if (i == 1) {
@@ -124,7 +104,7 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
         }
         if (sky_unlikely(buf->last == buf->end)) {
             if (--buf_n) {
-                buf = sky_buf_create(pool, buf_size);
+                buf = sky_buf_create(pool, server->header_buf_size);
 
                 if (r->req_pos) {
                     n = (sky_uint32_t) (buf->last - r->req_pos);
@@ -135,7 +115,7 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
                 }
             }
         }
-        n = http_read(conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
+        n = server->http_read(conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
         buf->last += n;
     }
     if (r->request_body) {
@@ -151,7 +131,7 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
             if (n >= r->headers_in.content_length_n) {
                 // read body
                 for (;;) {
-                    n = http_read(conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
+                    n = server->http_read(conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
                     buf->last += n;
                     r->request_body->read_size += n;
 
@@ -183,39 +163,5 @@ find_http_module(sky_http_request_t *r) {
         return null;
     }
     return (sky_http_module_t *) sky_trie_find(trie_prefix, &r->uri);
-}
-
-
-static sky_uint32_t
-http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size) {
-    ssize_t n;
-    sky_int32_t fd;
-
-
-    fd = conn->ev.fd;
-    for (;;) {
-        if (sky_unlikely(!conn->ev.read)) {
-            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-            continue;
-        }
-
-        if ((n = read(fd, data, size)) < 1) {
-            conn->ev.read = false;
-            if (sky_unlikely(!n)) {
-                sky_coro_yield(conn->coro, SKY_CORO_ABORT);
-                sky_coro_exit();
-            }
-            switch (errno) {
-                case EINTR:
-                case EAGAIN:
-                    sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-                    continue;
-                default:
-                    sky_coro_yield(conn->coro, SKY_CORO_ABORT);
-                    sky_coro_exit();
-            }
-        }
-        return (sky_uint32_t) n;
-    }
 }
 

@@ -135,7 +135,8 @@ sky_redis_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t param
 
 void
 sky_redis_connection_put(sky_redis_cmd_t *rc) {
-    sky_defer_remove(rc->coro, rc->defer);
+    sky_defer_cancel(rc->coro, rc->defer);
+    redis_connection_defer(rc);
 }
 
 static sky_inline void

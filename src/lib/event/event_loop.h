@@ -42,10 +42,11 @@ struct sky_event_loop_s {
 
 #define sky_event_init(_loop, _ev, _fd, _run, _close)   \
     sky_timer_entry_init(&(_ev)->timer,_close);         \
-    (_ev)->fd = (_fd);                                  \
     (_ev)->loop = (_loop);                              \
     (_ev)->now = (_loop)->now;                          \
     (_ev)->run = (sky_event_run_pt)(_run);              \
+    (_ev)->fd = (_fd);                                  \
+    (_ev)->timeout = 0;                                 \
     (_ev)->reg = false;                                 \
     (_ev)->wait = false;                                \
     (_ev)->read = true;                                 \

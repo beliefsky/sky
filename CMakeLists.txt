@@ -36,38 +36,11 @@ else ()
     message(STATUS "Using built-in context switching routines for ${CMAKE_SYSTEM_PROCESSOR} processors")
 endif ()
 
-option(USE_ALTERNATIVE_MALLOC "Use alternative malloc implementations" "OFF")
-if (USE_ALTERNATIVE_MALLOC)
-    unset(ALTMALLOC_LIBS CACHE)
-    unset(ALTMALLOC_LIBRARY CACHE)
-
-    if (${USE_ALTERNATIVE_MALLOC} STREQUAL "mimalloc")
-        set(ALTMALLOC_LIBS mimalloc)
-    elseif (${USE_ALTERNATIVE_MALLOC} STREQUAL "tcmalloc")
-        set(ALTMALLOC_LIBS tcmalloc_minimal tcmalloc)
-    elseif (${USE_ALTERNATIVE_MALLOC} STREQUAL "jemalloc")
-        set(ALTMALLOC_LIBS jemalloc)
-    else ()
-        set(ALTMALLOC_LIBS "mimalloc tcmalloc_minimal tcmalloc jemalloc")
-    endif()
-
-    find_library(ALTMALLOC_LIBRARY NAMES ${ALTMALLOC_LIBS})
-    if (ALTMALLOC_LIBRARY)
-        message(STATUS "Using alternative malloc (${USE_ALTERNATIVE_MALLOC}): ${ALTMALLOC_LIBRARY}")
-        list(PREPEND ADDITIONAL_LIBRARIES ${ALTMALLOC_LIBRARY})
-    endif ()
-endif ()
-
-
 #
 # Find libraries
 #
-#find_package(Threads REQUIRED)
-#find_package(OpenSSL REQUIRED)
 #find_package(ZLIB REQUIRED)
-#set(PostgreSQL_TYPE_INCLUDE_DIR /usr/include/postgresql)
-#find_package(PostgreSQL REQUIRED)
-set(ADDITIONAL_LIBRARIES #[[${CMAKE_THREAD_LIBS_INIT}]] #[[${OPENSSL_LIBRARIES]] #[[${ZLIB_LIBRARIES}]] #[[${PostgreSQL_LIBRARIES}]])
+set(ADDITIONAL_LIBRARIES #[[${OPENSSL_LIBRARIES}]] #[[${ZLIB_LIBRARIES}]])
 
 
 set(CMAKE_REQUIRED_LIBRARIES ${CMAKE_THREAD_LIBS_INIT})
@@ -185,9 +158,9 @@ add_definitions("-D_FILE_OFFSET_BITS=64")
 add_definitions("-D_TIME_BITS=64")
 
 if (APPLE)
-    set(SKY_COMMON_LIBS m -Wl,-force_load sky_static)
+    set(SKY_COMMON_LIBS -Wl,-force_load sky_static)
 else ()
-    set(SKY_COMMON_LIBS m -Wl,-whole-archive sky_static -Wl,-no-whole-archive)
+    set(SKY_COMMON_LIBS -Wl,-whole-archive sky_static -Wl,-no-whole-archive)
 endif ()
 
 

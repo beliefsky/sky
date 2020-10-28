@@ -153,7 +153,7 @@ sky_event_register(sky_event_t *ev, sky_int32_t timeout) {
     ev->timeout = timeout;
     ev->reg = true;
 
-    event.events = EPOLLIN | EPOLLOUT | EPOLLRDHUP | EPOLLERR | EPOLLET;
+    event.events = EPOLLIN | EPOLLOUT | EPOLLPRI | EPOLLRDHUP | EPOLLERR | EPOLLET;
     event.data.ptr = ev;
     (void) epoll_ctl(ev->loop->fd, EPOLL_CTL_ADD, ev->fd, &event);
 }

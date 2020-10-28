@@ -102,7 +102,6 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
         return;
     }
     r->state = 101;
-    r->conn->ev.timeout = 600;
     header = sky_list_push(&r->headers_out.headers);
     sky_str_set(&header->key, "Upgrade");
     sky_str_set(&header->value, "websocket");
@@ -118,7 +117,6 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
 
     sky_http_response_nobody(r);
 
-
     module_run_next(session);
 
     return;
@@ -132,6 +130,8 @@ module_run_next(sky_websocket_session_t *session) {
     sky_int32_t result;
 
     conn = session->request->conn;
+    conn->ev.timeout = 600;
+
 
     session->read_coro = read_work = sky_coro_create(&switcher, (sky_coro_func_t) read_message, session);
     (void) sky_defer_add(conn->coro, (sky_defer_func_t) sky_coro_destroy, read_work);
@@ -161,7 +161,6 @@ read_message(sky_coro_t *coro, sky_websocket_session_t *session) {
     sky_uint32_t size;
     sky_uint8_t flag;
     sky_uint8_t offset;
-
 
     w_data = session->server;
     pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);

@@ -30,15 +30,18 @@ typedef struct {
     sky_http_module_host_t *modules_host;
     sky_str_t host;
     sky_str_t port;
+    void *ssl_ctx;
     sky_uint32_t body_max_size;
     sky_uint16_t modules_n;
     sky_uint16_t header_buf_size;
     sky_uint8_t header_buf_n;
+    sky_bool_t ssl;
 } sky_http_conf_t;
 
 struct sky_http_server_s {
     sky_pool_t *pool;
     sky_pool_t *tmp_pool;
+    void *ssl_ctx;
     sky_str_t host;
     sky_str_t port;
 
@@ -48,9 +51,14 @@ struct sky_http_server_s {
     sky_hash_t modules_hash;
     sky_array_t status;
 
+    sky_uint32_t (*http_read)(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size);
+
+    void (*http_write)(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size);
+
     sky_uint32_t body_max_size;
     sky_uint16_t header_buf_size;
     sky_uint8_t header_buf_n;
+    sky_bool_t ssl;
 };
 
 struct sky_http_module_s {
@@ -65,6 +73,7 @@ struct sky_http_connection_s {
     sky_event_t ev;
     sky_coro_t *coro;
     sky_http_server_t *server;
+    void *ssl;
 };
 
 sky_http_server_t *sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf);
