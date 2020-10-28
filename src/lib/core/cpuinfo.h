@@ -31,6 +31,8 @@ typedef cpuset_t sky_cpu_set_t;
 
 #elif defined(__APPLE__)
 
+#define CPU_SETSIZE 1024
+
 #include <sys/types.h>
 #include <sys/sysctl.h>
 
