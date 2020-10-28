@@ -601,7 +601,7 @@ set_address(sky_redis_connection_pool_t *redis_pool, sky_redis_conf_t *conf) {
         redis_pool->family = AF_UNIX;
 
 #ifdef HAVE_ACCEPT4
-        redis_pool->sock_type = addrs->ai_socktype | SOCK_NONBLOCK | SOCK_CLOEXEC;
+        redis_pool->sock_type = SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC;
 #else
         redis_pool->sock_type = SOCK_STREAM;
 #endif
