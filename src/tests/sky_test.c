@@ -43,61 +43,46 @@ main() {
     setvbuf(stderr, null, _IOLBF, 0);
 
 
+    sky_int64_t cpu_num;
+    sky_uint32_t i;
 
-    sky_cpu_set_t mask;
-    CPU_ZERO(&mask);
-    CPU_SET(7, &mask);
-    for (sky_uint_t j = 0; j < CPU_SETSIZE; ++j) {
-        if (CPU_ISSET(j, &mask)) {
-            sky_log_info("sky_setaffinity(): using cpu #%lu", j);
-            break;
-        }
+    cpu_num = sysconf(_SC_NPROCESSORS_ONLN);
+    if ((--cpu_num) < 0) {
+        cpu_num = 0;
     }
-    sky_setaffinity(&mask);
 
-    server_start(null);
+    i = (sky_uint32_t) cpu_num;
 
+    for (;;) {
+        pid_t pid = fork();
+        switch (pid) {
+            case -1:
+                return 0;
+            case 0: {
+                sky_cpu_set_t mask;
+                CPU_ZERO(&mask);
+                CPU_SET(i, &mask);
+                for (sky_uint_t j = 0; j < CPU_SETSIZE; ++j) {
+                    if (CPU_ISSET(j, &mask)) {
+                        sky_log_info("sky_setaffinity(): using cpu #%lu", j);
+                        break;
+                    }
+                }
+                sky_setaffinity(&mask);
 
-//    sky_int64_t cpu_num;
-//    sky_uint32_t i;
-//
-//    cpu_num = sysconf(_SC_NPROCESSORS_ONLN);
-//    if ((--cpu_num) < 0) {
-//        cpu_num = 0;
-//    }
-//
-//    i = (sky_uint32_t) cpu_num;
-//
-//    for (;;) {
-//        pid_t pid = fork();
-//        switch (pid) {
-//            case -1:
-//                return 0;
-//            case 0: {
-//                sky_cpu_set_t mask;
-//                CPU_ZERO(&mask);
-//                CPU_SET(i, &mask);
-//                for (sky_uint_t j = 0; j < CPU_SETSIZE; ++j) {
-//                    if (CPU_ISSET(j, &mask)) {
-//                        sky_log_info("sky_setaffinity(): using cpu #%lu", j);
-//                        break;
-//                    }
-//                }
-//                sky_setaffinity(&mask);
-//
-//                server_start(null);
-//            }
-//                break;
-//            default:
-//                if (i--) {
-//                    continue;
-//                }
-//                sky_int32_t status;
-//                wait(&status);
-//                break;
-//        }
-//        break;
-//    }
+                server_start(null);
+            }
+                break;
+            default:
+                if (i--) {
+                    continue;
+                }
+                sky_int32_t status;
+                wait(&status);
+                break;
+        }
+        break;
+    }
 
     return 0;
 }
