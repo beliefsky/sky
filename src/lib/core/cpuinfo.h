@@ -50,7 +50,7 @@ CPU_ISSET(sky_int32_t num, sky_cpu_set_t *cs) {
 }
 
 int
-sky_setaffinity(pid_t pid, size_t cpu_size, sky_cpu_set_t *cpu_set) {
+sky_setaffinity(sky_cpu_set_t *cpu_set) {
     sky_int32_t core_count = 0;
     sky_size_t len = sizeof(sky_int32_t);
     if (sysctlbyname("machdep.cpu.core_count", &core_count, &len, 0, 0)) {
