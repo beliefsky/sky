@@ -28,7 +28,11 @@ typedef cpuset_t sky_cpu_set_t;
 
 #define sky_setaffinity(_c) \
     cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1, sizeof(cpuset_t), _c)
+
 #elif defined(__APPLE__)
+
+#include <sys/types.h>
+#include <sys/sysctl.h>
 
 typedef struct {
   sky_uint32_t  count;
@@ -49,7 +53,7 @@ CPU_ISSET(sky_int32_t num, sky_cpu_set_t *cs) {
     return (cs->count & (1 << num));
 }
 
-int
+static int
 sky_setaffinity(sky_cpu_set_t *cpu_set) {
     sky_int32_t core_count = 0;
     sky_size_t len = sizeof(sky_int32_t);
