@@ -40,17 +40,17 @@ CPU_ZERO(sky_cpu_set_t *cs) {
 }
 
 static inline void
-CPU_SET(int num, cpu_set_t *cs) {
+CPU_SET(sky_int32_t num, sky_cpu_set_t *cs) {
     cs->count |= (1 << num);
 }
 
 static inline int
-CPU_ISSET(int num, cpu_set_t *cs) {
+CPU_ISSET(sky_int32_t num, sky_cpu_set_t *cs) {
     return (cs->count & (1 << num));
 }
 
 int
-sky_setaffinity(pid_t pid, size_t cpu_size, cpu_set_t *cpu_set) {
+sky_setaffinity(pid_t pid, size_t cpu_size, sky_cpu_set_t *cpu_set) {
     sky_int32_t core_count = 0;
     sky_size_t len = sizeof(sky_int32_t);
     if (sysctlbyname("machdep.cpu.core_count", &core_count, &len, 0, 0)) {
