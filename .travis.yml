@@ -1,13 +1,4 @@
 language: c
-addons:
-  coverity_scan:
-    project:
-      name: beliefsky/sly
-      version: 1.0
-      description: sky
-    notification_email: ibeliefsky@gmail.com
-    build_command_prepend: mkdir build && cd build && cmake .. -DCMAKE_BUILD_TYPE=Release
-    build_command: make
 matrix:
   include:
     - os: linux
