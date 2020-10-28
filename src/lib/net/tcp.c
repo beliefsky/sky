@@ -63,14 +63,15 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
         fd = socket(addr->ai_family,
                     addr->ai_socktype | SOCK_NONBLOCK | SOCK_CLOEXEC,
                     addr->ai_protocol);
-#else
-        fd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
-#endif
+
         if (sky_unlikely(fd == -1)) {
             continue;
         }
-
-#ifndef HAVE_ACCEPT4
+#else
+        fd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
+        if (sky_unlikely(fd == -1)) {
+            continue;
+        }
         if (sky_unlikely(!set_socket_nonblock(fd))) {
             close(fd);
             continue;
