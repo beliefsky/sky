@@ -45,7 +45,9 @@ static sky_bool_t redis_write(sky_redis_cmd_t *rc, sky_uchar_t *data, sky_uint32
 static sky_uint32_t redis_read(sky_redis_cmd_t *rc, sky_uchar_t *data, sky_uint32_t size);
 
 #ifndef HAVE_ACCEPT4
+
 #include <fcntl.h>
+
 static sky_bool_t set_socket_nonblock(sky_int32_t fd);
 
 #endif
@@ -597,7 +599,12 @@ set_address(sky_redis_connection_pool_t *redis_pool, sky_redis_conf_t *conf) {
         redis_pool->addr = (struct sockaddr *) addr;
         redis_pool->addr_len = sizeof(struct sockaddr_un);
         redis_pool->family = AF_UNIX;
-        redis_pool->sock_type = SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC;
+
+#ifdef HAVE_ACCEPT4
+        redis_pool->sock_type = addrs->ai_socktype | SOCK_NONBLOCK | SOCK_CLOEXEC;
+#else
+        redis_pool->sock_type = SOCK_STREAM;
+#endif
         redis_pool->protocol = 0;
 
         addr->sun_family = AF_UNIX;
