@@ -135,7 +135,7 @@ server_start(void *ssl) {
     sky_array_init(&modules, pool, 32, sizeof(sky_http_module_t));
 
     sky_str_set(&prefix, "");
-    sky_str_set(&file_path, "/mnt/c/Users/weijing/Downloads/test");
+    sky_str_set(&file_path, "../../www");
     sky_http_module_file_init(pool, sky_array_push(&modules), &prefix, &file_path);
 
     build_http_dispatcher(pool, sky_array_push(&modules));
