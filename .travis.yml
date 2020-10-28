@@ -15,6 +15,8 @@ matrix:
       osx_image: xcode12.2
       compiler: clang
     - os: freebsd
+      compiler: gcc
+    - os: freebsd
       compiler: clang
 
 script:
