@@ -149,7 +149,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             timeout = false;
         } else {
             timeout = true;
-            timespec.tv_sec = ((__time_t) (next_time - (sky_uint32_t) now));
+            timespec.tv_sec = ((sky_int64_t) (next_time - (sky_uint32_t) now));
         }
     }
 }
