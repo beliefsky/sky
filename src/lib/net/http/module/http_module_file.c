@@ -75,11 +75,13 @@ sky_http_module_file_init(sky_pool_t *pool, sky_http_module_t *module, sky_str_t
 
 static void
 http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
+    struct stat stat_buf;
+    sky_int64_t mtime;
     http_file_t *file;
     http_mime_type_t *mime_type;
+    sky_table_elt_t *header;
     sky_char_t *path;
     sky_int32_t fd;
-    struct stat stat_buf;
 
     if (!r->uri.len) {
         http_error_page(r, 404, "404 Not Found");
@@ -122,10 +124,17 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
     r->headers_out.content_type = mime_type->val;
 
     fstat(fd, &stat_buf);
-    sky_table_elt_t *header = sky_list_push(&r->headers_out.headers);
+
+#if defined(__APPLE__)
+    mtime = stat_buf.st_mtimespec.tv_sec;
+#else
+    mtime = stat_buf.st_mtim.tv_sec;
+#endif
+
+    header = sky_list_push(&r->headers_out.headers);
     sky_str_set(&header->key, "Last-Modified");
 
-    if (file->modified && file->modified_time == stat_buf.st_mtim.tv_sec) {
+    if (file->modified && file->modified_time == mtime) {
         close(fd);
         header->value = r->headers_in.if_modified_since->value;
 
@@ -135,9 +144,9 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
         return;
     }
     header->value.data = sky_palloc(r->pool, 30);
-    header->value.len = sky_date_to_rfc_str(stat_buf.st_mtim.tv_sec, header->value.data);
+    header->value.len = sky_date_to_rfc_str(mtime, header->value.data);
 
-    if (file->range && (!file->if_range || file->range_time == stat_buf.st_mtim.tv_sec)) {
+    if (file->range && (!file->if_range || file->range_time == mtime)) {
         r->state = 206;
         if (file->right == 0 || file->right > stat_buf.st_size) {
             file->right = stat_buf.st_size - 1;
