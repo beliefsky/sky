@@ -1,23 +1,21 @@
 language: c
+arch: amd64
 matrix:
   fast_finish: true
   include:
     - os: linux
+      dist: focal
       compiler: gcc
       addons:
         apt:
           sources:
             - ubuntu-toolchain-r-test
-      script:
-        - mkdir build
-        - cd build
-        - cmake .. -DCMAKE_BUILD_TYPE=Release
-        - make
     - os: osx
       osx_image: xcode12.2
       compiler: gcc
-      script:
-        - mkdir build
-        - cd build
-        - cmake .. -DCMAKE_BUILD_TYPE=Release
-        - make
+
+script:
+  - mkdir build
+  - cd build
+  - cmake .. -DCMAKE_BUILD_TYPE=Release
+  - make
