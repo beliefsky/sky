@@ -965,6 +965,26 @@ sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bo
     return 0;
 }
 
+sky_json_t *
+sky_json_find(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len) {
+    sky_uint32_t i;
+    sky_json_object_t *obj;
+    if (json->type != json_object) {
+        return null;
+    }
+
+    i = json->object.length;
+    obj = json->object.values;
+
+    while (i--) {
+        if (obj->key.len == key_len && memcmp(obj->key.data, key, key_len) == 0) {
+            return obj->value;
+        }
+    }
+
+    return null;
+}
+
 
 #define f_spaces_around_brackets    (1 << 0)
 #define f_spaces_after_commas       (1 << 1)

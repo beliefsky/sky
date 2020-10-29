@@ -114,6 +114,8 @@ sky_json_t *sky_json_parse(sky_pool_t *pool, sky_str_t *json);
 
 sky_json_t *sky_json_parse_ex(sky_pool_t *pool, sky_uchar_t *json, sky_size_t length, sky_bool_t enable_comments);
 
+sky_json_t *sky_json_find(sky_json_t *root, sky_uchar_t *key, sky_uint32_t key_len);
+
 /* Returns a length in characters that is at least large enough to hold the
  * value in its serialized form, including a null terminator.
  */
