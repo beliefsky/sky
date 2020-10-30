@@ -5,6 +5,16 @@
 #include "json.h"
 #include "log.h"
 
+#if defined(__SSE4_2__)
+
+#include <nmmintrin.h>
+
+#elif defined(__SSE3__)
+
+#include <tmmintrin.h>
+
+#endif
+
 static void parse_whitespace(sky_uchar_t **ptr);
 
 static sky_bool_t parse_string(sky_str_t *str, sky_uchar_t **ptr);
@@ -309,15 +319,54 @@ parse_whitespace(sky_uchar_t **ptr) {
     if (*p > ' ') {
         return;
     }
-    if ((*p == ' ' && *(p + 1) > ' ') || *p == '\r') {
+    if (*p == ' ' && *(p + 1) > ' ') {
+        ++*ptr;
+        return;
+    }
+    if (*p == '\r') {
         ++p;
     }
+#if defined(__SSSE3__)
+    const __m128i nrt_lut = _mm_set_epi8(-1, -1, 0, -1,
+                                         -1, 0, 0, -1,
+                                         -1, -1, -1, -1,
+                                         -1, -1, -1, -1);
 
+    for (;;) {
 
+        const __m128i data = _mm_loadu_si128((const __m128i *) p);
+        const __m128i dong = _mm_min_epu8(data, _mm_set1_epi8(0x0F));
+        const __m128i not_an_nrt_mask = _mm_shuffle_epi8(nrt_lut, dong);
+        const __m128i space_mask = _mm_cmpeq_epi8(data, _mm_set1_epi8(' '));
+        const __m128i non_whitespace_mask = _mm_xor_si128(not_an_nrt_mask, space_mask);
+        const sky_int32_t move_mask = _mm_movemask_epi8(non_whitespace_mask);
+        if (__builtin_expect(move_mask, 1)) {
+            *ptr = p + __builtin_ctz((sky_uint32_t) move_mask);;
+            return;
+        } else {
+            p += 16;
+        }
+    }
+#elif defined(__SSE4_2__)
+
+    const __m128i w = _mm_setr_epi8('\n', '\r', '\t', ' ', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+
+    for (;; p += 16) {
+        const __m128i s = _mm_loadu_si128((const __m128i *) p);
+        const sky_int32_t r = _mm_cmpistri(w, s, _SIDD_UBYTE_OPS | _SIDD_CMP_EQUAL_ANY
+                                                 | _SIDD_LEAST_SIGNIFICANT | _SIDD_NEGATIVE_POLARITY);
+        if (r != 16)    // some of characters is non-whitespace
+        {
+            *ptr = p + r;
+            return;
+        }
+    }
+#else
     while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') {
         ++p;
     }
     *ptr = p;
+#endif
 }
 
 
