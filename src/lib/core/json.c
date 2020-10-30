@@ -27,15 +27,15 @@ sky_json_t *sky_json_parse(sky_pool_t *pool, sky_str_t *json) {
     return parse_loop(pool, p, p + json->len);
 }
 
-#define NEXT_OBJECT_START   0x8000
-#define NEXT_ARRAY_START    0x4000
-#define NEXT_OBJECT_END     0x2000
-#define NEXT_ARRAY_END      0x1000
-#define NEXT_KEY            0x800
-#define NEXT_KEY_VALUE      0x400
-#define NEXT_OBJECT_VALUE   0x200
-#define NEXT_ARRAY_VALUE    0X100
-#define NEXT_NODE           0X80
+#define NEXT_OBJECT_START   0x100
+#define NEXT_ARRAY_START    0x80
+#define NEXT_OBJECT_END     0x40
+#define NEXT_ARRAY_END      0x20
+#define NEXT_KEY            0x10
+#define NEXT_KEY_VALUE      0x8
+#define NEXT_OBJECT_VALUE   0x4
+#define NEXT_ARRAY_VALUE    0x2
+#define NEXT_NODE           0x1
 
 static sky_json_t *
 parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
