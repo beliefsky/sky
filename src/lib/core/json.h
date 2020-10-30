@@ -26,7 +26,6 @@ struct sky_json_s {
         json_boolean,
         json_null
     } type;
-    sky_uint8_t state;
     sky_json_t *parent;
 
 
