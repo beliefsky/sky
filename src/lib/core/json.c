@@ -5,11 +5,7 @@
 #include "json.h"
 #include "log.h"
 
-#if defined(__AVX2__)
-
-#include <immintrin.h>
-
-#elif defined(__SSE4_2__)
+#if defined(__SSE4_2__)
 
 #include <nmmintrin.h>
 
@@ -330,49 +326,6 @@ parse_whitespace(sky_uchar_t **ptr) {
     if (*p == '\r') {
         ++p;
     }
-
-#ifdef __AVX2__
-    // common too: \n and spaces
-    {
-        const __m256i data = _mm256_loadu_si256((const __m256i *) p);
-        const __m256i eol_spaces = _mm256_set_epi8(' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-                                                   ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
-                                                   ' ', ' ', ' ', '\n');
-
-        const __m256i mask = _mm256_cmpeq_epi8(data, eol_spaces);
-        const sky_uint32_t move_mask = (sky_uint32_t) (~_mm256_movemask_epi8(mask));
-        if (move_mask) {
-            const int32_t first_non_space = __builtin_ctz(move_mask);
-            p += first_non_space;
-        } else {
-            p += 32;
-        }
-    }
-
-    if (*p > ' ') {
-        *ptr = p;
-        return;
-    }
-
-    {
-        // try skipping regular spaces first
-        __m256i data = _mm256_loadu_si256((const __m256i *) p);
-        __m256i mask = _mm256_cmpeq_epi8(data, _mm256_set1_epi8(' '));
-        sky_uint32_t move_mask = (sky_uint32_t) (~_mm256_movemask_epi8(mask));
-        if (move_mask) {
-
-            const sky_int32_t first_non_space = __builtin_ctz(move_mask);
-            p += first_non_space;
-            if (*p > ' ') {
-                *ptr = p;
-                return;
-            }
-        } else {
-            p += 32;
-        }
-    }
-
-#endif
 
 #if defined(__SSSE3__)
     const __m128i nrt_lut = _mm_set_epi8(-1, -1, 0, -1,
