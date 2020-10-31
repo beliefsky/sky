@@ -145,14 +145,14 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
 
                 ++data;
 
-                if (!!(next & NEXT_KEY)) {
+                if ((next & NEXT_KEY) != 0) {
                     object = json_object_get(current);
 
                     if (sky_unlikely(!parse_string(&object->key, &data))) {
                         return null;
                     }
                     next = NEXT_KEY_VALUE;
-                } else if (!!(next & NEXT_OBJECT_VALUE)) {
+                } else if ((next & NEXT_OBJECT_VALUE) != 0) {
                     tmp = &object->value;
                     tmp->type = json_string;
                     tmp->parent = current;
@@ -185,7 +185,7 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                 if (sky_unlikely(!(next & (NEXT_OBJECT_VALUE | NEXT_ARRAY_VALUE)))) {
                     return null;
                 }
-                if (!!(next & NEXT_OBJECT_VALUE)) {
+                if ((next & NEXT_OBJECT_VALUE) != 0) {
                     tmp = &object->value;
                     next = NEXT_NODE | NEXT_OBJECT_END;
                 } else {
@@ -207,7 +207,7 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                 }
                 data += 4;
 
-                if (!!(next & NEXT_OBJECT_VALUE)) {
+                if ((next & NEXT_OBJECT_VALUE) != 0) {
                     tmp = &object->value;
                     next = NEXT_NODE | NEXT_OBJECT_END;
                 } else {
@@ -230,7 +230,7 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                 }
                 data += 4;
 
-                if (!!(next & NEXT_OBJECT_VALUE)) {
+                if ((next & NEXT_OBJECT_VALUE) != 0) {
                     tmp = &object->value;
                     next = NEXT_NODE | NEXT_OBJECT_END;
                 } else {
@@ -249,7 +249,7 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                 }
                 data += 4;
 
-                if (!!(next & NEXT_OBJECT_VALUE)) {
+                if ((next & NEXT_OBJECT_VALUE) != 0) {
                     tmp = &object->value;
                     next = NEXT_NODE | NEXT_OBJECT_END;
                 } else {
@@ -342,7 +342,7 @@ parse_whitespace(sky_uchar_t **ptr) {
         const __m128i non_whitespace_mask = _mm_xor_si128(not_an_nrt_mask, space_mask);
         const sky_int32_t move_mask = _mm_movemask_epi8(non_whitespace_mask);
         if (__builtin_expect(move_mask, 1)) {
-            *ptr = p + __builtin_ctz((sky_uint32_t) move_mask);;
+            *ptr = p + __builtin_ctz((sky_uint32_t) move_mask);
             return;
         } else {
             p += 16;
@@ -373,16 +373,15 @@ parse_whitespace(sky_uchar_t **ptr) {
 
 static sky_bool_t
 parse_string(sky_str_t *str, sky_uchar_t **ptr) {
-    sky_uchar_t *p, *post;
+    sky_uchar_t *p = *ptr;
 
-    p = *ptr;
     while (*p) {
         if (sky_unlikely(*p < ' ')) {
             return false;
         }
 
         if (*p == '"') {
-            if (*(p - 1) != '\\') {
+            if (sky_likely(*(p - 1) != '\\')) {
                 *p = '\0';
                 str->data = *ptr;
                 str->len = (sky_size_t) (p - str->data);
@@ -392,7 +391,7 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
                 return true;
             }
             *(p - 1) = *p;
-            post = p++;
+            sky_uchar_t *post = p++;
 
             while (*p) {
                 if (sky_unlikely(*p < ' ')) {
@@ -400,7 +399,7 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
                 }
 
                 if (*p == '"') {
-                    if (*(p - 1) != '\\') {
+                    if (sky_likely(*(p - 1) != '\\')) {
                         *post = '\0';
                         str->data = *ptr;
                         str->len = (sky_size_t) (post - str->data);
@@ -418,8 +417,6 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
         }
         ++p;
     }
-
-
     return false;
 }
 
