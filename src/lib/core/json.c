@@ -396,7 +396,7 @@ static sky_bool_t
 parse_string(sky_str_t *str, sky_uchar_t **ptr) {
     sky_uchar_t *p = *ptr;
 
-    while (*p) {
+    for (;;) {
         if (sky_unlikely(*p < ' ')) {
             return false;
         }
@@ -414,7 +414,7 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
             *(p - 1) = *p;
             sky_uchar_t *post = p++;
 
-            while (*p) {
+            for (;;) {
                 if (sky_unlikely(*p < ' ')) {
                     return false;
                 }
@@ -434,11 +434,9 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
 
                 *post++ = *p++;
             }
-            return false;
         }
         ++p;
     }
-    return false;
 }
 
 static sky_bool_t
