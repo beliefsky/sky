@@ -202,7 +202,7 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
             case 't':
                 if (sky_unlikely(!(next & (NEXT_OBJECT_VALUE | NEXT_ARRAY_VALUE))
                                  || (end - data) < 4
-                                 || sky_str4_cmp(data, 't', 'u', 'r', 'e'))) {
+                                 || !sky_str4_cmp(data, 't', 'r', 'u', 'e'))) {
                     return null;
                 }
                 data += 4;
@@ -225,7 +225,7 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                 }
                 ++data;
 
-                if (sky_unlikely((end - data) < 4 || sky_str4_cmp(data, 'a', 'l', 's', 'e'))) {
+                if (sky_unlikely((end - data) < 4 || !sky_str4_cmp(data, 'a', 'l', 's', 'e'))) {
                     return null;
                 }
                 data += 4;
@@ -244,7 +244,7 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
             case 'n':
                 if (sky_unlikely(!(next & (NEXT_OBJECT_VALUE | NEXT_ARRAY_VALUE))
                                  || (end - data) < 4
-                                 || sky_str4_cmp(data, 'n', 'u', 'l', 'l'))) {
+                                 || !sky_str4_cmp(data, 'n', 'u', 'l', 'l'))) {
                     return null;
                 }
                 data += 4;
