@@ -4,6 +4,7 @@
 
 #include "json.h"
 #include "log.h"
+#include "number.h"
 
 #if defined(__SSE4_2__)
 
@@ -23,9 +24,9 @@ static sky_bool_t parse_number(sky_json_t *json, sky_uchar_t **ptr);
 
 static sky_json_t *parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end);
 
-static sky_json_t *json_object_create(sky_pool_t *pool);
+static sky_json_t *json_object_set(sky_json_t *json, sky_pool_t *pool);
 
-static sky_json_t *json_array_create(sky_pool_t *pool);
+static sky_json_t *json_array_set(sky_json_t *json, sky_pool_t *pool);
 
 static sky_json_object_t *json_object_get(sky_json_t *json);
 
@@ -57,10 +58,12 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
 
     parse_whitespace(&data);
     if (*data == '{') {
-        root = current = json_object_create(pool);
+        root = current = sky_palloc(pool, sizeof(sky_json_t));
+        json_object_set(current, pool);
         next = NEXT_OBJECT_END | NEXT_KEY;
     } else if (*data == '[') {
-        root = current = json_array_create(pool);
+        root = current = sky_palloc(pool, sizeof(sky_json_t));
+        json_array_set(current, pool);
         next = NEXT_ARRAY_END | NEXT_ARRAY_VALUE | NEXT_OBJECT_START | NEXT_ARRAY_START;
     } else {
         return null;
@@ -74,12 +77,11 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                 if (sky_unlikely(!(next & NEXT_OBJECT_START))) {
                     return null;
                 }
-
                 ++data;
 
-                tmp = json_object_create(pool);
+                tmp = current->type == json_object ? &object->value : json_array_get(current);
                 tmp->parent = current;
-
+                json_object_set(tmp, pool);
                 current = tmp;
                 next = NEXT_OBJECT_END | NEXT_KEY;
 
@@ -88,11 +90,11 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                 if (sky_unlikely(!(next & NEXT_ARRAY_START))) {
                     return null;
                 }
-
                 ++data;
-                tmp = json_array_create(pool);
-                tmp->parent = current;
 
+                tmp = current->type == json_object ? &object->value : json_array_get(current);
+                tmp->parent = current;
+                json_array_set(tmp, pool);
                 current = tmp;
                 next = NEXT_ARRAY_END | NEXT_ARRAY_VALUE | NEXT_OBJECT_START | NEXT_ARRAY_START;
 
@@ -270,8 +272,7 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
 }
 
 static sky_inline sky_json_t *
-json_object_create(sky_pool_t *pool) {
-    sky_json_t *json = sky_palloc(pool, sizeof(sky_json_t));
+json_object_set(sky_json_t *json, sky_pool_t *pool) {
     json->type = json_object;
     json->object.length = 0;
     json->object.alloc = 16;
@@ -281,8 +282,7 @@ json_object_create(sky_pool_t *pool) {
 }
 
 static sky_inline sky_json_t *
-json_array_create(sky_pool_t *pool) {
-    sky_json_t *json = sky_palloc(pool, sizeof(sky_json_t));
+json_array_set(sky_json_t *json, sky_pool_t *pool) {
     json->type = json_array;
     json->array.length = 0;
     json->array.alloc = 16;
@@ -424,15 +424,21 @@ static sky_bool_t
 parse_number(sky_json_t *json, sky_uchar_t **ptr) {
     sky_uchar_t *p = *ptr;
 
-    json->string.data = p;
     ++p;
 
     for (;;) {
         if (sky_unlikely(*p < '-' || *p > ':' || *p == '/')) {
-            json->type = json_integer;
-            json->string.len = (sky_uint32_t) (p - json->string.data);
-            *ptr = p;
-            return true;
+            const sky_str_t str = {
+                    .len = ((sky_size_t) (p - *ptr)),
+                    .data = *ptr
+            };
+
+            if (sky_likely(sky_str_to_int64(&str, &json->integer))) {
+                json->type = json_integer;
+                *ptr = p;
+                return true;
+            }
+            return false;
         }
         ++p;
     }
