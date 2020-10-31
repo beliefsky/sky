@@ -16,6 +16,16 @@
 
 #endif
 
+#define NEXT_OBJECT_START   0x100
+#define NEXT_ARRAY_START    0x80
+#define NEXT_OBJECT_END     0x40
+#define NEXT_ARRAY_END      0x20
+#define NEXT_KEY            0x10
+#define NEXT_KEY_VALUE      0x8
+#define NEXT_OBJECT_VALUE   0x4
+#define NEXT_ARRAY_VALUE    0x2
+#define NEXT_NODE           0x1
+
 static void parse_whitespace(sky_uchar_t **ptr);
 
 static sky_bool_t parse_string(sky_str_t *str, sky_uchar_t **ptr);
@@ -38,15 +48,26 @@ sky_json_t *sky_json_parse(sky_pool_t *pool, sky_str_t *json) {
     return parse_loop(pool, p, p + json->len);
 }
 
-#define NEXT_OBJECT_START   0x100
-#define NEXT_ARRAY_START    0x80
-#define NEXT_OBJECT_END     0x40
-#define NEXT_ARRAY_END      0x20
-#define NEXT_KEY            0x10
-#define NEXT_KEY_VALUE      0x8
-#define NEXT_OBJECT_VALUE   0x4
-#define NEXT_ARRAY_VALUE    0x2
-#define NEXT_NODE           0x1
+
+sky_json_t *
+sky_json_find(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len) {
+    sky_uint32_t i;
+    sky_json_object_t *object;
+
+    if (sky_unlikely(json->type != json_object)) {
+        return null;
+    }
+    i = json->object.length;
+    object = json->object.values;
+    while (i--) {
+        if (key_len == object->key.len && memcmp(key, object->key.data, key_len) == 0) {
+            return &object->value;
+        }
+        ++object;
+    }
+
+    return null;
+}
 
 static sky_json_t *
 parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {

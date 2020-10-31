@@ -58,6 +58,8 @@ struct sky_json_object_s {
 
 sky_json_t *sky_json_parse(sky_pool_t *pool, sky_str_t *json);
 
+sky_json_t *sky_json_find(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len);
+
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif
