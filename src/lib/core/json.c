@@ -182,6 +182,7 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
                     *p++ = ']';
                     continue;
                 }
+                *p++ = ',';
                 current = tmp->array.values + tmp->index;
             }
             break;
@@ -237,7 +238,7 @@ sky_json_put_array(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len) {
     obj->key.len = key_len;
     obj->key.data = key;
 
-    json_array_init(json);
+    json_array_init(&obj->value);
 
     return &obj->value;
 }
