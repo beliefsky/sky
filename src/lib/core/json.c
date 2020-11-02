@@ -92,7 +92,7 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
     ++data;
 
     for (;;) {
-
+        parse_whitespace(&data);
         switch (*data) {
             case '{':
                 if (sky_unlikely(!(next & NEXT_OBJECT_START))) {
@@ -287,8 +287,6 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
             default:
                 return null;
         }
-
-        parse_whitespace(&data);
     }
 }
 
