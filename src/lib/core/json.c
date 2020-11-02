@@ -100,7 +100,7 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
                     current = current->array.values;
                     continue;
                 }
-                *p++ = '}';
+                *p++ = ']';
                 break;
             case json_integer:
                 p += sky_int64_to_str(current->integer, p);
