@@ -50,90 +50,30 @@ sky_json_t *sky_json_parse(sky_pool_t *pool, sky_str_t *json) {
 }
 
 sky_str_t *sky_json_tostring(sky_json_t *json) {
-    sky_bool_t update;
     sky_uchar_t *start, *p;
     sky_json_object_t *obj;
     sky_json_t *current, *tmp;
 
-    if (sky_unlikely(json->type != json_object && json->type != json_array)) {
+    if (json->type == json_object) {
+        if (json->object.length == 0) {
+            sky_str_t *str = sky_palloc(json->pool, sizeof(sky_str_t));
+            sky_str_set(str, "{}");
+            return str;
+        }
+    } else if (json->type == json_array) {
+        if (json->array.length == 0) {
+            sky_str_t *str = sky_palloc(json->pool, sizeof(sky_str_t));
+            sky_str_set(str, "[]");
+            return str;
+        }
+    } else {
         return null;
     }
 
     p = start = sky_pnalloc(json->pool, 2048);
-
-    if (json->type == json_object) {
-        *p++ = '{';
-        json->index = 0;
-        if (json->object.length == 0) {
-            *p++ = '}';
-            return null;
-        } else {
-            obj = json->object.values;
-            current = &obj->value;
-            *p++ = '"';
-            sky_memcpy(p, obj->key.data, obj->key.len);
-            p += obj->key.len;
-            *p++ = '"';
-            *p++ = ':';
-        }
-    } else {
-        *p++ = '[';
-        if (json->array.length == 0) {
-            *p++ = ']';
-            return null;
-        }
-        json->index = 0;
-        current = current->array.values;
-    }
-
-    update = false;
+    current = json;
 
     for (;;) {
-
-        if (update) {
-            if (json == current) {
-                *p = '\0';
-
-                sky_str_t *str = sky_palloc(json->pool, sizeof(sky_str_t));
-                str->data = start;
-                str->len = (sky_size_t) (p - start);
-
-                return str;
-            }
-            tmp = current->parent;
-            ++tmp->index;
-            if (tmp->type == json_object) {
-                if (tmp->index == tmp->object.length) {
-                    *p++ = '}';
-                    current = tmp;
-                    continue;
-                }
-                *p++ = ',';
-
-                obj = tmp->object.values + tmp->index;
-                current = &obj->value;
-
-                *p++ = '"';
-                sky_memcpy(p, obj->key.data, obj->key.len);
-                p += obj->key.len;
-                *p++ = '"';
-                *p++ = ':';
-
-            } else {
-                if (tmp->index == tmp->array.length) {
-                    *p++ = ']';
-                    current = tmp;
-                    continue;
-                }
-                *p++ = ',';
-
-               current = tmp->array.values + tmp->index;
-            }
-        } else {
-            update = true;
-        }
-
-
         switch (current->type) {
             case json_object:
                 *p++ = '{';
@@ -147,9 +87,6 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
                     p += obj->key.len;
                     *p++ = '"';
                     *p++ = ':';
-
-                    update = false;
-
                     continue;
                 }
                 *p++ = '}';
@@ -159,8 +96,6 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
                 current->index = 0;
                 if (current->array.length != 0) {
                     current = current->array.values;
-
-                    update = false;
                     continue;;
                 }
                 *p++ = '}';
@@ -193,7 +128,67 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
                 return null;
         }
 
-        sky_log_info("%s", start);
+        tmp = current->parent;
+        if (tmp->type == json_object) {
+            if (++tmp->index != tmp->object.length) {
+                *p++ = ',';
+
+                ++obj;
+                current = &obj->value;
+
+                *p++ = '"';
+                sky_memcpy(p, obj->key.data, obj->key.len);
+                p += obj->key.len;
+                *p++ = '"';
+                *p++ = ':';
+                continue;
+            }
+            *p++ = '}';
+        } else {
+            if (++tmp->index != tmp->array.length) {
+                *p++ = ',';
+
+                ++current;
+                continue;
+            }
+            *p++ = ']';
+        }
+
+        for (;;) {
+            if (tmp == json) {
+                *p = '\0';
+                sky_str_t *str = sky_palloc(json->pool, sizeof(sky_str_t));
+                str->data = start;
+                str->len = (sky_size_t) (p - start);
+
+                return str;
+            }
+            tmp = tmp->parent;
+
+            if (tmp->type == json_object) {
+                if (++tmp->index == tmp->object.length) {
+                    *p++ = '}';
+                    continue;
+                }
+                *p++ = ',';
+
+                obj = tmp->object.values + tmp->index;
+                current = &obj->value;
+
+                *p++ = '"';
+                sky_memcpy(p, obj->key.data, obj->key.len);
+                p += obj->key.len;
+                *p++ = '"';
+                *p++ = ':';
+            } else {
+                if (++tmp->index == tmp->array.length) {
+                    *p++ = ']';
+                    continue;
+                }
+                current = tmp->array.values + tmp->index;
+            }
+            break;
+        }
     }
 }
 
