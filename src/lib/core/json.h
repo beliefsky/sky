@@ -26,6 +26,7 @@ struct sky_json_s {
         json_boolean,
         json_null
     } type;
+    sky_pool_t *pool;
     sky_json_t *parent;
 
 
@@ -55,10 +56,55 @@ struct sky_json_object_s {
     sky_json_t value;
 };
 
-
 sky_json_t *sky_json_parse(sky_pool_t *pool, sky_str_t *json);
 
 sky_json_t *sky_json_find(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len);
+
+sky_json_t *sky_json_put_object(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len);
+
+sky_json_t *sky_json_put_array(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len);
+
+sky_json_t *sky_json_put_boolean(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, sky_bool_t value);
+
+sky_json_t *sky_json_put_null(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len);
+
+sky_json_t *sky_json_put_integer(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, sky_int64_t value);
+
+sky_json_t *sky_json_put_double(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, double value);
+
+sky_json_t *sky_json_put_string(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, sky_str_t *value);
+
+sky_json_t *sky_json_add_object(sky_json_t *json);
+
+sky_json_t *sky_json_add_array(sky_json_t *json);
+
+sky_json_t *sky_json_add_boolean(sky_json_t *json, sky_bool_t value);
+
+sky_json_t *sky_json_add_null(sky_json_t *json);
+
+sky_json_t *sky_json_add_integer(sky_json_t *json, sky_int64_t value);
+
+sky_json_t *sky_json_add_double(sky_json_t *json, double value);
+
+sky_json_t *sky_json_add_string(sky_json_t *json, sky_str_t *value);
+
+static sky_inline void
+sky_json_object_init(sky_json_t *json, sky_pool_t *pool) {
+    json->type = json_object;
+    json->pool = pool;
+    json->object.length = 0;
+    json->object.alloc = 16;
+    json->object.values = sky_pnalloc(pool, sizeof(sky_json_object_t) << 4);
+}
+
+static sky_inline void
+sky_json_array_init(sky_json_t *json, sky_pool_t *pool) {
+    json->type = json_array;
+    json->pool = pool;
+    json->array.length = 0;
+    json->array.alloc = 16;
+    json->array.values = sky_pnalloc(pool, sizeof(sky_json_t) << 4);
+}
 
 #if defined(__cplusplus)
 } /* extern "C" { */
