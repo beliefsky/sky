@@ -26,9 +26,8 @@ struct sky_json_s {
         json_boolean,
         json_null
     } type;
-    sky_pool_t *pool;
-    sky_json_t *parent;
 
+    sky_uint16_t index;
 
     union {
         sky_bool_t boolean;
@@ -37,17 +36,20 @@ struct sky_json_s {
         sky_str_t string;
 
         struct {
-            sky_uint32_t length;
-            sky_uint32_t alloc;
+            sky_uint16_t length;
+            sky_uint16_t alloc;
             sky_json_object_t *values;
         } object;
 
         struct {
-            sky_uint32_t length;
-            sky_uint32_t alloc;
+            sky_uint16_t length;
+            sky_uint16_t alloc;
             sky_json_t *values;
         } array;
     };
+
+    sky_pool_t *pool;
+    sky_json_t *parent;
 };
 
 
@@ -57,6 +59,8 @@ struct sky_json_object_s {
 };
 
 sky_json_t *sky_json_parse(sky_pool_t *pool, sky_str_t *json);
+
+sky_str_t *sky_json_tostring(sky_json_t *json);
 
 sky_json_t *sky_json_find(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len);
 

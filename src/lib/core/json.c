@@ -3,9 +3,9 @@
 //
 
 #include "json.h"
-#include "log.h"
 #include "number.h"
 #include "memory.h"
+#include "log.h"
 
 #if defined(__SSE4_2__)
 
@@ -47,6 +47,154 @@ static void json_array_init(sky_json_t *json);
 sky_json_t *sky_json_parse(sky_pool_t *pool, sky_str_t *json) {
     sky_uchar_t *p = json->data;
     return parse_loop(pool, p, p + json->len);
+}
+
+sky_str_t *sky_json_tostring(sky_json_t *json) {
+    sky_bool_t update;
+    sky_uchar_t *start, *p;
+    sky_json_object_t *obj;
+    sky_json_t *current, *tmp;
+
+    if (sky_unlikely(json->type != json_object && json->type != json_array)) {
+        return null;
+    }
+
+    p = start = sky_pnalloc(json->pool, 2048);
+
+    if (json->type == json_object) {
+        *p++ = '{';
+        json->index = 0;
+        if (json->object.length == 0) {
+            *p++ = '}';
+            return null;
+        } else {
+            obj = json->object.values;
+            current = &obj->value;
+            *p++ = '"';
+            sky_memcpy(p, obj->key.data, obj->key.len);
+            p += obj->key.len;
+            *p++ = '"';
+            *p++ = ':';
+        }
+    } else {
+        *p++ = '[';
+        if (json->array.length == 0) {
+            *p++ = ']';
+            return null;
+        }
+        json->index = 0;
+        current = current->array.values;
+    }
+
+    update = false;
+
+    for (;;) {
+
+        if (update) {
+            if (json == current) {
+                *p = '\0';
+
+                sky_str_t *str = sky_palloc(json->pool, sizeof(sky_str_t));
+                str->data = start;
+                str->len = (sky_size_t) (p - start);
+
+                return str;
+            }
+            tmp = current->parent;
+            ++tmp->index;
+            if (tmp->type == json_object) {
+                if (tmp->index == tmp->object.length) {
+                    *p++ = '}';
+                    current = tmp;
+                    continue;
+                }
+                *p++ = ',';
+
+                obj = tmp->object.values + tmp->index;
+                current = &obj->value;
+
+                *p++ = '"';
+                sky_memcpy(p, obj->key.data, obj->key.len);
+                p += obj->key.len;
+                *p++ = '"';
+                *p++ = ':';
+
+            } else {
+                if (tmp->index == tmp->array.length) {
+                    *p++ = ']';
+                    current = tmp;
+                    continue;
+                }
+                *p++ = ',';
+
+               current = tmp->array.values + tmp->index;
+            }
+        } else {
+            update = true;
+        }
+
+
+        switch (current->type) {
+            case json_object:
+                *p++ = '{';
+                current->index = 0;
+                if (current->object.length != 0) {
+                    obj = current->object.values;
+                    current = &obj->value;
+
+                    *p++ = '"';
+                    sky_memcpy(p, obj->key.data, obj->key.len);
+                    p += obj->key.len;
+                    *p++ = '"';
+                    *p++ = ':';
+
+                    update = false;
+
+                    continue;
+                }
+                *p++ = '}';
+                break;
+            case json_array:
+                *p++ = '[';
+                current->index = 0;
+                if (current->array.length != 0) {
+                    current = current->array.values;
+
+                    update = false;
+                    continue;;
+                }
+                *p++ = '}';
+                break;
+            case json_integer:
+                p += sky_int64_to_str(json->integer, p);
+                break;
+            case json_double:
+                break;
+            case json_string:
+                *p++ = '"';
+                sky_memcpy(p, current->string.data, current->string.len);
+                p += current->string.len;
+                *p++ = '"';
+                break;
+            case json_boolean:
+                if (current->boolean) {
+                    sky_memcpy(p, "true", 4);
+                    p += 4;
+                } else {
+                    sky_memcpy(p, "false", 5);
+                    p += 5;
+                }
+                break;
+            case json_null:
+                sky_memcpy(p, "null", 4);
+                p += 4;
+                break;
+            default:
+                return null;
+        }
+
+        sky_log_info("%s", start);
+    }
 }
 
 
