@@ -50,6 +50,8 @@ sky_json_t *sky_json_parse(sky_pool_t *pool, sky_str_t *json) {
 }
 
 sky_str_t *sky_json_tostring(sky_json_t *json) {
+    static const sky_char_t *BOOLEAN_TABLE[] = {"false", "true"};
+
     sky_uchar_t *start, *p;
     sky_json_object_t *obj;
     sky_json_t *current, *tmp;
@@ -96,12 +98,12 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
                 current->index = 0;
                 if (current->array.length != 0) {
                     current = current->array.values;
-                    continue;;
+                    continue;
                 }
                 *p++ = '}';
                 break;
             case json_integer:
-                p += sky_int64_to_str(json->integer, p);
+                p += sky_int64_to_str(current->integer, p);
                 break;
             case json_double:
                 break;
@@ -112,13 +114,8 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
                 *p++ = '"';
                 break;
             case json_boolean:
-                if (current->boolean) {
-                    sky_memcpy(p, "true", 4);
-                    p += 4;
-                } else {
-                    sky_memcpy(p, "false", 5);
-                    p += 5;
-                }
+                sky_memcpy(p, BOOLEAN_TABLE[current->boolean != false], 4 + (current->boolean == false));
+                p += 4 + (current->boolean == false);
                 break;
             case json_null:
                 sky_memcpy(p, "null", 4);
