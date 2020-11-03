@@ -755,8 +755,6 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
 
             return true;
         }
-        sky_log_warn("%s", p - len);
-
         *(p - 1) = *p;
         sky_uchar_t *post = p++;
 
