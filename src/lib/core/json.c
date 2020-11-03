@@ -26,6 +26,7 @@
 #define NEXT_OBJECT_VALUE   0x4
 #define NEXT_ARRAY_VALUE    0x2
 #define NEXT_NODE           0x1
+#define NEXT_NONE           0
 
 static void parse_whitespace(sky_uchar_t **ptr);
 
@@ -485,7 +486,7 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
 
                 next = current != null ? (current->type == json_object ? (NEXT_NODE | NEXT_OBJECT_END)
                                                                        : (NEXT_NODE | NEXT_ARRAY_END))
-                                       : 0;
+                                       : NEXT_NONE;
                 break;
             case ']':
                 if (sky_unlikely(!(next & NEXT_ARRAY_END))) {
@@ -496,7 +497,7 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                 current = current->parent;
                 next = current != null ? (current->type == json_object ? (NEXT_NODE | NEXT_OBJECT_END)
                                                                        : (NEXT_NODE | NEXT_ARRAY_END))
-                                       : 0;
+                                       : NEXT_NONE;
                 break;
             case ':':
                 if (sky_unlikely(!(next & NEXT_KEY_VALUE))) {
@@ -632,6 +633,9 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                 tmp->type = json_null;
                 break;
             case '\0':
+                if (sky_unlikely(next != NEXT_NONE)) {
+                    return null;
+                }
                 return root;
             default:
                 return null;
