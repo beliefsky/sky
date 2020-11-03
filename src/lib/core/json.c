@@ -710,7 +710,7 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
     sky_uchar_t *p = *ptr;
 
 #if defined(__AVX2__)
-    for (;; p += 32) {
+    for (;; p += 31) { // 转义符和引号在两块区域造成无法识别的问题
         const __m256i data = _mm256_loadu_si256((const __m256i *) p);
         const __m256i quote_mask = _mm256_cmpeq_epi8(data, _mm256_set1_epi8('"'));
         const sky_uint32_t quote_move_mask = (sky_uint32_t) _mm256_movemask_epi8(quote_mask);
@@ -755,6 +755,7 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
 
             return true;
         }
+        sky_log_warn("%s", p - len);
 
         *(p - 1) = *p;
         sky_uchar_t *post = p++;
