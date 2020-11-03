@@ -7,7 +7,11 @@
 #include "memory.h"
 #include "log.h"
 
-#if defined(__SSE4_2__)
+#if defined(__AVX2__)
+
+#include <immintrin.h>
+
+#elif defined(__SSE4_2__)
 
 #include <nmmintrin.h>
 
@@ -704,6 +708,38 @@ parse_whitespace(sky_uchar_t **ptr) {
 static sky_bool_t
 parse_string(sky_str_t *str, sky_uchar_t **ptr) {
     sky_uchar_t *p = *ptr;
+
+#if defined(__AVX2__)
+    {
+        const __m256i data = _mm256_loadu_si256((const __m256i *) p);
+        const __m256i backslash_mask = _mm256_cmpeq_epi8(data, _mm256_set1_epi8('\\'));
+        const __m256i quote_mask = _mm256_cmpeq_epi8(data, _mm256_set1_epi8('"'));
+        const sky_uint32_t quote_move_mask = (sky_uint32_t) _mm256_movemask_epi8(quote_mask);
+        if (_mm256_testz_si256(backslash_mask, backslash_mask) && quote_move_mask != 0) {
+            const sky_int32_t len = __builtin_ctz(quote_move_mask);
+            const sky_uint32_t idx_mask = UINT64_C(0xFFFFFFFF) >> (32 - len);
+
+            // no unsigned 8-bit cmplt
+            const __m256i invalid_char_mask = _mm256_cmpeq_epi8(data, _mm256_min_epu8(data, _mm256_set1_epi8(0x1A)));
+            const sky_uint32_t invalid_char_move_mask = (sky_uint32_t) _mm256_movemask_epi8(invalid_char_mask);
+
+            if (sky_unlikely((invalid_char_move_mask & idx_mask) != 0)) {
+                return false;
+            }
+
+            p += len;
+
+            *p = '\0';
+            str->data = *ptr;
+            str->len = (sky_size_t) (p - str->data);
+
+            *ptr = p + 1;
+
+
+            return len;
+        }
+    }
+#endif
 
     for (;;) {
         if (sky_unlikely(*p < ' ')) {
