@@ -712,13 +712,14 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
 #if defined(__AVX2__)
     for (;; p += 32) {
         const __m256i data = _mm256_loadu_si256((const __m256i *) p);
-        const __m256i backslash_mask = _mm256_cmpeq_epi8(data, _mm256_set1_epi8('\\'));
         const __m256i quote_mask = _mm256_cmpeq_epi8(data, _mm256_set1_epi8('"'));
         const sky_uint32_t quote_move_mask = (sky_uint32_t) _mm256_movemask_epi8(quote_mask);
         if (quote_move_mask == 0) {
             continue;
         }
         const sky_int32_t len = __builtin_ctz(quote_move_mask);
+
+        const __m256i backslash_mask = _mm256_cmpeq_epi8(data, _mm256_set1_epi8('\\'));
         if (_mm256_testz_si256(backslash_mask, backslash_mask)) {
 
             const sky_uint32_t idx_mask = UINT64_C(0xFFFFFFFF) >> (32 - len);
