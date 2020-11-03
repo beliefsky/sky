@@ -441,7 +441,7 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
         next = NEXT_OBJECT_END | NEXT_KEY;
     } else if (*data == '[') {
         root = current = sky_palloc(pool, sizeof(sky_json_t));
-        sky_json_object_init(current, pool);
+        sky_json_array_init(current, pool);
         next = NEXT_ARRAY_END | NEXT_ARRAY_VALUE | NEXT_OBJECT_START | NEXT_ARRAY_START;
     } else {
         return null;
