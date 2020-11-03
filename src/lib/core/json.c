@@ -568,7 +568,6 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                     tmp = json_array_get(current);
                     next = NEXT_NODE | NEXT_ARRAY_END;
                 }
-                tmp->parent = current;
 
                 if (sky_unlikely(!parse_number(tmp, &data))) {
                     return false;
