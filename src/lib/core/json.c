@@ -665,7 +665,7 @@ parse_whitespace(sky_uchar_t **ptr) {
                                          -1, -1, -1, -1,
                                          -1, -1, -1, -1);
 
-    for (;;) {
+    for (;; p += 16) {
 
         const __m128i data = _mm_loadu_si128((const __m128i *) p);
         const __m128i dong = _mm_min_epu8(data, _mm_set1_epi8(0x0F));
@@ -676,8 +676,6 @@ parse_whitespace(sky_uchar_t **ptr) {
         if (__builtin_expect(move_mask, 1)) {
             *ptr = p + __builtin_ctz((sky_uint32_t) move_mask);
             return;
-        } else {
-            p += 16;
         }
     }
 #elif defined(__SSE4_2__)
@@ -710,9 +708,7 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
     for (;;) {
         if (sky_unlikely(*p < ' ')) {
             return false;
-        }
-
-        if (*p == '"') {
+        } else if (*p == '"') {
             if (sky_likely(*(p - 1) != '\\')) {
                 *p = '\0';
                 str->data = *ptr;
@@ -728,9 +724,7 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
             for (;;) {
                 if (sky_unlikely(*p < ' ')) {
                     return false;
-                }
-
-                if (*p == '"') {
+                } else if (*p == '"') {
                     if (sky_likely(*(p - 1) != '\\')) {
                         *post = '\0';
                         str->data = *ptr;
@@ -756,22 +750,44 @@ parse_number(sky_json_t *json, sky_uchar_t **ptr) {
 
     ++p;
 
+#if defined(__SSE4_2__)
+
+    const __m128i w = _mm_setr_epi8('.', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 0, 0, 0, 0, 0);
+
+    for (;; p += 16) {
+        const __m128i s = _mm_loadu_si128((const __m128i *) p);
+        const sky_int32_t r = _mm_cmpistri(w, s, _SIDD_UBYTE_OPS | _SIDD_CMP_EQUAL_ANY
+                                                 | _SIDD_LEAST_SIGNIFICANT | _SIDD_NEGATIVE_POLARITY);
+        if (r != 16)    // some of characters is non-whitespace
+        {
+            p += r;
+
+            const sky_str_t str = {
+                    .len = ((sky_size_t) (p - *ptr)),
+                    .data = *ptr
+            };
+            json->type = json_integer;
+            *ptr = p;
+
+            return sky_str_to_int64(&str, &json->integer);
+        }
+    }
+#else
     for (;;) {
-        if (sky_unlikely(*p < '-' || *p > ':' || *p == '/')) {
+        if (sky_unlikely(*p < '-' || *p > ':')) {
             const sky_str_t str = {
                     .len = ((sky_size_t) (p - *ptr)),
                     .data = *ptr
             };
 
-            if (sky_likely(sky_str_to_int64(&str, &json->integer))) {
-                json->type = json_integer;
-                *ptr = p;
-                return true;
-            }
-            return false;
+             json->type = json_integer;
+             *ptr = p;
+
+            return sky_str_to_int64(&str, &json->integer);
         }
         ++p;
     }
+#endif
 }
 
 

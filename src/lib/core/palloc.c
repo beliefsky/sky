@@ -9,7 +9,9 @@
  */
 #define SKY_MAX_ALLOC_FROM_POOL  16383
 
-static void *sky_palloc_small(sky_pool_t *pool, sky_size_t size, sky_bool_t align);
+static void *sky_palloc_small(sky_pool_t *pool, sky_size_t size);
+
+static void *sky_palloc_small_align(sky_pool_t *pool, sky_size_t size);
 
 static void *sky_palloc_block(sky_pool_t *pool, sky_size_t size);
 
@@ -21,7 +23,7 @@ sky_create_pool(sky_size_t size) {
 
     size = sky_align(size, 4096U);
 
-    p = mmap(null, size, PROT_READ | PROT_WRITE,MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    p = mmap(null, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     if (sky_unlikely(!p)) {
         return null;
     }
@@ -84,36 +86,118 @@ sky_reset_pool(sky_pool_t *pool) {
     pool->large = null;
 }
 
-void *
+sky_inline void *
 sky_palloc(sky_pool_t *pool, sky_size_t size) {
-    if (sky_likely(size <= pool->max)) {
-        return sky_palloc_small(pool, size, true);
-    }
+    return size <= pool->max ? sky_palloc_small_align(pool, size) : sky_palloc_large(pool, size);
+}
 
-    return sky_palloc_large(pool, size);
+sky_inline void *
+sky_pnalloc(sky_pool_t *pool, sky_size_t size) {
+    return size <= pool->max ? sky_palloc_small(pool, size) : sky_palloc_large(pool, size);
 }
 
 void *
-sky_pnalloc(sky_pool_t *pool, sky_size_t size) {
-    if (sky_likely(size <= pool->max)) {
-        return sky_palloc_small(pool, size, false);
+sky_pcalloc(sky_pool_t *pool, sky_size_t size) {
+    void *p;
+
+    p = sky_palloc(pool, size);
+    if (sky_likely(p)) {
+        sky_memzero(p, size);
     }
 
-    return sky_palloc_large(pool, size);
+    return p;
+}
+
+void *
+sky_pmemalign(sky_pool_t *pool, sky_size_t size, sky_size_t alignment) {
+    void *p;
+    sky_pool_large_t *large;
+
+    p = sky_memalign(alignment, size);
+    if (sky_unlikely(!p)) {
+        return null;
+    }
+    large = sky_palloc_small_align(pool, sizeof(sky_pool_large_t));
+    if (sky_unlikely(!large)) {
+        sky_free(p);
+        return null;
+    }
+    large->alloc = p;
+    large->next = pool->large;
+    pool->large = large;
+
+    return p;
+}
+
+sky_bool_t
+sky_pfree(sky_pool_t *pool, void *p) {
+    sky_pool_large_t *l;
+
+    for (l = pool->large; l; l = l->next) {
+        if (p == l->alloc) {
+            sky_free(l->alloc);
+            l->alloc = null;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+sky_pool_cleanup_t *
+sky_pool_cleanup_add(sky_pool_t *p, sky_size_t size) {
+    sky_pool_cleanup_t *c;
+
+    c = sky_palloc(p, sizeof(sky_pool_cleanup_t));
+    if (sky_unlikely(!c)) {
+        return null;
+    }
+    if (size) {
+        c->data = sky_palloc(p, size);
+        if (!c->data) {
+            return null;
+        }
+    } else {
+        c->data = null;
+    }
+    c->handler = null;
+    c->next = p->cleanup;
+    p->cleanup = c;
+
+    return c;
+}
+
+
+static sky_inline void *
+sky_palloc_small(sky_pool_t *pool, sky_size_t size) {
+    sky_pool_t *p;
+    sky_uchar_t *m;
+
+    p = pool->current;
+
+    do {
+        m = p->d.last;
+        if (sky_likely((sky_size_t) (p->d.end - m) >= size)) {
+            p->d.last = m + size;
+            return m;
+        }
+        p = p->d.next;
+    } while (p);
+
+    return sky_palloc_block(pool, size);
 }
 
 static sky_inline void *
-sky_palloc_small(sky_pool_t *pool, sky_size_t size, sky_bool_t align) {
-    sky_uchar_t *m;
+sky_palloc_small_align(sky_pool_t *pool, sky_size_t size) {
     sky_pool_t *p;
+    sky_uchar_t *m;
 
     p = pool->current;
+
     do {
-        m = p->d.last;
-        if (align) {
-            m = sky_align_ptr(m, SKY_ALIGNMENT);
-        }
-        if ((sky_size_t) (p->d.end - m) >= size) {
+        m = sky_align_ptr(p->d.last, SKY_ALIGNMENT);
+        if (sky_likely((sky_size_t) (p->d.end - m) >= size)) {
             p->d.last = m + size;
             return m;
         }
@@ -131,7 +215,7 @@ sky_palloc_block(sky_pool_t *pool, sky_size_t size) {
 
     psize = (sky_size_t) (pool->d.end - (sky_uchar_t *) pool);
 
-    m = mmap(null, psize, PROT_READ | PROT_WRITE,MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    m = mmap(null, psize, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
 
     if (sky_unlikely(!m)) {
         return null;
@@ -173,7 +257,7 @@ sky_palloc_large(sky_pool_t *pool, sky_size_t size) {
             break;
         }
     }
-    large = sky_palloc_small(pool, sizeof(sky_pool_large_t), true);
+    large = sky_palloc_small_align(pool, sizeof(sky_pool_large_t));
     if (sky_unlikely(!large)) {
         sky_free(p);
         return null;
@@ -183,75 +267,4 @@ sky_palloc_large(sky_pool_t *pool, sky_size_t size) {
     pool->large = large;
 
     return p;
-}
-
-void *
-sky_pmemalign(sky_pool_t *pool, sky_size_t size, sky_size_t alignment) {
-    void *p;
-    sky_pool_large_t *large;
-
-    p = sky_memalign(alignment, size);
-    if (sky_unlikely(!p)) {
-        return null;
-    }
-    large = sky_palloc_small(pool, sizeof(sky_pool_large_t), 1);
-    if (sky_unlikely(!large)) {
-        sky_free(p);
-        return null;
-    }
-    large->alloc = p;
-    large->next = pool->large;
-    pool->large = large;
-
-    return p;
-}
-
-sky_bool_t
-sky_pfree(sky_pool_t *pool, void *p) {
-    sky_pool_large_t *l;
-
-    for (l = pool->large; l; l = l->next) {
-        if (p == l->alloc) {
-            sky_free(l->alloc);
-            l->alloc = null;
-            return true;
-        }
-    }
-
-    return false;
-}
-
-void *
-sky_pcalloc(sky_pool_t *pool, sky_size_t size) {
-    void *p;
-
-    p = sky_palloc(pool, size);
-    if (sky_likely(p)) {
-        sky_memzero(p, size);
-    }
-
-    return p;
-}
-
-sky_pool_cleanup_t *
-sky_pool_cleanup_add(sky_pool_t *p, sky_size_t size) {
-    sky_pool_cleanup_t *c;
-
-    c = sky_palloc(p, sizeof(sky_pool_cleanup_t));
-    if (sky_unlikely(!c)) {
-        return null;
-    }
-    if (size) {
-        c->data = sky_palloc(p, size);
-        if (!c->data) {
-            return null;
-        }
-    } else {
-        c->data = null;
-    }
-    c->handler = null;
-    c->next = p->cleanup;
-    p->cleanup = c;
-
-    return c;
 }
