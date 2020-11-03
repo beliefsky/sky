@@ -78,6 +78,9 @@ sky_json_t *sky_json_put_double(sky_json_t *json, sky_uchar_t *key, sky_uint32_t
 
 sky_json_t *sky_json_put_string(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, sky_str_t *value);
 
+sky_json_t *sky_json_put_str_len(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len,
+                                 sky_uchar_t *v, sky_uint32_t v_len);
+
 sky_json_t *sky_json_add_object(sky_json_t *json);
 
 sky_json_t *sky_json_add_array(sky_json_t *json);
@@ -91,6 +94,8 @@ sky_json_t *sky_json_add_integer(sky_json_t *json, sky_int64_t value);
 sky_json_t *sky_json_add_double(sky_json_t *json, double value);
 
 sky_json_t *sky_json_add_string(sky_json_t *json, sky_str_t *value);
+
+sky_json_t *sky_json_add_str_len(sky_json_t *json, sky_uchar_t *v, sky_uint32_t v_len);
 
 static sky_inline void
 sky_json_object_init(sky_json_t *json, sky_pool_t *pool) {

@@ -334,6 +334,24 @@ sky_json_put_string(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, sk
     return &obj->value;
 }
 
+sky_json_t *
+sky_json_put_str_len(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, sky_uchar_t *v, sky_uint32_t v_len) {
+    sky_json_object_t *obj;
+
+    if (sky_unlikely(json->type != json_object)) {
+        return null;
+    }
+    obj = json_object_get(json);
+    obj->key.len = key_len;
+    obj->key.data = key;
+
+    obj->value.type = json_string;
+    obj->value.string.len = v_len;
+    obj->value.string.data = v;
+
+    return &obj->value;
+}
+
 
 sky_json_t *
 sky_json_add_object(sky_json_t *json) {
@@ -426,6 +444,21 @@ sky_json_add_string(sky_json_t *json, sky_str_t *value) {
     child = json_array_get(json);
     child->type = json_string;
     child->string = *value;
+
+    return child;
+}
+
+sky_json_t *
+sky_json_add_str_len(sky_json_t *json, sky_uchar_t *v, sky_uint32_t v_len) {
+    sky_json_t *child;
+
+    if (sky_unlikely(json->type != json_array)) {
+        return null;
+    }
+    child = json_array_get(json);
+    child->type = json_string;
+    child->string.len = v_len;
+    child->string.data = v;
 
     return child;
 }
