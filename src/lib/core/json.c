@@ -79,8 +79,9 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
         switch (current->type) {
             case json_object:
                 *p++ = '{';
-                current->index = 0;
                 if (current->object.length != 0) {
+                    current->index = 0;
+
                     obj = current->object.values;
                     current = &obj->value;
 
@@ -95,8 +96,9 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
                 break;
             case json_array:
                 *p++ = '[';
-                current->index = 0;
                 if (current->array.length != 0) {
+                    current->index = 0;
+
                     current = current->array.values;
                     continue;
                 }
