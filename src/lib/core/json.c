@@ -742,6 +742,16 @@ static sky_bool_t
 parse_string(sky_str_t *str, sky_uchar_t **ptr) {
     sky_uchar_t *p, *post;
 
+    static const sky_uchar_t *backslash_map = (sky_uchar_t *)
+            "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+            "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+            "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\\\0\0\0\0"
+            "\0\b\0\0\0\f\0\0\0\0\0\0\0\n\0\0\0\r\0\t\0\0\0\0\0\0\0\0\0\0\0\0"
+            "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+            "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+            "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
+            "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
+
     p = *ptr;
 #if defined(__AVX2__)
     sky_bool_t loop;
@@ -819,70 +829,81 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
     }
     post = p;
 
-    while (loop) {
-        switch (*(++p)) {
-            case '"':
-            case '\\':
-                *post++ = *p;
-                break;
-            case 'b':
-                *post++ = '\b';
-                break;
-            case 'f':
-                *post++ = '\f';
-                break;
-            case 'n':
-                *post++ = '\n';
-                break;
-            case 'r':
-                *post++ = '\r';
-                break;
-            case 't':
-                *post++ = '\t';
-                break;
-            default:
+    if (loop) {
+        do {
+            if (sky_unlikely(backslash_map[*(++p)])) {
                 return false;
-        }
-        p++;
+            }
+            *post++ = backslash_map[*(p++)];
 
-        for (;; p += 32) { // 转义符和引号在两块区域造成无法识别的问题
-            const __m256i data = _mm256_loadu_si256((const __m256i *) p);
-            const __m256i invalid_char_mask = _mm256_cmpeq_epi8(data, _mm256_min_epu8(data, _mm256_set1_epi8(0x1A)));
-            const __m256i quote_mask = _mm256_cmpeq_epi8(data, _mm256_set1_epi8('"'));
-            const __m256i backslash_mask = _mm256_cmpeq_epi8(data, _mm256_set1_epi8('\\'));
+            for (;; p += 32) { // 转义符和引号在两块区域造成无法识别的问题
+                const __m256i data = _mm256_loadu_si256((const __m256i *) p);
+                const __m256i invalid_char_mask = _mm256_cmpeq_epi8(data,
+                                                                    _mm256_min_epu8(data, _mm256_set1_epi8(0x1A)));
+                const __m256i quote_mask = _mm256_cmpeq_epi8(data, _mm256_set1_epi8('"'));
+                const __m256i backslash_mask = _mm256_cmpeq_epi8(data, _mm256_set1_epi8('\\'));
 
-            const sky_uint32_t quote_move_mask = (sky_uint32_t) _mm256_movemask_epi8(quote_mask);
-            const sky_uint32_t backslash_move_mask = (sky_uint32_t) _mm256_movemask_epi8(backslash_mask);
+                const sky_uint32_t quote_move_mask = (sky_uint32_t) _mm256_movemask_epi8(quote_mask);
+                const sky_uint32_t backslash_move_mask = (sky_uint32_t) _mm256_movemask_epi8(backslash_mask);
 
-            if (sky_unlikely(_mm256_testz_si256(invalid_char_mask, invalid_char_mask) != 0)) {
-                if (backslash_move_mask == 0) {
+                if (sky_unlikely(_mm256_testz_si256(invalid_char_mask, invalid_char_mask) != 0)) {
+                    if (backslash_move_mask == 0) {
+                        if (quote_move_mask == 0) {
+                            _mm256_storeu_si256((__m256i *) post, data);
+                            post += 32;
+                            continue;
+                        }
+                        const sky_int32_t quote_len = __builtin_ctz(quote_move_mask); // 引号位置
+                        sky_memmove(post, p, (sky_size_t) quote_len);
+                        post += quote_len;
+                        p += quote_len;
+
+                        *post = '\0';
+                        str->data = *ptr;
+                        str->len = (sky_size_t) (post - str->data);
+                        *ptr = p + 1;
+                        return true;
+                    }
+                    const sky_int32_t backslash_len = __builtin_ctz(backslash_move_mask); // 转义符位置
                     if (quote_move_mask == 0) {
-                        _mm256_storeu_si256((__m256i *) post, data);
-                        post += 32;
-                        continue;
+                        sky_memmove(post, p, (sky_size_t) backslash_len);
+                        post += backslash_len;
+                        p += backslash_len; // 未找到引号，数据还很长
+                        loop = true;
+                        break;
                     }
                     const sky_int32_t quote_len = __builtin_ctz(quote_move_mask); // 引号位置
-                    sky_memmove(post, p, (sky_size_t) quote_len);
-                    post += quote_len;
-                    p += quote_len;
+                    if (quote_len < backslash_len) {
 
-                    *post = '\0';
-                    str->data = *ptr;
-                    str->len = (sky_size_t) (post - str->data);
-                    *ptr = p + 1;
-                    return true;
-                }
-                const sky_int32_t backslash_len = __builtin_ctz(backslash_move_mask); // 转义符位置
-                if (quote_move_mask == 0) {
+                        sky_memmove(post, p, (sky_size_t) quote_len);
+                        post += quote_len;
+                        p += quote_len;
+
+                        *post = '\0';
+                        str->data = *ptr;
+                        str->len = (sky_size_t) (post - str->data);
+                        *ptr = p + 1;
+                        return true;
+                    }
                     sky_memmove(post, p, (sky_size_t) backslash_len);
                     post += backslash_len;
-                    p += backslash_len; // 未找到引号，数据还很长
-                    loop = true;
+                    p += backslash_len; // 找到引号，数据很快结束了
+                    loop = false;
                     break;
                 }
+                if (sky_unlikely(quote_move_mask == 0)) { // 未找到引号
+                    return false;
+                }
+                const sky_uint32_t invalid_char_move_mask = (sky_uint32_t) _mm256_movemask_epi8(invalid_char_mask);
+                const sky_int32_t invalid_char_len = __builtin_ctz(invalid_char_move_mask);
                 const sky_int32_t quote_len = __builtin_ctz(quote_move_mask); // 引号位置
-                if (quote_len < backslash_len) {
+                if (sky_unlikely(invalid_char_len < quote_len)) {
+                    return false;
+                }
 
+                const sky_int32_t backslash_len = __builtin_ctz(backslash_move_mask); // 转义符位置
+
+                if (quote_len < backslash_len) {
                     sky_memmove(post, p, (sky_size_t) quote_len);
                     post += quote_len;
                     p += quote_len;
@@ -899,43 +920,17 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
                 loop = false;
                 break;
             }
-            if (sky_unlikely(quote_move_mask == 0)) { // 未找到引号
-                return false;
-            }
-            const sky_uint32_t invalid_char_move_mask = (sky_uint32_t) _mm256_movemask_epi8(invalid_char_mask);
-            const sky_int32_t invalid_char_len = __builtin_ctz(invalid_char_move_mask);
-            const sky_int32_t quote_len = __builtin_ctz(quote_move_mask); // 引号位置
-            if (sky_unlikely(invalid_char_len < quote_len)) {
-                return false;
-            }
-
-            const sky_int32_t backslash_len = __builtin_ctz(backslash_move_mask); // 转义符位置
-
-            if (quote_len < backslash_len) {
-                sky_memmove(post, p, (sky_size_t) quote_len);
-                post += quote_len;
-                p += quote_len;
-
-                *post = '\0';
-                str->data = *ptr;
-                str->len = (sky_size_t) (post - str->data);
-                *ptr = p + 1;
-                return true;
-            }
-            sky_memmove(post, p, (sky_size_t) backslash_len);
-            post += backslash_len;
-            p += backslash_len; // 找到引号，数据很快结束了
-            loop = false;
-            break;
-        }
+        } while (loop);
     }
 #else
     for (;;) {
         if (sky_unlikely(*p < ' ')) {
             return false;
-        } else if (*p == '\\') {
+        }
+        if (*p == '\\') {
             break;
-        } else if (*p == '"') {
+        }
+        if (*p == '"') {
             *p = '\0';
             str->data = *ptr;
             str->len = (sky_size_t) (p - str->data);
@@ -948,58 +943,23 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
     }
     post = p;
 #endif
-    switch (*(++p)) {
-        case '"':
-        case '\\':
-            *post++ = *p;
-            break;
-        case 'b':
-            *post++ = '\b';
-            break;
-        case 'f':
-            *post++ = '\f';
-            break;
-        case 'n':
-            *post++ = '\n';
-            break;
-        case 'r':
-            *post++ = '\r';
-            break;
-        case 't':
-            *post++ = '\t';
-            break;
-        default:
-            return false;
+    if (sky_unlikely(backslash_map[*(++p)])) {
+        return false;
     }
-    p++;
+    *post++ = backslash_map[*(p++)];
 
     for (;;) {
         if (sky_unlikely(*p < ' ')) {
             return false;
-        } else if (*p == '\\') {
-            switch (*(++p)) {
-                case '"':
-                case '\\':
-                    break;
-                case 'b':
-                    *p = '\b';
-                    break;
-                case 'f':
-                    *p = '\f';
-                    break;
-                case 'n':
-                    *p = '\n';
-                    break;
-                case 'r':
-                    *p = '\r';
-                    break;
-                case 't':
-                    *p = '\t';
-                    break;
-                default:
-                    return false;
+        }
+        if (*p == '\\') {
+            if (sky_unlikely(backslash_map[*(++p)])) {
+                return false;
             }
-        } else if (*p == '"') {
+            *post++ = backslash_map[*(p++)];
+            continue;
+        }
+        if (*p == '"') {
             *post = '\0';
             str->data = *ptr;
             str->len = (sky_size_t) (post - str->data);
