@@ -743,7 +743,7 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
     sky_uchar_t *p, *post;
 
     p = *ptr;
-#if defined(__AVX2__)
+#if defined(__AVX23__)
     for (;; p += 31) { // 转义符和引号在两块区域造成无法识别的问题
         const __m256i data = _mm256_loadu_si256((const __m256i *) p);
         const __m256i quote_mask = _mm256_cmpeq_epi8(data, _mm256_set1_epi8('"'));
@@ -795,41 +795,81 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
     for (;;) {
         if (sky_unlikely(*p < ' ')) {
             return false;
-        } else if (*p == '"') {
-            if (sky_likely(*(p - 1) != '\\')) {
-                *p = '\0';
-                str->data = *ptr;
-                str->len = (sky_size_t) (p - str->data);
-
-                *ptr = p + 1;
-
-                return true;
-            }
+        } else if (*p == '\\') {
+            ++p;
             break;
+        } else if (*p == '"') {
+            *p = '\0';
+            str->data = *ptr;
+            str->len = (sky_size_t) (p - str->data);
+
+            *ptr = p + 1;
+
+            return true;
         }
         ++p;
     }
 #endif
-
-    *(p - 1) = *p;
+    switch (*p) {
+        case '"':
+        case '\\':
+            *(p - 1) = *p;
+            break;
+        case 'b':
+            *(p - 1) = '\b';
+            break;
+        case 'f':
+            *(p - 1) = '\f';
+            break;
+        case 'n':
+            *(p - 1) = '\n';
+            break;
+        case 'r':
+            *(p - 1) = '\r';
+            break;
+        case 't':
+            *(p - 1) = '\t';
+            break;
+        default:
+            return false;
+    }
     post = p++;
+
 
     for (;;) {
         if (sky_unlikely(*p < ' ')) {
             return false;
-        } else if (*p == '"') {
-            if (sky_likely(*(p - 1) != '\\')) {
-                *post = '\0';
-                str->data = *ptr;
-                str->len = (sky_size_t) (post - str->data);
-                *ptr = p + 1;
-
-                return true;
+        } else if (*p == '\\') {
+            switch (*(++p)) {
+                case '"':
+                case '\\':
+                    break;
+                case 'b':
+                    *p = '\b';
+                    break;
+                case 'f':
+                    *p = '\f';
+                    break;
+                case 'n':
+                    *p = '\n';
+                    break;
+                case 'r':
+                    *p = '\r';
+                    break;
+                case 't':
+                    *p = '\t';
+                    break;
+                default:
+                    return false;
             }
-            *(post - 1) = *p++;
-            continue;
-        }
+        } else if (*p == '"') {
+            *post = '\0';
+            str->data = *ptr;
+            str->len = (sky_size_t) (post - str->data);
+            *ptr = p + 1;
 
+            return true;
+        }
         *post++ = *p++;
     }
 }
