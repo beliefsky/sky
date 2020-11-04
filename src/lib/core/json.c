@@ -746,21 +746,60 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
 #if defined(__AVX2__)
     for (;; p += 32) { // 转义符和引号在两块区域造成无法识别的问题
         const __m256i data = _mm256_loadu_si256((const __m256i *) p);
+        const __m256i invalid_char_mask = _mm256_cmpeq_epi8(data, _mm256_min_epu8(data, _mm256_set1_epi8(0x1A)));
         const __m256i quote_mask = _mm256_cmpeq_epi8(data, _mm256_set1_epi8('"'));
         const __m256i backslash_mask = _mm256_cmpeq_epi8(data, _mm256_set1_epi8('\\'));
+
         const sky_uint32_t quote_move_mask = (sky_uint32_t) _mm256_movemask_epi8(quote_mask);
-        const sky_uint32_t move_mask = (sky_uint32_t) _mm256_movemask_epi8(backslash_mask);
-        if (quote_move_mask == 0) {
-            if (move_mask == 0) {
-                continue;
+        const sky_uint32_t backslash_move_mask = (sky_uint32_t) _mm256_movemask_epi8(backslash_mask);
+
+        if (sky_unlikely(_mm256_testz_si256(invalid_char_mask, invalid_char_mask) != 0)) {
+            if (backslash_move_mask == 0) {
+                if (quote_move_mask == 0) {
+                    continue;
+                }
+                p += __builtin_ctz(quote_move_mask);
+                *p = '\0';
+                str->data = *ptr;
+                str->len = (sky_size_t) (p - str->data);
+
+                *ptr = p + 1;
+
+                return true;
             }
-            p += __builtin_ctz(move_mask);
+            const sky_int32_t backslash_len = __builtin_ctz(backslash_move_mask); // 转义符位置
+            if (quote_move_mask == 0) {
+                p += backslash_len;
+                break;
+            }
+            const sky_int32_t quote_len = __builtin_ctz(quote_move_mask); // 引号位置
+            if (quote_len < backslash_len) {
+
+                p += quote_len;
+                *p = '\0';
+                str->data = *ptr;
+                str->len = (sky_size_t) (p - str->data);
+
+                *ptr = p + 1;
+
+                return true;
+            }
+            p += backslash_len;
             break;
         }
+        if (sky_unlikely(quote_move_mask == 0)) { // 未找到引号
+            return false;
+        }
+        const sky_uint32_t invalid_char_move_mask = (sky_uint32_t) _mm256_movemask_epi8(invalid_char_mask);
+        const sky_int32_t invalid_char_len = __builtin_ctz(invalid_char_move_mask);
+        const sky_int32_t quote_len = __builtin_ctz(quote_move_mask); // 引号位置
+        if (sky_unlikely(invalid_char_len < quote_len)) {
+            return false;
+        }
 
-        const sky_int32_t quote_len = __builtin_ctz(quote_move_mask);
-        const sky_int32_t len = __builtin_ctz(move_mask);
-        if (quote_len <= len) {
+        const sky_int32_t backslash_len = __builtin_ctz(backslash_move_mask); // 转义符位置
+
+        if (quote_len < backslash_len) {
             p += quote_len;
             *p = '\0';
             str->data = *ptr;
@@ -770,16 +809,15 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
 
             return true;
         }
-        p += len;
+        p += backslash_len;
+        
         break;
     }
-    ++p;
 #else
     for (;;) {
         if (sky_unlikely(*p < ' ')) {
             return false;
         } else if (*p == '\\') {
-            ++p;
             break;
         } else if (*p == '"') {
             *p = '\0';
@@ -793,7 +831,7 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
         ++p;
     }
 #endif
-    switch (*p) {
+    switch (*(++p)) {
         case '"':
         case '\\':
             *(p - 1) = *p;
