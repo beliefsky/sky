@@ -740,8 +740,9 @@ parse_whitespace(sky_uchar_t **ptr) {
 
 static sky_bool_t
 parse_string(sky_str_t *str, sky_uchar_t **ptr) {
-    sky_uchar_t *p = *ptr;
+    sky_uchar_t *p, *post;
 
+    p = *ptr;
 #if defined(__AVX2__)
     for (;; p += 31) { // 转义符和引号在两块区域造成无法识别的问题
         const __m256i data = _mm256_loadu_si256((const __m256i *) p);
@@ -788,30 +789,9 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
 
             return true;
         }
-        *(p - 1) = *p;
-        sky_uchar_t *post = p++;
-
-        for (;;) {
-            if (sky_unlikely(*p < ' ')) {
-                return false;
-            } else if (*p == '"') {
-                if (sky_likely(*(p - 1) != '\\')) {
-                    *post = '\0';
-                    str->data = *ptr;
-                    str->len = (sky_size_t) (post - str->data);
-                    *ptr = p + 1;
-
-                    return true;
-                }
-                *(post - 1) = *p++;
-                continue;
-            }
-
-            *post++ = *p++;
-        }
+        break;
     }
 #else
-
     for (;;) {
         if (sky_unlikely(*p < ' ')) {
             return false;
@@ -825,31 +805,33 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
 
                 return true;
             }
-            *(p - 1) = *p;
-            sky_uchar_t *post = p++;
-
-            for (;;) {
-                if (sky_unlikely(*p < ' ')) {
-                    return false;
-                } else if (*p == '"') {
-                    if (sky_likely(*(p - 1) != '\\')) {
-                        *post = '\0';
-                        str->data = *ptr;
-                        str->len = (sky_size_t) (post - str->data);
-                        *ptr = p + 1;
-
-                        return true;
-                    }
-                    *(post - 1) = *p++;
-                    continue;
-                }
-
-                *post++ = *p++;
-            }
+            break;
         }
         ++p;
     }
 #endif
+
+    *(p - 1) = *p;
+    post = p++;
+
+    for (;;) {
+        if (sky_unlikely(*p < ' ')) {
+            return false;
+        } else if (*p == '"') {
+            if (sky_likely(*(p - 1) != '\\')) {
+                *post = '\0';
+                str->data = *ptr;
+                str->len = (sky_size_t) (post - str->data);
+                *ptr = p + 1;
+
+                return true;
+            }
+            *(post - 1) = *p++;
+            continue;
+        }
+
+        *post++ = *p++;
+    }
 }
 
 static sky_bool_t
