@@ -743,54 +743,37 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
     sky_uchar_t *p, *post;
 
     p = *ptr;
-#if defined(__AVX23__)
-    for (;; p += 31) { // 转义符和引号在两块区域造成无法识别的问题
+#if defined(__AVX2__)
+    for (;; p += 32) { // 转义符和引号在两块区域造成无法识别的问题
         const __m256i data = _mm256_loadu_si256((const __m256i *) p);
         const __m256i quote_mask = _mm256_cmpeq_epi8(data, _mm256_set1_epi8('"'));
-        const sky_uint32_t quote_move_mask = (sky_uint32_t) _mm256_movemask_epi8(quote_mask);
-        if (quote_move_mask == 0) {
-            continue;
-        }
-        const sky_int32_t len = __builtin_ctz(quote_move_mask);
-
         const __m256i backslash_mask = _mm256_cmpeq_epi8(data, _mm256_set1_epi8('\\'));
-        if (_mm256_testz_si256(backslash_mask, backslash_mask)) {
-
-            const sky_uint32_t idx_mask = UINT64_C(0xFFFFFFFF) >> (32 - len);
-
-            // no unsigned 8-bit cmplt
-            const __m256i invalid_char_mask = _mm256_cmpeq_epi8(data, _mm256_min_epu8(data, _mm256_set1_epi8(0x1A)));
-            const sky_uint32_t invalid_char_move_mask = (sky_uint32_t) _mm256_movemask_epi8(invalid_char_mask);
-
-            if (sky_unlikely((invalid_char_move_mask & idx_mask) != 0)) {
-                return false;
+        const sky_uint32_t quote_move_mask = (sky_uint32_t) _mm256_movemask_epi8(quote_mask);
+        const sky_uint32_t move_mask = (sky_uint32_t) _mm256_movemask_epi8(backslash_mask);
+        if (quote_move_mask == 0) {
+            if (move_mask == 0) {
+                continue;
             }
-            p += len;
+            p += __builtin_ctz(move_mask);
+            break;
+        }
 
+        const sky_int32_t quote_len = __builtin_ctz(quote_move_mask);
+        const sky_int32_t len = __builtin_ctz(move_mask);
+        if (quote_len <= len) {
+            p += quote_len;
             *p = '\0';
             str->data = *ptr;
             str->len = (sky_size_t) (p - str->data);
 
             *ptr = p + 1;
 
-
             return true;
         }
-
-
         p += len;
-
-        if (*(p - 1) != '\\') {
-            *p = '\0';
-            str->data = *ptr;
-            str->len = (sky_size_t) (p - str->data);
-
-            *ptr = p + 1;
-
-            return true;
-        }
         break;
     }
+    ++p;
 #else
     for (;;) {
         if (sky_unlikely(*p < ' ')) {
