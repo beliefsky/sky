@@ -34,7 +34,7 @@
 
 static void parse_whitespace(sky_uchar_t **ptr);
 
-static sky_bool_t parse_string(sky_str_t *str, sky_uchar_t **ptr);
+static sky_bool_t parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end);
 
 static sky_bool_t parse_number(sky_json_t *json, sky_uchar_t **ptr);
 
@@ -564,14 +564,14 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                 if ((next & NEXT_KEY) != 0) {
                     object = json_object_get(current);
 
-                    if (sky_unlikely(!parse_string(&object->key, &data))) {
+                    if (sky_unlikely(!parse_string(&object->key, &data, end))) {
                         return null;
                     }
                     next = NEXT_KEY_VALUE;
                 } else if ((next & NEXT_OBJECT_VALUE) != 0) {
                     tmp = &object->value;
                     tmp->type = json_string;
-                    if (sky_unlikely(!parse_string(&tmp->string, &data))) {
+                    if (sky_unlikely(!parse_string(&tmp->string, &data, end))) {
                         return null;
                     }
                     next = NEXT_NODE | NEXT_OBJECT_END;
@@ -579,7 +579,7 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                     tmp = json_array_get(current);
                     tmp->type = json_string;
 
-                    if (sky_unlikely(!parse_string(&tmp->string, &data))) {
+                    if (sky_unlikely(!parse_string(&tmp->string, &data, end))) {
                         return null;
                     }
                     next = NEXT_NODE | NEXT_ARRAY_END;
@@ -739,7 +739,7 @@ parse_whitespace(sky_uchar_t **ptr) {
 
 
 static sky_bool_t
-parse_string(sky_str_t *str, sky_uchar_t **ptr) {
+parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end) {
     sky_uchar_t *p, *post;
 
     static const sky_uchar_t *backslash_map = (sky_uchar_t *)
@@ -753,7 +753,9 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 
     p = *ptr;
-#if defined(__AVX2__)
+#if defined(__AVX23__)
+    (void )end;
+
     sky_bool_t loop;
 
     for (;; p += 32) { // 转义符和引号在两块区域造成无法识别的问题
@@ -922,7 +924,129 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr) {
             }
         } while (loop);
     }
+#elif defined(__SSE4_2__)
+#ifdef _MSC_VER
+#define ALIGNED(_n) _declspec(align(_n))
 #else
+#define ALIGNED(_n) __attribute__((aligned(_n)))
+#endif
+
+    static const sky_uchar_t ALIGNED(16) ranges[16] = "\0\037"
+                                                      "\"\""
+                                                      "\\\\";
+#undef ALIGNED
+    sky_bool_t loop = false;
+    sky_size_t size = (sky_size_t) (end - p);
+    if (sky_likely(size >= 16)) {
+        sky_size_t left = size & ~15U;
+
+        __m128i ranges16 = _mm_loadu_si128((const __m128i *) ranges);
+        do {
+            __m128i b16 = _mm_loadu_si128((const __m128i *) p);
+            sky_int32_t r = _mm_cmpestri(
+                    ranges16,
+                    6,
+                    b16,
+                    16,
+                    _SIDD_LEAST_SIGNIFICANT | _SIDD_CMP_RANGES | _SIDD_UBYTE_OPS
+            );
+            if (sky_unlikely(r != 16)) {
+                p += r;
+
+                if (sky_unlikely(*p < ' ')) {
+                    return false;
+                }
+                if (*p == '"') {
+                    *p = '\0';
+                    str->data = *ptr;
+                    str->len = (sky_size_t) (p - str->data);
+
+                    *ptr = p + 1;
+
+                    return true;
+                }
+                loop = true;
+                break;
+            }
+            p += 16;
+            left -= 16;
+        } while (sky_likely(left != 0));
+    }
+    if (!loop) {
+        for (;;) {
+            if (sky_unlikely(*p < ' ')) {
+                return false;
+            }
+            if (*p == '\\') {
+                break;
+            }
+            if (*p == '"') {
+                *p = '\0';
+                str->data = *ptr;
+                str->len = (sky_size_t) (p - str->data);
+
+                *ptr = p + 1;
+
+                return true;
+            }
+            ++p;
+        }
+        post = p;
+    } else {
+        post = p;
+        do {
+            if (sky_unlikely(backslash_map[*(++p)])) {
+                return false;
+            }
+            *post++ = backslash_map[*(p++)];
+
+            loop = false;
+            size = (sky_size_t) (end - p);
+            if (sky_likely(size >= 16)) {
+
+                sky_size_t left = size & ~15U;
+
+                __m128i ranges16 = _mm_loadu_si128((const __m128i *) ranges);
+                do {
+                    __m128i data = _mm_loadu_si128((const __m128i *) p);
+                    sky_int32_t r = _mm_cmpestri(
+                            ranges16,
+                            6,
+                            data,
+                            16,
+                            _SIDD_LEAST_SIGNIFICANT | _SIDD_CMP_RANGES | _SIDD_UBYTE_OPS
+                    );
+                    if (sky_unlikely(r != 16)) {
+                        sky_memmove(post, p, (sky_size_t) r);
+                        p += r;
+                        post += r;
+
+                        if (sky_unlikely(*p < ' ')) {
+                            return false;
+                        }
+                        if (*p == '"') {
+                            *p = '\0';
+                            str->data = *ptr;
+                            str->len = (sky_size_t) (p - str->data);
+
+                            *ptr = p + 1;
+
+                            return true;
+                        }
+                        loop = true;
+                        break;
+                    }
+                    _mm_storeu_si128((__m128i_u *) post, data);
+                    p += 16;
+                    post += 16;
+                    left -= 16;
+                } while (sky_likely(left != 0));
+            }
+        } while (loop);
+    }
+
+#else
+    (void )end;
     for (;;) {
         if (sky_unlikely(*p < ' ')) {
             return false;
