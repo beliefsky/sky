@@ -753,7 +753,7 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end) {
             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 
     p = *ptr;
-#if defined(__AVX23__)
+#if defined(__AVX2__)
     (void )end;
 
     sky_bool_t loop;
