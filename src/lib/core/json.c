@@ -1251,7 +1251,7 @@ json_buf_append_uchar(json_buf_t *buf, sky_uchar_t v) {
         return;
     }
 
-    if (buf->end == buf->pool->d.last && buf->pool->d.last + buf->size <= buf->pool->d.end) {
+    if (sky_likely(buf->end == buf->pool->d.last && buf->pool->d.last + buf->size <= buf->pool->d.end)) {
         buf->pool->d.last += buf->size;
         buf->end += buf->size;
     } else {
@@ -1276,7 +1276,7 @@ json_buf_append_str(json_buf_t *buf, const sky_uchar_t *v, sky_size_t v_len) {
     }
     const sky_size_t size = sky_max(buf->size, v_len);
 
-    if (buf->end == buf->pool->d.last && buf->pool->d.last + size <= buf->pool->d.end) {
+    if (sky_likely(buf->end == buf->pool->d.last && buf->pool->d.last + size <= buf->pool->d.end)) {
         buf->pool->d.last += size;
         buf->end += size;
     } else {
@@ -1301,7 +1301,7 @@ json_buf_append_integer(json_buf_t *buf, sky_int64_t v) {
         return;
     }
 
-    if (buf->end == buf->pool->d.last && buf->pool->d.last + buf->size <= buf->pool->d.end) {
+    if (sky_likely(buf->end == buf->pool->d.last && buf->pool->d.last + buf->size <= buf->pool->d.end)) {
         buf->pool->d.last += buf->size;
         buf->end += buf->size;
     } else {
