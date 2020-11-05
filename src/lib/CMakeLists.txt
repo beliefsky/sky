@@ -41,9 +41,7 @@ set(SOURCES
         )
 add_library(sky_static STATIC ${SOURCES})
 
-target_link_libraries(sky_static
-        m
-        )
+target_link_libraries(sky_static)
 
 set_target_properties(sky_static PROPERTIES
         OUTPUT_NAME sky CLEAN_DIRECT_OUTPUT 1)
