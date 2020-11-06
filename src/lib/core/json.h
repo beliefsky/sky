@@ -49,12 +49,14 @@ struct sky_json_s {
 struct sky_json_object_s {
     sky_json_t value;
     sky_str_t key;
-    sky_json_object_t *child[2];
+    sky_json_object_t *prev;
+    sky_json_object_t *next;
 };
 
 struct sky_json_array_s {
     sky_json_t value;
-    sky_json_array_t *child[2];
+    sky_json_array_t *prev;
+    sky_json_array_t *next;
 };
 
 sky_json_t *sky_json_parse(sky_pool_t *pool, sky_str_t *json);
@@ -104,7 +106,7 @@ sky_json_object_create(sky_pool_t *pool) {
     json->pool = pool;
 
     json->object = (sky_json_object_t *) (json + 1);
-    json->object->child[0] = json->object->child[1] = json->object;
+    json->object->prev = json->object->next = json->object;
 
     return json;
 }
@@ -117,7 +119,7 @@ sky_json_array_create(sky_pool_t *pool) {
     json->pool = pool;
 
     json->array = (sky_json_array_t *) (json + 1);
-    json->array->child[0] = json->array->child[1] = json->array;
+    json->array->prev = json->array->next = json->array;
 
     return json;
 }
