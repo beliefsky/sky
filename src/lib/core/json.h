@@ -15,6 +15,7 @@ extern "C" {
 
 typedef struct sky_json_s sky_json_t;
 typedef struct sky_json_object_s sky_json_object_t;
+typedef struct sky_json_array_s sky_json_array_t;
 
 struct sky_json_s {
     enum {
@@ -26,9 +27,6 @@ struct sky_json_s {
         json_boolean,
         json_null
     } type;
-
-    sky_uint16_t index;
-
     union {
         sky_bool_t boolean;
         sky_int64_t integer;
@@ -36,26 +34,27 @@ struct sky_json_s {
         sky_str_t string;
 
         struct {
-            sky_uint16_t length;
-            sky_uint16_t alloc;
-            sky_json_object_t *values;
-        } object;
-
-        struct {
-            sky_uint16_t length;
-            sky_uint16_t alloc;
-            sky_json_t *values;
-        } array;
+            union {
+                sky_json_object_t *object;
+                sky_json_array_t *array;
+            };
+            void *current;
+            sky_pool_t *pool;
+        };
     };
-
-    sky_pool_t *pool;
     sky_json_t *parent;
 };
 
 
 struct sky_json_object_s {
-    sky_str_t key;
     sky_json_t value;
+    sky_str_t key;
+    sky_json_object_t *child[2];
+};
+
+struct sky_json_array_s {
+    sky_json_t value;
+    sky_json_array_t *child[2];
 };
 
 sky_json_t *sky_json_parse(sky_pool_t *pool, sky_str_t *json);
@@ -97,22 +96,30 @@ sky_json_t *sky_json_add_string(sky_json_t *json, sky_str_t *value);
 
 sky_json_t *sky_json_add_str_len(sky_json_t *json, sky_uchar_t *v, sky_uint32_t v_len);
 
-static sky_inline void
-sky_json_object_init(sky_json_t *json, sky_pool_t *pool) {
+static sky_inline sky_json_t *
+sky_json_object_create(sky_pool_t *pool) {
+    sky_json_t *json = sky_palloc(pool, sizeof(sky_json_t) + sizeof(sky_json_object_t));
+
     json->type = json_object;
     json->pool = pool;
-    json->object.length = 0;
-    json->object.alloc = 16;
-    json->object.values = sky_pnalloc(pool, sizeof(sky_json_object_t) << 4);
+
+    json->object = (sky_json_object_t *) (json + 1);
+    json->object->child[0] = json->object->child[1] = json->object;
+
+    return json;
 }
 
-static sky_inline void
-sky_json_array_init(sky_json_t *json, sky_pool_t *pool) {
+static sky_inline sky_json_t *
+sky_json_array_create(sky_pool_t *pool) {
+    sky_json_t *json = sky_palloc(pool, sizeof(sky_json_t) + sizeof(sky_json_array_t));
+
     json->type = json_array;
     json->pool = pool;
-    json->array.length = 0;
-    json->array.alloc = 16;
-    json->array.values = sky_pnalloc(pool, sizeof(sky_json_t) << 4);
+
+    json->array = (sky_json_array_t *) (json + 1);
+    json->array->child[0] = json->array->child[1] = json->array;
+
+    return json;
 }
 
 #if defined(__cplusplus)
