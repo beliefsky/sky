@@ -168,7 +168,7 @@ sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_uint64_t now) {
         }
     }
 
-    if (cascade_all(ctx, wheel ?: 1)) {
+    if (cascade_all(ctx, wheel + (wheel == 0))) {
         wheel = 0;
         goto redo;
     }
@@ -186,7 +186,7 @@ sky_timer_wheel_link(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky
 
 void
 sky_timer_wheel_expired(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky_uint64_t at) {
-    if (entry->next) {
+    if (sky_likely(entry->next)) {
         entry->next->prev = entry->prev;
         entry->prev->next = entry->next;
 
