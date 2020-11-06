@@ -47,6 +47,8 @@ static sky_bool_t parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *e
 
 static sky_bool_t parse_number(sky_json_t *json, sky_uchar_t **ptr);
 
+static sky_bool_t backslash_parse(sky_uchar_t **ptr, sky_uchar_t **post);
+
 static sky_json_t *parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end);
 
 static sky_json_object_t *json_object_get(sky_json_t *json);
@@ -575,6 +577,7 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                     object = json_object_get(current);
 
                     if (sky_unlikely(!parse_string(&object->key, &data, end))) {
+                        sky_log_info("%s", object->key.data);
                         return null;
                     }
                     next = NEXT_KEY_VALUE;
@@ -752,16 +755,6 @@ static sky_bool_t
 parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end) {
     sky_uchar_t *p, *post;
 
-    static const sky_uchar_t *backslash_map = (sky_uchar_t *)
-            "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-            "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-            "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\\\0\0\0\0"
-            "\0\b\0\0\0\f\0\0\0\0\0\0\0\n\0\0\0\r\0\t\0\0\0\0\0\0\0\0\0\0\0\0"
-            "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-            "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-            "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
-            "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
-
     p = *ptr;
 #if defined(__AVX2__)
     (void) end;
@@ -843,10 +836,9 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end) {
 
     if (loop) {
         do {
-            if (sky_unlikely(backslash_map[*(++p)])) {
+            if (sky_unlikely(!backslash_parse(&p, &post))) {
                 return false;
             }
-            *post++ = backslash_map[*(p++)];
 
             for (;; p += 32) { // 转义符和引号在两块区域造成无法识别的问题
                 const __m256i data = _mm256_loadu_si256((const __m256i *) p);
@@ -1005,10 +997,9 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end) {
     } else {
         post = p;
         do {
-            if (sky_unlikely(backslash_map[*(++p)])) {
-                return false;
-            }
-            *post++ = backslash_map[*(p++)];
+           if (sky_unlikely(!backslash_parse(&p, &post))) {
+               return false;
+           }
 
             loop = false;
             size = (sky_size_t) (end - p);
@@ -1056,7 +1047,7 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end) {
     }
 
 #else
-    (void )end;
+    (void) end;
     for (;;) {
         if (sky_unlikely(*p < ' ')) {
             return false;
@@ -1077,20 +1068,18 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end) {
     }
     post = p;
 #endif
-    if (sky_unlikely(backslash_map[*(++p)])) {
+    if (sky_unlikely(!backslash_parse(&p, &post))) {
         return false;
     }
-    *post++ = backslash_map[*(p++)];
 
     for (;;) {
         if (sky_unlikely(*p < ' ')) {
             return false;
         }
         if (*p == '\\') {
-            if (sky_unlikely(backslash_map[*(++p)])) {
+            if (sky_unlikely(!backslash_parse(&p, &post))) {
                 return false;
             }
-            *post++ = backslash_map[*(p++)];
             continue;
         }
         if (*p == '"') {
@@ -1141,14 +1130,44 @@ parse_number(sky_json_t *json, sky_uchar_t **ptr) {
                     .data = *ptr
             };
 
-             json->type = json_integer;
-             *ptr = p;
+            json->type = json_integer;
+            *ptr = p;
 
             return sky_str_to_int64(&str, &json->integer);
         }
         ++p;
     }
 #endif
+}
+
+static sky_inline sky_bool_t
+backslash_parse(sky_uchar_t **ptr, sky_uchar_t **post) {
+    switch (*(++(*ptr))) {
+        case '"':
+        case '\\':
+            *((*post)++) = **ptr;
+            break;
+        case 'b':
+            *((*post)++) = '\b';
+            break;
+        case 'f':
+            *((*post)++) = '\f';
+            break;
+        case 'n':
+            *((*post)++) = '\n';
+            break;
+        case 'r':
+            *((*post)++) = '\r';
+            break;
+        case 't':
+            *((*post)++) = '\t';
+            break;
+        default:
+            return false;
+    }
+    ++*ptr;
+
+    return true;
 }
 
 
