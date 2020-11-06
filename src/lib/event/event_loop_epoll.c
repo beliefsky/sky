@@ -100,8 +100,11 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             }
             // 是否可读
             ev->now = loop->now;
-            ev->read = (event->events & EPOLLIN) ? true : ev->read;
-            ev->write = (event->events & EPOLLOUT) ? true : ev->write;
+
+            const sky_bool_t status[] = {true, ev->read, ev->write};
+
+            ev->read = status[(event->events & EPOLLIN) == 0];
+            ev->write = status[((event->events & EPOLLOUT) == 0) << 1];
 
             if (ev->wait) {
                 continue;
@@ -113,7 +116,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 ev->timer.cb(&ev->timer);
                 continue;
             }
-            sky_timer_wheel_expired(ctx, &ev->timer, (sky_uint64_t)(ev->now + ev->timeout));
+            sky_timer_wheel_expired(ctx, &ev->timer, (sky_uint64_t) (ev->now + ev->timeout));
         }
 
         if (loop->update) {
@@ -126,7 +129,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
         sky_timer_wheel_run(ctx, (sky_uint64_t) now);
         next_time = sky_timer_wheel_wake_at(ctx);
-        timeout = next_time == SKY_UINT64_MAX ? -1 : (sky_int32_t)(next_time - (sky_uint64_t) now) * 1000;
+        timeout = next_time == SKY_UINT64_MAX ? -1 : (sky_int32_t) (next_time - (sky_uint64_t) now) * 1000;
     }
 }
 
