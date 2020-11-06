@@ -65,6 +65,8 @@ static sky_str_t *json_buf_clean(json_buf_t *buf);
 
 static void json_buf_append_uchar(json_buf_t *buf, sky_uchar_t v);
 
+static void json_buf_append_uchar_two(json_buf_t *buf, sky_uchar_t v1, sky_uchar_t v2);
+
 static void json_buf_append_str(json_buf_t *buf, const sky_uchar_t *v, sky_size_t v_len);
 
 static void json_buf_append_integer(json_buf_t *buf, sky_int64_t v);
@@ -108,29 +110,28 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
     for (;;) {
         switch (current->type) {
             case json_object:
-                json_buf_append_uchar(&buf, '{');
                 if (current->object == current->object->prev) {
-                    json_buf_append_uchar(&buf, '}');
+                    json_buf_append_uchar_two(&buf, '{', '}');
                     break;
                 }
                 obj = current->object->next;
                 current->current = obj;
                 current = &obj->value;
 
-                json_buf_append_uchar(&buf, '"');
+                json_buf_append_uchar_two(&buf, '{', '"');
+
                 json_buf_append_str(&buf, obj->key.data, obj->key.len);
 
-                json_buf_append_uchar(&buf, '"');
-                json_buf_append_uchar(&buf, ':');
+                json_buf_append_uchar_two(&buf, '"', ':');
                 continue;
             case json_array:
-                json_buf_append_uchar(&buf, '[');
                 if (current->array == current->array->prev) {
-                    json_buf_append_uchar(&buf, ']');
+                    json_buf_append_uchar_two(&buf, '[', ']');
                     break;
                 }
                 current->current = current->array->next;
                 current = current->current;
+                json_buf_append_uchar(&buf, '[');
                 continue;
             case json_integer:
                 json_buf_append_integer(&buf, current->integer);
@@ -158,15 +159,12 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
             tmp->current = ((sky_json_object_t *) tmp->current)->next;
 
             if (tmp->current != tmp->object) {
-                json_buf_append_uchar(&buf, ',');
-
                 obj = obj->next;
                 current = &obj->value;
 
-                json_buf_append_uchar(&buf, '"');
+                json_buf_append_uchar_two(&buf, ',', '"');
                 json_buf_append_str(&buf, obj->key.data, obj->key.len);
-                json_buf_append_uchar(&buf, '"');
-                json_buf_append_uchar(&buf, ':');
+                json_buf_append_uchar_two(&buf, '"', ':');
                 continue;
             }
             json_buf_append_uchar(&buf, '}');
@@ -193,15 +191,13 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
                     json_buf_append_uchar(&buf, '}');
                     continue;
                 }
-                json_buf_append_uchar(&buf, ',');
 
                 obj = (sky_json_object_t *) tmp->current;
                 current = &obj->value;
 
-                json_buf_append_uchar(&buf, '"');
+                json_buf_append_uchar_two(&buf, ',', '"');
                 json_buf_append_str(&buf, obj->key.data, obj->key.len);
-                json_buf_append_uchar(&buf, '"');
-                json_buf_append_uchar(&buf, ':');
+                json_buf_append_uchar_two(&buf, '"', ':');
             } else {
                 tmp->current = ((sky_json_array_t *) tmp->current)->next;
                 if (tmp->current == tmp->array) {
@@ -1269,6 +1265,30 @@ json_buf_append_uchar(json_buf_t *buf, sky_uchar_t v) {
     buf->size <<= 1;
 
     *(buf->post++) = v;
+}
+
+static sky_inline void
+json_buf_append_uchar_two(json_buf_t *buf, sky_uchar_t v1, sky_uchar_t v2) {
+    if (sky_likely((buf->post + 2) <= buf->end)) {
+        *(buf->post++) = v1;
+        *(buf->post++) = v2;
+        return;
+    }
+
+    if (sky_likely(buf->end == buf->pool->d.last && buf->pool->d.last + buf->size <= buf->pool->d.end)) {
+        buf->pool->d.last += buf->size;
+        buf->end += buf->size;
+    } else {
+        sky_uchar_t *new = sky_palloc(buf->pool, buf->size << 1);
+        sky_memcpy(new, buf->start, buf->size);
+        buf->start = new;
+        buf->post = new + buf->size;
+        buf->end = buf->post + buf->size;
+    }
+    buf->size <<= 1;
+
+    *(buf->post++) = v1;
+    *(buf->post++) = v2;
 }
 
 static sky_inline void
