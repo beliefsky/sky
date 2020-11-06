@@ -76,7 +76,10 @@ sky_json_t *sky_json_parse(sky_pool_t *pool, sky_str_t *json) {
 }
 
 sky_str_t *sky_json_tostring(sky_json_t *json) {
-    static const sky_uchar_t *BOOLEAN_TABLE[] = {(sky_uchar_t *) "false", (sky_uchar_t *) "true"};
+    static const sky_str_t BOOLEAN_TABLE[] = {
+            sky_string("false"),
+            sky_string("true")
+    };
 
     sky_json_object_t *obj;
     sky_json_t *current, *tmp;
@@ -139,8 +142,10 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
                 json_buf_append_str(&buf, current->string.data, current->string.len);
                 json_buf_append_uchar(&buf, '"');
                 break;
-            case json_boolean:
-                json_buf_append_str(&buf, BOOLEAN_TABLE[current->boolean != false], 4 + (current->boolean == false));
+            case json_boolean: {
+                const sky_bool_t index = current->boolean != false;
+                json_buf_append_str(&buf, BOOLEAN_TABLE[index].data, BOOLEAN_TABLE[index].len);
+            }
                 break;
             case json_null:
                 json_buf_append_str(&buf, (sky_uchar_t *) "null", 4);
