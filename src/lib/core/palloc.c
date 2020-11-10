@@ -223,12 +223,12 @@ sky_palloc_block(sky_pool_t *pool, sky_size_t size) {
     new = (sky_pool_t *) m;
     new->d.end = m + psize;
     new->d.next = null;
-    new->d.failed = 0x0;
+    new->d.failed = 0;
     m += sizeof(sky_pool_data_t);
     m = sky_align_ptr(m, SKY_ALIGNMENT);
     new->d.last = m + size;
     for (p = pool->current; p->d.next; p = p->d.next) {
-        if (p->d.failed++ > 0x4) {
+        if (p->d.failed++ > 4) {
             pool->current = p->d.next;
         }
     }
@@ -240,20 +240,20 @@ sky_palloc_block(sky_pool_t *pool, sky_size_t size) {
 static void *
 sky_palloc_large(sky_pool_t *pool, sky_size_t size) {
     void *p;
-    sky_uintptr_t n;
     sky_pool_large_t *large;
+    sky_uint8_t n;
 
     p = sky_malloc(size);
     if (sky_unlikely(!p)) {
         return null;
     }
-    n = 0x0;
+    n = 0;
     for (large = pool->large; large; large = large->next) {
         if (!large->alloc) {
             large->alloc = p;
             return p;
         }
-        if (n++ > 0x3) {
+        if (n++ > 3) {
             break;
         }
     }
