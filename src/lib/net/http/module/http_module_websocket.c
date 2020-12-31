@@ -32,7 +32,7 @@ static void websocket_read_wait(sky_websocket_session_t *session, sky_uchar_t *d
 
 static void websocket_write(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size);
 
-static void write_test(sky_http_connection_t *conn, sky_pool_t *pool, sky_uchar_t *data, sky_uint32_t size);
+static void write_test(sky_http_connection_t *conn, sky_pool_t *pool, sky_uchar_t *data, sky_size_t size);
 
 void
 sky_http_module_websocket_init(sky_pool_t *pool, sky_http_module_t *module, sky_str_t *prefix,
@@ -118,8 +118,6 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
     sky_http_response_nobody(r);
 
     module_run_next(session);
-
-    return;
 }
 
 static void
@@ -130,7 +128,7 @@ module_run_next(sky_websocket_session_t *session) {
     sky_int32_t result;
 
     conn = session->request->conn;
-    conn->ev.timeout = 600;
+    conn->ev.timeout = 3600;
 
 
     session->read_coro = read_work = sky_coro_create(&switcher, (sky_coro_func_t) read_message, session);
@@ -249,6 +247,8 @@ read_message(sky_coro_t *coro, sky_websocket_session_t *session) {
 
         w_data->handler->read(message);
 
+        write_test(session->request->conn, pool, message->data.data, message->data.len);
+
         sky_reset_pool(pool);
 
         sky_coro_yield(coro, SKY_CORO_MAY_RESUME);
@@ -337,7 +337,7 @@ websocket_decoding(sky_uchar_t *p, const sky_uchar_t *key, sky_uint64_t payload_
 
 
 static void
-write_test(sky_http_connection_t *conn, sky_pool_t *pool, sky_uchar_t *data, sky_uint32_t size) {
+write_test(sky_http_connection_t *conn, sky_pool_t *pool, sky_uchar_t *data, sky_size_t size) {
     sky_uchar_t *p = sky_palloc(pool, 128);
 
 
