@@ -32,9 +32,9 @@ static sky_uint32_t websocket_read(sky_websocket_session_t *session, sky_uchar_t
 
 static void websocket_read_wait(sky_websocket_session_t *session, sky_uchar_t *data, sky_uint32_t size);
 
-static void websocket_write(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size);
+static void websocket_write(sky_websocket_session_t *session, sky_uchar_t *data, sky_uint32_t size);
 
-static void write_test(sky_http_connection_t *conn, sky_pool_t *pool, sky_uchar_t *data, sky_size_t size);
+static void write_test(sky_websocket_session_t *session, sky_pool_t *pool, sky_uchar_t *data, sky_size_t size);
 
 void
 sky_http_module_websocket_init(sky_pool_t *pool, sky_http_module_t *module, sky_str_t *prefix,
@@ -277,7 +277,7 @@ write_message(sky_coro_t *coro, sky_websocket_session_t *session) {
         }
         session->test = false;
 
-        write_test(session->request->conn, pool, sky_str_line("hello world"));
+        write_test(session, pool, sky_str_line("hello world"));
 
         sky_reset_pool(pool);
     }
@@ -364,16 +364,15 @@ websocket_decoding(sky_uchar_t *p, const sky_uchar_t *key, sky_uint64_t payload_
 
 
 static void
-write_test(sky_http_connection_t *conn, sky_pool_t *pool, sky_uchar_t *data, sky_size_t size) {
+write_test(sky_websocket_session_t *session, sky_pool_t *pool, sky_uchar_t *data, sky_size_t size) {
     sky_uchar_t *p = sky_palloc(pool, 128);
-
 
     *p++ = 0x1 << 7 | 0x01;
 
     *p++ = (sky_uchar_t) size;
     sky_memcpy(p, data, size);
 
-    websocket_write(conn, p - 2, (sky_uint32_t) size + 2);
+    websocket_write(session, p - 2, (sky_uint32_t) size + 2);
 }
 
 static sky_inline void
@@ -450,38 +449,38 @@ websocket_read(sky_websocket_session_t *session, sky_uchar_t *data, sky_uint32_t
 }
 
 static sky_inline void
-websocket_write(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size) {
+websocket_write(sky_websocket_session_t *session, sky_uchar_t *data, sky_uint32_t size) {
     ssize_t n;
     sky_int32_t fd;
 
-    fd = conn->ev.fd;
+    fd = session->event->fd;
     for (;;) {
-        if (sky_unlikely(!conn->ev.write)) {
-            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+        if (sky_unlikely(!session->event->write)) {
+            sky_coro_yield(session->write_work, SKY_CORO_MAY_RESUME);
             continue;
         }
 
         if ((n = write(fd, data, size)) < 1) {
-            conn->ev.write = false;
+            session->event->write = false;
             if (sky_unlikely(!n)) {
-                sky_coro_yield(conn->coro, SKY_CORO_ABORT);
+                sky_coro_yield(session->write_work, SKY_CORO_ABORT);
                 sky_coro_exit();
             }
             switch (errno) {
                 case EINTR:
                 case EAGAIN:
-                    sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+                    sky_coro_yield(session->write_work, SKY_CORO_MAY_RESUME);
                     continue;
                 default:
-                    sky_coro_yield(conn->coro, SKY_CORO_ABORT);
+                    sky_coro_yield(session->write_work, SKY_CORO_ABORT);
                     sky_coro_exit();
             }
         }
 
         if (n < size) {
             data += n, size -= (sky_uint32_t) n;
-            conn->ev.write = false;
-            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+            session->event->write = false;
+            sky_coro_yield(session->write_work, SKY_CORO_MAY_RESUME);
             continue;
         }
         break;
