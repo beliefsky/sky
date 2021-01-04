@@ -35,6 +35,7 @@ set(SOURCES
         net/http/module/http_module_file.c
         net/http/module/http_module_dispatcher.c
         net/http/module/http_module_websocket.c
+        net/http/extend/http_extend_tcp_pool.c
         net/http/extend/http_extend_pgsql_pool.c
         net/http/extend/http_extend_redis_pool.c
         net/tls/tls.c
