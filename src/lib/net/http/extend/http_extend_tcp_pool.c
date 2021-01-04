@@ -119,7 +119,7 @@ sky_http_ex_tcp_conn_get(sky_http_ex_conn_pool_t *tcp_pool, sky_pool_t *pool, sk
             return null;
         }
         if (tcp_pool->next_func) {
-            if (sky_unlikely(tcp_pool->next_func(conn, tcp_pool->func_data))) {
+            if (sky_unlikely(!tcp_pool->next_func(conn, tcp_pool->func_data))) {
                 sky_defer_cancel(conn->coro, conn->defer);
                 tcp_connection_defer(conn);
                 return null;
@@ -202,7 +202,7 @@ sky_http_ex_tcp_write(sky_http_ex_conn_t *conn, sky_uchar_t *data, sky_uint32_t 
     ssize_t n;
 
     if (sky_unlikely(!(client = conn->client) || client->ev.fd == -1)) {
-        return 0;
+        return false;
     }
 
     ev = &conn->client->ev;
@@ -410,7 +410,7 @@ tcp_close(sky_http_ex_client_t *client) {
     if (client->ev.fd != -1) {
         sky_event_clean(&client->ev);
     }
-    sky_log_error("pg con close");
+    sky_log_error("con close");
     tcp_run(client);
 }
 
