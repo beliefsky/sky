@@ -7,133 +7,48 @@
 #include "../../../core/log.h"
 #include "../../../core/number.h"
 
-struct sky_redis_connection_s {
-    sky_event_t ev;
-    sky_redis_cmd_t *current;
-    sky_redis_cmd_t tasks;
-};
 
-struct sky_redis_connection_pool_s {
-    sky_pool_t *mem_pool;
-    struct sockaddr *addr;
-    sky_uint32_t addr_len;
-    sky_int32_t family;
-    sky_int32_t sock_type;
-    sky_int32_t protocol;
-    sky_uint16_t connection_size;
-    sky_uint16_t connection_ptr;
+static sky_bool_t redis_send_exec(sky_redis_conn_t *rc, sky_redis_data_t *prams, sky_uint16_t param_len);
 
-    sky_redis_connection_t *conns;
-};
-
-static void redis_connection_defer(sky_redis_cmd_t *rc);
-
-static sky_bool_t redis_run(sky_redis_connection_t *conn);
-
-static void redis_close(sky_redis_connection_t *conn);
-
-static sky_bool_t redis_send_exec(sky_redis_cmd_t *rc, sky_redis_data_t *prams, sky_uint16_t param_len);
-
-static sky_redis_result_t *redis_exec_read(sky_redis_cmd_t *rc);
-
-static sky_bool_t set_address(sky_redis_connection_pool_t *redis_pool, sky_redis_conf_t *conf);
-
-static sky_bool_t redis_connection(sky_redis_cmd_t *rc);
-
-static sky_bool_t redis_write(sky_redis_cmd_t *rc, sky_uchar_t *data, sky_uint32_t size);
-
-static sky_uint32_t redis_read(sky_redis_cmd_t *rc, sky_uchar_t *data, sky_uint32_t size);
-
-#ifndef HAVE_ACCEPT4
-
-#include <fcntl.h>
-
-static sky_bool_t set_socket_nonblock(sky_int32_t fd);
-
-#endif
+static sky_redis_result_t *redis_exec_read(sky_redis_conn_t *rc);
 
 
-sky_redis_connection_pool_t *
+sky_http_ex_conn_pool_t *
 sky_redis_pool_create(sky_pool_t *pool, sky_redis_conf_t *conf) {
-    sky_redis_connection_pool_t *redis_pool;
-    sky_redis_connection_t *conn;
-    sky_uint16_t i;
+    const sky_http_ex_tcp_conf_t c = {
+            .host = conf->host,
+            .port = conf->port,
+            .unix_path = conf->unix_path,
+            .connection_size = conf->connection_size,
+            .next_func = null
+    };
 
-    if (!(i = conf->connection_size)) {
-        i = 2;
-    } else if (sky_is_2_power(i)) {
-        sky_log_error("连接数必须为2的整数幂");
-        return null;
-    }
-
-    redis_pool = sky_palloc(pool, sizeof(sky_redis_connection_pool_t) +
-                                  sizeof(sky_redis_connection_t) * i);
-    redis_pool->mem_pool = pool;
-    redis_pool->connection_size = i;
-    redis_pool->connection_ptr = i - 1;
-    redis_pool->conns = (sky_redis_connection_t *) (redis_pool + 1);
-
-    if (!set_address(redis_pool, conf)) {
-        return null;
-    }
-    for (conn = redis_pool->conns; i; --i, ++conn) {
-        conn->ev.fd = -1;
-        conn->current = null;
-        conn->tasks.next = conn->tasks.prev = &conn->tasks;
-    }
-
-    return redis_pool;
+    return sky_http_ex_tcp_pool_create(pool, &c);
 }
 
-sky_redis_cmd_t *
-sky_redis_connection_get(sky_redis_connection_pool_t *redis_pool, sky_pool_t *pool, sky_http_connection_t *main) {
-    sky_redis_connection_t *conn;
-    sky_redis_cmd_t *rc;
+sky_redis_conn_t *
+sky_redis_connection_get(sky_http_ex_conn_pool_t *redis_pool, sky_pool_t *pool, sky_http_connection_t *main) {
+    sky_http_ex_conn_t *conn;
+    sky_redis_conn_t *rc;
 
-    conn = redis_pool->conns + (main->ev.fd & redis_pool->connection_ptr);
-
-    rc = sky_palloc(pool, sizeof(sky_redis_cmd_t));
+    rc = sky_palloc(pool, sizeof(sky_redis_conn_t));
     rc->conn = null;
-    rc->ev = &main->ev;
-    rc->coro = main->coro;
-    rc->pool = pool;
-    rc->redis_pool = redis_pool;
     rc->query_buf = null;
-    rc->defer = sky_defer_add(main->coro, (sky_defer_func_t) redis_connection_defer, rc);
 
-    if (conn->tasks.next != &conn->tasks) {
-        rc->next = conn->tasks.next;
-        rc->prev = &conn->tasks;
-        rc->next->prev = rc->prev->next = rc;
-        main->ev.wait = true;
-        sky_coro_yield(main->coro, SKY_CORO_MAY_RESUME);
-        main->ev.wait = false;
-    } else {
-        rc->next = conn->tasks.next;
-        rc->prev = &conn->tasks;
-        rc->next->prev = rc->prev->next = rc;
+    conn = sky_http_ex_tcp_conn_get(redis_pool, pool, main);
+    if (sky_unlikely(!conn)) {
+        return null;
     }
-    rc->conn = conn;
-    conn->current = rc;
 
+    rc->conn = conn;
 
     return rc;
 }
 
 sky_redis_result_t *
-sky_redis_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t param_len) {
-    sky_redis_connection_t *conn;
-
-    if (!(conn = rc->conn)) {
+sky_redis_exec(sky_redis_conn_t *rc, sky_redis_data_t *params, sky_uint16_t param_len) {
+    if (sky_unlikely(!rc)) {
         return null;
-    }
-    if (conn->ev.fd == -1) {
-        if (!redis_connection(rc)) {
-            return null;
-        }
-//        if (!pg_auth(ps)) {
-//            return null;
-//        }
     }
     if (!redis_send_exec(rc, params, param_len)) {
         return null;
@@ -142,60 +57,16 @@ sky_redis_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t param
 }
 
 void
-sky_redis_connection_put(sky_redis_cmd_t *rc) {
-    sky_defer_cancel(rc->coro, rc->defer);
-    redis_connection_defer(rc);
-}
-
-static sky_inline void
-redis_connection_defer(sky_redis_cmd_t *rc) {
-    if (rc->next) {
-        rc->prev->next = rc->next;
-        rc->next->prev = rc->prev;
-        rc->prev = rc->next = null;
-    }
-    if (!rc->conn) {
+sky_redis_connection_put(sky_redis_conn_t *rc) {
+    if (sky_unlikely(!rc)) {
         return;
     }
-    rc->conn->current = null;
-    rc->conn = null;
+    sky_http_ex_tcp_conn_put(rc->conn);
 }
+
 
 static sky_bool_t
-redis_run(sky_redis_connection_t *conn) {
-    sky_redis_cmd_t *rc;
-
-    for (;;) {
-        if ((rc = conn->current)) {
-            if (rc->ev->run(rc->ev)) {
-                if (conn->current) {
-                    return true;
-                }
-            } else {
-                if (conn->current) {
-                    redis_connection_defer(rc);
-                }
-                sky_event_unregister(rc->ev);
-            }
-        }
-        if (conn->tasks.prev == &conn->tasks) {
-            return true;
-        }
-        conn->current = conn->tasks.prev;
-    }
-}
-
-static void
-redis_close(sky_redis_connection_t *conn) {
-    if (conn->ev.fd != -1) {
-        sky_event_clean(&conn->ev);
-    }
-    sky_log_error("redis con close");
-    redis_run(conn);
-}
-
-static sky_bool_t
-redis_send_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t param_len) {
+redis_send_exec(sky_redis_conn_t *rc, sky_redis_data_t *params, sky_uint16_t param_len) {
     sky_buf_t *buf;
     sky_uint8_t len;
 
@@ -203,7 +74,7 @@ redis_send_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t para
         return false;
     }
     if (!rc->query_buf) {
-        buf = rc->query_buf = sky_buf_create(rc->pool, 1023);
+        buf = rc->query_buf = sky_buf_create(rc->conn->pool, 1023);
     } else {
         buf = rc->query_buf;
         sky_buf_reset(buf);
@@ -216,7 +87,8 @@ redis_send_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t para
         switch (params->data_type) {
             case SKY_REDIS_DATA_NULL:
                 if ((buf->end - buf->last) < 5) {
-                    if (sky_unlikely(!redis_read(rc, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
+                    if (sky_unlikely(
+                            !sky_http_ex_tcp_write(rc->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
                         return false;
                     }
                     sky_buf_reset(buf);
@@ -226,7 +98,8 @@ redis_send_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t para
                 break;
             case SKY_REDIS_DATA_I8:
                 if ((buf->end - buf->last) < 10) {
-                    if (sky_unlikely(!redis_read(rc, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
+                    if (sky_unlikely(
+                            !sky_http_ex_tcp_write(rc->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
                         return false;
                     }
                     sky_buf_reset(buf);
@@ -242,7 +115,8 @@ redis_send_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t para
                 break;
             case SKY_REDIS_DATA_I16:
                 if ((buf->end - buf->last) < 12) {
-                    if (sky_unlikely(!redis_read(rc, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
+                    if (sky_unlikely(
+                            !sky_http_ex_tcp_write(rc->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
                         return false;
                     }
                     sky_buf_reset(buf);
@@ -258,7 +132,8 @@ redis_send_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t para
                 break;
             case SKY_REDIS_DATA_I32:
                 if ((buf->end - buf->last) < 18) {
-                    if (sky_unlikely(!redis_read(rc, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
+                    if (sky_unlikely(
+                            !sky_http_ex_tcp_write(rc->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
                         return false;
                     }
                     sky_buf_reset(buf);
@@ -279,7 +154,8 @@ redis_send_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t para
                 break;
             case SKY_REDIS_DATA_I64:
                 if ((buf->end - buf->last) < 27) {
-                    if (sky_unlikely(!redis_read(rc, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
+                    if (sky_unlikely(
+                            !sky_http_ex_tcp_write(rc->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
                         return false;
                     }
                     sky_buf_reset(buf);
@@ -301,7 +177,8 @@ redis_send_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t para
             case SKY_REDIS_DATA_STREAM:
                 if (params->stream.len < 512) {
                     if ((buf->end - buf->last) < ((sky_uint16_t) params->stream.len + 8)) {
-                        if (sky_unlikely(!redis_read(rc, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
+                        if (sky_unlikely(
+                                !sky_http_ex_tcp_write(rc->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
                             return false;
                         }
                         sky_buf_reset(buf);
@@ -326,7 +203,8 @@ redis_send_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t para
                         *(buf->last++) = '\n';
                     } else {
                         if ((buf->end - buf->last) < 14) {
-                            if (sky_unlikely(!redis_read(rc, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
+                            if (sky_unlikely(!sky_http_ex_tcp_write(rc->conn, buf->pos,
+                                                                    (sky_uint32_t) (buf->last - buf->pos)))) {
                                 return false;
                             }
                             sky_buf_reset(buf);
@@ -336,11 +214,13 @@ redis_send_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t para
                         *(buf->last++) = '\r';
                         *(buf->last++) = '\n';
 
-                        if (sky_unlikely(!redis_read(rc, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
+                        if (sky_unlikely(
+                                !sky_http_ex_tcp_read(rc->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
                             return false;
                         }
                         sky_buf_reset(buf);
-                        if (sky_unlikely(!redis_read(rc, params->stream.data, (sky_uint32_t) params->stream.len))) {
+                        if (sky_unlikely(!sky_http_ex_tcp_write(rc->conn, params->stream.data,
+                                                                (sky_uint32_t) params->stream.len))) {
                             return false;
                         }
                         *(buf->last++) = '\r';
@@ -350,7 +230,7 @@ redis_send_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t para
                 break;
         }
     }
-    if (sky_unlikely(!redis_write(rc, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
+    if (sky_unlikely(!sky_http_ex_tcp_write(rc->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
         return false;
     }
 
@@ -359,7 +239,7 @@ redis_send_exec(sky_redis_cmd_t *rc, sky_redis_data_t *params, sky_uint16_t para
 }
 
 static sky_redis_result_t *
-redis_exec_read(sky_redis_cmd_t *rc) {
+redis_exec_read(sky_redis_conn_t *rc) {
     sky_buf_t *buf;
     sky_redis_result_t *result;
     sky_redis_data_t *params;
@@ -377,7 +257,7 @@ redis_exec_read(sky_redis_cmd_t *rc) {
         MULTI_BULK_REPLY
     } state;
 
-    result = sky_pcalloc(rc->pool, sizeof(sky_redis_result_t));
+    result = sky_pcalloc(rc->conn->pool, sizeof(sky_redis_result_t));
     result->rows = 0;
 
     state = START;
@@ -385,9 +265,9 @@ redis_exec_read(sky_redis_cmd_t *rc) {
     params = null;
     size = 0;
     i = 0;
-    buf = sky_buf_create(rc->pool, 1023);
+    buf = sky_buf_create(rc->conn->pool, 1023);
     for (;;) {
-        n = redis_read(rc, buf->last, (sky_uint32_t) (buf->end - buf->last));
+        n = sky_http_ex_tcp_read(rc->conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
         if (sky_unlikely(!n)) {
             sky_log_error("redis exec read error");
             return false;
@@ -426,7 +306,7 @@ redis_exec_read(sky_redis_cmd_t *rc) {
                 case SUCCESS: {
                     if (*(buf->last - 1) == '\n' && *(buf->last - 2) == '\r') {
                         result->is_ok = true;
-                        result->data = params = sky_palloc(rc->pool, sizeof(sky_redis_data_t));
+                        result->data = params = sky_palloc(rc->conn->pool, sizeof(sky_redis_data_t));
                         result->rows = 1;
                         params->stream.data = buf->pos;
 
@@ -442,7 +322,7 @@ redis_exec_read(sky_redis_cmd_t *rc) {
                 case ERROR: {
                     if (*(buf->last - 1) == '\n' && *(buf->last - 2) == '\r') {
                         result->is_ok = false;
-                        result->data = params = sky_palloc(rc->pool, sizeof(sky_redis_data_t));
+                        result->data = params = sky_palloc(rc->conn->pool, sizeof(sky_redis_data_t));
                         result->rows = 1;
                         params->stream.data = buf->pos;
 
@@ -458,7 +338,7 @@ redis_exec_read(sky_redis_cmd_t *rc) {
                 case SINGLE_LINE_REPLY_NUM: {
                     if (*(buf->last - 1) == '\n' && *(buf->last - 2) == '\r') {
                         result->is_ok = true;
-                        result->data = params = sky_palloc(rc->pool, sizeof(sky_redis_data_t));
+                        result->data = params = sky_palloc(rc->conn->pool, sizeof(sky_redis_data_t));
                         result->rows = 1;
 
                         sky_str_t tmp;
@@ -477,7 +357,7 @@ redis_exec_read(sky_redis_cmd_t *rc) {
                         }
                         if (*p == '\n' && *(p - 1) == '\r') {
                             if (!result->rows) {
-                                result->data = params = sky_palloc(rc->pool, sizeof(sky_redis_data_t));
+                                result->data = params = sky_palloc(rc->conn->pool, sizeof(sky_redis_data_t));
                                 result->rows = 1;
 
                                 sky_str_t tmp;
@@ -554,7 +434,7 @@ redis_exec_read(sky_redis_cmd_t *rc) {
                                 result->is_ok = true;
                                 return result;
                             }
-                            result->data = sky_palloc(rc->pool, sizeof(sky_redis_data_t) * result->rows);
+                            result->data = sky_palloc(rc->conn->pool, sizeof(sky_redis_data_t) * result->rows);
                             buf->pos = p + 1;
                             p = null;
                             state = BULK_REPLY_SIZE;
@@ -571,10 +451,10 @@ redis_exec_read(sky_redis_cmd_t *rc) {
             continue;
         }
         if (size < 1021) { // size + 2
-            buf->start = sky_palloc(rc->pool, 1024);
+            buf->start = sky_palloc(rc->conn->pool, 1024);
             buf->end = buf->start + 1023;
         } else {
-            buf->start = sky_palloc(rc->pool, (sky_size_t) size + 3);
+            buf->start = sky_palloc(rc->conn->pool, (sky_size_t) size + 3);
             buf->end = buf->start + size + 2;
         }
         n = (sky_uint32_t) (buf->last - buf->pos);
@@ -590,275 +470,3 @@ redis_exec_read(sky_redis_cmd_t *rc) {
         }
     }
 }
-
-
-static sky_bool_t
-set_address(sky_redis_connection_pool_t *redis_pool, sky_redis_conf_t *conf) {
-    if (conf->unix_path.len) {
-        struct sockaddr_un *addr = sky_pcalloc(redis_pool->mem_pool, sizeof(struct sockaddr_un));
-        redis_pool->addr = (struct sockaddr *) addr;
-        redis_pool->addr_len = sizeof(struct sockaddr_un);
-        redis_pool->family = AF_UNIX;
-
-#ifdef HAVE_ACCEPT4
-        redis_pool->sock_type = SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC;
-#else
-        redis_pool->sock_type = SOCK_STREAM;
-#endif
-        redis_pool->protocol = 0;
-
-        addr->sun_family = AF_UNIX;
-        sky_memcpy(addr->sun_path, conf->unix_path.data, conf->unix_path.len + 1);
-
-        return true;
-    }
-    struct addrinfo *addrs;
-
-    struct addrinfo hints = {
-            .ai_family = AF_UNSPEC,
-            .ai_socktype = SOCK_STREAM,
-            .ai_flags = AI_PASSIVE
-    };
-
-    if (sky_unlikely(getaddrinfo(
-            (sky_char_t *) conf->host.data, (sky_char_t *) conf->port.data,
-            &hints, &addrs) == -1 || !addrs)) {
-        return false;
-    }
-    redis_pool->family = addrs->ai_family;
-#ifdef HAVE_ACCEPT4
-    redis_pool->sock_type = addrs->ai_socktype | SOCK_NONBLOCK | SOCK_CLOEXEC;
-#else
-    redis_pool->sock_type = addrs->ai_socktype;
-#endif
-    redis_pool->protocol = addrs->ai_protocol;
-    redis_pool->addr = sky_palloc(redis_pool->mem_pool, addrs->ai_addrlen);
-    redis_pool->addr_len = addrs->ai_addrlen;
-    sky_memcpy(redis_pool->addr, addrs->ai_addr, redis_pool->addr_len);
-
-    freeaddrinfo(addrs);
-
-    return true;
-}
-
-static sky_bool_t
-redis_connection(sky_redis_cmd_t *rc) {
-    sky_int32_t fd;
-    sky_event_t *ev;
-
-
-    ev = &rc->conn->ev;
-    fd = socket(rc->redis_pool->family, rc->redis_pool->sock_type, rc->redis_pool->protocol);
-    if (sky_unlikely(fd < 0)) {
-        return false;
-    }
-#ifndef HAVE_ACCEPT4
-    if (sky_unlikely(!set_socket_nonblock(fd))) {
-        close(fd);
-        return false;
-    }
-#endif
-    sky_event_init(rc->ev->loop, ev, fd, redis_run, redis_close);
-
-    if (connect(fd, rc->redis_pool->addr, rc->redis_pool->addr_len) < 0) {
-        switch (errno) {
-            case EALREADY:
-            case EINPROGRESS:
-                break;
-            case EISCONN:
-                return true;
-            default:
-                close(fd);
-                rc->conn->ev.fd = -1;
-                sky_log_error("redis connection errno: %d", errno);
-                return false;
-        }
-        sky_event_register(ev, 10);
-        sky_coro_yield(rc->coro, SKY_CORO_MAY_RESUME);
-        for (;;) {
-            if (sky_unlikely(!rc->conn || ev->fd == -1)) {
-                return false;
-            }
-            if (connect(ev->fd, rc->redis_pool->addr, rc->redis_pool->addr_len) < 0) {
-                switch (errno) {
-                    case EALREADY:
-                    case EINPROGRESS:
-                        sky_coro_yield(rc->coro, SKY_CORO_MAY_RESUME);
-                        continue;
-                    case EISCONN:
-                        break;
-                    default:
-                        sky_log_error("redis connection errno: %d", errno);
-                        return false;
-                }
-            }
-            break;
-        }
-        ev->timeout = 60;
-    }
-    return true;
-}
-
-static sky_bool_t
-redis_write(sky_redis_cmd_t *rc, sky_uchar_t *data, sky_uint32_t size) {
-    ssize_t n;
-    sky_event_t *ev;
-
-
-    ev = &rc->conn->ev;
-
-    if (!ev->reg) {
-        if ((n = write(ev->fd, data, size)) > 0) {
-            if (n < size) {
-                data += n, size -= (sky_uint32_t) n;
-            } else {
-                return true;
-            }
-        } else {
-            if (sky_unlikely(!n)) {
-                close(ev->fd);
-                ev->fd = -1;
-                return false;
-            }
-            switch (errno) {
-                case EINTR:
-                case EAGAIN:
-                    break;
-                default:
-                    close(ev->fd);
-                    ev->fd = -1;
-                    sky_log_error("redis write errno: %d", errno);
-                    return false;
-            }
-        }
-        sky_event_register(ev, 60);
-        ev->write = false;
-        sky_coro_yield(rc->coro, SKY_CORO_MAY_RESUME);
-        if (sky_unlikely(!rc->conn || ev->fd == -1)) {
-            return false;
-        }
-    }
-    for (;;) {
-        if (sky_unlikely(!ev->write)) {
-            sky_coro_yield(rc->coro, SKY_CORO_MAY_RESUME);
-            continue;
-        }
-        if ((n = write(ev->fd, data, size)) > 0) {
-            if (n < size) {
-                data += n, size -= (sky_uint32_t) n;
-            } else {
-                return true;
-            }
-        } else {
-            if (sky_unlikely(!n)) {
-                return false;
-            }
-            switch (errno) {
-                case EINTR:
-                case EAGAIN:
-                    break;
-                default:
-                    sky_log_error("redis write errno: %d", errno);
-                    return false;
-            }
-        }
-        ev->write = false;
-        sky_coro_yield(rc->coro, SKY_CORO_MAY_RESUME);
-        if (sky_unlikely(!rc->conn || ev->fd == -1)) {
-            return false;
-        }
-    }
-
-}
-
-
-static sky_uint32_t
-redis_read(sky_redis_cmd_t *rc, sky_uchar_t *data, sky_uint32_t size) {
-    ssize_t n;
-    sky_event_t *ev;
-
-
-    ev = &rc->conn->ev;
-    if (!ev->reg) {
-        if ((n = read(ev->fd, data, size)) > 0) {
-            return (sky_uint32_t) n;
-        }
-        if (sky_unlikely(!n)) {
-            close(ev->fd);
-            ev->fd = -1;
-            return 0;
-        }
-        switch (errno) {
-            case EINTR:
-            case EAGAIN:
-                break;
-            default:
-                close(ev->fd);
-                ev->fd = -1;
-                sky_log_error("redis read errno: %d", errno);
-                return 0;
-        }
-        sky_event_register(ev, 60);
-        ev->read = false;
-        sky_coro_yield(rc->coro, SKY_CORO_MAY_RESUME);
-        if (sky_unlikely(!rc->conn || ev->fd == -1)) {
-            return false;
-        }
-    }
-    for (;;) {
-        if (sky_unlikely(!ev->read)) {
-            sky_coro_yield(rc->coro, SKY_CORO_MAY_RESUME);
-            continue;
-        }
-        if ((n = read(ev->fd, data, size)) > 0) {
-            return (sky_uint32_t) n;
-        }
-        if (sky_unlikely(!n)) {
-            return 0;
-        }
-        switch (errno) {
-            case EINTR:
-            case EAGAIN:
-                break;
-            default:
-                sky_log_error("redis read errno: %d", errno);
-                return 0;
-        }
-        ev->read = false;
-        sky_coro_yield(rc->coro, SKY_CORO_MAY_RESUME);
-        if (sky_unlikely(!rc->conn || ev->fd == -1)) {
-            return false;
-        }
-    }
-}
-
-#ifndef HAVE_ACCEPT4
-
-static sky_inline sky_bool_t
-set_socket_nonblock(sky_int32_t fd) {
-    sky_int32_t flags;
-
-    flags = fcntl(fd, F_GETFD);
-
-    if (sky_unlikely(flags < 0)) {
-        return false;
-    }
-
-    if (sky_unlikely(fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0)) {
-        return false;
-    }
-
-    flags = fcntl(fd, F_GETFD);
-
-    if (sky_unlikely(flags < 0)) {
-        return false;
-    }
-
-    if (sky_unlikely(fcntl(fd, F_SETFD, flags | O_NONBLOCK) < 0)) {
-        return false;
-    }
-
-    return true;
-}
-
-#endif

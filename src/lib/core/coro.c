@@ -293,7 +293,7 @@ sky_defer_add2(sky_coro_t *coro, sky_defer_func2_t func, void *data1, void *data
 
 sky_inline void
 sky_defer_cancel(sky_coro_t *coro, sky_defer_t *defer) {
-    if (defer->free) {
+    if (sky_unlikely(defer->free)) {
         return;
     }
     defer->prev->next = defer->next;

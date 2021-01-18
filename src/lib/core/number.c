@@ -373,7 +373,12 @@ sky_uint32_to_hex_str(sky_uint32_t data, sky_uchar_t *src, sky_bool_t lower_alph
 
     x |= 0x3030303030303030;
 
-    x += (lower_alpha ? 0x27 : 0x07) * mask;
+    const sky_uint8_t table[] = {
+            0x07,
+            0x27
+    };
+
+    x += table[lower_alpha] * mask;
     *(sky_uint64_t *) src = x;
 
 
@@ -417,10 +422,9 @@ small_decimal_toStr(sky_uint64_t x, sky_uchar_t *s) {
         *s = sky_num_to_uchar(x);
         return 1;
     }
-    sky_uint64_t low = x;
-    sky_uint64_t ll = ((low * 103) >> 9) & 0x1E;
-    low += ll * 3;
-    ll = ((low & 0xF0) >> 4) | ((low & 0x0F) << 8);
+    sky_uint64_t ll = ((x * 103) >> 9) & 0x1E;
+    x += ll * 3;
+    ll = ((x & 0xF0) >> 4) | ((x & 0x0F) << 8);
     *(sky_uint16_t *) s = (sky_uint16_t) (ll | 0x3030);
     return 2;
 }
@@ -443,7 +447,7 @@ small_num_to_str(sky_uint64_t x, sky_uchar_t *s) {
     }
 
     low = x;
-    digits = (low > 999) ? 4 : 3;
+    digits = (low > 999) + 3;
 
     // division and remainder by 100
     // Simply dividing by 100 instead of multiply-and-shift
@@ -491,14 +495,7 @@ large_num_to_str(sky_uint64_t x, sky_uchar_t *s) {
     if (x <= 9999) {
         return small_num_to_str(x, s);
     } else if (x < 100000000) {
-        low = x;
-
-        // more than 6 digits?
-        if (low > 999999) {
-            digits = (low > 9999999) ? 8 : 7;
-        } else {
-            digits = (low > 99999) ? 6 : 5;
-        }
+        digits = (sky_uint8_t) ((x > 999999) << 1) + (x > 99999) + 5;
     } else {
         ll = (((sky_uint64_t) x) * 0x55E63B89) >> 57;
         low = x - (ll * 100000000);

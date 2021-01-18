@@ -29,14 +29,14 @@ typedef struct {
     sky_int64_t right;
     sky_defer_t *file_defer;
 
-    sky_bool_t modified:1;
-    sky_bool_t range:1;
-    sky_bool_t if_range:1;
+    sky_bool_t modified: 1;
+    sky_bool_t range: 1;
+    sky_bool_t if_range: 1;
 } http_file_t;
 
 typedef struct {
     sky_str_t val;
-    sky_bool_t binary:1;
+    sky_bool_t binary: 1;
 } http_mime_type_t;
 
 typedef struct {
@@ -155,7 +155,7 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
         file->left = 0;
         file->right = stat_buf.st_size - 1;
     }
-    file->file_defer = sky_defer_add(r->conn->coro, (sky_defer_func_t) close, (void *)(sky_uintptr_t) fd);
+    file->file_defer = sky_defer_add(r->conn->coro, (sky_defer_func_t) close, (void *) (sky_uintptr_t) fd);
 
     sky_http_sendfile(r, fd, (sky_size_t) file->left, (sky_size_t) (file->right - file->left + 1),
                       (sky_size_t) stat_buf.st_size);
@@ -261,6 +261,8 @@ http_mime_type_init(http_module_file_t *data) {
     http_mime_type_push(".mp4", "video/mp4", true);
     http_mime_type_push(".webm", "video/webm", false);
 
+
+#undef http_mime_type_push
 
     hash.hash = &data->mime_types;
     hash.key = sky_hash_key_lc;

@@ -35,15 +35,14 @@ set(SOURCES
         net/http/module/http_module_file.c
         net/http/module/http_module_dispatcher.c
         net/http/module/http_module_websocket.c
+        net/http/extend/http_extend_tcp_pool.c
         net/http/extend/http_extend_pgsql_pool.c
         net/http/extend/http_extend_redis_pool.c
         net/tls/tls.c
         )
 add_library(sky_static STATIC ${SOURCES})
 
-target_link_libraries(sky_static
-        m
-        )
+target_link_libraries(sky_static)
 
 set_target_properties(sky_static PROPERTIES
         OUTPUT_NAME sky CLEAN_DIRECT_OUTPUT 1)

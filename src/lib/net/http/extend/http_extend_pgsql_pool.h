@@ -5,15 +5,13 @@
 #ifndef SKY_HTTP_EXTEND_PGSQL_POOL_H
 #define SKY_HTTP_EXTEND_PGSQL_POOL_H
 
-#include "../http_server.h"
+#include "http_extend_tcp_pool.h"
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-typedef struct sky_pg_connection_pool_s sky_pg_connection_pool_t;
-typedef struct sky_pg_connection_s sky_pg_connection_t;
-typedef struct sky_pg_sql_s sky_pg_sql_t;
+typedef struct sky_pg_conn_s sky_pg_conn_t;
 typedef struct sky_pg_row_s sky_pg_row_t;
 
 typedef union sky_pg_data_u sky_pg_data_t;
@@ -28,19 +26,11 @@ typedef struct {
     sky_uint16_t connection_size;
 } sky_pg_sql_conf_t;
 
-struct sky_pg_sql_s {
+struct sky_pg_conn_s {
     sky_bool_t error;
-
-    sky_pool_t *pool;
-    sky_event_t *ev;
-    sky_coro_t *coro;
-    sky_pg_connection_t *conn;
-    sky_pg_connection_pool_t *ps_pool;
+    sky_http_ex_conn_t *conn;
     sky_buf_t *query_buf;
     sky_buf_t *read_buf;
-    sky_defer_t *defer;
-    sky_pg_sql_t *prev;
-    sky_pg_sql_t *next;
 };
 
 typedef enum {
@@ -104,15 +94,15 @@ typedef struct {
     sky_uint16_t lines; // 列数
 } sky_pg_result_t;
 
-sky_pg_connection_pool_t *sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf);
+sky_http_ex_conn_pool_t *sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf);
 
-sky_pg_sql_t *sky_pg_sql_connection_get(sky_pg_connection_pool_t *ps_pool, sky_pool_t *pool,
-                                        sky_http_connection_t *main);
+sky_pg_conn_t *
+sky_pg_sql_connection_get(sky_http_ex_conn_pool_t *conn_pool, sky_pool_t *pool, sky_http_connection_t *main);
 
-sky_pg_result_t *sky_pg_sql_exec(sky_pg_sql_t *ps, const sky_str_t *cmd, const sky_pg_type_t *param_types,
+sky_pg_result_t *sky_pg_sql_exec(sky_pg_conn_t *ps, const sky_str_t *cmd, const sky_pg_type_t *param_types,
                                  sky_pg_data_t *params, sky_uint16_t param_len);
 
-void sky_pg_sql_connection_put(sky_pg_sql_t *ps);
+void sky_pg_sql_connection_put(sky_pg_conn_t *ps);
 
 static sky_inline void
 sky_pg_data_array_init(sky_pg_array_t *array, sky_uint32_t *dims, sky_uint32_t dl,

@@ -1245,7 +1245,7 @@ static const sky_uint32_t CRC32C_TABLE[16][256] = {
 /* private (static) function factoring out byte-by-byte CRC computation using just one slice of the lookup table*/
 static sky_uint32_t
 s_crc_generic_sb1(const sky_uchar_t *input, sky_size_t length, sky_uint32_t crc, const sky_uint32_t *table_ptr) {
-    sky_uint32_t(*table)[16][256] = (sky_uint32_t(*)[16][256]) table_ptr;
+    const sky_uint32_t(*table)[16][256] = (sky_uint32_t(*)[16][256]) table_ptr;
     while (length-- > 0) {
         crc = (crc >> 8) ^ (*table)[0][(crc & 0xff) ^ *input++];
     }
@@ -1259,17 +1259,17 @@ static sky_inline sky_uint32_t
 s_crc_generic_align(const sky_uchar_t **input, sky_size_t *length, sky_uint32_t crc, const sky_uint32_t *table_ptr) {
 
     /* Get the 4-byte memory alignment of our input buffer by looking at the least significant 2 bits*/
-    sky_size_t input_alignment = ((sky_size_t) *input) & 0x3;
+    const sky_size_t input_alignment = ((sky_size_t) *input) & 0x3;
 
     /* Compute the number of input bytes that precede the first 4-byte aligned block (will be in range 0-3)*/
-    sky_size_t leading = (4 - input_alignment) & 0x3;
+    const sky_size_t leading = (4 - input_alignment) & 0x3;
 
     /* Determine what's left without the leading input bytes (might be negative)*/
-    sky_size_t remaining = *length - leading;
+    const sky_size_t remaining = *length - leading;
 
     /* Process unaligned leading input bytes one at a time*/
     if (leading && remaining > 0) {
-        crc = s_crc_generic_sb1(*input, (sky_uint32_t) leading, crc, table_ptr);
+        crc = s_crc_generic_sb1(*input, leading, crc, table_ptr);
         *input += leading;
         *length -= leading;
     }
@@ -1281,8 +1281,8 @@ s_crc_generic_align(const sky_uchar_t **input, sky_size_t *length, sky_uint32_t 
 static sky_uint32_t
 s_crc_generic_sb4(const sky_uchar_t *input, sky_size_t length, sky_uint32_t crc, const sky_uint32_t *table_ptr) {
     const sky_uint32_t *current = (const sky_uint32_t *) input;
+    const sky_uint32_t(*table)[16][256] = (sky_uint32_t(*)[16][256]) table_ptr;
     sky_size_t remaining = length;
-    sky_uint32_t(*table)[16][256] = (sky_uint32_t(*)[16][256]) table_ptr;
 
     while (remaining >= 4) {
         crc ^= *current++;
@@ -1298,16 +1298,16 @@ s_crc_generic_sb4(const sky_uchar_t *input, sky_size_t length, sky_uint32_t crc,
 static sky_uint32_t
 s_crc_generic_sb8(const sky_uchar_t *input, sky_size_t length, sky_uint32_t crc, const sky_uint32_t *table_ptr) {
     const sky_uint32_t *current = (const sky_uint32_t *) input;
+    const sky_uint32_t(*table)[16][256] = (sky_uint32_t(*)[16][256]) table_ptr;
     sky_size_t remaining = length;
-    sky_uint32_t(*table)[16][256] = (sky_uint32_t(*)[16][256]) table_ptr;
 
     while (remaining >= 8) {
-        sky_uint32_t c1 = *current++ ^crc;
-        sky_uint32_t c2 = *current++;
-        sky_uint32_t t1 = (*table)[7][c1 & 0xff] ^(*table)[6][(c1 >> 8) & 0xff] ^(*table)[5][(c1 >> 16) & 0xff] ^
-                          (*table)[4][(c1 >> 24) & 0xff];
-        sky_uint32_t t2 = (*table)[3][c2 & 0xff] ^(*table)[2][(c2 >> 8) & 0xff] ^(*table)[1][(c2 >> 16) & 0xff] ^
-                          (*table)[0][(c2 >> 24) & 0xff];
+        const sky_uint32_t c1 = *current++ ^crc;
+        const sky_uint32_t c2 = *current++;
+        const sky_uint32_t t1 = (*table)[7][c1 & 0xff] ^(*table)[6][(c1 >> 8) & 0xff] ^(*table)[5][(c1 >> 16) & 0xff] ^
+                                (*table)[4][(c1 >> 24) & 0xff];
+        const sky_uint32_t t2 = (*table)[3][c2 & 0xff] ^(*table)[2][(c2 >> 8) & 0xff] ^(*table)[1][(c2 >> 16) & 0xff] ^
+                                (*table)[0][(c2 >> 24) & 0xff];
         crc = t1 ^ t2;
         remaining -= 8;
     }
@@ -1319,22 +1319,24 @@ s_crc_generic_sb8(const sky_uchar_t *input, sky_size_t length, sky_uint32_t crc,
 static sky_uint32_t
 s_crc_generic_sb16(const sky_uchar_t *input, sky_size_t length, sky_uint32_t crc, const sky_uint32_t *table_ptr) {
     const sky_uint32_t *current = (const sky_uint32_t *) input;
+    const sky_uint32_t(*table)[16][256] = (sky_uint32_t(*)[16][256]) table_ptr;
     sky_size_t remaining = length;
-    sky_uint32_t(*table)[16][256] = (sky_uint32_t(*)[16][256]) table_ptr;
 
     while (remaining >= 16) {
-        sky_uint32_t c1 = *current++ ^crc;
-        sky_uint32_t c2 = *current++;
-        sky_uint32_t c3 = *current++;
-        sky_uint32_t c4 = *current++;
-        sky_uint32_t t1 = (*table)[15][c1 & 0xff] ^(*table)[14][(c1 >> 8) & 0xff] ^(*table)[13][(c1 >> 16) & 0xff] ^
-                          (*table)[12][(c1 >> 24) & 0xff];
-        sky_uint32_t t2 = (*table)[11][c2 & 0xff] ^(*table)[10][(c2 >> 8) & 0xff] ^(*table)[9][(c2 >> 16) & 0xff] ^
-                          (*table)[8][(c2 >> 24) & 0xff];
-        sky_uint32_t t3 = (*table)[7][c3 & 0xff] ^(*table)[6][(c3 >> 8) & 0xff] ^(*table)[5][(c3 >> 16) & 0xff] ^
-                          (*table)[4][(c3 >> 24) & 0xff];
-        sky_uint32_t t4 = (*table)[3][c4 & 0xff] ^(*table)[2][(c4 >> 8) & 0xff] ^(*table)[1][(c4 >> 16) & 0xff] ^
-                          (*table)[0][(c4 >> 24) & 0xff];
+        const sky_uint32_t c1 = *current++ ^crc;
+        const sky_uint32_t c2 = *current++;
+        const sky_uint32_t c3 = *current++;
+        const sky_uint32_t c4 = *current++;
+        const sky_uint32_t t1 =
+                (*table)[15][c1 & 0xff] ^(*table)[14][(c1 >> 8) & 0xff] ^(*table)[13][(c1 >> 16) & 0xff] ^
+                (*table)[12][(c1 >> 24) & 0xff];
+        const sky_uint32_t t2 =
+                (*table)[11][c2 & 0xff] ^(*table)[10][(c2 >> 8) & 0xff] ^(*table)[9][(c2 >> 16) & 0xff] ^
+                (*table)[8][(c2 >> 24) & 0xff];
+        const sky_uint32_t t3 = (*table)[7][c3 & 0xff] ^(*table)[6][(c3 >> 8) & 0xff] ^(*table)[5][(c3 >> 16) & 0xff] ^
+                                (*table)[4][(c3 >> 24) & 0xff];
+        const sky_uint32_t t4 = (*table)[3][c4 & 0xff] ^(*table)[2][(c4 >> 8) & 0xff] ^(*table)[1][(c4 >> 16) & 0xff] ^
+                                (*table)[0][(c4 >> 24) & 0xff];
         crc = t1 ^ t2 ^ t3 ^ t4;
         remaining -= 16;
     }

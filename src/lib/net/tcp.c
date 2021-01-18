@@ -8,7 +8,6 @@
 
 #include "tcp.h"
 #include "../core/log.h"
-#include "../core/string.h"
 #include "../core/number.h"
 #include <fcntl.h>
 #include <netdb.h>
