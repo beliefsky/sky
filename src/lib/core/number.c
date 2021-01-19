@@ -447,7 +447,7 @@ small_num_to_str(sky_uint64_t x, sky_uchar_t *s) {
     }
 
     low = x;
-    digits = (low > 999) + 3;
+    digits = (low > 999) + 3; // (low > 999) ? 4 : 3;
 
     // division and remainder by 100
     // Simply dividing by 100 instead of multiply-and-shift
@@ -494,8 +494,14 @@ large_num_to_str(sky_uint64_t x, sky_uchar_t *s) {
     // fits into single 64-bit CPU register
     if (x <= 9999) {
         return small_num_to_str(x, s);
-    } else if (x < 100000000) {
-        digits = (sky_uint8_t) ((x > 999999) << 1) + (x > 99999) + 5;
+    }
+    if (x < 100000000) {
+        low = x;
+        if (low > 999999) {
+            digits = (low > 9999999) ? 8 : 7;
+        } else {
+            digits = (low > 99999) ? 6 : 5;
+        }
     } else {
         ll = (((sky_uint64_t) x) * 0x55E63B89) >> 57;
         low = x - (ll * 100000000);
