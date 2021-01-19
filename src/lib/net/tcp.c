@@ -12,6 +12,8 @@
 #include <fcntl.h>
 #include <netdb.h>
 #include <netinet/tcp.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 
 
 typedef struct {
