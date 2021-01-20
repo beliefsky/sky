@@ -39,14 +39,14 @@ static sky_int32_t get_backlog_size();
 
 void
 sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
-                        sky_tcp_conf_t *conf) {
+                        const sky_tcp_conf_t *conf) {
     sky_int32_t fd;
     sky_int32_t opt;
     sky_int32_t backlog;
     listener_t *l;
     struct addrinfo *addrs;
 
-    struct addrinfo hints = {
+    const struct addrinfo hints = {
             .ai_family = AF_UNSPEC,
             .ai_socktype = SOCK_STREAM,
             .ai_flags = AI_PASSIVE
@@ -88,28 +88,27 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
 #ifdef TCP_DEFER_ACCEPT
         setsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &opt, sizeof(sky_int32_t));
 #endif
-        if (sky_likely(bind(fd, addr->ai_addr, addr->ai_addrlen) == 0)) {
-            if (listen(fd, backlog) < 0) {
-                close(fd);
-                continue;
-            }
-            setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(sky_int32_t));
-
-#ifdef TCP_FASTOPEN
-            opt = 5;
-            setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &opt, sizeof(sky_int32_t));
-#endif
-
-            l = sky_palloc(pool, sizeof(listener_t));
-            l->run = conf->run;
-            l->data = conf->data;
-            l->timeout = conf->timeout;
-            sky_event_init(loop, &l->ev, fd, tcp_listener_accept, tcp_listener_error);
-            sky_event_register(&l->ev, -1);
-
+        if (sky_likely(bind(fd, addr->ai_addr, addr->ai_addrlen) != 0)) {
+            close(fd);
             continue;
         }
-        close(fd);
+        if (listen(fd, backlog) != 0) {
+            close(fd);
+            continue;
+        }
+        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(sky_int32_t));
+
+#ifdef TCP_FASTOPEN
+        opt = 5;
+        setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &opt, sizeof(sky_int32_t));
+#endif
+
+        l = sky_palloc(pool, sizeof(listener_t));
+        l->run = conf->run;
+        l->data = conf->data;
+        l->timeout = conf->timeout;
+        sky_event_init(loop, &l->ev, fd, tcp_listener_accept, tcp_listener_error);
+        sky_event_register(&l->ev, -1);
     }
     freeaddrinfo(addrs);
 }

@@ -27,6 +27,7 @@ set(SOURCES
         math/matrix.c
         event/event_loop.c
         net/tcp.c
+        net/udp.c
         net/http/http_request.c
         net/http/http_response.c
         net/http/http_parse.c
