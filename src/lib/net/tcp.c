@@ -88,11 +88,11 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
 #ifdef TCP_DEFER_ACCEPT
         setsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &opt, sizeof(sky_int32_t));
 #endif
-        if (sky_likely(bind(fd, addr->ai_addr, addr->ai_addrlen) != 0)) {
+        if (sky_unlikely(bind(fd, addr->ai_addr, addr->ai_addrlen) != 0)) {
             close(fd);
             continue;
         }
-        if (listen(fd, backlog) != 0) {
+        if (sky_unlikely(listen(fd, backlog) != 0)) {
             close(fd);
             continue;
         }
