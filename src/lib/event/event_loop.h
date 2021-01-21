@@ -43,17 +43,17 @@ struct sky_event_loop_s {
     sky_bool_t update: 1;
 };
 
-#define sky_event_init(_loop, _ev, _fd, _run, _close)               \
-    sky_timer_entry_init(&(_ev)->timer,sky_event_timer_callback);   \
-    (_ev)->loop = (_loop);                                          \
-    (_ev)->now = (_loop)->now;                                      \
-    (_ev)->run = (sky_event_run_pt)(_run);                          \
-    (_ev)->close = (sky_event_close_pt)(_close);                    \
-    (_ev)->fd = (_fd);                                              \
-    (_ev)->timeout = 0;                                             \
-    (_ev)->reg = false;                                             \
-    (_ev)->wait = false;                                            \
-    (_ev)->read = true;                                             \
+#define sky_event_init(_loop, _ev, _fd, _run, _close)       \
+    sky_timer_entry_init(&(_ev)->timer, null);              \
+    (_ev)->loop = (_loop);                                  \
+    (_ev)->now = (_loop)->now;                              \
+    (_ev)->run = (sky_event_run_pt)(_run);                  \
+    (_ev)->close = (sky_event_close_pt)(_close);            \
+    (_ev)->fd = (_fd);                                      \
+    (_ev)->timeout = 0;                                     \
+    (_ev)->reg = false;                                     \
+    (_ev)->wait = false;                                    \
+    (_ev)->read = true;                                     \
     (_ev)->write = true
 
 #define sky_event_reset(_ev, _run, _close)          \
@@ -92,12 +92,6 @@ void sky_event_register(sky_event_t *ev, sky_int32_t timeout);
  * @param ev 已经加入的事件
  */
 void sky_event_unregister(sky_event_t *ev);
-
-/**
- * 事件的超时回调函数，不需要用户主动条用
- * @param ev 事件
- */
-void sky_event_timer_callback(sky_event_t *ev);
 
 
 /**
