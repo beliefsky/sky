@@ -20,6 +20,7 @@ struct sky_http_ex_conn_pool_s {
     sky_int32_t family;
     sky_int32_t sock_type;
     sky_int32_t protocol;
+    sky_int32_t timeout;
     sky_uint16_t connection_ptr;
     sky_http_ex_client_t *clients;
     void *func_data;
@@ -67,6 +68,7 @@ sky_http_ex_tcp_pool_create(sky_pool_t *pool, const sky_http_ex_tcp_conf_t *conf
     conn_pool->mem_pool = pool;
     conn_pool->connection_ptr = i - 1;
     conn_pool->clients = (sky_http_ex_client_t *) (conn_pool + 1);
+    conn_pool->timeout = conf->timeout;
     conn_pool->next_func = conf->next_func;
     conn_pool->func_data = conf->func_data;
 
@@ -161,7 +163,7 @@ sky_http_ex_tcp_read(sky_http_ex_conn_t *conn, sky_uchar_t *data, sky_uint32_t s
                 sky_log_error("read errno: %d", errno);
                 return 0;
         }
-        sky_event_register(ev, 60);
+        sky_event_register(ev, conn->conn_pool->timeout);
         ev->read = false;
         sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
         if (sky_unlikely(!conn->client || ev->fd == -1)) {
@@ -230,7 +232,7 @@ sky_http_ex_tcp_write(sky_http_ex_conn_t *conn, sky_uchar_t *data, sky_uint32_t 
                     return false;
             }
         }
-        sky_event_register(ev, 60);
+        sky_event_register(ev, conn->conn_pool->timeout);
         ev->write = false;
         sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
         if (sky_unlikely(!conn->client || ev->fd == -1)) {
@@ -376,7 +378,7 @@ tcp_connection(sky_http_ex_conn_t *conn) {
             }
             break;
         }
-        ev->timeout = 60;
+        ev->timeout = conn->conn_pool->timeout;
     }
     return true;
 }

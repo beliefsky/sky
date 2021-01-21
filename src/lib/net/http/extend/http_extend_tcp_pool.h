@@ -22,6 +22,7 @@ typedef struct {
     sky_str_t port;
     sky_str_t unix_path;
     sky_uint16_t connection_size;
+    sky_int32_t timeout;
     sky_http_ex_conn_next next_func;
     void *func_data;
 } sky_http_ex_tcp_conf_t;
