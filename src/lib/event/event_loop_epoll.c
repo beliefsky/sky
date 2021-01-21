@@ -23,6 +23,8 @@
 #endif
 #endif
 
+static void event_timer_callback(sky_event_t *ev);
+
 static sky_int32_t setup_open_file_count_limits();
 
 sky_event_loop_t *
@@ -150,6 +152,7 @@ sky_event_register(sky_event_t *ev, sky_int32_t timeout) {
         if (timeout == 0) {
             ev->loop->update = true;
         }
+        ev->timer.cb = (sky_timer_wheel_pt) event_timer_callback;
         sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_uint64_t) (ev->loop->now + timeout));
     }
     ev->timeout = timeout;
@@ -173,6 +176,14 @@ sky_event_unregister(sky_event_t *ev) {
     // 此处应添加 应追加需要处理的连接
     ev->loop->update = true;
     sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_uint64_t) ev->loop->now);
+}
+
+static void
+event_timer_callback(sky_event_t *ev) {
+    close(ev->fd);
+    ev->reg = false;
+    ev->fd = -1;
+    ev->close(ev);
 }
 
 
