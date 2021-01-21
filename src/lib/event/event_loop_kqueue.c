@@ -71,6 +71,15 @@ sky_event_loop_run(sky_event_loop_t *loop) {
     run_ev = sky_pnalloc(loop->pool, sizeof(sky_event_t *) * (sky_uint32_t) max_events);
 
     for (;;) {
+        sky_timer_wheel_run(ctx, (sky_uint64_t) now);
+        next_time = sky_timer_wheel_wake_at(ctx);
+        if (next_time == SKY_UINT64_MAX) {
+            timeout = false;
+        } else {
+            timeout = true;
+            timespec.tv_sec = ((sky_int64_t) (next_time - (sky_uint32_t) now));
+        }
+
         n = kevent(fd, null, 0, events, max_events, timeout ? &timespec : null);
         if (sky_unlikely(n < 0)) {
             switch (errno) {
@@ -144,15 +153,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
         } else if (now == loop->now) {
             continue;
         }
-
-        sky_timer_wheel_run(ctx, (sky_uint64_t) now);
-        next_time = sky_timer_wheel_wake_at(ctx);
-        if (next_time == SKY_UINT64_MAX) {
-            timeout = false;
-        } else {
-            timeout = true;
-            timespec.tv_sec = ((sky_int64_t) (next_time - (sky_uint32_t) now));
-        }
+        now = loop->now;
     }
 }
 
