@@ -52,10 +52,14 @@ struct sky_event_loop_s {
     (_ev)->read = true;                                 \
     (_ev)->write = true
 
-#define sky_event_clean(_ev)    \
-    close((_ev)->fd);           \
-    (_ev)->reg = false;         \
-    (_ev)->fd = -1
+#define sky_event_clean(_ev)        \
+    do {                            \
+        if ((_ev)->fd != -1) {      \
+            close((_ev)->fd);       \
+            (_ev)->reg = false;     \
+            (_ev)->fd = -1;         \
+        }                           \
+    } while(0)
 
 /**
  * 创建io事件触发服务

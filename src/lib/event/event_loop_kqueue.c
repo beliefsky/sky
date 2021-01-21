@@ -129,7 +129,6 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             }
             if (!ev->run(ev)) {
                 sky_timer_wheel_unlink(&ev->timer);
-                sky_event_clean(ev);
                 // 触发回收资源待解决
                 ev->timer.cb(&ev->timer);
                 continue;
