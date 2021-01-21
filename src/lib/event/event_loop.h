@@ -56,6 +56,10 @@ struct sky_event_loop_s {
     (_ev)->read = true;                                             \
     (_ev)->write = true
 
+#define sky_event_reset(_ev, _run, _close)          \
+    (_ev)->run = (sky_event_run_pt)(_run);          \
+    (_ev)->close = (sky_event_close_pt)(_close)
+
 /**
  * 创建io事件触发服务
  * @param pool 创建时所需的内存池
