@@ -17,10 +17,13 @@ typedef struct sky_event_s sky_event_t;
 
 typedef sky_bool_t (*sky_event_run_pt)(sky_event_t *ev);
 
+typedef void (*sky_event_close_pt)(sky_event_t *ev);
+
 struct sky_event_s {
     sky_timer_wheel_entry_t timer;
     sky_event_loop_t *loop; //该事件监听的主程
     sky_event_run_pt run; // 普通事件触发的回调函数
+    sky_event_close_pt close; // 关闭事件回调函数
     sky_time_t now; // 当前时间
     sky_int32_t fd; //事件句柄
     sky_int32_t timeout; // 节点超时时间
@@ -40,22 +43,22 @@ struct sky_event_loop_s {
     sky_bool_t update: 1;
 };
 
-#define sky_event_init(_loop, _ev, _fd, _run, _close)   \
-    sky_timer_entry_init(&(_ev)->timer,_close);         \
-    (_ev)->loop = (_loop);                              \
-    (_ev)->now = (_loop)->now;                          \
-    (_ev)->run = (sky_event_run_pt)(_run);              \
-    (_ev)->fd = (_fd);                                  \
-    (_ev)->timeout = 0;                                 \
-    (_ev)->reg = false;                                 \
-    (_ev)->wait = false;                                \
-    (_ev)->read = true;                                 \
+#define sky_event_init(_loop, _ev, _fd, _run, _close)               \
+    sky_timer_entry_init(&(_ev)->timer,sky_event_timer_callback);   \
+    (_ev)->loop = (_loop);                                          \
+    (_ev)->now = (_loop)->now;                                      \
+    (_ev)->run = (sky_event_run_pt)(_run);                          \
+    (_ev)->close = (sky_event_close_pt)(_close);                    \
+    (_ev)->fd = (_fd);                                              \
+    (_ev)->timeout = 0;                                             \
+    (_ev)->reg = false;                                             \
+    (_ev)->wait = false;                                            \
+    (_ev)->read = true;                                             \
     (_ev)->write = true
 
-#define sky_event_clean(_ev)    \
-    close((_ev)->fd);           \
-    (_ev)->reg = false;         \
-    (_ev)->fd = -1
+#define sky_event_reset(_ev, _run, _close)          \
+    (_ev)->run = (sky_event_run_pt)(_run);          \
+    (_ev)->close = (sky_event_close_pt)(_close)
 
 /**
  * 创建io事件触发服务
@@ -89,6 +92,8 @@ void sky_event_register(sky_event_t *ev, sky_int32_t timeout);
  * @param ev 已经加入的事件
  */
 void sky_event_unregister(sky_event_t *ev);
+
+void sky_event_timer_callback(sky_event_t *ev);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

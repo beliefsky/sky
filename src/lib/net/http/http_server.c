@@ -227,9 +227,6 @@ http_connection_run(sky_http_connection_t *conn) {
 
 static void
 http_connection_close(sky_http_connection_t *conn) {
-    if (conn->ev.fd != -1) {
-        sky_event_clean(&conn->ev);
-    }
     sky_coro_destroy(conn->coro);
 }
 

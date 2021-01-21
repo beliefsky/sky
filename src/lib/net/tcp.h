@@ -25,7 +25,7 @@ typedef struct {
 } sky_tcp_conf_t;
 
 void sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
-                             sky_tcp_conf_t *conf);
+                             const sky_tcp_conf_t *conf);
 
 #if defined(__cplusplus)
 } /* extern "C" { */
