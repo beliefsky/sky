@@ -64,6 +64,10 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
 
     for (;;) {
+        sky_timer_wheel_run(ctx, (sky_uint64_t) now);
+        next_time = sky_timer_wheel_wake_at(ctx);
+        timeout = next_time == SKY_UINT64_MAX ? -1 : (sky_int32_t) (next_time - (sky_uint64_t) now) * 1000;
+
         n = epoll_wait(fd, events, max_events, timeout);
         if (sky_unlikely(n < 0)) {
             switch (errno) {
@@ -125,11 +129,6 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             continue;
         }
         now = loop->now;
-        // 处理超时的连接
-
-        sky_timer_wheel_run(ctx, (sky_uint64_t) now);
-        next_time = sky_timer_wheel_wake_at(ctx);
-        timeout = next_time == SKY_UINT64_MAX ? -1 : (sky_int32_t) (next_time - (sky_uint64_t) now) * 1000;
     }
 }
 

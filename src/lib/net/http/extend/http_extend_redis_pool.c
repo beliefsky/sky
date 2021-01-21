@@ -20,6 +20,7 @@ sky_redis_pool_create(sky_pool_t *pool, sky_redis_conf_t *conf) {
             .port = conf->port,
             .unix_path = conf->unix_path,
             .connection_size = conf->connection_size,
+            .timeout = 300,
             .next_func = null
     };
 

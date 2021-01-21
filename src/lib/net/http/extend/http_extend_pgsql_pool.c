@@ -65,6 +65,7 @@ sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf) {
             .port = conf->port,
             .unix_path = conf->unix_path,
             .connection_size = conf->connection_size,
+            .timeout = 300,
             .func_data = info,
             .next_func = (sky_http_ex_conn_next) pg_auth
     };

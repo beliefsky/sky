@@ -93,7 +93,23 @@ void sky_event_register(sky_event_t *ev, sky_int32_t timeout);
  */
 void sky_event_unregister(sky_event_t *ev);
 
+/**
+ * 事件的超时回调函数，不需要用户主动条用
+ * @param ev 事件
+ */
 void sky_event_timer_callback(sky_event_t *ev);
+
+
+/**
+ * 向事件中主动加入定时器，自定义处理
+ * @param loop 事件触发服务
+ * @param timer 定时器
+ * @param timeout 超时时间，单位秒
+ */
+static sky_inline void
+sky_event_timer_register(sky_event_loop_t *loop, sky_timer_wheel_entry_t *timer, sky_uint32_t timeout) {
+    sky_timer_wheel_link(loop->ctx, timer, (sky_uint64_t) (loop->now + timeout));
+}
 
 #if defined(__cplusplus)
 } /* extern "C" { */
