@@ -23,7 +23,6 @@
 #endif
 #endif
 
-
 static sky_int32_t setup_open_file_count_limits();
 
 sky_event_loop_t *
@@ -86,16 +85,16 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             // 需要处理被移除的请求
             if (!ev->reg) {
                 sky_timer_wheel_unlink(&ev->timer);
-                ev->timer.cb(&ev->timer);
+                ev->close(ev);
                 continue;
             }
             // 是否出现异常
             if (sky_unlikely(event->events & (EPOLLRDHUP | EPOLLHUP))) {
+                close(ev->fd);
+                ev->reg = false;
+                ev->fd = -1;
                 sky_timer_wheel_unlink(&ev->timer);
-                // 触发回收资源待解决
-                sky_event_clean(ev);
-
-                ev->timer.cb(&ev->timer);
+                ev->close(ev);
                 continue;
             }
             // 是否可读
@@ -110,9 +109,11 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 continue;
             }
             if (!ev->run(ev)) {
+                close(ev->fd);
+                ev->reg = false;
+                ev->fd = -1;
                 sky_timer_wheel_unlink(&ev->timer);
-                // 触发回收资源待解决
-                ev->timer.cb(&ev->timer);
+                ev->close(ev);
                 continue;
             }
             sky_timer_wheel_expired(ctx, &ev->timer, (sky_uint64_t) (ev->now + ev->timeout));

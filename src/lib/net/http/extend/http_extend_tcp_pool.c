@@ -407,9 +407,6 @@ tcp_run(sky_http_ex_client_t *client) {
 
 static void
 tcp_close(sky_http_ex_client_t *client) {
-    if (client->ev.fd != -1) {
-        sky_event_clean(&client->ev);
-    }
     tcp_run(client);
 }
 

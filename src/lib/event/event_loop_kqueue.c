@@ -96,7 +96,9 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             }
             // 是否出现异常
             if (sky_unlikely(event->flags & EV_ERROR)) {
-                sky_event_clean(ev);
+                close(ev->fd);
+                ev->reg = false;
+                ev->fd = -1;
                 if (ev->index == -1) {
                     ev->index = index;
                     run_ev[index++] = ev;
@@ -123,14 +125,15 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             ev->index = -1;
             if (!ev->reg) {
                 sky_timer_wheel_unlink(&ev->timer);
-                // 触发回收资源待解决
-                ev->timer.cb(&ev->timer);
+                ev->close(ev);
                 continue;
             }
             if (!ev->run(ev)) {
+                close(ev->fd);
+                ev->reg = false;
+                ev->fd = -1;
                 sky_timer_wheel_unlink(&ev->timer);
-                // 触发回收资源待解决
-                ev->timer.cb(&ev->timer);
+                ev->close(ev);
                 continue;
             }
             sky_timer_wheel_expired(ctx, &ev->timer, (sky_uint64_t)(ev->now + ev->timeout));
