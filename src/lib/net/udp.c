@@ -88,6 +88,7 @@ sky_udp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_udp_
         l = sky_palloc(pool, sizeof(listener_t));
         l->msg_run = conf->msg_run;
         l->connect_err = conf->connect_err;
+        l->run = conf->run;
         l->data = conf->data;
         l->timeout = conf->timeout;
 
@@ -124,8 +125,8 @@ udp_listener_run(sky_event_t *ev) {
         return true;
     }
 #else
-    sky_int32_t fd = socket(l->family | SOCK_NONBLOCK | SOCK_CLOEXEC,
-                            l->socket_type,
+    sky_int32_t fd = socket(l->family,
+                            l->socket_type | SOCK_NONBLOCK | SOCK_CLOEXEC,
                             l->protocol);
 
     if (sky_unlikely(fd == -1)) {
@@ -168,7 +169,7 @@ udp_listener_run(sky_event_t *ev) {
     if (!l->run(conn, l->data)) {
         close(fd);
         conn->ev.fd = -1;
-        conn->ev.timer.cb(&ev->timer);
+        conn->ev.timer.cb(&conn->ev.timer);
     } else {
         sky_event_register(&conn->ev, l->timeout);
     }
