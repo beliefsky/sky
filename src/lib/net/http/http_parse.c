@@ -427,7 +427,7 @@ http_method_identify(sky_http_request_t *r) {
             r->method = SKY_HTTP_HEAD;
             break;
         case sky_str4_num('P', 'O', 'S', 'T'):
-            if (sky_unlikely(r->method_name.len != 3)) {
+            if (sky_unlikely(r->method_name.len != 4)) {
                 return false;
             }
             r->method = SKY_HTTP_POST;
