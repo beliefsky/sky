@@ -53,6 +53,8 @@ static sky_bool_t http_header_range(http_file_t *file, sky_str_t *value);
 
 static void http_mime_type_init(http_module_file_t *data);
 
+static sky_bool_t http_read_body(sky_http_request_t *r, sky_buf_t *tmp, http_module_file_t *data);
+
 void
 sky_http_module_file_init(sky_pool_t *pool, sky_http_module_t *module, sky_str_t *prefix, sky_str_t *dir) {
     http_module_file_t *data;
@@ -68,9 +70,10 @@ sky_http_module_file_init(sky_pool_t *pool, sky_http_module_t *module, sky_str_t
     data->tmp_pool = null;
 
     module->prefix = *prefix;
-    module->run = (void (*)(sky_http_request_t *, sky_uintptr_t)) http_run_handler;
+    module->read_body = (sky_module_read_body_pt) http_read_body;
+    module->run = (sky_module_run_pt) http_run_handler;
 
-    module->module_data = (sky_uintptr_t) data;
+    module->module_data = data;
 }
 
 static void
@@ -272,4 +275,63 @@ http_mime_type_init(http_module_file_t *data) {
     if (!sky_hash_init(&hash, arrays.elts, arrays.nelts)) {
         sky_log_error("文件类型初始化出错");
     }
+}
+
+static sky_bool_t
+http_read_body(sky_http_request_t *r, sky_buf_t *tmp, http_module_file_t *data) {
+    sky_http_server_t *server;
+    sky_uint32_t n, size, t;
+
+    n = (sky_uint32_t) (tmp->last - tmp->pos);
+    size = r->headers_in.content_length_n;
+
+    if (n >= size) {
+        return true;
+    }
+    size -= n;
+
+    n = (sky_uint32_t) (tmp->end - tmp->pos);
+    server = r->conn->server;
+
+    // 实际数据小于缓冲
+    if (size <= n) {
+        do {
+            size -= server->http_read(r->conn, tmp->pos, size);
+        } while (size > 0);
+        return true;
+    }
+    // 缓冲足够大
+    if (n > 4096) {
+        do {
+            t = sky_min(n, size);
+            size -= server->http_read(r->conn, tmp->pos, t);
+        } while (size > 0);
+        return true;
+    }
+    t = sky_min(size, 4096);
+    n = t - n; // 还需要分配的内存
+
+    if (tmp->end == r->pool->d.last && r->pool->d.last + n <= r->pool->d.end) {
+        r->pool->d.last += n;
+        tmp->end += n;
+        do {
+            n = sky_min(t, size);
+            size -= server->http_read(r->conn, tmp->pos, n);
+        } while (size > 0);
+
+        r->pool->d.last = tmp->pos;
+    } else {
+        tmp->start = tmp->pos = tmp->last = sky_palloc(r->pool, t);
+        tmp->end = tmp->start + t;
+
+        do {
+            n = sky_min(t, size);
+            size -= server->http_read(r->conn, tmp->pos, n);
+        } while (size > 0);
+        if (tmp->end == r->pool->d.last) {
+            r->pool->d.last = tmp->pos;
+        }
+    }
+
+    return true;
 }

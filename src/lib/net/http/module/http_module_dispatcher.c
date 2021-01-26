@@ -15,6 +15,8 @@ typedef struct {
 
 static void http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data);
 
+static sky_bool_t http_read_body(sky_http_request_t *r, sky_buf_t *tmp, http_module_dispatcher_t *data);
+
 void
 sky_http_module_dispatcher_init(sky_pool_t *pool, sky_http_module_t *module, sky_str_t *prefix,
                                 sky_http_mapper_t *mappers, sky_size_t mapper_len) {
@@ -34,9 +36,9 @@ sky_http_module_dispatcher_init(sky_pool_t *pool, sky_http_module_t *module, sky
     }
 
     module->prefix = *prefix;
-    module->run = (void (*)(sky_http_request_t *, sky_uintptr_t)) http_run_handler;
-
-    module->module_data = (sky_uintptr_t) data;
+    module->read_body = (sky_module_read_body_pt) http_read_body;
+    module->run = (sky_module_run_pt) http_run_handler;
+    module->module_data = data;
 }
 
 static void
@@ -87,4 +89,22 @@ http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
         r->state = 405;
         sky_http_response_static_len(r, sky_str_line("{\"errcode\": 405, \"errmsg\": \"405 Method Not Allowed\"}"));
     }
+}
+
+static sky_bool_t
+http_read_body(sky_http_request_t *r, sky_buf_t *tmp, http_module_dispatcher_t *data) {
+    sky_uint32_t n, size;
+
+    n = (sky_uint32_t) (tmp->last - tmp->pos);
+    size = r->headers_in.content_length_n;
+
+    if (n >= size) {
+        r->request_body->str.len = n;
+        r->request_body->str.data = tmp->pos;
+        tmp->pos += n;
+
+        return true;
+    }
+
+    return false;
 }

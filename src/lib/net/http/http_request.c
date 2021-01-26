@@ -59,6 +59,7 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
     sky_http_request_t *r;
     sky_http_server_t *server;
     sky_buf_t *buf;
+    sky_http_module_t *module;
     sky_uint32_t n;
     sky_uint8_t buf_n;
     sky_int8_t i;
@@ -67,9 +68,13 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
     buf_n = server->header_buf_n;
 
 
-    buf = sky_buf_create(pool, server->header_buf_size);
-
     r = sky_pcalloc(pool, sizeof(sky_http_request_t));
+    r->pool = pool;
+    r->conn = conn;
+    sky_list_init(&r->headers_out.headers, pool, 32, sizeof(sky_table_elt_t));
+    sky_list_init(&r->headers_in.headers, pool, 32, sizeof(sky_table_elt_t));
+
+    buf = sky_buf_create(pool, server->header_buf_size);
 
     for (;;) {
         n = server->http_read(conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
@@ -86,10 +91,6 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
         }
         return null;
     }
-
-    r->pool = pool;
-    r->conn = conn;
-    sky_list_init(&r->headers_in.headers, pool, 32, sizeof(sky_table_elt_t));
 
     for (;;) {
         i = sky_http_request_header_parse(r, buf);
@@ -115,34 +116,15 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
         n = server->http_read(conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
         buf->last += n;
     }
+
     if (r->request_body) {
-        n = (sky_uint32_t) (buf->last - buf->pos);
-        r->request_body->read_size = n;
-        r->request_body->tmp = buf->pos;
-
-        if (n == r->headers_in.content_length_n) {
-            *(buf->last) = '\0';
-            r->request_body->ok = true;
-        } else {
-            n += (sky_uint32_t) (buf->end - buf->last);
-            if (n >= r->headers_in.content_length_n) {
-                // read body
-                for (;;) {
-                    n = server->http_read(conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
-                    buf->last += n;
-                    r->request_body->read_size += n;
-
-                    if (r->request_body->read_size < r->headers_in.content_length_n) {
-                        continue;
-                    }
-                    *(buf->last) = '\0';
-                    r->request_body->ok = true;
-                    break;
-                }
+        module = r->headers_in.module;
+        if (!module) {
+            if (sky_unlikely(!module->read_body(r, buf, module->module_data))) {
+                return null;
             }
         }
     }
-    sky_list_init(&r->headers_out.headers, pool, 32, sizeof(sky_table_elt_t));
 
     return r;
 }
