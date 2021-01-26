@@ -56,7 +56,6 @@ sky_event_loop_run(sky_event_loop_t *loop) {
     struct epoll_event *events, *event;
 
     fd = loop->fd;
-    timeout = -1;
     ctx = loop->ctx;
 
     now = loop->now;
