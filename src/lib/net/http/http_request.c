@@ -5,7 +5,6 @@
 #include "http_request.h"
 #include "http_parse.h"
 #include "../../core/memory.h"
-#include "../../core/trie.h"
 #include "http_response.h"
 
 static sky_http_request_t *http_header_read(sky_http_connection_t *conn, sky_pool_t *pool);
