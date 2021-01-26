@@ -10,8 +10,6 @@
 
 static sky_http_request_t *http_header_read(sky_http_connection_t *conn, sky_pool_t *pool);
 
-static sky_http_module_t *find_http_module(sky_http_request_t *r);
-
 void
 sky_http_request_init(sky_http_server_t *server) {
 
@@ -33,17 +31,17 @@ sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
             return SKY_CORO_ABORT;
         }
 
-        module = find_http_module(r);
-        if (module) {
+        module = r->headers_in.module;
+        if (!module) {
+            r->state = 404;
+            sky_str_set(&r->headers_out.content_type, "text/plain");
+            sky_http_response_static_len(r, sky_str_line("404 Not Found"));
+        } else {
             if (module->prefix.len) {
                 r->uri.len -= module->prefix.len;
                 r->uri.data += module->prefix.len;
             }
             module->run(r, module->module_data);
-        } else {
-            r->state = 404;
-            sky_str_set(&r->headers_out.content_type, "text/plain");
-            sky_http_response_static_len(r, sky_str_line("404 Not Found"));
         }
         if (!r->keep_alive) {
             return SKY_CORO_FINISHED;
@@ -148,23 +146,5 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
     sky_list_init(&r->headers_out.headers, pool, 32, sizeof(sky_table_elt_t));
 
     return r;
-}
-
-static sky_http_module_t *
-find_http_module(sky_http_request_t *r) {
-    sky_str_t *key;
-    sky_uint_t hash;
-    sky_trie_t *trie_prefix;
-
-    if (sky_unlikely(!r->headers_in.host)) {
-        return null;
-    }
-    key = &r->headers_in.host->value;
-    hash = sky_hash_key(key->data, key->len);
-    trie_prefix = sky_hash_find(&r->conn->server->modules_hash, hash, key->data, key->len);
-    if (!trie_prefix) {
-        return null;
-    }
-    return (sky_http_module_t *) sky_trie_find(trie_prefix, &r->uri);
 }
 

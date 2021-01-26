@@ -360,8 +360,19 @@ http_process_unique_header_line(sky_http_request_t *r, sky_table_elt_t *h, sky_u
 
 static sky_bool_t
 http_process_host(sky_http_request_t *r, sky_table_elt_t *h, sky_uintptr_t data) {
+    sky_str_t *key;
+    sky_uint_t hash;
+    sky_trie_t *trie_prefix;
+
     if (sky_likely(!r->headers_in.host)) {
         r->headers_in.host = h;
+
+        key = &r->headers_in.host->value;
+        hash = sky_hash_key(key->data, key->len);
+        trie_prefix = sky_hash_find(&r->conn->server->modules_hash, hash, key->data, key->len);
+        if (trie_prefix) {
+            r->headers_in.module = (sky_http_module_t *) sky_trie_find(trie_prefix, &r->uri);
+        }
     }
     return true;
 }
