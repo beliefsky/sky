@@ -29,7 +29,7 @@ sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
     for (;;) {
         // read buf and parse
         r = http_header_read(conn, pool);
-        if (r == null) {
+        if (sky_unlikely(!r)) {
             return SKY_CORO_ABORT;
         }
 
@@ -156,6 +156,9 @@ find_http_module(sky_http_request_t *r) {
     sky_uint_t hash;
     sky_trie_t *trie_prefix;
 
+    if (sky_unlikely(!r->headers_in.host)) {
+        return null;
+    }
     key = &r->headers_in.host->value;
     hash = sky_hash_key(key->data, key->len);
     trie_prefix = sky_hash_find(&r->conn->server->modules_hash, hash, key->data, key->len);
