@@ -140,8 +140,12 @@ http_header_build(sky_http_request_t *r, sky_str_buf_t *buf) {
     sky_str_buf_need_size(buf, 29);
     buf->post += sky_date_to_rfc_str(r->conn->ev.now, buf->post);
 
-    sky_str_buf_append_str_len(buf, sky_str_line("\r\nContent-Type: "));
-    sky_str_buf_append_str(buf, &header_out->content_type);
+    if (header_out->content_type.len) {
+        sky_str_buf_append_str_len(buf, sky_str_line("\r\nContent-Type: "));
+        sky_str_buf_append_str(buf, &header_out->content_type);
+    } else {
+        sky_str_buf_append_str_len(buf, sky_str_line("\r\nContent-Type: text/plain"));
+    }
 
     sky_str_buf_append_str_len(buf, sky_str_line("\r\nServer: sky\r\n"));
 
