@@ -36,7 +36,11 @@ void sky_str_buf_append_two_uchar(sky_str_buf_t *buf, sky_uchar_t c1, sky_uchar_
 
 void sky_str_buf_append_int32(sky_str_buf_t *buf, sky_int32_t num);
 
+void sky_str_buf_append_uint32(sky_str_buf_t *buf, sky_uint32_t num);
+
 void sky_str_buf_append_int64(sky_str_buf_t *buf, sky_int64_t num);
+
+void sky_str_buf_append_uint64(sky_str_buf_t *buf, sky_uint64_t num);
 
 sky_str_t *sky_str_buf_to_str(sky_str_buf_t *buf);
 

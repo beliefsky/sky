@@ -16,7 +16,6 @@
 #include <errno.h>
 #include "http_response.h"
 #include "../../core/number.h"
-#include "../../core/memory.h"
 #include "../../core/date.h"
 #include "../../core/string_buf.h"
 
@@ -100,17 +99,15 @@ sky_http_sendfile(sky_http_request_t *r, sky_int32_t fd, sky_size_t offset, sky_
         header = sky_list_push(&r->headers_out.headers);
         sky_str_set(&header->key, "Content-Range");
 
-        header->value.data = data = sky_palloc(r->pool, 64);
+        sky_str_buf_init(&str_buf, r->pool, 64);
+        sky_str_buf_append_str_len(&str_buf, sky_str_line("bytes "));
+        sky_str_buf_append_uint64(&str_buf, offset);
+        sky_str_buf_append_uchar(&str_buf, '-');
+        sky_str_buf_append_uint64(&str_buf, offset + len);
+        sky_str_buf_append_uchar(&str_buf, '/');
+        sky_str_buf_append_uint64(&str_buf, size);
 
-        sky_memcpy(data, "bytes ", 6);
-        data += 6;
-        data += sky_uint64_to_str(offset, data);
-        *(data++) = '-';
-        data += sky_uint64_to_str(offset + len, data);
-        *(data++) = '/';
-        data += sky_uint64_to_str(size, data);
-
-        header->value.len = (sky_size_t) (data - header->value.data);
+        sky_str_buf_build(&str_buf, &header->value);
     }
 
     sky_str_buf_init(&str_buf, r->pool, 2048);

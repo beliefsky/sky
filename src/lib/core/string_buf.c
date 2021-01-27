@@ -90,12 +90,30 @@ sky_str_buf_append_int32(sky_str_buf_t *buf, sky_int32_t num) {
 }
 
 void
+sky_str_buf_append_uint32(sky_str_buf_t *buf, sky_uint32_t num) {
+    if ((buf->post + 11) > buf->end) {
+        str_buf_append(buf, 11);
+    }
+
+    buf->post += sky_uint32_to_str(num, buf->post);
+}
+
+void
 sky_str_buf_append_int64(sky_str_buf_t *buf, sky_int64_t num) {
     if ((buf->post + 22) > buf->end) {
         str_buf_append(buf, 22);
     }
 
     buf->post += sky_int64_to_str(num, buf->post);
+}
+
+void
+sky_str_buf_append_uint64(sky_str_buf_t *buf, sky_uint64_t num) {
+    if ((buf->post + 22) > buf->end) {
+        str_buf_append(buf, 22);
+    }
+
+    buf->post += sky_uint64_to_str(num, buf->post);
 }
 
 sky_str_t *
