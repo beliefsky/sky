@@ -44,6 +44,7 @@ typedef struct {
     sky_table_elt_t *range;
     sky_table_elt_t *if_range;
 
+    sky_http_module_t *module;
     sky_uint32_t content_length_n;
 
 } sky_http_headers_in_t;
@@ -69,9 +70,10 @@ typedef struct {
 } sky_http_headers_out_t;
 
 typedef struct {
-    sky_uchar_t *tmp;
-    sky_uint32_t read_size;
-    sky_bool_t ok:1;
+    union {
+        sky_str_t str;
+        void *data;
+    };
 } sky_http_request_body_t;
 
 struct sky_http_request_s {
@@ -95,15 +97,19 @@ struct sky_http_request_s {
     void *data;
 
     sky_uint32_t version;
-    sky_uint32_t state:9;
-    sky_uint8_t method:7;
-    sky_bool_t keep_alive:1;
-    sky_bool_t quoted_uri:1;
+    sky_uint32_t state: 9;
+    sky_uint8_t method: 7;
+    sky_bool_t keep_alive: 1;
+    sky_bool_t quoted_uri: 1;
 };
 
 void sky_http_request_init(sky_http_server_t *server);
 
 sky_int32_t sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn);
+
+void sky_http_read_body_none_need(sky_http_request_t *r, sky_buf_t *tmp);
+
+void sky_http_read_body_str(sky_http_request_t *r, sky_buf_t *tmp);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

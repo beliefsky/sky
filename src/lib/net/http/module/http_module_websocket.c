@@ -36,6 +36,7 @@ static void websocket_write(sky_websocket_session_t *session, sky_uchar_t *data,
 
 static void write_test(sky_websocket_session_t *session, sky_pool_t *pool, sky_uchar_t *data, sky_size_t size);
 
+
 void
 sky_http_module_websocket_init(sky_pool_t *pool, sky_http_module_t *module, sky_str_t *prefix,
                                sky_http_websocket_handler_t *handler) {
@@ -44,8 +45,9 @@ sky_http_module_websocket_init(sky_pool_t *pool, sky_http_module_t *module, sky_
     data->handler = handler;
 
     module->prefix = *prefix;
-    module->run = (void (*)(sky_http_request_t *, sky_uintptr_t)) module_run;
-    module->module_data = (sky_uintptr_t) data;
+    module->read_body = null;
+    module->run = (sky_module_run_pt) module_run;
+    module->module_data = data;
 
 }
 

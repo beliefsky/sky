@@ -68,9 +68,10 @@ sky_http_module_file_init(sky_pool_t *pool, sky_http_module_t *module, sky_str_t
     data->tmp_pool = null;
 
     module->prefix = *prefix;
-    module->run = (void (*)(sky_http_request_t *, sky_uintptr_t)) http_run_handler;
+    module->read_body = null;
+    module->run = (sky_module_run_pt) http_run_handler;
 
-    module->module_data = (sky_uintptr_t) data;
+    module->module_data = data;
 }
 
 static void

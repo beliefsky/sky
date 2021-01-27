@@ -6,130 +6,159 @@
 #include "memory.h"
 #include "number.h"
 
-#define str_buf_push_next(_a, _n) (_a)->nelts += (_n)
-
-static sky_uchar_t *str_buf_push_pre(sky_str_buf_t *a, sky_uint32_t n);
-
+static sky_inline void str_buf_append(sky_str_buf_t *buf, sky_size_t size);
 
 sky_str_buf_t *
-sky_str_buf_create(sky_pool_t *p, sky_uint32_t n) {
-    sky_str_buf_t *a;
+sky_str_buf_create(sky_pool_t *pool, sky_uint32_t n) {
+    sky_str_buf_t *buf;
 
     // 分配ngx_array_t数组管理结构的内存
-    a = sky_palloc(p, sizeof(sky_str_buf_t));
-    if (sky_unlikely(!a)) {
+    buf = sky_palloc(pool, sizeof(sky_str_buf_t));
+    if (sky_unlikely(!buf)) {
         return null;
     }
-    // 分配存放n个元素，单个元素大小为size的内存空间
-    if (sky_unlikely(!sky_str_buf_init(a, p, n))) {
-        return null;
-    }
-    return a;
+    sky_str_buf_init(buf, pool, n);
+
+    return buf;
 }
 
 
 void
-sky_str_buf_destroy(sky_str_buf_t *a) {
-    sky_pool_t *p = a->pool;
-
-    // 若内存池未使用内存地址等于数组最后元素的地址，则释放数组内存到内存池
-    if (a->elts + a->nalloc == p->d.last) {
-        p->d.last -= a->nalloc;
-    }
-    if ((sky_uchar_t *) a + sizeof(sky_str_buf_t) == p->d.last) {
-        p->d.last = (sky_uchar_t *) a;
+sky_str_buf_destroy(sky_str_buf_t *buf) {
+    if (sky_likely(buf->start)) {
+        const sky_size_t total = (sky_size_t) (buf->end - buf->start);
+        (void) sky_prealloc(buf->pool, buf->start, total, 0);
+        buf->start = buf->end = buf->post = null;
+        buf->pool = null;
     }
 }
 
+void
+sky_str_buf_need_size(sky_str_buf_t *buf, sky_uint32_t size) {
+    if ((buf->post + size) > buf->end) {
+        str_buf_append(buf, size);
+    }
+}
 
 void
-sky_str_buf_append_str(sky_str_buf_t *a, const sky_str_t *str) {
+sky_str_buf_append_str(sky_str_buf_t *buf, const sky_str_t *str) {
     if (sky_unlikely(!str || !str->len)) {
         return;
     }
-    sky_uchar_t *p = str_buf_push_pre(a, (sky_uint32_t) str->len);
-    sky_memcpy(p, str->data, str->len);
-    str_buf_push_next(a, str->len);
+    if ((buf->post + str->len) > buf->end) {
+        str_buf_append(buf, str->len);
+    }
+    sky_memcpy(buf->post, str->data, str->len);
+    buf->post += str->len;
 }
 
 void
-sky_str_buf_append_str_len(sky_str_buf_t *a, const sky_uchar_t *s, sky_uint32_t len) {
+sky_str_buf_append_str_len(sky_str_buf_t *buf, const sky_uchar_t *str, sky_uint32_t len) {
     if (sky_unlikely(!len)) {
         return;
     }
-    sky_uchar_t *p = str_buf_push_pre(a, len);
-    sky_memcpy(p, s, len);
-    str_buf_push_next(a, len);
+    if ((buf->post + len) > buf->end) {
+        str_buf_append(buf, len);
+    }
+    sky_memcpy(buf->post, str, len);
+    buf->post += len;
 }
 
 void
-sky_str_buf_append_char(sky_str_buf_t *a, sky_uchar_t ch) {
-    sky_uchar_t *p = str_buf_push_pre(a, 1);
-    *p = ch;
+sky_str_buf_append_uchar(sky_str_buf_t *buf, sky_uchar_t ch) {
+    if ((buf->post + 1) > buf->end) {
+        str_buf_append(buf, 1);
+    }
+    *(buf->post++) = ch;
+}
 
-    str_buf_push_next(a, 1);
+void sky_str_buf_append_two_uchar(sky_str_buf_t *buf, sky_uchar_t c1, sky_uchar_t c2) {
+    if ((buf->post + 2) > buf->end) {
+        str_buf_append(buf, 2);
+    }
+    *(buf->post++) = c1;
+    *(buf->post++) = c2;
 }
 
 void
-sky_str_buf_append_int32(sky_str_buf_t *a, sky_int32_t num) {
-    sky_uchar_t *p = str_buf_push_pre(a, 11);
-    sky_uint8_t len = sky_int32_to_str(num, p);
-    str_buf_push_next(a, len);
+sky_str_buf_append_int32(sky_str_buf_t *buf, sky_int32_t num) {
+    if ((buf->post + 11) > buf->end) {
+        str_buf_append(buf, 11);
+    }
+
+    buf->post += sky_int32_to_str(num, buf->post);
 }
 
-sky_bool_t
-sky_str_buf_build(sky_str_buf_t *a, sky_str_t *out) {
-    if (sky_unlikely(!a->nelts)) {
-        return false;
+void
+sky_str_buf_append_uint32(sky_str_buf_t *buf, sky_uint32_t num) {
+    if ((buf->post + 11) > buf->end) {
+        str_buf_append(buf, 11);
     }
-    out->len = a->nelts++;
-    out->data = a->elts;
-    out->data[out->len] = '\0';
 
-    a->elts += a->nelts;
-    a->nalloc -= a->nalloc;
-    a->nelts = 0;
-
-    return true;
+    buf->post += sky_uint32_to_str(num, buf->post);
 }
 
-sky_bool_t
-sky_str_buf_tmp(sky_str_buf_t *a, sky_str_t *out) {
-    if (sky_unlikely(!a->nelts)) {
-        return false;
+void
+sky_str_buf_append_int64(sky_str_buf_t *buf, sky_int64_t num) {
+    if ((buf->post + 22) > buf->end) {
+        str_buf_append(buf, 22);
     }
-    out->len = a->nelts;
-    out->data = a->elts;
-    out->data[out->len] = '\0';
 
-    return true;
+    buf->post += sky_int64_to_str(num, buf->post);
 }
 
-static sky_inline sky_uchar_t *
-str_buf_push_pre(sky_str_buf_t *a, sky_uint32_t n) {
-    sky_uchar_t *new;
-    sky_uint32_t nalloc;
-    sky_pool_t *p;
-
-    ++n;
-
-    if (a->nelts + n > a->nalloc) {
-        /* the array is full */
-        p = a->pool;
-        if (a->elts + a->nalloc == p->d.last && p->d.last + n <= p->d.end) {
-            p->d.last += n;
-            a->nalloc += n;
-        } else {
-            /* allocate a new array */
-            nalloc = (sky_max(n, a->nalloc)) << 0x1;
-            new = sky_palloc(p, nalloc);
-            if (sky_unlikely(!new)) {
-                return null;
-            }
-            sky_memcpy(new, a->elts, a->nelts);
-            a->elts = new;
-            a->nalloc = nalloc;
-        }
+void
+sky_str_buf_append_uint64(sky_str_buf_t *buf, sky_uint64_t num) {
+    if ((buf->post + 22) > buf->end) {
+        str_buf_append(buf, 22);
     }
-    return (a->elts + a->nelts);
+
+    buf->post += sky_uint64_to_str(num, buf->post);
+}
+
+sky_str_t *
+sky_str_buf_to_str(sky_str_buf_t *buf) {
+    const sky_size_t total = (sky_size_t) (buf->end - buf->start);
+    const sky_size_t n = (sky_size_t) (buf->post - buf->start);
+
+    sky_uchar_t *new_ptr = sky_prealloc(buf->pool, buf->start, total, n + 1);
+    new_ptr[n] = '\0';
+
+    sky_str_t *out = sky_palloc(buf->pool, sizeof(sky_str_t));
+    out->data = new_ptr;
+    out->len = n;
+    buf->start = buf->end = buf->post = null;
+    buf->pool = null;
+
+    return out;
+}
+
+void
+sky_str_buf_build(sky_str_buf_t *buf, sky_str_t *out) {
+    const sky_size_t total = (sky_size_t) (buf->end - buf->start);
+    const sky_size_t n = (sky_size_t) (buf->post - buf->start);
+    sky_uchar_t *new_ptr = sky_prealloc(buf->pool, buf->start, total, n + 1);
+    new_ptr[n] = '\0';
+
+    out->data = new_ptr;
+    out->len = n;
+    buf->start = buf->end = buf->post = null;
+    buf->pool = null;
+}
+
+static sky_inline void
+str_buf_append(sky_str_buf_t *buf, sky_size_t size) {
+    const sky_size_t total = (sky_size_t) (buf->end - buf->start);
+    const sky_size_t next_size = total << 1; // 内存正常扩展
+    const sky_size_t min_size = total + size; // 最小内存大小
+    const sky_size_t re_size = sky_max(next_size, min_size);
+
+    sky_uchar_t *new_ptr = sky_prealloc(buf->pool, buf->start, total, re_size);
+    if (buf->start != new_ptr) {
+        const sky_size_t n = (sky_size_t) (buf->post - buf->start);
+        buf->start = new_ptr;
+        buf->post = new_ptr + n;
+    }
+    buf->end = buf->start + re_size;
+
 }

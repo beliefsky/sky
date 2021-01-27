@@ -109,6 +109,44 @@ sky_pcalloc(sky_pool_t *pool, sky_size_t size) {
 }
 
 void *
+sky_prealloc(sky_pool_t *pool, void *ptr, sky_size_t ptr_size, sky_size_t size) {
+    if (ptr_size <= pool->max) {
+        const sky_uchar_t *p = (sky_uchar_t *) ptr + ptr_size;
+        if (size <= ptr_size) {
+            if (p == pool->d.last) {
+                pool->d.last = ptr + size;
+            }
+            return ptr;
+        }
+
+        const sky_size_t re_size = size - ptr_size;
+
+        if (p == pool->d.last && (pool->d.last + re_size) <= pool->d.end) {
+            pool->d.last += re_size;
+            return ptr;
+        }
+    } else {
+        for (sky_pool_large_t *l = pool->large; l; l = l->next) {
+            if (ptr == l->alloc) {
+                void *new_ptr = sky_realloc(ptr, size);
+                if (sky_unlikely(!size || new_ptr)) {
+                    l->alloc = new_ptr;
+                }
+                return new_ptr;
+            }
+        }
+        if (size <= ptr_size) {
+            return ptr;
+        }
+    }
+
+    void *new_ptr = sky_pnalloc(pool, size);
+    sky_memcpy(new_ptr, ptr, ptr_size);
+
+    return new_ptr;
+}
+
+void *
 sky_pmemalign(sky_pool_t *pool, sky_size_t size, sky_size_t alignment) {
     void *p;
     sky_pool_large_t *large;
@@ -129,19 +167,25 @@ sky_pmemalign(sky_pool_t *pool, sky_size_t size, sky_size_t alignment) {
     return p;
 }
 
-sky_bool_t
-sky_pfree(sky_pool_t *pool, void *p) {
+void
+sky_pfree(sky_pool_t *pool, const void *ptr, sky_size_t size) {
     sky_pool_large_t *l;
 
-    for (l = pool->large; l; l = l->next) {
-        if (p == l->alloc) {
-            sky_free(l->alloc);
-            l->alloc = null;
-            return true;
+    if (size <= pool->max) {
+        const sky_uchar_t *p = ptr + size;
+        if (p == pool->d.last) {
+            pool->d.last -= size;
         }
+        return;
     }
 
-    return false;
+    for (l = pool->large; l; l = l->next) {
+        if (ptr == l->alloc) {
+            sky_free(l->alloc);
+            l->alloc = null;
+            return;
+        }
+    }
 }
 
 

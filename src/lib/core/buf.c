@@ -3,10 +3,11 @@
 //
 
 #include "buf.h"
+#include "memory.h"
 
 sky_buf_t *
-sky_buf_create(sky_pool_t *pool, sky_size_t size) {
-    sky_buf_t   *buf;
+sky_buf_create(sky_pool_t *pool, sky_uint32_t size) {
+    sky_buf_t *buf;
 
     buf = sky_palloc(pool, sizeof(sky_buf_t) + size + 1);
     buf->start = buf->pos = buf->last = (sky_uchar_t *) (buf + 1);
@@ -15,5 +16,28 @@ sky_buf_create(sky_pool_t *pool, sky_size_t size) {
     buf->next = null;
 
     return buf;
+}
+
+void sky_buf_rebuild(sky_buf_t *buf, sky_pool_t *pool, sky_uint32_t size) {
+    const sky_uint32_t n = (sky_uint32_t) (buf->end - buf->pos);
+
+    if (size < n) {
+        if (buf->end == pool->d.last) {
+            buf->end = buf->pos + size;
+            pool->d.last = buf->end;
+        }
+        return;
+    }
+    if (buf->end == pool->d.last && (buf->pos + size) <= pool->d.end) {
+        buf->end = buf->pos + size;
+        pool->d.last = buf->end;
+        return;
+    }
+    const sky_uint32_t data_size = (sky_uint32_t) (buf->last - buf->pos);
+
+    buf->start = sky_palloc(pool, size);
+    sky_memcpy(buf->start, buf->pos, data_size);
+    buf->pos = buf->start;
+    buf->end = buf->last = buf->start + size;
 }
 

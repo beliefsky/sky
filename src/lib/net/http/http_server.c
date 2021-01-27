@@ -72,11 +72,6 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
         conf->header_buf_size = 2047;   // 2kb
     }
     server->header_buf_size = conf->header_buf_size;
-
-    if (!conf->body_max_size) {
-        server->body_max_size = (1 << 20) - 1; // 1mb
-    }
-    server->body_max_size = conf->body_max_size;
     server->ssl = conf->ssl;
     if (conf->ssl) {
         server->ssl_ctx = conf->ssl_ctx;
@@ -360,8 +355,24 @@ http_process_unique_header_line(sky_http_request_t *r, sky_table_elt_t *h, sky_u
 
 static sky_bool_t
 http_process_host(sky_http_request_t *r, sky_table_elt_t *h, sky_uintptr_t data) {
+    sky_str_t *key;
+    sky_uint_t hash;
+    sky_trie_t *trie_prefix;
+
     if (sky_likely(!r->headers_in.host)) {
         r->headers_in.host = h;
+
+        key = &r->headers_in.host->value;
+        hash = sky_hash_key(key->data, key->len);
+        trie_prefix = sky_hash_find(&r->conn->server->modules_hash, hash, key->data, key->len);
+        if (trie_prefix) {
+            sky_http_module_t *module = (sky_http_module_t *) sky_trie_find(trie_prefix, &r->uri);
+            if (module && module->prefix.len) {
+                r->uri.len -= module->prefix.len;
+                r->uri.data += module->prefix.len;
+            }
+            r->headers_in.module = module;
+        }
     }
     return true;
 }
