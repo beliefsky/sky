@@ -46,15 +46,20 @@ http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
     sky_http_mapper_pt *handler;
     sky_bool_t flag;
 
-
-    sky_str_set(&r->headers_out.content_type, "application/json");
-
-    handler = (sky_http_mapper_pt *) sky_trie_contains(data->mappers, &r->uri);
-    if (!handler) {
-        r->state = 404;
-
-        sky_http_response_static_len(r, sky_str_line("{\"errcode\": 404, \"errmsg\": \"404 Not Found\"}"));
-        return;
+    if (r->headers_in.content_length_n) {
+        handler = r->data;
+        r->data = null;
+        if (!handler) {
+            return;
+        }
+    } else {
+        handler = (sky_http_mapper_pt *) sky_trie_contains(data->mappers, &r->uri);
+        if (!handler) {
+            r->state = 404;
+            sky_str_set(&r->headers_out.content_type, "application/json");
+            sky_http_response_static_len(r, sky_str_line("{\"errcode\": 404, \"errmsg\": \"404 Not Found\"}"));
+            return;
+        }
     }
 
     switch (r->method) {
@@ -95,6 +100,17 @@ static sky_bool_t
 http_read_body(sky_http_request_t *r, sky_buf_t *tmp, http_module_dispatcher_t *data) {
     sky_uint32_t n, size;
 
+    r->data = (sky_http_mapper_pt *) sky_trie_contains(data->mappers, &r->uri);
+    if (!r->data) {
+        sky_http_read_body_none_need(r, tmp);
+
+        r->state = 404;
+        sky_str_set(&r->headers_out.content_type, "application/json");
+        sky_http_response_static_len(r, sky_str_line("{\"errcode\": 404, \"errmsg\": \"404 Not Found\"}"));
+        return true;
+    }
+
+
     n = (sky_uint32_t) (tmp->last - tmp->pos);
     size = r->headers_in.content_length_n;
 
@@ -106,5 +122,5 @@ http_read_body(sky_http_request_t *r, sky_buf_t *tmp, http_module_dispatcher_t *
         return true;
     }
 
-    return false;
+    return true;
 }

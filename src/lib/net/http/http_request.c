@@ -9,8 +9,6 @@
 
 static sky_http_request_t *http_header_read(sky_http_connection_t *conn, sky_pool_t *pool);
 
-static void http_read_body_none_need(sky_http_request_t *r, sky_buf_t *tmp);
-
 
 void
 sky_http_request_init(sky_http_server_t *server) {
@@ -127,15 +125,15 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
                 return null;
             }
         } else {
-            http_read_body_none_need(r, buf);
+            sky_http_read_body_none_need(r, buf);
         }
     }
 
     return r;
 }
 
-static void
-http_read_body_none_need(sky_http_request_t *r, sky_buf_t *tmp) {
+void
+sky_http_read_body_none_need(sky_http_request_t *r, sky_buf_t *tmp) {
     sky_http_server_t *server;
     sky_uint32_t n, size, t;
 
