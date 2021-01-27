@@ -33,6 +33,12 @@ sky_str_buf_destroy(sky_str_buf_t *buf) {
     }
 }
 
+void
+sky_str_buf_need_size(sky_str_buf_t *buf, sky_uint32_t size) {
+    if ((buf->post + size) > buf->end) {
+        str_buf_append(buf, size);
+    }
+}
 
 void
 sky_str_buf_append_str(sky_str_buf_t *buf, const sky_str_t *str) {
