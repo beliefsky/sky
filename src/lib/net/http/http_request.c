@@ -7,7 +7,6 @@
 #include "http_parse.h"
 #include "../../core/memory.h"
 #include "http_response.h"
-#include "../../core/log.h"
 
 static sky_http_request_t *http_header_read(sky_http_connection_t *conn, sky_pool_t *pool);
 
@@ -126,6 +125,7 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
             sky_http_read_body_none_need(r, buf);
         }
     }
+    sky_buf_rebuild(buf, pool, 0);
 
     return r;
 }
@@ -153,38 +153,18 @@ sky_http_read_body_none_need(sky_http_request_t *r, sky_buf_t *tmp) {
         } while (size > 0);
         return;
     }
-    // 缓冲足够大
-    if (n >= 4096) {
+    // 缓冲区间太小，分配一较大区域
+    if (n < 4096) {
+        n = sky_min(size, 4096);
+        sky_buf_rebuild(tmp, r->pool, n);
+    }
+
+    do {
         do {
             t = sky_min(n, size);
             size -= server->http_read(r->conn, tmp->pos, t);
         } while (size > 0);
-        return;
-    }
-    t = sky_min(size, 4096);
-    n = t - n; // 还需要分配的内存
-
-    if (tmp->end == r->pool->d.last && r->pool->d.last + n <= r->pool->d.end) {
-        r->pool->d.last += n;
-        tmp->end += n;
-        do {
-            n = sky_min(t, size);
-            size -= server->http_read(r->conn, tmp->pos, n);
-        } while (size > 0);
-
-        r->pool->d.last = tmp->pos;
-    } else {
-        tmp->start = tmp->pos = tmp->last = sky_palloc(r->pool, t);
-        tmp->end = tmp->start + t;
-
-        do {
-            n = sky_min(t, size);
-            size -= server->http_read(r->conn, tmp->pos, n);
-        } while (size > 0);
-        if (tmp->end == r->pool->d.last) {
-            r->pool->d.last = tmp->pos;
-        }
-    }
+    } while (size > 0);
 }
 
 void

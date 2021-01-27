@@ -22,6 +22,10 @@ void sky_buf_rebuild(sky_buf_t *buf, sky_pool_t *pool, sky_uint32_t size) {
     const sky_uint32_t n = (sky_uint32_t) (buf->end - buf->pos);
 
     if (size < n) {
+        if (buf->end == pool->d.last) {
+            buf->end = buf->pos + size;
+            pool->d.last = buf->end;
+        }
         return;
     }
     if (buf->end == pool->d.last && (buf->pos + size) <= pool->d.end) {
