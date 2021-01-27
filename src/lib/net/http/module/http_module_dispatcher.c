@@ -63,6 +63,7 @@ http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
             return;
         }
     }
+    sky_str_set(&r->headers_out.content_type, "application/json");
 
     switch (r->method) {
         case SKY_HTTP_GET:
