@@ -100,13 +100,12 @@ http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
 
 static sky_bool_t
 http_read_body(sky_http_request_t *r, sky_buf_t *tmp, http_module_dispatcher_t *data) {
-    sky_uint32_t n, size;
-
     if (r->headers_in.content_length_n > data->body_max_buff) {
         sky_http_read_body_none_need(r, tmp);
         r->state = 413;
         sky_str_set(&r->headers_out.content_type, "application/json");
-        sky_http_response_static_len(r, sky_str_line("{\"errcode\": 413, \"errmsg\": \"413 Request Entity Too Large\"}"));
+        sky_http_response_static_len(r,
+                                     sky_str_line("{\"errcode\": 413, \"errmsg\": \"413 Request Entity Too Large\"}"));
         return true;
     }
 
@@ -120,17 +119,7 @@ http_read_body(sky_http_request_t *r, sky_buf_t *tmp, http_module_dispatcher_t *
         return true;
     }
 
-
-    n = (sky_uint32_t) (tmp->last - tmp->pos);
-    size = r->headers_in.content_length_n;
-
-    if (n >= size) {
-        r->request_body->str.len = n;
-        r->request_body->str.data = tmp->pos;
-        tmp->pos += n;
-
-        return true;
-    }
+    sky_http_read_body_str(r, tmp);
 
     return true;
 }

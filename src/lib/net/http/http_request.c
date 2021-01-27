@@ -2,12 +2,15 @@
 // Created by weijing on 18-11-9.
 //
 #include <unistd.h>
+#include <sys/mman.h>
 #include "http_request.h"
 #include "http_parse.h"
 #include "../../core/memory.h"
 #include "http_response.h"
 
 static sky_http_request_t *http_header_read(sky_http_connection_t *conn, sky_pool_t *pool);
+
+static void destroy_mmap(sky_str_t *data);
 
 
 void
@@ -187,5 +190,80 @@ sky_http_read_body_none_need(sky_http_request_t *r, sky_buf_t *tmp) {
             r->pool->d.last = tmp->pos;
         }
     }
+}
+
+void
+sky_http_read_body_str(sky_http_request_t *r, sky_buf_t *tmp) {
+    sky_uint32_t size, n;
+    sky_http_server_t *server;
+    sky_uchar_t *p;
+
+    const sky_uint32_t total = (sky_uint32_t) (tmp->last - tmp->pos);
+
+    size = total;
+    if (n >= size) {
+        r->request_body->str.len = n;
+        r->request_body->str.data = tmp->pos;
+        tmp->pos += n;
+
+        return;
+    }
+    size -= n;
+
+    server = r->conn->server;
+    n = (sky_uint32_t) (tmp->end - tmp->last);
+    if (n >= size) {
+        do {
+            n = server->http_read(r->conn, tmp->last, size);
+            tmp->last += n;
+            size -= n;
+        } while (size > 0);
+
+        r->request_body->str.len = total;
+        r->request_body->str.data = tmp->pos;
+        tmp->pos += total;
+
+        return;
+    }
+
+    // 大内存读取
+    if (total >= 8192) {
+
+        const sky_uint32_t re_size = sky_align(total, 4096U);
+
+        p = mmap(null, re_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+        if (sky_unlikely(!p)) {
+            return;
+        }
+        // 配置回收页
+        sky_str_t *re_call = sky_palloc(r->pool, sizeof(sky_str_t));
+        re_call->data = p;
+        re_call->len = re_size;
+        sky_defer_add(r->conn->coro, (sky_defer_func_t) destroy_mmap, r->request_body);
+
+        r->request_body->str.len = total;
+        r->request_body->str.data = p;
+
+        n = (sky_uint32_t) (tmp->end - tmp->last);
+        sky_memcpy(p, tmp->pos, n);
+        tmp->pos += n;
+        p += n;
+
+        do {
+            n = server->http_read(r->conn, p, size);
+            p += n;
+            size -= n;
+        } while (size > 0);
+
+        return;
+    }
+
+    // 小块内存读取
+
+}
+
+static void
+destroy_mmap(sky_str_t *data) {
+    munmap(data->data, data->len);
 }
 

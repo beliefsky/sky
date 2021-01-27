@@ -107,8 +107,9 @@ void sky_http_request_init(sky_http_server_t *server);
 
 sky_int32_t sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn);
 
-void
-sky_http_read_body_none_need(sky_http_request_t *r, sky_buf_t *tmp);
+void sky_http_read_body_none_need(sky_http_request_t *r, sky_buf_t *tmp);
+
+void sky_http_read_body_str(sky_http_request_t *r, sky_buf_t *tmp);
 
 #if defined(__cplusplus)
 } /* extern "C" { */
