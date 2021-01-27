@@ -71,6 +71,8 @@ static void json_buf_append_str(json_buf_t *buf, const sky_uchar_t *v, sky_size_
 
 static void json_buf_append_integer(json_buf_t *buf, sky_int64_t v);
 
+static void json_buf_re_size(json_buf_t *buf, sky_size_t size);
+
 
 sky_json_t *sky_json_parse(sky_pool_t *pool, sky_str_t *json) {
     sky_uchar_t *p = json->data;
@@ -1234,13 +1236,11 @@ json_buf_clean(json_buf_t *buf) {
     sky_str_t *result;
 
     json_buf_append_uchar(buf, '\0');
-    if (sky_likely(buf->end == buf->pool->d.last)) {
-        buf->pool->d.last = buf->post;
-    }
-    result = sky_palloc(buf->pool, sizeof(sky_str_t));
 
-    result->data = buf->start;
-    result->len = (sky_size_t) (buf->post - buf->start) - 1;
+    const sky_size_t re_size = (sky_size_t) (buf->post - buf->start);
+
+    result->data = sky_prealloc(buf->pool, buf->start, buf->size, re_size);;
+    result->len = re_size - 1;
 
     return result;
 }
@@ -1252,17 +1252,8 @@ json_buf_append_uchar(json_buf_t *buf, sky_uchar_t v) {
         return;
     }
 
-    if (sky_likely(buf->end == buf->pool->d.last && buf->pool->d.last + buf->size <= buf->pool->d.end)) {
-        buf->pool->d.last += buf->size;
-        buf->end += buf->size;
-    } else {
-        sky_uchar_t *new = sky_palloc(buf->pool, buf->size << 1);
-        sky_memcpy(new, buf->start, buf->size);
-        buf->start = new;
-        buf->post = new + buf->size;
-        buf->end = buf->post + buf->size;
-    }
-    buf->size <<= 1;
+    const sky_size_t re_size = buf->size << 1;
+    json_buf_re_size(buf, re_size);
 
     *(buf->post++) = v;
 }
@@ -1275,17 +1266,8 @@ json_buf_append_uchar_two(json_buf_t *buf, sky_uchar_t v1, sky_uchar_t v2) {
         return;
     }
 
-    if (sky_likely(buf->end == buf->pool->d.last && buf->pool->d.last + buf->size <= buf->pool->d.end)) {
-        buf->pool->d.last += buf->size;
-        buf->end += buf->size;
-    } else {
-        sky_uchar_t *new = sky_palloc(buf->pool, buf->size << 1);
-        sky_memcpy(new, buf->start, buf->size);
-        buf->start = new;
-        buf->post = new + buf->size;
-        buf->end = buf->post + buf->size;
-    }
-    buf->size <<= 1;
+    const sky_size_t re_size = buf->size << 1;
+    json_buf_re_size(buf, re_size);
 
     *(buf->post++) = v1;
     *(buf->post++) = v2;
@@ -1300,20 +1282,9 @@ json_buf_append_str(json_buf_t *buf, const sky_uchar_t *v, sky_size_t v_len) {
         return;
     }
     const sky_size_t size = sky_max(buf->size, v_len);
+    const sky_size_t re_size = buf->size + size;
+    json_buf_re_size(buf, re_size);
 
-    if (sky_likely(buf->end == buf->pool->d.last && buf->pool->d.last + size <= buf->pool->d.end)) {
-        buf->pool->d.last += size;
-        buf->end += size;
-    } else {
-        sky_uchar_t *new = sky_palloc(buf->pool, buf->size + size);
-
-        const sky_size_t data_size = (sky_size_t) (buf->post - buf->start);
-
-        sky_memcpy(new, buf->start, data_size);
-        buf->start = new;
-        buf->post = new + data_size;
-        buf->end = buf->start + (buf->size + size);
-    }
     sky_memcpy(buf->post, v, v_len);
     buf->post += v_len;
 }
@@ -1325,18 +1296,22 @@ json_buf_append_integer(json_buf_t *buf, sky_int64_t v) {
         buf->post += sky_int64_to_str(v, buf->post);
         return;
     }
-
-    if (sky_likely(buf->end == buf->pool->d.last && buf->pool->d.last + buf->size <= buf->pool->d.end)) {
-        buf->pool->d.last += buf->size;
-        buf->end += buf->size;
-    } else {
-        sky_uchar_t *new = sky_palloc(buf->pool, buf->size << 1);
-        sky_memcpy(new, buf->start, buf->size);
-        buf->start = new;
-        buf->post = new + buf->size;
-        buf->end = buf->post + buf->size;
-    }
-    buf->size <<= 1;
+    const sky_size_t re_size = buf->size << 1;
+    json_buf_re_size(buf, re_size);
 
     buf->post += sky_int64_to_str(v, buf->post);
+}
+
+static sky_inline void
+json_buf_re_size(json_buf_t *buf, sky_size_t size) {
+    sky_uchar_t *new_ptr = sky_prealloc(buf->pool, buf->start, buf->size, size);
+
+    buf->end = new_ptr + size;
+    buf->size = size;
+    if (new_ptr == buf->start) {
+        return;
+    }
+    const sky_size_t n = (sky_size_t) (buf->post - buf->start);
+    buf->start = new_ptr;
+    buf->post = new_ptr + n;
 }
