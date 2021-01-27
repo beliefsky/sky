@@ -1233,13 +1233,13 @@ json_buf_init(json_buf_t *buf, sky_pool_t *pool) {
 
 static sky_inline sky_str_t *
 json_buf_clean(json_buf_t *buf) {
-    sky_str_t *result;
-
     json_buf_append_uchar(buf, '\0');
 
     const sky_size_t re_size = (sky_size_t) (buf->post - buf->start);
 
-    result->data = sky_prealloc(buf->pool, buf->start, buf->size, re_size);;
+    sky_uchar_t *p = sky_prealloc(buf->pool, buf->start, buf->size, re_size);
+    sky_str_t *result = sky_palloc(buf->pool, sizeof(sky_str_t));
+    result->data = p;
     result->len = re_size - 1;
 
     return result;
