@@ -9,6 +9,9 @@
 
 static sky_http_request_t *http_header_read(sky_http_connection_t *conn, sky_pool_t *pool);
 
+static void http_read_body_none_need(sky_http_request_t *r, sky_buf_t *tmp);
+
+
 void
 sky_http_request_init(sky_http_server_t *server) {
 
@@ -119,13 +122,72 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
 
     if (r->request_body) {
         module = r->headers_in.module;
-        if (!module) {
+        if (module && module->read_body) {
             if (sky_unlikely(!module->read_body(r, buf, module->module_data))) {
                 return null;
             }
+        } else {
+            http_read_body_none_need(r, buf);
         }
     }
 
     return r;
+}
+
+static void
+http_read_body_none_need(sky_http_request_t *r, sky_buf_t *tmp) {
+    sky_http_server_t *server;
+    sky_uint32_t n, size, t;
+
+    n = (sky_uint32_t) (tmp->last - tmp->pos);
+    size = r->headers_in.content_length_n;
+
+    if (n >= size) {
+        return;
+    }
+    size -= n;
+
+    n = (sky_uint32_t) (tmp->end - tmp->pos);
+    server = r->conn->server;
+
+    // 实际数据小于缓冲
+    if (size <= n) {
+        do {
+            size -= server->http_read(r->conn, tmp->pos, size);
+        } while (size > 0);
+        return;
+    }
+    // 缓冲足够大
+    if (n > 4096) {
+        do {
+            t = sky_min(n, size);
+            size -= server->http_read(r->conn, tmp->pos, t);
+        } while (size > 0);
+        return;
+    }
+    t = sky_min(size, 4096);
+    n = t - n; // 还需要分配的内存
+
+    if (tmp->end == r->pool->d.last && r->pool->d.last + n <= r->pool->d.end) {
+        r->pool->d.last += n;
+        tmp->end += n;
+        do {
+            n = sky_min(t, size);
+            size -= server->http_read(r->conn, tmp->pos, n);
+        } while (size > 0);
+
+        r->pool->d.last = tmp->pos;
+    } else {
+        tmp->start = tmp->pos = tmp->last = sky_palloc(r->pool, t);
+        tmp->end = tmp->start + t;
+
+        do {
+            n = sky_min(t, size);
+            size -= server->http_read(r->conn, tmp->pos, n);
+        } while (size > 0);
+        if (tmp->end == r->pool->d.last) {
+            r->pool->d.last = tmp->pos;
+        }
+    }
 }
 

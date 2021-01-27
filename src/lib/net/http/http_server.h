@@ -35,7 +35,6 @@ typedef struct {
     sky_str_t host;
     sky_str_t port;
     void *ssl_ctx;
-    sky_uint32_t body_max_size;
     sky_uint16_t modules_n;
     sky_uint16_t header_buf_size;
     sky_uint8_t header_buf_n;
@@ -59,7 +58,6 @@ struct sky_http_server_s {
 
     void (*http_write)(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size);
 
-    sky_uint32_t body_max_size;
     sky_uint16_t header_buf_size;
     sky_uint8_t header_buf_n;
     sky_bool_t ssl;
