@@ -8,13 +8,6 @@
 
 static sky_inline void str_buf_append(sky_str_buf_t *buf, sky_size_t size);
 
-sky_inline sky_bool_t
-sky_str_buf_init(sky_str_buf_t *buf, sky_pool_t *pool, sky_uint32_t n) {
-    buf->start = buf->post = sky_pnalloc(pool, n);
-    buf->end = buf->start + n;
-    buf->pool = pool;
-}
-
 sky_str_buf_t *
 sky_str_buf_create(sky_pool_t *pool, sky_uint32_t n) {
     sky_str_buf_t *buf;
@@ -24,9 +17,7 @@ sky_str_buf_create(sky_pool_t *pool, sky_uint32_t n) {
     if (sky_unlikely(!buf)) {
         return null;
     }
-    buf->start = buf->post = sky_pnalloc(pool, n);
-    buf->end = buf->start + n;
-    buf->pool = pool;
+    sky_str_buf_init(buf, pool, n);
 
     return buf;
 }
