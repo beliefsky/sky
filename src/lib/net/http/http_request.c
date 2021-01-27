@@ -156,7 +156,7 @@ sky_http_read_body_none_need(sky_http_request_t *r, sky_buf_t *tmp) {
         return;
     }
     // 缓冲足够大
-    if (n > 4096) {
+    if (n >= 4096) {
         do {
             t = sky_min(n, size);
             size -= server->http_read(r->conn, tmp->pos, t);
