@@ -7,6 +7,7 @@
 #include "http_parse.h"
 #include "../../core/memory.h"
 #include "http_response.h"
+#include "../../core/log.h"
 
 static sky_http_request_t *http_header_read(sky_http_connection_t *conn, sky_pool_t *pool);
 
@@ -35,16 +36,12 @@ sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
         }
 
         module = r->headers_in.module;
-        if (!module) {
+        if (module) {
+            module->run(r, module->module_data);
+        } else {
             r->state = 404;
             sky_str_set(&r->headers_out.content_type, "text/plain");
             sky_http_response_static_len(r, sky_str_line("404 Not Found"));
-        } else {
-            if (module->prefix.len) {
-                r->uri.len -= module->prefix.len;
-                r->uri.data += module->prefix.len;
-            }
-            module->run(r, module->module_data);
         }
         if (!r->keep_alive) {
             return SKY_CORO_FINISHED;
@@ -198,17 +195,15 @@ sky_http_read_body_str(sky_http_request_t *r, sky_buf_t *tmp) {
     sky_http_server_t *server;
     sky_uchar_t *p;
 
-    const sky_uint32_t total = (sky_uint32_t) (tmp->last - tmp->pos);
-
-    size = total;
-    if (n >= size) {
+    const sky_uint32_t total = r->headers_in.content_length_n;
+    n = (sky_uint32_t) (tmp->last - tmp->pos);
+    if (n >= total) {
         r->request_body->str.len = n;
         r->request_body->str.data = tmp->pos;
         tmp->pos += n;
-
         return;
     }
-    size -= n;
+    size = total - n;
 
     server = r->conn->server;
     n = (sky_uint32_t) (tmp->end - tmp->last);
@@ -225,7 +220,6 @@ sky_http_read_body_str(sky_http_request_t *r, sky_buf_t *tmp) {
 
         return;
     }
-
     // 大内存读取
     if (total >= 8192) {
 
@@ -233,7 +227,8 @@ sky_http_read_body_str(sky_http_request_t *r, sky_buf_t *tmp) {
 
         p = mmap(null, re_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
         if (sky_unlikely(!p)) {
-            return;
+            sky_coro_yield(r->conn->coro, SKY_CORO_ABORT);
+            sky_coro_exit();
         }
         // 配置回收页
         sky_str_t *re_call = sky_palloc(r->pool, sizeof(sky_str_t));
@@ -257,9 +252,16 @@ sky_http_read_body_str(sky_http_request_t *r, sky_buf_t *tmp) {
 
         return;
     }
+    sky_buf_rebuild(tmp, r->pool, total);
+    do {
+        n = server->http_read(r->conn, tmp->last, size);
+        tmp->last += n;
+        size -= n;
+    } while (size > 0);
 
-    // 小块内存读取
-
+    r->request_body->str.len = total;
+    r->request_body->str.data = tmp->pos;
+    tmp->pos += total;
 }
 
 static void

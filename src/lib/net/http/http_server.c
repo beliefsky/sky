@@ -366,7 +366,12 @@ http_process_host(sky_http_request_t *r, sky_table_elt_t *h, sky_uintptr_t data)
         hash = sky_hash_key(key->data, key->len);
         trie_prefix = sky_hash_find(&r->conn->server->modules_hash, hash, key->data, key->len);
         if (trie_prefix) {
-            r->headers_in.module = (sky_http_module_t *) sky_trie_find(trie_prefix, &r->uri);
+            sky_http_module_t *module = (sky_http_module_t *) sky_trie_find(trie_prefix, &r->uri);
+            if (module && module->prefix.len) {
+                r->uri.len -= module->prefix.len;
+                r->uri.data += module->prefix.len;
+            }
+            r->headers_in.module = module;
         }
     }
     return true;
