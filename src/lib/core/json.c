@@ -4,8 +4,9 @@
 
 #include "json.h"
 #include "number.h"
+#include "memory.h"
 #include "string_buf.h"
-#include "log.h"
+
 
 #if defined(__AVX2__)
 
@@ -558,7 +559,6 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                     object = json_object_get(current);
 
                     if (sky_unlikely(!parse_string(&object->key, &data, end))) {
-                        sky_log_info("%s", object->key.data);
                         return null;
                     }
                     next = NEXT_KEY_VALUE;
