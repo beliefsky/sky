@@ -15,6 +15,7 @@ extern "C" {
 
 #define sky_free                    free
 #define sky_malloc                  malloc
+#define sky_realloc                 realloc
 /*
  * 对于a，传入CPU的二级cache的line大小，通过ngx_cpuinf函数，可以获得ngx_cacheline_size的大小，一般intel为64或128
  * 计算宏ngx_align(1, 64)=64，只要输入d<64，则结果总是64，如果输入d=65，则结果为128,以此类推。
