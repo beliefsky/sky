@@ -6,6 +6,7 @@
 #include "../../../core/memory.h"
 #include "../../../core/log.h"
 #include "../../../core/number.h"
+#include "../../../core/string_buf.h"
 
 
 static sky_bool_t redis_send_exec(sky_redis_conn_t *rc, sky_redis_data_t *prams, sky_uint16_t param_len);
@@ -68,175 +69,92 @@ sky_redis_connection_put(sky_redis_conn_t *rc) {
 
 static sky_bool_t
 redis_send_exec(sky_redis_conn_t *rc, sky_redis_data_t *params, sky_uint16_t param_len) {
-    sky_buf_t *buf;
+    sky_str_buf_t buf;
     sky_uint8_t len;
 
     if (sky_unlikely(!param_len)) {
         return false;
     }
-    if (!rc->query_buf) {
-        buf = rc->query_buf = sky_buf_create(rc->conn->pool, 1023);
-    } else {
-        buf = rc->query_buf;
-        sky_buf_reset(buf);
-    }
-    *(buf->last++) = '*';
-    buf->last += sky_uint16_to_str(param_len, buf->last);
-    *(buf->last++) = '\r';
-    *(buf->last++) = '\n';
+    sky_str_buf_init(&buf, rc->conn->pool, 1024);
+    sky_str_buf_append_uchar(&buf, '*');
+    sky_str_buf_append_uint16(&buf, param_len);
+    sky_str_buf_append_two_uchar(&buf, '\r', '\n');
+
     for (; param_len; ++params, --param_len) {
         switch (params->data_type) {
             case SKY_REDIS_DATA_NULL:
-                if ((buf->end - buf->last) < 5) {
-                    if (sky_unlikely(
-                            !sky_http_ex_tcp_write(rc->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
-                        return false;
-                    }
-                    sky_buf_reset(buf);
-                }
-                sky_memcpy(buf->last, "$-1\r\b", 5);
-                buf->last += 5;
+                sky_str_buf_append_str_len(&buf, sky_str_line("$-1\r\b"));
                 break;
             case SKY_REDIS_DATA_I8:
-                if ((buf->end - buf->last) < 10) {
-                    if (sky_unlikely(
-                            !sky_http_ex_tcp_write(rc->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
-                        return false;
-                    }
-                    sky_buf_reset(buf);
-                }
-                len = sky_int8_to_str(params->i8, &buf->last[4]);
-                *(buf->last++) = '$';
-                *(buf->last++) = sky_num_to_uchar(len);
-                *(buf->last++) = '\r';
-                *(buf->last++) = '\n';
-                buf->last += len;
-                *(buf->last++) = '\r';
-                *(buf->last++) = '\n';
+                sky_str_buf_need_size(&buf, 10);
+
+                len = sky_int8_to_str(params->i8, &buf.post[4]);
+                *(buf.post++) = '$';
+                *(buf.post++) = sky_num_to_uchar(len);
+                *(buf.post++) = '\r';
+                *(buf.post++) = '\n';
+                buf.post += len;
+                *(buf.post++) = '\r';
+                *(buf.post++) = '\n';
                 break;
             case SKY_REDIS_DATA_I16:
-                if ((buf->end - buf->last) < 12) {
-                    if (sky_unlikely(
-                            !sky_http_ex_tcp_write(rc->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
-                        return false;
-                    }
-                    sky_buf_reset(buf);
-                }
-                len = sky_int16_to_str(params->i16, &buf->last[4]);
-                *(buf->last++) = '$';
-                *(buf->last++) = sky_num_to_uchar(len);
-                *(buf->last++) = '\r';
-                *(buf->last++) = '\n';
-                buf->last += len;
-                *(buf->last++) = '\r';
-                *(buf->last++) = '\n';
+                sky_str_buf_need_size(&buf, 12);
+                len = sky_int16_to_str(params->i16, &buf.post[4]);
+                *(buf.post++) = '$';
+                *(buf.post++) = sky_num_to_uchar(len);
+                *(buf.post++) = '\r';
+                *(buf.post++) = '\n';
+                buf.post += len;
+                *(buf.post++) = '\r';
+                *(buf.post++) = '\n';
                 break;
             case SKY_REDIS_DATA_I32:
-                if ((buf->end - buf->last) < 18) {
-                    if (sky_unlikely(
-                            !sky_http_ex_tcp_write(rc->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
-                        return false;
-                    }
-                    sky_buf_reset(buf);
-                }
-                *(buf->last++) = '$';
+                sky_str_buf_need_size(&buf, 18);
+                *(buf.post++) = '$';
                 if (params->i32 >= 0 && params->i32 < 1000000000) {
-                    len = sky_int32_to_str(params->i32, &buf->last[3]);
-                    *(buf->last++) = sky_num_to_uchar(len);
+                    len = sky_int32_to_str(params->i32, &buf.post[3]);
+                    *(buf.post++) = sky_num_to_uchar(len);
                 } else {
-                    len = sky_int32_to_str(params->i32, &buf->last[4]);
-                    buf->last += sky_uint8_to_str(len, buf->last);
+                    len = sky_int32_to_str(params->i32, &buf.post[4]);
+                    buf.post += sky_uint8_to_str(len, buf.post);
                 }
-                *(buf->last++) = '\r';
-                *(buf->last++) = '\n';
-                buf->last += len;
-                *(buf->last++) = '\r';
-                *(buf->last++) = '\n';
+                *(buf.post++) = '\r';
+                *(buf.post++) = '\n';
+                buf.post += len;
+                *(buf.post++) = '\r';
+                *(buf.post++) = '\n';
                 break;
             case SKY_REDIS_DATA_I64:
-                if ((buf->end - buf->last) < 27) {
-                    if (sky_unlikely(
-                            !sky_http_ex_tcp_write(rc->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
-                        return false;
-                    }
-                    sky_buf_reset(buf);
-                }
-                *(buf->last++) = '$';
+                sky_str_buf_need_size(&buf, 27);
+                *(buf.post++) = '$';
                 if (params->i64 >= 0 && params->i64 < 1000000000) {
-                    len = sky_int64_to_str(params->i64, &buf->last[3]);
-                    *(buf->last++) = sky_num_to_uchar(len);
+                    len = sky_int64_to_str(params->i64, &buf.post[3]);
+                    *(buf.post++) = sky_num_to_uchar(len);
                 } else {
-                    len = sky_int64_to_str(params->i64, &buf->last[4]);
-                    buf->last += sky_uint8_to_str(len, buf->last);
+                    len = sky_int64_to_str(params->i64, &buf.post[4]);
+                    buf.post += sky_uint8_to_str(len, buf.post);
                 }
-                *(buf->last++) = '\r';
-                *(buf->last++) = '\n';
-                buf->last += len;
-                *(buf->last++) = '\r';
-                *(buf->last++) = '\n';
+                *(buf.post++) = '\r';
+                *(buf.post++) = '\n';
+                buf.post += len;
+                *(buf.post++) = '\r';
+                *(buf.post++) = '\n';
                 break;
             case SKY_REDIS_DATA_STREAM:
-                if (params->stream.len < 512) {
-                    if ((buf->end - buf->last) < ((sky_uint16_t) params->stream.len + 8)) {
-                        if (sky_unlikely(
-                                !sky_http_ex_tcp_write(rc->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
-                            return false;
-                        }
-                        sky_buf_reset(buf);
-                    }
-                    *(buf->last++) = '$';
-                    buf->last += sky_uint16_to_str((sky_uint16_t) params->stream.len, buf->last);
-                    *(buf->last++) = '\r';
-                    *(buf->last++) = '\n';
-                    sky_memcpy(buf->last, params->stream.data, params->stream.len);
-                    buf->last += params->stream.len;
-                    *(buf->last++) = '\r';
-                    *(buf->last++) = '\n';
-                } else {
-                    if ((buf->end - buf->last) < ((sky_uint32_t) params->stream.len + 17)) {
-                        *(buf->last++) = '$';
-                        buf->last += sky_uint32_to_str((sky_uint32_t) params->stream.len, buf->last);
-                        *(buf->last++) = '\r';
-                        *(buf->last++) = '\n';
-                        sky_memcpy(buf->last, params->stream.data, params->stream.len);
-                        buf->last += params->stream.len;
-                        *(buf->last++) = '\r';
-                        *(buf->last++) = '\n';
-                    } else {
-                        if ((buf->end - buf->last) < 14) {
-                            if (sky_unlikely(!sky_http_ex_tcp_write(rc->conn, buf->pos,
-                                                                    (sky_uint32_t) (buf->last - buf->pos)))) {
-                                return false;
-                            }
-                            sky_buf_reset(buf);
-                        }
-                        *(buf->last++) = '$';
-                        buf->last += sky_uint32_to_str((sky_uint32_t) params->stream.len, buf->last);
-                        *(buf->last++) = '\r';
-                        *(buf->last++) = '\n';
-
-                        if (sky_unlikely(
-                                !sky_http_ex_tcp_read(rc->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
-                            return false;
-                        }
-                        sky_buf_reset(buf);
-                        if (sky_unlikely(!sky_http_ex_tcp_write(rc->conn, params->stream.data,
-                                                                (sky_uint32_t) params->stream.len))) {
-                            return false;
-                        }
-                        *(buf->last++) = '\r';
-                        *(buf->last++) = '\n';
-                    }
-                }
+                sky_str_buf_append_uchar(&buf, '$');
+                sky_str_buf_append_uint32(&buf, (sky_uint32_t) params->stream.len);
+                sky_str_buf_append_two_uchar(&buf, '\r', '\n');
+                sky_str_buf_append_str(&buf, &params->stream);
+                sky_str_buf_append_two_uchar(&buf, '\r', '\n');
                 break;
         }
     }
-    if (sky_unlikely(!sky_http_ex_tcp_write(rc->conn, buf->pos, (sky_uint32_t) (buf->last - buf->pos)))) {
-        return false;
-    }
 
+    const sky_uint32_t size = sky_str_buf_size(&buf);
+    const sky_bool_t result = sky_http_ex_tcp_write(rc->conn, buf.start, size);
+    sky_str_buf_destroy(&buf);
 
-    return true;
+    return result;
 }
 
 static sky_redis_result_t *
