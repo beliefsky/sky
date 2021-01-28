@@ -23,7 +23,10 @@ extern "C" {
  * */
 #define sky_align(d, a)             (((d) + (a - 1)) & ~(a - 1))
 #define sky_align_ptr(p, a)         (sky_uchar_t *) (((sky_uintptr_t) (p) + ((sky_uintptr_t) a - 0x1)) & ~((sky_uintptr_t) a - 0x1))
-#define sky_memzero(ptr, size)      memset(ptr,0x0,size)     //sky_memzero使用的是memset原型，memset使用汇编进行编写
+/**
+ * sky_memzero使用的是memset原型，memset使用汇编进行编写
+ */
+#define sky_memzero(ptr, size)      memset(ptr,0x0,size)
 #define sky_memcpy                  memcpy
 #define sky_memmove                 memmove
 

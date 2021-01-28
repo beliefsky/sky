@@ -24,17 +24,9 @@ sky_array_create(sky_pool_t *p, sky_uint32_t n, sky_size_t size) {
 
 void
 sky_array_destroy(sky_array_t *a) {
-    sky_pool_t *p;
-
-    p = a->pool;
-
-    // 若内存池未使用内存地址等于数组最后元素的地址，则释放数组内存到内存池
-    if ((sky_uchar_t *) a->elts + a->size * a->nalloc == p->d.last) {
-        p->d.last -= a->size * a->nalloc;
-    }
-    if ((sky_uchar_t *) a + sizeof(sky_array_t) == p->d.last) {
-        p->d.last = (sky_uchar_t *) a;
-    }
+    const sky_size_t total = a->size * a->nalloc;
+    sky_pfree(a->pool, a->elts, total);
+    sky_memzero(a, sizeof(sky_array_t));
 }
 
 /*
@@ -44,70 +36,34 @@ sky_array_destroy(sky_array_t *a) {
 */
 void *
 sky_array_push(sky_array_t *a) {
-    void *elt, *new;
-    sky_size_t size;
-    sky_pool_t *p;
-
     if (a->nelts == a->nalloc) {
-        /* the array is full */
-        size = a->size * a->nalloc;
-        p = a->pool;
-        if ((sky_uchar_t *) a->elts + size == p->d.last
-            && p->d.last + a->size <= p->d.end) {
-            /*
-             * the array allocation is the last in the pool
-             * and there is space for new allocation
-             */
-            p->d.last += a->size;
-            a->nalloc++;
-        } else {
-            /* allocate a new array */
-            new = sky_palloc(p, size << 0x1);
-            if (sky_unlikely(!new)) {
-                return null;
-            }
-            sky_memcpy(new, a->elts, size);
-            a->elts = new;
-            a->nalloc <<= 0x1;
-        }
+        const sky_size_t total = a->size * a->nalloc;
+        const sky_size_t re_size = total << 1;
+        a->nalloc <<= 1;
+
+        a->elts = sky_prealloc(a->pool, a->elts, total, re_size);
     }
-    elt = (sky_uchar_t *) a->elts + a->size * a->nelts;
+
+    void *elt = (sky_uchar_t *) a->elts + (a->size * a->nelts);
     a->nelts++;
+
     return elt;
 }
 
 void *
 sky_array_push_n(sky_array_t *a, sky_uint32_t n) {
-    void *elt, *new;
-    sky_size_t size;
-    sky_uint32_t nalloc;
-    sky_pool_t *p;
-
-    size = n * a->size;
     if (a->nelts + n > a->nalloc) {
-        /* the array is full */
-        p = a->pool;
-        if ((sky_uchar_t *) a->elts + a->size * a->nalloc == p->d.last
-            && p->d.last + size <= p->d.end) {
-            /*
-             * the array allocation is the last in the pool
-             * and there is space for new allocation
-             */
-            p->d.last += size;
-            a->nalloc += n;
-        } else {
-            /* allocate a new array */
-            nalloc = (sky_max(n, a->nalloc)) << 0x1;
-            new = sky_palloc(p, nalloc * a->size);
-            if (sky_unlikely(!new)) {
-                return null;
-            }
-            sky_memcpy(new, a->elts, a->nelts * a->size);
-            a->elts = new;
-            a->nalloc = nalloc;
-        }
+        const sky_uint32_t max = sky_max(n, a->nalloc);
+        const sky_size_t total = a->size * a->nalloc;
+
+        a->nalloc = max << 1;
+
+        const sky_size_t re_size = a->size * a->nalloc;
+        a->elts = sky_prealloc(a->pool, a->elts, total, re_size);
     }
-    elt = (sky_uchar_t *) a->elts + a->size * a->nelts;
+
+    void *elt = (sky_uchar_t *) a->elts + a->size * a->nelts;
     a->nelts += n;
+
     return elt;
 }

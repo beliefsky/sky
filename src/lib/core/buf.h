@@ -27,17 +27,20 @@ struct sky_buf_s {
     //和终止位置，和pos不同，pos会大于等于start
     sky_uchar_t *end;       //见start分析，和last不同，last会小于等于end
 
-    sky_buf_t *next;
+    sky_pool_t *pool;
 };
 
 #define sky_buf_reset(_buf)                      \
     (_buf)->pos = (_buf)->last = (_buf)->start
 
 
+void sky_buf_init(sky_buf_t *buf, sky_pool_t *pool, sky_uint32_t size);
+
 sky_buf_t *sky_buf_create(sky_pool_t *pool, sky_uint32_t size);
 
+void sky_buf_rebuild(sky_buf_t *buf, sky_uint32_t size);
 
-void sky_buf_rebuild(sky_buf_t *buf, sky_pool_t *pool, sky_uint32_t size);
+void sky_buf_destroy(sky_buf_t *buf);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

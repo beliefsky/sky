@@ -84,7 +84,7 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
     sky_char_t *path;
     sky_int32_t fd;
 
-    if (!r->uri.len) {
+    if (sky_unlikely(!r->uri.len)) {
         http_error_page(r, 404, "404 Not Found");
     }
     if (r->uri.len == 1 && *r->uri.data == '/') {

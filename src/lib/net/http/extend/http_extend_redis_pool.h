@@ -29,7 +29,6 @@ typedef struct {
 
 struct sky_redis_conn_s {
     sky_http_ex_conn_t *conn;
-    sky_buf_t *query_buf;
 };
 
 typedef struct {
