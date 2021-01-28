@@ -29,8 +29,6 @@ typedef struct {
 struct sky_pg_conn_s {
     sky_bool_t error;
     sky_http_ex_conn_t *conn;
-    sky_buf_t *query_buf;
-    sky_buf_t *read_buf;
 };
 
 typedef enum {

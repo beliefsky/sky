@@ -105,7 +105,7 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
                 if (r->req_pos) {
                     n = (sky_uint32_t) (buf->pos - r->req_pos);
                     buf->pos -= n;
-                    sky_buf_rebuild(buf, pool, server->header_buf_size);
+                    sky_buf_rebuild(buf, server->header_buf_size);
                     r->req_pos = buf->pos;
                     buf->pos += n;
                 }
@@ -125,7 +125,7 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
             sky_http_read_body_none_need(r, buf);
         }
     }
-    sky_buf_rebuild(buf, pool, 0);
+    sky_buf_rebuild(buf, 0);
 
     return r;
 }
@@ -156,7 +156,7 @@ sky_http_read_body_none_need(sky_http_request_t *r, sky_buf_t *tmp) {
     // 缓冲区间太小，分配一较大区域
     if (n < 4096) {
         n = sky_min(size, 4096);
-        sky_buf_rebuild(tmp, r->pool, n);
+        sky_buf_rebuild(tmp, n);
     }
 
     do {
@@ -230,7 +230,7 @@ sky_http_read_body_str(sky_http_request_t *r, sky_buf_t *tmp) {
 
         return;
     }
-    sky_buf_rebuild(tmp, r->pool, total);
+    sky_buf_rebuild(tmp, total);
     do {
         n = server->http_read(r->conn, tmp->last, size);
         tmp->last += n;
