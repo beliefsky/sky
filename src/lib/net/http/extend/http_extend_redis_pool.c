@@ -35,7 +35,6 @@ sky_redis_connection_get(sky_http_ex_conn_pool_t *redis_pool, sky_pool_t *pool, 
 
     rc = sky_palloc(pool, sizeof(sky_redis_conn_t));
     rc->conn = null;
-    rc->query_buf = null;
 
     conn = sky_http_ex_tcp_conn_get(redis_pool, pool, main);
     if (sky_unlikely(!conn)) {
