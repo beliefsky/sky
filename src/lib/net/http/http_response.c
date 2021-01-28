@@ -168,16 +168,12 @@ http_header_build(sky_http_request_t *r, sky_str_buf_t *buf) {
 static void
 http_send_file(sky_http_connection_t *conn, sky_int32_t fd, off_t offset, sky_size_t size,
                sky_uchar_t *header, sky_uint32_t header_len) {
-    sky_int64_t n;
-    sky_int32_t socket_fd;
-
-
-    socket_fd = conn->ev.fd;
+    const sky_int32_t socket_fd = conn->ev.fd;
 
     conn->server->http_write(conn, header, header_len);
 
     for (;;) {
-        n = sendfile(socket_fd, fd, &offset, size);
+        const sky_int64_t n = sendfile(socket_fd, fd, &offset, size);
         if (n < 1) {
             if (sky_unlikely(n == 0)) {
                 sky_coro_yield(conn->coro, SKY_CORO_ABORT);
