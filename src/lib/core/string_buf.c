@@ -27,7 +27,7 @@ void
 sky_str_buf_destroy(sky_str_buf_t *buf) {
     if (sky_likely(buf->start)) {
         const sky_size_t total = (sky_size_t) (buf->end - buf->start);
-        (void) sky_prealloc(buf->pool, buf->start, total, 0);
+        sky_pfree(buf->pool, buf->start, total);
         buf->start = buf->end = buf->post = null;
         buf->pool = null;
     }
