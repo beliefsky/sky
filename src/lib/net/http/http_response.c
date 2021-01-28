@@ -125,11 +125,15 @@ sky_http_sendfile(sky_http_request_t *r, sky_int32_t fd, sky_size_t offset, sky_
 
 static void
 http_header_build(sky_http_request_t *r, sky_str_buf_t *buf) {
-    sky_http_headers_out_t *header_out = &r->headers_out;
+    if (!r->state) {
+        r->state = 200;
+    }
+    const sky_http_headers_out_t *header_out = &r->headers_out;
+    const sky_str_t *status = sky_http_status_find(r->conn->server, r->state);
 
     sky_str_buf_append_str(buf, &r->version_name);
     sky_str_buf_append_uchar(buf, ' ');
-    sky_str_buf_append_str(buf, header_out->status);
+    sky_str_buf_append_str(buf, status);
 
     if (r->keep_alive) {
         sky_str_buf_append_str_len(buf, sky_str_line("\r\nConnection: keep-alive\r\n"));
