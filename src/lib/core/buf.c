@@ -39,10 +39,11 @@ void sky_buf_rebuild(sky_buf_t *buf, sky_uint32_t size) {
     }
     const sky_uint32_t data_size = (sky_uint32_t) (buf->last - buf->pos);
 
-    buf->start = sky_palloc(buf->pool, size);
+    buf->start = sky_pnalloc(buf->pool, size);
     sky_memcpy(buf->start, buf->pos, data_size);
     buf->pos = buf->start;
-    buf->end = buf->last = buf->start + size;
+    buf->last = buf->pos + data_size;
+    buf->end = buf->start + size;
 }
 
 void sky_buf_destroy(sky_buf_t *buf) {
