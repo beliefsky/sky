@@ -43,7 +43,7 @@ sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf) {
     info->password = conf->password;
 
     info->conn_info.len = 11 + sizeof("user") + sizeof("database") + conf->username.len + conf->database.len;
-    info->conn_info.data = p = sky_palloc(pool, info->conn_info.len);
+    info->conn_info.data = p = sky_pnalloc(pool, info->conn_info.len);
 
     *((sky_uint32_t *) p) = sky_htonl(info->conn_info.len);
     p += 4;
@@ -138,6 +138,7 @@ pg_auth(sky_http_ex_conn_t *conn, pg_conn_info_t *info) {
     for (;;) {
         n = sky_http_ex_tcp_read(conn, buf.last, (sky_uint32_t) (buf.end - buf.last));
         if (sky_unlikely(!n)) {
+            sky_buf_destroy(&buf);
             return false;
         }
         buf.last += n;
@@ -192,7 +193,7 @@ pg_auth(sky_http_ex_conn_t *conn, pg_conn_info_t *info) {
                         sky_buf_destroy(&buf);
                         return false;
                     }
-                    sky_buf_rebuild(&buf, 1024);
+                    sky_buf_reset(&buf);
                     state = START;
                     break;
                 case STRING:
@@ -220,7 +221,7 @@ pg_auth(sky_http_ex_conn_t *conn, pg_conn_info_t *info) {
                     buf.pos += 4;
 //                    ps->conn->process_key = sky_ntohl(*((sky_uint32_t *) buf.pos));
                     buf.pos += 4;
-                    sky_buf_rebuild(&buf, 0);
+                    sky_buf_destroy(&buf);
                     return true;
                 case ERROR:
                     if ((buf.last - buf.pos) < size) {
@@ -239,7 +240,8 @@ pg_auth(sky_http_ex_conn_t *conn, pg_conn_info_t *info) {
             }
             break;
         }
-        if ((buf.end - buf.pos) > size) {
+
+        if (size && (buf.end - buf.pos) > size) {
             continue;
         }
 
@@ -669,7 +671,7 @@ pg_exec_read(sky_pg_conn_t *ps) {
             }
             break;
         }
-        if ((buf.end - buf.pos) > size) {
+        if (size && (buf.end - buf.pos) > size) {
             continue;
         }
         const sky_uint32_t re_size = sky_max(size, 1024);
