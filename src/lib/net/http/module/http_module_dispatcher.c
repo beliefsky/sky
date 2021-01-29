@@ -19,28 +19,29 @@ static void http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *da
 static sky_bool_t http_read_body(sky_http_request_t *r, sky_buf_t *tmp, http_module_dispatcher_t *data);
 
 void
-sky_http_module_dispatcher_init(sky_pool_t *pool, sky_http_module_t *module, sky_str_t *prefix,
-                                sky_http_mapper_t *mappers, sky_size_t mapper_len) {
+sky_http_module_dispatcher_init(sky_http_dispatcher_conf_t *conf) {
     http_module_dispatcher_t *data;
+    sky_http_mapper_t *mapper;
     sky_http_mapper_pt *handlers;
-    sky_size_t size;
 
-    data = sky_palloc(pool, sizeof(http_module_dispatcher_t));
-    data->pool = pool;
-    data->mappers = sky_trie_create(pool);
-    data->body_max_buff = 1048576; // 1MB
+    data = sky_palloc(conf->pool, sizeof(http_module_dispatcher_t));
+    data->pool = conf->pool;
+    data->mappers = sky_trie_create(conf->pool);
+    data->body_max_buff = conf->body_max_size ?: 1048576; // 1MB
 
-    size = (sizeof(sky_http_mapper_pt) << 2) * 3;
-    for (; mapper_len; --mapper_len, ++mappers) {
-        handlers = sky_palloc(pool, size);
-        sky_memcpy(handlers, &mappers->get_handler_prev, size);
-        sky_trie_put(data->mappers, &mappers->path, (sky_uintptr_t) handlers);
+    const sky_size_t size = (sizeof(sky_http_mapper_pt) << 2) * 3;
+
+    mapper = conf->mappers;
+    for (sky_uint32_t i = 0; i < conf->mapper_len; ++mapper, ++i) {
+        handlers = sky_palloc(conf->pool, size);
+        sky_memcpy(handlers, &mapper->get_handler_prev, size);
+        sky_trie_put(data->mappers, &mapper->path, (sky_uintptr_t) handlers);
     }
 
-    module->prefix = *prefix;
-    module->read_body = (sky_module_read_body_pt) http_read_body;
-    module->run = (sky_module_run_pt) http_run_handler;
-    module->module_data = data;
+    conf->module->prefix = conf->prefix;
+    conf->module->read_body = (sky_module_read_body_pt) http_read_body;
+    conf->module->run = (sky_module_run_pt) http_run_handler;
+    conf->module->module_data = data;
 }
 
 static void
