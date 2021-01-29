@@ -134,9 +134,9 @@ main() {
                 sky_cpu_set_t mask;
                 CPU_ZERO(&mask);
                 CPU_SET(i, &mask);
-                for (sky_uint_t j = 0; j < CPU_SETSIZE; ++j) {
+                for (sky_int32_t j = 0; j < CPU_SETSIZE; ++j) {
                     if (CPU_ISSET(j, &mask)) {
-                        sky_log_info("sky_setaffinity(): using cpu #%lu", j);
+                        sky_log_info("sky_setaffinity(): using cpu #%d", j);
                         break;
                     }
                 }
@@ -283,7 +283,6 @@ server_start(void *ssl) {
 
 static void
 build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module) {
-    sky_str_t prefix = sky_string("/api");
     sky_http_mapper_t mappers[] = {
             {
                     .path = sky_string("/hello"),
@@ -295,7 +294,7 @@ build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module) {
             }
     };
 
-    sky_http_dispatcher_conf_t conf = {
+    const sky_http_dispatcher_conf_t conf = {
             .prefix = sky_string("/api"),
             .mappers = mappers,
             .mapper_len = 2,
