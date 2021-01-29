@@ -1,1 +1,1 @@
-[![Build Status](https://travis-ci.com/beliefsky/sky.svg?branch=master)](https://travis-ci.com/beliefsky/sky)
+![CMake](https://github.com/beliefsky/sky/workflows/CMake/badge.svg?branch=develop)
