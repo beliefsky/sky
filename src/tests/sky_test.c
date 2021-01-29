@@ -299,12 +299,11 @@ build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module) {
             .prefix = sky_string("/api"),
             .mappers = mappers,
             .mapper_len = 2,
-            .body_max_size = 1024 * 1024 * 100,
-            .pool = pool,
+            .body_max_size = 1024 * 1024 * 5,
             .module = module,
     };
 
-    sky_http_module_dispatcher_init(&conf);
+    sky_http_module_dispatcher_init(pool, &conf);
 }
 
 static sky_bool_t

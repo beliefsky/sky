@@ -19,21 +19,21 @@ static void http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *da
 static sky_bool_t http_read_body(sky_http_request_t *r, sky_buf_t *tmp, http_module_dispatcher_t *data);
 
 void
-sky_http_module_dispatcher_init(sky_http_dispatcher_conf_t *conf) {
+sky_http_module_dispatcher_init(sky_pool_t *pool, const sky_http_dispatcher_conf_t *conf) {
     http_module_dispatcher_t *data;
     sky_http_mapper_t *mapper;
     sky_http_mapper_pt *handlers;
 
-    data = sky_palloc(conf->pool, sizeof(http_module_dispatcher_t));
-    data->pool = conf->pool;
-    data->mappers = sky_trie_create(conf->pool);
+    data = sky_palloc(pool, sizeof(http_module_dispatcher_t));
+    data->pool = pool;
+    data->mappers = sky_trie_create(pool);
     data->body_max_buff = conf->body_max_size ?: 1048576; // 1MB
 
     const sky_size_t size = (sizeof(sky_http_mapper_pt) << 2) * 3;
 
     mapper = conf->mappers;
     for (sky_uint32_t i = 0; i < conf->mapper_len; ++mapper, ++i) {
-        handlers = sky_palloc(conf->pool, size);
+        handlers = sky_palloc(pool, size);
         sky_memcpy(handlers, &mapper->get_handler_prev, size);
         sky_trie_put(data->mappers, &mapper->path, (sky_uintptr_t) handlers);
     }
