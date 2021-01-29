@@ -119,13 +119,13 @@ main() {
     return 0;
 #else
 
-    sky_int_t cpu_num = sysconf(_SC_NPROCESSORS_ONLN);
+    sky_int32_t cpu_num = (sky_int32_t)sysconf(_SC_NPROCESSORS_ONLN);
     if (cpu_num < 1) {
         cpu_num = 1;
     }
     daemon(0, 0);
 
-    for (sky_int_t i = 0; i <= cpu_num; ++i) {
+    for (sky_int32_t i = 0; i <= cpu_num; ++i) {
         pid_t pid = fork();
         switch (pid) {
             case -1:
