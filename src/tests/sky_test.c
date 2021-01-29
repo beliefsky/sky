@@ -119,11 +119,10 @@ main() {
     return 0;
 #else
 
-    sky_int32_t cpu_num = (sky_int32_t)sysconf(_SC_NPROCESSORS_ONLN);
+    sky_int32_t cpu_num = (sky_int32_t) sysconf(_SC_NPROCESSORS_ONLN);
     if (cpu_num < 1) {
         cpu_num = 1;
     }
-    daemon(0, 0);
 
     for (sky_int32_t i = 0; i <= cpu_num; ++i) {
         pid_t pid = fork();
@@ -145,18 +144,11 @@ main() {
                 server_start(null);
             }
                 break;
-            default: {
-//                sky_int32_t status;
-//                wait(&status);
-            }
-                break;
         }
     }
 
-
-    for (;;) {
-        sleep(5);
-    }
+    sky_int32_t status;
+    wait(&status);
 #endif
 }
 
