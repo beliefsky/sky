@@ -27,13 +27,13 @@ jobs:
             triplet: x64-linux
             compiler: clang_64
           - os: macos-latest
-            buildname: 'macos/clang'
-            triplet: x64-osx
-            compiler: clang_64
-          - os: macos-latest
             buildname: 'macos/gcc'
             triplet: x64-osx
             compiler: gcc_64
+          - os: macos-latest
+            buildname: 'macos/clang'
+            triplet: x64-osx
+            compiler: clang_64
 
     steps:
       - uses: actions/checkout@v2
