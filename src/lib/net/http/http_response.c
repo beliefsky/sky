@@ -235,9 +235,54 @@ http_send_file(sky_http_connection_t *conn, sky_int32_t fd, off_t offset, sky_si
     sky_int64_t sbytes;
     sky_int32_t r;
 
-    conn->server->http_write(conn, header, header_len);
+     struct iovec vec = {
+            .iov_base = (void *)header,
+            .iov_len = header_len
+    };
+
+    struct sf_hdtr headers = {
+            .headers = &vec,
+            .hdr_cnt = 1
+    };
+
+    size += header_len;
 
     const sky_int32_t socket_fd = conn->ev.fd;
+    for (;;) {
+        if (sky_unlikely(!conn->ev.write)) {
+            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+            continue;
+        }
+        r = sendfile(fd, socket_fd, offset, size, &headers, &sbytes, SF_MNOWAIT);
+        if (r < 0) {
+            switch (errno) {
+                case EAGAIN:
+                case EBUSY:
+                case EINTR:
+                     break;
+                default:
+                    sky_coro_yield(conn->coro, SKY_CORO_ABORT);
+                    sky_coro_exit();
+            }
+        }
+        size -= sbytes;
+        if(sbytes < vec.iov_len) {
+            vec.iov_len -= sbytes;
+            vec.iov_base += sbytes;
+        } else {
+            sbytes -= vec.iov_len;
+            offset += sbytes;
+            if(!size) {
+                return;
+            }
+            break;
+        }
+         conn->ev.write = false;
+         sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+    }
+    conn->ev.write = false;
+    sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+
     for (;;) {
         if (sky_unlikely(!conn->ev.write)) {
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
@@ -255,8 +300,8 @@ http_send_file(sky_http_connection_t *conn, sky_int32_t fd, off_t offset, sky_si
                     sky_coro_exit();
             }
         }
-        offset += sbytes;
         size -= sbytes;
+        offset += sbytes;
         if(!size) {
             return;
         }
