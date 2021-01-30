@@ -270,15 +270,15 @@ http_send_file(sky_http_connection_t *conn, sky_int32_t fd, off_t offset, sky_si
                     sky_uchar_t *header, sky_uint32_t header_len) {
     sky_int64_t sbytes;
     sky_int32_t n;
-    socket_fd;
-
-    socket_fd = conn->ev.fd;
 
     struct sf_hdtr headers = {.headers =
                                   (struct iovec[]){{.iov_base = (void *)header,
                                                     .iov_len = header_len}},
                               .hdr_cnt = 1};
     sbytes = (sky_int64_t)size;
+
+    const sky_int32_t socket_fd = conn->ev.fd;
+
     for (;;) {
         if (sky_unlikely(!conn->ev.write)) {
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
