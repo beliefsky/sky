@@ -197,12 +197,10 @@ http_header_build(sky_http_request_t *r, sky_str_buf_t *buf) {
 static void
 http_send_file(sky_http_connection_t *conn, sky_int32_t fd, off_t offset, sky_size_t size,
                sky_uchar_t *header, sky_uint32_t header_len) {
-    conn->server->http_write(conn, header, header_len);
-    if (sky_unlikely(!size)) {
-        return;
-    }
-    const sky_int32_t socket_fd = conn->ev.fd;
 
+    conn->server->http_write(conn, header, header_len);
+
+    const sky_int32_t socket_fd = conn->ev.fd;
     for (;;) {
         const sky_int64_t n = sendfile(socket_fd, fd, &offset, size);
         if (n < 1) {
@@ -238,12 +236,8 @@ http_send_file(sky_http_connection_t *conn, sky_int32_t fd, off_t offset, sky_si
     sky_int32_t n,
 
     conn->server->http_write(conn, header, header_len);
-    if (sky_unlikely(!size)) {
-        return;
-    }
 
     const sky_int32_t socket_fd = conn->ev.fd;
-
     for (;;) {
         if (sky_unlikely(!conn->ev.write)) {
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
