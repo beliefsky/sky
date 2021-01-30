@@ -233,7 +233,7 @@ static void
 http_send_file(sky_http_connection_t *conn, sky_int32_t fd, off_t offset, sky_size_t size,
                     sky_uchar_t *header, sky_uint32_t header_len) {
     sky_int64_t sbytes;
-    sky_int32_t n,
+    sky_int32_t r;
 
     conn->server->http_write(conn, header, header_len);
 
@@ -243,8 +243,8 @@ http_send_file(sky_http_connection_t *conn, sky_int32_t fd, off_t offset, sky_si
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
             continue;
         }
-        n = sendfile(fd, socket_fd, offset, size, null, &sbytes, SF_MNOWAIT);
-        if (n < 0) {
+        r = sendfile(fd, socket_fd, offset, size, null, &sbytes, SF_MNOWAIT);
+        if (r < 0) {
             switch (errno) {
                 case EAGAIN:
                 case EBUSY:
@@ -269,7 +269,7 @@ static void
 http_send_file(sky_http_connection_t *conn, sky_int32_t fd, off_t offset, sky_size_t size,
                     sky_uchar_t *header, sky_uint32_t header_len) {
     sky_int64_t sbytes;
-    sky_int32_t n,
+    sky_int32_t n;
     socket_fd;
 
     socket_fd = conn->ev.fd;
