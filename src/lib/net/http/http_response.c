@@ -232,8 +232,9 @@ http_send_file(sky_http_connection_t *conn, sky_int32_t fd, off_t offset, sky_si
 static void
 http_send_file(sky_http_connection_t *conn, sky_int32_t fd, off_t offset, sky_size_t size,
                     sky_uchar_t *header, sky_uint32_t header_len) {
-    sky_int64_t n, sbytes;
-    sky_int32_t socket_fd;
+    sky_int64_t sbytes;
+    sky_int32_t n,
+    socket_fd;
 
     socket_fd = conn->ev.fd;
 
@@ -257,14 +258,13 @@ http_send_file(sky_http_connection_t *conn, sky_int32_t fd, off_t offset, sky_si
                 case EAGAIN:
                 case EBUSY:
                 case EINTR:
-                     conn->ev.write = false;
-                     sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-                     continue;
+                     break;
                 default:
                     sky_coro_yield(conn->coro, SKY_CORO_ABORT);
                     sky_coro_exit();
             }
         }
+        offset += sbytes;
         size -= sbytes;
         if(!size) {
             return;
