@@ -248,9 +248,9 @@ http_send_file(sky_http_connection_t *conn, sky_int32_t fd, off_t offset, sky_si
             continue;
         }
 #ifdef __APPLE__
-        n = sendfile(fd, socket_fd, offset, &sbytes, null, 0);
+        n = sendfile(fd, socket_fd, offset, &sbytes, &headers, 0);
 #else
-        n = sendfile(fd, socket_fd, offset, (sky_size_t)size, &headers, &sbytes, SF_MNOWAIT);
+        n = sendfile(fd, socket_fd, offset, size, &headers, &sbytes, SF_MNOWAIT);
 #endif
         if (n < 0) {
             switch (errno) {
