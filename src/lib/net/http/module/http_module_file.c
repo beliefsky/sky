@@ -117,7 +117,7 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
     path = sky_palloc(r->pool, data->path.len + r->uri.len + 1);
     sky_memcpy(path, data->path.data, data->path.len);
     sky_memcpy(path + data->path.len, r->uri.data, r->uri.len + 1);
-    fd = open(path, O_RDONLY | O_NONBLOCK | O_CLOEXEC);
+    fd = open(path, O_RDONLY | O_DIRECTORY | O_NONBLOCK | O_CLOEXEC);
     if (fd < 0) {
         http_error_page(r, 404, "404 Not Found");
         return;
