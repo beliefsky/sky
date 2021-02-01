@@ -12,8 +12,6 @@
 #include "../../core/trie.h"
 #include "../tls/tls.h"
 
-#include <errno.h>
-
 typedef struct {
     sky_str_t msg;
     sky_uint16_t status: 9;
