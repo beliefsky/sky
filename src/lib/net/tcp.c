@@ -191,50 +191,30 @@ set_socket_nonblock(sky_int32_t fd) {
 
 static sky_int32_t
 get_backlog_size() {
-    sky_int32_t fd, backlog;
-    sky_uint64_t tmp;
-    sky_size_t i;
-    sky_uchar_t ch[32];
-    sky_str_t str = {
-            .data = ch
-    };
-
+    sky_int32_t backlog;
 #ifdef SOMAXCONN
     backlog = SOMAXCONN;
 #else
     backlog = 128;
 #endif
-    fd = open("/proc/sys/net/core/somaxconn", O_RDONLY | O_CLOEXEC);
+    const sky_int32_t fd = open("/proc/sys/net/core/somaxconn", O_RDONLY | O_CLOEXEC);
     if (fd < 0) {
         return backlog;
     }
-    if ((str.len = (sky_uint32_t) read(fd, ch, 32)) <= 0) {
-        close(fd);
-        return backlog;
-    }
+    sky_uchar_t ch[16];
+    const sky_int32_t size = (sky_int32_t)read(fd, ch, 16);
     close(fd);
-
-    i = 0;
-    while (i < str.len) {
-        if (str.len > 7) {
-            tmp = *((sky_uint64_t *) &str.data[i]);
-            fd = sky_uchar_eight_count_between(tmp, 0x2F, 0x3A);
-            i += (sky_size_t) fd;
-            if (!fd || fd != 8) {
-                break;
-            }
-        } else {
-            tmp = *((sky_uint64_t *) &str.data[i]);
-            fd = sky_uchar_eight_count_between(tmp, 0x2F, 0x3A);
-            i += (sky_size_t) fd;
-            break;
-        }
-    }
-    if (!i) {
+    if (sky_unlikely(size < 1)) {
         return backlog;
     }
-    str.len = i;
-    sky_str_to_int32(&str, &backlog);
+    const sky_str_t str = {
+            .data = ch,
+            .len = (sky_uint32_t)size - 1
+    };
+
+    if (sky_unlikely(!sky_str_to_int32(&str, &backlog))) {
+        return backlog;
+    }
 
     return backlog;
 }
