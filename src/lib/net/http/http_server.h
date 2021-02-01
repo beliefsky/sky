@@ -54,9 +54,12 @@ struct sky_http_server_s {
     sky_hash_t modules_hash;
     sky_array_t status;
 
-    sky_uint32_t (*http_read)(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size);
+    sky_size_t (*http_read)(sky_http_connection_t *conn, sky_uchar_t *data, sky_size_t size);
 
-    void (*http_write)(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size);
+    void (*http_write)(sky_http_connection_t *conn, const sky_uchar_t *data, sky_size_t size);
+
+    void (*http_send_file)(sky_http_connection_t *conn, sky_int32_t fd, sky_int64_t offset, sky_size_t size,
+                           const sky_uchar_t *header, sky_uint32_t header_len);
 
     sky_uint16_t header_buf_size;
     sky_uint8_t header_buf_n;

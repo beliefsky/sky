@@ -2,27 +2,12 @@
 // Created by weijing on 2020/7/29.
 //
 
-#if defined(__linux__)
-
-#include <sys/sendfile.h>
-
-#elif defined(__FreeBSD__) || defined(__APPLE__)
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <sys/uio.h>
-#endif
-
-#include <unistd.h>
-#include <errno.h>
 #include "http_response.h"
 #include "../../core/number.h"
 #include "../../core/date.h"
 #include "../../core/string_buf.h"
 
 static void http_header_build(sky_http_request_t *r, sky_str_buf_t *buf);
-
-static void http_send_file(sky_http_connection_t *conn, sky_int32_t fd, off_t offset, sky_size_t size,
-                           sky_uchar_t *header, sky_uint32_t header_len);
 
 void
 sky_http_response_nobody(sky_http_request_t *r) {
@@ -35,7 +20,7 @@ sky_http_response_nobody(sky_http_request_t *r) {
             .len = sky_str_buf_size(&str_buf),
             .data = str_buf.start
     };
-    r->conn->server->http_write(r->conn, out.data, (sky_uint32_t) out.len);
+    r->conn->server->http_write(r->conn, out.data, out.len);
 
     sky_str_buf_destroy(&str_buf);
 }
@@ -68,7 +53,7 @@ sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_uint32
                 .len = sky_str_buf_size(&str_buf),
                 .data = str_buf.start
         };
-        r->conn->server->http_write(r->conn, out.data, (sky_uint32_t) out.len);
+        r->conn->server->http_write(r->conn, out.data, out.len);
 
         sky_str_buf_destroy(&str_buf);
         return;
@@ -87,7 +72,7 @@ sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_uint32
                 .data = str_buf.start
         };
 
-        r->conn->server->http_write(r->conn, out.data, (sky_uint32_t) out.len);
+        r->conn->server->http_write(r->conn, out.data, out.len);
 
         sky_str_buf_destroy(&str_buf);
     } else {
@@ -99,8 +84,8 @@ sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_uint32
                 .data = str_buf.start
         };
 
-        r->conn->server->http_write(r->conn, out.data, (sky_uint32_t) out.len);
-        r->conn->server->http_write(r->conn, buf, (sky_uint32_t) buf_len);
+        r->conn->server->http_write(r->conn, out.data, out.len);
+        r->conn->server->http_write(r->conn, buf, buf_len);
 
         sky_str_buf_destroy(&str_buf);
     }
@@ -143,7 +128,7 @@ sky_http_sendfile(sky_http_request_t *r, sky_int32_t fd, sky_size_t offset, sky_
     sky_str_buf_destroy(&str_buf);
 
     if (size) {
-        http_send_file(r->conn, fd, (off_t) offset, size, out.data, (sky_uint32_t) out.len);
+        r->conn->server->http_send_file(r->conn, fd, (sky_int64_t) offset, size, out.data, (sky_uint32_t) out.len);
     } else {
         r->conn->server->http_write(r->conn, out.data, (sky_uint32_t) out.len);
     }
@@ -190,211 +175,3 @@ http_header_build(sky_http_request_t *r, sky_str_buf_t *buf) {
     })
     sky_str_buf_append_two_uchar(buf, '\r', '\n');
 }
-
-
-#if defined(__linux__)
-
-static void
-http_send_file(sky_http_connection_t *conn, sky_int32_t fd, off_t offset, sky_size_t size,
-               sky_uchar_t *header, sky_uint32_t header_len) {
-
-    conn->server->http_write(conn, header, header_len);
-
-    const sky_int32_t socket_fd = conn->ev.fd;
-    for (;;) {
-        const sky_int64_t n = sendfile(socket_fd, fd, &offset, size);
-        if (n < 1) {
-            if (sky_unlikely(n == 0)) {
-                sky_coro_yield(conn->coro, SKY_CORO_ABORT);
-                sky_coro_exit();
-            }
-            switch (errno) {
-                case EAGAIN:
-                case EINTR:
-                    conn->ev.write = false;
-                    sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-                    continue;
-                default:
-                    sky_coro_yield(conn->coro, SKY_CORO_ABORT);
-                    sky_coro_exit();
-            }
-        }
-        size -= (sky_size_t) n;
-        if (!size) {
-            return;
-        }
-        conn->ev.write = false;
-        sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-    }
-}
-
-#elif defined(__FreeBSD__)
-
-static void
-http_send_file(sky_http_connection_t *conn, sky_int32_t fd, off_t offset, sky_size_t size,
-               sky_uchar_t *header, sky_uint32_t header_len) {
-    sky_int64_t sbytes;
-    sky_int32_t r;
-
-    struct iovec vec = {
-            .iov_base = (void *) header,
-            .iov_len = header_len
-    };
-
-    struct sf_hdtr headers = {
-            .headers = &vec,
-            .hdr_cnt = 1
-    };
-
-    size += header_len;
-
-    const sky_int32_t socket_fd = conn->ev.fd;
-    for (;;) {
-        if (sky_unlikely(!conn->ev.write)) {
-            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-            continue;
-        }
-        r = sendfile(fd, socket_fd, offset, size, &headers, &sbytes, SF_MNOWAIT);
-        if (r < 0) {
-            switch (errno) {
-                case EAGAIN:
-                case EBUSY:
-                case EINTR:
-                    break;
-                default:
-                    sky_coro_yield(conn->coro, SKY_CORO_ABORT);
-                    sky_coro_exit();
-            }
-        }
-        size -= (sky_size_t) sbytes;
-        if (sbytes < vec.iov_len) {
-            vec.iov_len -= sbytes;
-            vec.iov_base += sbytes;
-        } else {
-            sbytes -= vec.iov_len;
-            offset += sbytes;
-            if (!size) {
-                return;
-            }
-            break;
-        }
-        conn->ev.write = false;
-        sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-    }
-    conn->ev.write = false;
-    sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-
-    for (;;) {
-        if (sky_unlikely(!conn->ev.write)) {
-            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-            continue;
-        }
-        r = sendfile(fd, socket_fd, offset, size, null, &sbytes, SF_MNOWAIT);
-        if (r < 0) {
-            switch (errno) {
-                case EAGAIN:
-                case EBUSY:
-                case EINTR:
-                    break;
-                default:
-                    sky_coro_yield(conn->coro, SKY_CORO_ABORT);
-                    sky_coro_exit();
-            }
-        }
-        size -= (sky_size_t) sbytes;
-        offset += sbytes;
-        if (!size) {
-            return;
-        }
-        conn->ev.write = false;
-        sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-    }
-}
-
-#elif defined(__APPLE__)
-
-static void
-http_send_file(sky_http_connection_t *conn, sky_int32_t fd, off_t offset, sky_size_t size,
-               sky_uchar_t *header, sky_uint32_t header_len) {
-    sky_int64_t sbytes;
-    sky_int32_t r;
-
-    struct iovec vec = {
-            .iov_base = (void *) header,
-            .iov_len = header_len
-    };
-
-    struct sf_hdtr headers = {
-            .headers = &vec,
-            .hdr_cnt = 1
-    };
-
-    size += header_len;
-
-    const sky_int32_t socket_fd = conn->ev.fd;
-
-    for (;;) {
-        if (sky_unlikely(!conn->ev.write)) {
-            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-            continue;
-        }
-        sbytes = (sky_int64_t) size;
-        r = sendfile(fd, socket_fd, offset, &sbytes, &headers, 0);
-        if (r < 0) {
-            switch (errno) {
-                case EAGAIN:
-                case EBUSY:
-                case EINTR:
-                    break;
-                default:
-                    sky_coro_yield(conn->coro, SKY_CORO_ABORT);
-                    sky_coro_exit();
-            }
-        }
-        size -= (sky_size_t) sbytes;
-        if (sbytes < vec.iov_len) {
-            vec.iov_len -= sbytes;
-            vec.iov_base += sbytes;
-        } else {
-            sbytes -= vec.iov_len;
-            offset += sbytes;
-            if (!size) {
-                return;
-            }
-            break;
-        }
-        conn->ev.write = false;
-        sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-    }
-    conn->ev.write = false;
-    sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-
-    for (;;) {
-        if (sky_unlikely(!conn->ev.write)) {
-            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-            continue;
-        }
-        sbytes = (sky_int64_t) size;
-        r = sendfile(fd, socket_fd, offset, &sbytes, &headers, 0);
-        if (r < 0) {
-            switch (errno) {
-                case EAGAIN:
-                case EBUSY:
-                case EINTR:
-                    break;
-                default:
-                    sky_coro_yield(conn->coro, SKY_CORO_ABORT);
-                    sky_coro_exit();
-            }
-        }
-        size -= (sky_size_t) sbytes;
-        offset += sbytes;
-        if (!size) {
-            return;
-        }
-        conn->ev.write = false;
-        sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-    }
-}
-
-#endif

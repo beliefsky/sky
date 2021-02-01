@@ -28,6 +28,7 @@ set(SOURCES
         event/event_loop.c
         net/tcp.c
         net/udp.c
+        net/http/http_io_wrappers.c
         net/http/http_request.c
         net/http/http_response.c
         net/http/http_parse.c

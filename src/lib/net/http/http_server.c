@@ -5,6 +5,7 @@
 #include "http_server.h"
 #include "../tcp.h"
 #include "http_request.h"
+#include "http_io_wrappers.h"
 #include "../../core/memory.h"
 #include "../../core/cpuinfo.h"
 #include "../../core/number.h"
@@ -42,11 +43,6 @@ static sky_bool_t http_process_connection(sky_http_request_t *r, sky_table_elt_t
 
 static sky_bool_t http_process_content_length(sky_http_request_t *r, sky_table_elt_t *h, sky_uintptr_t data);
 
-static sky_uint32_t http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size);
-
-static void http_write(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size);
-
-
 sky_http_server_t *
 sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
     sky_http_server_t *server;
@@ -75,12 +71,10 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
     server->ssl = conf->ssl;
     if (conf->ssl) {
         server->ssl_ctx = conf->ssl_ctx;
-        server->http_read = http_read;
-        server->http_write = http_write;
-    } else {
-        server->http_read = http_read;
-        server->http_write = http_write;
     }
+    server->http_read = http_read;
+    server->http_write = http_write;
+    server->http_send_file = http_send_file;
 
     sky_array_init(&arrays, server->tmp_pool, 32, sizeof(sky_hash_key_t));
     build_headers_in(&arrays, pool);
@@ -409,69 +403,4 @@ http_process_content_length(sky_http_request_t *r, sky_table_elt_t *h, sky_uintp
         r->request_body = sky_pcalloc(r->pool, sizeof(sky_http_request_t));
     }
     return true;
-}
-
-static sky_uint32_t
-http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size) {
-    ssize_t n;
-    sky_int32_t fd;
-
-
-    fd = conn->ev.fd;
-    for (;;) {
-        if (sky_unlikely(!conn->ev.read)) {
-            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-            continue;
-        }
-
-        if ((n = read(fd, data, size)) < 1) {
-            switch (errno) {
-                case EINTR:
-                case EAGAIN:
-                    conn->ev.read = false;
-                    sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-                    continue;
-                default:
-                    sky_coro_yield(conn->coro, SKY_CORO_ABORT);
-                    sky_coro_exit();
-            }
-        }
-        return (sky_uint32_t) n;
-    }
-}
-
-static void
-http_write(sky_http_connection_t *conn, sky_uchar_t *data, sky_uint32_t size) {
-    ssize_t n;
-    sky_int32_t fd;
-
-    fd = conn->ev.fd;
-    for (;;) {
-        if (sky_unlikely(!conn->ev.write)) {
-            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-            continue;
-        }
-
-        if ((n = write(fd, data, size)) < 1) {
-            switch (errno) {
-                case EINTR:
-                case EAGAIN:
-                    conn->ev.write = false;
-                    sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-                    continue;
-                default:
-                    sky_coro_yield(conn->coro, SKY_CORO_ABORT);
-                    sky_coro_exit();
-            }
-        }
-
-        if (n < size) {
-            data += n;
-            size -= (sky_uint32_t) n;
-            conn->ev.write = false;
-            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-            continue;
-        }
-        break;
-    }
 }
