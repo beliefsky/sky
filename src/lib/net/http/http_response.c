@@ -172,6 +172,6 @@ http_header_build(sky_http_request_t *r, sky_str_buf_t *buf) {
         sky_str_buf_append_two_uchar(buf, ':', ' ');
         sky_str_buf_append_str(buf, &item->value);
         sky_str_buf_append_two_uchar(buf, '\r', '\n');
-    })
+    });
     sky_str_buf_append_two_uchar(buf, '\r', '\n');
 }

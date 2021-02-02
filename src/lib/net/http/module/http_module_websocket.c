@@ -65,7 +65,7 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
         if (item->key.len == 17 && sky_str4_cmp(item->key.data, 'S', 'e', 'c', '-')) {
             key = &item->value;
         }
-    })
+    });
 
     if (sky_unlikely(!key)) {
         sky_http_response_nobody(r);

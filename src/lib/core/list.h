@@ -86,7 +86,7 @@ sky_list_init(sky_list_t *list, sky_pool_t *pool, sky_uint32_t n, sky_size_t siz
 void *sky_list_push(sky_list_t *list);
 
 #define sky_list_foreach(_list, _type, _item, _code)        \
-    {                                                       \
+    do {                                                    \
         sky_list_part_t *_part = &((_list)->part);          \
         sky_uint32_t _i;                                    \
         _type *(_item) = null, *_data = _part->elts;        \
@@ -102,7 +102,7 @@ void *sky_list_push(sky_list_t *list);
             (_item) = &(_data[_i]);                         \
             _code                                           \
         }                                                   \
-    }
+    } while(0)
 
 #if defined(__cplusplus)
 } /* extern "C" { */
