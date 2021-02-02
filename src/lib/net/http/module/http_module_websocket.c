@@ -64,6 +64,7 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
     sky_list_foreach(&r->headers_in.headers, sky_table_elt_t, item, {
         if (item->key.len == 17 && sky_str4_cmp(item->key.data, 'S', 'e', 'c', '-')) {
             key = &item->value;
+            break;
         }
     });
 
