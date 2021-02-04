@@ -5,12 +5,15 @@
 #ifndef SKY_HTTP_EXTEND_PGSQL_POOL_H
 #define SKY_HTTP_EXTEND_PGSQL_POOL_H
 
-#include "http_extend_tcp_pool.h"
+#include "../../clients/tcp_pool.h"
+#include "../http_server.h"
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
+
+typedef struct sky_pg_pool_s sky_pg_pool_t;
 typedef struct sky_pg_conn_s sky_pg_conn_t;
 typedef struct sky_pg_row_s sky_pg_row_t;
 
@@ -27,8 +30,10 @@ typedef struct {
 } sky_pg_sql_conf_t;
 
 struct sky_pg_conn_s {
+    sky_tcp_conn_t conn;
+    sky_pool_t *pool;
+    sky_pg_pool_t *pg_pool;
     sky_bool_t error;
-    sky_http_ex_conn_t *conn;
 };
 
 typedef enum {
@@ -92,13 +97,14 @@ typedef struct {
     sky_uint16_t lines; // 列数
 } sky_pg_result_t;
 
-sky_http_ex_conn_pool_t *sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf);
+sky_pg_pool_t *sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf);
 
-sky_pg_conn_t *
-sky_pg_sql_connection_get(sky_http_ex_conn_pool_t *conn_pool, sky_pool_t *pool, sky_http_connection_t *main);
+sky_pg_conn_t *sky_pg_sql_connection_get(sky_pg_pool_t *conn_pool, sky_pool_t *pool,
+                                         sky_http_connection_t *main);
 
-sky_pg_result_t *sky_pg_sql_exec(sky_pg_conn_t *ps, const sky_str_t *cmd, const sky_pg_type_t *param_types,
-                                 sky_pg_data_t *params, sky_uint16_t param_len);
+sky_pg_result_t *sky_pg_sql_exec(sky_pg_conn_t *ps, const sky_str_t *cmd,
+                                 const sky_pg_type_t *param_types, sky_pg_data_t *params,
+                                 sky_uint16_t param_len);
 
 void sky_pg_sql_connection_put(sky_pg_conn_t *ps);
 

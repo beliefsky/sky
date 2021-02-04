@@ -8,20 +8,22 @@
 #include "../../../core/log.h"
 #include "../../../core/md5.h"
 
-typedef struct {
+struct sky_pg_pool_s {
+    sky_tcp_pool_t *conn_pool;
     sky_str_t username;
     sky_str_t password;
     sky_str_t conn_info;
-} pg_conn_info_t;
+};
 
 
-static sky_bool_t pg_auth(sky_http_ex_conn_t *conn, pg_conn_info_t *info);
+static sky_bool_t pg_auth(sky_pg_conn_t *conn);
 
-static sky_bool_t
-pg_send_password(sky_http_ex_conn_t *conn, pg_conn_info_t *info,
-                 sky_uint32_t auth_type, sky_uchar_t *data, sky_uint32_t size);
+static sky_bool_t pg_send_password(sky_pg_conn_t *conn, sky_pg_pool_t *pg_pool,
+                                   sky_uint32_t auth_type, sky_uchar_t *data,
+                                   sky_size_t size);
 
-static sky_bool_t pg_send_exec(sky_pg_conn_t *ps, const sky_str_t *cmd, const sky_pg_type_t *param_types,
+static sky_bool_t pg_send_exec(sky_pg_conn_t *ps, const sky_str_t *cmd,
+                               const sky_pg_type_t *param_types,
                                sky_pg_data_t *params, sky_uint16_t param_len);
 
 static sky_pg_result_t *pg_exec_read(sky_pg_conn_t *ps);
@@ -32,20 +34,20 @@ static sky_uchar_t *pg_serialize_array(const sky_pg_array_t *array, sky_uchar_t 
 
 static sky_pg_array_t *pg_deserialize_array(sky_pool_t *pool, sky_uchar_t *stream, sky_pg_type_t type);
 
-sky_http_ex_conn_pool_t *
+sky_pg_pool_t *
 sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf) {
-    sky_http_ex_conn_pool_t *conn_pool;
-    pg_conn_info_t *info;
+    sky_pg_pool_t *pg_pool;
+    sky_tcp_pool_t *tcp_pool;
     sky_uchar_t *p;
 
-    info = sky_palloc(pool, sizeof(pg_conn_info_t));
-    info->username = conf->username;
-    info->password = conf->password;
+    pg_pool = sky_palloc(pool, sizeof(sky_pg_pool_t));
+    pg_pool->username = conf->username;
+    pg_pool->password = conf->password;
 
-    info->conn_info.len = 11 + sizeof("user") + sizeof("database") + conf->username.len + conf->database.len;
-    info->conn_info.data = p = sky_pnalloc(pool, info->conn_info.len);
+    pg_pool->conn_info.len = 11 + sizeof("user") + sizeof("database") + conf->username.len + conf->database.len;
+    pg_pool->conn_info.data = p = sky_pnalloc(pool, pg_pool->conn_info.len);
 
-    *((sky_uint32_t *) p) = sky_htonl(info->conn_info.len);
+    *((sky_uint32_t *) p) = sky_htonl(pg_pool->conn_info.len);
     p += 4;
     *((sky_uint32_t *) p) = 3 << 8; // version
     p += 4;
@@ -60,39 +62,38 @@ sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf) {
     p += conf->database.len + 1;
     *p = '\0';
 
-    const sky_http_ex_tcp_conf_t c = {
+    const sky_tcp_pool_conf_t c = {
             .host = conf->host,
             .port = conf->port,
             .unix_path = conf->unix_path,
             .connection_size = conf->connection_size,
             .timeout = 300,
-            .func_data = info,
-            .next_func = (sky_http_ex_conn_next) pg_auth
+            .next_func = (sky_tcp_pool_conn_next) pg_auth
     };
 
-    conn_pool = sky_http_ex_tcp_pool_create(pool, &c);
-    if (sky_unlikely(!conn_pool)) {
+    tcp_pool = sky_tcp_pool_create(pool, &c);
+    if (sky_unlikely(!tcp_pool)) {
         return null;
     }
+    pg_pool->conn_pool = tcp_pool;
 
-    return conn_pool;
+    return pg_pool;
 }
 
 sky_pg_conn_t *
-sky_pg_sql_connection_get(sky_http_ex_conn_pool_t *conn_pool, sky_pool_t *pool, sky_http_connection_t *main) {
-    sky_pg_conn_t *ps;
-    sky_http_ex_conn_t *conn;
+sky_pg_sql_connection_get(sky_pg_pool_t *conn_pool, sky_pool_t *pool, sky_http_connection_t *main) {
+    sky_pg_conn_t *conn;
 
-    ps = sky_palloc(pool, sizeof(sky_pg_conn_t));
-    ps->error = false;
+    conn = sky_palloc(pool, sizeof(sky_pg_conn_t));
+    conn->error = false;
+    conn->pool = pool;
+    conn->pg_pool = conn_pool;
 
-    conn = sky_http_ex_tcp_conn_get(conn_pool, pool, main);
-    if (sky_unlikely(!conn)) {
+    if (sky_unlikely(!sky_tcp_pool_conn_bind(conn_pool->conn_pool, &conn->conn, &main->ev, main->coro))) {
         return null;
     }
-    ps->conn = conn;
 
-    return ps;
+    return conn;
 }
 
 sky_pg_result_t *
@@ -105,21 +106,23 @@ sky_pg_sql_exec(sky_pg_conn_t *ps, const sky_str_t *cmd, const sky_pg_type_t *pa
 }
 
 void
-sky_pg_sql_connection_put(sky_pg_conn_t *ps) {
-    if (sky_unlikely(!ps)) {
+sky_pg_sql_connection_put(sky_pg_conn_t *conn) {
+    if (sky_unlikely(!conn)) {
         return;
     }
-    sky_http_ex_tcp_conn_put(ps->conn);
+    sky_tcp_pool_conn_unbind(&conn->conn);
 }
 
 
 static sky_bool_t
-pg_auth(sky_http_ex_conn_t *conn, pg_conn_info_t *info) {
-    sky_uint32_t n, size;
+pg_auth(sky_pg_conn_t *conn) {
+    sky_size_t n;
+    sky_uint32_t size;
     sky_uchar_t *p;
     sky_buf_t buf;
 
-    if (sky_unlikely(!sky_http_ex_tcp_write(conn, info->conn_info.data, (sky_uint32_t) info->conn_info.len))) {
+    const sky_str_t *conn_info = &conn->pg_pool->conn_info;
+    if (sky_unlikely(!sky_tcp_pool_conn_write(&conn->conn, conn_info->data, conn_info->len))) {
         return false;
     }
     sky_buf_init(&buf, conn->pool, 1024);
@@ -136,7 +139,7 @@ pg_auth(sky_http_ex_conn_t *conn, pg_conn_info_t *info) {
     state = START;
     size = 0;
     for (;;) {
-        n = sky_http_ex_tcp_read(conn, buf.last, (sky_uint32_t) (buf.end - buf.last));
+        n = sky_tcp_pool_conn_read(&conn->conn, buf.last, (sky_size_t) (buf.end - buf.last));
         if (sky_unlikely(!n)) {
             sky_buf_destroy(&buf);
             return false;
@@ -189,7 +192,7 @@ pg_auth(sky_http_ex_conn_t *conn, pg_conn_info_t *info) {
                         state = START;
                         continue;
                     }
-                    if (sky_unlikely(!pg_send_password(conn, info, n, buf.pos, size))) {
+                    if (sky_unlikely(!pg_send_password(conn, conn->pg_pool, n, buf.pos, size))) {
                         sky_buf_destroy(&buf);
                         return false;
                     }
@@ -251,7 +254,7 @@ pg_auth(sky_http_ex_conn_t *conn, pg_conn_info_t *info) {
 }
 
 static sky_bool_t
-pg_send_exec(sky_pg_conn_t *ps, const sky_str_t *cmd, const sky_pg_type_t *param_types, sky_pg_data_t *params,
+pg_send_exec(sky_pg_conn_t *conn, const sky_str_t *cmd, const sky_pg_type_t *param_types, sky_pg_data_t *params,
              sky_uint16_t param_len) {
     sky_uint16_t i;
     sky_uint32_t size;
@@ -268,7 +271,7 @@ pg_send_exec(sky_pg_conn_t *ps, const sky_str_t *cmd, const sky_pg_type_t *param
 
     if (!param_len) {
         size = (sky_uint32_t) cmd->len + 46;
-        sky_buf_init(&buf, ps->conn->pool, size);
+        sky_buf_init(&buf, conn->pool, size);
 
         *(buf.last++) = 'P';
 
@@ -284,7 +287,7 @@ pg_send_exec(sky_pg_conn_t *ps, const sky_str_t *cmd, const sky_pg_type_t *param
         sky_memcpy(buf.last, sql_tmp, 40);
         buf.last += 40;
 
-        const sky_bool_t result = sky_http_ex_tcp_write(ps->conn, buf.pos, (sky_uint32_t) (buf.last - buf.pos));
+        const sky_bool_t result = sky_tcp_pool_conn_write(&conn->conn, buf.pos, (sky_uint32_t) (buf.last - buf.pos));
         sky_buf_destroy(&buf);
 
         return result;
@@ -318,7 +321,7 @@ pg_send_exec(sky_pg_conn_t *ps, const sky_str_t *cmd, const sky_pg_type_t *param
         }
     }
 
-    sky_buf_init(&buf, ps->conn->pool, size + 32);
+    sky_buf_init(&buf, conn->pool, size + 32);
 
     *(buf.last++) = 'P';
     *((sky_uint32_t *) buf.last) = sky_htonl(cmd->len + 8);
@@ -423,16 +426,17 @@ pg_send_exec(sky_pg_conn_t *ps, const sky_str_t *cmd, const sky_pg_type_t *param
     sky_memcpy(buf.last, sql_tmp + 14, 26);
     buf.last += 26;
 
-    const sky_bool_t result = sky_http_ex_tcp_write(ps->conn, buf.pos, (sky_uint32_t) (buf.last - buf.pos));
+    const sky_bool_t result = sky_tcp_pool_conn_write(&conn->conn, buf.pos, (sky_uint32_t) (buf.last - buf.pos));
     sky_buf_destroy(&buf);
 
     return result;
 }
 
 static sky_pg_result_t *
-pg_exec_read(sky_pg_conn_t *ps) {
+pg_exec_read(sky_pg_conn_t *conn) {
     sky_uint16_t i;
-    sky_uint32_t n, size;
+    sky_uint32_t size;
+    sky_size_t n;
     sky_buf_t buf;
     sky_uchar_t *ch;
     sky_pg_data_t *params;
@@ -449,18 +453,17 @@ pg_exec_read(sky_pg_conn_t *ps) {
         ERROR
     } state;
 
-    result = sky_pcalloc(ps->conn->pool, sizeof(sky_pg_result_t));
+    result = sky_pcalloc(conn->pool, sizeof(sky_pg_result_t));
     desc = null;
     row = null;
 
-    sky_buf_init(&buf, ps->conn->pool, 1024);
+    sky_buf_init(&buf, conn->pool, 1024);
 
     size = 0;
     state = START;
     for (;;) {
-        n = sky_http_ex_tcp_read(ps->conn, buf.last, (sky_uint32_t) (buf.end - buf.last));
+        n = sky_tcp_pool_conn_read(&conn->conn, buf.last, (sky_uint32_t) (buf.end - buf.last));
         if (sky_unlikely(!n)) {
-            ps->error = true;
             sky_log_error("pg exec read error");
             return null;
         }
@@ -520,12 +523,12 @@ pg_exec_read(sky_pg_conn_t *ps) {
                         state = START;
                         continue;
                     }
-                    result->desc = sky_palloc(ps->conn->pool, sizeof(sky_pg_desc_t) * result->lines);
+                    result->desc = sky_palloc(conn->pool, sizeof(sky_pg_desc_t) * result->lines);
                     i = result->lines;
                     for (desc = result->desc; i; --i, ++desc) {
                         desc->name.data = buf.pos;
                         buf.pos += (desc->name.len = strnlen((const sky_char_t *) buf.pos,
-                                                              (sky_size_t) (buf.last - buf.pos))) + 1;
+                                                             (sky_size_t) (buf.last - buf.pos))) + 1;
                         if (sky_unlikely((buf.last - buf.pos) < 18)) {
                             sky_buf_destroy(&buf);
                             return null;
@@ -580,10 +583,10 @@ pg_exec_read(sky_pg_conn_t *ps) {
                         break;
                     }
                     if (row) {
-                        row->next = sky_palloc(ps->conn->pool, sizeof(sky_pg_row_t));
+                        row->next = sky_palloc(conn->pool, sizeof(sky_pg_row_t));
                         row = row->next;
                     } else {
-                        result->data = row = sky_palloc(ps->conn->pool, sizeof(sky_pg_row_t));
+                        result->data = row = sky_palloc(conn->pool, sizeof(sky_pg_row_t));
                     }
                     row->next = null;
                     ++result->rows;
@@ -592,7 +595,7 @@ pg_exec_read(sky_pg_conn_t *ps) {
                     if (sky_unlikely(row->num != result->lines)) {
                         sky_log_error("表列数不对应，什么鬼");
                     }
-                    row->data = params = sky_pnalloc(ps->conn->pool, sizeof(sky_pg_data_t) * row->num);
+                    row->data = params = sky_pnalloc(conn->pool, sizeof(sky_pg_data_t) * row->num);
                     for (i = 0; i != row->num; ++i, ++params) {
                         size = sky_ntohl(*((sky_uint32_t *) buf.pos));
                         *buf.pos = '\0';
@@ -626,7 +629,7 @@ pg_exec_read(sky_pg_conn_t *ps) {
                                 break;
                             case pg_data_array_int32:
                             case pg_data_array_text:
-                                params->array = pg_deserialize_array(ps->conn->pool, buf.pos, desc[i].type);
+                                params->array = pg_deserialize_array(conn->pool, buf.pos, desc[i].type);
                                 buf.pos += size;
                                 break;
                             default:
@@ -680,11 +683,11 @@ pg_exec_read(sky_pg_conn_t *ps) {
 }
 
 static sky_bool_t
-pg_send_password(sky_http_ex_conn_t *conn,
-                 pg_conn_info_t *info,
+pg_send_password(sky_pg_conn_t *conn,
+                 sky_pg_pool_t *pg_pool,
                  sky_uint32_t auth_type,
                  sky_uchar_t *data,
-                 sky_uint32_t size) {
+                 sky_size_t size) {
     if (auth_type != 5) {
         sky_log_error("auth type %u not support", auth_type);
         return false;
@@ -693,8 +696,8 @@ pg_send_password(sky_http_ex_conn_t *conn,
     sky_uchar_t bin[16], hex[41], *ch;
 
     sky_md5_init(&ctx);
-    sky_md5_update(&ctx, info->password.data, info->password.len);
-    sky_md5_update(&ctx, info->username.data, info->username.len);
+    sky_md5_update(&ctx, pg_pool->password.data, pg_pool->password.len);
+    sky_md5_update(&ctx, pg_pool->username.data, pg_pool->username.len);
     sky_md5_final(bin, &ctx);
     sky_byte_to_hex(bin, 16, hex);
 
@@ -711,7 +714,7 @@ pg_send_password(sky_http_ex_conn_t *conn,
     ch += 3;
     sky_byte_to_hex(bin, 16, ch);
 
-    return sky_http_ex_tcp_write(conn, hex, 41);
+    return sky_tcp_pool_conn_write(&conn->conn, hex, 41);
 }
 
 

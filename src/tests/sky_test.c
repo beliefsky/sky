@@ -152,8 +152,8 @@ main() {
 #endif
 }
 
-sky_http_ex_conn_pool_t *ps_pool;
-sky_http_ex_conn_pool_t *redis_pool;
+sky_pg_pool_t *ps_pool;
+sky_redis_pool_t *redis_pool;
 
 static void
 server_start(void *ssl) {

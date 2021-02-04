@@ -28,6 +28,7 @@ set(SOURCES
         event/event_loop.c
         net/tcp.c
         net/udp.c
+        net/clients/tcp_pool.c
         net/http/http_io_wrappers.c
         net/http/http_request.c
         net/http/http_response.c
@@ -36,7 +37,6 @@ set(SOURCES
         net/http/module/http_module_file.c
         net/http/module/http_module_dispatcher.c
         net/http/module/http_module_websocket.c
-        net/http/extend/http_extend_tcp_pool.c
         net/http/extend/http_extend_pgsql_pool.c
         net/http/extend/http_extend_redis_pool.c
         net/tls/tls.c
@@ -114,6 +114,9 @@ install(FILES
         net/udp.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net")
 install(FILES
+        net/clients/tcp_pool.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/clients")
+install(FILES
         net/http/http_parse.h
         net/http/http_request.h
         net/http/http_response.h
@@ -125,7 +128,6 @@ install(FILES
         net/http/module/http_module_websocket.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/http/module")
 install(FILES
-        net/http/extend/http_extend_tcp_pool.h
         net/http/extend/http_extend_pgsql_pool.h
         net/http/extend/http_extend_redis_pool.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/http/extend")

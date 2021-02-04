@@ -5,7 +5,8 @@
 #ifndef SKY_HTTP_EXTEND_REDIS_POOL_H
 #define SKY_HTTP_EXTEND_REDIS_POOL_H
 
-#include "http_extend_tcp_pool.h"
+#include "../../clients/tcp_pool.h"
+#include "../http_server.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -19,6 +20,7 @@ extern "C" {
 #define SKY_REDIS_DATA_STREAM  5
 
 typedef struct sky_redis_conn_s sky_redis_conn_t;
+typedef sky_tcp_pool_t sky_redis_pool_t;
 
 typedef struct {
     sky_str_t host;
@@ -28,7 +30,8 @@ typedef struct {
 } sky_redis_conf_t;
 
 struct sky_redis_conn_s {
-    sky_http_ex_conn_t *conn;
+    sky_tcp_conn_t conn;
+    sky_pool_t *pool;
 };
 
 typedef struct {
@@ -45,13 +48,13 @@ typedef struct {
 typedef struct {
     sky_uint32_t rows;
     sky_redis_data_t *data;
-    sky_bool_t is_ok:1;
+    sky_bool_t is_ok: 1;
 } sky_redis_result_t;
 
-sky_http_ex_conn_pool_t *sky_redis_pool_create(sky_pool_t *pool, sky_redis_conf_t *conf);
+sky_redis_pool_t *sky_redis_pool_create(sky_pool_t *pool, sky_redis_conf_t *conf);
 
 sky_redis_conn_t *
-sky_redis_connection_get(sky_http_ex_conn_pool_t *redis_pool, sky_pool_t *pool, sky_http_connection_t *main);
+sky_redis_connection_get(sky_redis_pool_t *redis_pool, sky_pool_t *pool, sky_http_connection_t *main);
 
 sky_redis_result_t *sky_redis_exec(sky_redis_conn_t *rc, sky_redis_data_t *params, sky_uint16_t param_len);
 
