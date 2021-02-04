@@ -148,21 +148,26 @@ asm(".text\n\t"
 );
 #endif
 
+#if defined(__x86_64__)
 
 static sky_inline void
 coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
-#if defined(__x86_64__)
     coro->context[5 /* R15 */] = (sky_uintptr_t) data;
     coro->context[6 /* RDI */] = (sky_uintptr_t) coro;
     coro->context[7 /* RSI */] = (sky_uintptr_t) func;
     coro->context[8 /* RIP */] = (sky_uintptr_t) coro_entry_point_x86_64;
 #define STACK_PTR 9
     coro->context[STACK_PTR /* RSP */] = (((sky_uintptr_t) coro->stack + CORO_STACK_MIN) & ~0xful) - 0x8ul;
-#elif defined(__i386__)
-    sky_uchar_t *stack = (sky_uchar_t *) (sky_uintptr_t)(coro->stack + CORO_STACK_MIN);
-    stack = (sky_uchar_t *)((sky_uintptr_t)(stack - (3 * sizeof(sky_uintptr_t))) & (sky_uintptr_t)~0x3);
+}
 
-    sky_uintptr_t *argp = (sky_uintptr_t *)stack;
+#elif defined(__i386__)
+
+static sky_inline void
+coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
+    sky_uchar_t *stack = (sky_uchar_t *) (sky_uintptr_t) (coro->stack + CORO_STACK_MIN);
+    stack = (sky_uchar_t *) ((sky_uintptr_t) (stack - (3 * sizeof(sky_uintptr_t))) & (sky_uintptr_t) ~0x3);
+
+    sky_uintptr_t *argp = (sky_uintptr_t *) stack;
     *argp++ = 0;
     *argp++ = (sky_uintptr_t) coro;
     *argp++ = (sky_uintptr_t) func;
@@ -171,16 +176,24 @@ coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     coro->context[5 /* EIP */] = (sky_uintptr_t) coro_entry_point;
 #define STACK_PTR 6
     coro->context[STACK_PTR /* ESP */] = (sky_uintptr_t) stack;
+}
+
 #else
+
+static void
+coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     getcontext(&coro->context);
     coro->context.uc_stack.ss_sp = coro->stack;
     coro->context.uc_stack.ss_size = CORO_STACK_MIN;
     coro->context.uc_stack.ss_flags = 0;
     coro->context.uc_link = null;
 
-    makecontext(&coro->context, coro_entry_point, 3, coro, func, data);
-#endif
+    makecontext(&coro->context,
+    void (*)
+    (void) coro_entry_point, 3, coro, func, data);
 }
+
+#endif
 
 
 sky_coro_t *
