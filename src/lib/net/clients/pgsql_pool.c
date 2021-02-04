@@ -189,7 +189,7 @@ pg_auth(sky_pg_conn_t *conn) {
                     const sky_uint32_t type = sky_ntohl(*((sky_uint32_t *) buf.pos));
                     buf.pos += 4;
                     size -= 4;
-                    if (!n) {
+                    if (!type) {
                         state = START;
                         continue;
                     }
