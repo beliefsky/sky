@@ -29,6 +29,8 @@ set(SOURCES
         net/tcp.c
         net/udp.c
         net/clients/tcp_pool.c
+        net/clients/pgsql_pool.c
+        net/clients/redis_pool.c
         net/http/http_io_wrappers.c
         net/http/http_request.c
         net/http/http_response.c
@@ -37,8 +39,6 @@ set(SOURCES
         net/http/module/http_module_file.c
         net/http/module/http_module_dispatcher.c
         net/http/module/http_module_websocket.c
-        net/http/extend/http_extend_pgsql_pool.c
-        net/http/extend/http_extend_redis_pool.c
         net/tls/tls.c
         )
 add_library(sky_static STATIC ${SOURCES})
@@ -115,6 +115,8 @@ install(FILES
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net")
 install(FILES
         net/clients/tcp_pool.h
+        net/clients/redis_pool.h
+        net/clients/pgsql_pool.c
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/clients")
 install(FILES
         net/http/http_parse.h

@@ -1,12 +1,13 @@
 //
-// Created by weijing on 2019/12/9.
+// Created by edz on 2021/2/4.
 //
 
-#include "http_extend_pgsql_pool.h"
-#include "../../inet.h"
-#include "../../../core/memory.h"
-#include "../../../core/log.h"
-#include "../../../core/md5.h"
+#include "pgsql_pool.h"
+#include "../inet.h"
+#include "../../core/memory.h"
+#include "../../core/log.h"
+#include "../../core/md5.h"
+#include "../../core/buf.h"
 
 struct sky_pg_pool_s {
     sky_tcp_pool_t *conn_pool;
@@ -35,7 +36,7 @@ static sky_uchar_t *pg_serialize_array(const sky_pg_array_t *array, sky_uchar_t 
 static sky_pg_array_t *pg_deserialize_array(sky_pool_t *pool, sky_uchar_t *stream, sky_pg_type_t type);
 
 sky_pg_pool_t *
-sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf) {
+sky_pgsql_pool_create(sky_pool_t *pool, sky_pgsql_conf_t *conf) {
     sky_pg_pool_t *pg_pool;
     sky_tcp_pool_t *tcp_pool;
     sky_uchar_t *p;
@@ -81,7 +82,7 @@ sky_pg_sql_pool_create(sky_pool_t *pool, sky_pg_sql_conf_t *conf) {
 }
 
 sky_pg_conn_t *
-sky_pg_sql_connection_get(sky_pg_pool_t *conn_pool, sky_pool_t *pool, sky_http_connection_t *main) {
+sky_pgsql_conn_get(sky_pg_pool_t *conn_pool, sky_pool_t *pool, sky_event_t *event, sky_coro_t *coro) {
     sky_pg_conn_t *conn;
 
     conn = sky_palloc(pool, sizeof(sky_pg_conn_t));
@@ -89,7 +90,7 @@ sky_pg_sql_connection_get(sky_pg_pool_t *conn_pool, sky_pool_t *pool, sky_http_c
     conn->pool = pool;
     conn->pg_pool = conn_pool;
 
-    if (sky_unlikely(!sky_tcp_pool_conn_bind(conn_pool->conn_pool, &conn->conn, &main->ev, main->coro))) {
+    if (sky_unlikely(!sky_tcp_pool_conn_bind(conn_pool->conn_pool, &conn->conn, event, coro))) {
         return null;
     }
 
@@ -97,7 +98,7 @@ sky_pg_sql_connection_get(sky_pg_pool_t *conn_pool, sky_pool_t *pool, sky_http_c
 }
 
 sky_pg_result_t *
-sky_pg_sql_exec(sky_pg_conn_t *ps, const sky_str_t *cmd, const sky_pg_type_t *param_types,
+sky_pgsql_exec(sky_pg_conn_t *ps, const sky_str_t *cmd, const sky_pg_type_t *param_types,
                 sky_pg_data_t *params, sky_uint16_t param_len) {
     if (sky_unlikely(!ps || !pg_send_exec(ps, cmd, param_types, params, param_len))) {
         return null;
@@ -106,7 +107,7 @@ sky_pg_sql_exec(sky_pg_conn_t *ps, const sky_str_t *cmd, const sky_pg_type_t *pa
 }
 
 void
-sky_pg_sql_connection_put(sky_pg_conn_t *conn) {
+sky_pgsql_conn_put(sky_pg_conn_t *conn) {
     if (sky_unlikely(!conn)) {
         return;
     }
@@ -185,14 +186,14 @@ pg_auth(sky_pg_conn_t *conn) {
                     if ((buf.last - buf.pos) < size) {
                         break;
                     }
-                    n = sky_ntohl(*((sky_uint32_t *) buf.pos));
+                    const sky_uint32_t type = sky_ntohl(*((sky_uint32_t *) buf.pos));
                     buf.pos += 4;
                     size -= 4;
                     if (!n) {
                         state = START;
                         continue;
                     }
-                    if (sky_unlikely(!pg_send_password(conn, conn->pg_pool, n, buf.pos, size))) {
+                    if (sky_unlikely(!pg_send_password(conn, conn->pg_pool, type, buf.pos, size))) {
                         sky_buf_destroy(&buf);
                         return false;
                     }
@@ -874,3 +875,4 @@ pg_deserialize_array(sky_pool_t *pool, sky_uchar_t *p, sky_pg_type_t type) {
     }
     return array;
 }
+

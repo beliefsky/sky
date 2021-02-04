@@ -1,13 +1,13 @@
 //
-// Created by weijing on 2019/12/21.
+// Created by edz on 2021/2/4.
 //
 
-#include "http_extend_redis_pool.h"
-#include "../../../core/memory.h"
-#include "../../../core/log.h"
-#include "../../../core/number.h"
-#include "../../../core/string_buf.h"
-
+#include "redis_pool.h"
+#include "../../core/memory.h"
+#include "../../core/log.h"
+#include "../../core/number.h"
+#include "../../core/string_buf.h"
+#include "../../core/buf.h"
 
 static sky_bool_t redis_send_exec(sky_redis_conn_t *rc, sky_redis_data_t *prams, sky_uint16_t param_len);
 
@@ -29,11 +29,11 @@ sky_redis_pool_create(sky_pool_t *pool, sky_redis_conf_t *conf) {
 }
 
 sky_redis_conn_t *
-sky_redis_connection_get(sky_redis_pool_t *redis_pool, sky_pool_t *pool, sky_http_connection_t *main) {
+sky_redis_conn_get(sky_redis_pool_t *redis_pool, sky_pool_t *pool, sky_event_t *event, sky_coro_t *coro) {
     sky_redis_conn_t *conn = sky_palloc(pool, sizeof(sky_redis_conn_t));
     conn->pool = pool;
 
-    if (sky_unlikely(!sky_tcp_pool_conn_bind(redis_pool, &conn->conn, &main->ev, main->coro))) {
+    if (sky_unlikely(!sky_tcp_pool_conn_bind(redis_pool, &conn->conn, event, coro))) {
         return null;
     }
     return conn;
@@ -51,7 +51,7 @@ sky_redis_exec(sky_redis_conn_t *rc, sky_redis_data_t *params, sky_uint16_t para
 }
 
 void
-sky_redis_connection_put(sky_redis_conn_t *rc) {
+sky_redis_conn_put(sky_redis_conn_t *rc) {
     if (sky_unlikely(!rc)) {
         return;
     }

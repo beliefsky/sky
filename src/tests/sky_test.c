@@ -169,7 +169,7 @@ server_start(void *ssl) {
 
     loop = sky_event_loop_create(pool);
 
-    sky_pg_sql_conf_t pg_conf = {
+    sky_pgsql_conf_t pg_conf = {
             .host = sky_string("localhost"),
             .port = sky_string("5432"),
 //            .unix_path = sky_string("/run/postgresql/.s.PGSQL.5432"),
@@ -179,7 +179,7 @@ server_start(void *ssl) {
             .connection_size = 8
     };
 
-    ps_pool = sky_pg_sql_pool_create(pool, &pg_conf);
+    ps_pool = sky_pgsql_pool_create(pool, &pg_conf);
     if (!ps_pool) {
         sky_log_error("create postgresql connection pool error");
         return;
@@ -299,7 +299,7 @@ build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module) {
 
 static sky_bool_t
 redis_test(sky_http_request_t *req) {
-    sky_redis_conn_t *rc = sky_redis_connection_get(redis_pool, req->pool, req->conn);
+    sky_redis_conn_t *rc = sky_http_ex_redis_conn_get(redis_pool, req);
     if (sky_unlikely(!rc)) {
         sky_http_response_static_len(req, sky_str_line("{\"status\": 500, \"msg\": \"redis error\"}"));
         return false;
@@ -317,7 +317,7 @@ redis_test(sky_http_request_t *req) {
     };
 
     sky_redis_result_t *data = sky_redis_exec(rc, params, 2);
-    sky_redis_connection_put(rc);
+    sky_redis_conn_put(rc);
 
     if (data && data->is_ok && data->rows) {
         for (sky_uint32_t i = 0; i != data->rows; ++i) {
@@ -350,9 +350,9 @@ hello_world(sky_http_request_t *req) {
     sky_pg_type_t type = pg_data_int32;
     sky_pg_data_t param = {.int32 = 2L};
 
-    sky_pg_conn_t *ps = sky_pg_sql_connection_get(ps_pool, req->pool, req->conn);
-    sky_pg_result_t *result = sky_pg_sql_exec(ps, &cmd, &type, &param, 1);
-    sky_pg_sql_connection_put(ps);
+    sky_pg_conn_t *ps = sky_http_ex_pgsql_conn_get(ps_pool, req);
+    sky_pg_result_t *result = sky_pgsql_exec(ps, &cmd, &type, &param, 1);
+    sky_pgsql_conn_put(ps);
     if (!result) {
         sky_http_response_static_len(req, sky_str_line("{\"status\": 500, \"msg\": \"database error\"}"));
         return false;
