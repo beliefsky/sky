@@ -152,7 +152,7 @@ main() {
 #endif
 }
 
-sky_pg_pool_t *ps_pool;
+sky_pgsql_pool_t *ps_pool;
 sky_redis_pool_t *redis_pool;
 
 static void
@@ -348,9 +348,9 @@ hello_world(sky_http_request_t *req) {
     const sky_str_t cmd = sky_string("SELECT int32,int64,int16,text,text_arr,int32_arr FROM tb_test WHERE int32 = $1");
 
     sky_pg_type_t type = pg_data_int32;
-    sky_pg_data_t param = {.int32 = 2L};
+    sky_pgsql_data_t param = {.int32 = 2L};
 
-    sky_pg_conn_t *ps = sky_http_ex_pgsql_conn_get(ps_pool, req);
+    sky_pgsql_conn_t *ps = sky_http_ex_pgsql_conn_get(ps_pool, req);
     sky_pg_result_t *result = sky_pgsql_exec(ps, &cmd, &type, &param, 1);
     sky_pgsql_conn_put(ps);
     if (!result) {
@@ -363,7 +363,7 @@ hello_world(sky_http_request_t *req) {
         return false;
     }
 
-//    sky_pg_data_t *data = result->data->data;
+//    sky_pgsql_data_t *data = result->data->data;
 //
 //    sky_log_info("int32: %d", data[0].int32);
 //    sky_log_info("int64: %ld", data[1].int64);
@@ -378,13 +378,13 @@ hello_world(sky_http_request_t *req) {
 //======================================================================================
 //    sky_str_set(&cmd, "UPDATE tb_test SET text_arr = $1 WHERE int32 = 2");
 //    type = pg_data_array_text;
-//    sky_pg_data_t datas[] = {
+//    sky_pgsql_data_t datas[] = {
 //            {.str = sky_string("text1")},
 //            {.str = sky_string("text2")},
 //            {.str = sky_string("text3")}
 //    };
 //    param.array = sky_pnalloc(req->pool, sizeof(sky_pg_array_t));
-//    sky_pg_data_array_one_init(param.array, datas, 3);
+//    sky_pgsql_data_array_one_init(param.array, datas, 3);
 //
 //
 //    ps = sky_pg_sql_connection_get(ps_pool, req->pool, req->conn);

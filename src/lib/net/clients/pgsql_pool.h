@@ -12,11 +12,11 @@ extern "C" {
 #endif
 
 
-typedef struct sky_pg_pool_s sky_pg_pool_t;
-typedef struct sky_pg_conn_s sky_pg_conn_t;
-typedef struct sky_pg_row_s sky_pg_row_t;
+typedef struct sky_pgsql_pool_s sky_pgsql_pool_t;
+typedef struct sky_pgsql_conn_s sky_pgsql_conn_t;
+typedef struct sky_pgsql_row_s sky_pgsql_row_t;
 
-typedef union sky_pg_data_u sky_pg_data_t;
+typedef union sky_pgsql_data_u sky_pgsql_data_t;
 
 typedef struct {
     sky_str_t username;
@@ -28,10 +28,10 @@ typedef struct {
     sky_uint16_t connection_size;
 } sky_pgsql_conf_t;
 
-struct sky_pg_conn_s {
+struct sky_pgsql_conn_s {
     sky_tcp_conn_t conn;
     sky_pool_t *pool;
-    sky_pg_pool_t *pg_pool;
+    sky_pgsql_pool_t *pg_pool;
     sky_bool_t error;
 };
 
@@ -53,10 +53,10 @@ typedef struct {
     sky_uint32_t flags;  // 0=no-nulls, 1=has-nulls
     sky_uint32_t nelts; //元素数量
     sky_uint32_t *dims; // 每层数组的大小
-    sky_pg_data_t *data; // 数据，以一维方式存储，多维数组应计算偏移
+    sky_pgsql_data_t *data; // 数据，以一维方式存储，多维数组应计算偏移
 } sky_pg_array_t;
 
-union sky_pg_data_u {
+union sky_pgsql_data_u {
     struct {
         sky_size_t len;
         union {
@@ -82,34 +82,34 @@ typedef struct {
     sky_uint16_t data_code; // 字段编码格式
 } sky_pg_desc_t;
 
-struct sky_pg_row_s {
-    sky_pg_data_t *data;
-    sky_pg_row_t *next;
+struct sky_pgsql_row_s {
+    sky_pgsql_data_t *data;
+    sky_pgsql_row_t *next;
     sky_uint16_t num;
 };
 
 typedef struct {
     sky_pg_desc_t *desc;
-    sky_pg_row_t *data;
+    sky_pgsql_row_t *data;
 
     sky_uint32_t rows;  // 行数
     sky_uint16_t lines; // 列数
 } sky_pg_result_t;
 
-sky_pg_pool_t *sky_pgsql_pool_create(sky_pool_t *pool, sky_pgsql_conf_t *conf);
+sky_pgsql_pool_t *sky_pgsql_pool_create(sky_pool_t *pool, sky_pgsql_conf_t *conf);
 
-sky_pg_conn_t *sky_pgsql_conn_get(sky_pg_pool_t *conn_pool, sky_pool_t *pool,
+sky_pgsql_conn_t *sky_pgsql_conn_get(sky_pgsql_pool_t *conn_pool, sky_pool_t *pool,
                                   sky_event_t *event, sky_coro_t *coro);
 
-sky_pg_result_t *sky_pgsql_exec(sky_pg_conn_t *ps, const sky_str_t *cmd,
-                                const sky_pg_type_t *param_types, sky_pg_data_t *params,
+sky_pg_result_t *sky_pgsql_exec(sky_pgsql_conn_t *ps, const sky_str_t *cmd,
+                                const sky_pg_type_t *param_types, sky_pgsql_data_t *params,
                                 sky_uint16_t param_len);
 
-void sky_pgsql_conn_put(sky_pg_conn_t *ps);
+void sky_pgsql_conn_put(sky_pgsql_conn_t *ps);
 
 static sky_inline void
-sky_pg_data_array_init(sky_pg_array_t *array, sky_uint32_t *dims, sky_uint32_t dl,
-                       sky_pg_data_t *ds, sky_uint32_t n) {
+sky_pgsql_data_array_init(sky_pg_array_t *array, sky_uint32_t *dims, sky_uint32_t dl,
+                       sky_pgsql_data_t *ds, sky_uint32_t n) {
     array->dimensions = dl;
     array->dims = dims;
     array->nelts = n;
@@ -117,7 +117,7 @@ sky_pg_data_array_init(sky_pg_array_t *array, sky_uint32_t *dims, sky_uint32_t d
 }
 
 static sky_inline void
-sky_pg_data_array_one_init(sky_pg_array_t *array, sky_pg_data_t *ds, sky_uint32_t n) {
+sky_pgsql_data_array_one_init(sky_pg_array_t *array, sky_pgsql_data_t *ds, sky_uint32_t n) {
     array->dimensions = 1;
     array->nelts = n;
     array->dims = &array->nelts;
@@ -125,7 +125,7 @@ sky_pg_data_array_one_init(sky_pg_array_t *array, sky_pg_data_t *ds, sky_uint32_
 }
 
 static sky_inline sky_bool_t
-sky_pg_data_is_null(const sky_pg_data_t *data) {
+sky_pgsql_data_is_null(const sky_pgsql_data_t *data) {
     return data->len == (sky_size_t) -1;
 }
 
