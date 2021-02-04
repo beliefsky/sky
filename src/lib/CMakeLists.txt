@@ -116,7 +116,7 @@ install(FILES
 install(FILES
         net/clients/tcp_pool.h
         net/clients/redis_pool.h
-        net/clients/pgsql_pool.c
+        net/clients/pgsql_pool.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/clients")
 install(FILES
         net/http/http_parse.h
