@@ -50,7 +50,7 @@ typedef struct {
     sky_bool_t is_ok: 1;
 } sky_redis_result_t;
 
-sky_redis_pool_t *sky_redis_pool_create(sky_pool_t *pool, sky_redis_conf_t *conf);
+sky_redis_pool_t *sky_redis_pool_create(sky_pool_t *pool, const sky_redis_conf_t *conf);
 
 sky_redis_conn_t *sky_redis_conn_get(sky_redis_pool_t *redis_pool, sky_pool_t *pool,
                                            sky_event_t *event, sky_coro_t *coro);

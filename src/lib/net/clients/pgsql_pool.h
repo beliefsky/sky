@@ -96,7 +96,7 @@ typedef struct {
     sky_uint16_t lines; // 列数
 } sky_pg_result_t;
 
-sky_pgsql_pool_t *sky_pgsql_pool_create(sky_pool_t *pool, sky_pgsql_conf_t *conf);
+sky_pgsql_pool_t *sky_pgsql_pool_create(sky_pool_t *pool, const sky_pgsql_conf_t *conf);
 
 sky_pgsql_conn_t *sky_pgsql_conn_get(sky_pgsql_pool_t *conn_pool, sky_pool_t *pool,
                                   sky_event_t *event, sky_coro_t *coro);

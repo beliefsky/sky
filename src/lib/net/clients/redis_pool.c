@@ -15,7 +15,7 @@ static sky_redis_result_t *redis_exec_read(sky_redis_conn_t *rc);
 
 
 sky_redis_pool_t *
-sky_redis_pool_create(sky_pool_t *pool, sky_redis_conf_t *conf) {
+sky_redis_pool_create(sky_pool_t *pool, const sky_redis_conf_t *conf) {
     const sky_tcp_pool_conf_t c = {
             .host = conf->host,
             .port = conf->port,

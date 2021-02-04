@@ -37,7 +37,7 @@ static sky_uchar_t *pg_serialize_array(const sky_pg_array_t *array, sky_uchar_t 
 static sky_pg_array_t *pg_deserialize_array(sky_pool_t *pool, sky_uchar_t *stream, sky_pg_type_t type);
 
 sky_pgsql_pool_t *
-sky_pgsql_pool_create(sky_pool_t *pool, sky_pgsql_conf_t *conf) {
+sky_pgsql_pool_create(sky_pool_t *pool, const sky_pgsql_conf_t *conf) {
     sky_pgsql_pool_t *pg_pool;
     sky_tcp_pool_t *tcp_pool;
     sky_uchar_t *p;
