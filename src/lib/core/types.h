@@ -41,6 +41,9 @@ typedef uintptr_t sky_uint_t;
 typedef uintptr_t sky_size_t;
 typedef time_t sky_time_t;
 
+typedef float sky_float4_t;
+typedef float sky_float8_t;
+
 #define sky_likely_is(_x, _y) __builtin_expect((_x), (_y))
 #define sky_likely(_x)       __builtin_expect(!!(_x), 1)
 #define sky_unlikely(_x)     __builtin_expect(!!(_x), 0)
