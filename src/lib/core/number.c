@@ -300,13 +300,13 @@ sky_str_len_to_uint64(const sky_uchar_t *in, sky_size_t in_len, sky_uint64_t *ou
 }
 
 sky_bool_t
-sky_str_to_float4(const sky_str_t *in, sky_float4_t *out) {
+sky_str_to_float4(const sky_str_t *in, sky_float32_t *out) {
     return sky_str_len_to_float4(in->data, in->len, out);
 }
 
 sky_bool_t
-sky_str_len_to_float4(const sky_uchar_t *in, sky_size_t in_len, sky_float4_t *out) {
-    static const sky_float4_t power_of_ten[] = {1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10};
+sky_str_len_to_float4(const sky_uchar_t *in, sky_size_t in_len, sky_float32_t *out) {
+    static const sky_float32_t power_of_ten[] = {1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10};
 
     if (sky_unlikely(!in_len)) {
         return false;
@@ -330,7 +330,7 @@ sky_str_len_to_float4(const sky_uchar_t *in, sky_size_t in_len, sky_float4_t *ou
     }
 
     if (sky_unlikely(!in_len)) {
-        *out = negative ? -((sky_float4_t) i) : (sky_float4_t) i;
+        *out = negative ? -((sky_float32_t) i) : (sky_float32_t) i;
         return true;
     }
     if (sky_unlikely(*p != '.' || in_len < 2)) {
@@ -343,21 +343,21 @@ sky_str_len_to_float4(const sky_uchar_t *in, sky_size_t in_len, sky_float4_t *ou
     if (sky_unlikely(!sky_str_len_to_uint32(p, in_len, &j))) {
         return false;
     }
-    *out = (sky_float4_t) i;
-    *out += (sky_float4_t) j / power_of_ten[in_len];
+    *out = (sky_float32_t) i;
+    *out += (sky_float32_t) j / power_of_ten[in_len];
     *out = negative ? -(*out) : *out;
 
     return true;
 }
 
 sky_bool_t
-sky_str_to_float8(const sky_str_t *in, sky_float8_t *out) {
+sky_str_to_float8(const sky_str_t *in, sky_float64_t *out) {
     return sky_str_len_to_float8(in->data, in->len, out);
 }
 
 sky_bool_t
-sky_str_len_to_float8(const sky_uchar_t *in, sky_size_t in_len, sky_float8_t *out) {
-    static const sky_float8_t power_of_ten[] = {
+sky_str_len_to_float8(const sky_uchar_t *in, sky_size_t in_len, sky_float64_t *out) {
+    static const sky_float64_t power_of_ten[] = {
             1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11,
             1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22
     };
@@ -383,7 +383,7 @@ sky_str_len_to_float8(const sky_uchar_t *in, sky_size_t in_len, sky_float8_t *ou
         return false;
     }
     if (sky_unlikely(!in_len)) {
-        *out = negative ? -((sky_float8_t) i) : (sky_float8_t) i;
+        *out = negative ? -((sky_float64_t) i) : (sky_float64_t) i;
         return true;
     }
     ++p;
@@ -393,8 +393,8 @@ sky_str_len_to_float8(const sky_uchar_t *in, sky_size_t in_len, sky_float8_t *ou
     if (sky_unlikely(!sky_str_len_to_uint64(p, in_len, &j))) {
         return false;
     }
-    *out = (sky_float8_t) i;
-    *out += (sky_float8_t) j / power_of_ten[in_len];
+    *out = (sky_float64_t) i;
+    *out += (sky_float64_t) j / power_of_ten[in_len];
     *out = negative ? -(*out) : *out;
 
 
@@ -487,6 +487,18 @@ sky_uint64_to_str(sky_uint64_t data, sky_uchar_t *src) {
     }
     *(src + len) = '\0';
     return len;
+}
+
+sky_uint8_t
+sky_float32_to_str(sky_float32_t data, sky_uchar_t *src) {
+
+    return sky_int32_to_str((sky_int32_t) data, src);
+}
+
+sky_uint8_t
+sky_float64_to_str(sky_float64_t data, sky_uchar_t *src) {
+
+    return sky_int64_to_str((sky_int64_t) data, src);
 }
 
 
