@@ -16,9 +16,9 @@
 #define SKY_CORO_FINISHED   1
 
 #if defined(__x86_64__)
-typedef uintptr_t sky_coro_context_t[10];
+typedef sky_uintptr_t sky_coro_context_t[10];
 #elif defined(__i386__)
-typedef uintptr_t sky_coro_context_t[7];
+typedef sky_uintptr_t sky_coro_context_t[7];
 #else
 #include <ucontext.h>
 typedef ucontext_t sky_coro_context_t;
