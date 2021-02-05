@@ -491,14 +491,29 @@ sky_uint64_to_str(sky_uint64_t data, sky_uchar_t *src) {
 
 sky_uint8_t
 sky_float32_to_str(sky_float32_t data, sky_uchar_t *src) {
+    const sky_int32_t int_val = (sky_int32_t) data;
+    const sky_float32_t frac = data - (sky_float32_t) int_val;
 
-    return sky_int32_to_str((sky_int32_t) data, src);
+    return sky_int32_to_str(int_val, src);
 }
 
 sky_uint8_t
 sky_float64_to_str(sky_float64_t data, sky_uchar_t *src) {
+    const sky_int64_t int_val = (sky_int64_t) data;
+    const sky_float64_t frac = int_val > 0 ? (data - (sky_float64_t) int_val) : ((sky_float64_t) int_val - data);
+    sky_uint8_t i = sky_int64_to_str(int_val, src);
+    if (frac < 1e-17) {
+        return i;
+    }
+    src += i;
+    *src++ = '.';
+    ++i;
 
-    return sky_int64_to_str((sky_int64_t) data, src);
+    const sky_uint64_t frac_int = (sky_uint64_t) (frac * 1e17);
+
+    i += sky_uint64_to_str(frac_int, src);
+
+    return i;
 }
 
 
