@@ -254,10 +254,7 @@ redis_exec_read(sky_redis_conn_t *rc) {
                         result->data = params = sky_palloc(rc->pool, sizeof(sky_redis_data_t));
                         result->rows = 1;
 
-                        sky_str_t tmp;
-                        tmp.data = buf.pos;
-                        tmp.len = (sky_size_t) (buf.last - buf.pos - 2);
-                        sky_str_to_int32(&tmp, (sky_int32_t *) (&params->i32));
+                        sky_str_len_to_int32(buf.pos, (sky_size_t) (buf.last - buf.pos - 2), &params->i32);
                         return result;
                     }
                     break;
@@ -273,10 +270,7 @@ redis_exec_read(sky_redis_conn_t *rc) {
                                 result->data = params = sky_palloc(rc->pool, sizeof(sky_redis_data_t));
                                 result->rows = 1;
 
-                                sky_str_t tmp;
-                                tmp.data = buf.pos;
-                                tmp.len = (sky_size_t) (p - buf.pos - 1);
-                                sky_str_to_int32(&tmp, &size);
+                                sky_str_len_to_int32(buf.pos, (sky_size_t) (p - buf.pos - 1), &size);
                                 if (size < 0) {
                                     params->stream.len = 0;
                                     params->stream.data = null;
@@ -293,10 +287,7 @@ redis_exec_read(sky_redis_conn_t *rc) {
                             } else {
                                 params = &result->data[i++];
 
-                                sky_str_t tmp;
-                                tmp.data = buf.pos;
-                                tmp.len = (sky_size_t) (p - buf.pos - 1);
-                                sky_str_to_int32(&tmp, &size);
+                                sky_str_len_to_int32(buf.pos, (sky_size_t) (p - buf.pos - 1), &size);
                                 buf.pos = p + 1;
                                 p = null;
                                 if (size < 0) {

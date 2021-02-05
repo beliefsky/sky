@@ -47,7 +47,6 @@ sky_bool_t
 sky_rfc_str_to_date(sky_str_t *in, time_t *out) {
     struct tm tm;
     sky_uchar_t *value;
-    sky_str_t tmp;
 
     if (sky_unlikely(in->len != 29)) {
         return false;
@@ -81,10 +80,8 @@ sky_rfc_str_to_date(sky_str_t *in, time_t *out) {
     }
     value += 5;
 
-    tmp.data = value;
-    tmp.len = 2;
 
-    if (sky_unlikely(!sky_str_to_int32(&tmp, &tm.tm_mday) || tm.tm_mday < 1 || tm.tm_mday > 31)) {
+    if (sky_unlikely(!sky_str_len_to_int32(value, 2, &tm.tm_mday) || tm.tm_mday < 1 || tm.tm_mday > 31)) {
         return false;
     }
     value += 3;
@@ -129,30 +126,21 @@ sky_rfc_str_to_date(sky_str_t *in, time_t *out) {
             return false;
     }
     value += 4;
-
-    tmp.data = value;
-    tmp.len = 4;
-    if (sky_unlikely(!sky_str_to_int32(&tmp, &tm.tm_year) || tm.tm_year < 0 || tm.tm_year > 9999)) {
+    if (sky_unlikely(!sky_str_len_to_int32(value, 4, &tm.tm_year) || tm.tm_year < 0 || tm.tm_year > 9999)) {
         return false;
     }
     tm.tm_year -= 1900;
     value += 5;
 
-    tmp.data = value;
-    tmp.len = 2;
-    if (sky_unlikely(!sky_str_to_int32(&tmp, &tm.tm_hour) || tm.tm_hour < 0 || tm.tm_hour > 24)) {
+    if (sky_unlikely(!sky_str_len_to_int32(value, 2, &tm.tm_hour) || tm.tm_hour < 0 || tm.tm_hour > 24)) {
         return false;
     }
     value += 3;
-
-    tmp.data = value;
-    if (sky_unlikely(!sky_str_to_int32(&tmp, &tm.tm_min) || tm.tm_min < 0 || tm.tm_min > 60)) {
+    if (sky_unlikely(!sky_str_len_to_int32(value, 2, &tm.tm_min) || tm.tm_min < 0 || tm.tm_min > 60)) {
         return false;
     }
     value += 3;
-
-    tmp.data = value;
-    if (sky_unlikely(!sky_str_to_int32(&tmp, &tm.tm_sec) || tm.tm_sec < 0 || tm.tm_sec > 60)) {
+    if (sky_unlikely(!sky_str_len_to_int32(value, 2, &tm.tm_sec) || tm.tm_sec < 0 || tm.tm_sec > 60)) {
         return false;
     }
     value += 3;

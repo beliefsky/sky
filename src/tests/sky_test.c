@@ -108,7 +108,7 @@ timer_test(timer_test_t *test) {
     sky_event_timer_register(test->loop, &test->timer, test->timeout);
 }
 
-#define FORK
+//#define FORK
 
 int
 main() {
@@ -169,7 +169,7 @@ server_start(void *ssl) {
 
     loop = sky_event_loop_create(pool);
 
-    sky_pgsql_conf_t pg_conf = {
+    const sky_pgsql_conf_t pg_conf = {
             .host = sky_string("localhost"),
             .port = sky_string("5432"),
 //            .unix_path = sky_string("/run/postgresql/.s.PGSQL.5432"),
@@ -185,10 +185,10 @@ server_start(void *ssl) {
         return;
     }
 
-    sky_redis_conf_t redis_conf = {
+    const sky_redis_conf_t redis_conf = {
             .host = sky_string("localhost"),
             .port = sky_string("6379"),
-            .connection_size = 8
+            .connection_size = 16
     };
 
     redis_pool = sky_redis_pool_create(pool, &redis_conf);

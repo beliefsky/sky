@@ -207,12 +207,8 @@ get_backlog_size() {
     if (sky_unlikely(size < 1)) {
         return backlog;
     }
-    const sky_str_t str = {
-            .data = ch,
-            .len = (sky_uint32_t)size - 1
-    };
 
-    if (sky_unlikely(!sky_str_to_int32(&str, &backlog))) {
+    if (sky_unlikely(!sky_str_len_to_int32(ch, (sky_uint32_t)size - 1, &backlog))) {
         return backlog;
     }
 

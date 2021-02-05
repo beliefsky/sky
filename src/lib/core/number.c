@@ -21,19 +21,24 @@ static sky_uint8_t large_num_to_str(sky_uint64_t x, sky_uchar_t *s);
 
 sky_bool_t
 sky_str_to_int8(const sky_str_t *in, sky_int8_t *out) {
+    return sky_str_len_to_int8(in->data, in->len, out);
+}
+
+sky_inline sky_bool_t
+sky_str_len_to_int8(const sky_uchar_t *in, sky_size_t in_len, sky_int8_t *out) {
     sky_uint64_t mask;
 
-    if (sky_unlikely(in->len == 0 || in->len > 4)) {
+    if (sky_unlikely(in_len == 0 || in_len > 4)) {
         return false;
     }
-    if (*(in->data) == '-') {
-        mask = fast_str_parse_mask(in->data + 1, in->len - 1);
+    if (*in == '-') {
+        mask = fast_str_parse_mask(in + 1, in_len - 1);
         if (sky_unlikely((!fast_str_all_number(mask)))) {
             return false;
         }
         *out = ~((sky_int8_t) fast_str_parse_uint32(mask)) + 1;
     } else {
-        mask = fast_str_parse_mask(in->data, in->len);
+        mask = fast_str_parse_mask(in, in_len);
         if (sky_unlikely((!fast_str_all_number(mask)))) {
             return false;
         }
@@ -46,12 +51,17 @@ sky_str_to_int8(const sky_str_t *in, sky_int8_t *out) {
 
 sky_bool_t
 sky_str_to_uint8(const sky_str_t *in, sky_uint8_t *out) {
+    return sky_str_len_to_uint8(in->data, in->len, out);
+}
+
+sky_inline sky_bool_t
+sky_str_len_to_uint8(const sky_uchar_t *in, sky_size_t in_len, sky_uint8_t *out) {
     sky_uint64_t mask;
 
-    if (sky_unlikely(in->len == 0 || in->len > 3)) {
+    if (sky_unlikely(in_len == 0 || in_len > 3)) {
         return false;
     }
-    mask = fast_str_parse_mask(in->data, in->len);
+    mask = fast_str_parse_mask(in, in_len);
     if (sky_unlikely((!fast_str_all_number(mask)))) {
         return false;
     }
@@ -63,19 +73,24 @@ sky_str_to_uint8(const sky_str_t *in, sky_uint8_t *out) {
 
 sky_bool_t
 sky_str_to_int16(const sky_str_t *in, sky_int16_t *out) {
+    return sky_str_len_to_int16(in->data, in->len, out);
+}
+
+sky_inline sky_bool_t
+sky_str_len_to_int16(const sky_uchar_t *in, sky_size_t in_len, sky_int16_t *out) {
     sky_uint64_t mask;
-    if (sky_unlikely(in->len == 0 || in->len > 6)) {
+    if (sky_unlikely(in_len == 0 || in_len > 6)) {
         return false;
     }
 
-    if (*(in->data) == '-') {
-        mask = fast_str_parse_mask(in->data + 1, in->len - 1);
+    if (*in == '-') {
+        mask = fast_str_parse_mask(in + 1, in_len - 1);
         if (sky_unlikely((!fast_str_all_number(mask)))) {
             return false;
         }
         *out = ~((sky_int16_t) fast_str_parse_uint32(mask)) + 1;
     } else {
-        mask = fast_str_parse_mask(in->data, in->len);
+        mask = fast_str_parse_mask(in, in_len);
         if (sky_unlikely((!fast_str_all_number(mask)))) {
             return false;
         }
@@ -88,12 +103,17 @@ sky_str_to_int16(const sky_str_t *in, sky_int16_t *out) {
 
 sky_bool_t
 sky_str_to_uint16(const sky_str_t *in, sky_uint16_t *out) {
+    return sky_str_len_to_uint16(in->data, in->len, out);
+}
+
+sky_inline sky_bool_t
+sky_str_len_to_uint16(const sky_uchar_t *in, sky_size_t in_len, sky_uint16_t *out) {
     sky_uint64_t mask;
 
-    if (sky_unlikely(!in->len || in->len > 5)) {
+    if (sky_unlikely(!in_len || in_len > 5)) {
         return false;
     }
-    mask = fast_str_parse_mask(in->data, in->len);
+    mask = fast_str_parse_mask(in, in_len);
     if (sky_unlikely((!fast_str_all_number(mask)))) {
         return false;
     }
@@ -102,21 +122,22 @@ sky_str_to_uint16(const sky_str_t *in, sky_uint16_t *out) {
     return true;
 }
 
-
 sky_bool_t
 sky_str_to_int32(const sky_str_t *in, sky_int32_t *out) {
-    sky_size_t data;
-    sky_uchar_t *p;
+    return sky_str_len_to_int32(in->data, in->len, out);
+}
+
+sky_inline sky_bool_t
+sky_str_len_to_int32(const sky_uchar_t *in, sky_size_t in_len, sky_int32_t *out) {
     sky_uint64_t mask;
 
-    if (sky_unlikely(!in->len || in->len > 11)) {
+    if (sky_unlikely(!in_len || in_len > 11)) {
         return false;
     }
-    p = in->data;
-    if (*p == '-') {
-        ++p;
-        mask = fast_str_parse_mask(p, in->len - 1);
-        if (in->len < 10) {
+    if (*in == '-') {
+        ++in;
+        mask = fast_str_parse_mask(in, in_len - 1);
+        if (in_len < 10) {
             if (sky_unlikely((!fast_str_all_number(mask)))) {
                 return false;
             }
@@ -128,26 +149,26 @@ sky_str_to_int32(const sky_str_t *in, sky_int32_t *out) {
         }
         *out = (sky_int32_t) fast_str_parse_uint32(mask);
 
-        data = in->len - 9;
+        in_len -= 9;
 
-        mask = fast_str_parse_mask(p + 8, (sky_size_t) data);
+        mask = fast_str_parse_mask(in + 8, in_len);
         if (sky_unlikely((!fast_str_all_number(mask)))) {
             return false;
         }
-        if (data == 1) {
-            *out = ~((*out) * 10 + (p[8] - '0')) + 1;
+        if (in_len == 1) {
+            *out = ~((*out) * 10 + (in[8] - '0')) + 1;
         } else {
             *out = ~((*out) * 100 + (sky_int32_t) fast_str_parse_uint32(mask)) + 1;
         }
 
-        *out = data == 1 ? (~((*out) * 10 + (p[8] - '0')) + 1)
-                         : (~((*out) * 100 + (sky_int32_t) fast_str_parse_uint32(mask)) + 1);
+        *out = in_len == 1 ? (~((*out) * 10 + (in[8] - '0')) + 1)
+                           : (~((*out) * 100 + (sky_int32_t) fast_str_parse_uint32(mask)) + 1);
 
         return true;
     }
 
-    mask = fast_str_parse_mask(p, in->len);
-    if (in->len < 9) {
+    mask = fast_str_parse_mask(in, in_len);
+    if (in_len < 9) {
         if (sky_unlikely((!fast_str_all_number(mask)))) {
             return false;
         }
@@ -159,33 +180,34 @@ sky_str_to_int32(const sky_str_t *in, sky_int32_t *out) {
     }
     *out = (sky_int32_t) fast_str_parse_uint32(mask);
 
-    data = in->len - 8;
+    in_len -= 8;
 
-    mask = fast_str_parse_mask(p + 8, data);
+    mask = fast_str_parse_mask(in + 8, in_len);
     if (sky_unlikely((!fast_str_all_number(mask)))) {
         return false;
     }
 
-    *out = data == 1 ? ((*out) * 10 + (p[8] - '0'))
-                     : ((*out) * 100 + (sky_int32_t) fast_str_parse_uint32(mask));
+    *out = in_len == 1 ? ((*out) * 10 + (in[8] - '0'))
+                       : ((*out) * 100 + (sky_int32_t) fast_str_parse_uint32(mask));
 
     return true;
 }
 
-
 sky_bool_t
 sky_str_to_uint32(const sky_str_t *in, sky_uint32_t *out) {
-    sky_uint32_t data;
-    sky_uchar_t *p;
+    return sky_str_len_to_uint32(in->data, in->len, out);
+}
+
+sky_inline sky_bool_t
+sky_str_len_to_uint32(const sky_uchar_t *in, sky_size_t in_len, sky_uint32_t *out) {
     sky_uint64_t mask;
 
-    if (sky_unlikely(!in->len || in->len > 10)) {
+    if (sky_unlikely(!in_len || in_len > 10)) {
         return false;
     }
 
-    p = in->data;
-    mask = fast_str_parse_mask(p, in->len);
-    if (in->len < 9) {
+    mask = fast_str_parse_mask(in, in_len);
+    if (in_len < 9) {
         if (sky_unlikely((!fast_str_all_number(mask)))) {
             return false;
         }
@@ -193,51 +215,52 @@ sky_str_to_uint32(const sky_str_t *in, sky_uint32_t *out) {
         return true;
     }
     *out = fast_str_parse_uint32(mask);
-    data = (sky_uint32_t) in->len - 8;
+    in_len -= 8;
 
-    mask = fast_str_parse_mask(p + 8, data);
+    mask = fast_str_parse_mask(in + 8, in_len);
     if (sky_unlikely((!fast_str_all_number(mask)))) {
         return false;
     }
 
-    *out = data == 1 ? ((*out) * 10 + (p[8] - '0'))
-                     : ((*out) * 100 + fast_str_parse_uint32(mask));
+    *out = in_len == 1 ? ((*out) * 10 + (in[8] - '0'))
+                       : ((*out) * 100 + fast_str_parse_uint32(mask));
 
     return true;
 }
 
-
 sky_bool_t
 sky_str_to_int64(const sky_str_t *in, sky_int64_t *out) {
-    if (in->data[0] == '-') {
-        sky_str_t tmp = {
-                .data = in->data + 1,
-                .len = in->len - 1
-        };
+    return sky_str_len_to_int64(in->data, in->len, out);
+}
 
-        if (sky_likely(sky_str_to_uint64(&tmp, (sky_uint64_t *) out))) {
+sky_inline sky_bool_t
+sky_str_len_to_int64(const sky_uchar_t *in, sky_size_t in_len, sky_int64_t *out) {
+    if (*in == '-') {
+        if (sky_likely(sky_str_len_to_uint64(in + 1, in_len - 1, (sky_uint64_t *) out))) {
             *out = ~(*out) + 1;
             return true;
         }
         return false;
     }
-    return sky_str_to_uint64(in, (sky_uint64_t *) out);
+    return sky_str_len_to_uint64(in, in_len, (sky_uint64_t *) out);
 }
-
 
 sky_bool_t
 sky_str_to_uint64(const sky_str_t *in, sky_uint64_t *out) {
-    sky_size_t len;
+    return sky_str_len_to_uint64(in->data, in->len, out);
+}
+
+sky_bool_t
+sky_str_len_to_uint64(const sky_uchar_t *in, sky_size_t in_len, sky_uint64_t *out) {
     sky_uint64_t mask;
 
     static const sky_uint32_t base_dic[] = {1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000};
 
-    len = in->len;
-    if (sky_unlikely(!len || len > 20)) {
+    if (sky_unlikely(!in_len || in_len > 20)) {
         return false;
     }
-    mask = fast_str_parse_mask(in->data, in->len);
-    if (len < 9) {
+    mask = fast_str_parse_mask(in, in_len);
+    if (in_len < 9) {
         if (sky_unlikely((!fast_str_all_number(mask)))) {
             return false;
         }
@@ -248,28 +271,38 @@ sky_str_to_uint64(const sky_str_t *in, sky_uint64_t *out) {
         return false;
     }
     *out = fast_str_parse_uint32(mask);
-    len -= 8;
+    in_len -= 8;
 
-    mask = fast_str_parse_mask(in->data + 8, len);
-    if (len < 9) {
+    mask = fast_str_parse_mask(in + 8, in_len);
+    if (in_len < 9) {
         if (sky_unlikely((!fast_str_all_number(mask)))) {
             return false;
         }
-        *out = (*out) * base_dic[len] + fast_str_parse_uint32(mask);
+        *out = (*out) * base_dic[in_len] + fast_str_parse_uint32(mask);
         return true;
     }
     if (sky_unlikely((!fast_str_all_number(mask)))) {
         return false;
     }
     *out = (*out) * base_dic[8] + fast_str_parse_uint32(mask);
-    len -= 8;
+    in_len -= 8;
 
-    mask = fast_str_parse_mask(in->data + 16, len);
+    mask = fast_str_parse_mask(in + 16, in_len);
     if (sky_unlikely((!fast_str_all_number(mask)))) {
         return false;
     }
-    *out = (*out) * base_dic[len] + fast_str_parse_uint32(mask);
+    *out = (*out) * base_dic[in_len] + fast_str_parse_uint32(mask);
     return true;
+}
+
+sky_bool_t
+sky_str_to_float4(const sky_str_t *in, sky_float4_t *out) {
+    return false;
+}
+
+sky_bool_t
+sky_str_to_float8(const sky_str_t *in, sky_float8_t *out) {
+    return false;
 }
 
 sky_uint8_t
