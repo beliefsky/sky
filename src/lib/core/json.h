@@ -104,6 +104,7 @@ sky_json_object_create(sky_pool_t *pool) {
 
     json->type = json_object;
     json->pool = pool;
+    json->parent = null;
 
     json->object = (sky_json_object_t *) (json + 1);
     json->object->prev = json->object->next = json->object;
@@ -117,6 +118,7 @@ sky_json_array_create(sky_pool_t *pool) {
 
     json->type = json_array;
     json->pool = pool;
+    json->parent = null;
 
     json->array = (sky_json_array_t *) (json + 1);
     json->array->prev = json->array->next = json->array;
