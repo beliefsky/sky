@@ -108,7 +108,7 @@ timer_test(timer_test_t *test) {
     sky_event_timer_register(test->loop, &test->timer, test->timeout);
 }
 
-//#define FORK
+#define FORK
 
 int
 main() {
@@ -200,7 +200,7 @@ server_start(void *ssl) {
     sky_array_init(&modules, pool, 32, sizeof(sky_http_module_t));
 
     sky_str_set(&prefix, "");
-    sky_str_set(&file_path, "../../www");
+    sky_str_set(&file_path, "/home/beliefsky/www/");
     sky_http_module_file_init(pool, sky_array_push(&modules), &prefix, &file_path);
 
     build_http_dispatcher(pool, sky_array_push(&modules));
@@ -347,11 +347,11 @@ hello_world(sky_http_request_t *req) {
 
     const sky_str_t cmd = sky_string("SELECT int32,int64,int16,text,text_arr,int32_arr FROM tb_test WHERE int32 = $1");
 
-    sky_pg_type_t type = pg_data_int32;
+    sky_pgsql_type_t type = pgsql_data_int32;
     sky_pgsql_data_t param = {.int32 = 2L};
 
     sky_pgsql_conn_t *ps = sky_http_ex_pgsql_conn_get(ps_pool, req);
-    sky_pg_result_t *result = sky_pgsql_exec(ps, &cmd, &type, &param, 1);
+    sky_pgsql_result_t *result = sky_pgsql_exec(ps, &cmd, &type, &param, 1);
     sky_pgsql_conn_put(ps);
     if (!result) {
         sky_http_response_static_len(req, sky_str_line("{\"status\": 500, \"msg\": \"database error\"}"));
@@ -370,20 +370,20 @@ hello_world(sky_http_request_t *req) {
 //    sky_log_info("int16: %d", data[2].int16);
 //    sky_log_info("text: %s", data[3].stream);
 //
-//    sky_pg_array_t *arr = data[4].array;
+//    sky_pgsql_array_t *arr = data[4].array;
 //
 //    for (sky_uint32_t i = 0; i != arr->nelts; ++i) {
 //        sky_log_info("[%u]:%s", i, arr->data[i].stream);
 //    }
 //======================================================================================
 //    sky_str_set(&cmd, "UPDATE tb_test SET text_arr = $1 WHERE int32 = 2");
-//    type = pg_data_array_text;
+//    type = pgsql_data_array_text;
 //    sky_pgsql_data_t datas[] = {
 //            {.str = sky_string("text1")},
 //            {.str = sky_string("text2")},
 //            {.str = sky_string("text3")}
 //    };
-//    param.array = sky_pnalloc(req->pool, sizeof(sky_pg_array_t));
+//    param.array = sky_pnalloc(req->pool, sizeof(sky_pgsql_array_t));
 //    sky_pgsql_data_array_one_init(param.array, datas, 3);
 //
 //
