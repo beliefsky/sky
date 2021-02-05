@@ -118,7 +118,7 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
             case json_integer:
                 sky_str_buf_append_int64(&buf, current->integer);
                 break;
-            case json_double:
+            case json_float:
                 break;
             case json_string:
                 sky_str_buf_append_uchar(&buf, '"');
@@ -297,7 +297,7 @@ sky_json_put_integer(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, s
 }
 
 sky_json_t *
-sky_json_put_double(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, double value) {
+sky_json_put_double(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, sky_float64_t value) {
     sky_json_object_t *obj;
 
     if (sky_unlikely(json->type != json_object)) {
@@ -307,7 +307,7 @@ sky_json_put_double(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, do
     obj->key.len = key_len;
     obj->key.data = key;
 
-    obj->value.type = json_double;
+    obj->value.type = json_float;
     obj->value.dbl = value;
 
     return &obj->value;
@@ -417,14 +417,14 @@ sky_json_add_integer(sky_json_t *json, sky_int64_t value) {
 }
 
 sky_json_t *
-sky_json_add_double(sky_json_t *json, double value) {
+sky_json_add_float(sky_json_t *json, sky_float64_t value) {
     sky_json_t *child;
 
     if (sky_unlikely(json->type != json_array)) {
         return null;
     }
     child = json_array_get(json);
-    child->type = json_double;
+    child->type = json_float;
     child->dbl = value;
 
     return child;

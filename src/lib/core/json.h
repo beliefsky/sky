@@ -22,7 +22,7 @@ struct sky_json_s {
         json_object = 0,
         json_array,
         json_integer,
-        json_double,
+        json_float,
         json_string,
         json_boolean,
         json_null
@@ -30,7 +30,7 @@ struct sky_json_s {
     union {
         sky_bool_t boolean;
         sky_int64_t integer;
-        double dbl;
+        sky_float64_t dbl;
         sky_str_t string;
 
         struct {
@@ -75,7 +75,7 @@ sky_json_t *sky_json_put_null(sky_json_t *json, sky_uchar_t *key, sky_uint32_t k
 
 sky_json_t *sky_json_put_integer(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, sky_int64_t value);
 
-sky_json_t *sky_json_put_double(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, double value);
+sky_json_t *sky_json_put_double(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, sky_float64_t value);
 
 sky_json_t *sky_json_put_string(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, sky_str_t *value);
 
@@ -92,7 +92,7 @@ sky_json_t *sky_json_add_null(sky_json_t *json);
 
 sky_json_t *sky_json_add_integer(sky_json_t *json, sky_int64_t value);
 
-sky_json_t *sky_json_add_double(sky_json_t *json, double value);
+sky_json_t *sky_json_add_float(sky_json_t *json, sky_float64_t value);
 
 sky_json_t *sky_json_add_string(sky_json_t *json, sky_str_t *value);
 
