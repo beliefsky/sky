@@ -18,8 +18,10 @@ jobs:
       - name: build in FreeBSD
         uses: vmactions/freebsd-vm@v0.1.2
         with:
+          usesh: true
           prepare: pkg install -y cmake
           run: |
+            cd $GITHUB_WORKSPACE
             mkdir build
             cd build
             cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
