@@ -269,7 +269,18 @@ sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_size_
 void
 sky_tcp_pool_conn_unbind(sky_tcp_conn_t *conn) {
     sky_defer_cancel(conn->coro, conn->defer);
-    tcp_connection_defer(conn);
+
+    if (conn->next) {
+        conn->prev->next = conn->next;
+        conn->next->prev = conn->prev;
+        conn->prev = conn->next = null;
+    }
+    conn->defer = null;
+    if (!conn->client) {
+        return;
+    }
+    conn->client->current = null;
+    conn->client = null;
 }
 
 
@@ -411,7 +422,7 @@ tcp_connection(sky_tcp_conn_t *conn) {
 }
 
 
-static sky_inline void
+static void
 tcp_connection_defer(sky_tcp_conn_t *conn) {
     if (conn->next) {
         conn->prev->next = conn->next;
@@ -422,6 +433,8 @@ tcp_connection_defer(sky_tcp_conn_t *conn) {
     if (!conn->client) {
         return;
     }
+    sky_event_unregister(&conn->client->ev);
+
     conn->client->current = null;
     conn->client = null;
 }
