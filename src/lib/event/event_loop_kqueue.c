@@ -206,9 +206,11 @@ sky_event_unregister(sky_event_t *ev) {
 
 static void
 event_timer_callback(sky_event_t *ev) {
-    close(ev->fd);
-    ev->reg = false;
-    ev->fd = -1;
+    if (ev->reg) {
+        close(ev->fd);
+        ev->fd = -1;
+        ev->reg = false;
+    }
     ev->close(ev);
 }
 
