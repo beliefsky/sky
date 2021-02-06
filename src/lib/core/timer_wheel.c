@@ -178,8 +178,12 @@ sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_uint64_t now) {
     ctx->last_run = sky_max(ctx->last_run, now);
 }
 
-sky_inline void
+void
 sky_timer_wheel_link(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky_uint64_t at) {
+    if (sky_unlikely(entry->next)) {
+        entry->next->prev = entry->prev;
+        entry->prev->next = entry->next;
+    }
     entry->expire_at = sky_max(at, ctx->last_run);
     link_timer(ctx, entry);
 }
@@ -190,7 +194,8 @@ sky_timer_wheel_expired(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, 
         entry->next->prev = entry->prev;
         entry->prev->next = entry->next;
 
-        sky_timer_wheel_link(ctx, entry, at);
+        entry->expire_at = sky_max(at, ctx->last_run);
+        link_timer(ctx, entry);
     }
 }
 

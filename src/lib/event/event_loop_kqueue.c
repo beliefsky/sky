@@ -172,6 +172,7 @@ sky_event_register(sky_event_t *ev, sky_int32_t timeout) {
     struct kevent event[2];
     if (timeout < 0) {
         timeout = -1;
+        sky_timer_wheel_unlink(&ev->timer);
     } else {
         if (timeout == 0) {
             ev->loop->update = true;
