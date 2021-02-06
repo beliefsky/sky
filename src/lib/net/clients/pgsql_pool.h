@@ -101,7 +101,7 @@ sky_pgsql_pool_t *sky_pgsql_pool_create(sky_pool_t *pool, const sky_pgsql_conf_t
 sky_pgsql_conn_t *sky_pgsql_conn_get(sky_pgsql_pool_t *conn_pool, sky_pool_t *pool,
                                   sky_event_t *event, sky_coro_t *coro);
 
-sky_pgsql_result_t *sky_pgsql_exec(sky_pgsql_conn_t *ps, const sky_str_t *cmd,
+sky_pgsql_result_t *sky_pgsql_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd,
                                 const sky_pgsql_type_t *param_types, sky_pgsql_data_t *params,
                                 sky_uint16_t param_len);
 

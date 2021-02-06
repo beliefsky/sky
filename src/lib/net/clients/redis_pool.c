@@ -32,6 +32,7 @@ sky_redis_conn_t *
 sky_redis_conn_get(sky_redis_pool_t *redis_pool, sky_pool_t *pool, sky_event_t *event, sky_coro_t *coro) {
     sky_redis_conn_t *conn = sky_palloc(pool, sizeof(sky_redis_conn_t));
     conn->pool = pool;
+    conn->error = false;
 
     if (sky_unlikely(!sky_tcp_pool_conn_bind(redis_pool, &conn->conn, event, coro))) {
         return null;
@@ -55,7 +56,11 @@ sky_redis_conn_put(sky_redis_conn_t *rc) {
     if (sky_unlikely(!rc)) {
         return;
     }
-    sky_tcp_pool_conn_unbind(&rc->conn);
+    if (sky_unlikely(rc->error)) {
+        sky_tcp_pool_conn_close(&rc->conn);
+    } else {
+        sky_tcp_pool_conn_unbind(&rc->conn);
+    }
 }
 
 
@@ -212,6 +217,7 @@ redis_exec_read(sky_redis_conn_t *rc) {
                         case '\0':
                             break;
                         default:
+                            rc->error = true;
                             return null;
                     }
                     break;

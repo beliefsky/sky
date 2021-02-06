@@ -31,6 +31,7 @@ typedef struct {
 struct sky_redis_conn_s {
     sky_tcp_conn_t conn;
     sky_pool_t *pool;
+    sky_bool_t error;
 };
 
 typedef struct {

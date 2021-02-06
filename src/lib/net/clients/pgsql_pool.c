@@ -99,12 +99,12 @@ sky_pgsql_conn_get(sky_pgsql_pool_t *conn_pool, sky_pool_t *pool, sky_event_t *e
 }
 
 sky_pgsql_result_t *
-sky_pgsql_exec(sky_pgsql_conn_t *ps, const sky_str_t *cmd, const sky_pgsql_type_t *param_types,
-                sky_pgsql_data_t *params, sky_uint16_t param_len) {
-    if (sky_unlikely(!ps || !pg_send_exec(ps, cmd, param_types, params, param_len))) {
+sky_pgsql_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_t *param_types,
+               sky_pgsql_data_t *params, sky_uint16_t param_len) {
+    if (sky_unlikely(!conn || !pg_send_exec(conn, cmd, param_types, params, param_len))) {
         return null;
     }
-    return pg_exec_read(ps);
+    return pg_exec_read(conn);
 }
 
 void
@@ -112,7 +112,11 @@ sky_pgsql_conn_put(sky_pgsql_conn_t *conn) {
     if (sky_unlikely(!conn)) {
         return;
     }
-    sky_tcp_pool_conn_unbind(&conn->conn);
+    if (sky_unlikely(conn->error)) {
+        sky_tcp_pool_conn_close(&conn->conn);
+    } else {
+        sky_tcp_pool_conn_unbind(&conn->conn);
+    }
 }
 
 
@@ -256,7 +260,8 @@ pg_auth(sky_pgsql_conn_t *conn) {
 }
 
 static sky_bool_t
-pg_send_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_t *param_types, sky_pgsql_data_t *params,
+pg_send_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_t *param_types,
+             sky_pgsql_data_t *params,
              sky_uint16_t param_len) {
     sky_uint16_t i;
     sky_uint32_t size;
@@ -422,6 +427,7 @@ pg_send_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_
                 break;
             default:
                 sky_buf_destroy(&buf);
+                conn->error = true;
                 return false;
         }
     }
@@ -504,6 +510,7 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                             }
                             printf("\n\n");
                             sky_buf_destroy(&buf);
+                            conn->error = true;
                             return null;
                     }
                     *(buf.pos++) = '\0';
@@ -511,6 +518,7 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                     buf.pos += 4;
                     if (sky_unlikely(size < 4)) {
                         sky_buf_destroy(&buf);
+                        conn->error = true;
                         return null;
                     }
                     size -= 4;
@@ -533,6 +541,7 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                                                              (sky_size_t) (buf.last - buf.pos))) + 1;
                         if (sky_unlikely((buf.last - buf.pos) < 18)) {
                             sky_buf_destroy(&buf);
+                            conn->error = true;
                             return null;
                         }
                         desc->table_id = sky_ntohl(*((sky_uint32_t *) buf.pos));
@@ -672,6 +681,7 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                     buf.pos += size;
 
                     sky_buf_destroy(&buf);
+                    conn->error = true;
                     return null;
             }
             break;
