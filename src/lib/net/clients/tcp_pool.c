@@ -266,6 +266,13 @@ sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_size_
     }
 }
 
+sky_inline void
+sky_tcp_pool_conn_close(sky_tcp_conn_t *conn) {
+    sky_defer_cancel(conn->coro, conn->defer);
+
+    tcp_connection_defer(conn);
+}
+
 void
 sky_tcp_pool_conn_unbind(sky_tcp_conn_t *conn) {
     sky_defer_cancel(conn->coro, conn->defer);
@@ -422,7 +429,7 @@ tcp_connection(sky_tcp_conn_t *conn) {
 }
 
 
-static void
+static sky_inline void
 tcp_connection_defer(sky_tcp_conn_t *conn) {
     if (conn->next) {
         conn->prev->next = conn->next;

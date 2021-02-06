@@ -50,6 +50,8 @@ sky_size_t sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_s
 
 sky_bool_t sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_size_t size);
 
+void sky_tcp_pool_conn_close(sky_tcp_conn_t *conn);
+
 void sky_tcp_pool_conn_unbind(sky_tcp_conn_t *conn);
 
 #endif //SKY_TCP_POOL_H
