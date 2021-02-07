@@ -188,9 +188,7 @@ coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     coro->context.uc_stack.ss_flags = 0;
     coro->context.uc_link = null;
 
-    makecontext(&coro->context,
-    void (*)
-    (void) coro_entry_point, 3, coro, func, data);
+    makecontext(&coro->context, coro_entry_point, 3, coro, func, data);
 }
 
 #endif
