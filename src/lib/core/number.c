@@ -300,7 +300,7 @@ sky_str_len_to_uint64(const sky_uchar_t *in, sky_size_t in_len, sky_uint64_t *ou
 }
 
 sky_bool_t
-sky_str_to_float4(const sky_str_t *in, sky_float32_t *out) {
+sky_str_to_float32(const sky_str_t *in, sky_float32_t *out) {
     return sky_str_len_to_float4(in->data, in->len, out);
 }
 
@@ -351,7 +351,7 @@ sky_str_len_to_float4(const sky_uchar_t *in, sky_size_t in_len, sky_float32_t *o
 }
 
 sky_bool_t
-sky_str_to_float8(const sky_str_t *in, sky_float64_t *out) {
+sky_str_to_float64(const sky_str_t *in, sky_float64_t *out) {
     return sky_str_len_to_float8(in->data, in->len, out);
 }
 
@@ -482,8 +482,8 @@ sky_uint64_to_str(sky_uint64_t data, sky_uchar_t *src) {
     if (data < 9999999999) {
         len = large_num_to_str((sky_uint64_t) data, src);
     } else {
-        large_num_to_str(data / 1000000000, src);
-        len = large_num_to_str(data % 1000000000, src + 9) + 9;
+        len = large_num_to_str(data / 1000000000, src);
+        len += large_num_to_str(data % 1000000000, src + len);
     }
     *(src + len) = '\0';
     return len;
@@ -492,9 +492,20 @@ sky_uint64_to_str(sky_uint64_t data, sky_uchar_t *src) {
 sky_uint8_t
 sky_float32_to_str(sky_float32_t data, sky_uchar_t *src) {
     const sky_int32_t int_val = (sky_int32_t) data;
-    const sky_float32_t frac = data - (sky_float32_t) int_val;
+    const sky_float32_t frac = int_val > 0 ? (data - (sky_float32_t) int_val) : ((sky_float32_t) int_val - data);
+    sky_uint8_t i = sky_int64_to_str(int_val, src);
+    if ((sky_float64_t)frac < 1e-6) {
+        return i;
+    }
+    src += i;
+    *src++ = '.';
+    ++i;
 
-    return sky_int32_to_str(int_val, src);
+    const sky_uint32_t frac_int = (sky_uint32_t) ((sky_float64_t)frac * 1e6 + 0.5);
+
+    i += sky_uint64_to_str(frac_int, src);
+
+    return i;
 }
 
 sky_uint8_t
@@ -509,7 +520,7 @@ sky_float64_to_str(sky_float64_t data, sky_uchar_t *src) {
     *src++ = '.';
     ++i;
 
-    const sky_uint64_t frac_int = (sky_uint64_t) (frac * 1e17);
+    const sky_uint64_t frac_int = (sky_uint64_t) (frac * 1e17 + 0.5);
 
     i += sky_uint64_to_str(frac_int, src);
 

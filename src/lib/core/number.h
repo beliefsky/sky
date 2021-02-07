@@ -45,11 +45,11 @@ sky_bool_t sky_str_to_uint64(const sky_str_t *in, sky_uint64_t *out);
 
 sky_bool_t sky_str_len_to_uint64(const sky_uchar_t *in, sky_size_t in_len, sky_uint64_t *out);
 
-sky_bool_t sky_str_to_float4(const sky_str_t *in, sky_float32_t *out);
+sky_bool_t sky_str_to_float32(const sky_str_t *in, sky_float32_t *out);
 
 sky_bool_t sky_str_len_to_float4(const sky_uchar_t *in, sky_size_t in_len, sky_float32_t *out);
 
-sky_bool_t sky_str_to_float8(const sky_str_t *in, sky_float64_t *out);
+sky_bool_t sky_str_to_float64(const sky_str_t *in, sky_float64_t *out);
 
 sky_bool_t sky_str_len_to_float8(const sky_uchar_t *in, sky_size_t in_len, sky_float64_t *out);
 
