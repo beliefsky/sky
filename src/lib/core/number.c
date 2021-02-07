@@ -301,7 +301,7 @@ sky_str_len_to_uint64(const sky_uchar_t *in, sky_size_t in_len, sky_uint64_t *ou
 
 sky_bool_t
 sky_str_to_float32(const sky_str_t *in, sky_float32_t *out) {
-    return sky_str_len_to_float4(in->data, in->len, out);
+    return sky_str_len_to_float32(in->data, in->len, out);
 }
 
 sky_bool_t
@@ -352,11 +352,11 @@ sky_str_len_to_float4(const sky_uchar_t *in, sky_size_t in_len, sky_float32_t *o
 
 sky_bool_t
 sky_str_to_float64(const sky_str_t *in, sky_float64_t *out) {
-    return sky_str_len_to_float8(in->data, in->len, out);
+    return sky_str_len_to_float64(in->data, in->len, out);
 }
 
 sky_bool_t
-sky_str_len_to_float8(const sky_uchar_t *in, sky_size_t in_len, sky_float64_t *out) {
+sky_str_len_to_float64(const sky_uchar_t *in, sky_size_t in_len, sky_float64_t *out) {
     static const sky_float64_t power_of_ten[] = {
             1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10, 1e11,
             1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22
