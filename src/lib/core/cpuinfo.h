@@ -75,7 +75,7 @@ sky_setaffinity(sky_cpu_set_t *cpu_set) {
 
 extern sky_uint_t sky_cache_line_size;
 
-void sky_cpu_info(void);
+void sky_cpu_info();
 
 #if defined(__cplusplus)
 } /* extern "C" { */
