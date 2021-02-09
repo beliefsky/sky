@@ -627,48 +627,43 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                             continue;
                         }
                         params->len = size;
-                        params->len = size;
                         switch (desc[i].type) {
                             case pgsql_data_bool:
-                                params->bool = *(buf.pos++);
+                                params->bool = *(buf.pos);
                                 break;
                             case pgsql_data_char:
-                                params->ch = (sky_char_t) *(buf.pos++);
+                                params->ch = *((sky_char_t *) buf.pos);
                                 break;
                             case pgsql_data_int16:
                                 params->int16 = (sky_int16_t) sky_ntohs(*((sky_uint16_t *) buf.pos));
-                                buf.pos += 2;
                                 break;
                             case pgsql_data_int32:
                                 params->int32 = (sky_int32_t) sky_ntohl(*((sky_uint32_t *) buf.pos));
-                                buf.pos += 4;
                                 break;
                             case pgsql_data_int64:
                                 params->int64 = (sky_int64_t) sky_ntohll(*((sky_uint64_t *) buf.pos));
-                                buf.pos += 8;
                                 break;
                             case pgsql_data_datetime:
-                                sky_log_info("[%u] %s: %d", size, desc[i].name.data, sky_htonl(*(sky_uint32_t *) buf.pos));
-                                buf.pos += 8;
+                                sky_log_info("[%u] %s: %d", size, desc[i].name.data,
+                                             sky_htonl(*(sky_uint32_t *) buf.pos));
                                 break;
                             case pgsql_data_date:
-                                sky_log_info("[%u] %s: %d", size, desc[i].name.data, sky_htonl(*(sky_uint32_t *) buf.pos));
-                                buf.pos += 4;
+                                sky_log_info("[%u] %s: %d", size, desc[i].name.data,
+                                             sky_htonl(*(sky_uint32_t *) buf.pos));
                                 break;
                             case pgsql_data_time:
-                                sky_log_info("[%u] %s: %d", size, desc[i].name.data, sky_htonl(*(sky_uint32_t *) buf.pos));
-                                buf.pos += 8;
+                                sky_log_info("[%u] %s: %d", size, desc[i].name.data,
+                                             sky_htonl(*(sky_uint32_t *) buf.pos));
                                 break;
                             case pgsql_data_array_int32:
                             case pgsql_data_array_text:
                                 params->array = pg_deserialize_array(conn->pool, buf.pos, desc[i].type);
-                                buf.pos += size;
                                 break;
                             default:
                                 params->stream = buf.pos;
-                                buf.pos += size;
                                 break;
                         }
+                        buf.pos += size;
                     }
                     state = START;
                     continue;
