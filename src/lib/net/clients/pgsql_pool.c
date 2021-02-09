@@ -574,8 +574,17 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                             case 1043:
                                 desc->type = pgsql_data_text;
                                 break;
+                            case 1082:
+                                desc->type = pgsql_data_date;
+                                break;
+                            case 1083:
+                                desc->type = pgsql_data_time;
+                                break;
+                            case 1114:
+                                desc->type = pgsql_data_datetime;
+                                break;
                             default:
-                                sky_log_warn("不支持的类型: %u", sky_ntohl(*((sky_uint32_t *) buf.pos)));
+                                sky_log_warn("%s 类型不支持: %u", desc->name.data, sky_ntohl(*((sky_uint32_t *) buf.pos)));
                                 desc->type = pgsql_data_binary;
                         }
                         buf.pos += 4;
@@ -636,6 +645,18 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                                 break;
                             case pgsql_data_int64:
                                 params->int64 = (sky_int64_t) sky_ntohll(*((sky_uint64_t *) buf.pos));
+                                buf.pos += 8;
+                                break;
+                            case pgsql_data_datetime:
+                                sky_log_info("[%u] %s: %d", size, desc[i].name.data, sky_htonl(*(sky_uint32_t *) buf.pos));
+                                buf.pos += 8;
+                                break;
+                            case pgsql_data_date:
+                                sky_log_info("[%u] %s: %d", size, desc[i].name.data, sky_htonl(*(sky_uint32_t *) buf.pos));
+                                buf.pos += 4;
+                                break;
+                            case pgsql_data_time:
+                                sky_log_info("[%u] %s: %d", size, desc[i].name.data, sky_htonl(*(sky_uint32_t *) buf.pos));
                                 buf.pos += 8;
                                 break;
                             case pgsql_data_array_int32:
