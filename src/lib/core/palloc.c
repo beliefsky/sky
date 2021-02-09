@@ -167,21 +167,19 @@ sky_pmemalign(sky_pool_t *pool, sky_size_t size, sky_size_t alignment) {
 
 void
 sky_pfree(sky_pool_t *pool, const void *ptr, sky_size_t size) {
-    sky_pool_large_t *l;
+    const sky_uchar_t *p = ptr + size;
 
-    if (size <= pool->max) {
-        const sky_uchar_t *p = ptr + size;
-        if (p == pool->d.last) {
-            pool->d.last -= size;
-        }
-        return;
+    if (p == pool->d.last) {
+        pool->d.last -= size;
     }
 
-    for (l = pool->large; l; l = l->next) {
-        if (ptr == l->alloc) {
-            sky_free(l->alloc);
-            l->alloc = null;
-            return;
+    if (size > pool->max) {
+        for (sky_pool_large_t *l = pool->large; l; l = l->next) {
+            if (ptr == l->alloc) {
+                sky_free(l->alloc);
+                l->alloc = null;
+                return;
+            }
         }
     }
 }
