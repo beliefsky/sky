@@ -169,7 +169,6 @@ sky_event_unregister(sky_event_t *ev) {
     if (sky_unlikely(!ev->reg)) {
         return;
     }
-    sky_timer_wheel_unlink(&ev->timer);
     close(ev->fd);
     ev->reg = false;
     ev->fd = -1;

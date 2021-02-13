@@ -179,13 +179,15 @@ sky_http_read_body_str(sky_http_request_t *r, sky_buf_t *tmp) {
         r->request_body->str.len = n;
         r->request_body->str.data = tmp->pos;
         tmp->pos += n;
+        *tmp->pos = '\0';
+
         return;
     }
     size = total - n;
 
     server = r->conn->server;
     n = (sky_size_t) (tmp->end - tmp->last);
-    if (n >= size) {
+    if (n > size) {
         do {
             n = server->http_read(r->conn, tmp->last, size);
             tmp->last += n;
@@ -195,13 +197,14 @@ sky_http_read_body_str(sky_http_request_t *r, sky_buf_t *tmp) {
         r->request_body->str.len = total;
         r->request_body->str.data = tmp->pos;
         tmp->pos += total;
+        *tmp->pos = '\0';
 
         return;
     }
     // 大内存读取
-    if (total >= 8192) {
+    if (total > 8192) {
 
-        const sky_uint32_t re_size = sky_align(total, 4096U);
+        const sky_uint32_t re_size = sky_align(total + 1, 4096U);
 
         p = mmap(null, re_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
         if (sky_unlikely(!p)) {
@@ -228,9 +231,11 @@ sky_http_read_body_str(sky_http_request_t *r, sky_buf_t *tmp) {
             size -= n;
         } while (size > 0);
 
+        *p = '\0';
+
         return;
     }
-    sky_buf_rebuild(tmp, total);
+    sky_buf_rebuild(tmp, total + 1);
     do {
         n = server->http_read(r->conn, tmp->last, size);
         tmp->last += n;
@@ -240,6 +245,7 @@ sky_http_read_body_str(sky_http_request_t *r, sky_buf_t *tmp) {
     r->request_body->str.len = total;
     r->request_body->str.data = tmp->pos;
     tmp->pos += total;
+    *tmp->pos = '\0';
 }
 
 static void
