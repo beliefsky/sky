@@ -324,8 +324,12 @@ sky_json_put_string(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, sk
     obj->key.len = key_len;
     obj->key.data = key;
 
-    obj->value.type = json_string;
-    obj->value.string = *value;
+    if (!value) {
+        obj->value.type = json_null;
+    } else {
+        obj->value.type = json_string;
+        obj->value.string = *value;
+    }
 
     return &obj->value;
 }
