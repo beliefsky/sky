@@ -438,8 +438,13 @@ sky_json_add_string(sky_json_t *json, sky_str_t *value) {
         return null;
     }
     child = json_array_get(json);
-    child->type = json_string;
-    child->string = *value;
+
+    if (!value) {
+        child->type = json_null;
+    } else {
+        child->type = json_string;
+        child->string = *value;
+    }
 
     return child;
 }
