@@ -47,6 +47,8 @@ typedef struct {
     sky_str_t path;
 } http_module_file_t;
 
+static void http_history_run_handler(sky_http_request_t *r, http_module_file_t *data);
+
 static void http_run_handler(sky_http_request_t *r, http_module_file_t *data);
 
 static sky_bool_t http_header_range(http_file_t *file, sky_str_t *value);
@@ -72,6 +74,21 @@ sky_http_module_file_init(sky_pool_t *pool, sky_http_module_t *module, sky_str_t
     module->run = (sky_module_run_pt) http_run_handler;
 
     module->module_data = data;
+}
+
+void
+sky_http_module_h5_history_init(sky_pool_t *pool, sky_http_module_t *module, sky_str_t *prefix, sky_str_t *dir) {
+    sky_http_module_file_init(pool, module, prefix, dir);
+    module->run = (sky_module_run_pt) http_history_run_handler;
+}
+
+static void
+http_history_run_handler(sky_http_request_t *r, http_module_file_t *data) {
+    if (!r->exten.len) {
+        sky_str_set(&r->exten, ".html");
+        sky_str_set(&r->uri, "/index.html");
+    }
+    http_run_handler(r, data);
 }
 
 static void
