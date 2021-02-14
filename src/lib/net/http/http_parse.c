@@ -155,6 +155,7 @@ sky_http_request_line_parse(sky_http_request_t *r, sky_buf_t *b) {
 
                 if (sky_likely(sky_str4_cmp(p, '/', '1', '.', '1'))) {
                     r->version = 11;
+                    r->keep_alive = true;
                 } else if (sky_str4_cmp(p, '/', '1', '.', '0')) {
                     r->version = 10;
                 } else {
