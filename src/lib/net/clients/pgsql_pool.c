@@ -571,6 +571,7 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                             case 1015:
                                 desc->type = pgsql_data_array_text;
                                 break;
+                            case 25:
                             case 1043:
                                 desc->type = pgsql_data_text;
                                 break;
