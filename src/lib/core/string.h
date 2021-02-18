@@ -69,29 +69,6 @@ typedef struct {
 //设置字符串str为空串，长度为0，data为NULL。
 #define sky_str_null(str)   (str)->len = 0; (str)->data = null
 
-/*
-sky_string与sky_null_string只能用于赋值时初始化
-sky_str_t str = sky_string("hello world");
-sky_str_t str1 = sky_null_string();
-
-如果这样使用，就会有问题。
-sky_str_t str, str1;
-str = sky_string("hello world");    // 编译出错
-str1 = sky_null_string;                // 编译出错
-
-这种情况，可以调用sky_str_set与sky_str_null这两个函数来做:
-sky_str_t str, str1;
-sky_str_set(&str, "hello world");
-sky_str_null(&str1);
-
-不过要注意的是，sky_string与sky_str_set在调用时，传进去的字符串一定是常量字符串，否则会得到意想不到的错误
-(因为sky_str_set内部使用了sizeof()，如果传入的是u_char*，那么计算的是这个指针的长度，而不是字符串的长度)。如：
-sky_str_t str;
-u_char *a = "hello world";
-sky_str_set(&str, a);    // 问题产生
-*/
-
-
 #define sky_tolower(_c) \
     (sky_uchar_t) (((_c) >= 'A' && (_c) <= 'Z') ? ((_c) | 0x20) : (_c))
 #define sky_toupper(_c) \
@@ -106,6 +83,8 @@ void sky_strlow(sky_uchar_t *dst, sky_uchar_t *src, sky_size_t n);
 sky_str_t str = sky_string("hello world");
 sky_strlow(str->data, str->data, str->len);
 */
+
+
 
 //区分大小写的字符串比较，只比较前n个字符。
 #define sky_strncmp(_s1, _s2, _n) strncmp((const sky_char_t *) _s1, (const sky_char_t *) _s2, _n)
@@ -122,6 +101,11 @@ sky_uchar_t *sky_cpystrn(sky_uchar_t *dst, sky_uchar_t *src, sky_size_t n);
 
 // out_len = in_len *2;注意\0结尾，因此申请长度为 in_len *2 + 1；
 void sky_byte_to_hex(sky_uchar_t *in, sky_size_t in_len, sky_uchar_t *out);
+
+static sky_inline sky_bool_t
+sky_str_is_null(const sky_str_t *str) {
+    return !str || !str->len;
+}
 
 #if defined(__cplusplus)
 } /* extern "C" { */
