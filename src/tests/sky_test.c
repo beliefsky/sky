@@ -30,9 +30,9 @@ static void server_start(void *ssl);
 
 static void build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module);
 
-static sky_bool_t redis_test(sky_http_request_t *req);
+static void redis_test(sky_http_request_t *req);
 
-static sky_bool_t hello_world(sky_http_request_t *req);
+static void hello_world(sky_http_request_t *req);
 
 static sky_bool_t websocket_open(sky_websocket_session_t *session);
 
@@ -300,12 +300,11 @@ build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module) {
     sky_http_module_dispatcher_init(pool, &conf);
 }
 
-static sky_bool_t
+static void
 redis_test(sky_http_request_t *req) {
     sky_redis_conn_t *rc = sky_http_ex_redis_conn_get(redis_pool, req);
     if (sky_unlikely(!rc)) {
         sky_http_response_static_len(req, sky_str_line("{\"status\": 500, \"msg\": \"redis error\"}"));
-        return false;
     }
 
     sky_redis_data_t params[] = {
@@ -331,17 +330,13 @@ redis_test(sky_http_request_t *req) {
 
             sky_str_t *res = sky_json_tostring(root);
             sky_http_response_static(req, res);
-
-            return true;
         }
     }
 
     sky_http_response_static_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\"}"));
-
-    return true;
 }
 
-static sky_bool_t
+static void
 hello_world(sky_http_request_t *req) {
 
     sky_int32_t id;
@@ -358,12 +353,12 @@ hello_world(sky_http_request_t *req) {
     sky_pgsql_conn_put(ps);
     if (!result) {
         sky_http_response_static_len(req, sky_str_line("{\"status\": 500, \"msg\": \"database error\"}"));
-        return false;
+        return;
     }
 
     if (!result->rows) {
         sky_http_response_static_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\", \"data\": null}"));
-        return false;
+        return;
     }
 
 //    sky_pgsql_data_t *data = result->data->data;
@@ -396,8 +391,6 @@ hello_world(sky_http_request_t *req) {
 //======================================================================================
 
     sky_http_response_static_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\", \"data\": null}"));
-
-    return true;
 }
 
 

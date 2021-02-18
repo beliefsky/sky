@@ -13,22 +13,14 @@ extern "C" {
 
 typedef struct sky_http_mapper_s sky_http_mapper_t;
 
-typedef sky_bool_t (*sky_http_mapper_pt)(sky_http_request_t *req);
+typedef void (*sky_http_mapper_pt)(sky_http_request_t *req);
 
 struct sky_http_mapper_s {
     sky_str_t path;
-    sky_http_mapper_pt get_handler_prev;
     sky_http_mapper_pt get_handler;
-    sky_http_mapper_pt get_handler_next;
-    sky_http_mapper_pt post_handler_prev;
     sky_http_mapper_pt post_handler;
-    sky_http_mapper_pt post_handler_next;
-    sky_http_mapper_pt put_handler_prev;
     sky_http_mapper_pt put_handler;
-    sky_http_mapper_pt put_handler_next;
-    sky_http_mapper_pt delete_handler_prev;
     sky_http_mapper_pt delete_handler;
-    sky_http_mapper_pt delete_handler_next;
 };
 
 typedef struct {

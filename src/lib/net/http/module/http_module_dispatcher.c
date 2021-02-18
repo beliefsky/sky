@@ -29,12 +29,12 @@ sky_http_module_dispatcher_init(sky_pool_t *pool, const sky_http_dispatcher_conf
     data->mappers = sky_trie_create(pool);
     data->body_max_buff = conf->body_max_size ?: 1048576; // 1MB
 
-    const sky_size_t size = (sizeof(sky_http_mapper_pt) << 2) * 3;
+    const sky_size_t size = sizeof(sky_http_mapper_pt) << 2;
 
     mapper = conf->mappers;
     for (sky_uint32_t i = 0; i < conf->mapper_len; ++mapper, ++i) {
         handlers = sky_palloc(pool, size);
-        sky_memcpy(handlers, &mapper->get_handler_prev, size);
+        sky_memcpy(handlers, &mapper->get_handler, size);
         sky_trie_put(data->mappers, &mapper->path, (sky_uintptr_t) handlers);
     }
 
@@ -47,7 +47,6 @@ sky_http_module_dispatcher_init(sky_pool_t *pool, const sky_http_dispatcher_conf
 static void
 http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
     sky_http_mapper_pt *handler;
-    sky_bool_t flag;
 
     if (r->headers_in.content_length_n) {
         handler = r->data;
@@ -70,34 +69,26 @@ http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
         case SKY_HTTP_GET:
             break;
         case SKY_HTTP_POST:
-            handler = &handler[3];
+            ++handler;
             break;
         case SKY_HTTP_PUT:
-            handler = &handler[6];
+            handler += 2;
             break;
         case SKY_HTTP_DELETE:
-            handler = &handler[9];
+            handler += 3;
             break;
         default:
-            r->state = 405;
-            sky_http_response_static_len(r, sky_str_line("{\"errcode\": 405, \"errmsg\": \"405 Method Not Allowed\"}"));
-            return;
+            handler = null;
+            break;
     }
 
-    flag = false;
-
-    for (sky_uint32_t i = 0; i != 3; ++i) {
-        if (handler[i]) {
-            if (!handler[i](r)) {
-                return;
-            }
-            flag = true;
-        }
-    }
-    if (!flag) {
+    if (!handler) {
         r->state = 405;
         sky_http_response_static_len(r, sky_str_line("{\"errcode\": 405, \"errmsg\": \"405 Method Not Allowed\"}"));
+        return;
     }
+
+    (*handler)(r);
 }
 
 static sky_bool_t
