@@ -13,6 +13,9 @@ void
 sky_http_response_nobody(sky_http_request_t *r) {
     sky_str_buf_t str_buf;
 
+    if (r->response) {
+        return;
+    }
     sky_str_buf_init(&str_buf, r->pool, 2048);
     http_header_build(r, &str_buf);
 
@@ -20,6 +23,7 @@ sky_http_response_nobody(sky_http_request_t *r) {
             .len = sky_str_buf_size(&str_buf),
             .data = str_buf.start
     };
+    r->response = true;
     r->conn->server->http_write(r->conn, out.data, out.len);
 
     sky_str_buf_destroy(&str_buf);
@@ -41,6 +45,10 @@ sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_uint32
     sky_uchar_t *data;
     sky_table_elt_t *header;
 
+    if (r->response) {
+        return;
+    }
+
     header = sky_list_push(&r->headers_out.headers);
     sky_str_set(&header->key, "Content-Length");
 
@@ -53,6 +61,7 @@ sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_uint32
                 .len = sky_str_buf_size(&str_buf),
                 .data = str_buf.start
         };
+        r->response = true;
         r->conn->server->http_write(r->conn, out.data, out.len);
 
         sky_str_buf_destroy(&str_buf);
@@ -98,6 +107,10 @@ sky_http_sendfile(sky_http_request_t *r, sky_int32_t fd, sky_size_t offset, sky_
     sky_uchar_t *data;
     sky_table_elt_t *header;
 
+    if (r->response) {
+        return;
+    }
+
     data = sky_palloc(r->pool, 16);
     header = sky_list_push(&r->headers_out.headers);
     sky_str_set(&header->key, "Content-Length");
@@ -127,6 +140,7 @@ sky_http_sendfile(sky_http_request_t *r, sky_int32_t fd, sky_size_t offset, sky_
     };
     sky_str_buf_destroy(&str_buf);
 
+    r->response = true;
     if (size) {
         r->conn->server->http_send_file(r->conn, fd, (sky_int64_t) offset, size, out.data, (sky_uint32_t) out.len);
     } else {
