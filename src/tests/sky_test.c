@@ -199,9 +199,12 @@ server_start(void *ssl) {
 
     sky_array_init(&modules, pool, 32, sizeof(sky_http_module_t));
 
-    sky_str_set(&prefix, "");
-    sky_str_set(&file_path, "/home/beliefsky/www/");
-    sky_http_module_file_init(pool, sky_array_push(&modules), &prefix, &file_path);
+    const sky_http_file_conf_t file_config = {
+            .prefix = sky_string(""),
+            .dir = sky_string("/home/beliefsky/www/"),
+            .module = sky_array_push(&modules)
+    };
+    sky_http_module_file_init(pool, &file_config);
 
     build_http_dispatcher(pool, sky_array_push(&modules));
 

@@ -11,9 +11,17 @@
 extern "C" {
 #endif
 
-void sky_http_module_file_init(sky_pool_t *pool, sky_http_module_t *module, sky_str_t *prefix, sky_str_t *dir);
+typedef struct {
+    sky_str_t prefix;
+    sky_str_t dir;
+    sky_http_module_t *module;
 
-void sky_http_module_h5_history_init(sky_pool_t *pool, sky_http_module_t *module, sky_str_t *prefix, sky_str_t *dir);
+    sky_bool_t (*pre_run)(sky_http_request_t *req, void *data);
+
+    void *run_data;
+} sky_http_file_conf_t;
+
+void sky_http_module_file_init(sky_pool_t *pool, const sky_http_file_conf_t *conf);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

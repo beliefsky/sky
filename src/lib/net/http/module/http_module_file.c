@@ -42,12 +42,14 @@ typedef struct {
 typedef struct {
     sky_hash_t mime_types;
     http_mime_type_t default_mime_type;
+    sky_str_t path;
     sky_pool_t *pool;
     sky_pool_t *tmp_pool;
-    sky_str_t path;
-} http_module_file_t;
 
-static void http_history_run_handler(sky_http_request_t *r, http_module_file_t *data);
+    sky_bool_t (*pre_run)(sky_http_request_t *req, void *data);
+
+    void *run_data;
+} http_module_file_t;
 
 static void http_run_handler(sky_http_request_t *r, http_module_file_t *data);
 
@@ -56,39 +58,24 @@ static sky_bool_t http_header_range(http_file_t *file, sky_str_t *value);
 static void http_mime_type_init(http_module_file_t *data);
 
 void
-sky_http_module_file_init(sky_pool_t *pool, sky_http_module_t *module, sky_str_t *prefix, sky_str_t *dir) {
-    http_module_file_t *data;
-
-    data = sky_palloc(pool, sizeof(http_module_file_t));
+sky_http_module_file_init(sky_pool_t *pool, const sky_http_file_conf_t *conf) {
+    http_module_file_t *data = sky_palloc(pool, sizeof(http_module_file_t));
     data->pool = pool;
-    data->path = *dir;
+    data->path = conf->dir;
     data->tmp_pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
 
     http_mime_type_init(data);
 
     sky_destroy_pool(data->tmp_pool);
     data->tmp_pool = null;
+    data->pre_run = conf->pre_run;
 
-    module->prefix = *prefix;
+    sky_http_module_t *module = conf->module;
+    module->prefix = conf->prefix;
     module->read_body = null;
     module->run = (sky_module_run_pt) http_run_handler;
 
     module->module_data = data;
-}
-
-void
-sky_http_module_h5_history_init(sky_pool_t *pool, sky_http_module_t *module, sky_str_t *prefix, sky_str_t *dir) {
-    sky_http_module_file_init(pool, module, prefix, dir);
-    module->run = (sky_module_run_pt) http_history_run_handler;
-}
-
-static void
-http_history_run_handler(sky_http_request_t *r, http_module_file_t *data) {
-    if (!r->exten.len) {
-        sky_str_set(&r->exten, ".html");
-        sky_str_set(&r->uri, "/index.html");
-    }
-    http_run_handler(r, data);
 }
 
 static void
@@ -106,15 +93,29 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
     }
     if (r->uri.len == 1 && *r->uri.data == '/') {
         sky_str_set(&r->uri, "/index.html");
-    }
-    if (!r->exten.len) {
         sky_str_set(&r->exten, ".html");
     }
-    mime_type = sky_hash_find(&data->mime_types, sky_hash_key_lc(r->exten.data, r->exten.len), r->exten.data,
-                              r->exten.len);
-    if (!mime_type) {
-        mime_type = &data->default_mime_type;
+
+    if (data->pre_run) {
+        if (!data->pre_run(r, data->run_data)) {
+            return;
+        }
     }
+
+    if (!r->exten.len) {
+        mime_type = &data->default_mime_type;
+    } else {
+        mime_type = sky_hash_find(
+                &data->mime_types,
+                sky_hash_key_lc(r->exten.data, r->exten.len),
+                r->exten.data,
+                r->exten.len
+        );
+        if (!mime_type) {
+            mime_type = &data->default_mime_type;
+        }
+    }
+
 
     file = sky_pcalloc(r->pool, sizeof(http_file_t));
 
