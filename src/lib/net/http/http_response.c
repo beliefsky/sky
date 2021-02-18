@@ -13,7 +13,7 @@ void
 sky_http_response_nobody(sky_http_request_t *r) {
     sky_str_buf_t str_buf;
 
-    if (r->response) {
+    if (sky_unlikely(r->response)) {
         return;
     }
     sky_str_buf_init(&str_buf, r->pool, 2048);
@@ -45,7 +45,7 @@ sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_uint32
     sky_uchar_t *data;
     sky_table_elt_t *header;
 
-    if (r->response) {
+    if (sky_unlikely(r->response)) {
         return;
     }
 
@@ -107,7 +107,7 @@ sky_http_sendfile(sky_http_request_t *r, sky_int32_t fd, sky_size_t offset, sky_
     sky_uchar_t *data;
     sky_table_elt_t *header;
 
-    if (r->response) {
+    if (sky_unlikely(r->response)) {
         return;
     }
 

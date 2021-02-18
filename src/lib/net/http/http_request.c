@@ -37,6 +37,9 @@ sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
         module = r->headers_in.module;
         if (module) {
             module->run(r, module->module_data);
+            if (sky_unlikely(!r->response)) {
+                sky_http_response_static_len(r, null, 0);
+            }
         } else {
             r->state = 404;
             sky_str_set(&r->headers_out.content_type, "text/plain");
