@@ -78,17 +78,18 @@ http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
             handler += 3;
             break;
         default:
-            handler = null;
-            break;
+            r->state = 405;
+            sky_http_response_static_len(r, sky_str_line("{\"errcode\": 405, \"errmsg\": \"405 Method Not Allowed\"}"));
+            return;
     }
 
-    if (!handler) {
+    if (!(*handler)) {
         r->state = 405;
         sky_http_response_static_len(r, sky_str_line("{\"errcode\": 405, \"errmsg\": \"405 Method Not Allowed\"}"));
-        return;
-    }
+    } else {
 
-    (*handler)(r);
+        (*handler)(r);
+    }
 }
 
 static sky_bool_t
