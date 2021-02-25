@@ -38,10 +38,6 @@ struct sky_tcp_conn_s {
     sky_tcp_conn_t *next;
 };
 
-#if defined(__cplusplus)
-} /* extern "C" { */
-#endif
-
 sky_tcp_pool_t *sky_tcp_pool_create(sky_pool_t *pool, const sky_tcp_pool_conf_t *conf);
 
 sky_bool_t sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event_t *event, sky_coro_t *coro);
@@ -53,5 +49,9 @@ sky_bool_t sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data
 void sky_tcp_pool_conn_close(sky_tcp_conn_t *conn);
 
 void sky_tcp_pool_conn_unbind(sky_tcp_conn_t *conn);
+
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 
 #endif //SKY_TCP_POOL_H
