@@ -28,7 +28,6 @@ set(SOURCES
         event/event_loop.c
         net/tcp.c
         net/udp.c
-        net/clients/tcp_client.c
         net/clients/tcp_pool.c
         net/clients/pgsql_pool.c
         net/clients/redis_pool.c
@@ -115,7 +114,6 @@ install(FILES
         net/udp.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net")
 install(FILES
-        net/clients/tcp_client.h
         net/clients/tcp_pool.h
         net/clients/redis_pool.h
         net/clients/pgsql_pool.h
