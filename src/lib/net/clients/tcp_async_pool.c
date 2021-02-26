@@ -47,6 +47,8 @@ static void tcp_close(sky_tcp_async_client_t *client);
 
 static sky_int32_t tcp_request_process(sky_coro_t *coro, sky_tcp_async_client_t *client);
 
+static sky_bool_t set_address(sky_tcp_async_pool_t *tcp_pool, const sky_tcp_async_pool_conf_t *conf);
+
 #ifndef HAVE_ACCEPT4
 
 #include <fcntl.h>
@@ -66,6 +68,9 @@ sky_tcp_async_pool_create(sky_pool_t *pool, const sky_tcp_async_pool_conf_t *con
         i = 2;
     } else if (sky_is_2_power(i)) {
         sky_log_error("连接数必须为2的整数幂");
+        return null;
+    }
+    if (!set_address(conn_pool, conf)) {
         return null;
     }
 
