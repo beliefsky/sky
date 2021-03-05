@@ -345,7 +345,7 @@ set_address(sky_tcp_pool_t *tcp_pool, const sky_tcp_pool_conf_t *conf) {
     const struct addrinfo hints = {
             .ai_family = AF_UNSPEC,
             .ai_socktype = SOCK_STREAM,
-            .ai_flags = AI_PASSIVE
+            .ai_flags = AI_CANONNAME
     };
 
     struct addrinfo *addrs;
