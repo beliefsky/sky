@@ -44,7 +44,7 @@ sky_tcp_pool_t *sky_tcp_pool_create(sky_pool_t *pool, const sky_tcp_pool_conf_t 
 
 sky_bool_t sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event_t *event, sky_coro_t *coro);
 
-void sky_tcp_pool_async_exec(sky_tcp_pool_t *tcp_pool, sky_tcp_callback_pt callback, void *data);
+void sky_tcp_pool_async_exec(sky_tcp_pool_t *tcp_pool, sky_int32_t index, sky_tcp_callback_pt callback, void *data);
 
 sky_size_t sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_size_t size);
 

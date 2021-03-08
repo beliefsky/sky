@@ -108,7 +108,7 @@ timer_test(timer_test_t *test) {
     sky_event_timer_register(test->loop, &test->timer, test->timeout);
 }
 
-#define FORK
+//#define FORK
 
 int
 main() {

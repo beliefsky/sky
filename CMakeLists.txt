@@ -39,8 +39,8 @@ endif ()
 #
 # Find libraries
 #
-#find_package(ZLIB REQUIRED)
-set(ADDITIONAL_LIBRARIES #[[${OPENSSL_LIBRARIES}]] #[[${ZLIB_LIBRARIES}]])
+find_package(OpenSSL REQUIRED)
+set(ADDITIONAL_LIBRARIES ${OPENSSL_LIBRARIES} #[[${ZLIB_LIBRARIES}]])
 
 
 check_function_exists(mempcpy HAVE_MEMPCPY)

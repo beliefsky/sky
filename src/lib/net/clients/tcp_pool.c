@@ -126,7 +126,8 @@ sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event
 
 
 void
-sky_tcp_pool_async_exec(sky_tcp_pool_t *tcp_pool, sky_tcp_callback_pt callback, void *data) {
+sky_tcp_pool_async_exec(sky_tcp_pool_t *tcp_pool, sky_int32_t index, sky_tcp_callback_pt callback, void *data) {
+
     sky_log_error("暂不支持异步执行");
 }
 
