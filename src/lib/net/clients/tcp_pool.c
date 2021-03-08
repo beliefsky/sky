@@ -83,27 +83,25 @@ sky_tcp_pool_create(sky_pool_t *pool, const sky_tcp_pool_conf_t *conf) {
 
 sky_bool_t
 sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event_t *event, sky_coro_t *coro) {
-    sky_tcp_client_t *client;
 
-    client = tcp_pool->clients + (event->fd & tcp_pool->connection_ptr);
+    sky_tcp_client_t *client = tcp_pool->clients + (event->fd & tcp_pool->connection_ptr);
+    const sky_bool_t empty = client->tasks.next == &client->tasks;
+
     conn->client = null;
     conn->ev = event;
     conn->coro = coro;
     conn->conn_pool = tcp_pool;
     conn->defer = sky_defer_add(coro, (sky_defer_func_t) tcp_connection_defer, conn);
+    conn->next = client->tasks.next;
+    conn->prev = &client->tasks;
+    conn->next->prev = conn->prev->next = conn;
 
-    if (client->tasks.next != &client->tasks) {
-        conn->next = client->tasks.next;
-        conn->prev = &client->tasks;
-        conn->next->prev = conn->prev->next = conn;
+    if (!empty) {
         event->wait = true;
         sky_coro_yield(coro, SKY_CORO_MAY_RESUME);
         event->wait = false;
-    } else {
-        conn->next = client->tasks.next;
-        conn->prev = &client->tasks;
-        conn->next->prev = conn->prev->next = conn;
     }
+
     conn->client = client;
     client->current = conn;
 
@@ -127,6 +125,24 @@ sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event
 
 void
 sky_tcp_pool_async_exec(sky_tcp_pool_t *tcp_pool, sky_int32_t index, sky_tcp_callback_pt callback, void *data) {
+
+//    sky_tcp_client_t *client = tcp_pool->clients + (index & tcp_pool->connection_ptr);
+//    const sky_bool_t empty = client->tasks.next == &client->tasks;
+//
+//    sky_tcp_conn_t *conn = sky_malloc(sizeof(sky_tcp_conn_t));
+//
+//    conn->client = null;
+//    conn->ev = &client->ev;
+//    conn->coro = null;
+//    conn->conn_pool = tcp_pool;
+//
+//    conn->next = client->tasks.next;
+//    conn->prev = &client->tasks;
+//    conn->next->prev = conn->prev->next = conn;
+//
+//    if (!empty) {
+//        return;
+//    }
 
     sky_log_error("暂不支持异步执行");
 }
