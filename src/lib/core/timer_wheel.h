@@ -8,6 +8,7 @@
 #include "types.h"
 #include "palloc.h"
 
+#define TIMER_WHEEL_DEFAULT_NUM 6
 
 typedef struct sky_timer_wheel_s sky_timer_wheel_t;
 typedef struct sky_timer_wheel_entry_s sky_timer_wheel_entry_t;
@@ -28,7 +29,7 @@ struct sky_timer_wheel_entry_s {
     (_entry)->cb = (sky_timer_wheel_pt)(_cb)
 
 
-sky_timer_wheel_t *sky_timer_wheel_create(sky_pool_t *pool, sky_uint64_t now);
+sky_timer_wheel_t *sky_timer_wheel_create(sky_pool_t *pool, sky_uint32_t num_wheels, sky_uint64_t now);
 
 void sky_timer_wheel_destroy(sky_timer_wheel_t *ctx);
 

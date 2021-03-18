@@ -41,7 +41,7 @@ sky_event_loop_create(sky_pool_t *pool) {
     loop->fd = epoll_create1(EPOLL_CLOEXEC);
     loop->conn_max = setup_open_file_count_limits();
     loop->now = time(null);
-    loop->ctx = sky_timer_wheel_create(pool, (sky_uint64_t) loop->now);
+    loop->ctx = sky_timer_wheel_create(pool, TIMER_WHEEL_DEFAULT_NUM, (sky_uint64_t) loop->now);
 
     return loop;
 }
