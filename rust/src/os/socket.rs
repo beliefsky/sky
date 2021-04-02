@@ -1,0 +1,31 @@
+pub const AF_UNSPEC:i32 = 0;
+pub const SOCK_STREAM:i32 = 1;
+
+pub const AI_PASSIVE:i32 = 0x0001;
+
+
+#[repr(C)]
+pub struct Sockaddr {
+    pub sa_family: u16,
+    pub sa_data: [u8; 14],
+}
+
+#[repr(C)]
+pub struct Addrinfo {
+    pub ai_flags:i32,
+    pub ai_family:i32,
+    pub ai_socktype:i32,
+    pub ai_protocol:i32,
+    pub ai_addrlen:u32,
+    pub ai_addr: *mut Sockaddr,
+    pub ai_canonname: *mut u8,
+    pub ai_next: *mut Addrinfo
+}
+
+
+extern "C" {
+    pub fn listen(fd:i32, n: i32) ->i32;
+    pub fn close(fd: i32);
+    pub fn getaddrinfo(name: *const u8, service: *const u8, req: *const Addrinfo, pai: *mut *mut Addrinfo) ->i32;
+    pub fn setsockopt(fd:i32, level:i32, optname:i32, optval: *const u8, optlen: u32);
+}

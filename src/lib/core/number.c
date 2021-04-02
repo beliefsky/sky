@@ -1,4 +1,5 @@
 //
+
 // Created by weijing on 18-10-9.
 //
 #include "number.h"
