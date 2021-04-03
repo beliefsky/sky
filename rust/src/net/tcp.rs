@@ -4,7 +4,7 @@ use crate::os;
 use crate::event;
 
 pub struct TcpListener {
-    pub fd: i32
+    fd: i32
 }
 
 impl TcpListener {
@@ -54,6 +54,12 @@ impl Drop for TcpListener {
 
 
 impl event::EventCallBack for TcpListener {
+
+    #[inline]
+    fn get_fd(&self) ->i32 {
+        return self.fd;
+    }
+
     fn run(&self) -> bool {
 
         println!("event run : {}", self.fd);

@@ -1,6 +1,5 @@
 
 pub struct Event<T> {
-    pub fd: i32,
     pub reg: bool,
     pub wait: bool,
     pub read: bool,
@@ -9,6 +8,7 @@ pub struct Event<T> {
 }
 
 pub trait EventCallBack {
+    fn get_fd(&self) ->i32;
     fn run(&self) -> bool;
     fn close(&self);
 }
@@ -16,6 +16,6 @@ pub trait EventCallBack {
 pub trait EventLoopHandle {
     fn new() -> Self;
     fn run(&mut self);
-    fn register<T>(&mut self, fd: i32, event: T, timeout:u64) -> Event<T> where T: EventCallBack ;
+    fn register<T>(&mut self, data: T, timeout:u64) -> Event<T> where T: EventCallBack ;
     fn unregister<T>(&mut self, event: &mut Event<T>) where T: EventCallBack;
 }

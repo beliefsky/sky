@@ -53,11 +53,13 @@ impl EventLoopHandle for EventLoop {
         }
     }
 
-    fn register<T>(&mut self, fd: i32, data: T, timeout:u64) -> Event<T> where T: EventCallBack {
+    fn register<T>(&mut self, data: T, timeout:u64) -> Event<T> where T: EventCallBack {
         let mut  epoll_event = os::EpollEvent{
             flags: os::EPOLL_IN | os::EPOLL_OUT | os::EPOLL_PRI | os::EPOLL_RDHUP | os::EPOLL_ERR | os::EPOLL_ET,
             u64: 0
         };
+        let fd = data.get_fd();
+
         unsafe {
             let opt = os::epoll_ctl(self.ep_fd, os::EPOLL_CTL_ADD, fd, &mut epoll_event);
 
@@ -65,7 +67,6 @@ impl EventLoopHandle for EventLoop {
         }
 
         return Event{
-            fd: 0,
             reg: true,
             wait: false,
             read: true,
@@ -78,10 +79,11 @@ impl EventLoopHandle for EventLoop {
         if !event.reg {
             return;
         }
+        let fd = event.data.get_fd();
+
         unsafe {
-            os::close(event.fd);
+            os::close(fd);
         }
-        event.fd = -1;
     }
 }
 

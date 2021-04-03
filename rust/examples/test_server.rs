@@ -1,4 +1,4 @@
-use sky::{event::{Event, EventLoop, EventLoopHandle}, net::{ TcpListener}};
+use sky::{event::{Event, EventCallBack, EventLoop, EventLoopHandle}, net::{ TcpListener}};
 
 
 fn main() {
@@ -6,9 +6,9 @@ fn main() {
 
     let tcp_server = TcpListener::new("0.0.0.0".to_string(), "8080".to_string());
 
-    println!("create fd :{}", tcp_server.fd);
+    println!("create fd :{}", tcp_server.get_fd());
 
-   let event = event_loop.register(tcp_server.fd, tcp_server, 60);
+   let event = event_loop.register(tcp_server, 60);
 
    println!("register after");
 
