@@ -16,19 +16,6 @@ pub trait EventCallBack {
 pub trait EventLoopHandle {
     fn new() -> Self;
     fn run(&mut self);
-    fn register<T>(&mut self, event: &mut Event<T>) where T: EventCallBack;
+    fn register<T>(&mut self, fd: i32, event: T, timeout:u64) -> Event<T> where T: EventCallBack ;
     fn unregister<T>(&mut self, event: &mut Event<T>) where T: EventCallBack;
-}
-
-impl<T> Event<T> {
-    pub fn new(fd: i32, data: T) -> Self where T: EventCallBack {
-        return Event { 
-            fd, 
-            reg: false, 
-            wait: false,
-            read: false,
-            write: false, 
-            data
-        };
-    }
 }

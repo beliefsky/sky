@@ -3,7 +3,7 @@ use crate::os;
 
 pub struct EventLoop {
     ep_fd: i32,
-    now: u64
+    now: u64,
 }
 
 impl EventLoopHandle for EventLoop {
@@ -33,7 +33,7 @@ impl EventLoopHandle for EventLoop {
         let event_ptr = events.as_mut_ptr();
 
         loop {
-            let n = unsafe {os::epoll_wait(self.ep_fd, event_ptr, 6, 1000)};
+            let n = unsafe {os::epoll_wait(self.ep_fd, event_ptr, 6, -1)};
             if n < 0 {
                 continue;
             }
@@ -53,16 +53,25 @@ impl EventLoopHandle for EventLoop {
         }
     }
 
-    fn register<T>(&mut self, event: &mut Event<T>) where T: EventCallBack {
-        let mut  ev = os::EpollEvent{
+    fn register<T>(&mut self, fd: i32, data: T, timeout:u64) -> Event<T> where T: EventCallBack {
+        let mut  epoll_event = os::EpollEvent{
             flags: os::EPOLL_IN | os::EPOLL_OUT | os::EPOLL_PRI | os::EPOLL_RDHUP | os::EPOLL_ERR | os::EPOLL_ET,
             u64: 0
         };
-
-        event.reg = true;
         unsafe {
-            os::epoll_ctl(self.ep_fd, os::EPOLL_CTL_ADD, event.fd, &mut ev);
+            let opt = os::epoll_ctl(self.ep_fd, os::EPOLL_CTL_ADD, fd, &mut epoll_event);
+
+            println!("redister {} status {}", fd, opt);
         }
+
+        return Event{
+            fd: 0,
+            reg: true,
+            wait: false,
+            read: true,
+            write: true,
+            data
+        };
     }
 
     fn unregister<T>(&mut self, event: &mut Event<T>) where T: EventCallBack {

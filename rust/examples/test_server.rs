@@ -1,30 +1,16 @@
-use sky::event::{Event, EventCallBack, EventLoop, EventLoopHandle};
-
-struct Test {
-    a: u32
-}
-
-impl EventCallBack for Test {
-    fn run(&self) -> bool {
-        println!("run: {}", self.a);
-
-        return true;
-    }
-
-    fn close(&self) {
-        println!("close: {}", self.a);
-    }
-}
+use sky::{event::{Event, EventLoop, EventLoopHandle}, net::{ TcpListener}};
 
 
 fn main() {
     let mut event_loop = EventLoop::new();
 
-    println!("111111111111111111111111111");
-    let mut test = Event::new(0, Test { a: 5 });
-    println!("2222222222222222222222");
-    event_loop.register(&mut test);
-    // println!("33333333333333333333333");
+    let tcp_server = TcpListener::new("0.0.0.0".to_string(), "8080".to_string());
+
+    println!("create fd :{}", tcp_server.fd);
+
+   let event = event_loop.register(tcp_server.fd, tcp_server, 60);
+
+   println!("register after");
+
     event_loop.run();
-    println!("444444444444444444444444444");
 }
