@@ -1,4 +1,4 @@
-use sky::{event::{Event, EventCallBack, EventLoop, EventLoopHandle}, net::{ TcpListener}};
+use sky::{event::{EventCallBack, EventLoop, EventLoopHandle}, net::{ TcpListener}};
 
 
 fn main() {
@@ -10,7 +10,7 @@ fn main() {
 
    let event = event_loop.register(tcp_server, 60);
 
-   println!("register after");
+   println!("register after fd: {}", event.get_fd());
 
     event_loop.run();
 }

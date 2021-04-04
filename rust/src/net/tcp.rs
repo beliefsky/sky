@@ -1,6 +1,6 @@
 use std::ptr::null_mut;
 
-use crate::os;
+use crate::{event::Event, os};
 use crate::event;
 
 pub struct TcpListener {
@@ -60,13 +60,20 @@ impl event::EventCallBack for TcpListener {
         return self.fd;
     }
 
-    fn run(&self) -> bool {
+    #[inline]
+    fn close_fd(&self) {
+        unsafe {
+            os::close(self.fd);
+        }
+    }
 
-        println!("event run : {}", self.fd);
+    fn run(&self, event: &Event<Self>) -> bool {
+
+        println!("event run ");
 
         return true;
     }
-    fn close(&self) {
+    fn close(&self, event: &Event<Self>) {
 
     }
 }

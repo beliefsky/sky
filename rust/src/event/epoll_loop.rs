@@ -1,4 +1,4 @@
-use crate::{event::{Event, EventCallBack, EventLoopHandle}};
+use crate::event::{Event, EventCallBack, EventLoopHandle};
 use crate::os;
 
 pub struct EventLoop {
@@ -8,32 +8,27 @@ pub struct EventLoop {
 
 impl EventLoopHandle for EventLoop {
     fn new() -> Self {
-        let ep_fd = unsafe {
-            os::epoll_create1(os::EPOLL_CLOEXEC)
-        };
-        
-        let now = time_now(); 
+        let ep_fd = unsafe { os::epoll_create1(os::EPOLL_CLOEXEC) };
 
-        return EventLoop {
-            ep_fd,
-            now
-        };
+        let now = time_now();
+
+        return EventLoop { ep_fd, now };
     }
 
     fn run(&mut self) {
         println!("this fd is :{}", self.ep_fd);
         let mut events = [
-            os::EpollEvent{flags: 0, u64:0},
-            os::EpollEvent{flags: 0, u64:0},
-            os::EpollEvent{flags: 0, u64:0},
-            os::EpollEvent{flags: 0, u64:0},
-            os::EpollEvent{flags: 0, u64:0},
-            os::EpollEvent{flags: 0, u64:0}
+            os::EpollEvent { flags: 0, u64: 0 },
+            os::EpollEvent { flags: 0, u64: 0 },
+            os::EpollEvent { flags: 0, u64: 0 },
+            os::EpollEvent { flags: 0, u64: 0 },
+            os::EpollEvent { flags: 0, u64: 0 },
+            os::EpollEvent { flags: 0, u64: 0 },
         ];
         let event_ptr = events.as_mut_ptr();
 
         loop {
-            let n = unsafe {os::epoll_wait(self.ep_fd, event_ptr, 6, -1)};
+            let n = unsafe { os::epoll_wait(self.ep_fd, event_ptr, 6, -1) };
             if n < 0 {
                 continue;
             }
@@ -53,10 +48,15 @@ impl EventLoopHandle for EventLoop {
         }
     }
 
-    fn register<T>(&mut self, data: T, timeout:u64) -> Event<T> where T: EventCallBack {
-        let mut  epoll_event = os::EpollEvent{
-            flags: os::EPOLL_IN | os::EPOLL_OUT | os::EPOLL_PRI | os::EPOLL_RDHUP | os::EPOLL_ERR | os::EPOLL_ET,
-            u64: 0
+    fn register<T>(&mut self, data: T, timeout: u64) -> Event<T> where T: EventCallBack {
+        let mut epoll_event = os::EpollEvent {
+            flags: os::EPOLL_IN
+                | os::EPOLL_OUT
+                | os::EPOLL_PRI
+                | os::EPOLL_RDHUP
+                | os::EPOLL_ERR
+                | os::EPOLL_ET,
+            u64: 0,
         };
         let fd = data.get_fd();
 
@@ -66,24 +66,14 @@ impl EventLoopHandle for EventLoop {
             println!("redister {} status {}", fd, opt);
         }
 
-        return Event{
-            reg: true,
-            wait: false,
-            read: true,
-            write: true,
-            data
-        };
+        return Event::new(true, data);
     }
 
     fn unregister<T>(&mut self, event: &mut Event<T>) where T: EventCallBack {
         if !event.reg {
             return;
         }
-        let fd = event.data.get_fd();
-
-        unsafe {
-            os::close(fd);
-        }
+        event.close_fd();
     }
 }
 
@@ -101,7 +91,7 @@ impl Drop for EventLoop {
 
 fn time_now() -> u64 {
     return std::time::SystemTime::now()
-    .duration_since(std::time::UNIX_EPOCH)
-    .expect("Time went backwards")
-    .as_secs();
+        .duration_since(std::time::UNIX_EPOCH)
+        .expect("Time went backwards")
+        .as_secs();
 }
