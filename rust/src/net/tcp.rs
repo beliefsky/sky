@@ -1,10 +1,9 @@
 use std::ptr::null_mut;
 
-use crate::{event::Event, os};
-use crate::event;
+use crate::{event::{Event, EventLoop, EventLoopHandle}, os};
 
 pub struct TcpListener {
-    fd: i32
+    pub fd: i32
 }
 
 impl TcpListener {
@@ -41,40 +40,30 @@ impl TcpListener {
             fd
         };
     }
+
+    pub fn register(self, ev_loop: &mut EventLoop) {
+        let fd = self.fd;
+
+        let event = Event::new(fd, self, |e| -> bool {
+
+            println!("accept: {}", e.fd);
+
+            return true;
+        }, |e|  {
+    
+        });
+
+        ev_loop.register(event, 60);
+
+    }
 }
 
 impl Drop for TcpListener {
     fn drop(&mut self) {
         println!("drop listener: {}", self.fd);
         unsafe  {
-            os::close(self.fd);
+            // os::close(self.fd);
         }
-    }
-}
-
-
-impl event::EventCallBack for TcpListener {
-
-    #[inline]
-    fn get_fd(&self) ->i32 {
-        return self.fd;
-    }
-
-    #[inline]
-    fn close_fd(&self) {
-        unsafe {
-            os::close(self.fd);
-        }
-    }
-
-    fn run(&self, event: &Event<Self>) -> bool {
-
-        println!("event run ");
-
-        return true;
-    }
-    fn close(&self, event: &Event<Self>) {
-
     }
 }
 

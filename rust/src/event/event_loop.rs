@@ -1,48 +1,57 @@
-pub trait EventCallBack where Self: Sized {
-    fn get_fd(&self) -> i32;
-    fn close_fd(&self);
-    fn run(&self, event: &Event<Self>) -> bool;
-    fn close(&self, event: &Event<Self>);
-}
-
 pub trait EventLoopHandle {
     fn new() -> Self;
     fn run(&mut self);
-    fn register<T>(&mut self, data: T, timeout: u64) -> Event<T> where T: EventCallBack;
-    fn unregister<T>(&mut self, event: &mut Event<T>) where T: EventCallBack;
+    fn register(&mut self, event: Event, timeout: u64);
+    fn unregister(&mut self, event: Event);
 }
 
-pub struct Event<T> where T: EventCallBack {
+pub struct Event {
+    pub fd: i32,
     pub reg: bool,
     pub wait: bool,
     pub read: bool,
     pub write: bool,
-    data: T,
+    pub run: fn(event: &mut Event) ->bool, 
+    pub close: fn(event: &mut Event)
 }
 
-impl <T> Event<T>  where T: EventCallBack {
-    pub fn new(reg: bool, data: T) ->Self {
+impl Event {
+    pub fn new<T>(
+        fd: i32,
+        data: T, 
+        run: fn(event: &mut Event) ->bool, 
+        close: fn(event: &mut Event)
+    ) ->Self {
+
         return Event {
-            reg,
+            fd,
+            reg: false,
             wait: false,
             read: true,
             write: true,
-            data
+            run,
+            close
         };
     }
 }
 
-impl<T> std::ops::Deref for Event<T> where T: EventCallBack {
-    type Target = T;
-    #[inline]
-    fn deref<'a>(&'a self) -> &'a T {
-        return &self.data;
+impl Drop for Event {
+    fn drop(&mut self) {
+        println!("drop event: {}", self.fd);
     }
 }
 
-impl<T> std::ops::DerefMut for Event<T> where T: EventCallBack {
-    #[inline]
-    fn deref_mut<'a>(&'a mut self) -> &'a mut T {
-        return &mut self.data;
-    }
-}
+// impl<T> std::ops::Deref for Event<T> where T: EventCallBack {
+//     type Target = T;
+//     #[inline]
+//     fn deref<'a>(&'a self) -> &'a T {
+//         return &self.data;
+//     }
+// }
+
+// impl<T> std::ops::DerefMut for Event<T> where T: EventCallBack {
+//     #[inline]
+//     fn deref_mut<'a>(&'a mut self) -> &'a mut T {
+//         return &mut self.data;
+//     }
+// }

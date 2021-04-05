@@ -13,7 +13,7 @@ pub const EPOLL_RDHUP: u32 = 0x2000;
 pub const EPOLL_ET: u32 = 1 << 31;
 
 
-#[repr(C)]
+#[repr(C, packed)]
 pub struct EpollEvent {
     pub flags: u32,
     pub u64: u64,
