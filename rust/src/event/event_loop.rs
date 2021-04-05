@@ -1,3 +1,5 @@
+use crate::os;
+
 pub trait EventLoopHandle {
     fn new() -> Self;
     fn run(&mut self);
@@ -33,11 +35,28 @@ impl Event {
             close
         };
     }
+
+    pub fn close_fd(&mut self) {
+        if -1 != self.fd {
+            unsafe {
+                os::close(self.fd);
+            }
+
+            self.fd = -1;
+        }
+    }
 }
 
 impl Drop for Event {
     fn drop(&mut self) {
-        println!("drop event: {}", self.fd);
+
+        if -1 == self.fd {
+            return;
+        }
+
+        unsafe {
+            os::close(self.fd);
+        }
     }
 }
 

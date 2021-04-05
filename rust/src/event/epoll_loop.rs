@@ -58,6 +58,7 @@ impl EventLoopHandle for EventLoop {
 
                 if (epoll_event.flags & (os::EPOLL_RDHUP | os::EPOLL_HUP)) != 0 {
                     (event.close)(event);
+                    drop_event(event);
                     continue;
                 }
                 if (epoll_event.flags & os::EPOLL_IN) != 0 {
@@ -72,24 +73,16 @@ impl EventLoopHandle for EventLoop {
 
                 if !(event.run)(event) {
                     (event.close)(event);
+                    drop_event(event);
                 }
-                println!("run1: {}", 2);
-
-                // unsafe {
-                //     let event_layout = std::alloc::Layout::from_size_align_unchecked(
-                //         std::mem::size_of::<Event>(), 
-                //         8
-                //     );
-                //     std::ptr::drop_in_place(event as *mut Event);
-                //     std::alloc::dealloc(event as *mut Event as *mut u8, event_layout)
-                // }
-
             }
         }
     }
 
-    fn register(&mut self, event: Event, timeout: u64) {
+    fn register(&mut self, mut event: Event, timeout: u64) {
         let fd = event.fd;
+
+        event.reg = true;
 
         let event_layout;
         let event_ptr;
@@ -132,6 +125,17 @@ impl Drop for EventLoop {
             os::close(self.ep_fd);
             std::alloc::dealloc(self.event_ptr as *mut u8, self.event_layout);
         }
+    }
+}
+
+fn drop_event(event: &mut Event) {
+    unsafe {
+        let event_layout = std::alloc::Layout::from_size_align_unchecked(
+            std::mem::size_of::<Event>(), 
+            8
+        );
+        std::ptr::drop_in_place(event as *mut Event);
+        std::alloc::dealloc(event as *mut Event as *mut u8, event_layout)
     }
 }
 
