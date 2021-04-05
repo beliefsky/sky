@@ -1,4 +1,4 @@
-use std::ptr::{null_mut, null};
+use std::ptr::{null_mut};
 
 use crate::{event::{Event, EventLoop, EventLoopHandle}, os};
 
@@ -93,7 +93,7 @@ fn listener_accept(event: &mut Event) -> bool {
     let listener = event.get_fd();
 
     loop {
-        let fd = unsafe {os::accept4(listener,null(), 0,os::SOCK_NONBLOCK | os::SOCK_CLOEXEC)};
+        let fd = unsafe {os::accept4(listener,null_mut(), 0,os::SOCK_NONBLOCK | os::SOCK_CLOEXEC)};
         if fd == -1 {
             break;
         }

@@ -31,7 +31,7 @@ extern "C" {
     pub fn socket(domain:i32, socke_type:i32, protocol:i32) -> i32;
     pub fn bind(fd:i32, addr:*const Sockaddr, addr_len:u32) -> i32;
     pub fn listen(fd:i32, n:i32) -> i32;
-    pub fn accept4(fd:i32, addr:*const Sockaddr, addr_len:u32, flags: i32) -> i32;
+    pub fn accept4(fd:i32, addr:*mut Sockaddr, addr_len:u32, flags: i32) -> i32;
     pub fn close(fd: i32);
     pub fn getaddrinfo(name: *const u8, service: *const u8, req: *const Addrinfo, pai: *mut *mut Addrinfo) ->i32;
     pub fn setsockopt(fd:i32, level:i32, optname:i32, optval: *const u8, optlen: u32) ->i32;
