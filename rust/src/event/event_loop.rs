@@ -8,7 +8,7 @@ pub trait EventLoopHandle {
 }
 
 pub struct Event {
-    pub fd: i32,
+    fd: i32,
     pub reg: bool,
     pub wait: bool,
     pub read: bool,
@@ -34,6 +34,11 @@ impl Event {
             run,
             close
         };
+    }
+
+    #[inline(always)]
+    pub fn get_fd(&self) -> i32 {
+        return self.fd;
     }
 
     pub fn close_fd(&mut self) {

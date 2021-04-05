@@ -80,7 +80,7 @@ impl EventLoopHandle for EventLoop {
     }
 
     fn register(&mut self, mut event: Event, timeout: u64) {
-        let fd = event.fd;
+        let fd = event.get_fd();
 
         event.reg = true;
 

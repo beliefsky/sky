@@ -1,4 +1,4 @@
-use std::ptr::null_mut;
+use std::ptr::{null_mut, null};
 
 use crate::{event::{Event, EventLoop, EventLoopHandle}, os};
 
@@ -44,14 +44,7 @@ impl TcpListener {
     pub fn register(self, ev_loop: &mut EventLoop) {
         let fd = self.fd;
 
-        let event = Event::new(fd, self, |e| -> bool {
-
-            println!("accept: {}", e.fd);
-
-            return true;
-        }, |e|  {
-    
-        });
+        let event = Event::new(fd, self, listener_accept, listener_error);
 
         ev_loop.register(event, 60);
 
@@ -94,4 +87,26 @@ unsafe fn create_socket(addr: *mut os::Addrinfo) ->i32 {
     }
 
     return fd;
+}
+
+fn listener_accept(event: &mut Event) -> bool {
+    let listener = event.get_fd();
+
+    loop {
+        let fd = unsafe {os::accept4(listener,null(), 0,os::SOCK_NONBLOCK | os::SOCK_CLOEXEC)};
+        if fd == -1 {
+            break;
+        }
+
+        unsafe {
+            println!("close fd: {}", fd);
+            os::close(fd);
+        }
+    }
+
+    return true;
+}
+
+fn listener_error(event: &mut Event) {
+
 }
