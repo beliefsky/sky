@@ -70,7 +70,7 @@ set_target_properties(sky_shared PROPERTIES
 include_directories(${CMAKE_BINARY_DIR})
 
 if (NOT HAVE_BUILTIN_FPCLASSIFY)
-    set(ADDITIONAL_LIBRARIES ${ADDITIONAL_LIBRARIES} -lm PARENT_SCOPE)
+    set(ADDITIONAL_LIBRARIES ${ADDITIONAL_LIBRARIES} PARENT_SCOPE)
 endif ()
 
 install(TARGETS sky_shared sky_static
