@@ -6,11 +6,9 @@
 
 void
 sky_strlow(sky_uchar_t *dst, sky_uchar_t *src, sky_size_t n) {
-    while (n) {
-        *dst = sky_tolower(*src);
-        ++dst;
+    while (n--) {
+        *dst++ = sky_tolower(*src);
         ++src;
-        --n;
     }
 }
 
