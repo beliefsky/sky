@@ -125,8 +125,10 @@ coro_swapcontext(sky_coro_context_t *current, sky_coro_context_t *other);
     "movl   0xc(%eax),%ebp\n\t"  /* EBP */
     "movl   0x1c(%eax),%ecx\n\t" /* ECX */
     "ret\n\t");
+#elif defined(HAVE_LIBUCONTEXT)
+#define coro_swapcontext(cur,oth) libucontext_swapcontext(cur, oth)
 #else
-#define coro_swapcontext(cur,oth) swapcontext(cur, oth)
+#error Unsupported platform.
 #endif
 
 __attribute__((used, visibility("internal"))) void
@@ -178,19 +180,20 @@ coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     coro->context[STACK_PTR /* ESP */] = (sky_uintptr_t) stack;
 }
 
-#else
+#elif defined(HAVE_LIBUCONTEXT)
 
 static void
 coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
-    getcontext(&coro->context);
+    libucontext_getcontext(&coro->context);
     coro->context.uc_stack.ss_sp = coro->stack;
     coro->context.uc_stack.ss_size = CORO_STACK_MIN;
     coro->context.uc_stack.ss_flags = 0;
     coro->context.uc_link = null;
 
-    makecontext(&coro->context, coro_entry_point, 3, coro, func, data);
+    libucontext_makecontext(&coro->context, coro_entry_point, 3, coro, func, data);
 }
-
+#else
+#error Unsupported platform.
 #endif
 
 

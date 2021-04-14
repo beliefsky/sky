@@ -161,6 +161,9 @@ else ()
     set(SKY_COMMON_LIBS -Wl,-whole-archive sky_static -Wl,-no-whole-archive)
 endif ()
 
+if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^i[3456]86|x86_64")
+    set(HAVE_LIBUCONTEXT 1)
+endif ()
 
 #
 # Generate sky_build_config.h

@@ -19,9 +19,11 @@
 typedef sky_uintptr_t sky_coro_context_t[10];
 #elif defined(__i386__)
 typedef sky_uintptr_t sky_coro_context_t[7];
+#elif defined(HAVE_LIBUCONTEXT)
+#include <libucontext/libucontext.h>
+typedef libucontext_ucontext_t sky_coro_context_t;
 #else
-#include <ucontext.h>
-typedef ucontext_t sky_coro_context_t;
+#error Unsupported platform.
 #endif
 
 typedef struct sky_coro_s sky_coro_t;
