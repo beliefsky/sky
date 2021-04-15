@@ -13,7 +13,7 @@
 
 #define CORO_STACK_MIN (CORE_BLOCK_SIZE - PAGE_SIZE)
 
-#if defined(__APPLE__)
+#if defined(__MACH__)
 #define ASM_SYMBOL(name_) "_" #name_
 #else
 #define ASM_SYMBOL(name_) #name_
