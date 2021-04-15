@@ -20,8 +20,8 @@ typedef sky_uintptr_t sky_coro_context_t[10];
 #elif defined(__i386__)
 typedef sky_uintptr_t sky_coro_context_t[7];
 #else
-#include <libucontext/libucontext.h>
-typedef libucontext_ucontext_t sky_coro_context_t;
+#include <ucontext.h>
+typedef ucontext_t sky_coro_context_t;
 #endif
 
 typedef struct sky_coro_s sky_coro_t;
