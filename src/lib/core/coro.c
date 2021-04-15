@@ -9,9 +9,9 @@
 
 #define PAGE_SIZE 4096
 
-#define CORE_BLOCK_SIZE 65535
+#define CORE_BLOCK_SIZE 65536
 
-#define CORO_STACK_MIN 61440
+#define CORO_STACK_MIN (CORE_BLOCK_SIZE - PAGE_SIZE)
 
 #if defined(__APPLE__)
 #define ASM_SYMBOL(name_) "_" #name_
