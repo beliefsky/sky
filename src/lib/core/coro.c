@@ -76,7 +76,7 @@ static void coro_swapcontext(sky_coro_context_t *current, const sky_coro_context
 #define STACK_PTR 6
 #endif
 #else
-#define coro_swapcontext(cur,oth) swapcontext(cur, oth)
+#define coro_swapcontext(cur,oth) sky_swapcontext(cur, oth)
 #endif
 
 
@@ -343,13 +343,13 @@ coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
 
 static void
 coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
-    getcontext(&coro->context);
+    sky_getcontext(&coro->context);
     coro->context.uc_stack.ss_sp = coro->stack;
     coro->context.uc_stack.ss_size = CORO_STACK_MIN;
     coro->context.uc_stack.ss_flags = 0;
     coro->context.uc_link = null;
 
-    makecontext(&coro->context, coro_entry_point, 3, coro, func, data);
+    sky_makecontext(&coro->context, coro_entry_point, 3, coro, func, data);
 }
 
 #endif
