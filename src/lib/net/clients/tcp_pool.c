@@ -74,6 +74,7 @@ sky_tcp_pool_create(sky_pool_t *pool, const sky_tcp_pool_conf_t *conf) {
 
     for (client = conn_pool->clients; i; --i, ++client) {
         client->ev.fd = -1;
+        client->ev.loop = null;
         client->current = null;
         client->tasks.next = client->tasks.prev = &client->tasks;
     }
@@ -375,13 +376,17 @@ tcp_connection(sky_tcp_conn_t *conn) {
         return false;
     }
 #ifndef HAVE_ACCEPT4
-        if (sky_unlikely(!set_socket_nonblock(fd))) {
-        close(fd);
-        return false;
-    }
+    if (sky_unlikely(!set_socket_nonblock(fd))) {
+    close(fd);
+    return false;
+}
 #endif
 
-    sky_event_init(conn->ev->loop, ev, fd, tcp_run, tcp_close);
+    if (sky_likely(ev->loop)) {
+        sky_event_rebind(ev, fd);
+    } else {
+        sky_event_init(conn->ev->loop, ev, fd, tcp_run, tcp_close);
+    }
 
     if (connect(fd, conn->conn_pool->addr, conn->conn_pool->addr_len) < 0) {
         switch (errno) {

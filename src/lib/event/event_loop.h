@@ -56,6 +56,12 @@ struct sky_event_loop_s {
     (_ev)->read = true;                                     \
     (_ev)->write = true
 
+#define sky_event_rebind(_ev, _fd)                          \
+    (_ev)->fd = (_fd);                                      \
+    (_ev)->wait = false;                                    \
+    (_ev)->read = true;                                     \
+    (_ev)->write = true
+
 #define sky_event_reset(_ev, _run, _close)          \
     (_ev)->run = (sky_event_run_pt)(_run);          \
     (_ev)->close = (sky_event_close_pt)(_close)

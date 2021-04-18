@@ -170,7 +170,7 @@ server_start(void *ssl) {
     loop = sky_event_loop_create(pool);
 
     const sky_pgsql_conf_t pg_conf = {
-            .host = sky_string("localhost"),
+            .host = sky_string("192.168.1.10"),
             .port = sky_string("5432"),
 //            .unix_path = sky_string("/run/postgresql/.s.PGSQL.5432"),
             .database = sky_string("beliefsky"),
