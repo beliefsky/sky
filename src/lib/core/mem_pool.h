@@ -12,15 +12,15 @@ extern "C" {
 
 typedef struct sky_mem_pool_s sky_mem_pool_t;
 
-sky_mem_pool_t *sky_mem_pool_create(sky_size_t size, sky_size_t num);
+sky_mem_pool_t* sky_mem_pool_create(sky_size_t size, sky_size_t num);
 
-void *sky_mem_pool_get(sky_mem_pool_t *pool);
+void *sky_mem_pool_get(sky_mem_pool_t* pool);
 
-void sky_mem_pool_put(sky_mem_pool_t *pool, void *ptr);
+void sky_mem_pool_put(sky_mem_pool_t* pool, void *ptr);
 
-void sky_mem_pool_reset(sky_mem_pool_t *pool);
+void sky_mem_pool_reset(sky_mem_pool_t* pool);
 
-void sky_mem_pool_destroy(sky_mem_pool_t *pool);
+void sky_mem_pool_destroy(sky_mem_pool_t* pool);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

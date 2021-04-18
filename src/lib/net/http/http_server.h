@@ -20,18 +20,18 @@ typedef struct sky_http_connection_s sky_http_connection_t;
 typedef struct sky_http_request_s sky_http_request_t;
 typedef struct sky_http_module_s sky_http_module_t;
 
-typedef sky_bool_t (*sky_module_read_body_pt)(sky_http_request_t *r, sky_buf_t *tmp, void *module_data);
+typedef sky_bool_t (*sky_module_read_body_pt)(sky_http_request_t* r, sky_buf_t* tmp, void *module_data);
 
-typedef void (*sky_module_run_pt)(sky_http_request_t *r, void *module_data);
+typedef void (*sky_module_run_pt)(sky_http_request_t* r, void *module_data);
 
 typedef struct {
     sky_str_t host;
-    sky_http_module_t *modules;
+    sky_http_module_t* modules;
     sky_uint16_t modules_n;
 } sky_http_module_host_t;
 
 typedef struct {
-    sky_http_module_host_t *modules_host;
+    sky_http_module_host_t* modules_host;
     sky_str_t host;
     sky_str_t port;
     void *ssl_ctx;
@@ -42,8 +42,8 @@ typedef struct {
 } sky_http_conf_t;
 
 struct sky_http_server_s {
-    sky_pool_t *pool;
-    sky_pool_t *tmp_pool;
+    sky_pool_t* pool;
+    sky_pool_t* tmp_pool;
     void *ssl_ctx;
     sky_str_t host;
     sky_str_t port;
@@ -54,12 +54,12 @@ struct sky_http_server_s {
     sky_hash_t modules_hash;
     sky_array_t status;
 
-    sky_size_t (*http_read)(sky_http_connection_t *conn, sky_uchar_t *data, sky_size_t size);
+    sky_size_t (*http_read)(sky_http_connection_t* conn, sky_uchar_t* data, sky_size_t size);
 
-    void (*http_write)(sky_http_connection_t *conn, const sky_uchar_t *data, sky_size_t size);
+    void (*http_write)(sky_http_connection_t* conn, const sky_uchar_t* data, sky_size_t size);
 
-    void (*http_send_file)(sky_http_connection_t *conn, sky_int32_t fd, sky_int64_t offset, sky_size_t size,
-                           const sky_uchar_t *header, sky_uint32_t header_len);
+    void (*http_send_file)(sky_http_connection_t* conn, sky_int32_t fd, sky_int64_t offset, sky_size_t size,
+                           const sky_uchar_t* header, sky_uint32_t header_len);
 
     sky_uint16_t header_buf_size;
     sky_uint8_t header_buf_n;
@@ -75,16 +75,16 @@ struct sky_http_module_s {
 
 struct sky_http_connection_s {
     sky_event_t ev;
-    sky_coro_t *coro;
-    sky_http_server_t *server;
+    sky_coro_t* coro;
+    sky_http_server_t* server;
     void *ssl;
 };
 
-sky_http_server_t *sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf);
+sky_http_server_t* sky_http_server_create(sky_pool_t* pool, sky_http_conf_t* conf);
 
-void sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *loop);
+void sky_http_server_bind(sky_http_server_t* server, sky_event_loop_t* loop);
 
-sky_str_t *sky_http_status_find(sky_http_server_t *server, sky_uint16_t status);
+sky_str_t* sky_http_status_find(sky_http_server_t* server, sky_uint16_t status);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

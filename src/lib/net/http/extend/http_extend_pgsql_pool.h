@@ -12,8 +12,8 @@
 extern "C" {
 #endif
 
-static sky_inline sky_pgsql_conn_t *
-sky_http_ex_pgsql_conn_get(sky_pgsql_pool_t *pg_pool, sky_http_request_t *req) {
+static sky_inline sky_pgsql_conn_t*
+sky_http_ex_pgsql_conn_get(sky_pgsql_pool_t* pg_pool, sky_http_request_t* req) {
     return sky_pgsql_conn_get(pg_pool, req->pool, &req->conn->ev, req->conn->coro);
 }
 

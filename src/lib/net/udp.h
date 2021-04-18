@@ -15,11 +15,11 @@ extern "C" {
 
 typedef struct sky_udp_connect_s sky_udp_connect_t;
 
-typedef sky_udp_connect_t *(*sky_udp_msg_pt)(sky_event_t *ev, void *data);
+typedef sky_udp_connect_t* (*sky_udp_msg_pt)(sky_event_t* ev, void *data);
 
-typedef void (*sky_udp_connect_err_pt)(sky_udp_connect_t *conn);
+typedef void (*sky_udp_connect_err_pt)(sky_udp_connect_t* conn);
 
-typedef sky_bool_t (*sky_udp_connect_cb_pt)(sky_udp_connect_t *conn, void *data);
+typedef sky_bool_t (*sky_udp_connect_cb_pt)(sky_udp_connect_t* conn, void *data);
 
 typedef struct {
     sky_str_t host;
@@ -37,7 +37,7 @@ struct sky_udp_connect_s {
     void *listener;
 };
 
-void sky_udp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_udp_conf_t *conf);
+void sky_udp_listener_create(sky_event_loop_t* loop, sky_pool_t* pool, const sky_udp_conf_t* conf);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

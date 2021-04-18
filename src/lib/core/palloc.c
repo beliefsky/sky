@@ -9,17 +9,17 @@
  */
 #define SKY_MAX_ALLOC_FROM_POOL  16383
 
-static void *sky_palloc_small(sky_pool_t *pool, sky_size_t size);
+static void *sky_palloc_small(sky_pool_t* pool, sky_size_t size);
 
-static void *sky_palloc_small_align(sky_pool_t *pool, sky_size_t size);
+static void *sky_palloc_small_align(sky_pool_t* pool, sky_size_t size);
 
-static void *sky_palloc_block(sky_pool_t *pool, sky_size_t size);
+static void *sky_palloc_block(sky_pool_t* pool, sky_size_t size);
 
-static void *sky_palloc_large(sky_pool_t *pool, sky_size_t size);
+static void *sky_palloc_large(sky_pool_t* pool, sky_size_t size);
 
-sky_pool_t *
+sky_pool_t*
 sky_create_pool(sky_size_t size) {
-    sky_pool_t *p;
+    sky_pool_t* p;
 
     size = sky_align(size, 4096U);
 
@@ -27,8 +27,8 @@ sky_create_pool(sky_size_t size) {
     if (sky_unlikely(!p)) {
         return null;
     }
-    p->d.last = (sky_uchar_t *) p + sizeof(sky_pool_t);
-    p->d.end = (sky_uchar_t *) p + size;
+    p->d.last = (sky_uchar_t* ) p + sizeof(sky_pool_t);
+    p->d.end = (sky_uchar_t* ) p + size;
     p->d.next = null;
     p->d.failed = 0x0;
     size -= sizeof(sky_pool_t);
@@ -41,10 +41,10 @@ sky_create_pool(sky_size_t size) {
 }
 
 void
-sky_destroy_pool(sky_pool_t *pool) {
-    sky_pool_t *p, *n;
-    sky_pool_large_t *l;
-    sky_pool_cleanup_t *c;
+sky_destroy_pool(sky_pool_t* pool) {
+    sky_pool_t* p, *n;
+    sky_pool_large_t* l;
+    sky_pool_cleanup_t* c;
     sky_size_t size;
 
     for (c = pool->cleanup; c; c = c->next) {
@@ -57,7 +57,7 @@ sky_destroy_pool(sky_pool_t *pool) {
             sky_free(l->alloc);
         }
     }
-    size = (sky_size_t) (pool->d.end - (sky_uchar_t *) pool);
+    size = (sky_size_t) (pool->d.end - (sky_uchar_t* ) pool);
 
     for (p = pool, n = pool->d.next; /* void */; p = n, n = n->d.next) {
 
@@ -69,9 +69,9 @@ sky_destroy_pool(sky_pool_t *pool) {
 }
 
 void
-sky_reset_pool(sky_pool_t *pool) {
-    sky_pool_t *p;
-    sky_pool_large_t *l;
+sky_reset_pool(sky_pool_t* pool) {
+    sky_pool_t* p;
+    sky_pool_large_t* l;
 
     for (l = pool->large; l; l = l->next) {
         if (l->alloc) {
@@ -79,7 +79,7 @@ sky_reset_pool(sky_pool_t *pool) {
         }
     }
     for (p = pool; p; p = p->d.next) {
-        p->d.last = (sky_uchar_t *) p + sizeof(sky_pool_t);
+        p->d.last = (sky_uchar_t* ) p + sizeof(sky_pool_t);
         p->d.failed = 0x0;
     }
     pool->current = pool;
@@ -87,17 +87,17 @@ sky_reset_pool(sky_pool_t *pool) {
 }
 
 sky_inline void *
-sky_palloc(sky_pool_t *pool, sky_size_t size) {
+sky_palloc(sky_pool_t* pool, sky_size_t size) {
     return size <= pool->max ? sky_palloc_small_align(pool, size) : sky_palloc_large(pool, size);
 }
 
 sky_inline void *
-sky_pnalloc(sky_pool_t *pool, sky_size_t size) {
+sky_pnalloc(sky_pool_t* pool, sky_size_t size) {
     return size <= pool->max ? sky_palloc_small(pool, size) : sky_palloc_large(pool, size);
 }
 
 void *
-sky_pcalloc(sky_pool_t *pool, sky_size_t size) {
+sky_pcalloc(sky_pool_t* pool, sky_size_t size) {
     void *p;
 
     p = sky_palloc(pool, size);
@@ -109,8 +109,8 @@ sky_pcalloc(sky_pool_t *pool, sky_size_t size) {
 }
 
 void *
-sky_prealloc(sky_pool_t *pool, void *ptr, sky_size_t ptr_size, sky_size_t size) {
-    const sky_uchar_t *p = (sky_uchar_t *) ptr + ptr_size;
+sky_prealloc(sky_pool_t* pool, void *ptr, sky_size_t ptr_size, sky_size_t size) {
+    const sky_uchar_t* p = (sky_uchar_t* ) ptr + ptr_size;
     if (p == pool->d.last) {
         if (size <= ptr_size) {
             pool->d.last = ptr + size;
@@ -125,7 +125,7 @@ sky_prealloc(sky_pool_t *pool, void *ptr, sky_size_t ptr_size, sky_size_t size) 
         }
     } else {
         if (ptr_size > pool->max) {
-            for (sky_pool_large_t *l = pool->large; l; l = l->next) {
+            for (sky_pool_large_t* l = pool->large; l; l = l->next) {
                 if (ptr == l->alloc) {
                     void *new_ptr = sky_realloc(ptr, size);
                     if (sky_unlikely(!size || new_ptr)) {
@@ -145,9 +145,9 @@ sky_prealloc(sky_pool_t *pool, void *ptr, sky_size_t ptr_size, sky_size_t size) 
 }
 
 void *
-sky_pmemalign(sky_pool_t *pool, sky_size_t size, sky_size_t alignment) {
+sky_pmemalign(sky_pool_t* pool, sky_size_t size, sky_size_t alignment) {
     void *p;
-    sky_pool_large_t *large;
+    sky_pool_large_t* large;
 
     p = sky_memalign(alignment, size);
     if (sky_unlikely(!p)) {
@@ -166,15 +166,15 @@ sky_pmemalign(sky_pool_t *pool, sky_size_t size, sky_size_t alignment) {
 }
 
 void
-sky_pfree(sky_pool_t *pool, const void *ptr, sky_size_t size) {
-    const sky_uchar_t *p = ptr + size;
+sky_pfree(sky_pool_t* pool, const void *ptr, sky_size_t size) {
+    const sky_uchar_t* p = ptr + size;
 
     if (p == pool->d.last) {
         pool->d.last -= size;
     }
 
     if (size > pool->max) {
-        for (sky_pool_large_t *l = pool->large; l; l = l->next) {
+        for (sky_pool_large_t* l = pool->large; l; l = l->next) {
             if (ptr == l->alloc) {
                 sky_free(l->alloc);
                 l->alloc = null;
@@ -185,9 +185,9 @@ sky_pfree(sky_pool_t *pool, const void *ptr, sky_size_t size) {
 }
 
 
-sky_pool_cleanup_t *
-sky_pool_cleanup_add(sky_pool_t *p, sky_size_t size) {
-    sky_pool_cleanup_t *c;
+sky_pool_cleanup_t*
+sky_pool_cleanup_add(sky_pool_t* p, sky_size_t size) {
+    sky_pool_cleanup_t* c;
 
     c = sky_palloc(p, sizeof(sky_pool_cleanup_t));
     if (sky_unlikely(!c)) {
@@ -210,9 +210,9 @@ sky_pool_cleanup_add(sky_pool_t *p, sky_size_t size) {
 
 
 static sky_inline void *
-sky_palloc_small(sky_pool_t *pool, sky_size_t size) {
-    sky_pool_t *p;
-    sky_uchar_t *m;
+sky_palloc_small(sky_pool_t* pool, sky_size_t size) {
+    sky_pool_t* p;
+    sky_uchar_t* m;
 
     p = pool->current;
 
@@ -229,9 +229,9 @@ sky_palloc_small(sky_pool_t *pool, sky_size_t size) {
 }
 
 static sky_inline void *
-sky_palloc_small_align(sky_pool_t *pool, sky_size_t size) {
-    sky_pool_t *p;
-    sky_uchar_t *m;
+sky_palloc_small_align(sky_pool_t* pool, sky_size_t size) {
+    sky_pool_t* p;
+    sky_uchar_t* m;
 
     p = pool->current;
 
@@ -248,19 +248,19 @@ sky_palloc_small_align(sky_pool_t *pool, sky_size_t size) {
 }
 
 static void *
-sky_palloc_block(sky_pool_t *pool, sky_size_t size) {
-    sky_uchar_t *m;
+sky_palloc_block(sky_pool_t* pool, sky_size_t size) {
+    sky_uchar_t* m;
     sky_size_t psize;
-    sky_pool_t *p, *new;
+    sky_pool_t* p, *new;
 
-    psize = (sky_size_t) (pool->d.end - (sky_uchar_t *) pool);
+    psize = (sky_size_t) (pool->d.end - (sky_uchar_t* ) pool);
 
     m = mmap(null, psize, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
 
     if (sky_unlikely(!m)) {
         return null;
     }
-    new = (sky_pool_t *) m;
+    new = (sky_pool_t* ) m;
     new->d.end = m + psize;
     new->d.next = null;
     new->d.failed = 0;
@@ -278,9 +278,9 @@ sky_palloc_block(sky_pool_t *pool, sky_size_t size) {
 }
 
 static void *
-sky_palloc_large(sky_pool_t *pool, sky_size_t size) {
+sky_palloc_large(sky_pool_t* pool, sky_size_t size) {
     void *p;
-    sky_pool_large_t *large;
+    sky_pool_large_t* large;
     sky_uint8_t n;
 
     p = sky_malloc(size);

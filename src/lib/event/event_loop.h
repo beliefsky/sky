@@ -15,13 +15,13 @@ extern "C" {
 typedef struct sky_event_loop_s sky_event_loop_t;
 typedef struct sky_event_s sky_event_t;
 
-typedef sky_bool_t (*sky_event_run_pt)(sky_event_t *ev);
+typedef sky_bool_t (*sky_event_run_pt)(sky_event_t* ev);
 
-typedef void (*sky_event_close_pt)(sky_event_t *ev);
+typedef void (*sky_event_close_pt)(sky_event_t* ev);
 
 struct sky_event_s {
     sky_timer_wheel_entry_t timer;
-    sky_event_loop_t *loop; //该事件监听的主程
+    sky_event_loop_t* loop; //该事件监听的主程
     sky_event_run_pt run; // 普通事件触发的回调函数
     sky_event_close_pt close; // 关闭事件回调函数
     sky_time_t now; // 当前时间
@@ -35,8 +35,8 @@ struct sky_event_s {
 };
 
 struct sky_event_loop_s {
-    sky_timer_wheel_t *ctx;
-    sky_pool_t *pool;
+    sky_timer_wheel_t* ctx;
+    sky_pool_t* pool;
     sky_time_t now;
     sky_int32_t fd;
     sky_int32_t conn_max;
@@ -65,19 +65,19 @@ struct sky_event_loop_s {
  * @param pool 创建时所需的内存池
  * @return 触发列队服务
  */
-sky_event_loop_t *sky_event_loop_create(sky_pool_t *pool);
+sky_event_loop_t* sky_event_loop_create(sky_pool_t* pool);
 
 /**
  * 执行事件触发服务，该服务线程阻塞
  * @param loop 事件触发服务
  */
-void sky_event_loop_run(sky_event_loop_t *loop);
+void sky_event_loop_run(sky_event_loop_t* loop);
 
 /**
  * 关闭事件触发服务
  * @param loop 事件触发服务
  */
-void sky_event_loop_shutdown(sky_event_loop_t *loop);
+void sky_event_loop_shutdown(sky_event_loop_t* loop);
 
 /**
  * 加入监听需要触发
@@ -85,13 +85,13 @@ void sky_event_loop_shutdown(sky_event_loop_t *loop);
  * @param ev 加入的事件
  * @param timeout 设定超时时间(秒)， -1永久
  */
-void sky_event_register(sky_event_t *ev, sky_int32_t timeout);
+void sky_event_register(sky_event_t* ev, sky_int32_t timeout);
 
 /**
  * 移除监听触发，该函数会马上关闭io，并在稍后会触发关闭事件
  * @param ev 已经加入的事件
  */
-void sky_event_unregister(sky_event_t *ev);
+void sky_event_unregister(sky_event_t* ev);
 
 
 /**
@@ -101,7 +101,7 @@ void sky_event_unregister(sky_event_t *ev);
  * @param timeout 超时时间，单位秒
  */
 static sky_inline void
-sky_event_timer_register(sky_event_loop_t *loop, sky_timer_wheel_entry_t *timer, sky_uint32_t timeout) {
+sky_event_timer_register(sky_event_loop_t* loop, sky_timer_wheel_entry_t* timer, sky_uint32_t timeout) {
     sky_timer_wheel_link(loop->ctx, timer, (sky_uint64_t) (loop->now + timeout));
 }
 

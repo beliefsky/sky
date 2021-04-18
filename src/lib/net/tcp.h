@@ -14,7 +14,7 @@
 extern "C" {
 #endif
 
-typedef sky_event_t *(*sky_tcp_accept_cb_pt)(sky_event_loop_t *loop, sky_int32_t fd, void *data);
+typedef sky_event_t* (*sky_tcp_accept_cb_pt)(sky_event_loop_t* loop, sky_int32_t fd, void *data);
 
 typedef struct {
     sky_str_t host;
@@ -24,8 +24,8 @@ typedef struct {
     void *data;
 } sky_tcp_conf_t;
 
-void sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
-                             const sky_tcp_conf_t *conf);
+void sky_tcp_listener_create(sky_event_loop_t* loop, sky_pool_t* pool,
+                             const sky_tcp_conf_t* conf);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

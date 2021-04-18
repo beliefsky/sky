@@ -8,20 +8,20 @@
 #include "../../../core/memory.h"
 
 typedef struct {
-    sky_pool_t *pool;
-    sky_trie_t *mappers;
+    sky_pool_t* pool;
+    sky_trie_t* mappers;
     sky_uint32_t body_max_buff;
 } http_module_dispatcher_t;
 
 
-static void http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data);
+static void http_run_handler(sky_http_request_t* r, http_module_dispatcher_t* data);
 
-static sky_bool_t http_read_body(sky_http_request_t *r, sky_buf_t *tmp, http_module_dispatcher_t *data);
+static sky_bool_t http_read_body(sky_http_request_t* r, sky_buf_t* tmp, http_module_dispatcher_t* data);
 
 void
-sky_http_module_dispatcher_init(sky_pool_t *pool, const sky_http_dispatcher_conf_t *conf) {
-    http_module_dispatcher_t *data;
-    sky_http_mapper_t *mapper;
+sky_http_module_dispatcher_init(sky_pool_t* pool, const sky_http_dispatcher_conf_t* conf) {
+    http_module_dispatcher_t* data;
+    sky_http_mapper_t* mapper;
     sky_http_mapper_pt *handlers;
 
     data = sky_palloc(pool, sizeof(http_module_dispatcher_t));
@@ -45,7 +45,7 @@ sky_http_module_dispatcher_init(sky_pool_t *pool, const sky_http_dispatcher_conf
 }
 
 static void
-http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
+http_run_handler(sky_http_request_t* r, http_module_dispatcher_t* data) {
     sky_http_mapper_pt *handler;
 
     if (r->headers_in.content_length_n) {
@@ -93,7 +93,7 @@ http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
 }
 
 static sky_bool_t
-http_read_body(sky_http_request_t *r, sky_buf_t *tmp, http_module_dispatcher_t *data) {
+http_read_body(sky_http_request_t* r, sky_buf_t* tmp, http_module_dispatcher_t* data) {
     if (r->headers_in.content_length_n > data->body_max_buff) {
         sky_http_read_body_none_need(r, tmp);
         r->state = 413;

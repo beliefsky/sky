@@ -27,7 +27,7 @@ typedef struct {
     time_t range_time;
     sky_int64_t left;
     sky_int64_t right;
-    sky_defer_t *file_defer;
+    sky_defer_t* file_defer;
 
     sky_bool_t modified: 1;
     sky_bool_t range: 1;
@@ -43,23 +43,23 @@ typedef struct {
     sky_hash_t mime_types;
     http_mime_type_t default_mime_type;
     sky_str_t path;
-    sky_pool_t *pool;
-    sky_pool_t *tmp_pool;
+    sky_pool_t* pool;
+    sky_pool_t* tmp_pool;
 
-    sky_bool_t (*pre_run)(sky_http_request_t *req, void *data);
+    sky_bool_t (*pre_run)(sky_http_request_t* req, void *data);
 
     void *run_data;
 } http_module_file_t;
 
-static void http_run_handler(sky_http_request_t *r, http_module_file_t *data);
+static void http_run_handler(sky_http_request_t* r, http_module_file_t* data);
 
-static sky_bool_t http_header_range(http_file_t *file, sky_str_t *value);
+static sky_bool_t http_header_range(http_file_t* file, sky_str_t* value);
 
-static void http_mime_type_init(http_module_file_t *data);
+static void http_mime_type_init(http_module_file_t* data);
 
 void
-sky_http_module_file_init(sky_pool_t *pool, const sky_http_file_conf_t *conf) {
-    http_module_file_t *data = sky_palloc(pool, sizeof(http_module_file_t));
+sky_http_module_file_init(sky_pool_t* pool, const sky_http_file_conf_t* conf) {
+    http_module_file_t* data = sky_palloc(pool, sizeof(http_module_file_t));
     data->pool = pool;
     data->path = conf->dir;
     data->tmp_pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
@@ -70,7 +70,7 @@ sky_http_module_file_init(sky_pool_t *pool, const sky_http_file_conf_t *conf) {
     data->tmp_pool = null;
     data->pre_run = conf->pre_run;
 
-    sky_http_module_t *module = conf->module;
+    sky_http_module_t* module = conf->module;
     module->prefix = conf->prefix;
     module->read_body = null;
     module->run = (sky_module_run_pt) http_run_handler;
@@ -79,13 +79,13 @@ sky_http_module_file_init(sky_pool_t *pool, const sky_http_file_conf_t *conf) {
 }
 
 static void
-http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
+http_run_handler(sky_http_request_t* r, http_module_file_t* data) {
     struct stat stat_buf;
     sky_int64_t mtime;
-    http_file_t *file;
-    http_mime_type_t *mime_type;
-    sky_table_elt_t *header;
-    sky_char_t *path;
+    http_file_t* file;
+    http_mime_type_t* mime_type;
+    sky_table_elt_t* header;
+    sky_char_t* path;
     sky_int32_t fd;
 
     if (sky_unlikely(!r->uri.len)) {
@@ -188,8 +188,8 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
 }
 
 static sky_bool_t
-http_header_range(http_file_t *file, sky_str_t *value) {
-    sky_uchar_t *start, *end, p;
+http_header_range(http_file_t* file, sky_str_t* value) {
+    sky_uchar_t* start, *end, p;
     sky_int64_t tmp;
 
     enum {
@@ -238,11 +238,11 @@ http_header_range(http_file_t *file, sky_str_t *value) {
 }
 
 static void
-http_mime_type_init(http_module_file_t *data) {
+http_mime_type_init(http_module_file_t* data) {
     sky_hash_init_t hash;
     sky_array_t arrays;
-    sky_hash_key_t *hk;
-    http_mime_type_t *mime_type;
+    sky_hash_key_t* hk;
+    http_mime_type_t* mime_type;
 
     sky_str_set(&data->default_mime_type.val, "application/octet-stream");
     data->default_mime_type.binary = true;

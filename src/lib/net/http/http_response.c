@@ -7,10 +7,10 @@
 #include "../../core/date.h"
 #include "../../core/string_buf.h"
 
-static void http_header_build(sky_http_request_t *r, sky_str_buf_t *buf);
+static void http_header_build(sky_http_request_t* r, sky_str_buf_t* buf);
 
 void
-sky_http_response_nobody(sky_http_request_t *r) {
+sky_http_response_nobody(sky_http_request_t* r) {
     sky_str_buf_t str_buf;
 
     if (sky_unlikely(r->response)) {
@@ -32,7 +32,7 @@ sky_http_response_nobody(sky_http_request_t *r) {
 
 
 void
-sky_http_response_static(sky_http_request_t *r, sky_str_t *buf) {
+sky_http_response_static(sky_http_request_t* r, sky_str_t* buf) {
     if (!buf) {
         sky_http_response_static_len(r, null, 0);
     } else {
@@ -41,10 +41,10 @@ sky_http_response_static(sky_http_request_t *r, sky_str_t *buf) {
 }
 
 void
-sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_uint32_t buf_len) {
+sky_http_response_static_len(sky_http_request_t* r, sky_uchar_t* buf, sky_uint32_t buf_len) {
     sky_str_buf_t str_buf;
-    sky_uchar_t *data;
-    sky_table_elt_t *header;
+    sky_uchar_t* data;
+    sky_table_elt_t* header;
 
     if (sky_unlikely(r->response)) {
         return;
@@ -103,10 +103,10 @@ sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_uint32
 
 
 void
-sky_http_sendfile(sky_http_request_t *r, sky_int32_t fd, sky_size_t offset, sky_size_t size, sky_size_t file_size) {
+sky_http_sendfile(sky_http_request_t* r, sky_int32_t fd, sky_size_t offset, sky_size_t size, sky_size_t file_size) {
     sky_str_buf_t str_buf;
-    sky_uchar_t *data;
-    sky_table_elt_t *header;
+    sky_uchar_t* data;
+    sky_table_elt_t* header;
 
     if (sky_unlikely(r->response)) {
         return;
@@ -153,12 +153,12 @@ sky_http_sendfile(sky_http_request_t *r, sky_int32_t fd, sky_size_t offset, sky_
 
 
 static void
-http_header_build(sky_http_request_t *r, sky_str_buf_t *buf) {
+http_header_build(sky_http_request_t* r, sky_str_buf_t* buf) {
     if (!r->state) {
         r->state = 200;
     }
-    const sky_http_headers_out_t *header_out = &r->headers_out;
-    const sky_str_t *status = sky_http_status_find(r->conn->server, r->state);
+    const sky_http_headers_out_t* header_out = &r->headers_out;
+    const sky_str_t* status = sky_http_status_find(r->conn->server, r->state);
 
     sky_str_buf_append_str(buf, &r->version_name);
     sky_str_buf_append_uchar(buf, ' ');

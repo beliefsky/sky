@@ -23,13 +23,13 @@
 #endif
 #endif
 
-static void event_timer_callback(sky_event_t *ev);
+static void event_timer_callback(sky_event_t* ev);
 
 static sky_int32_t setup_open_file_count_limits();
 
-sky_event_loop_t *
-sky_event_loop_create(sky_pool_t *pool) {
-    sky_event_loop_t *loop;
+sky_event_loop_t*
+sky_event_loop_create(sky_pool_t* pool) {
+    sky_event_loop_t* loop;
     struct sigaction sa;
 
     sky_memzero(&sa, sizeof(struct sigaction));
@@ -47,12 +47,12 @@ sky_event_loop_create(sky_pool_t *pool) {
 }
 
 void
-sky_event_loop_run(sky_event_loop_t *loop) {
+sky_event_loop_run(sky_event_loop_t* loop) {
     sky_int32_t fd, max_events, n, timeout;
     sky_time_t now;
     sky_uint64_t next_time;
-    sky_timer_wheel_t *ctx;
-    sky_event_t *ev;
+    sky_timer_wheel_t* ctx;
+    sky_event_t* ev;
     struct epoll_event *events, *event;
 
     fd = loop->fd;
@@ -135,7 +135,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
 
 void
-sky_event_loop_shutdown(sky_event_loop_t *loop) {
+sky_event_loop_shutdown(sky_event_loop_t* loop) {
     close(loop->fd);
     sky_timer_wheel_destroy(loop->ctx);
     sky_destroy_pool(loop->pool);
@@ -143,7 +143,7 @@ sky_event_loop_shutdown(sky_event_loop_t *loop) {
 
 
 void
-sky_event_register(sky_event_t *ev, sky_int32_t timeout) {
+sky_event_register(sky_event_t* ev, sky_int32_t timeout) {
     struct epoll_event event;
     if (timeout < 0) {
         timeout = -1;
@@ -165,7 +165,7 @@ sky_event_register(sky_event_t *ev, sky_int32_t timeout) {
 
 
 void
-sky_event_unregister(sky_event_t *ev) {
+sky_event_unregister(sky_event_t* ev) {
     if (sky_unlikely(!ev->reg)) {
         return;
     }
@@ -178,7 +178,7 @@ sky_event_unregister(sky_event_t *ev) {
 }
 
 static void
-event_timer_callback(sky_event_t *ev) {
+event_timer_callback(sky_event_t* ev) {
     if (ev->reg) {
         close(ev->fd);
         ev->fd = -1;

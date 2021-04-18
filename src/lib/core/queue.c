@@ -8,10 +8,9 @@
  * find the middle queue element if the queue has odd number of elements
  * or the first element of the queue's second part otherwise
  */
-sky_queue_t *
-sky_queue_middle(sky_queue_t *queue)
-{
-    sky_queue_t *middle, *next;
+sky_queue_t*
+sky_queue_middle(sky_queue_t* queue) {
+    sky_queue_t* middle, *next;
     middle = sky_queue_head(queue);
     if (middle == sky_queue_last(queue)) {
         return middle;
@@ -32,9 +31,9 @@ sky_queue_middle(sky_queue_t *queue)
 
 /* the stable insertion sort */
 void
-sky_queue_sort(sky_queue_t *queue, sky_bool_t (*cmp_gt)(const sky_queue_t *, const sky_queue_t *))
+sky_queue_sort(sky_queue_t* queue, sky_bool_t (*cmp_gt)(const sky_queue_t* , const sky_queue_t* ))
 {
-    sky_queue_t *q, *prev, *next;
+    sky_queue_t* q, *prev, *next;
     q = sky_queue_head(queue);
     if (q == sky_queue_last(queue)) {
         return;

@@ -17,11 +17,11 @@ typedef struct {
     sky_uchar_t buffer[64];
 } sky_sha1_t;
 
-void sky_sha1_init(sky_sha1_t *ctx);
+void sky_sha1_init(sky_sha1_t* ctx);
 
-void sky_sha1_update(sky_sha1_t *ctx, const sky_uchar_t *data, sky_size_t size);
+void sky_sha1_update(sky_sha1_t* ctx, const sky_uchar_t* data, sky_size_t size);
 
-void sky_sha1_final(sky_sha1_t *ctx, sky_uchar_t result[20]);
+void sky_sha1_final(sky_sha1_t* ctx, sky_uchar_t result[20]);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

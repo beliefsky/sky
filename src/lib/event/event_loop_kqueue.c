@@ -24,13 +24,13 @@
 #endif
 #endif
 
-static void event_timer_callback(sky_event_t *ev);
+static void event_timer_callback(sky_event_t* ev);
 
 static sky_int32_t setup_open_file_count_limits();
 
-sky_event_loop_t *
-sky_event_loop_create(sky_pool_t *pool) {
-    sky_event_loop_t *loop;
+sky_event_loop_t*
+sky_event_loop_create(sky_pool_t* pool) {
+    sky_event_loop_t* loop;
     struct sigaction sa;
 
     sky_memzero(&sa, sizeof(struct sigaction));
@@ -48,13 +48,13 @@ sky_event_loop_create(sky_pool_t *pool) {
 }
 
 void
-sky_event_loop_run(sky_event_loop_t *loop) {
+sky_event_loop_run(sky_event_loop_t* loop) {
     sky_bool_t timeout;
     sky_int16_t index, i;
     sky_int32_t fd, max_events, n;
     sky_time_t now;
-    sky_timer_wheel_t *ctx;
-    sky_event_t *ev, **run_ev;
+    sky_timer_wheel_t* ctx;
+    sky_event_t* ev, **run_ev;
     sky_uint64_t next_time;
     struct kevent *events, *event;
     struct timespec timespec = {
@@ -70,7 +70,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
     max_events = sky_min(loop->conn_max, 1024);
     events = sky_pnalloc(loop->pool, sizeof(struct kevent) * (sky_uint32_t) max_events);
-    run_ev = sky_pnalloc(loop->pool, sizeof(sky_event_t *) * (sky_uint32_t) max_events);
+    run_ev = sky_pnalloc(loop->pool, sizeof(sky_event_t* ) * (sky_uint32_t) max_events);
 
     for (;;) {
         sky_timer_wheel_run(ctx, (sky_uint64_t) now);
@@ -161,14 +161,14 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
 
 void
-sky_event_loop_shutdown(sky_event_loop_t *loop) {
+sky_event_loop_shutdown(sky_event_loop_t* loop) {
     close(loop->fd);
     sky_destroy_pool(loop->pool);
 }
 
 
 void
-sky_event_register(sky_event_t *ev, sky_int32_t timeout) {
+sky_event_register(sky_event_t* ev, sky_int32_t timeout) {
     struct kevent event[2];
     if (timeout < 0) {
         timeout = -1;
@@ -191,7 +191,7 @@ sky_event_register(sky_event_t *ev, sky_int32_t timeout) {
 
 
 void
-sky_event_unregister(sky_event_t *ev) {
+sky_event_unregister(sky_event_t* ev) {
     if (!ev->reg) {
         return;
     }
@@ -204,7 +204,7 @@ sky_event_unregister(sky_event_t *ev) {
 }
 
 static void
-event_timer_callback(sky_event_t *ev) {
+event_timer_callback(sky_event_t* ev) {
     if (ev->reg) {
         close(ev->fd);
         ev->fd = -1;

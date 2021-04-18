@@ -31,27 +31,27 @@ typedef enum {
 } parse_state_t;
 
 
-static sky_bool_t http_method_identify(sky_http_request_t *r);
+static sky_bool_t http_method_identify(sky_http_request_t* r);
 
 
-static sky_int_t parse_token(sky_uchar_t *buf, const sky_uchar_t *end, sky_uchar_t next_char);
+static sky_int_t parse_token(sky_uchar_t* buf, const sky_uchar_t* end, sky_uchar_t next_char);
 
-static sky_int_t parse_url_no_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end);
+static sky_int_t parse_url_no_code(sky_http_request_t* r, sky_uchar_t* post, const sky_uchar_t* end);
 
-static sky_int_t parse_url_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end);
+static sky_int_t parse_url_code(sky_http_request_t* r, sky_uchar_t* post, const sky_uchar_t* end);
 
-static sky_int_t parse_header_val(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end);
+static sky_int_t parse_header_val(sky_http_request_t* r, sky_uchar_t* post, const sky_uchar_t* end);
 
-static sky_int_t advance_token(sky_uchar_t *buf, const sky_uchar_t *end);
+static sky_int_t advance_token(sky_uchar_t* buf, const sky_uchar_t* end);
 
-static sky_bool_t find_char_fast(sky_uchar_t **buf, sky_size_t buf_size,
-                                 const sky_uchar_t *ranges, sky_int32_t ranges_size);
+static sky_bool_t find_char_fast(sky_uchar_t* *buf, sky_size_t buf_size,
+                                 const sky_uchar_t* ranges, sky_int32_t ranges_size);
 
 sky_int8_t
-sky_http_request_line_parse(sky_http_request_t *r, sky_buf_t *b) {
+sky_http_request_line_parse(sky_http_request_t* r, sky_buf_t* b) {
     parse_state_t state;
     sky_int_t index;
-    sky_uchar_t *p, *end;
+    sky_uchar_t* p, *end;
 
     state = r->state;
     p = b->pos;
@@ -206,12 +206,12 @@ sky_http_request_line_parse(sky_http_request_t *r, sky_buf_t *b) {
 }
 
 sky_int8_t
-sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
+sky_http_request_header_parse(sky_http_request_t* r, sky_buf_t* b) {
     parse_state_t state;
     sky_int_t index;
-    sky_uchar_t *p, *end;
-    sky_table_elt_t *h;
-    sky_http_header_t *hh;
+    sky_uchar_t* p, *end;
+    sky_table_elt_t* h;
+    sky_http_header_t* hh;
 
     state = r->state;
     p = b->pos;
@@ -328,8 +328,8 @@ sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
 
 
 sky_bool_t
-sky_http_url_decode(sky_str_t *str) {
-    sky_uchar_t *s, *p, ch;
+sky_http_url_decode(sky_str_t* str) {
+    sky_uchar_t* s, *p, ch;
 
     p = str->data;
 #ifdef __SSE4_2__
@@ -406,8 +406,8 @@ sky_http_url_decode(sky_str_t *str) {
 
 
 static sky_inline sky_bool_t
-http_method_identify(sky_http_request_t *r) {
-    sky_uchar_t *m;
+http_method_identify(sky_http_request_t* r) {
+    sky_uchar_t* m;
 
     m = r->method_name.data;
 
@@ -462,8 +462,8 @@ http_method_identify(sky_http_request_t *r) {
 }
 
 static sky_inline sky_int_t
-advance_token(sky_uchar_t *buf, const sky_uchar_t *end) {
-    sky_uchar_t *start = buf;
+advance_token(sky_uchar_t* buf, const sky_uchar_t* end) {
+    sky_uchar_t* start = buf;
 #ifdef __SSE4_2__
 
     static const sky_uchar_t ALIGNED(16) ranges[16] = "\000\040""\177\177";
@@ -496,8 +496,8 @@ advance_token(sky_uchar_t *buf, const sky_uchar_t *end) {
 }
 
 static sky_inline sky_int_t
-parse_url_no_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end) {
-    sky_uchar_t *start = post;
+parse_url_no_code(sky_http_request_t* r, sky_uchar_t* post, const sky_uchar_t* end) {
+    sky_uchar_t* start = post;
 #ifdef __SSE4_2__
     static const sky_uchar_t ALIGNED(16) ranges[16] = "\000\040"
                                                       "  "
@@ -603,8 +603,8 @@ parse_url_no_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *e
 
 
 static sky_inline sky_int_t
-parse_url_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end) {
-    sky_uchar_t *start = post;
+parse_url_code(sky_http_request_t* r, sky_uchar_t* post, const sky_uchar_t* end) {
+    sky_uchar_t* start = post;
 #ifdef __SSE4_2__
     static const sky_uchar_t ALIGNED(16) ranges[16] = "\000\040"
                                                       "  "
@@ -707,8 +707,8 @@ parse_url_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end)
 }
 
 static sky_inline sky_int_t
-parse_header_val(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end) {
-    sky_uchar_t *start = post;
+parse_header_val(sky_http_request_t* r, sky_uchar_t* post, const sky_uchar_t* end) {
+    sky_uchar_t* start = post;
 #ifdef __SSE4_2__
     static const sky_uchar_t ALIGNED(16) ranges[16] = "\0\010"    /* allow HT */
                                                       "\012\037"  /* allow SP and up to but not including DEL */
@@ -798,9 +798,9 @@ parse_header_val(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *en
 
 
 static sky_int_t
-parse_token(sky_uchar_t *buf, const sky_uchar_t *end, sky_uchar_t next_char) {
+parse_token(sky_uchar_t* buf, const sky_uchar_t* end, sky_uchar_t next_char) {
 
-    static const sky_uchar_t *token_char_map = (sky_uchar_t *)
+    static const sky_uchar_t* token_char_map = (sky_uchar_t* )
             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
             "\0\1\0\1\1\1\1\1\0\0\1\1\0\1\1\0\1\1\1\1\1\1\1\1\1\1\0\0\0\0\0\0"
             "\0\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\0\0\0\1\1"
@@ -810,7 +810,7 @@ parse_token(sky_uchar_t *buf, const sky_uchar_t *end, sky_uchar_t next_char) {
             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 
-    sky_uchar_t *start = buf;
+    sky_uchar_t* start = buf;
 #ifdef __SSE4_2__
 
     static const sky_uchar_t ALIGNED(16) ranges[] = "\x00 "  /* control chars and up to SP */
@@ -849,9 +849,9 @@ parse_token(sky_uchar_t *buf, const sky_uchar_t *end, sky_uchar_t next_char) {
 #ifdef __SSE4_2__
 
 static sky_inline sky_bool_t
-find_char_fast(sky_uchar_t **buf, sky_size_t buf_size, const sky_uchar_t *ranges, sky_int32_t ranges_size) {
+find_char_fast(sky_uchar_t* *buf, sky_size_t buf_size, const sky_uchar_t* ranges, sky_int32_t ranges_size) {
     if (sky_likely(buf_size >= 16)) {
-        sky_uchar_t *tmp = *buf;
+        sky_uchar_t* tmp = *buf;
         sky_size_t left = buf_size & ~15U;
 
         __m128i ranges16 = _mm_loadu_si128((const __m128i *) ranges);

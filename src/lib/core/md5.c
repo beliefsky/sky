@@ -5,11 +5,11 @@
 #include "md5.h"
 #include "memory.h"
 
-static const sky_uchar_t *sky_md5_body(sky_md5_t *ctx, const sky_uchar_t *data, sky_size_t size);
+static const sky_uchar_t* sky_md5_body(sky_md5_t* ctx, const sky_uchar_t* data, sky_size_t size);
 
 
 void
-sky_md5_init(sky_md5_t *ctx) {
+sky_md5_init(sky_md5_t* ctx) {
     ctx->a = 0x67452301;
     ctx->b = 0xefcdab89;
     ctx->c = 0x98badcfe;
@@ -20,7 +20,7 @@ sky_md5_init(sky_md5_t *ctx) {
 
 
 void
-sky_md5_update(sky_md5_t *ctx, const void *data, sky_size_t size) {
+sky_md5_update(sky_md5_t* ctx, const void *data, sky_size_t size) {
     sky_size_t used, free;
 
     used = (sky_size_t) (ctx->bytes & 0x3f);
@@ -35,7 +35,7 @@ sky_md5_update(sky_md5_t *ctx, const void *data, sky_size_t size) {
         }
 
         sky_memcpy(&ctx->buffer[used], data, free);
-        data = (sky_uchar_t *) data + free;
+        data = (sky_uchar_t* ) data + free;
         size -= free;
         (void) sky_md5_body(ctx, ctx->buffer, 64);
     }
@@ -50,7 +50,7 @@ sky_md5_update(sky_md5_t *ctx, const void *data, sky_size_t size) {
 
 
 void
-sky_md5_final(sky_uchar_t result[16], sky_md5_t *ctx) {
+sky_md5_final(sky_uchar_t result[16], sky_md5_t* ctx) {
     sky_size_t used, free;
 
     used = (sky_size_t) (ctx->bytes & 0x3f);
@@ -132,8 +132,8 @@ sky_md5_final(sky_uchar_t result[16], sky_md5_t *ctx) {
  * does not work.
  */
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-#define SET(n)      (*(sky_uint32_t *) &p[n << 2])
-#define GET(n)      (*(sky_uint32_t *) &p[n << 2])
+#define SET(n)      (*(sky_uint32_t* ) &p[n << 2])
+#define GET(n)      (*(sky_uint32_t* ) &p[n << 2])
 #else
 #define SET(n)                                                                  \
     (block[n] =                                                                 \
@@ -151,11 +151,11 @@ sky_md5_final(sky_uchar_t result[16], sky_md5_t *ctx) {
  * the bit counters.  There are no alignment requirements.
  */
 
-static const sky_uchar_t *
-sky_md5_body(sky_md5_t *ctx, const sky_uchar_t *data, size_t size) {
+static const sky_uchar_t*
+sky_md5_body(sky_md5_t* ctx, const sky_uchar_t* data, size_t size) {
     sky_uint32_t a, b, c, d;
     sky_uint32_t saved_a, saved_b, saved_c, saved_d;
-    const sky_uchar_t *p;
+    const sky_uchar_t* p;
 #if __BYTE_ORDER != __LITTLE_ENDIAN
     sky_uint32_t       block[16];
 #endif

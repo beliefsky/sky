@@ -12,7 +12,7 @@
 #include <sys/un.h>
 
 struct sky_tcp_pool_s {
-    sky_pool_t *mem_pool;
+    sky_pool_t* mem_pool;
     struct sockaddr *addr;
     sky_uint32_t addr_len;
     sky_int32_t family;
@@ -20,25 +20,25 @@ struct sky_tcp_pool_s {
     sky_int32_t protocol;
     sky_int32_t timeout;
     sky_uint16_t connection_ptr;
-    sky_tcp_client_t *clients;
+    sky_tcp_client_t* clients;
     sky_tcp_pool_conn_next next_func;
 };
 
 struct sky_tcp_client_s {
     sky_event_t ev;
-    sky_tcp_conn_t *current;
+    sky_tcp_conn_t* current;
     sky_tcp_conn_t tasks;
 };
 
-static sky_bool_t tcp_run(sky_tcp_client_t *client);
+static sky_bool_t tcp_run(sky_tcp_client_t* client);
 
-static void tcp_close(sky_tcp_client_t *client);
+static void tcp_close(sky_tcp_client_t* client);
 
-static sky_bool_t set_address(sky_tcp_pool_t *tcp_pool, const sky_tcp_pool_conf_t *conf);
+static sky_bool_t set_address(sky_tcp_pool_t* tcp_pool, const sky_tcp_pool_conf_t* conf);
 
-static sky_bool_t tcp_connection(sky_tcp_conn_t *conn);
+static sky_bool_t tcp_connection(sky_tcp_conn_t* conn);
 
-static void tcp_connection_defer(sky_tcp_conn_t *conn);
+static void tcp_connection_defer(sky_tcp_conn_t* conn);
 
 #ifndef HAVE_ACCEPT4
 
@@ -49,11 +49,11 @@ static sky_bool_t set_socket_nonblock(sky_int32_t fd);
 #endif
 
 
-sky_tcp_pool_t *
-sky_tcp_pool_create(sky_pool_t *pool, const sky_tcp_pool_conf_t *conf) {
+sky_tcp_pool_t*
+sky_tcp_pool_create(sky_pool_t* pool, const sky_tcp_pool_conf_t* conf) {
     sky_uint16_t i;
-    sky_tcp_pool_t *conn_pool;
-    sky_tcp_client_t *client;
+    sky_tcp_pool_t* conn_pool;
+    sky_tcp_client_t* client;
 
     if (!(i = conf->connection_size)) {
         i = 2;
@@ -64,7 +64,7 @@ sky_tcp_pool_create(sky_pool_t *pool, const sky_tcp_pool_conf_t *conf) {
     conn_pool = sky_palloc(pool, sizeof(sky_tcp_pool_t) + sizeof(sky_tcp_client_t) * i);
     conn_pool->mem_pool = pool;
     conn_pool->connection_ptr = i - 1;
-    conn_pool->clients = (sky_tcp_client_t *) (conn_pool + 1);
+    conn_pool->clients = (sky_tcp_client_t* ) (conn_pool + 1);
     conn_pool->timeout = conf->timeout;
     conn_pool->next_func = conf->next_func;
 
@@ -82,9 +82,9 @@ sky_tcp_pool_create(sky_pool_t *pool, const sky_tcp_pool_conf_t *conf) {
 }
 
 sky_bool_t
-sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event_t *event, sky_coro_t *coro) {
+sky_tcp_pool_conn_bind(sky_tcp_pool_t* tcp_pool, sky_tcp_conn_t* conn, sky_event_t* event, sky_coro_t* coro) {
 
-    sky_tcp_client_t *client = tcp_pool->clients + (event->fd & tcp_pool->connection_ptr);
+    sky_tcp_client_t* client = tcp_pool->clients + (event->fd & tcp_pool->connection_ptr);
     const sky_bool_t empty = client->tasks.next == &client->tasks;
 
     conn->client = null;
@@ -123,9 +123,9 @@ sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event
 }
 
 sky_size_t
-sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_size_t size) {
-    sky_tcp_client_t *client;
-    sky_event_t *ev;
+sky_tcp_pool_conn_read(sky_tcp_conn_t* conn, sky_uchar_t* data, sky_size_t size) {
+    sky_tcp_client_t* client;
+    sky_event_t* ev;
     ssize_t n;
 
     if (sky_unlikely(!(client = conn->client) || client->ev.fd == -1)) {
@@ -187,9 +187,9 @@ sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_size_t size)
 }
 
 sky_bool_t
-sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_size_t size) {
-    sky_tcp_client_t *client;
-    sky_event_t *ev;
+sky_tcp_pool_conn_write(sky_tcp_conn_t* conn, const sky_uchar_t* data, sky_size_t size) {
+    sky_tcp_client_t* client;
+    sky_event_t* ev;
     ssize_t n;
 
     if (sky_unlikely(!(client = conn->client) || client->ev.fd == -1)) {
@@ -262,13 +262,13 @@ sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_size_
 }
 
 sky_inline void
-sky_tcp_pool_conn_close(sky_tcp_conn_t *conn) {
+sky_tcp_pool_conn_close(sky_tcp_conn_t* conn) {
     sky_defer_cancel(conn->coro, conn->defer);
     tcp_connection_defer(conn);
 }
 
 sky_inline void
-sky_tcp_pool_conn_unbind(sky_tcp_conn_t *conn) {
+sky_tcp_pool_conn_unbind(sky_tcp_conn_t* conn) {
     sky_defer_cancel(conn->coro, conn->defer);
 
     if (conn->next) {
@@ -286,8 +286,8 @@ sky_tcp_pool_conn_unbind(sky_tcp_conn_t *conn) {
 
 
 static sky_bool_t
-tcp_run(sky_tcp_client_t *client) {
-    sky_tcp_conn_t *conn;
+tcp_run(sky_tcp_client_t* client) {
+    sky_tcp_conn_t* conn;
 
     for (;;) {
         if ((conn = client->current)) {
@@ -310,12 +310,12 @@ tcp_run(sky_tcp_client_t *client) {
 }
 
 static void
-tcp_close(sky_tcp_client_t *client) {
+tcp_close(sky_tcp_client_t* client) {
     tcp_run(client);
 }
 
 static sky_bool_t
-set_address(sky_tcp_pool_t *tcp_pool, const sky_tcp_pool_conf_t *conf) {
+set_address(sky_tcp_pool_t* tcp_pool, const sky_tcp_pool_conf_t* conf) {
     if (conf->unix_path.len) {
         struct sockaddr_un *addr = sky_pcalloc(tcp_pool->mem_pool, sizeof(struct sockaddr_un));
         tcp_pool->addr = (struct sockaddr *) addr;
@@ -343,7 +343,7 @@ set_address(sky_tcp_pool_t *tcp_pool, const sky_tcp_pool_conf_t *conf) {
     struct addrinfo *addrs;
 
     if (sky_unlikely(getaddrinfo(
-            (sky_char_t *) conf->host.data, (sky_char_t *) conf->port.data,
+            (sky_char_t* ) conf->host.data, (sky_char_t* ) conf->port.data,
             &hints, &addrs) == -1 || !addrs)) {
         return false;
     }
@@ -365,9 +365,9 @@ set_address(sky_tcp_pool_t *tcp_pool, const sky_tcp_pool_conf_t *conf) {
 
 
 static sky_bool_t
-tcp_connection(sky_tcp_conn_t *conn) {
+tcp_connection(sky_tcp_conn_t* conn) {
     sky_int32_t fd;
-    sky_event_t *ev;
+    sky_event_t* ev;
 
     ev = &conn->client->ev;
     fd = socket(conn->conn_pool->family, conn->conn_pool->sock_type, conn->conn_pool->protocol);
@@ -424,7 +424,7 @@ tcp_connection(sky_tcp_conn_t *conn) {
 
 
 static sky_inline void
-tcp_connection_defer(sky_tcp_conn_t *conn) {
+tcp_connection_defer(sky_tcp_conn_t* conn) {
     if (conn->next) {
         conn->prev->next = conn->next;
         conn->next->prev = conn->prev;

@@ -24,9 +24,9 @@ typedef struct {
 } listener_t;
 
 
-static sky_bool_t tcp_listener_accept(sky_event_t *ev);
+static sky_bool_t tcp_listener_accept(sky_event_t* ev);
 
-static void tcp_listener_error(sky_event_t *ev);
+static void tcp_listener_error(sky_event_t* ev);
 
 #ifndef HAVE_ACCEPT4
 
@@ -38,12 +38,12 @@ static sky_int32_t get_backlog_size();
 
 
 void
-sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
-                        const sky_tcp_conf_t *conf) {
+sky_tcp_listener_create(sky_event_loop_t* loop, sky_pool_t* pool,
+                        const sky_tcp_conf_t* conf) {
     sky_int32_t fd;
     sky_int32_t opt;
     sky_int32_t backlog;
-    listener_t *l;
+    listener_t* l;
     struct addrinfo *addrs;
 
     const struct addrinfo hints = {
@@ -52,7 +52,7 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
             .ai_flags = AI_PASSIVE
     };
 
-    if (sky_unlikely(getaddrinfo((sky_char_t *) conf->host.data, (sky_char_t *) conf->port.data,
+    if (sky_unlikely(getaddrinfo((sky_char_t* ) conf->host.data, (sky_char_t* ) conf->port.data,
                                  &hints, &addrs) == -1)) {
         return;
     }
@@ -114,16 +114,16 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
 }
 
 static sky_bool_t
-tcp_listener_accept(sky_event_t *ev) {
-    listener_t *l;
+tcp_listener_accept(sky_event_t* ev) {
+    listener_t* l;
     sky_int32_t listener, fd;
-    sky_event_loop_t *loop;
-    sky_event_t *event;
+    sky_event_loop_t* loop;
+    sky_event_t* event;
 
     if (!ev->read) {
         return true;
     }
-    l = (listener_t *) ev;
+    l = (listener_t* ) ev;
     listener = ev->fd;
     loop = ev->loop;
 #ifdef HAVE_ACCEPT4
@@ -154,7 +154,7 @@ tcp_listener_accept(sky_event_t *ev) {
 }
 
 
-static void tcp_listener_error(sky_event_t *ev) {
+static void tcp_listener_error(sky_event_t* ev) {
     sky_log_info("%d: tcp listener error", ev->fd);
 }
 

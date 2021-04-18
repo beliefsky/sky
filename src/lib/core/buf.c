@@ -6,15 +6,15 @@
 #include "memory.h"
 
 sky_inline void
-sky_buf_init(sky_buf_t *buf, sky_pool_t *pool, sky_uint32_t size) {
+sky_buf_init(sky_buf_t* buf, sky_pool_t* pool, sky_uint32_t size) {
     buf->start = buf->pos = buf->last = sky_pnalloc(pool, size);
     buf->end = buf->start + size;
     buf->pool = pool;
 }
 
-sky_buf_t *
-sky_buf_create(sky_pool_t *pool, sky_uint32_t size) {
-    sky_buf_t *buf;
+sky_buf_t*
+sky_buf_create(sky_pool_t* pool, sky_uint32_t size) {
+    sky_buf_t* buf;
 
     buf = sky_palloc(pool, sizeof(sky_buf_t));
     sky_buf_init(buf, pool, size);
@@ -22,7 +22,7 @@ sky_buf_create(sky_pool_t *pool, sky_uint32_t size) {
     return buf;
 }
 
-void sky_buf_rebuild(sky_buf_t *buf, sky_uint32_t size) {
+void sky_buf_rebuild(sky_buf_t* buf, sky_uint32_t size) {
     const sky_uint32_t n = (sky_uint32_t) (buf->end - buf->pos);
 
     if (size < n) {
@@ -46,7 +46,7 @@ void sky_buf_rebuild(sky_buf_t *buf, sky_uint32_t size) {
     buf->end = buf->start + size;
 }
 
-void sky_buf_destroy(sky_buf_t *buf) {
+void sky_buf_destroy(sky_buf_t* buf) {
     const sky_size_t total = (sky_size_t) (buf->end - buf->start);
 
     sky_pfree(buf->pool, buf->start, total);
