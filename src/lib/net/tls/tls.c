@@ -48,9 +48,9 @@ static void read_handshake(sky_tls_t *ssl);
 
 static void write_handshake(sky_tls_t *ssl);
 
-static void tls_read_wait(sky_tls_t *ssl, sky_uchar_t *data, sky_uint32_t size);
+static void tls_read_wait(sky_tls_t *ssl, sky_uchar_t *data, sky_u32_t size);
 
-static void tls_write_wait(sky_tls_t *ssl, sky_uchar_t *data, sky_uint32_t size);
+static void tls_write_wait(sky_tls_t *ssl, sky_uchar_t *data, sky_u32_t size);
 
 sky_tls_ctx_t*
 sky_tls_ctx_init() {
@@ -78,7 +78,7 @@ sky_tls_accept(sky_tls_ctx_t *ctx, sky_event_t *ev, sky_coro_t *coro, void *data
 static void
 read_handshake(sky_tls_t *ssl) {
     sky_uchar_t *buff, flag[5];
-    sky_uint16_t size;
+    sky_u16_t size;
 
     tls_read_wait(ssl, flag, 5);
 
@@ -88,9 +88,9 @@ read_handshake(sky_tls_t *ssl) {
     }
 
     sky_log_info("content-type: %d", flag[0]);
-    sky_log_info("version: %#x", sky_ntohs(*((sky_uint16_t *) &flag[1])));
+    sky_log_info("version: %#x", sky_ntohs(*((sky_u16_t *) &flag[1])));
 
-    size = sky_ntohs(*((sky_uint16_t *) &flag[3]));
+    size = sky_ntohs(*((sky_u16_t *) &flag[3]));
     sky_log_info("length: %u", size);
     if (size > 4096U) {
         sky_coro_yield(ssl->coro, SKY_CORO_ABORT);
@@ -102,14 +102,14 @@ read_handshake(sky_tls_t *ssl) {
     //===========================
     sky_log_info("\thandshake-type: %d", *buff++);
     ++buff;
-    sky_log_info("\tlength: %d", sky_ntohs(*((sky_uint16_t *) buff))); // next buff length
+    sky_log_info("\tlength: %d", sky_ntohs(*((sky_u16_t *) buff))); // next buff length
     buff += 2;
-    sky_log_info("\t\tversion: %#x", sky_ntohs(*((sky_uint16_t *) buff)));
+    sky_log_info("\t\tversion: %#x", sky_ntohs(*((sky_u16_t *) buff)));
     buff += 2;
     sky_log_info("\t\trandom: byte<%d>", 32);
     buff += 32;
 
-    sky_uint32_t tmp_len = *buff++;
+    sky_u32_t tmp_len = *buff++;
 
     ssl->session_id.len = tmp_len;
     ssl->session_id.data = buff;
@@ -118,12 +118,12 @@ read_handshake(sky_tls_t *ssl) {
     sky_log_info("\t\tsession-id: byte<%u>", tmp_len);
     buff += tmp_len;
 
-    tmp_len = sky_ntohs(*((sky_uint16_t *) buff));
+    tmp_len = sky_ntohs(*((sky_u16_t *) buff));
     buff += 2;
 
     sky_log_info("\t\tcipher-suites: %#x", tmp_len);
     for (tmp_len >>= 1; tmp_len; --tmp_len) {
-        sky_log_info("\t\t\ttype: %#x", sky_ntohs(*((sky_uint16_t *) buff)));
+        sky_log_info("\t\t\ttype: %#x", sky_ntohs(*((sky_u16_t *) buff)));
         buff += 2;
     }
     tmp_len = *buff++;
@@ -132,17 +132,17 @@ read_handshake(sky_tls_t *ssl) {
         sky_log_info("\t\t\tmethod: %d", *buff++);
     }
 
-    tmp_len = sky_ntohs(*((sky_uint16_t *) buff));
+    tmp_len = sky_ntohs(*((sky_u16_t *) buff));
     buff += 2;
     sky_log_info("\t\textensions-length: %u", tmp_len);
 
-    sky_uint32_t type;
-    sky_uint32_t tmp;
+    sky_u32_t type;
+    sky_u32_t tmp;
     while (tmp_len) {
-        type = sky_ntohs(*((sky_uint16_t *) buff));
+        type = sky_ntohs(*((sky_u16_t *) buff));
         buff += 2;
         sky_log_info("\t\t\ttype: %d", type);
-        tmp = sky_ntohs(*((sky_uint16_t *) buff));
+        tmp = sky_ntohs(*((sky_u16_t *) buff));
         buff += 2;
         sky_log_info("\t\t\tlength: %d", tmp);
 
@@ -170,7 +170,7 @@ write_handshake(sky_tls_t *ssl) {
     //
 
 
-    sky_uint32_t size, total;
+    sky_u32_t size, total;
     sky_uchar_t *buff, *post;
 
     size = (sky_uchar_t) ssl->session_id.len + 42;
@@ -180,16 +180,16 @@ write_handshake(sky_tls_t *ssl) {
 
 
     *(buff++) = 20; // handshake
-    *(sky_uint16_t *) buff = sky_htons(0x0303); // version
+    *(sky_u16_t *) buff = sky_htons(0x0303); // version
     buff += 2;
-    *(sky_uint16_t *) buff = sky_htons(517); // length
+    *(sky_u16_t *) buff = sky_htons(517); // length
     buff += 2;
 
     *(buff++) = 2; // server hello
 
     *(buff++) = 0;
     size -= 4;
-    *(sky_uint16_t *) buff = sky_htons(size); // length
+    *(sky_u16_t *) buff = sky_htons(size); // length
     // copy random data
     //...
     buff += 32;
@@ -202,19 +202,19 @@ write_handshake(sky_tls_t *ssl) {
         *(buff++) = 32;
         buff += 32;
     }
-    *(sky_uint16_t *) buff = sky_htons(0xc030); // cipher suite
+    *(sky_u16_t *) buff = sky_htons(0xc030); // cipher suite
     buff += 2;
     *(buff++) = 0; // method
-    *(sky_uint16_t *) buff = sky_htons(0); // extensions length
+    *(sky_u16_t *) buff = sky_htons(0); // extensions length
     buff += 2;
 
     tls_write_wait(ssl, post, total);
 }
 
 static void
-tls_read_wait(sky_tls_t *ssl, sky_uchar_t *data, sky_uint32_t size) {
+tls_read_wait(sky_tls_t *ssl, sky_uchar_t *data, sky_u32_t size) {
     ssize_t n;
-    sky_int32_t fd;
+    sky_i32_t fd;
 
 
     fd = ssl->ev->fd;
@@ -248,9 +248,9 @@ tls_read_wait(sky_tls_t *ssl, sky_uchar_t *data, sky_uint32_t size) {
 }
 
 static void
-tls_write_wait(sky_tls_t *ssl, sky_uchar_t *data, sky_uint32_t size) {
+tls_write_wait(sky_tls_t *ssl, sky_uchar_t *data, sky_u32_t size) {
     ssize_t n;
-    sky_int32_t fd;
+    sky_i32_t fd;
 
     fd = ssl->ev->fd;
     for (;;) {
@@ -274,7 +274,7 @@ tls_write_wait(sky_tls_t *ssl, sky_uchar_t *data, sky_uint32_t size) {
 
         if (n < size) {
             data += n;
-            size -= (sky_uint32_t) n;
+            size -= (sky_u32_t) n;
             ssl->ev->write = false;
             sky_coro_yield(ssl->coro, SKY_CORO_MAY_RESUME);
             continue;

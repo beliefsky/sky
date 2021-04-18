@@ -24,11 +24,11 @@ extern "C" {
 #define SKY_HTTP_OPTIONS                   0x0020
 #define SKY_HTTP_PATCH                     0x0040
 
-typedef sky_bool_t (*sky_http_header_handler_pt)(sky_http_request_t *r, sky_table_elt_t *h, sky_uintptr_t data);
+typedef sky_bool_t (*sky_http_header_handler_pt)(sky_http_request_t *r, sky_table_elt_t *h, sky_usize_t data);
 
 typedef struct {
     sky_http_header_handler_pt handler;
-    sky_uintptr_t data;
+    sky_usize_t data;
 } sky_http_header_t;
 
 typedef struct {
@@ -45,7 +45,7 @@ typedef struct {
     sky_table_elt_t *if_range;
 
     sky_http_module_t *module;
-    sky_uint32_t content_length_n;
+    sky_u32_t content_length_n;
 
 } sky_http_headers_in_t;
 
@@ -61,7 +61,7 @@ typedef struct {
 
     sky_str_t content_type;
 
-    sky_int64_t content_offset;
+    sky_i64_t content_offset;
     time_t date_time;
     time_t last_modified_time;
 } sky_http_headers_out_t;
@@ -88,14 +88,14 @@ struct sky_http_request_s {
 
     sky_http_request_body_t *request_body;
 
-    sky_uint_t index;
+    sky_usize_t index;
     sky_uchar_t *req_pos;
     sky_str_t header_name;
     void *data;
 
-    sky_uint32_t version;
-    sky_uint32_t state: 9;
-    sky_uint8_t method: 7;
+    sky_u32_t version;
+    sky_u32_t state: 9;
+    sky_u8_t method: 7;
     sky_bool_t keep_alive: 1;
     sky_bool_t quoted_uri: 1;
     sky_bool_t response: 1;
@@ -103,7 +103,7 @@ struct sky_http_request_s {
 
 void sky_http_request_init(sky_http_server_t *server);
 
-sky_int32_t sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn);
+sky_i32_t sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn);
 
 void sky_http_read_body_none_need(sky_http_request_t *r, sky_buf_t *tmp);
 

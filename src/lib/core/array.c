@@ -7,7 +7,7 @@
 
 
 sky_array_t*
-sky_array_create(sky_pool_t *p, sky_uint32_t n, sky_size_t size) {
+sky_array_create(sky_pool_t *p, sky_u32_t n, sky_usize_t size) {
     sky_array_t *a;
 
     // 分配ngx_array_t数组管理结构的内存
@@ -24,7 +24,7 @@ sky_array_create(sky_pool_t *p, sky_uint32_t n, sky_size_t size) {
 
 void
 sky_array_destroy(sky_array_t *a) {
-    const sky_size_t total = a->size * a->nalloc;
+    const sky_usize_t total = a->size * a->nalloc;
     sky_pfree(a->pool, a->elts, total);
     sky_memzero(a, sizeof(sky_array_t));
 }
@@ -37,8 +37,8 @@ sky_array_destroy(sky_array_t *a) {
 void*
 sky_array_push(sky_array_t *a) {
     if (a->nelts == a->nalloc) {
-        const sky_size_t total = a->size * a->nalloc;
-        const sky_size_t re_size = total << 1;
+        const sky_usize_t total = a->size * a->nalloc;
+        const sky_usize_t re_size = total << 1;
         a->nalloc <<= 1;
 
         a->elts = sky_prealloc(a->pool, a->elts, total, re_size);
@@ -51,14 +51,14 @@ sky_array_push(sky_array_t *a) {
 }
 
 void*
-sky_array_push_n(sky_array_t *a, sky_uint32_t n) {
+sky_array_push_n(sky_array_t *a, sky_u32_t n) {
     if (a->nelts + n > a->nalloc) {
-        const sky_uint32_t max = sky_max(n, a->nalloc);
-        const sky_size_t total = a->size * a->nalloc;
+        const sky_u32_t max = sky_max(n, a->nalloc);
+        const sky_usize_t total = a->size * a->nalloc;
 
         a->nalloc = max << 1;
 
-        const sky_size_t re_size = a->size * a->nalloc;
+        const sky_usize_t re_size = a->size * a->nalloc;
         a->elts = sky_prealloc(a->pool, a->elts, total, re_size);
     }
 

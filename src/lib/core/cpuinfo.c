@@ -5,16 +5,16 @@
 #include "cpuinfo.h"
 #include "string.h"
 
-sky_uint_t sky_cache_line_size;
+sky_usize_t sky_cache_line_size;
 
 #if ((__i386__ || __amd64__) && (__GNUC__ || __INTEL_COMPILER))
 
-static sky_inline void cpu_id(sky_uint32_t i, sky_uint32_t *buf);
+static sky_inline void cpu_id(sky_u32_t i, sky_u32_t *buf);
 
 #if (__i386__)
 
 static ngx_inline void
-cpu_id(sky_uint32_t i, sky_uint32_t *buf)
+cpu_id(sky_u32_t i, sky_u32_t *buf)
 {
 
     /*
@@ -43,8 +43,8 @@ cpu_id(sky_uint32_t i, sky_uint32_t *buf)
 
 
 static sky_inline void
-cpu_id(sky_uint32_t i, sky_uint32_t *buf) {
-    sky_uint32_t eax, ebx, ecx, edx;
+cpu_id(sky_u32_t i, sky_u32_t *buf) {
+    sky_u32_t eax, ebx, ecx, edx;
 
     __asm__ (
 
@@ -67,7 +67,7 @@ cpu_id(sky_uint32_t i, sky_uint32_t *buf) {
 void
 sky_cpu_info() {
     sky_uchar_t *vendor;
-    sky_uint32_t vbuf[5], cpu[4], model;
+    sky_u32_t vbuf[5], cpu[4], model;
 
     vbuf[0] = 0;
     vbuf[1] = 0;

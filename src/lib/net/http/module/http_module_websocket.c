@@ -22,19 +22,19 @@ static void module_run(sky_http_request_t *r, websocket_data_t *data);
 
 static void module_run_next(sky_websocket_session_t *session);
 
-static sky_int8_t read_message(sky_coro_t *coro, sky_websocket_session_t *session);
+static sky_i8_t read_message(sky_coro_t *coro, sky_websocket_session_t *session);
 
-static sky_int8_t write_message(sky_coro_t *coro, sky_websocket_session_t *session);
+static sky_i8_t write_message(sky_coro_t *coro, sky_websocket_session_t *session);
 
-static void websocket_decoding(sky_uchar_t *p, const sky_uchar_t *key, sky_uint64_t payload_size);
+static void websocket_decoding(sky_uchar_t *p, const sky_uchar_t *key, sky_u64_t payload_size);
 
-static sky_uint32_t websocket_read(sky_websocket_session_t *session, sky_uchar_t *data, sky_uint32_t size);
+static sky_u32_t websocket_read(sky_websocket_session_t *session, sky_uchar_t *data, sky_u32_t size);
 
-static void websocket_read_wait(sky_websocket_session_t *session, sky_uchar_t *data, sky_uint32_t size);
+static void websocket_read_wait(sky_websocket_session_t *session, sky_uchar_t *data, sky_u32_t size);
 
-static void websocket_write(sky_websocket_session_t *session, sky_uchar_t *data, sky_uint32_t size);
+static void websocket_write(sky_websocket_session_t *session, sky_uchar_t *data, sky_u32_t size);
 
-static void write_test(sky_websocket_session_t *session, sky_pool_t *pool, sky_uchar_t *data, sky_size_t size);
+static void write_test(sky_websocket_session_t *session, sky_pool_t *pool, sky_uchar_t *data, sky_usize_t size);
 
 
 void
@@ -130,7 +130,7 @@ module_run_next(sky_websocket_session_t *session) {
     sky_http_connection_t *conn;
     sky_coro_switcher_t switcher;
     sky_coro_t *read_work, *write_work;
-    sky_int32_t result;
+    sky_i32_t result;
 
     conn = session->request->conn;
     conn->ev.timeout = 3600;
@@ -162,17 +162,17 @@ module_run_next(sky_websocket_session_t *session) {
 }
 
 
-static sky_int8_t
+static sky_i8_t
 read_message(sky_coro_t *coro, sky_websocket_session_t *session) {
-    sky_uint64_t payload_size;
+    sky_u64_t payload_size;
     sky_pool_t *pool;
     websocket_data_t *w_data;
     sky_websocket_message_t *message;
     sky_uchar_t *p;
     sky_uchar_t head[10];
-    sky_uint32_t size;
-    sky_uint8_t flag;
-    sky_uint8_t offset;
+    sky_u32_t size;
+    sky_u8_t flag;
+    sky_u8_t offset;
 
     w_data = session->server;
     pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
@@ -216,7 +216,7 @@ read_message(sky_coro_t *coro, sky_websocket_session_t *session) {
                         websocket_read_wait(session, head + (size + 1), 3 - size);
                         size = 0;
                     }
-                    payload_size = sky_htons(*(sky_uint16_t *) &head[2]);
+                    payload_size = sky_htons(*(sky_u16_t *) &head[2]);
 
                 } else {
                     offset = 10;
@@ -224,7 +224,7 @@ read_message(sky_coro_t *coro, sky_websocket_session_t *session) {
                         websocket_read_wait(session, head + (size + 1), 9 - size);
                     }
                     size = 0;
-                    payload_size = sky_htonll(*(sky_uint64_t *) &head[2]);
+                    payload_size = sky_htonll(*(sky_u64_t *) &head[2]);
                 }
             } else {
                 offset = 2;
@@ -234,9 +234,9 @@ read_message(sky_coro_t *coro, sky_websocket_session_t *session) {
                 p = sky_palloc(pool, payload_size + 5);
                 if (sky_likely(size)) {
                     sky_memcpy(p, head + offset, size);
-                    websocket_read_wait(session, p + size, (sky_uint32_t) payload_size - size + 4);
+                    websocket_read_wait(session, p + size, (sky_u32_t) payload_size - size + 4);
                 } else {
-                    websocket_read_wait(session, p, (sky_uint32_t) payload_size + 4);
+                    websocket_read_wait(session, p, (sky_u32_t) payload_size + 4);
                 }
                 websocket_decoding(p + 4, p, payload_size);
                 p += 4;
@@ -244,9 +244,9 @@ read_message(sky_coro_t *coro, sky_websocket_session_t *session) {
                 p = sky_palloc(pool, payload_size + 1);
                 if (sky_likely(size)) {
                     sky_memcpy(p, head + offset, size);
-                    websocket_read_wait(session, p + size, (sky_uint32_t) payload_size - size);
+                    websocket_read_wait(session, p + size, (sky_u32_t) payload_size - size);
                 } else {
-                    websocket_read_wait(session, p, (sky_uint32_t) payload_size);
+                    websocket_read_wait(session, p, (sky_u32_t) payload_size);
                 }
             }
 
@@ -268,7 +268,7 @@ read_message(sky_coro_t *coro, sky_websocket_session_t *session) {
 
 }
 
-static sky_int8_t
+static sky_i8_t
 write_message(sky_coro_t *coro, sky_websocket_session_t *session) {
     sky_pool_t *pool = sky_create_pool(4096);
 
@@ -287,18 +287,18 @@ write_message(sky_coro_t *coro, sky_websocket_session_t *session) {
 }
 
 static void
-websocket_decoding(sky_uchar_t *p, const sky_uchar_t *key, sky_uint64_t payload_size) {
-    sky_uint64_t size;
+websocket_decoding(sky_uchar_t *p, const sky_uchar_t *key, sky_u64_t payload_size) {
+    sky_u64_t size;
 
 #if defined(__x86_64__)
     size = payload_size >> 3;
     if (size) {
-        sky_uint64_t mask;
+        sky_u64_t mask;
 
-        ((sky_uint32_t *) (&mask))[0] = *(sky_uint32_t *) key;
-        ((sky_uint32_t *) (&mask))[1] = *(sky_uint32_t *) key;
+        ((sky_u32_t *) (&mask))[0] = *(sky_u32_t *) key;
+        ((sky_u32_t *) (&mask))[1] = *(sky_u32_t *) key;
         do {
-            *(sky_uint64_t *) (p) ^= mask;
+            *(sky_u64_t *) (p) ^= mask;
             p += 8;
         } while (--size);
     }
@@ -307,30 +307,30 @@ websocket_decoding(sky_uchar_t *p, const sky_uchar_t *key, sky_uint64_t payload_
             *p ^= key[0];
             break;
         case 2:
-            *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) key;
+            *(sky_u16_t *) (p) ^= *(sky_u16_t *) key;
             break;
         case 3:
-            *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) (key);
+            *(sky_u16_t *) (p) ^= *(sky_u16_t *) (key);
             p += 2;
             *p ^= key[2];
             break;
         case 4:
-            *(sky_uint32_t *) (p) ^= *(sky_uint32_t *) key;
+            *(sky_u32_t *) (p) ^= *(sky_u32_t *) key;
             break;
         case 5:
-            *(sky_uint32_t *) (p) ^= *(sky_uint32_t *) key;
+            *(sky_u32_t *) (p) ^= *(sky_u32_t *) key;
             p += 4;
             *p ^= key[0];
             break;
         case 6:
-            *(sky_uint32_t *) (p) ^= *(sky_uint32_t *) key;
+            *(sky_u32_t *) (p) ^= *(sky_u32_t *) key;
             p += 4;
-            *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) key;
+            *(sky_u16_t *) (p) ^= *(sky_u16_t *) key;
             break;
         case 7:
-            *(sky_uint32_t *) (p) ^= *(sky_uint32_t *) key;
+            *(sky_u32_t *) (p) ^= *(sky_u32_t *) key;
             p += 4;
-            *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) (key);
+            *(sky_u16_t *) (p) ^= *(sky_u16_t *) (key);
             p += 2;
             *p ^= key[2];
             break;
@@ -340,9 +340,9 @@ websocket_decoding(sky_uchar_t *p, const sky_uchar_t *key, sky_uint64_t payload_
 #else
     size = payload_size >> 2;
     if (size) {
-        sky_uint32_t mask = *(sky_uint32_t *) key;
+        sky_u32_t mask = *(sky_u32_t *) key;
         do {
-            *(sky_uint32_t *) (p) ^= mask;
+            *(sky_u32_t *) (p) ^= mask;
             p += 4;
         } while (--size);
     }
@@ -352,10 +352,10 @@ websocket_decoding(sky_uchar_t *p, const sky_uchar_t *key, sky_uint64_t payload_
             *p ^= key[0];
             break;
         case 2:
-            *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) key;
+            *(sky_u16_t *) (p) ^= *(sky_u16_t *) key;
             break;
         case 3:
-            *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) (key);
+            *(sky_u16_t *) (p) ^= *(sky_u16_t *) (key);
             p += 2;
             *p ^= key[2];
             break;
@@ -367,7 +367,7 @@ websocket_decoding(sky_uchar_t *p, const sky_uchar_t *key, sky_uint64_t payload_
 
 
 static void
-write_test(sky_websocket_session_t *session, sky_pool_t *pool, sky_uchar_t *data, sky_size_t size) {
+write_test(sky_websocket_session_t *session, sky_pool_t *pool, sky_uchar_t *data, sky_usize_t size) {
     sky_uchar_t *p = sky_palloc(pool, 128);
 
     *p++ = 0x1 << 7 | 0x01;
@@ -375,13 +375,13 @@ write_test(sky_websocket_session_t *session, sky_pool_t *pool, sky_uchar_t *data
     *p++ = (sky_uchar_t) size;
     sky_memcpy(p, data, size);
 
-    websocket_write(session, p - 2, (sky_uint32_t) size + 2);
+    websocket_write(session, p - 2, (sky_u32_t) size + 2);
 }
 
 static sky_inline void
-websocket_read_wait(sky_websocket_session_t *session, sky_uchar_t *data, sky_uint32_t size) {
+websocket_read_wait(sky_websocket_session_t *session, sky_uchar_t *data, sky_u32_t size) {
     ssize_t n;
-    sky_int32_t fd;
+    sky_i32_t fd;
 
 
     if (!size) {
@@ -418,10 +418,10 @@ websocket_read_wait(sky_websocket_session_t *session, sky_uchar_t *data, sky_uin
     }
 }
 
-static sky_inline sky_uint32_t
-websocket_read(sky_websocket_session_t *session, sky_uchar_t *data, sky_uint32_t size) {
+static sky_inline sky_u32_t
+websocket_read(sky_websocket_session_t *session, sky_uchar_t *data, sky_u32_t size) {
     ssize_t n;
-    sky_int32_t fd;
+    sky_i32_t fd;
 
 
     fd = session->event->fd;
@@ -447,14 +447,14 @@ websocket_read(sky_websocket_session_t *session, sky_uchar_t *data, sky_uint32_t
                     sky_coro_exit();
             }
         }
-        return (sky_uint32_t) n;
+        return (sky_u32_t) n;
     }
 }
 
 static sky_inline void
-websocket_write(sky_websocket_session_t *session, sky_uchar_t *data, sky_uint32_t size) {
+websocket_write(sky_websocket_session_t *session, sky_uchar_t *data, sky_u32_t size) {
     ssize_t n;
-    sky_int32_t fd;
+    sky_i32_t fd;
 
     fd = session->event->fd;
     for (;;) {
@@ -481,7 +481,7 @@ websocket_write(sky_websocket_session_t *session, sky_uchar_t *data, sky_uint32_
         }
 
         if (n < size) {
-            data += n, size -= (sky_uint32_t) n;
+            data += n, size -= (sky_u32_t) n;
             session->event->write = false;
             sky_coro_yield(session->write_work, SKY_CORO_MAY_RESUME);
             continue;

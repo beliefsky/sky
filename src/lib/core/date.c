@@ -7,21 +7,21 @@
 #include "number.h"
 
 
-sky_inline sky_uint8_t
-sky_time_to_str(sky_uint32_t secs, sky_uchar_t *out) {
+sky_inline sky_u8_t
+sky_time_to_str(sky_u32_t secs, sky_uchar_t *out) {
     if (sky_unlikely(secs > 86400)) {
         return 0;
     }
     // divide by 3600 to calculate hours
-    sky_uint64_t hours = (secs * 0x91A3) >> 27;
-    sky_uint64_t xrem = secs - (hours * 3600);
+    sky_u64_t hours = (secs * 0x91A3) >> 27;
+    sky_u64_t xrem = secs - (hours * 3600);
 
     // divide by 60 to calculate minutes
-    sky_uint64_t mins = (xrem * 0x889) >> 17;
+    sky_u64_t mins = (xrem * 0x889) >> 17;
     xrem = xrem - (mins * 60);
 
     // position hours, minutes, and seconds in one var
-    sky_uint64_t timeBuffer = hours + (mins << 24) + (xrem << 48);
+    sky_u64_t timeBuffer = hours + (mins << 24) + (xrem << 48);
 
     // convert to decimal representation
     xrem = ((timeBuffer * 103) >> 9) & 0x001E00001E00001E;
@@ -36,7 +36,7 @@ sky_time_to_str(sky_uint32_t secs, sky_uchar_t *out) {
     timeBuffer |= 0x30303A30303A3030;
 
     // copy to buffer
-    *(sky_uint64_t *) out = timeBuffer;
+    *(sky_u64_t *) out = timeBuffer;
     out[8] = '\0';
 
     return 8;
@@ -81,7 +81,7 @@ sky_rfc_str_to_date(sky_str_t *in, time_t *out) {
     value += 5;
 
 
-    if (sky_unlikely(!sky_str_len_to_int32(value, 2, &tm.tm_mday) || tm.tm_mday < 1 || tm.tm_mday > 31)) {
+    if (sky_unlikely(!sky_str_len_to_i32(value, 2, &tm.tm_mday) || tm.tm_mday < 1 || tm.tm_mday > 31)) {
         return false;
     }
     value += 3;
@@ -126,21 +126,21 @@ sky_rfc_str_to_date(sky_str_t *in, time_t *out) {
             return false;
     }
     value += 4;
-    if (sky_unlikely(!sky_str_len_to_int32(value, 4, &tm.tm_year) || tm.tm_year < 0 || tm.tm_year > 9999)) {
+    if (sky_unlikely(!sky_str_len_to_i32(value, 4, &tm.tm_year) || tm.tm_year < 0 || tm.tm_year > 9999)) {
         return false;
     }
     tm.tm_year -= 1900;
     value += 5;
 
-    if (sky_unlikely(!sky_str_len_to_int32(value, 2, &tm.tm_hour) || tm.tm_hour < 0 || tm.tm_hour > 24)) {
+    if (sky_unlikely(!sky_str_len_to_i32(value, 2, &tm.tm_hour) || tm.tm_hour < 0 || tm.tm_hour > 24)) {
         return false;
     }
     value += 3;
-    if (sky_unlikely(!sky_str_len_to_int32(value, 2, &tm.tm_min) || tm.tm_min < 0 || tm.tm_min > 60)) {
+    if (sky_unlikely(!sky_str_len_to_i32(value, 2, &tm.tm_min) || tm.tm_min < 0 || tm.tm_min > 60)) {
         return false;
     }
     value += 3;
-    if (sky_unlikely(!sky_str_len_to_int32(value, 2, &tm.tm_sec) || tm.tm_sec < 0 || tm.tm_sec > 60)) {
+    if (sky_unlikely(!sky_str_len_to_i32(value, 2, &tm.tm_sec) || tm.tm_sec < 0 || tm.tm_sec > 60)) {
         return false;
     }
     value += 3;
@@ -156,12 +156,12 @@ sky_rfc_str_to_date(sky_str_t *in, time_t *out) {
 }
 
 
-sky_uint8_t
+sky_u8_t
 sky_date_to_rfc_str(time_t time, sky_uchar_t *src) {
     static const sky_char_t *week_days = "Sun,Mon,Tue,Wed,Thu,Fri,Sat,";
     static const sky_char_t *months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec ";
     struct tm tm;
-    sky_uint32_t day_of_time;
+    sky_u32_t day_of_time;
 
 
     day_of_time = time % 86400;
@@ -175,13 +175,13 @@ sky_date_to_rfc_str(time_t time, sky_uchar_t *src) {
         *(src++) = '0';
         *(src++) = sky_num_to_uchar(tm.tm_mday);
     } else {
-        src += sky_uint8_to_str((sky_uint8_t) tm.tm_mday, src);
+        src += sky_u8_to_str((sky_u8_t) tm.tm_mday, src);
     }
     *(src++) = ' ';
     sky_memcpy(src, months + (tm.tm_mon << 2), 4);
     src += 4;
 
-    src += sky_uint16_to_str((sky_uint16_t) tm.tm_year + 1900, src);
+    src += sky_u16_to_str((sky_u16_t) tm.tm_year + 1900, src);
     *(src++) = ' ';
 
     src += sky_time_to_str(day_of_time, src);

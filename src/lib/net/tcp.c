@@ -20,7 +20,7 @@ typedef struct {
     sky_event_t ev;
     sky_tcp_accept_cb_pt run;
     void *data;
-    sky_int32_t timeout;
+    sky_i32_t timeout;
 } listener_t;
 
 
@@ -30,19 +30,19 @@ static void tcp_listener_error(sky_event_t *ev);
 
 #ifndef HAVE_ACCEPT4
 
-static sky_bool_t set_socket_nonblock(sky_int32_t fd);
+static sky_bool_t set_socket_nonblock(sky_i32_t fd);
 
 #endif
 
-static sky_int32_t get_backlog_size();
+static sky_i32_t get_backlog_size();
 
 
 void
 sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
                         const sky_tcp_conf_t *conf) {
-    sky_int32_t fd;
-    sky_int32_t opt;
-    sky_int32_t backlog;
+    sky_i32_t fd;
+    sky_i32_t opt;
+    sky_i32_t backlog;
     listener_t *l;
     struct addrinfo *addrs;
 
@@ -79,14 +79,14 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
 
 
         opt = 1;
-        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_int32_t));
+        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_i32_t));
 #ifdef SO_REUSEPORT_LB
-        setsockopt(fd, SOL_SOCKET, SO_REUSEPORT_LB, &opt, sizeof(sky_int32_t));
+        setsockopt(fd, SOL_SOCKET, SO_REUSEPORT_LB, &opt, sizeof(sky_i32_t));
 #else
-        setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_int32_t));
+        setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_i32_t));
 #endif
 #ifdef TCP_DEFER_ACCEPT
-        setsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &opt, sizeof(sky_int32_t));
+        setsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &opt, sizeof(sky_i32_t));
 #endif
         if (sky_unlikely(bind(fd, addr->ai_addr, addr->ai_addrlen) != 0)) {
             close(fd);
@@ -96,11 +96,11 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
             close(fd);
             continue;
         }
-        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(sky_int32_t));
+        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(sky_i32_t));
 
 #ifdef TCP_FASTOPEN
         opt = 5;
-        setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &opt, sizeof(sky_int32_t));
+        setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &opt, sizeof(sky_i32_t));
 #endif
 
         l = sky_palloc(pool, sizeof(listener_t));
@@ -116,7 +116,7 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
 static sky_bool_t
 tcp_listener_accept(sky_event_t *ev) {
     listener_t *l;
-    sky_int32_t listener, fd;
+    sky_i32_t listener, fd;
     sky_event_loop_t *loop;
     sky_event_t *event;
 
@@ -161,8 +161,8 @@ static void tcp_listener_error(sky_event_t *ev) {
 #ifndef HAVE_ACCEPT4
 
 static sky_inline sky_bool_t
-set_socket_nonblock(sky_int32_t fd) {
-    sky_int32_t flags;
+set_socket_nonblock(sky_i32_t fd) {
+    sky_i32_t flags;
 
     flags = fcntl(fd, F_GETFD);
 
@@ -189,26 +189,26 @@ set_socket_nonblock(sky_int32_t fd) {
 
 #endif
 
-static sky_int32_t
+static sky_i32_t
 get_backlog_size() {
-    sky_int32_t backlog;
+    sky_i32_t backlog;
 #ifdef SOMAXCONN
     backlog = SOMAXCONN;
 #else
     backlog = 128;
 #endif
-    const sky_int32_t fd = open("/proc/sys/net/core/somaxconn", O_RDONLY | O_CLOEXEC);
+    const sky_i32_t fd = open("/proc/sys/net/core/somaxconn", O_RDONLY | O_CLOEXEC);
     if (fd < 0) {
         return backlog;
     }
     sky_uchar_t ch[16];
-    const sky_int32_t size = (sky_int32_t)read(fd, ch, 16);
+    const sky_i32_t size = (sky_i32_t)read(fd, ch, 16);
     close(fd);
     if (sky_unlikely(size < 1)) {
         return backlog;
     }
 
-    if (sky_unlikely(!sky_str_len_to_int32(ch, (sky_uint32_t)size - 1, &backlog))) {
+    if (sky_unlikely(!sky_str_len_to_i32(ch, (sky_u32_t)size - 1, &backlog))) {
         return backlog;
     }
 

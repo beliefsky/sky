@@ -14,12 +14,12 @@
 struct sky_tcp_pool_s {
     sky_pool_t *mem_pool;
     struct sockaddr *addr;
-    sky_uint32_t addr_len;
-    sky_int32_t family;
-    sky_int32_t sock_type;
-    sky_int32_t protocol;
-    sky_int32_t timeout;
-    sky_uint16_t connection_ptr;
+    sky_u32_t addr_len;
+    sky_i32_t family;
+    sky_i32_t sock_type;
+    sky_i32_t protocol;
+    sky_i32_t timeout;
+    sky_u16_t connection_ptr;
     sky_tcp_client_t *clients;
     sky_tcp_pool_conn_next next_func;
 };
@@ -44,14 +44,14 @@ static void tcp_connection_defer(sky_tcp_conn_t *conn);
 
 #include <fcntl.h>
 
-static sky_bool_t set_socket_nonblock(sky_int32_t fd);
+static sky_bool_t set_socket_nonblock(sky_i32_t fd);
 
 #endif
 
 
 sky_tcp_pool_t*
 sky_tcp_pool_create(sky_pool_t *pool, const sky_tcp_pool_conf_t *conf) {
-    sky_uint16_t i;
+    sky_u16_t i;
     sky_tcp_pool_t *conn_pool;
     sky_tcp_client_t *client;
 
@@ -122,8 +122,8 @@ sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event
     return true;
 }
 
-sky_size_t
-sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_size_t size) {
+sky_usize_t
+sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size) {
     sky_tcp_client_t *client;
     sky_event_t *ev;
     ssize_t n;
@@ -135,7 +135,7 @@ sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_size_t size)
     ev = &conn->client->ev;
     if (!ev->reg) {
         if ((n = read(ev->fd, data, size)) > 0) {
-            return (sky_size_t) n;
+            return (sky_usize_t) n;
         }
         if (sky_unlikely(!n)) {
             close(ev->fd);
@@ -165,7 +165,7 @@ sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_size_t size)
             continue;
         }
         if ((n = read(ev->fd, data, size)) > 0) {
-            return (sky_size_t) n;
+            return (sky_usize_t) n;
         }
         if (sky_unlikely(!n)) {
             return 0;
@@ -187,7 +187,7 @@ sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_size_t size)
 }
 
 sky_bool_t
-sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_size_t size) {
+sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize_t size) {
     sky_tcp_client_t *client;
     sky_event_t *ev;
     ssize_t n;
@@ -199,9 +199,9 @@ sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_size_
     ev = &conn->client->ev;
     if (!ev->reg) {
         if ((n = write(ev->fd, data, size)) > 0) {
-            if ((sky_size_t) n < size) {
+            if ((sky_usize_t) n < size) {
                 data += n;
-                size -= (sky_size_t) n;
+                size -= (sky_usize_t) n;
             } else {
                 return true;
             }
@@ -235,9 +235,9 @@ sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_size_
             continue;
         }
         if ((n = write(ev->fd, data, size)) > 0) {
-            if ((sky_size_t) n < size) {
+            if ((sky_usize_t) n < size) {
                 data += n;
-                size -= (sky_size_t) n;
+                size -= (sky_usize_t) n;
             } else {
                 return true;
             }
@@ -366,7 +366,7 @@ set_address(sky_tcp_pool_t *tcp_pool, const sky_tcp_pool_conf_t *conf) {
 
 static sky_bool_t
 tcp_connection(sky_tcp_conn_t *conn) {
-    sky_int32_t fd;
+    sky_i32_t fd;
     sky_event_t *ev;
 
     ev = &conn->client->ev;
@@ -444,8 +444,8 @@ tcp_connection_defer(sky_tcp_conn_t *conn) {
 #ifndef HAVE_ACCEPT4
 
 static sky_inline sky_bool_t
-set_socket_nonblock(sky_int32_t fd) {
-    sky_int32_t flags;
+set_socket_nonblock(sky_i32_t fd) {
+    sky_i32_t flags;
 
     flags = fcntl(fd, F_GETFD);
 

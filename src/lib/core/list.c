@@ -5,7 +5,7 @@
 #include "list.h"
 
 sky_list_t*
-sky_list_create(sky_pool_t *pool, sky_uint32_t n, sky_size_t size) {
+sky_list_create(sky_pool_t *pool, sky_u32_t n, sky_usize_t size) {
     sky_list_t *list;
 
     list = sky_palloc(pool, sizeof(sky_list_t));

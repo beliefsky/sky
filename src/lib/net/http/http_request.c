@@ -18,7 +18,7 @@ sky_http_request_init(sky_http_server_t *server) {
 
 }
 
-sky_int32_t
+sky_i32_t
 sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
     sky_pool_t *pool;
     sky_defer_t *defer;
@@ -63,9 +63,9 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
     sky_http_server_t *server;
     sky_buf_t *buf;
     sky_http_module_t *module;
-    sky_size_t n;
-    sky_uint8_t buf_n;
-    sky_int8_t i;
+    sky_usize_t n;
+    sky_u8_t buf_n;
+    sky_i8_t i;
 
     server = conn->server;
     buf_n = server->header_buf_n;
@@ -80,7 +80,7 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
     buf = sky_buf_create(pool, server->header_buf_size);
 
     for (;;) {
-        n = server->http_read(conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
+        n = server->http_read(conn, buf->last, (sky_u32_t) (buf->end - buf->last));
         buf->last += n;
         i = sky_http_request_line_parse(r, buf);
         if (i == 1) {
@@ -106,7 +106,7 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
         if (sky_unlikely(buf->last == buf->end)) {
             if (--buf_n) {
                 if (r->req_pos) {
-                    n = (sky_uint32_t) (buf->pos - r->req_pos);
+                    n = (sky_u32_t) (buf->pos - r->req_pos);
                     buf->pos -= n;
                     sky_buf_rebuild(buf, server->header_buf_size);
                     r->req_pos = buf->pos;
@@ -114,7 +114,7 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
                 }
             }
         }
-        n = server->http_read(conn, buf->last, (sky_uint32_t) (buf->end - buf->last));
+        n = server->http_read(conn, buf->last, (sky_u32_t) (buf->end - buf->last));
         buf->last += n;
     }
 
@@ -136,9 +136,9 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
 void
 sky_http_read_body_none_need(sky_http_request_t *r, sky_buf_t *tmp) {
     sky_http_server_t *server;
-    sky_uint32_t n, size, t;
+    sky_u32_t n, size, t;
 
-    n = (sky_uint32_t) (tmp->last - tmp->pos);
+    n = (sky_u32_t) (tmp->last - tmp->pos);
     size = r->headers_in.content_length_n;
 
     if (n >= size) {
@@ -146,7 +146,7 @@ sky_http_read_body_none_need(sky_http_request_t *r, sky_buf_t *tmp) {
     }
     size -= n;
 
-    n = (sky_uint32_t) (tmp->end - tmp->pos);
+    n = (sky_u32_t) (tmp->end - tmp->pos);
     server = r->conn->server;
 
     // 实际数据小于缓冲
@@ -172,12 +172,12 @@ sky_http_read_body_none_need(sky_http_request_t *r, sky_buf_t *tmp) {
 
 void
 sky_http_read_body_str(sky_http_request_t *r, sky_buf_t *tmp) {
-    sky_size_t size, n;
+    sky_usize_t size, n;
     sky_http_server_t *server;
     sky_uchar_t *p;
 
-    const sky_uint32_t total = r->headers_in.content_length_n;
-    n = (sky_size_t) (tmp->last - tmp->pos);
+    const sky_u32_t total = r->headers_in.content_length_n;
+    n = (sky_usize_t) (tmp->last - tmp->pos);
     if (n >= total) {
         r->request_body->str.len = n;
         r->request_body->str.data = tmp->pos;
@@ -189,7 +189,7 @@ sky_http_read_body_str(sky_http_request_t *r, sky_buf_t *tmp) {
     size = total - n;
 
     server = r->conn->server;
-    n = (sky_size_t) (tmp->end - tmp->last);
+    n = (sky_usize_t) (tmp->end - tmp->last);
     if (n > size) {
         do {
             n = server->http_read(r->conn, tmp->last, size);
@@ -207,7 +207,7 @@ sky_http_read_body_str(sky_http_request_t *r, sky_buf_t *tmp) {
     // 大内存读取
     if (total > 8192) {
 
-        const sky_uint32_t re_size = sky_align(total + 1, 4096U);
+        const sky_u32_t re_size = sky_align(total + 1, 4096U);
 
         p = mmap(null, re_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
         if (sky_unlikely(!p)) {
@@ -223,7 +223,7 @@ sky_http_read_body_str(sky_http_request_t *r, sky_buf_t *tmp) {
         r->request_body->str.len = total;
         r->request_body->str.data = p;
 
-        n = (sky_size_t) (tmp->end - tmp->last);
+        n = (sky_usize_t) (tmp->end - tmp->last);
         sky_memcpy(p, tmp->pos, n);
         tmp->pos += n;
         p += n;

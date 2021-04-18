@@ -25,8 +25,8 @@
 typedef struct {
     time_t modified_time;
     time_t range_time;
-    sky_int64_t left;
-    sky_int64_t right;
+    sky_i64_t left;
+    sky_i64_t right;
     sky_defer_t *file_defer;
 
     sky_bool_t modified: 1;
@@ -81,12 +81,12 @@ sky_http_module_file_init(sky_pool_t *pool, const sky_http_file_conf_t *conf) {
 static void
 http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
     struct stat stat_buf;
-    sky_int64_t mtime;
+    sky_i64_t mtime;
     http_file_t *file;
     http_mime_type_t *mime_type;
     sky_table_elt_t *header;
     sky_char_t *path;
-    sky_int32_t fd;
+    sky_i32_t fd;
 
     if (sky_unlikely(!r->uri.len)) {
         http_error_page(r, 404, "404 Not Found");
@@ -179,10 +179,10 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
         file->left = 0;
         file->right = stat_buf.st_size - 1;
     }
-    file->file_defer = sky_defer_add(r->conn->coro, (sky_defer_func_t) close, (void *) (sky_uintptr_t) fd);
+    file->file_defer = sky_defer_add(r->conn->coro, (sky_defer_func_t) close, (void *) (sky_usize_t) fd);
 
-    sky_http_sendfile(r, fd, (sky_size_t) file->left, (sky_size_t) (file->right - file->left + 1),
-                      (sky_size_t) stat_buf.st_size);
+    sky_http_sendfile(r, fd, (sky_usize_t) file->left, (sky_usize_t) (file->right - file->left + 1),
+                      (sky_usize_t) stat_buf.st_size);
 
     sky_defer_remove(r->conn->coro, file->file_defer);
 }
@@ -190,7 +190,7 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
 static sky_bool_t
 http_header_range(http_file_t *file, sky_str_t *value) {
     sky_uchar_t *start, *end, p;
-    sky_int64_t tmp;
+    sky_i64_t tmp;
 
     enum {
         rang_start = 0,

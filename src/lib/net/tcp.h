@@ -14,12 +14,12 @@
 extern "C" {
 #endif
 
-typedef sky_event_t *(*sky_tcp_accept_cb_pt)(sky_event_loop_t *loop, sky_int32_t fd, void *data);
+typedef sky_event_t *(*sky_tcp_accept_cb_pt)(sky_event_loop_t *loop, sky_i32_t fd, void *data);
 
 typedef struct {
     sky_str_t host;
     sky_str_t port;
-    sky_int32_t timeout;
+    sky_i32_t timeout;
     sky_tcp_accept_cb_pt run;
     void *data;
 } sky_tcp_conf_t;

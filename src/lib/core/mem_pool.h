@@ -12,7 +12,7 @@ extern "C" {
 
 typedef struct sky_mem_pool_s sky_mem_pool_t;
 
-sky_mem_pool_t *sky_mem_pool_create(sky_size_t size, sky_size_t num);
+sky_mem_pool_t *sky_mem_pool_create(sky_usize_t size, sky_usize_t num);
 
 void *sky_mem_pool_get(sky_mem_pool_t *pool);
 

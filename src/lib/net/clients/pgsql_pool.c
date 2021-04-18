@@ -21,16 +21,16 @@ struct sky_pgsql_pool_s {
 static sky_bool_t pg_auth(sky_pgsql_conn_t *conn);
 
 static sky_bool_t pg_send_password(sky_pgsql_conn_t *conn, sky_pgsql_pool_t *pg_pool,
-                                   sky_uint32_t auth_type, sky_uchar_t *data,
-                                   sky_size_t size);
+                                   sky_u32_t auth_type, sky_uchar_t *data,
+                                   sky_usize_t size);
 
 static sky_bool_t pg_send_exec(sky_pgsql_conn_t *ps, const sky_str_t *cmd,
                                const sky_pgsql_type_t *param_types,
-                               sky_pgsql_data_t *params, sky_uint16_t param_len);
+                               sky_pgsql_data_t *params, sky_u16_t param_len);
 
 static sky_pgsql_result_t *pg_exec_read(sky_pgsql_conn_t *ps);
 
-static sky_uint32_t pg_serialize_size(const sky_pgsql_array_t *array, sky_pgsql_type_t type);
+static sky_u32_t pg_serialize_size(const sky_pgsql_array_t *array, sky_pgsql_type_t type);
 
 static sky_uchar_t *pg_serialize_array(const sky_pgsql_array_t *array, sky_uchar_t *p, sky_pgsql_type_t type);
 
@@ -49,9 +49,9 @@ sky_pgsql_pool_create(sky_pool_t *pool, const sky_pgsql_conf_t *conf) {
     pg_pool->conn_info.len = 11 + sizeof("user") + sizeof("database") + conf->username.len + conf->database.len;
     pg_pool->conn_info.data = p = sky_pnalloc(pool, pg_pool->conn_info.len);
 
-    *((sky_uint32_t *) p) = sky_htonl(pg_pool->conn_info.len);
+    *((sky_u32_t *) p) = sky_htonl(pg_pool->conn_info.len);
     p += 4;
-    *((sky_uint32_t *) p) = 3 << 8; // version
+    *((sky_u32_t *) p) = 3 << 8; // version
     p += 4;
 
     sky_memcpy(p, "user", sizeof("user"));
@@ -100,7 +100,7 @@ sky_pgsql_conn_get(sky_pgsql_pool_t *conn_pool, sky_pool_t *pool, sky_event_t *e
 
 sky_pgsql_result_t*
 sky_pgsql_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_t *param_types,
-               sky_pgsql_data_t *params, sky_uint16_t param_len) {
+               sky_pgsql_data_t *params, sky_u16_t param_len) {
     if (sky_unlikely(!conn || !pg_send_exec(conn, cmd, param_types, params, param_len))) {
         return null;
     }
@@ -122,8 +122,8 @@ sky_pgsql_conn_put(sky_pgsql_conn_t *conn) {
 
 static sky_bool_t
 pg_auth(sky_pgsql_conn_t *conn) {
-    sky_size_t n;
-    sky_uint32_t size;
+    sky_usize_t n;
+    sky_u32_t size;
     sky_uchar_t *p;
     sky_buf_t buf;
 
@@ -145,7 +145,7 @@ pg_auth(sky_pgsql_conn_t *conn) {
     state = START;
     size = 0;
     for (;;) {
-        n = sky_tcp_pool_conn_read(&conn->conn, buf.last, (sky_size_t) (buf.end - buf.last));
+        n = sky_tcp_pool_conn_read(&conn->conn, buf.last, (sky_usize_t) (buf.end - buf.last));
         if (sky_unlikely(!n)) {
             sky_buf_destroy(&buf);
             return false;
@@ -179,7 +179,7 @@ pg_auth(sky_pgsql_conn_t *conn) {
                             sky_buf_destroy(&buf);
                             return false;
                     }
-                    size = sky_ntohl(*((sky_uint32_t *) buf.pos));
+                    size = sky_ntohl(*((sky_u32_t *) buf.pos));
                     buf.pos += 4;
                     if (size < 4) {
                         sky_buf_destroy(&buf);
@@ -191,7 +191,7 @@ pg_auth(sky_pgsql_conn_t *conn) {
                     if ((buf.last - buf.pos) < size) {
                         break;
                     }
-                    const sky_uint32_t type = sky_ntohl(*((sky_uint32_t *) buf.pos));
+                    const sky_u32_t type = sky_ntohl(*((sky_u32_t *) buf.pos));
                     buf.pos += 4;
                     size -= 4;
                     if (!type) {
@@ -226,9 +226,9 @@ pg_auth(sky_pgsql_conn_t *conn) {
                         sky_buf_destroy(&buf);
                         return false;
                     }
-//                    ps->conn->process_id = sky_ntohl(*((sky_uint32_t *) buf.pos));
+//                    ps->conn->process_id = sky_ntohl(*((sky_u32_t *) buf.pos));
                     buf.pos += 4;
-//                    ps->conn->process_key = sky_ntohl(*((sky_uint32_t *) buf.pos));
+//                    ps->conn->process_key = sky_ntohl(*((sky_u32_t *) buf.pos));
                     buf.pos += 4;
                     sky_buf_destroy(&buf);
                     return true;
@@ -254,7 +254,7 @@ pg_auth(sky_pgsql_conn_t *conn) {
             continue;
         }
 
-        const sky_uint32_t re_size = sky_max(size, 1024);
+        const sky_u32_t re_size = sky_max(size, 1024);
         sky_buf_rebuild(&buf, re_size);
     }
 }
@@ -262,9 +262,9 @@ pg_auth(sky_pgsql_conn_t *conn) {
 static sky_bool_t
 pg_send_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_t *param_types,
              sky_pgsql_data_t *params,
-             sky_uint16_t param_len) {
-    sky_uint16_t i;
-    sky_uint32_t size;
+             sky_u16_t param_len) {
+    sky_u16_t i;
+    sky_u32_t size;
     sky_uchar_t *p;
     sky_buf_t buf;
 
@@ -277,13 +277,13 @@ pg_send_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_
     };
 
     if (!param_len) {
-        size = (sky_uint32_t) cmd->len + 46;
+        size = (sky_u32_t) cmd->len + 46;
         sky_buf_init(&buf, conn->pool, size);
 
         *(buf.last++) = 'P';
 
-        size = (sky_uint32_t) cmd->len + 8;
-        *((sky_uint32_t *) buf.last) = sky_htonl(size);
+        size = (sky_u32_t) cmd->len + 8;
+        *((sky_u32_t *) buf.last) = sky_htonl(size);
         buf.last += 4;
 
         *(buf.last++) = '\0';
@@ -294,7 +294,7 @@ pg_send_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_
         sky_memcpy(buf.last, sql_tmp, 40);
         buf.last += 40;
 
-        const sky_bool_t result = sky_tcp_pool_conn_write(&conn->conn, buf.pos, (sky_uint32_t) (buf.last - buf.pos));
+        const sky_bool_t result = sky_tcp_pool_conn_write(&conn->conn, buf.pos, (sky_u32_t) (buf.last - buf.pos));
         sky_buf_destroy(&buf);
 
         return result;
@@ -331,7 +331,7 @@ pg_send_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_
     sky_buf_init(&buf, conn->pool, size + 32);
 
     *(buf.last++) = 'P';
-    *((sky_uint32_t *) buf.last) = sky_htonl(cmd->len + 8);
+    *((sky_u32_t *) buf.last) = sky_htonl(cmd->len + 8);
     buf.last += 4;
     *(buf.last++) = '\0';
     sky_memcpy(buf.last, cmd->data, cmd->len);
@@ -339,7 +339,7 @@ pg_send_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_
 
     sky_memcpy(buf.last, sql_tmp, 4);
     buf.last += 4;
-    *((sky_uint32_t *) buf.last) = sky_htonl(size);
+    *((sky_u32_t *) buf.last) = sky_htonl(size);
     buf.last += 4;
     *(buf.last++) = '\0';
     *(buf.last++) = '\0';
@@ -347,60 +347,60 @@ pg_send_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_
     buf.last += (param_len + 1) << 1;
 
     i = sky_htons(param_len);
-    *((sky_uint16_t *) p) = i;
+    *((sky_u16_t *) p) = i;
     p += 2;
-    *((sky_uint16_t *) buf.last) = i;
+    *((sky_u16_t *) buf.last) = i;
     buf.last += 2;
 
     for (i = 0; i != param_len; ++i) {
         switch (param_types[i]) {
             case pgsql_data_null:
-                *((sky_uint16_t *) p) = sky_htons(1);
+                *((sky_u16_t *) p) = sky_htons(1);
                 p += 2;
-                *((sky_uint32_t *) buf.last) = sky_htonl((sky_uint32_t) -1);
+                *((sky_u32_t *) buf.last) = sky_htonl((sky_u32_t) -1);
                 buf.last += 4;
                 break;
             case pgsql_data_bool:
-                *((sky_uint16_t *) p) = sky_htons(1);
+                *((sky_u16_t *) p) = sky_htons(1);
                 p += 2;
-                *((sky_uint32_t *) buf.last) = sky_htonl(1);
+                *((sky_u32_t *) buf.last) = sky_htonl(1);
                 buf.last += 4;
                 *(buf.last++) = params[i].bool ? 1 : 0;
             case pgsql_data_char:
-                *((sky_uint16_t *) p) = sky_htons(0);
+                *((sky_u16_t *) p) = sky_htons(0);
                 p += 2;
-                *((sky_uint32_t *) buf.last) = sky_htonl(1);
+                *((sky_u32_t *) buf.last) = sky_htonl(1);
                 buf.last += 4;
                 *(buf.last++) = (sky_uchar_t) params[i].ch;
                 break;
             case pgsql_data_int16:
-                *((sky_uint16_t *) p) = sky_htons(1);
+                *((sky_u16_t *) p) = sky_htons(1);
                 p += 2;
-                *((sky_uint32_t *) buf.last) = sky_htonl(2);
+                *((sky_u32_t *) buf.last) = sky_htonl(2);
                 buf.last += 4;
-                *((sky_uint16_t *) buf.last) = sky_htons(params[i].int16);
+                *((sky_u16_t *) buf.last) = sky_htons(params[i].int16);
                 buf.last += 2;
                 break;
             case pgsql_data_int32:
-                *((sky_uint16_t *) p) = sky_htons(1);
+                *((sky_u16_t *) p) = sky_htons(1);
                 p += 2;
-                *((sky_uint32_t *) buf.last) = sky_htonl(4);
+                *((sky_u32_t *) buf.last) = sky_htonl(4);
                 buf.last += 4;
-                *((sky_uint32_t *) buf.last) = sky_htonl((sky_uint32_t) params[i].int32);
+                *((sky_u32_t *) buf.last) = sky_htonl((sky_u32_t) params[i].int32);
                 buf.last += 4;
                 break;
             case pgsql_data_int64:
-                *((sky_uint16_t *) p) = sky_htons(1);
+                *((sky_u16_t *) p) = sky_htons(1);
                 p += 2;
-                *((sky_uint32_t *) buf.last) = sky_htonl(8);
+                *((sky_u32_t *) buf.last) = sky_htonl(8);
                 buf.last += 4;
-                *((sky_uint64_t *) buf.last) = sky_htonll((sky_uint64_t) params[i].int64);
+                *((sky_u64_t *) buf.last) = sky_htonll((sky_u64_t) params[i].int64);
                 buf.last += 8;
                 break;
             case pgsql_data_binary:
-                *((sky_uint16_t *) p) = sky_htons(1);
+                *((sky_u16_t *) p) = sky_htons(1);
                 p += 2;
-                *((sky_uint32_t *) buf.last) = sky_htonl((sky_uint32_t) params[i].len);
+                *((sky_u32_t *) buf.last) = sky_htonl((sky_u32_t) params[i].len);
                 buf.last += 4;
                 if (sky_likely(params[i].len)) {
                     sky_memcpy(buf.last, params[i].stream, params[i].len);
@@ -408,9 +408,9 @@ pg_send_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_
                 }
                 break;
             case pgsql_data_text:
-                *((sky_uint16_t *) p) = sky_htons(0);
+                *((sky_u16_t *) p) = sky_htons(0);
                 p += 2;
-                *((sky_uint32_t *) buf.last) = sky_htonl((sky_uint32_t) params[i].len);
+                *((sky_u32_t *) buf.last) = sky_htonl((sky_u32_t) params[i].len);
                 buf.last += 4;
                 if (sky_likely(params[i].len)) {
                     sky_memcpy(buf.last, params[i].stream, params[i].len);
@@ -419,9 +419,9 @@ pg_send_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_
                 break;
             case pgsql_data_array_int32:
             case pgsql_data_array_text:
-                *((sky_uint16_t *) p) = sky_htons(1);
+                *((sky_u16_t *) p) = sky_htons(1);
                 p += 2;
-                *((sky_uint32_t *) buf.last) = sky_htonl((sky_uint32_t) params[i].len);
+                *((sky_u32_t *) buf.last) = sky_htonl((sky_u32_t) params[i].len);
                 buf.last += 4;
                 buf.last = pg_serialize_array(params[i].array, buf.last, param_types[i]);
                 break;
@@ -434,7 +434,7 @@ pg_send_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_
     sky_memcpy(buf.last, sql_tmp + 14, 26);
     buf.last += 26;
 
-    const sky_bool_t result = sky_tcp_pool_conn_write(&conn->conn, buf.pos, (sky_uint32_t) (buf.last - buf.pos));
+    const sky_bool_t result = sky_tcp_pool_conn_write(&conn->conn, buf.pos, (sky_u32_t) (buf.last - buf.pos));
     sky_buf_destroy(&buf);
 
     return result;
@@ -442,9 +442,9 @@ pg_send_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_
 
 static sky_pgsql_result_t*
 pg_exec_read(sky_pgsql_conn_t *conn) {
-    sky_uint16_t i;
-    sky_uint32_t size;
-    sky_size_t n;
+    sky_u16_t i;
+    sky_u32_t size;
+    sky_usize_t n;
     sky_buf_t buf;
     sky_uchar_t *ch;
     sky_pgsql_data_t *params;
@@ -470,7 +470,7 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
     size = 0;
     state = START;
     for (;;) {
-        n = sky_tcp_pool_conn_read(&conn->conn, buf.last, (sky_uint32_t) (buf.end - buf.last));
+        n = sky_tcp_pool_conn_read(&conn->conn, buf.last, (sky_u32_t) (buf.end - buf.last));
         if (sky_unlikely(!n)) {
             sky_log_error("pg exec read error");
             return null;
@@ -514,7 +514,7 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                             return null;
                     }
                     *(buf.pos++) = '\0';
-                    size = sky_ntohl(*((sky_uint32_t *) buf.pos));
+                    size = sky_ntohl(*((sky_u32_t *) buf.pos));
                     buf.pos += 4;
                     if (sky_unlikely(size < 4)) {
                         sky_buf_destroy(&buf);
@@ -527,7 +527,7 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                     if ((buf.last - buf.pos) < size) {
                         break;
                     }
-                    result->lines = sky_ntohs(*((sky_uint16_t *) buf.pos));
+                    result->lines = sky_ntohs(*((sky_u16_t *) buf.pos));
                     buf.pos += 2;
                     if (sky_unlikely(result->lines == 0)) {
                         state = START;
@@ -538,18 +538,18 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                     for (desc = result->desc; i; --i, ++desc) {
                         desc->name.data = buf.pos;
                         buf.pos += (desc->name.len = strnlen((const sky_char_t *) buf.pos,
-                                                             (sky_size_t) (buf.last - buf.pos))) + 1;
+                                                             (sky_usize_t) (buf.last - buf.pos))) + 1;
                         if (sky_unlikely((buf.last - buf.pos) < 18)) {
                             sky_buf_destroy(&buf);
                             conn->error = true;
                             return null;
                         }
-                        desc->table_id = sky_ntohl(*((sky_uint32_t *) buf.pos));
+                        desc->table_id = sky_ntohl(*((sky_u32_t *) buf.pos));
                         buf.pos += 4;
-                        desc->line_id = sky_ntohs(*((sky_uint16_t *) buf.pos));
+                        desc->line_id = sky_ntohs(*((sky_u16_t *) buf.pos));
                         buf.pos += 2;
 
-                        switch (sky_ntohl(*((sky_uint32_t *) buf.pos))) {
+                        switch (sky_ntohl(*((sky_u32_t *) buf.pos))) {
                             case 16:
                                 desc->type = pgsql_data_bool;
                                 break;
@@ -585,15 +585,15 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                                 desc->type = pgsql_data_datetime;
                                 break;
                             default:
-                                sky_log_warn("%s 类型不支持: %u", desc->name.data, sky_ntohl(*((sky_uint32_t *) buf.pos)));
+                                sky_log_warn("%s 类型不支持: %u", desc->name.data, sky_ntohl(*((sky_u32_t *) buf.pos)));
                                 desc->type = pgsql_data_binary;
                         }
                         buf.pos += 4;
-                        desc->data_size = (sky_int16_t) sky_ntohs(*((sky_uint16_t *) buf.pos));
+                        desc->data_size = (sky_i16_t) sky_ntohs(*((sky_u16_t *) buf.pos));
                         buf.pos += 2;
-                        desc->type_modifier = (sky_int32_t) sky_ntohl(*((sky_uint32_t *) buf.pos));
+                        desc->type_modifier = (sky_i32_t) sky_ntohl(*((sky_u32_t *) buf.pos));
                         buf.pos += 4;
-                        desc->data_code = sky_ntohs(*((sky_uint16_t *) buf.pos));
+                        desc->data_code = sky_ntohs(*((sky_u16_t *) buf.pos));
                         buf.pos += 2;
                     }
                     desc = result->desc;
@@ -611,20 +611,20 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                     }
                     row->next = null;
                     ++result->rows;
-                    row->num = sky_ntohs(*((sky_uint16_t *) buf.pos));
+                    row->num = sky_ntohs(*((sky_u16_t *) buf.pos));
                     buf.pos += 2;
                     if (sky_unlikely(row->num != result->lines)) {
                         sky_log_error("表列数不对应，什么鬼");
                     }
                     row->data = params = sky_pnalloc(conn->pool, sizeof(sky_pgsql_data_t) * row->num);
                     for (i = 0; i != row->num; ++i, ++params) {
-                        size = sky_ntohl(*((sky_uint32_t *) buf.pos));
+                        size = sky_ntohl(*((sky_u32_t *) buf.pos));
                         *buf.pos = '\0';
                         buf.pos += 4;
 
 
-                        if (size == (sky_uint32_t) -1) {
-                            params->len = (sky_size_t) -1;
+                        if (size == (sky_u32_t) -1) {
+                            params->len = (sky_usize_t) -1;
                             continue;
                         }
                         params->len = size;
@@ -636,25 +636,25 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                                 params->ch = *((sky_char_t *) buf.pos);
                                 break;
                             case pgsql_data_int16:
-                                params->int16 = (sky_int16_t) sky_ntohs(*((sky_uint16_t *) buf.pos));
+                                params->int16 = (sky_i16_t) sky_ntohs(*((sky_u16_t *) buf.pos));
                                 break;
                             case pgsql_data_int32:
-                                params->int32 = (sky_int32_t) sky_ntohl(*((sky_uint32_t *) buf.pos));
+                                params->int32 = (sky_i32_t) sky_ntohl(*((sky_u32_t *) buf.pos));
                                 break;
                             case pgsql_data_int64:
-                                params->int64 = (sky_int64_t) sky_ntohll(*((sky_uint64_t *) buf.pos));
+                                params->int64 = (sky_i64_t) sky_ntohll(*((sky_u64_t *) buf.pos));
                                 break;
                             case pgsql_data_datetime:
                                 sky_log_info("[%u] %s: %d", size, desc[i].name.data,
-                                             sky_htonl(*(sky_uint32_t *) buf.pos));
+                                             sky_htonl(*(sky_u32_t *) buf.pos));
                                 break;
                             case pgsql_data_date:
                                 sky_log_info("[%u] %s: %d", size, desc[i].name.data,
-                                             sky_htonl(*(sky_uint32_t *) buf.pos));
+                                             sky_htonl(*(sky_u32_t *) buf.pos));
                                 break;
                             case pgsql_data_time:
                                 sky_log_info("[%u] %s: %d", size, desc[i].name.data,
-                                             sky_htonl(*(sky_uint32_t *) buf.pos));
+                                             sky_htonl(*(sky_u32_t *) buf.pos));
                                 break;
                             case pgsql_data_array_int32:
                             case pgsql_data_array_text:
@@ -706,7 +706,7 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
         if (size && (buf.end - buf.pos) > size) {
             continue;
         }
-        const sky_uint32_t re_size = sky_max(size, 1024);
+        const sky_u32_t re_size = sky_max(size, 1024);
         sky_buf_rebuild(&buf, re_size);
     }
 }
@@ -714,9 +714,9 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
 static sky_bool_t
 pg_send_password(sky_pgsql_conn_t *conn,
                  sky_pgsql_pool_t *pg_pool,
-                 sky_uint32_t auth_type,
+                 sky_u32_t auth_type,
                  sky_uchar_t *data,
-                 sky_size_t size) {
+                 sky_usize_t size) {
     if (auth_type != 5) {
         sky_log_error("auth type %u not support", auth_type);
         return false;
@@ -737,7 +737,7 @@ pg_send_password(sky_pgsql_conn_t *conn,
 
     ch = hex;
     *(ch++) = 'p';
-    *((sky_uint32_t *) ch) = sky_htonl(40);
+    *((sky_u32_t *) ch) = sky_htonl(40);
     ch += 4;
     sky_memcpy(ch, "md5", 3);
     ch += 3;
@@ -747,9 +747,9 @@ pg_send_password(sky_pgsql_conn_t *conn,
 }
 
 
-static sky_uint32_t
+static sky_u32_t
 pg_serialize_size(const sky_pgsql_array_t *array, sky_pgsql_type_t type) {
-    sky_uint32_t size;
+    sky_u32_t size;
 
     switch (type) {
         case pgsql_data_array_int32:
@@ -757,7 +757,7 @@ pg_serialize_size(const sky_pgsql_array_t *array, sky_pgsql_type_t type) {
             break;
         case pgsql_data_array_text:
             size = (array->dimensions << 3) + (array->nelts << 2) + 12;
-            for (sky_uint32_t i = 0; i != array->nelts; ++i) {
+            for (sky_u32_t i = 0; i != array->nelts; ++i) {
                 size += array->data[i].len;
             }
             break;
@@ -770,35 +770,35 @@ pg_serialize_size(const sky_pgsql_array_t *array, sky_pgsql_type_t type) {
 
 static sky_uchar_t*
 pg_serialize_array(const sky_pgsql_array_t *array, sky_uchar_t *p, sky_pgsql_type_t type) {
-    sky_uint32_t *oid;
-    sky_uint32_t i;
+    sky_u32_t *oid;
+    sky_u32_t i;
 
-    *(sky_uint32_t *) p = sky_ntohl(array->dimensions);
+    *(sky_u32_t *) p = sky_ntohl(array->dimensions);
     p += 4;
-    *(sky_uint32_t *) p = sky_ntohl(0);
+    *(sky_u32_t *) p = sky_ntohl(0);
     p += 4;
-    oid = (sky_uint32_t *) p;
+    oid = (sky_u32_t *) p;
     p += 4;
     for (i = 0; i != array->dimensions; ++i) {
-        *(sky_uint32_t *) p = sky_ntohl(array->dims[i]);
+        *(sky_u32_t *) p = sky_ntohl(array->dims[i]);
         p += 4;
-        *(sky_uint32_t *) p = sky_ntohl(1);
+        *(sky_u32_t *) p = sky_ntohl(1);
         p += 4;
     }
     switch (type) {
         case pgsql_data_array_int32:
             *oid = sky_ntohl(23);
             for (i = 0; i != array->nelts; ++i) {
-                *(sky_uint32_t *) p = sky_ntohl(4);
+                *(sky_u32_t *) p = sky_ntohl(4);
                 p += 4;
-                *(sky_uint32_t *) p = sky_ntohl((sky_uint32_t) array->data[i].int32);
+                *(sky_u32_t *) p = sky_ntohl((sky_u32_t) array->data[i].int32);
                 p += 4;
             }
             break;
         case pgsql_data_array_text:
             *oid = sky_ntohl(1043);
             for (i = 0; i != array->nelts; ++i) {
-                *(sky_uint32_t *) p = sky_ntohl((sky_uint32_t) array->data[i].len);
+                *(sky_u32_t *) p = sky_ntohl((sky_u32_t) array->data[i].len);
                 p += 4;
                 sky_memcpy(p, array->data[i].stream, array->data[i].len);
                 p += array->data[i].len;
@@ -812,15 +812,15 @@ pg_serialize_array(const sky_pgsql_array_t *array, sky_uchar_t *p, sky_pgsql_typ
 
 static sky_pgsql_array_t*
 pg_deserialize_array(sky_pool_t *pool, sky_uchar_t *p, sky_pgsql_type_t type) {
-    sky_uint32_t dimensions;
-    sky_uint32_t i;
-    sky_uint32_t number = 1;
-    sky_uint32_t size;
-    sky_uint32_t *dims;
+    sky_u32_t dimensions;
+    sky_u32_t i;
+    sky_u32_t number = 1;
+    sky_u32_t size;
+    sky_u32_t *dims;
     sky_pgsql_data_t *data;
     sky_pgsql_array_t *array;
 
-    dimensions = sky_ntohl(*(sky_uint32_t *) p);
+    dimensions = sky_ntohl(*(sky_u32_t *) p);
 
     array = sky_pcalloc(pool, sizeof(sky_pgsql_array_t));
     if (dimensions == 0) {
@@ -829,13 +829,13 @@ pg_deserialize_array(sky_pool_t *pool, sky_uchar_t *p, sky_pgsql_type_t type) {
     array->dimensions = dimensions;
 
     p += 4;
-    array->flags = sky_htonl(*(sky_uint32_t *) p); // flags<4byte>: 0=no-nulls, 1=has-nulls;
+    array->flags = sky_htonl(*(sky_u32_t *) p); // flags<4byte>: 0=no-nulls, 1=has-nulls;
     p += 8; // element oid<4byte>
 
-    array->dims = dims = (sky_uint32_t *) p;
-//    array->dims = dims = sky_pnalloc(pool, sizeof(sky_uint32_t) * dimensions);
+    array->dims = dims = (sky_u32_t *) p;
+//    array->dims = dims = sky_pnalloc(pool, sizeof(sky_u32_t) * dimensions);
     for (i = 0; i != dimensions; ++i) {
-        dims[i] = sky_ntohl(*(sky_uint32_t *) p); // dimension size<4byte>
+        dims[i] = sky_ntohl(*(sky_u32_t *) p); // dimension size<4byte>
         number *= dims[i];
         p += 8; // lower bound ignored<4byte>
     }
@@ -846,17 +846,17 @@ pg_deserialize_array(sky_pool_t *pool, sky_uchar_t *p, sky_pgsql_type_t type) {
         switch (type) {
             case pgsql_data_array_int32:
                 for (i = 0; i != number; ++i) {
-                    size = sky_ntohl(*((sky_uint32_t *) p));
+                    size = sky_ntohl(*((sky_u32_t *) p));
                     p += 4;
 
                     data[i].len = size;
-                    data[i].int32 = (sky_int32_t) sky_ntohl(*((sky_uint32_t *) p));
+                    data[i].int32 = (sky_i32_t) sky_ntohl(*((sky_u32_t *) p));
                     p += 4;
                 }
                 break;
             default:
                 for (i = 0; i != number; ++i) {
-                    size = sky_ntohl(*((sky_uint32_t *) p));
+                    size = sky_ntohl(*((sky_u32_t *) p));
                     *p = '\0';
                     p += 4;
 
@@ -870,27 +870,27 @@ pg_deserialize_array(sky_pool_t *pool, sky_uchar_t *p, sky_pgsql_type_t type) {
         switch (type) {
             case pgsql_data_array_int32:
                 for (i = 0; i != number; ++i) {
-                    size = sky_ntohl(*((sky_uint32_t *) p));
+                    size = sky_ntohl(*((sky_u32_t *) p));
                     p += 4;
 
-                    if (size == (sky_uint32_t) -1) {
-                        data[i].len = (sky_size_t) -1;
+                    if (size == (sky_u32_t) -1) {
+                        data[i].len = (sky_usize_t) -1;
                         continue;
                     }
 
                     data[i].len = size;
-                    data[i].int32 = (sky_int32_t) sky_ntohl(*((sky_uint32_t *) p));
+                    data[i].int32 = (sky_i32_t) sky_ntohl(*((sky_u32_t *) p));
                     p += 4;
                 }
                 break;
             default:
                 for (i = 0; i != number; ++i) {
-                    size = sky_ntohl(*((sky_uint32_t *) p));
+                    size = sky_ntohl(*((sky_u32_t *) p));
                     *p = '\0';
                     p += 4;
 
-                    if (size == (sky_uint32_t) -1) {
-                        data[i].len = (sky_size_t) -1;
+                    if (size == (sky_u32_t) -1) {
+                        data[i].len = (sky_usize_t) -1;
                         continue;
                     }
 

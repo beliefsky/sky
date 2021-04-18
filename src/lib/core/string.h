@@ -13,10 +13,10 @@ extern "C" {
 #endif
 
 #define sky_str2_switch(_m) \
-    (*(sky_uint16_t *)(_m))
+    (*(sky_u16_t *)(_m))
 
 #define sky_str4_switch(_m) \
-    (*(sky_uint32_t *)(_m))
+    (*(sky_u32_t *)(_m))
 
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -26,9 +26,9 @@ extern "C" {
     (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0))
 
 #define sky_str2_cmp(m, c0, c1)                                                         \
-    (*(sky_uint16_t *) (m) == (((c1) << 0x8) | (c0)))
+    (*(sky_u16_t *) (m) == (((c1) << 0x8) | (c0)))
 #define sky_str4_cmp(m, c0, c1, c2, c3)                                                 \
-    (*(sky_uint32_t *) (m) == (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0)))
+    (*(sky_u32_t *) (m) == (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0)))
 
 #else
 
@@ -38,10 +38,10 @@ extern "C" {
     (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0))
 
 #define sky_str2_cmp(m, c1, c0)                                                         \
-    (*(sky_uint16_t *) (m) == (((c1) << 0x8) | (c0)))
+    (*(sky_u16_t *) (m) == (((c1) << 0x8) | (c0)))
 
 #define sky_str4_cmp(m, c3, c2, c1, c0)                                                 \
-    (*(sky_uint32_t *) (m) == (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0)))
+    (*(sky_u32_t *) (m) == (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0)))
 
 #endif
 
@@ -49,7 +49,7 @@ extern "C" {
 // data+len 才代表字符串，所以如果把data当做字符串处理，有可能导致内存越界。
 // 不使用字符串能有效降低内存使用量
 typedef struct {
-    sky_size_t len;    //字符串的有效长度
+    sky_usize_t len;    //字符串的有效长度
     sky_uchar_t *data;  //字符串的内容，指向字符串的起始位置
 } sky_str_t;
 
@@ -75,7 +75,7 @@ typedef struct {
     (sky_uchar_t) (((_c) >= 'a' && (_c) <= 'z') ? ((_c) & ~0x20) : (_c))
 
 //将src的前n个字符转换成小写存放在dst字符串当中
-void sky_strlow(sky_uchar_t *dst, sky_uchar_t *src, sky_size_t n);
+void sky_strlow(sky_uchar_t *dst, sky_uchar_t *src, sky_usize_t n);
 
 /*
 调用者需要保证dst指向的空间大于等于n。操作不会对原字符串产生变动。如要更改原字符串，可以：
@@ -94,13 +94,13 @@ sky_strlow(str->data, str->data, str->len);
 
 #define sky_strstr(s1, s2)  strstr((const sky_char_t *) s1, (const sky_char_t *) s2)
 
-#define sky_strchr(s1, c)   strchr((const sky_char_t *) s1, (sky_int32_t) c)
+#define sky_strchr(s1, c)   strchr((const sky_char_t *) s1, (sky_i32_t) c)
 
-sky_uchar_t *sky_cpystrn(sky_uchar_t *dst, sky_uchar_t *src, sky_size_t n);
+sky_uchar_t *sky_cpystrn(sky_uchar_t *dst, sky_uchar_t *src, sky_usize_t n);
 
 
 // out_len = in_len *2;注意\0结尾，因此申请长度为 in_len *2 + 1；
-void sky_byte_to_hex(sky_uchar_t *in, sky_size_t in_len, sky_uchar_t *out);
+void sky_byte_to_hex(sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out);
 
 static sky_inline sky_bool_t
 sky_str_is_null(const sky_str_t *str) {

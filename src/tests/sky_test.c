@@ -97,8 +97,8 @@ udp_connection_accept(sky_udp_connect_t *conn, void *data) {
 typedef struct {
     sky_timer_wheel_entry_t timer;
     sky_event_loop_t *loop;
-    sky_uint32_t timeout;
-    sky_int32_t num;
+    sky_u32_t timeout;
+    sky_i32_t num;
 } timer_test_t;
 
 static void
@@ -119,12 +119,12 @@ main() {
     return 0;
 #else
 
-    sky_int32_t cpu_num = (sky_int32_t) sysconf(_SC_NPROCESSORS_ONLN);
+    sky_i32_t cpu_num = (sky_i32_t) sysconf(_SC_NPROCESSORS_ONLN);
     if (cpu_num < 1) {
         cpu_num = 1;
     }
 
-    for (sky_int32_t i = 0; i <= cpu_num; ++i) {
+    for (sky_i32_t i = 0; i <= cpu_num; ++i) {
         pid_t pid = fork();
         switch (pid) {
             case -1:
@@ -133,7 +133,7 @@ main() {
                 sky_cpu_set_t mask;
                 CPU_ZERO(&mask);
                 CPU_SET(i, &mask);
-                for (sky_int32_t j = 0; j < CPU_SETSIZE; ++j) {
+                for (sky_i32_t j = 0; j < CPU_SETSIZE; ++j) {
                     if (CPU_ISSET(j, &mask)) {
                         sky_log_info("sky_setaffinity(): using cpu #%d", j);
                         break;
@@ -147,7 +147,7 @@ main() {
         }
     }
 
-    sky_int32_t status;
+    sky_i32_t status;
     wait(&status);
 #endif
 }
@@ -219,17 +219,17 @@ server_start(void *ssl) {
             {
                     .host = sky_string("localhost:8080"),
                     .modules = modules.elts,
-                    .modules_n = (sky_uint16_t) modules.nelts
+                    .modules_n = (sky_u16_t) modules.nelts
             },
             {
                     .host = sky_string("0.0.0.0:8080"),
                     .modules = modules.elts,
-                    .modules_n = (sky_uint16_t) modules.nelts
+                    .modules_n = (sky_u16_t) modules.nelts
             },
             {
                     .host = sky_string("192.168.10.107:8080"),
                     .modules = modules.elts,
-                    .modules_n = (sky_uint16_t) modules.nelts
+                    .modules_n = (sky_u16_t) modules.nelts
             }
     };
     sky_http_conf_t conf = {
@@ -322,7 +322,7 @@ redis_test(sky_http_request_t *req) {
     sky_redis_conn_put(rc);
 
     if (data && data->is_ok && data->rows) {
-        for (sky_uint32_t i = 0; i != data->rows; ++i) {
+        for (sky_u32_t i = 0; i != data->rows; ++i) {
             sky_json_t *root = sky_json_object_create(req->pool);
             sky_json_put_integer(root, sky_str_line("status"), 200);
             sky_json_put_str_len(root, sky_str_line("msg"), sky_str_line("success"));
@@ -339,9 +339,9 @@ redis_test(sky_http_request_t *req) {
 static void
 hello_world(sky_http_request_t *req) {
 
-    sky_int32_t id;
+    sky_i32_t id;
 
-    sky_str_to_int32(&req->args, &id);
+    sky_str_to_i32(&req->args, &id);
 
     const sky_str_t cmd = sky_string("SELECT int32,int64,int16,text,text_arr,int32_arr FROM tb_test WHERE int32 = $1");
 
@@ -370,7 +370,7 @@ hello_world(sky_http_request_t *req) {
 //
 //    sky_pgsql_array_t *arr = data[4].array;
 //
-//    for (sky_uint32_t i = 0; i != arr->nelts; ++i) {
+//    for (sky_u32_t i = 0; i != arr->nelts; ++i) {
 //        sky_log_info("[%u]:%s", i, arr->data[i].stream);
 //    }
 //======================================================================================

@@ -26,7 +26,7 @@
 
 static void event_timer_callback(sky_event_t *ev);
 
-static sky_int32_t setup_open_file_count_limits();
+static sky_i32_t setup_open_file_count_limits();
 
 sky_event_loop_t*
 sky_event_loop_create(sky_pool_t *pool) {
@@ -42,7 +42,7 @@ sky_event_loop_create(sky_pool_t *pool) {
     loop->fd = kqueue();
     loop->conn_max = setup_open_file_count_limits();
     loop->now = time(null);
-    loop->ctx = sky_timer_wheel_create(pool, TIMER_WHEEL_DEFAULT_NUM, (sky_uint64_t) loop->now);
+    loop->ctx = sky_timer_wheel_create(pool, TIMER_WHEEL_DEFAULT_NUM, (sky_u64_t) loop->now);
 
     return loop;
 }
@@ -50,12 +50,12 @@ sky_event_loop_create(sky_pool_t *pool) {
 void
 sky_event_loop_run(sky_event_loop_t *loop) {
     sky_bool_t timeout;
-    sky_int16_t index, i;
-    sky_int32_t fd, max_events, n;
+    sky_i16_t index, i;
+    sky_i32_t fd, max_events, n;
     sky_time_t now;
     sky_timer_wheel_t *ctx;
     sky_event_t *ev, **run_ev;
-    sky_uint64_t next_time;
+    sky_u64_t next_time;
     struct kevent *events, *event;
     struct timespec timespec = {
             .tv_sec = 0,
@@ -69,17 +69,17 @@ sky_event_loop_run(sky_event_loop_t *loop) {
     now = loop->now;
 
     max_events = sky_min(loop->conn_max, 1024);
-    events = sky_pnalloc(loop->pool, sizeof(struct kevent) * (sky_uint32_t) max_events);
-    run_ev = sky_pnalloc(loop->pool, sizeof(sky_event_t *) * (sky_uint32_t) max_events);
+    events = sky_pnalloc(loop->pool, sizeof(struct kevent) * (sky_u32_t) max_events);
+    run_ev = sky_pnalloc(loop->pool, sizeof(sky_event_t *) * (sky_u32_t) max_events);
 
     for (;;) {
-        sky_timer_wheel_run(ctx, (sky_uint64_t) now);
+        sky_timer_wheel_run(ctx, (sky_u64_t) now);
         next_time = sky_timer_wheel_wake_at(ctx);
         if (next_time == SKY_UINT64_MAX) {
             timeout = false;
         } else {
             timeout = true;
-            timespec.tv_sec = ((sky_int64_t) (next_time - (sky_uint32_t) now));
+            timespec.tv_sec = ((sky_i64_t) (next_time - (sky_u32_t) now));
         }
 
         n = kevent(fd, null, 0, events, max_events, timeout ? &timespec : null);
@@ -147,7 +147,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 ev->close(ev);
                 continue;
             }
-            sky_timer_wheel_expired(ctx, &ev->timer, (sky_uint64_t) (ev->now + ev->timeout));
+            sky_timer_wheel_expired(ctx, &ev->timer, (sky_u64_t) (ev->now + ev->timeout));
         }
 
         if (loop->update) {
@@ -168,7 +168,7 @@ sky_event_loop_shutdown(sky_event_loop_t *loop) {
 
 
 void
-sky_event_register(sky_event_t *ev, sky_int32_t timeout) {
+sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
     struct kevent event[2];
     if (timeout < 0) {
         timeout = -1;
@@ -178,7 +178,7 @@ sky_event_register(sky_event_t *ev, sky_int32_t timeout) {
             ev->loop->update = true;
         }
         ev->timer.cb = (sky_timer_wheel_pt) event_timer_callback;
-        sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_uint64_t) (ev->loop->now + timeout));
+        sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_u64_t) (ev->loop->now + timeout));
     }
     ev->timeout = timeout;
     ev->reg = true;
@@ -200,7 +200,7 @@ sky_event_unregister(sky_event_t *ev) {
     ev->fd = -1;
     // 此处应添加 应追加需要处理的连接
     ev->loop->update = true;
-    sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_uint64_t) ev->loop->now);
+    sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_u64_t) ev->loop->now);
 }
 
 static void
@@ -213,7 +213,7 @@ event_timer_callback(sky_event_t *ev) {
     ev->close(ev);
 }
 
-static sky_int32_t
+static sky_i32_t
 setup_open_file_count_limits() {
     struct rlimit r;
 
@@ -242,5 +242,5 @@ setup_open_file_count_limits() {
     }
 
     out:
-    return (sky_int32_t) r.rlim_cur;
+    return (sky_i32_t) r.rlim_cur;
 }

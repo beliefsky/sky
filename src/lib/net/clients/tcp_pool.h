@@ -25,8 +25,8 @@ typedef struct {
     sky_str_t host;
     sky_str_t port;
     sky_str_t unix_path;
-    sky_uint16_t connection_size;
-    sky_int32_t timeout;
+    sky_u16_t connection_size;
+    sky_i32_t timeout;
     sky_tcp_pool_conn_next next_func;
 } sky_tcp_pool_conf_t;
 
@@ -44,9 +44,9 @@ sky_tcp_pool_t *sky_tcp_pool_create(sky_pool_t *pool, const sky_tcp_pool_conf_t 
 
 sky_bool_t sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event_t *event, sky_coro_t *coro);
 
-sky_size_t sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_size_t size);
+sky_usize_t sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size);
 
-sky_bool_t sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_size_t size);
+sky_bool_t sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize_t size);
 
 void sky_tcp_pool_conn_close(sky_tcp_conn_t *conn);
 

@@ -7,8 +7,8 @@
 #include "cpuinfo.h"
 
 void*
-sky_hash_find(sky_hash_t *hash, sky_uint_t key, sky_uchar_t *name, sky_size_t len) {
-    sky_uint_t i;
+sky_hash_find(sky_hash_t *hash, sky_usize_t key, sky_uchar_t *name, sky_usize_t len) {
+    sky_usize_t i;
     sky_hash_elt_t *elt;
 
     elt = hash->buckets[key % hash->size];
@@ -18,7 +18,7 @@ sky_hash_find(sky_hash_t *hash, sky_uint_t key, sky_uchar_t *name, sky_size_t le
     }
 
     while (elt->value) {
-        if (len != (sky_size_t) elt->len) {
+        if (len != (sky_usize_t) elt->len) {
             goto next;
         }
 
@@ -39,9 +39,9 @@ sky_hash_find(sky_hash_t *hash, sky_uint_t key, sky_uchar_t *name, sky_size_t le
 
 
 void*
-sky_hash_find_wc_head(sky_hash_wildcard_t *hwc, sky_uchar_t *name, sky_size_t len) {
+sky_hash_find_wc_head(sky_hash_wildcard_t *hwc, sky_uchar_t *name, sky_usize_t len) {
     void *value;
-    sky_uint_t i, n, key;
+    sky_usize_t i, n, key;
 
     n = len;
 
@@ -74,21 +74,21 @@ sky_hash_find_wc_head(sky_hash_wildcard_t *hwc, sky_uchar_t *name, sky_size_t le
          *          "*.example.com" only.
          */
 
-        if ((sky_uintptr_t) value & 2) {
+        if ((sky_usize_t) value & 2) {
 
             if (n == 0) {
 
                 /* "example.com" */
 
-                if ((sky_uintptr_t) value & 1) {
+                if ((sky_usize_t) value & 1) {
                     return null;
                 }
 
-                hwc = (sky_hash_wildcard_t *) ((sky_uintptr_t) value & (sky_uintptr_t) ~3);
+                hwc = (sky_hash_wildcard_t *) ((sky_usize_t) value & (sky_usize_t) ~3);
                 return hwc->value;
             }
 
-            hwc = (sky_hash_wildcard_t *) ((sky_uintptr_t) value & (sky_uintptr_t) ~3);
+            hwc = (sky_hash_wildcard_t *) ((sky_usize_t) value & (sky_usize_t) ~3);
 
             value = sky_hash_find_wc_head(hwc, name, n - 1);
 
@@ -99,7 +99,7 @@ sky_hash_find_wc_head(sky_hash_wildcard_t *hwc, sky_uchar_t *name, sky_size_t le
             return hwc->value;
         }
 
-        if ((sky_uintptr_t) value & 1) {
+        if ((sky_usize_t) value & 1) {
 
             if (n == 0) {
 
@@ -108,7 +108,7 @@ sky_hash_find_wc_head(sky_hash_wildcard_t *hwc, sky_uchar_t *name, sky_size_t le
                 return null;
             }
 
-            return (void *) ((sky_uintptr_t) value & (sky_uintptr_t) ~3);
+            return (void *) ((sky_usize_t) value & (sky_usize_t) ~3);
         }
 
         return value;
@@ -119,9 +119,9 @@ sky_hash_find_wc_head(sky_hash_wildcard_t *hwc, sky_uchar_t *name, sky_size_t le
 
 
 void*
-sky_hash_find_wc_tail(sky_hash_wildcard_t *hwc, sky_uchar_t *name, sky_size_t len) {
+sky_hash_find_wc_tail(sky_hash_wildcard_t *hwc, sky_uchar_t *name, sky_usize_t len) {
     void *value;
-    sky_uint_t i, key;
+    sky_usize_t i, key;
 
     key = 0;
 
@@ -147,11 +147,11 @@ sky_hash_find_wc_tail(sky_hash_wildcard_t *hwc, sky_uchar_t *name, sky_size_t le
          *     11 - value is pointer to wildcard hash allowing "example.*".
          */
 
-        if ((sky_uintptr_t) value & 2) {
+        if ((sky_usize_t) value & 2) {
 
             i++;
 
-            hwc = (sky_hash_wildcard_t *) ((sky_uintptr_t) value & (sky_uintptr_t) ~3);
+            hwc = (sky_hash_wildcard_t *) ((sky_usize_t) value & (sky_usize_t) ~3);
 
             value = sky_hash_find_wc_tail(hwc, &name[i], len - i);
 
@@ -170,7 +170,7 @@ sky_hash_find_wc_tail(sky_hash_wildcard_t *hwc, sky_uchar_t *name, sky_size_t le
 
 
 void*
-sky_hash_find_combined(sky_hash_combined_t *hash, sky_uint_t key, sky_uchar_t *name, sky_size_t len) {
+sky_hash_find_combined(sky_hash_combined_t *hash, sky_usize_t key, sky_uchar_t *name, sky_usize_t len) {
     void *value;
 
     if (hash->hash.buckets) {
@@ -222,11 +222,11 @@ sky_hash_find_combined(sky_hash_combined_t *hash, sky_uint_t key, sky_uchar_t *n
 //也即认为一个bucket最多放入的元素个数为bucket_size / (2 * sizeof(void *));
 //64位机器上, sizeof(void *) 为8 Bytes,  sizeof(unsigned short)为2Bytes, sizeof(name)为1 Byte, sizeof(sky_hash_elt_t)为16Bytes, 正好与2 * sizeof(void *)相等.
 sky_bool_t
-sky_hash_init(sky_hash_init_t *hinit, sky_hash_key_t *names, sky_uint_t nelts) {
+sky_hash_init(sky_hash_init_t *hinit, sky_hash_key_t *names, sky_usize_t nelts) {
     sky_uchar_t *elts;
-    sky_size_t len;
-    sky_uint16_t *test;
-    sky_uint_t i, n, key, size, start, bucket_size;
+    sky_usize_t len;
+    sky_u16_t *test;
+    sky_usize_t i, n, key, size, start, bucket_size;
     sky_hash_elt_t *elt, **buckets;
 
     if (sky_unlikely(!hinit->max_size)) {
@@ -244,8 +244,8 @@ sky_hash_init(sky_hash_init_t *hinit, sky_hash_key_t *names, sky_uint_t nelts) {
         }
     }
 
-    test = sky_malloc(hinit->max_size * sizeof(sky_uint16_t));
-    //分配 sizeof(sky_uint16_t)*max_size 个字节的空间保存hash数据
+    test = sky_malloc(hinit->max_size * sizeof(sky_u16_t));
+    //分配 sizeof(sky_u16_t)*max_size 个字节的空间保存hash数据
     //(该内存分配操作不在sky的内存池中进行，因为test只是临时的)
     if (sky_unlikely(!test)) {
         return false;
@@ -262,7 +262,7 @@ sky_hash_init(sky_hash_init_t *hinit, sky_hash_key_t *names, sky_uint_t nelts) {
 
     for (size = start; size <= hinit->max_size; size++) {
 
-        sky_memzero(test, size * sizeof(sky_uint16_t));
+        sky_memzero(test, size * sizeof(sky_u16_t));
         //标记1：此块代码是检查bucket大小是否够分配hash数据
         for (n = 0; n < nelts; n++) {
             if (!names[n].key.data) {
@@ -270,9 +270,9 @@ sky_hash_init(sky_hash_init_t *hinit, sky_hash_key_t *names, sky_uint_t nelts) {
             }
             //计算key和names中所有name长度，并保存在test[key]中
             key = names[n].key_hash % size;     //若size=1，则key一直为0
-            test[key] = (sky_uint16_t) (test[key] + SKY_HASH_ELT_SIZE(&names[n]));
+            test[key] = (sky_u16_t) (test[key] + SKY_HASH_ELT_SIZE(&names[n]));
             //若超过了桶的大小，则到下一个桶重新计算
-            if (test[key] > (sky_uint16_t) bucket_size) {
+            if (test[key] > (sky_u16_t) bucket_size) {
                 goto next;
             }
         }
@@ -305,7 +305,7 @@ sky_hash_init(sky_hash_init_t *hinit, sky_hash_key_t *names, sky_uint_t nelts) {
             sky_free(test);
             return false;
         }
-        test[key] = (sky_uint16_t) len;
+        test[key] = (sky_u16_t) len;
     }
     //计算hash数据的总长度
     len = 0;
@@ -316,7 +316,7 @@ sky_hash_init(sky_hash_init_t *hinit, sky_hash_key_t *names, sky_uint_t nelts) {
             continue;
         }
         //对test[i]按ngx_cacheline_size对齐(32位平台，ngx_cacheline_size=32)
-        test[i] = (sky_uint16_t) (sky_align(test[i], sky_cache_line_size));
+        test[i] = (sky_u16_t) (sky_align(test[i], sky_cache_line_size));
 
         len += test[i];
     }
@@ -374,11 +374,11 @@ sky_hash_init(sky_hash_init_t *hinit, sky_hash_key_t *names, sky_uint_t nelts) {
         elt = (sky_hash_elt_t *) ((sky_uchar_t *) buckets[key] + test[key]);
         //对ngx_hash_elt_t结构赋值
         elt->value = names[n].value;
-        elt->len = (sky_uint16_t) names[n].key.len;
+        elt->len = (sky_u16_t) names[n].key.len;
 
         sky_strlow(elt->name, names[n].key.data, names[n].key.len);
         //计算下一个要被hash的数据的长度偏移
-        test[key] = (sky_uint16_t) (test[key] + SKY_HASH_ELT_SIZE(&names[n]));
+        test[key] = (sky_u16_t) (test[key] + SKY_HASH_ELT_SIZE(&names[n]));
     }
 
     for (i = 0; i < size; i++) {
@@ -403,9 +403,9 @@ sky_hash_init(sky_hash_init_t *hinit, sky_hash_key_t *names, sky_uint_t nelts) {
 
 sky_bool_t
 sky_hash_wildcard_init(sky_hash_init_t *hinit, sky_hash_key_t *names,
-                       sky_uint32_t nelts) {
-    sky_size_t len, dot_len;
-    sky_uint_t i, n, dot;
+                       sky_u32_t nelts) {
+    sky_usize_t len, dot_len;
+    sky_usize_t i, n, dot;
     sky_array_t curr_names, next_names;
     sky_hash_key_t *name, *next_name;
     sky_hash_init_t h;
@@ -497,10 +497,10 @@ sky_hash_wildcard_init(sky_hash_init_t *hinit, sky_hash_key_t *names,
                 wdc->value = names[n].value;
             }
 
-            name->value = (void *) ((sky_uintptr_t) wdc | (dot ? 3 : 2));
+            name->value = (void *) ((sky_usize_t) wdc | (dot ? 3 : 2));
 
         } else if (dot) {
-            name->value = (void *) ((sky_uintptr_t) name->value | 1);
+            name->value = (void *) ((sky_usize_t) name->value | 1);
         }
     }
 
@@ -513,9 +513,9 @@ sky_hash_wildcard_init(sky_hash_init_t *hinit, sky_hash_key_t *names,
 
 
 //计算hash值
-sky_uint_t
-sky_hash_key(sky_uchar_t *data, sky_size_t len) {
-    sky_uint_t i, key;
+sky_usize_t
+sky_hash_key(sky_uchar_t *data, sky_usize_t len) {
+    sky_usize_t i, key;
 
     key = 0;
 
@@ -527,9 +527,9 @@ sky_hash_key(sky_uchar_t *data, sky_size_t len) {
 }
 
 //计算hash值
-sky_uint_t
-sky_hash_key_lc(sky_uchar_t *data, sky_size_t len) {
-    sky_uint_t i, key;
+sky_usize_t
+sky_hash_key_lc(sky_uchar_t *data, sky_usize_t len) {
+    sky_usize_t i, key;
 
     key = 0;
 
@@ -542,9 +542,9 @@ sky_hash_key_lc(sky_uchar_t *data, sky_size_t len) {
 
 
 //小写化的同时计算出hash值
-sky_uint_t
-sky_hash_strlow(sky_uchar_t *dst, sky_uchar_t *src, sky_size_t n) {
-    sky_uint_t key;
+sky_usize_t
+sky_hash_strlow(sky_uchar_t *dst, sky_uchar_t *src, sky_usize_t n) {
+    sky_usize_t key;
 
     key = 0;
 
@@ -560,8 +560,8 @@ sky_hash_strlow(sky_uchar_t *dst, sky_uchar_t *src, sky_size_t n) {
 
 
 sky_bool_t
-sky_hash_keys_array_init(sky_hash_keys_arrays_t *ha, sky_uint_t type) {
-    sky_uint32_t asize;
+sky_hash_keys_array_init(sky_hash_keys_arrays_t *ha, sky_usize_t type) {
+    sky_u32_t asize;
 
     if (type == SKY_HASH_SMALL) {
         asize = 4;
@@ -603,12 +603,12 @@ sky_hash_keys_array_init(sky_hash_keys_arrays_t *ha, sky_uint_t type) {
 }
 
 
-sky_int8_t
-sky_hash_add_key(sky_hash_keys_arrays_t *ha, sky_str_t *key, void *value, sky_uint_t flags) {
-    sky_size_t len;
+sky_i8_t
+sky_hash_add_key(sky_hash_keys_arrays_t *ha, sky_str_t *key, void *value, sky_usize_t flags) {
+    sky_usize_t len;
     sky_uchar_t *p;
     sky_str_t *name;
-    sky_uint_t i, k, n, skip, last;
+    sky_usize_t i, k, n, skip, last;
     sky_array_t *keys, *hwc;
     sky_hash_key_t *hk;
 

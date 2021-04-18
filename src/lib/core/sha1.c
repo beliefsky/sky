@@ -6,7 +6,7 @@
 #include "memory.h"
 
 
-static const sky_uchar_t *sha1_body(sky_sha1_t *ctx, const sky_uchar_t *data, sky_size_t size);
+static const sky_uchar_t *sha1_body(sky_sha1_t *ctx, const sky_uchar_t *data, sky_usize_t size);
 
 void
 sky_sha1_init(sky_sha1_t *ctx) {
@@ -19,8 +19,8 @@ sky_sha1_init(sky_sha1_t *ctx) {
 }
 
 void
-sky_sha1_update(sky_sha1_t *ctx, const sky_uchar_t *data, sky_size_t size) {
-    sky_size_t used, free;
+sky_sha1_update(sky_sha1_t *ctx, const sky_uchar_t *data, sky_usize_t size) {
+    sky_usize_t used, free;
 
     used = ctx->bytes & 0x3f;
     ctx->bytes += size;
@@ -39,7 +39,7 @@ sky_sha1_update(sky_sha1_t *ctx, const sky_uchar_t *data, sky_size_t size) {
     }
 
     if (size >= 64) {
-        data = sha1_body(ctx, data, size & ~(sky_size_t) 0x3f);
+        data = sha1_body(ctx, data, size & ~(sky_usize_t) 0x3f);
         size &= 0x3f;
     }
     sky_memcpy(ctx->buffer, data, size);
@@ -125,18 +125,18 @@ sky_sha1_final(sky_sha1_t *ctx, sky_uchar_t result[20]) {
   */
 
 #define GET(n)                                                              \
-    ((sky_uint32_t) p[(n << 2) + 3] |                                       \
-    ((sky_uint32_t) p[(n << 2) + 2] << 8) |                                 \
-    ((sky_uint32_t) p[(n << 2) + 1] << 16) |                                \
-    ((sky_uint32_t) p[n << 2] << 24))
+    ((sky_u32_t) p[(n << 2) + 3] |                                       \
+    ((sky_u32_t) p[(n << 2) + 2] << 8) |                                 \
+    ((sky_u32_t) p[(n << 2) + 1] << 16) |                                \
+    ((sky_u32_t) p[n << 2] << 24))
 
 
 static const sky_uchar_t*
-sha1_body(sky_sha1_t *ctx, const sky_uchar_t *data, sky_size_t size) {
-    sky_uint32_t a, b, c, d, e, temp;
-    sky_uint32_t saved_a, saved_b, saved_c, saved_d, saved_e;
-    sky_uint32_t words[80];
-    sky_uint32_t i;
+sha1_body(sky_sha1_t *ctx, const sky_uchar_t *data, sky_usize_t size) {
+    sky_u32_t a, b, c, d, e, temp;
+    sky_u32_t saved_a, saved_b, saved_c, saved_d, saved_e;
+    sky_u32_t words[80];
+    sky_u32_t i;
     const sky_uchar_t *p;
 
     p = data;

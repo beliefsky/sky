@@ -20,10 +20,10 @@ typedef struct {
     sky_udp_msg_pt msg_run;
     sky_udp_connect_err_pt connect_err;
     sky_udp_connect_cb_pt run;
-    sky_int32_t family;
-    sky_int32_t socket_type;
-    sky_int32_t protocol;
-    sky_int32_t timeout;
+    sky_i32_t family;
+    sky_i32_t socket_type;
+    sky_i32_t protocol;
+    sky_i32_t timeout;
 } listener_t;
 
 static sky_bool_t udp_listener_run(sky_event_t *ev);
@@ -33,14 +33,14 @@ static void udp_listener_error(sky_event_t *ev);
 static sky_bool_t udp_client_connection(sky_event_t *ev);
 
 #ifndef SOCK_NONBLOCK
-static sky_bool_t set_socket_nonblock(sky_int32_t fd);
+static sky_bool_t set_socket_nonblock(sky_i32_t fd);
 #endif
 
 
 void
 sky_udp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_udp_conf_t *conf) {
-    sky_int32_t fd;
-    sky_int32_t opt;
+    sky_i32_t fd;
+    sky_i32_t opt;
     listener_t *l;
     struct addrinfo *addrs;
 
@@ -74,11 +74,11 @@ sky_udp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_udp_
         }
 #endif
         opt = 1;
-        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_int32_t));
+        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_i32_t));
 #ifdef SO_REUSEPORT_LB
-        setsockopt(fd, SOL_SOCKET, SO_REUSEPORT_LB, &opt, sizeof(sky_int32_t));
+        setsockopt(fd, SOL_SOCKET, SO_REUSEPORT_LB, &opt, sizeof(sky_i32_t));
 #else
-        setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_int32_t));
+        setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_i32_t));
 #endif
         if (sky_likely(bind(fd, addr->ai_addr, addr->ai_addrlen) != 0)) {
             close(fd);
@@ -115,7 +115,7 @@ udp_listener_run(sky_event_t *ev) {
         return true;
     }
 #ifndef SOCK_NONBLOCK
-    sky_int32_t fd = socket(l->family, l->socket_type, l->protocol);
+    sky_i32_t fd = socket(l->family, l->socket_type, l->protocol);
     if (sky_unlikely(fd == -1)) {
         l->connect_err(conn);
         return true;
@@ -125,7 +125,7 @@ udp_listener_run(sky_event_t *ev) {
         return true;
     }
 #else
-    sky_int32_t fd = socket(l->family,
+    sky_i32_t fd = socket(l->family,
                             l->socket_type | SOCK_NONBLOCK | SOCK_CLOEXEC,
                             l->protocol);
 
@@ -135,12 +135,12 @@ udp_listener_run(sky_event_t *ev) {
     }
 #endif
 
-    sky_int32_t opt = 1;
-    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_int32_t));
+    sky_i32_t opt = 1;
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_i32_t));
 #ifdef SO_REUSEPORT_LB
-    setsockopt(fd, SOL_SOCKET, SO_REUSEPORT_LB, &opt, sizeof(sky_int32_t));
+    setsockopt(fd, SOL_SOCKET, SO_REUSEPORT_LB, &opt, sizeof(sky_i32_t));
 #else
-    setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_int32_t));
+    setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_i32_t));
 #endif
     if (sky_unlikely(bind(fd, l->addr, l->addr_len) != 0)) {
         close(fd);
@@ -184,7 +184,7 @@ udp_listener_error(sky_event_t *ev) {
 
 static sky_bool_t
 udp_client_connection(sky_event_t *ev) {
-    const sky_int32_t fd = ev->fd;
+    const sky_i32_t fd = ev->fd;
     sky_udp_connect_t *conn = (sky_udp_connect_t *) ev;
 
     if (connect(fd, (const struct sockaddr *) &conn->addr, sizeof(conn->addr)) < 0) {
@@ -207,8 +207,8 @@ udp_client_connection(sky_event_t *ev) {
 #ifndef SOCK_NONBLOCK
 
 static sky_inline sky_bool_t
-set_socket_nonblock(sky_int32_t fd) {
-    sky_int32_t flags;
+set_socket_nonblock(sky_i32_t fd) {
+    sky_i32_t flags;
 
     flags = fcntl(fd, F_GETFD);
 

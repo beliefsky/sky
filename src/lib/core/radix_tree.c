@@ -7,8 +7,8 @@
 static sky_radix_node_t *sky_radix_alloc(sky_radix_tree_t *tree);
 
 sky_radix_tree_t*
-sky_radix_tree_create(sky_pool_t *pool, sky_intptr_t preallocate) {
-    sky_uint32_t key, mask, inc;
+sky_radix_tree_create(sky_pool_t *pool, sky_isize_t preallocate) {
+    sky_u32_t key, mask, inc;
     sky_radix_tree_t *tree;
 
     tree = sky_palloc(pool, sizeof(sky_radix_tree_t));
@@ -79,8 +79,8 @@ sky_radix_tree_create(sky_pool_t *pool, sky_intptr_t preallocate) {
 }
 
 sky_bool_t
-sky_radix32tree_insert(sky_radix_tree_t *tree, sky_uint32_t key, sky_uint32_t mask, sky_uintptr_t value) {
-    sky_uint32_t bit;
+sky_radix32tree_insert(sky_radix_tree_t *tree, sky_u32_t key, sky_u32_t mask, sky_usize_t value) {
+    sky_u32_t bit;
     sky_radix_node_t *node, *next;
 
     bit = 0x80000000;
@@ -127,8 +127,8 @@ sky_radix32tree_insert(sky_radix_tree_t *tree, sky_uint32_t key, sky_uint32_t ma
 }
 
 sky_bool_t
-sky_radix32tree_delete(sky_radix_tree_t *tree, sky_uint32_t key, sky_uint32_t mask) {
-    sky_uint32_t bit;
+sky_radix32tree_delete(sky_radix_tree_t *tree, sky_u32_t key, sky_u32_t mask) {
+    sky_u32_t bit;
     sky_radix_node_t *node;
 
     bit = 0x80000000;
@@ -173,10 +173,10 @@ sky_radix32tree_delete(sky_radix_tree_t *tree, sky_uint32_t key, sky_uint32_t ma
     return true;
 }
 
-sky_uintptr_t
-sky_radix32tree_find(sky_radix_tree_t *tree, sky_uint32_t key) {
-    sky_uint32_t bit;
-    sky_uintptr_t value;
+sky_usize_t
+sky_radix32tree_find(sky_radix_tree_t *tree, sky_u32_t key) {
+    sky_u32_t bit;
+    sky_usize_t value;
     sky_radix_node_t *node;
 
     bit = 0x80000000;
@@ -197,9 +197,9 @@ sky_radix32tree_find(sky_radix_tree_t *tree, sky_uint32_t key) {
 }
 
 sky_bool_t
-sky_radix128tree_insert(sky_radix_tree_t *tree, sky_uchar_t *key, sky_uchar_t *mask, sky_uintptr_t value) {
+sky_radix128tree_insert(sky_radix_tree_t *tree, sky_uchar_t *key, sky_uchar_t *mask, sky_usize_t value) {
     sky_uchar_t bit;
-    sky_uintptr_t i;
+    sky_usize_t i;
     sky_radix_node_t *node, *next;
     i = 0x0;
     bit = 0x80;
@@ -260,7 +260,7 @@ sky_radix128tree_insert(sky_radix_tree_t *tree, sky_uchar_t *key, sky_uchar_t *m
 sky_bool_t
 sky_radix128tree_delete(sky_radix_tree_t *tree, sky_uchar_t *key, sky_uchar_t *mask) {
     sky_uchar_t bit;
-    sky_uintptr_t i;
+    sky_usize_t i;
     sky_radix_node_t *node;
     i = 0x0;
     bit = 0x80;
@@ -311,11 +311,11 @@ sky_radix128tree_delete(sky_radix_tree_t *tree, sky_uchar_t *key, sky_uchar_t *m
     return true;
 }
 
-sky_uintptr_t
+sky_usize_t
 sky_radix128tree_find(sky_radix_tree_t *tree, sky_uchar_t *key) {
     sky_uchar_t bit;
-    sky_uintptr_t value;
-    sky_uintptr_t i;
+    sky_usize_t value;
+    sky_usize_t i;
     sky_radix_node_t *node;
     i = 0x0;
     bit = 0x80;

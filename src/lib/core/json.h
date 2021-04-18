@@ -29,8 +29,8 @@ struct sky_json_s {
     } type;
     union {
         sky_bool_t boolean;
-        sky_int64_t integer;
-        sky_float64_t dbl;
+        sky_i64_t integer;
+        sky_f64_t dbl;
         sky_str_t string;
 
         struct {
@@ -63,24 +63,24 @@ sky_json_t *sky_json_parse(sky_pool_t *pool, sky_str_t *json);
 
 sky_str_t *sky_json_tostring(sky_json_t *json);
 
-sky_json_t *sky_json_find(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len);
+sky_json_t *sky_json_find(sky_json_t *json, sky_uchar_t *key, sky_u32_t key_len);
 
-sky_json_t *sky_json_put_object(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len);
+sky_json_t *sky_json_put_object(sky_json_t *json, sky_uchar_t *key, sky_u32_t key_len);
 
-sky_json_t *sky_json_put_array(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len);
+sky_json_t *sky_json_put_array(sky_json_t *json, sky_uchar_t *key, sky_u32_t key_len);
 
-sky_json_t *sky_json_put_boolean(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, sky_bool_t value);
+sky_json_t *sky_json_put_boolean(sky_json_t *json, sky_uchar_t *key, sky_u32_t key_len, sky_bool_t value);
 
-sky_json_t *sky_json_put_null(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len);
+sky_json_t *sky_json_put_null(sky_json_t *json, sky_uchar_t *key, sky_u32_t key_len);
 
-sky_json_t *sky_json_put_integer(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, sky_int64_t value);
+sky_json_t *sky_json_put_integer(sky_json_t *json, sky_uchar_t *key, sky_u32_t key_len, sky_i64_t value);
 
-sky_json_t *sky_json_put_double(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, sky_float64_t value);
+sky_json_t *sky_json_put_double(sky_json_t *json, sky_uchar_t *key, sky_u32_t key_len, sky_f64_t value);
 
-sky_json_t *sky_json_put_string(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, sky_str_t *value);
+sky_json_t *sky_json_put_string(sky_json_t *json, sky_uchar_t *key, sky_u32_t key_len, sky_str_t *value);
 
-sky_json_t *sky_json_put_str_len(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len,
-                                 sky_uchar_t *v, sky_uint32_t v_len);
+sky_json_t *sky_json_put_str_len(sky_json_t *json, sky_uchar_t *key, sky_u32_t key_len,
+                                 sky_uchar_t *v, sky_u32_t v_len);
 
 sky_json_t *sky_json_add_object(sky_json_t *json);
 
@@ -90,13 +90,13 @@ sky_json_t *sky_json_add_boolean(sky_json_t *json, sky_bool_t value);
 
 sky_json_t *sky_json_add_null(sky_json_t *json);
 
-sky_json_t *sky_json_add_integer(sky_json_t *json, sky_int64_t value);
+sky_json_t *sky_json_add_integer(sky_json_t *json, sky_i64_t value);
 
-sky_json_t *sky_json_add_float(sky_json_t *json, sky_float64_t value);
+sky_json_t *sky_json_add_float(sky_json_t *json, sky_f64_t value);
 
 sky_json_t *sky_json_add_string(sky_json_t *json, sky_str_t *value);
 
-sky_json_t *sky_json_add_str_len(sky_json_t *json, sky_uchar_t *v, sky_uint32_t v_len);
+sky_json_t *sky_json_add_str_len(sky_json_t *json, sky_uchar_t *v, sky_u32_t v_len);
 
 static sky_inline sky_json_t*
 sky_json_object_create(sky_pool_t *pool) {

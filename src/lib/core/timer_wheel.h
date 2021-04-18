@@ -18,7 +18,7 @@ typedef void (*sky_timer_wheel_pt)(sky_timer_wheel_entry_t *entry);
 struct sky_timer_wheel_entry_s {
     sky_timer_wheel_entry_t *prev;
     sky_timer_wheel_entry_t *next;
-    sky_uint64_t expire_at;
+    sky_u64_t expire_at;
     sky_timer_wheel_pt cb;
 };
 
@@ -29,17 +29,17 @@ struct sky_timer_wheel_entry_s {
     (_entry)->cb = (sky_timer_wheel_pt)(_cb)
 
 
-sky_timer_wheel_t *sky_timer_wheel_create(sky_pool_t *pool, sky_uint32_t num_wheels, sky_uint64_t now);
+sky_timer_wheel_t *sky_timer_wheel_create(sky_pool_t *pool, sky_u32_t num_wheels, sky_u64_t now);
 
 void sky_timer_wheel_destroy(sky_timer_wheel_t *ctx);
 
-sky_uint64_t sky_timer_wheel_wake_at(sky_timer_wheel_t *ctx);
+sky_u64_t sky_timer_wheel_wake_at(sky_timer_wheel_t *ctx);
 
-void sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_uint64_t now);
+void sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_u64_t now);
 
-void sky_timer_wheel_link(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky_uint64_t at);
+void sky_timer_wheel_link(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky_u64_t at);
 
-void sky_timer_wheel_expired(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky_uint64_t at);
+void sky_timer_wheel_expired(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky_u64_t at);
 
 
 static sky_inline void

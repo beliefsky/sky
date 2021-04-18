@@ -17,14 +17,14 @@ extern "C" {
 #define sky_swap_u64(_ll) __builtin_bswap64(_ll)
 
 #else
-#define sky_swap_u16(_s)    (sky_uint16_t)(((_s) & 0x00FF) << 8 | ((_s) & 0xFF00) >> 8)
-#define sky_swap_u32(_l)    (sky_uint32_t)  \
+#define sky_swap_u16(_s)    (sky_u16_t)(((_s) & 0x00FF) << 8 | ((_s) & 0xFF00) >> 8)
+#define sky_swap_u32(_l)    (sky_u32_t)  \
     (((_l) & 0x000000FF) << 24 |            \
     ((_l) & 0x0000FF00) << 8  |             \
     ((_l) & 0x00FF0000) >> 8  |             \
     ((_l) & 0xFF000000) >> 24)
 
-#define sky_swap_u64(_ll)   (sky_uint64_t)  \
+#define sky_swap_u64(_ll)   (sky_u64_t)  \
     (((_ll) & 0x00000000000000FF) << 56 |   \
     ((_ll) & 0x000000000000FF00) << 40 |    \
     ((_ll) & 0x0000000000FF0000) << 24 |    \

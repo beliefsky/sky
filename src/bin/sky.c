@@ -15,15 +15,15 @@ static sky_json_object_s *json_config_read(sky_pool_t *pool);
 
 int
 main() {
-    sky_int64_t cpu_num;
-    sky_uint32_t i;
+    sky_i64_t cpu_num;
+    sky_u32_t i;
 
     cpu_num = sysconf(_SC_NPROCESSORS_CONF);
     if ((--cpu_num) < 0) {
         cpu_num = 0;
     }
 
-    i = (sky_uint32_t) cpu_num;
+    i = (sky_u32_t) cpu_num;
     if (!i) {
         server_start();
         return 0;
@@ -79,8 +79,8 @@ server_start() {
 
 static sky_json_object_s *
 json_config_read(sky_pool_t *pool) {
-    sky_int32_t fd;
-    sky_uint32_t size;
+    sky_i32_t fd;
+    sky_u32_t size;
     ssize_t n;
     struct stat stat_buf;
     sky_buf_t *buf;
@@ -93,7 +93,7 @@ json_config_read(sky_pool_t *pool) {
     }
 
     fstat(fd, &stat_buf);
-    size = (sky_uint32_t) stat_buf.st_size;
+    size = (sky_u32_t) stat_buf.st_size;
 
     buf = sky_buf_create(pool, size);
     data.data = buf->pos;

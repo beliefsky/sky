@@ -13,9 +13,9 @@ extern "C" {
 typedef double sky_matrix_data_t;
 
 typedef struct {
-    sky_uint32_t rows;
-    sky_uint32_t cols;
-    sky_uint32_t num;
+    sky_u32_t rows;
+    sky_u32_t cols;
+    sky_u32_t num;
     sky_matrix_data_t *vs;
 } sky_matrix_t;
 

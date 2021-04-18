@@ -27,7 +27,7 @@ typedef struct {
     sky_udp_msg_pt msg_run;
     sky_udp_connect_err_pt connect_err;
     sky_udp_connect_cb_pt run;
-    sky_int32_t timeout;
+    sky_i32_t timeout;
     void *data;
 } sky_udp_conf_t;
 

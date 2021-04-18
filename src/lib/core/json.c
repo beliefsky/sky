@@ -51,7 +51,7 @@ static void json_object_init(sky_json_t *json, sky_pool_t *pool);
 
 static void json_array_init(sky_json_t *json, sky_pool_t *pool);
 
-static void json_coding_str(sky_str_buf_t *buf, const sky_uchar_t *v, sky_size_t v_len);
+static void json_coding_str(sky_str_buf_t *buf, const sky_uchar_t *v, sky_usize_t v_len);
 
 
 sky_json_t *sky_json_parse(sky_pool_t *pool, sky_str_t *json) {
@@ -197,7 +197,7 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
 
 
 sky_json_t*
-sky_json_find(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len) {
+sky_json_find(sky_json_t *json, sky_uchar_t *key, sky_u32_t key_len) {
     sky_json_object_t *object;
 
     if (sky_unlikely(json->type != json_object)) {
@@ -215,7 +215,7 @@ sky_json_find(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len) {
 }
 
 sky_json_t*
-sky_json_put_object(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len) {
+sky_json_put_object(sky_json_t *json, sky_uchar_t *key, sky_u32_t key_len) {
     sky_json_object_t *obj;
 
     if (sky_unlikely(json->type != json_object)) {
@@ -231,7 +231,7 @@ sky_json_put_object(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len) {
 }
 
 sky_json_t*
-sky_json_put_array(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len) {
+sky_json_put_array(sky_json_t *json, sky_uchar_t *key, sky_u32_t key_len) {
     sky_json_object_t *obj;
 
     if (sky_unlikely(json->type != json_object)) {
@@ -247,7 +247,7 @@ sky_json_put_array(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len) {
 }
 
 sky_json_t*
-sky_json_put_boolean(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, sky_bool_t value) {
+sky_json_put_boolean(sky_json_t *json, sky_uchar_t *key, sky_u32_t key_len, sky_bool_t value) {
     sky_json_object_t *obj;
 
     if (sky_unlikely(json->type != json_object)) {
@@ -264,7 +264,7 @@ sky_json_put_boolean(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, s
 }
 
 sky_json_t*
-sky_json_put_null(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len) {
+sky_json_put_null(sky_json_t *json, sky_uchar_t *key, sky_u32_t key_len) {
     sky_json_object_t *obj;
 
     if (sky_unlikely(json->type != json_object)) {
@@ -280,7 +280,7 @@ sky_json_put_null(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len) {
 }
 
 sky_json_t*
-sky_json_put_integer(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, sky_int64_t value) {
+sky_json_put_integer(sky_json_t *json, sky_uchar_t *key, sky_u32_t key_len, sky_i64_t value) {
     sky_json_object_t *obj;
 
     if (sky_unlikely(json->type != json_object)) {
@@ -297,7 +297,7 @@ sky_json_put_integer(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, s
 }
 
 sky_json_t*
-sky_json_put_double(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, sky_float64_t value) {
+sky_json_put_double(sky_json_t *json, sky_uchar_t *key, sky_u32_t key_len, sky_f64_t value) {
     sky_json_object_t *obj;
 
     if (sky_unlikely(json->type != json_object)) {
@@ -314,7 +314,7 @@ sky_json_put_double(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, sk
 }
 
 sky_json_t*
-sky_json_put_string(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, sky_str_t *value) {
+sky_json_put_string(sky_json_t *json, sky_uchar_t *key, sky_u32_t key_len, sky_str_t *value) {
     sky_json_object_t *obj;
 
     if (sky_unlikely(json->type != json_object)) {
@@ -335,7 +335,7 @@ sky_json_put_string(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, sk
 }
 
 sky_json_t*
-sky_json_put_str_len(sky_json_t *json, sky_uchar_t *key, sky_uint32_t key_len, sky_uchar_t *v, sky_uint32_t v_len) {
+sky_json_put_str_len(sky_json_t *json, sky_uchar_t *key, sky_u32_t key_len, sky_uchar_t *v, sky_u32_t v_len) {
     sky_json_object_t *obj;
 
     if (sky_unlikely(json->type != json_object)) {
@@ -407,7 +407,7 @@ sky_json_add_null(sky_json_t *json) {
 }
 
 sky_json_t*
-sky_json_add_integer(sky_json_t *json, sky_int64_t value) {
+sky_json_add_integer(sky_json_t *json, sky_i64_t value) {
     sky_json_t *child;
 
     if (sky_unlikely(json->type != json_array)) {
@@ -421,7 +421,7 @@ sky_json_add_integer(sky_json_t *json, sky_int64_t value) {
 }
 
 sky_json_t*
-sky_json_add_float(sky_json_t *json, sky_float64_t value) {
+sky_json_add_float(sky_json_t *json, sky_f64_t value) {
     sky_json_t *child;
 
     if (sky_unlikely(json->type != json_array)) {
@@ -454,7 +454,7 @@ sky_json_add_string(sky_json_t *json, sky_str_t *value) {
 }
 
 sky_json_t*
-sky_json_add_str_len(sky_json_t *json, sky_uchar_t *v, sky_uint32_t v_len) {
+sky_json_add_str_len(sky_json_t *json, sky_uchar_t *v, sky_u32_t v_len) {
     sky_json_t *child;
 
     if (sky_unlikely(json->type != json_array)) {
@@ -471,7 +471,7 @@ sky_json_add_str_len(sky_json_t *json, sky_uchar_t *v, sky_uint32_t v_len) {
 
 static sky_json_t*
 parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
-    sky_uint16_t next;
+    sky_u16_t next;
 
     sky_json_t *tmp, *current, *root;
     sky_json_object_t *object;
@@ -712,9 +712,9 @@ parse_whitespace(sky_uchar_t **ptr) {
         const __m128i not_an_nrt_mask = _mm_shuffle_epi8(nrt_lut, dong);
         const __m128i space_mask = _mm_cmpeq_epi8(data, _mm_set1_epi8(' '));
         const __m128i non_whitespace_mask = _mm_xor_si128(not_an_nrt_mask, space_mask);
-        const sky_int32_t move_mask = _mm_movemask_epi8(non_whitespace_mask);
+        const sky_i32_t move_mask = _mm_movemask_epi8(non_whitespace_mask);
         if (__builtin_expect(move_mask, 1)) {
-            *ptr = p + __builtin_ctz((sky_uint32_t) move_mask);
+            *ptr = p + __builtin_ctz((sky_u32_t) move_mask);
             return;
         }
     }
@@ -724,7 +724,7 @@ parse_whitespace(sky_uchar_t **ptr) {
 
     for (;; p += 16) {
         const __m128i s = _mm_loadu_si128((const __m128i *) p);
-        const sky_int32_t r = _mm_cmpistri(w, s, _SIDD_UBYTE_OPS | _SIDD_CMP_EQUAL_ANY
+        const sky_i32_t r = _mm_cmpistri(w, s, _SIDD_UBYTE_OPS | _SIDD_CMP_EQUAL_ANY
                                                  | _SIDD_LEAST_SIGNIFICANT | _SIDD_NEGATIVE_POLARITY);
         if (r != 16)    // some of characters is non-whitespace
         {
@@ -757,8 +757,8 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end) {
         const __m256i quote_mask = _mm256_cmpeq_epi8(data, _mm256_set1_epi8('"'));
         const __m256i backslash_mask = _mm256_cmpeq_epi8(data, _mm256_set1_epi8('\\'));
 
-        const sky_uint32_t quote_move_mask = (sky_uint32_t) _mm256_movemask_epi8(quote_mask);
-        const sky_uint32_t backslash_move_mask = (sky_uint32_t) _mm256_movemask_epi8(backslash_mask);
+        const sky_u32_t quote_move_mask = (sky_u32_t) _mm256_movemask_epi8(quote_mask);
+        const sky_u32_t backslash_move_mask = (sky_u32_t) _mm256_movemask_epi8(backslash_mask);
 
         if (sky_unlikely(_mm256_testz_si256(invalid_char_mask, invalid_char_mask) != 0)) {
             if (backslash_move_mask == 0) {
@@ -768,25 +768,25 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end) {
                 p += __builtin_ctz(quote_move_mask);
                 *p = '\0';
                 str->data = *ptr;
-                str->len = (sky_size_t) (p - str->data);
+                str->len = (sky_usize_t) (p - str->data);
 
                 *ptr = p + 1;
 
                 return true;
             }
-            const sky_int32_t backslash_len = __builtin_ctz(backslash_move_mask); // 转义符位置
+            const sky_i32_t backslash_len = __builtin_ctz(backslash_move_mask); // 转义符位置
             if (quote_move_mask == 0) {
                 p += backslash_len; // 未找到引号，数据还很长
                 loop = true;
                 break;
             }
-            const sky_int32_t quote_len = __builtin_ctz(quote_move_mask); // 引号位置
+            const sky_i32_t quote_len = __builtin_ctz(quote_move_mask); // 引号位置
             if (quote_len < backslash_len) {
 
                 p += quote_len;
                 *p = '\0';
                 str->data = *ptr;
-                str->len = (sky_size_t) (p - str->data);
+                str->len = (sky_usize_t) (p - str->data);
 
                 *ptr = p + 1;
 
@@ -799,20 +799,20 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end) {
         if (sky_unlikely(quote_move_mask == 0)) { // 未找到引号
             return false;
         }
-        const sky_uint32_t invalid_char_move_mask = (sky_uint32_t) _mm256_movemask_epi8(invalid_char_mask);
-        const sky_int32_t invalid_char_len = __builtin_ctz(invalid_char_move_mask);
-        const sky_int32_t quote_len = __builtin_ctz(quote_move_mask); // 引号位置
+        const sky_u32_t invalid_char_move_mask = (sky_u32_t) _mm256_movemask_epi8(invalid_char_mask);
+        const sky_i32_t invalid_char_len = __builtin_ctz(invalid_char_move_mask);
+        const sky_i32_t quote_len = __builtin_ctz(quote_move_mask); // 引号位置
         if (sky_unlikely(invalid_char_len < quote_len)) {
             return false;
         }
 
-        const sky_int32_t backslash_len = __builtin_ctz(backslash_move_mask); // 转义符位置
+        const sky_i32_t backslash_len = __builtin_ctz(backslash_move_mask); // 转义符位置
 
         if (quote_len < backslash_len) {
             p += quote_len;
             *p = '\0';
             str->data = *ptr;
-            str->len = (sky_size_t) (p - str->data);
+            str->len = (sky_usize_t) (p - str->data);
 
             *ptr = p + 1;
 
@@ -837,8 +837,8 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end) {
                 const __m256i quote_mask = _mm256_cmpeq_epi8(data, _mm256_set1_epi8('"'));
                 const __m256i backslash_mask = _mm256_cmpeq_epi8(data, _mm256_set1_epi8('\\'));
 
-                const sky_uint32_t quote_move_mask = (sky_uint32_t) _mm256_movemask_epi8(quote_mask);
-                const sky_uint32_t backslash_move_mask = (sky_uint32_t) _mm256_movemask_epi8(backslash_mask);
+                const sky_u32_t quote_move_mask = (sky_u32_t) _mm256_movemask_epi8(quote_mask);
+                const sky_u32_t backslash_move_mask = (sky_u32_t) _mm256_movemask_epi8(backslash_mask);
 
                 if (sky_unlikely(_mm256_testz_si256(invalid_char_mask, invalid_char_mask) != 0)) {
                     if (backslash_move_mask == 0) {
@@ -847,39 +847,39 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end) {
                             post += 32;
                             continue;
                         }
-                        const sky_int32_t quote_len = __builtin_ctz(quote_move_mask); // 引号位置
-                        sky_memmove(post, p, (sky_size_t) quote_len);
+                        const sky_i32_t quote_len = __builtin_ctz(quote_move_mask); // 引号位置
+                        sky_memmove(post, p, (sky_usize_t) quote_len);
                         post += quote_len;
                         p += quote_len;
 
                         *post = '\0';
                         str->data = *ptr;
-                        str->len = (sky_size_t) (post - str->data);
+                        str->len = (sky_usize_t) (post - str->data);
                         *ptr = p + 1;
                         return true;
                     }
-                    const sky_int32_t backslash_len = __builtin_ctz(backslash_move_mask); // 转义符位置
+                    const sky_i32_t backslash_len = __builtin_ctz(backslash_move_mask); // 转义符位置
                     if (quote_move_mask == 0) {
-                        sky_memmove(post, p, (sky_size_t) backslash_len);
+                        sky_memmove(post, p, (sky_usize_t) backslash_len);
                         post += backslash_len;
                         p += backslash_len; // 未找到引号，数据还很长
                         loop = true;
                         break;
                     }
-                    const sky_int32_t quote_len = __builtin_ctz(quote_move_mask); // 引号位置
+                    const sky_i32_t quote_len = __builtin_ctz(quote_move_mask); // 引号位置
                     if (quote_len < backslash_len) {
 
-                        sky_memmove(post, p, (sky_size_t) quote_len);
+                        sky_memmove(post, p, (sky_usize_t) quote_len);
                         post += quote_len;
                         p += quote_len;
 
                         *post = '\0';
                         str->data = *ptr;
-                        str->len = (sky_size_t) (post - str->data);
+                        str->len = (sky_usize_t) (post - str->data);
                         *ptr = p + 1;
                         return true;
                     }
-                    sky_memmove(post, p, (sky_size_t) backslash_len);
+                    sky_memmove(post, p, (sky_usize_t) backslash_len);
                     post += backslash_len;
                     p += backslash_len; // 找到引号，数据很快结束了
                     loop = false;
@@ -888,27 +888,27 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end) {
                 if (sky_unlikely(quote_move_mask == 0)) { // 未找到引号
                     return false;
                 }
-                const sky_uint32_t invalid_char_move_mask = (sky_uint32_t) _mm256_movemask_epi8(invalid_char_mask);
-                const sky_int32_t invalid_char_len = __builtin_ctz(invalid_char_move_mask);
-                const sky_int32_t quote_len = __builtin_ctz(quote_move_mask); // 引号位置
+                const sky_u32_t invalid_char_move_mask = (sky_u32_t) _mm256_movemask_epi8(invalid_char_mask);
+                const sky_i32_t invalid_char_len = __builtin_ctz(invalid_char_move_mask);
+                const sky_i32_t quote_len = __builtin_ctz(quote_move_mask); // 引号位置
                 if (sky_unlikely(invalid_char_len < quote_len)) {
                     return false;
                 }
 
-                const sky_int32_t backslash_len = __builtin_ctz(backslash_move_mask); // 转义符位置
+                const sky_i32_t backslash_len = __builtin_ctz(backslash_move_mask); // 转义符位置
 
                 if (quote_len < backslash_len) {
-                    sky_memmove(post, p, (sky_size_t) quote_len);
+                    sky_memmove(post, p, (sky_usize_t) quote_len);
                     post += quote_len;
                     p += quote_len;
 
                     *post = '\0';
                     str->data = *ptr;
-                    str->len = (sky_size_t) (post - str->data);
+                    str->len = (sky_usize_t) (post - str->data);
                     *ptr = p + 1;
                     return true;
                 }
-                sky_memmove(post, p, (sky_size_t) backslash_len);
+                sky_memmove(post, p, (sky_usize_t) backslash_len);
                 post += backslash_len;
                 p += backslash_len; // 找到引号，数据很快结束了
                 loop = false;
@@ -928,14 +928,14 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end) {
                                                       "\\\\";
 #undef ALIGNED
     sky_bool_t loop = false;
-    sky_size_t size = (sky_size_t) (end - p);
+    sky_usize_t size = (sky_usize_t) (end - p);
     if (sky_likely(size >= 16)) {
-        sky_size_t left = size & ~15U;
+        sky_usize_t left = size & ~15U;
 
         __m128i ranges16 = _mm_loadu_si128((const __m128i *) ranges);
         do {
             __m128i b16 = _mm_loadu_si128((const __m128i *) p);
-            sky_int32_t r = _mm_cmpestri(
+            sky_i32_t r = _mm_cmpestri(
                     ranges16,
                     6,
                     b16,
@@ -951,7 +951,7 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end) {
                 if (*p == '"') {
                     *p = '\0';
                     str->data = *ptr;
-                    str->len = (sky_size_t) (p - str->data);
+                    str->len = (sky_usize_t) (p - str->data);
 
                     *ptr = p + 1;
 
@@ -975,7 +975,7 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end) {
             if (*p == '"') {
                 *p = '\0';
                 str->data = *ptr;
-                str->len = (sky_size_t) (p - str->data);
+                str->len = (sky_usize_t) (p - str->data);
 
                 *ptr = p + 1;
 
@@ -992,15 +992,15 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end) {
            }
 
             loop = false;
-            size = (sky_size_t) (end - p);
+            size = (sky_usize_t) (end - p);
             if (sky_likely(size >= 16)) {
 
-                sky_size_t left = size & ~15U;
+                sky_usize_t left = size & ~15U;
 
                 __m128i ranges16 = _mm_loadu_si128((const __m128i *) ranges);
                 do {
                     __m128i data = _mm_loadu_si128((const __m128i *) p);
-                    sky_int32_t r = _mm_cmpestri(
+                    sky_i32_t r = _mm_cmpestri(
                             ranges16,
                             6,
                             data,
@@ -1008,7 +1008,7 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end) {
                             _SIDD_LEAST_SIGNIFICANT | _SIDD_CMP_RANGES | _SIDD_UBYTE_OPS
                     );
                     if (sky_unlikely(r != 16)) {
-                        sky_memmove(post, p, (sky_size_t) r);
+                        sky_memmove(post, p, (sky_usize_t) r);
                         p += r;
                         post += r;
 
@@ -1018,7 +1018,7 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end) {
                         if (*p == '"') {
                             *p = '\0';
                             str->data = *ptr;
-                            str->len = (sky_size_t) (p - str->data);
+                            str->len = (sky_usize_t) (p - str->data);
 
                             *ptr = p + 1;
 
@@ -1048,7 +1048,7 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end) {
         if (*p == '"') {
             *p = '\0';
             str->data = *ptr;
-            str->len = (sky_size_t) (p - str->data);
+            str->len = (sky_usize_t) (p - str->data);
 
             *ptr = p + 1;
 
@@ -1075,7 +1075,7 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end) {
         if (*p == '"') {
             *post = '\0';
             str->data = *ptr;
-            str->len = (sky_size_t) (post - str->data);
+            str->len = (sky_usize_t) (post - str->data);
             *ptr = p + 1;
 
             return true;
@@ -1096,34 +1096,34 @@ parse_number(sky_json_t *json, sky_uchar_t **ptr) {
 
     for (;; p += 16) {
         const __m128i s = _mm_loadu_si128((const __m128i *) p);
-        const sky_int32_t r = _mm_cmpistri(w, s, _SIDD_UBYTE_OPS | _SIDD_CMP_EQUAL_ANY
+        const sky_i32_t r = _mm_cmpistri(w, s, _SIDD_UBYTE_OPS | _SIDD_CMP_EQUAL_ANY
                                                  | _SIDD_LEAST_SIGNIFICANT | _SIDD_NEGATIVE_POLARITY);
         if (r != 16)    // some of characters is non-whitespace
         {
             p += r;
 
             const sky_str_t str = {
-                    .len = ((sky_size_t) (p - *ptr)),
+                    .len = ((sky_usize_t) (p - *ptr)),
                     .data = *ptr
             };
             json->type = json_integer;
             *ptr = p;
 
-            return sky_str_to_int64(&str, &json->integer);
+            return sky_str_to_i64(&str, &json->integer);
         }
     }
 #else
     for (;;) {
         if (sky_unlikely(*p < '-' || *p > ':')) {
             const sky_str_t str = {
-                    .len = ((sky_size_t) (p - *ptr)),
+                    .len = ((sky_usize_t) (p - *ptr)),
                     .data = *ptr
             };
 
             json->type = json_integer;
             *ptr = p;
 
-            return sky_str_to_int64(&str, &json->integer);
+            return sky_str_to_i64(&str, &json->integer);
         }
         ++p;
     }
@@ -1213,6 +1213,6 @@ json_array_init(sky_json_t *json, sky_pool_t *pool) {
 }
 
 static sky_inline void
-json_coding_str(sky_str_buf_t *buf, const sky_uchar_t *v, sky_size_t v_len) {
-    sky_str_buf_append_str_len(buf, v, (sky_uint32_t) v_len);
+json_coding_str(sky_str_buf_t *buf, const sky_uchar_t *v, sky_usize_t v_len) {
+    sky_str_buf_append_str_len(buf, v, (sky_u32_t) v_len);
 }

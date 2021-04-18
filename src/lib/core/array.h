@@ -17,11 +17,11 @@ typedef struct {
     // 内存池对象
     sky_pool_t *pool;
     // 每个数组元素占用的内存大小
-    sky_size_t size;
+    sky_usize_t size;
     // nelts是数组中已经使用的元素个数
-    sky_uint32_t nelts;
+    sky_u32_t nelts;
     // 当前数组中能够容纳元素个数的总大小
-    sky_uint32_t nalloc;
+    sky_u32_t nalloc;
 } sky_array_t;
 
 /*
@@ -35,7 +35,7 @@ size:	单个元素的大小，单位是字节。
 注意事项: 由于使用ngx_palloc分配内存，数组在扩容时，旧的内存不会被释放，会造成内存的浪费。
 因此，最好能提前规划好数组的容量，在创建或者初始化的时候一次搞定，避免多次扩容，造成内存浪费。
  */
-sky_array_t *sky_array_create(sky_pool_t *p, sky_uint32_t n, sky_size_t size);
+sky_array_t *sky_array_create(sky_pool_t *p, sky_u32_t n, sky_usize_t size);
 
 // 销毁该数组对象，并释放其分配的内存回内存池。
 void sky_array_destroy(sky_array_t *a);
@@ -46,12 +46,12 @@ void sky_array_destroy(sky_array_t *a);
 void *sky_array_push(sky_array_t *a);
 
 // 返回将要添加n个元素到数组中其首个元素的地址
-void *sky_array_push_n(sky_array_t *a, sky_uint32_t n);
+void *sky_array_push_n(sky_array_t *a, sky_u32_t n);
 
 // 如果一个数组对象是被分配在堆上的，那么当调用ngx_array_destroy销毁以后，如果想再次使用，就可以调用此函数。
 // 如果一个数组对象是被分配在栈上的，那么就需要调用此函数，进行初始化的工作以后，才可以使用。
 static sky_inline sky_bool_t
-sky_array_init(sky_array_t *array, sky_pool_t *pool, sky_uint32_t n, sky_size_t size) {
+sky_array_init(sky_array_t *array, sky_pool_t *pool, sky_u32_t n, sky_usize_t size) {
     /*
      * set "array->nelts" before "array->elts", otherwise MSVC thinks
      * that "array->nelts" may be used without having been initialized

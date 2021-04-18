@@ -25,9 +25,9 @@ struct sky_event_s {
     sky_event_run_pt run; // 普通事件触发的回调函数
     sky_event_close_pt close; // 关闭事件回调函数
     sky_time_t now; // 当前时间
-    sky_int32_t fd; //事件句柄
-    sky_int32_t timeout; // 节点超时时间
-    sky_int16_t index; // 用于内部多时间合并寻址的相关功能
+    sky_i32_t fd; //事件句柄
+    sky_i32_t timeout; // 节点超时时间
+    sky_i16_t index; // 用于内部多时间合并寻址的相关功能
     sky_bool_t reg: 1; // 该事件监听是否注册，用于防止非法提交
     sky_bool_t wait: 1; // 期间不会触发run函数
     sky_bool_t read: 1; // 目前io可读
@@ -38,8 +38,8 @@ struct sky_event_loop_s {
     sky_timer_wheel_t *ctx;
     sky_pool_t *pool;
     sky_time_t now;
-    sky_int32_t fd;
-    sky_int32_t conn_max;
+    sky_i32_t fd;
+    sky_i32_t conn_max;
     sky_bool_t update: 1;
 };
 
@@ -85,7 +85,7 @@ void sky_event_loop_shutdown(sky_event_loop_t *loop);
  * @param ev 加入的事件
  * @param timeout 设定超时时间(秒)， -1永久
  */
-void sky_event_register(sky_event_t *ev, sky_int32_t timeout);
+void sky_event_register(sky_event_t *ev, sky_i32_t timeout);
 
 /**
  * 移除监听触发，该函数会马上关闭io，并在稍后会触发关闭事件
@@ -101,8 +101,8 @@ void sky_event_unregister(sky_event_t *ev);
  * @param timeout 超时时间，单位秒
  */
 static sky_inline void
-sky_event_timer_register(sky_event_loop_t *loop, sky_timer_wheel_entry_t *timer, sky_uint32_t timeout) {
-    sky_timer_wheel_link(loop->ctx, timer, (sky_uint64_t) (loop->now + timeout));
+sky_event_timer_register(sky_event_loop_t *loop, sky_timer_wheel_entry_t *timer, sky_u32_t timeout) {
+    sky_timer_wheel_link(loop->ctx, timer, (sky_u64_t) (loop->now + timeout));
 }
 
 #if defined(__cplusplus)

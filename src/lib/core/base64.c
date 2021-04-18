@@ -74,7 +74,7 @@ static void
 sky_encode_base64_internal(sky_str_t *dst, sky_str_t *src, const sky_uchar_t *basis, sky_bool_t padding)
 {
     sky_uchar_t         *d, *s;
-    sky_size_t          len;
+    sky_usize_t          len;
 
     len = src->len;
     s = src->data;
@@ -109,13 +109,13 @@ sky_encode_base64_internal(sky_str_t *dst, sky_str_t *src, const sky_uchar_t *ba
         }
     }
 
-    dst->len = (sky_size_t)(d - dst->data);
+    dst->len = (sky_usize_t)(d - dst->data);
 }
 
 static sky_bool_t
 sky_decode_base64_internal(sky_str_t *dst, sky_str_t *src, const sky_uchar_t *basis)
 {
-    sky_size_t          len;
+    sky_usize_t          len;
     sky_uchar_t         *d, *s;
 
     for (len = 0; len < src->len; len++) {
@@ -152,7 +152,7 @@ sky_decode_base64_internal(sky_str_t *dst, sky_str_t *src, const sky_uchar_t *ba
         *d++ = (sky_uchar_t) (basis[s[1]] << 4 | basis[s[2]] >> 2);
     }
 
-    dst->len = (sky_size_t)(d - dst->data);
+    dst->len = (sky_usize_t)(d - dst->data);
 
     return true;
 }

@@ -37,7 +37,7 @@ typedef cpuset_t sky_cpu_set_t;
 #include <sys/sysctl.h>
 
 typedef struct {
-  sky_uint32_t  count;
+  sky_u32_t  count;
 } sky_cpu_set_t;
 
 static inline void
@@ -46,19 +46,19 @@ CPU_ZERO(sky_cpu_set_t *cs) {
 }
 
 static inline void
-CPU_SET(sky_int32_t num, sky_cpu_set_t *cs) {
+CPU_SET(sky_i32_t num, sky_cpu_set_t *cs) {
     cs->count |= (1 << num);
 }
 
 static inline int
-CPU_ISSET(sky_int32_t num, sky_cpu_set_t *cs) {
+CPU_ISSET(sky_i32_t num, sky_cpu_set_t *cs) {
     return (cs->count & (1 << num));
 }
 
 static int
 sky_setaffinity(sky_cpu_set_t *cpu_set) {
-    sky_int32_t core_count = 0;
-    sky_size_t len = sizeof(sky_int32_t);
+    sky_i32_t core_count = 0;
+    sky_usize_t len = sizeof(sky_i32_t);
     if (sysctlbyname("machdep.cpu.core_count", &core_count, &len, 0, 0)) {
         return -1;
     }
@@ -73,7 +73,7 @@ sky_setaffinity(sky_cpu_set_t *cpu_set) {
 
 #endif
 
-extern sky_uint_t sky_cache_line_size;
+extern sky_usize_t sky_cache_line_size;
 
 void sky_cpu_info();
 

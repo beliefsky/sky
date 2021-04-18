@@ -18,7 +18,7 @@ typedef struct sky_rbtree_node_s sky_rbtree_node_t;
 **/
 
 struct sky_rbtree_node_s {
-    sky_uintptr_t key;                /*无符号整形的关键字*/
+    sky_usize_t key;                /*无符号整形的关键字*/
     sky_rbtree_node_t *left;              /*左子节点*/
     sky_rbtree_node_t *right;             /*右子节点*/
     sky_rbtree_node_t *parent;            /*父节点*/

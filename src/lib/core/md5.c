@@ -5,7 +5,7 @@
 #include "md5.h"
 #include "memory.h"
 
-static const sky_uchar_t *sky_md5_body(sky_md5_t *ctx, const sky_uchar_t *data, sky_size_t size);
+static const sky_uchar_t *sky_md5_body(sky_md5_t *ctx, const sky_uchar_t *data, sky_usize_t size);
 
 
 void
@@ -20,10 +20,10 @@ sky_md5_init(sky_md5_t *ctx) {
 
 
 void
-sky_md5_update(sky_md5_t *ctx, const void *data, sky_size_t size) {
-    sky_size_t used, free;
+sky_md5_update(sky_md5_t *ctx, const void *data, sky_usize_t size) {
+    sky_usize_t used, free;
 
-    used = (sky_size_t) (ctx->bytes & 0x3f);
+    used = (sky_usize_t) (ctx->bytes & 0x3f);
     ctx->bytes += size;
 
     if (used) {
@@ -51,9 +51,9 @@ sky_md5_update(sky_md5_t *ctx, const void *data, sky_size_t size) {
 
 void
 sky_md5_final(sky_uchar_t result[16], sky_md5_t *ctx) {
-    sky_size_t used, free;
+    sky_usize_t used, free;
 
-    used = (sky_size_t) (ctx->bytes & 0x3f);
+    used = (sky_usize_t) (ctx->bytes & 0x3f);
 
     ctx->buffer[used++] = 0x80;
 
@@ -132,15 +132,15 @@ sky_md5_final(sky_uchar_t result[16], sky_md5_t *ctx) {
  * does not work.
  */
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-#define SET(n)      (*(sky_uint32_t *) &p[n << 2])
-#define GET(n)      (*(sky_uint32_t *) &p[n << 2])
+#define SET(n)      (*(sky_u32_t *) &p[n << 2])
+#define GET(n)      (*(sky_u32_t *) &p[n << 2])
 #else
 #define SET(n)                                                                  \
     (block[n] =                                                                 \
-    (sky_uint32_t) p[n << 2] |                                                      \
-    ((sky_uint32_t) p[(n << 2) + 1] << 8) |                                         \
-    ((sky_uint32_t) p[(n << 2) + 2] << 16) |                                        \
-    ((sky_uint32_t) p[(n << 2) + 3] << 24))
+    (sky_u32_t) p[n << 2] |                                                      \
+    ((sky_u32_t) p[(n << 2) + 1] << 8) |                                         \
+    ((sky_u32_t) p[(n << 2) + 2] << 16) |                                        \
+    ((sky_u32_t) p[(n << 2) + 3] << 24))
 
 #define GET(n)      block[n]*/
 #endif
@@ -153,11 +153,11 @@ sky_md5_final(sky_uchar_t result[16], sky_md5_t *ctx) {
 
 static const sky_uchar_t*
 sky_md5_body(sky_md5_t *ctx, const sky_uchar_t *data, size_t size) {
-    sky_uint32_t a, b, c, d;
-    sky_uint32_t saved_a, saved_b, saved_c, saved_d;
+    sky_u32_t a, b, c, d;
+    sky_u32_t saved_a, saved_b, saved_c, saved_d;
     const sky_uchar_t *p;
 #if __BYTE_ORDER != __LITTLE_ENDIAN
-    sky_uint32_t       block[16];
+    sky_u32_t       block[16];
 #endif
 
     p = data;
