@@ -30,7 +30,7 @@ typedef struct {
 
 struct sky_redis_conn_s {
     sky_tcp_conn_t conn;
-    sky_pool_t* pool;
+    sky_pool_t *pool;
     sky_bool_t error;
 };
 
@@ -47,18 +47,18 @@ typedef struct {
 
 typedef struct {
     sky_uint32_t rows;
-    sky_redis_data_t* data;
+    sky_redis_data_t *data;
     sky_bool_t is_ok: 1;
 } sky_redis_result_t;
 
-sky_redis_pool_t* sky_redis_pool_create(sky_pool_t* pool, const sky_redis_conf_t* conf);
+sky_redis_pool_t *sky_redis_pool_create(sky_pool_t *pool, const sky_redis_conf_t *conf);
 
-sky_redis_conn_t* sky_redis_conn_get(sky_redis_pool_t* redis_pool, sky_pool_t* pool,
-                                     sky_event_t* event, sky_coro_t* coro);
+sky_redis_conn_t *sky_redis_conn_get(sky_redis_pool_t *redis_pool, sky_pool_t *pool,
+                                     sky_event_t *event, sky_coro_t *coro);
 
-sky_redis_result_t* sky_redis_exec(sky_redis_conn_t* rc, sky_redis_data_t* params, sky_uint16_t param_len);
+sky_redis_result_t *sky_redis_exec(sky_redis_conn_t *rc, sky_redis_data_t *params, sky_uint16_t param_len);
 
-void sky_redis_conn_put(sky_redis_conn_t* rc);
+void sky_redis_conn_put(sky_redis_conn_t *rc);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

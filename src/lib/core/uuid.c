@@ -7,11 +7,11 @@
 #include <stdio.h>
 
 void sky_uuid_generate_random(sky_uchar_t buf[37]) {
-    const sky_char_t* c = "89ab";
+    const sky_char_t *c = "89ab";
     sky_uint32_t b;
-    sky_char_t* p;
+    sky_char_t *p;
 
-    p = (sky_char_t* ) buf;
+    p = (sky_char_t *) buf;
     for(sky_uint8_t i = 0; i < 16; ++i) {
         b = rand() % 255;
         switch (i) {

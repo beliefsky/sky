@@ -18,7 +18,7 @@ extern "C" {
 #define sky_inline  inline __attribute__((always_inline))
 #define sky_offset_of(_TYPE, _MEMBER) __builtin_offsetof (_TYPE, _MEMBER)
 
-#define null    (void* )0x0
+#define null    (void *)0x0
 
 #define SKY_UINT64_MAX UINT64_MAX
 

@@ -14,34 +14,34 @@
 #include "../../../core/memory.h"
 
 typedef struct {
-    sky_http_websocket_handler_t* handler;
+    sky_http_websocket_handler_t *handler;
     sky_hash_t hash;
 } websocket_data_t;
 
-static void module_run(sky_http_request_t* r, websocket_data_t* data);
+static void module_run(sky_http_request_t *r, websocket_data_t *data);
 
-static void module_run_next(sky_websocket_session_t* session);
+static void module_run_next(sky_websocket_session_t *session);
 
-static sky_int8_t read_message(sky_coro_t* coro, sky_websocket_session_t* session);
+static sky_int8_t read_message(sky_coro_t *coro, sky_websocket_session_t *session);
 
-static sky_int8_t write_message(sky_coro_t* coro, sky_websocket_session_t* session);
+static sky_int8_t write_message(sky_coro_t *coro, sky_websocket_session_t *session);
 
-static void websocket_decoding(sky_uchar_t* p, const sky_uchar_t* key, sky_uint64_t payload_size);
+static void websocket_decoding(sky_uchar_t *p, const sky_uchar_t *key, sky_uint64_t payload_size);
 
-static sky_uint32_t websocket_read(sky_websocket_session_t* session, sky_uchar_t* data, sky_uint32_t size);
+static sky_uint32_t websocket_read(sky_websocket_session_t *session, sky_uchar_t *data, sky_uint32_t size);
 
-static void websocket_read_wait(sky_websocket_session_t* session, sky_uchar_t* data, sky_uint32_t size);
+static void websocket_read_wait(sky_websocket_session_t *session, sky_uchar_t *data, sky_uint32_t size);
 
-static void websocket_write(sky_websocket_session_t* session, sky_uchar_t* data, sky_uint32_t size);
+static void websocket_write(sky_websocket_session_t *session, sky_uchar_t *data, sky_uint32_t size);
 
-static void write_test(sky_websocket_session_t* session, sky_pool_t* pool, sky_uchar_t* data, sky_size_t size);
+static void write_test(sky_websocket_session_t *session, sky_pool_t *pool, sky_uchar_t *data, sky_size_t size);
 
 
 void
-sky_http_module_websocket_init(sky_pool_t* pool, sky_http_module_t* module, sky_str_t* prefix,
-                               sky_http_websocket_handler_t* handler) {
+sky_http_module_websocket_init(sky_pool_t *pool, sky_http_module_t *module, sky_str_t *prefix,
+                               sky_http_websocket_handler_t *handler) {
 
-    websocket_data_t* data = sky_palloc(pool, sizeof(websocket_data_t));
+    websocket_data_t *data = sky_palloc(pool, sizeof(websocket_data_t));
     data->handler = handler;
 
     module->prefix = *prefix;
@@ -53,13 +53,13 @@ sky_http_module_websocket_init(sky_pool_t* pool, sky_http_module_t* module, sky_
 
 static void
 
-module_run(sky_http_request_t* r, websocket_data_t* data) {
-    sky_websocket_session_t* session;
-    sky_table_elt_t* header;
+module_run(sky_http_request_t *r, websocket_data_t *data) {
+    sky_websocket_session_t *session;
+    sky_table_elt_t *header;
 
     r->keep_alive = false;
 
-    sky_str_t* key = null;
+    sky_str_t *key = null;
 
     sky_list_foreach(&r->headers_in.headers, sky_table_elt_t, item, {
         if (item->key.len == 17 && sky_str4_cmp(item->key.data, 'S', 'e', 'c', '-')) {
@@ -126,10 +126,10 @@ module_run(sky_http_request_t* r, websocket_data_t* data) {
 }
 
 static void
-module_run_next(sky_websocket_session_t* session) {
-    sky_http_connection_t* conn;
+module_run_next(sky_websocket_session_t *session) {
+    sky_http_connection_t *conn;
     sky_coro_switcher_t switcher;
-    sky_coro_t* read_work, *write_work;
+    sky_coro_t *read_work, *write_work;
     sky_int32_t result;
 
     conn = session->request->conn;
@@ -163,12 +163,12 @@ module_run_next(sky_websocket_session_t* session) {
 
 
 static sky_int8_t
-read_message(sky_coro_t* coro, sky_websocket_session_t* session) {
+read_message(sky_coro_t *coro, sky_websocket_session_t *session) {
     sky_uint64_t payload_size;
-    sky_pool_t* pool;
-    websocket_data_t* w_data;
-    sky_websocket_message_t* message;
-    sky_uchar_t* p;
+    sky_pool_t *pool;
+    websocket_data_t *w_data;
+    sky_websocket_message_t *message;
+    sky_uchar_t *p;
     sky_uchar_t head[10];
     sky_uint32_t size;
     sky_uint8_t flag;
@@ -216,7 +216,7 @@ read_message(sky_coro_t* coro, sky_websocket_session_t* session) {
                         websocket_read_wait(session, head + (size + 1), 3 - size);
                         size = 0;
                     }
-                    payload_size = sky_htons(*(sky_uint16_t* ) &head[2]);
+                    payload_size = sky_htons(*(sky_uint16_t *) &head[2]);
 
                 } else {
                     offset = 10;
@@ -224,7 +224,7 @@ read_message(sky_coro_t* coro, sky_websocket_session_t* session) {
                         websocket_read_wait(session, head + (size + 1), 9 - size);
                     }
                     size = 0;
-                    payload_size = sky_htonll(*(sky_uint64_t* ) &head[2]);
+                    payload_size = sky_htonll(*(sky_uint64_t *) &head[2]);
                 }
             } else {
                 offset = 2;
@@ -269,8 +269,8 @@ read_message(sky_coro_t* coro, sky_websocket_session_t* session) {
 }
 
 static sky_int8_t
-write_message(sky_coro_t* coro, sky_websocket_session_t* session) {
-    sky_pool_t* pool = sky_create_pool(4096);
+write_message(sky_coro_t *coro, sky_websocket_session_t *session) {
+    sky_pool_t *pool = sky_create_pool(4096);
 
     sky_defer_add(coro, (sky_defer_func_t) sky_destroy_pool, pool);
     for (;;) {
@@ -287,7 +287,7 @@ write_message(sky_coro_t* coro, sky_websocket_session_t* session) {
 }
 
 static void
-websocket_decoding(sky_uchar_t* p, const sky_uchar_t* key, sky_uint64_t payload_size) {
+websocket_decoding(sky_uchar_t *p, const sky_uchar_t *key, sky_uint64_t payload_size) {
     sky_uint64_t size;
 
 #if defined(__x86_64__)
@@ -295,10 +295,10 @@ websocket_decoding(sky_uchar_t* p, const sky_uchar_t* key, sky_uint64_t payload_
     if (size) {
         sky_uint64_t mask;
 
-        ((sky_uint32_t* ) (&mask))[0] = *(sky_uint32_t* ) key;
-        ((sky_uint32_t* ) (&mask))[1] = *(sky_uint32_t* ) key;
+        ((sky_uint32_t *) (&mask))[0] = *(sky_uint32_t *) key;
+        ((sky_uint32_t *) (&mask))[1] = *(sky_uint32_t *) key;
         do {
-            *(sky_uint64_t* ) (p) ^= mask;
+            *(sky_uint64_t *) (p) ^= mask;
             p += 8;
         } while (--size);
     }
@@ -307,30 +307,30 @@ websocket_decoding(sky_uchar_t* p, const sky_uchar_t* key, sky_uint64_t payload_
             *p ^= key[0];
             break;
         case 2:
-            *(sky_uint16_t* ) (p) ^= *(sky_uint16_t* ) key;
+            *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) key;
             break;
         case 3:
-            *(sky_uint16_t* ) (p) ^= *(sky_uint16_t* ) (key);
+            *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) (key);
             p += 2;
             *p ^= key[2];
             break;
         case 4:
-            *(sky_uint32_t* ) (p) ^= *(sky_uint32_t* ) key;
+            *(sky_uint32_t *) (p) ^= *(sky_uint32_t *) key;
             break;
         case 5:
-            *(sky_uint32_t* ) (p) ^= *(sky_uint32_t* ) key;
+            *(sky_uint32_t *) (p) ^= *(sky_uint32_t *) key;
             p += 4;
             *p ^= key[0];
             break;
         case 6:
-            *(sky_uint32_t* ) (p) ^= *(sky_uint32_t* ) key;
+            *(sky_uint32_t *) (p) ^= *(sky_uint32_t *) key;
             p += 4;
-            *(sky_uint16_t* ) (p) ^= *(sky_uint16_t* ) key;
+            *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) key;
             break;
         case 7:
-            *(sky_uint32_t* ) (p) ^= *(sky_uint32_t* ) key;
+            *(sky_uint32_t *) (p) ^= *(sky_uint32_t *) key;
             p += 4;
-            *(sky_uint16_t* ) (p) ^= *(sky_uint16_t* ) (key);
+            *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) (key);
             p += 2;
             *p ^= key[2];
             break;
@@ -340,9 +340,9 @@ websocket_decoding(sky_uchar_t* p, const sky_uchar_t* key, sky_uint64_t payload_
 #else
     size = payload_size >> 2;
     if (size) {
-        sky_uint32_t mask = *(sky_uint32_t* ) key;
+        sky_uint32_t mask = *(sky_uint32_t *) key;
         do {
-            *(sky_uint32_t* ) (p) ^= mask;
+            *(sky_uint32_t *) (p) ^= mask;
             p += 4;
         } while (--size);
     }
@@ -352,10 +352,10 @@ websocket_decoding(sky_uchar_t* p, const sky_uchar_t* key, sky_uint64_t payload_
             *p ^= key[0];
             break;
         case 2:
-            *(sky_uint16_t* ) (p) ^= *(sky_uint16_t* ) key;
+            *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) key;
             break;
         case 3:
-            *(sky_uint16_t* ) (p) ^= *(sky_uint16_t* ) (key);
+            *(sky_uint16_t *) (p) ^= *(sky_uint16_t *) (key);
             p += 2;
             *p ^= key[2];
             break;
@@ -367,8 +367,8 @@ websocket_decoding(sky_uchar_t* p, const sky_uchar_t* key, sky_uint64_t payload_
 
 
 static void
-write_test(sky_websocket_session_t* session, sky_pool_t* pool, sky_uchar_t* data, sky_size_t size) {
-    sky_uchar_t* p = sky_palloc(pool, 128);
+write_test(sky_websocket_session_t *session, sky_pool_t *pool, sky_uchar_t *data, sky_size_t size) {
+    sky_uchar_t *p = sky_palloc(pool, 128);
 
     *p++ = 0x1 << 7 | 0x01;
 
@@ -379,7 +379,7 @@ write_test(sky_websocket_session_t* session, sky_pool_t* pool, sky_uchar_t* data
 }
 
 static sky_inline void
-websocket_read_wait(sky_websocket_session_t* session, sky_uchar_t* data, sky_uint32_t size) {
+websocket_read_wait(sky_websocket_session_t *session, sky_uchar_t *data, sky_uint32_t size) {
     ssize_t n;
     sky_int32_t fd;
 
@@ -419,7 +419,7 @@ websocket_read_wait(sky_websocket_session_t* session, sky_uchar_t* data, sky_uin
 }
 
 static sky_inline sky_uint32_t
-websocket_read(sky_websocket_session_t* session, sky_uchar_t* data, sky_uint32_t size) {
+websocket_read(sky_websocket_session_t *session, sky_uchar_t *data, sky_uint32_t size) {
     ssize_t n;
     sky_int32_t fd;
 
@@ -452,7 +452,7 @@ websocket_read(sky_websocket_session_t* session, sky_uchar_t* data, sky_uint32_t
 }
 
 static sky_inline void
-websocket_write(sky_websocket_session_t* session, sky_uchar_t* data, sky_uint32_t size) {
+websocket_write(sky_websocket_session_t *session, sky_uchar_t *data, sky_uint32_t size) {
     ssize_t n;
     sky_int32_t fd;
 

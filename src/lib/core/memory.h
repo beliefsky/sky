@@ -22,7 +22,7 @@ extern "C" {
  * 进行内存池管理的时候，对于小于64字节的内存，给分配64字节，使之总是cpu二级缓存读写行的大小倍数，从而有利cpu二级缓存取速度和效率。
  * */
 #define sky_align(d, a)             (((d) + (a - 1)) & ~(a - 1))
-#define sky_align_ptr(p, a)         (sky_uchar_t* ) (((sky_uintptr_t) (p) + ((sky_uintptr_t) a - 0x1)) & ~((sky_uintptr_t) a - 0x1))
+#define sky_align_ptr(p, a)         (sky_uchar_t *) (((sky_uintptr_t) (p) + ((sky_uintptr_t) a - 0x1)) & ~((sky_uintptr_t) a - 0x1))
 /**
  * sky_memzero使用的是memset原型，memset使用汇编进行编写
  */
@@ -33,7 +33,7 @@ extern "C" {
 
 static sky_inline void*
 sky_memalign(sky_size_t alignment, sky_size_t size) {
-    void* p;
+    void *p;
     int err;
     err = posix_memalign(&p, alignment, size);
     if (sky_unlikely(err)) {

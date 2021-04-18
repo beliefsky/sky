@@ -9,12 +9,12 @@ sky_uint_t sky_cache_line_size;
 
 #if ((__i386__ || __amd64__) && (__GNUC__ || __INTEL_COMPILER))
 
-static sky_inline void cpu_id(sky_uint32_t i, sky_uint32_t* buf);
+static sky_inline void cpu_id(sky_uint32_t i, sky_uint32_t *buf);
 
 #if (__i386__)
 
 static ngx_inline void
-cpu_id(sky_uint32_t i, sky_uint32_t* buf)
+cpu_id(sky_uint32_t i, sky_uint32_t *buf)
 {
 
     /*
@@ -43,7 +43,7 @@ cpu_id(sky_uint32_t i, sky_uint32_t* buf)
 
 
 static sky_inline void
-cpu_id(sky_uint32_t i, sky_uint32_t* buf) {
+cpu_id(sky_uint32_t i, sky_uint32_t *buf) {
     sky_uint32_t eax, ebx, ecx, edx;
 
     __asm__ (
@@ -66,7 +66,7 @@ cpu_id(sky_uint32_t i, sky_uint32_t* buf) {
 
 void
 sky_cpu_info() {
-    sky_uchar_t* vendor;
+    sky_uchar_t *vendor;
     sky_uint32_t vbuf[5], cpu[4], model;
 
     vbuf[0] = 0;
@@ -77,7 +77,7 @@ sky_cpu_info() {
 
     cpu_id(0, vbuf);
 
-    vendor = (sky_uchar_t* ) &vbuf[1];
+    vendor = (sky_uchar_t *) &vbuf[1];
 
     if (vbuf[0] == 0) {
         return;

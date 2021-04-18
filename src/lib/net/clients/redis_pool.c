@@ -9,13 +9,13 @@
 #include "../../core/string_buf.h"
 #include "../../core/buf.h"
 
-static sky_bool_t redis_send_exec(sky_redis_conn_t* rc, sky_redis_data_t* prams, sky_uint16_t param_len);
+static sky_bool_t redis_send_exec(sky_redis_conn_t *rc, sky_redis_data_t *prams, sky_uint16_t param_len);
 
-static sky_redis_result_t* redis_exec_read(sky_redis_conn_t* rc);
+static sky_redis_result_t *redis_exec_read(sky_redis_conn_t *rc);
 
 
 sky_redis_pool_t*
-sky_redis_pool_create(sky_pool_t* pool, const sky_redis_conf_t* conf) {
+sky_redis_pool_create(sky_pool_t *pool, const sky_redis_conf_t *conf) {
     const sky_tcp_pool_conf_t c = {
             .host = conf->host,
             .port = conf->port,
@@ -29,8 +29,8 @@ sky_redis_pool_create(sky_pool_t* pool, const sky_redis_conf_t* conf) {
 }
 
 sky_redis_conn_t*
-sky_redis_conn_get(sky_redis_pool_t* redis_pool, sky_pool_t* pool, sky_event_t* event, sky_coro_t* coro) {
-    sky_redis_conn_t* conn = sky_palloc(pool, sizeof(sky_redis_conn_t));
+sky_redis_conn_get(sky_redis_pool_t *redis_pool, sky_pool_t *pool, sky_event_t *event, sky_coro_t *coro) {
+    sky_redis_conn_t *conn = sky_palloc(pool, sizeof(sky_redis_conn_t));
     conn->pool = pool;
     conn->error = false;
 
@@ -41,7 +41,7 @@ sky_redis_conn_get(sky_redis_pool_t* redis_pool, sky_pool_t* pool, sky_event_t* 
 }
 
 sky_redis_result_t*
-sky_redis_exec(sky_redis_conn_t* rc, sky_redis_data_t* params, sky_uint16_t param_len) {
+sky_redis_exec(sky_redis_conn_t *rc, sky_redis_data_t *params, sky_uint16_t param_len) {
     if (sky_unlikely(!rc)) {
         return null;
     }
@@ -52,7 +52,7 @@ sky_redis_exec(sky_redis_conn_t* rc, sky_redis_data_t* params, sky_uint16_t para
 }
 
 void
-sky_redis_conn_put(sky_redis_conn_t* rc) {
+sky_redis_conn_put(sky_redis_conn_t *rc) {
     if (sky_unlikely(!rc)) {
         return;
     }
@@ -65,7 +65,7 @@ sky_redis_conn_put(sky_redis_conn_t* rc) {
 
 
 static sky_bool_t
-redis_send_exec(sky_redis_conn_t* rc, sky_redis_data_t* params, sky_uint16_t param_len) {
+redis_send_exec(sky_redis_conn_t *rc, sky_redis_data_t *params, sky_uint16_t param_len) {
     sky_str_buf_t buf;
     sky_uint8_t len;
 
@@ -155,11 +155,11 @@ redis_send_exec(sky_redis_conn_t* rc, sky_redis_data_t* params, sky_uint16_t par
 }
 
 static sky_redis_result_t*
-redis_exec_read(sky_redis_conn_t* rc) {
+redis_exec_read(sky_redis_conn_t *rc) {
     sky_buf_t buf;
-    sky_redis_result_t* result;
-    sky_redis_data_t* params;
-    sky_uchar_t* p;
+    sky_redis_result_t *result;
+    sky_redis_data_t *params;
+    sky_uchar_t *p;
     sky_size_t n;
     sky_uint32_t i;
     sky_int32_t size;

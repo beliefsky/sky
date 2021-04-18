@@ -8,22 +8,22 @@
 #include "../../core/memory.h"
 #include "http_response.h"
 
-static sky_http_request_t* http_header_read(sky_http_connection_t* conn, sky_pool_t* pool);
+static sky_http_request_t *http_header_read(sky_http_connection_t *conn, sky_pool_t *pool);
 
-static void destroy_mmap(sky_str_t* data);
+static void destroy_mmap(sky_str_t *data);
 
 
 void
-sky_http_request_init(sky_http_server_t* server) {
+sky_http_request_init(sky_http_server_t *server) {
 
 }
 
 sky_int32_t
-sky_http_request_process(sky_coro_t* coro, sky_http_connection_t* conn) {
-    sky_pool_t* pool;
-    sky_defer_t* defer;
-    sky_http_request_t* r;
-    sky_http_module_t* module;
+sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
+    sky_pool_t *pool;
+    sky_defer_t *defer;
+    sky_http_request_t *r;
+    sky_http_module_t *module;
 
     pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
     defer = sky_defer_add(coro, (sky_defer_func_t) sky_destroy_pool, pool);
@@ -58,11 +58,11 @@ sky_http_request_process(sky_coro_t* coro, sky_http_connection_t* conn) {
 }
 
 static sky_http_request_t*
-http_header_read(sky_http_connection_t* conn, sky_pool_t* pool) {
-    sky_http_request_t* r;
-    sky_http_server_t* server;
-    sky_buf_t* buf;
-    sky_http_module_t* module;
+http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
+    sky_http_request_t *r;
+    sky_http_server_t *server;
+    sky_buf_t *buf;
+    sky_http_module_t *module;
     sky_size_t n;
     sky_uint8_t buf_n;
     sky_int8_t i;
@@ -134,8 +134,8 @@ http_header_read(sky_http_connection_t* conn, sky_pool_t* pool) {
 }
 
 void
-sky_http_read_body_none_need(sky_http_request_t* r, sky_buf_t* tmp) {
-    sky_http_server_t* server;
+sky_http_read_body_none_need(sky_http_request_t *r, sky_buf_t *tmp) {
+    sky_http_server_t *server;
     sky_uint32_t n, size, t;
 
     n = (sky_uint32_t) (tmp->last - tmp->pos);
@@ -171,10 +171,10 @@ sky_http_read_body_none_need(sky_http_request_t* r, sky_buf_t* tmp) {
 }
 
 void
-sky_http_read_body_str(sky_http_request_t* r, sky_buf_t* tmp) {
+sky_http_read_body_str(sky_http_request_t *r, sky_buf_t *tmp) {
     sky_size_t size, n;
-    sky_http_server_t* server;
-    sky_uchar_t* p;
+    sky_http_server_t *server;
+    sky_uchar_t *p;
 
     const sky_uint32_t total = r->headers_in.content_length_n;
     n = (sky_size_t) (tmp->last - tmp->pos);
@@ -215,7 +215,7 @@ sky_http_read_body_str(sky_http_request_t* r, sky_buf_t* tmp) {
             sky_coro_exit();
         }
         // 配置回收页
-        sky_str_t* re_call = sky_palloc(r->pool, sizeof(sky_str_t));
+        sky_str_t *re_call = sky_palloc(r->pool, sizeof(sky_str_t));
         re_call->data = p;
         re_call->len = re_size;
         sky_defer_add(r->conn->coro, (sky_defer_func_t) destroy_mmap, r->request_body);
@@ -252,7 +252,7 @@ sky_http_read_body_str(sky_http_request_t* r, sky_buf_t* tmp) {
 }
 
 static void
-destroy_mmap(sky_str_t* data) {
+destroy_mmap(sky_str_t *data) {
     munmap(data->data, data->len);
 }
 

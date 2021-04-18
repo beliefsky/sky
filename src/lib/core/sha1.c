@@ -6,10 +6,10 @@
 #include "memory.h"
 
 
-static const sky_uchar_t* sha1_body(sky_sha1_t* ctx, const sky_uchar_t* data, sky_size_t size);
+static const sky_uchar_t *sha1_body(sky_sha1_t *ctx, const sky_uchar_t *data, sky_size_t size);
 
 void
-sky_sha1_init(sky_sha1_t* ctx) {
+sky_sha1_init(sky_sha1_t *ctx) {
     ctx->a = 0x67452301;
     ctx->b = 0xefcdab89;
     ctx->c = 0x98badcfe;
@@ -19,7 +19,7 @@ sky_sha1_init(sky_sha1_t* ctx) {
 }
 
 void
-sky_sha1_update(sky_sha1_t* ctx, const sky_uchar_t* data, sky_size_t size) {
+sky_sha1_update(sky_sha1_t *ctx, const sky_uchar_t *data, sky_size_t size) {
     sky_size_t used, free;
 
     used = ctx->bytes & 0x3f;
@@ -46,7 +46,7 @@ sky_sha1_update(sky_sha1_t* ctx, const sky_uchar_t* data, sky_size_t size) {
 }
 
 void
-sky_sha1_final(sky_sha1_t* ctx, sky_uchar_t result[20]) {
+sky_sha1_final(sky_sha1_t *ctx, sky_uchar_t result[20]) {
     size_t used, free;
 
     used = (size_t) (ctx->bytes & 0x3f);
@@ -132,12 +132,12 @@ sky_sha1_final(sky_sha1_t* ctx, sky_uchar_t result[20]) {
 
 
 static const sky_uchar_t*
-sha1_body(sky_sha1_t* ctx, const sky_uchar_t* data, sky_size_t size) {
+sha1_body(sky_sha1_t *ctx, const sky_uchar_t *data, sky_size_t size) {
     sky_uint32_t a, b, c, d, e, temp;
     sky_uint32_t saved_a, saved_b, saved_c, saved_d, saved_e;
     sky_uint32_t words[80];
     sky_uint32_t i;
-    const sky_uchar_t* p;
+    const sky_uchar_t *p;
 
     p = data;
 

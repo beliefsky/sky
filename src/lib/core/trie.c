@@ -11,21 +11,21 @@
 typedef struct sky_trie_node_s sky_trie_node_t;
 
 struct sky_trie_node_s {
-    sky_trie_node_t* next[NODE_LEN];
-    sky_uchar_t* key;
+    sky_trie_node_t *next[NODE_LEN];
+    sky_uchar_t *key;
     sky_size_t key_n;
     sky_uintptr_t value;
 };
 
 struct sky_trie_s {
     sky_trie_node_t root;
-    sky_pool_t* pool;
+    sky_pool_t *pool;
 };
 
 
 sky_trie_t*
-sky_trie_create(sky_pool_t* pool) {
-    sky_trie_t* trie;
+sky_trie_create(sky_pool_t *pool) {
+    sky_trie_t *trie;
 
     trie = sky_pcalloc(pool, sizeof(sky_trie_t));
     trie->pool = pool;
@@ -35,7 +35,7 @@ sky_trie_create(sky_pool_t* pool) {
 
 
 static sky_inline sky_size_t
-str_cmp_index(sky_uchar_t* one, sky_uchar_t* two, sky_size_t min_len) {
+str_cmp_index(sky_uchar_t *one, sky_uchar_t *two, sky_size_t min_len) {
     sky_size_t i;
 
     i = min_len;
@@ -47,9 +47,9 @@ str_cmp_index(sky_uchar_t* one, sky_uchar_t* two, sky_size_t min_len) {
 
 
 void
-sky_trie_put(sky_trie_t* trie, sky_str_t* key, sky_uintptr_t value) {
-    sky_trie_node_t* *k_node, *pre_node, *tmp;
-    sky_uchar_t* tmp_key;
+sky_trie_put(sky_trie_t *trie, sky_str_t *key, sky_uintptr_t value) {
+    sky_trie_node_t **k_node, *pre_node, *tmp;
+    sky_uchar_t *tmp_key;
     sky_size_t len, index;
 
     pre_node = &trie->root;
@@ -120,10 +120,10 @@ sky_trie_put(sky_trie_t* trie, sky_str_t* key, sky_uintptr_t value) {
 
 
 sky_uintptr_t
-sky_trie_find(sky_trie_t* trie, sky_str_t* key) {
-    sky_trie_node_t* node;
+sky_trie_find(sky_trie_t *trie, sky_str_t *key) {
+    sky_trie_node_t *node;
     sky_uintptr_t previous_value;
-    sky_uchar_t* tmp_key;
+    sky_uchar_t *tmp_key;
     sky_size_t len;
 
     if (!key->len) {
@@ -158,9 +158,9 @@ sky_trie_find(sky_trie_t* trie, sky_str_t* key) {
 }
 
 
-sky_uintptr_t sky_trie_contains(sky_trie_t* trie, sky_str_t* key) {
-    sky_trie_node_t* node;
-    sky_uchar_t* tmp_key;
+sky_uintptr_t sky_trie_contains(sky_trie_t *trie, sky_str_t *key) {
+    sky_trie_node_t *node;
+    sky_uchar_t *tmp_key;
     sky_size_t len;
 
     if (!key->len) {

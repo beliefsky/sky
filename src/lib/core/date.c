@@ -8,7 +8,7 @@
 
 
 sky_inline sky_uint8_t
-sky_time_to_str(sky_uint32_t secs, sky_uchar_t* out) {
+sky_time_to_str(sky_uint32_t secs, sky_uchar_t *out) {
     if (sky_unlikely(secs > 86400)) {
         return 0;
     }
@@ -36,7 +36,7 @@ sky_time_to_str(sky_uint32_t secs, sky_uchar_t* out) {
     timeBuffer |= 0x30303A30303A3030;
 
     // copy to buffer
-    *(sky_uint64_t* ) out = timeBuffer;
+    *(sky_uint64_t *) out = timeBuffer;
     out[8] = '\0';
 
     return 8;
@@ -44,9 +44,9 @@ sky_time_to_str(sky_uint32_t secs, sky_uchar_t* out) {
 
 
 sky_bool_t
-sky_rfc_str_to_date(sky_str_t* in, time_t* out) {
+sky_rfc_str_to_date(sky_str_t *in, time_t *out) {
     struct tm tm;
-    sky_uchar_t* value;
+    sky_uchar_t *value;
 
     if (sky_unlikely(in->len != 29)) {
         return false;
@@ -157,9 +157,9 @@ sky_rfc_str_to_date(sky_str_t* in, time_t* out) {
 
 
 sky_uint8_t
-sky_date_to_rfc_str(time_t time, sky_uchar_t* src) {
-    static const sky_char_t* week_days = "Sun,Mon,Tue,Wed,Thu,Fri,Sat,";
-    static const sky_char_t* months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec ";
+sky_date_to_rfc_str(time_t time, sky_uchar_t *src) {
+    static const sky_char_t *week_days = "Sun,Mon,Tue,Wed,Thu,Fri,Sat,";
+    static const sky_char_t *months = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec ";
     struct tm tm;
     sky_uint32_t day_of_time;
 

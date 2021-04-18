@@ -16,9 +16,9 @@ typedef struct sky_tls_ctx_s sky_tls_ctx_t;
 typedef struct sky_tls_s sky_tls_t;
 
 
-sky_tls_ctx_t* sky_tls_ctx_init();
+sky_tls_ctx_t *sky_tls_ctx_init();
 
-sky_tls_t* sky_tls_accept(sky_tls_ctx_t* ctx, sky_event_t* ev, sky_coro_t* coro, void* data);
+sky_tls_t *sky_tls_accept(sky_tls_ctx_t *ctx, sky_event_t *ev, sky_coro_t *coro, void *data);
 
 
 #if defined(__cplusplus)

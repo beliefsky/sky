@@ -41,22 +41,22 @@ typedef struct {
 } sky_cpu_set_t;
 
 static inline void
-CPU_ZERO(sky_cpu_set_t* cs) {
+CPU_ZERO(sky_cpu_set_t *cs) {
     cs->count = 0;
 }
 
 static inline void
-CPU_SET(sky_int32_t num, sky_cpu_set_t* cs) {
+CPU_SET(sky_int32_t num, sky_cpu_set_t *cs) {
     cs->count |= (1 << num);
 }
 
 static inline int
-CPU_ISSET(sky_int32_t num, sky_cpu_set_t* cs) {
+CPU_ISSET(sky_int32_t num, sky_cpu_set_t *cs) {
     return (cs->count & (1 << num));
 }
 
 static int
-sky_setaffinity(sky_cpu_set_t* cpu_set) {
+sky_setaffinity(sky_cpu_set_t *cpu_set) {
     sky_int32_t core_count = 0;
     sky_size_t len = sizeof(sky_int32_t);
     if (sysctlbyname("machdep.cpu.core_count", &core_count, &len, 0, 0)) {

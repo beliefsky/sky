@@ -16,7 +16,7 @@
 #include "http_io_wrappers.h"
 
 sky_size_t
-http_read(sky_http_connection_t* conn, sky_uchar_t* data, sky_size_t size) {
+http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_size_t size) {
     ssize_t n;
 
     const sky_int32_t fd = conn->ev.fd;
@@ -43,7 +43,7 @@ http_read(sky_http_connection_t* conn, sky_uchar_t* data, sky_size_t size) {
 }
 
 void
-http_write(sky_http_connection_t* conn, const sky_uchar_t* data, sky_size_t size) {
+http_write(sky_http_connection_t *conn, const sky_uchar_t *data, sky_size_t size) {
     ssize_t n;
 
     const sky_int32_t fd = conn->ev.fd;
@@ -80,8 +80,8 @@ http_write(sky_http_connection_t* conn, const sky_uchar_t* data, sky_size_t size
 #if defined(__linux__)
 
 void
-http_send_file(sky_http_connection_t* conn, sky_int32_t fd, sky_int64_t offset, sky_size_t size,
-               const sky_uchar_t* header, sky_uint32_t header_len) {
+http_send_file(sky_http_connection_t *conn, sky_int32_t fd, sky_int64_t offset, sky_size_t size,
+               const sky_uchar_t *header, sky_uint32_t header_len) {
 
     conn->server->http_write(conn, header, header_len);
 
@@ -116,13 +116,13 @@ http_send_file(sky_http_connection_t* conn, sky_int32_t fd, sky_int64_t offset, 
 #elif defined(__FreeBSD__)
 
 void
-http_send_file(sky_http_connection_t* conn, sky_int32_t fd, sky_int64_t offset, sky_size_t size,
-               const sky_uchar_t* header, sky_uint32_t header_len) {
+http_send_file(sky_http_connection_t *conn, sky_int32_t fd, sky_int64_t offset, sky_size_t size,
+               const sky_uchar_t *header, sky_uint32_t header_len) {
     sky_int64_t sbytes;
     sky_int32_t r;
 
     struct iovec vec = {
-            .iov_base = (void* ) header,
+            .iov_base = (void *) header,
             .iov_len = header_len
     };
 
@@ -199,13 +199,13 @@ http_send_file(sky_http_connection_t* conn, sky_int32_t fd, sky_int64_t offset, 
 #elif defined(__APPLE__)
 
 void
-http_send_file(sky_http_connection_t* conn, sky_int32_t fd, sky_int64_t offset, sky_size_t size,
-               const sky_uchar_t* header, sky_uint32_t header_len) {
+http_send_file(sky_http_connection_t *conn, sky_int32_t fd, sky_int64_t offset, sky_size_t size,
+               const sky_uchar_t *header, sky_uint32_t header_len) {
     sky_int64_t sbytes;
     sky_int32_t r;
 
     struct iovec vec = {
-            .iov_base = (void* ) header,
+            .iov_base = (void *) header,
             .iov_len = header_len
     };
 

@@ -7,9 +7,9 @@
 #include "../core/memory.h"
 
 sky_bool_t
-sky_matrix_add(sky_matrix_t* from, const sky_matrix_t* to) {
+sky_matrix_add(sky_matrix_t *from, const sky_matrix_t *to) {
     sky_uint32_t i;
-    sky_matrix_data_t* av, *bv;
+    sky_matrix_data_t *av, *bv;
 
     if (sky_unlikely(from->rows != to->rows || from->cols != to->cols)) {
         sky_log_error("matrix add: from->rows != to->rows or from->cols != to->cols");
@@ -27,10 +27,10 @@ sky_matrix_add(sky_matrix_t* from, const sky_matrix_t* to) {
 
 
 sky_matrix_t*
-sky_matrix_add2(sky_pool_t* pool, const sky_matrix_t* from, const sky_matrix_t* to) {
+sky_matrix_add2(sky_pool_t *pool, const sky_matrix_t *from, const sky_matrix_t *to) {
     sky_uint32_t i;
-    sky_matrix_t* c;
-    sky_matrix_data_t* av, *bv, *cv;
+    sky_matrix_t *c;
+    sky_matrix_data_t *av, *bv, *cv;
 
     if (sky_unlikely(from->rows != to->rows || from->cols != to->cols)) {
         sky_log_error("matrix add: from->rows != to->rows or from->cols != to->cols");
@@ -54,9 +54,9 @@ sky_matrix_add2(sky_pool_t* pool, const sky_matrix_t* from, const sky_matrix_t* 
 }
 
 sky_bool_t
-sky_matrix_sub(sky_matrix_t* from, const sky_matrix_t* to) {
+sky_matrix_sub(sky_matrix_t *from, const sky_matrix_t *to) {
     sky_uint32_t i;
-    sky_matrix_data_t* av, *bv;
+    sky_matrix_data_t *av, *bv;
 
     if (sky_unlikely(from->rows != to->rows || from->cols != to->cols)) {
         sky_log_error("matrix sub: from->rows != to->rows or from->cols != to->cols");
@@ -75,10 +75,10 @@ sky_matrix_sub(sky_matrix_t* from, const sky_matrix_t* to) {
 
 
 sky_matrix_t*
-sky_matrix_sub2(sky_pool_t* pool, const sky_matrix_t* from, const sky_matrix_t* to) {
+sky_matrix_sub2(sky_pool_t *pool, const sky_matrix_t *from, const sky_matrix_t *to) {
     sky_uint32_t i;
-    sky_matrix_t* c;
-    sky_matrix_data_t* av, *bv, *cv;
+    sky_matrix_t *c;
+    sky_matrix_data_t *av, *bv, *cv;
 
     if (sky_unlikely(from->rows != to->rows || from->cols != to->cols)) {
         sky_log_error("matrix sub: from->rows != to->rows or from->cols != to->cols");
@@ -104,11 +104,11 @@ sky_matrix_sub2(sky_pool_t* pool, const sky_matrix_t* from, const sky_matrix_t* 
 
 
 sky_matrix_t*
-sky_matrix_mul(sky_pool_t* pool, const sky_matrix_t* a, const sky_matrix_t* b) {
+sky_matrix_mul(sky_pool_t *pool, const sky_matrix_t *a, const sky_matrix_t *b) {
     sky_uint32_t i, j, k;
     sky_uint32_t ai, ci, bt, at, ct;
-    sky_matrix_t* c;
-    sky_matrix_data_t* av, *bv, *cv;
+    sky_matrix_t *c;
+    sky_matrix_data_t *av, *bv, *cv;
 
     if (sky_unlikely(a->cols != b->rows)) {
         sky_log_error("matrix mul: a->rows != b->cols");
@@ -147,9 +147,9 @@ sky_matrix_mul(sky_pool_t* pool, const sky_matrix_t* a, const sky_matrix_t* b) {
 }
 
 void
-sky_matrix_mul_num(sky_matrix_t* matrix, sky_matrix_data_t value) {
+sky_matrix_mul_num(sky_matrix_t *matrix, sky_matrix_data_t value) {
     sky_uint32_t i;
-    sky_matrix_data_t* mv;
+    sky_matrix_data_t *mv;
 
     i = matrix->num;
     mv = matrix->vs;
@@ -160,10 +160,10 @@ sky_matrix_mul_num(sky_matrix_t* matrix, sky_matrix_data_t value) {
 
 
 sky_matrix_t*
-sky_matrix_mul_num2(sky_pool_t* pool, const sky_matrix_t* matrix, sky_matrix_data_t value) {
+sky_matrix_mul_num2(sky_pool_t *pool, const sky_matrix_t *matrix, sky_matrix_data_t value) {
     sky_uint32_t i;
-    sky_matrix_t* c;
-    sky_matrix_data_t* mv, *cv;
+    sky_matrix_t *c;
+    sky_matrix_data_t *mv, *cv;
 
     i = matrix->num;
     mv = matrix->vs;
@@ -181,11 +181,11 @@ sky_matrix_mul_num2(sky_pool_t* pool, const sky_matrix_t* matrix, sky_matrix_dat
 }
 
 sky_matrix_t*
-sky_matrix_trans(sky_pool_t* pool, const sky_matrix_t* matrix) {
+sky_matrix_trans(sky_pool_t *pool, const sky_matrix_t *matrix) {
 
     sky_uint32_t i, j, k, t, ar, jt, bc;
-    sky_matrix_t* b;
-    sky_matrix_data_t* va, *vb;
+    sky_matrix_t *b;
+    sky_matrix_data_t *va, *vb;
 
     k = 0;
     ar = 0;
@@ -214,11 +214,11 @@ sky_matrix_trans(sky_pool_t* pool, const sky_matrix_t* matrix) {
 
 
 sky_matrix_data_t
-sky_matrix_det(sky_pool_t* pool, const sky_matrix_t* matrix) {
+sky_matrix_det(sky_pool_t *pool, const sky_matrix_t *matrix) {
     sky_uint32_t n, i, j, k, t;
     sky_size_t size;
     sky_matrix_data_t det;
-    sky_matrix_data_t* mv, *tmp;
+    sky_matrix_data_t *mv, *tmp;
 
     n = matrix->rows;
     if (n != matrix->cols) {
@@ -287,20 +287,20 @@ sky_matrix_det(sky_pool_t* pool, const sky_matrix_t* matrix) {
 
 
 sky_matrix_t*
-sky_matrix_adj(sky_pool_t* pool, const sky_matrix_t* matrix) {
+sky_matrix_adj(sky_pool_t *pool, const sky_matrix_t *matrix) {
     return null;
 }
 
 sky_matrix_t*
-sky_matrix_inv(sky_pool_t* pool, const sky_matrix_t* matrix) {
+sky_matrix_inv(sky_pool_t *pool, const sky_matrix_t *matrix) {
     return null;
 }
 
 
 sky_matrix_t*
-sky_matrix_copy(sky_pool_t* pool, const sky_matrix_t* matrix) {
+sky_matrix_copy(sky_pool_t *pool, const sky_matrix_t *matrix) {
     sky_size_t size;
-    sky_matrix_t* out;
+    sky_matrix_t *out;
 
     size = matrix->num * sizeof(sky_matrix_data_t);
 

@@ -24,7 +24,7 @@ extern "C" {
 #define SKY_HTTP_OPTIONS                   0x0020
 #define SKY_HTTP_PATCH                     0x0040
 
-typedef sky_bool_t (*sky_http_header_handler_pt)(sky_http_request_t* r, sky_table_elt_t* h, sky_uintptr_t data);
+typedef sky_bool_t (*sky_http_header_handler_pt)(sky_http_request_t *r, sky_table_elt_t *h, sky_uintptr_t data);
 
 typedef struct {
     sky_http_header_handler_pt handler;
@@ -34,17 +34,17 @@ typedef struct {
 typedef struct {
     sky_list_t headers;
 
-    sky_table_elt_t* host;
-    sky_table_elt_t* connection;
-    sky_table_elt_t* if_modified_since;
-    sky_table_elt_t* content_type;
-    sky_table_elt_t* content_length;
-    sky_table_elt_t* authorization;
+    sky_table_elt_t *host;
+    sky_table_elt_t *connection;
+    sky_table_elt_t *if_modified_since;
+    sky_table_elt_t *content_type;
+    sky_table_elt_t *content_length;
+    sky_table_elt_t *authorization;
 
-    sky_table_elt_t* range;
-    sky_table_elt_t* if_range;
+    sky_table_elt_t *range;
+    sky_table_elt_t *if_range;
 
-    sky_http_module_t* module;
+    sky_http_module_t *module;
     sky_uint32_t content_length_n;
 
 } sky_http_headers_in_t;
@@ -52,12 +52,12 @@ typedef struct {
 typedef struct {
     sky_list_t headers;
 
-    sky_table_elt_t* sever;
-    sky_table_elt_t* date;
-    sky_table_elt_t* content_length;
-    sky_table_elt_t* last_modified;
-    sky_table_elt_t* content_ranges;
-    sky_table_elt_t* accept_ranges;
+    sky_table_elt_t *sever;
+    sky_table_elt_t *date;
+    sky_table_elt_t *content_length;
+    sky_table_elt_t *last_modified;
+    sky_table_elt_t *content_ranges;
+    sky_table_elt_t *accept_ranges;
 
     sky_str_t content_type;
 
@@ -69,13 +69,13 @@ typedef struct {
 typedef struct {
     union {
         sky_str_t str;
-        void* data;
+        void *data;
     };
 } sky_http_request_body_t;
 
 struct sky_http_request_s {
-    sky_pool_t* pool;
-    sky_http_connection_t* conn;
+    sky_pool_t *pool;
+    sky_http_connection_t *conn;
 
     sky_str_t method_name;
     sky_str_t uri;
@@ -86,12 +86,12 @@ struct sky_http_request_s {
     sky_http_headers_in_t headers_in;
     sky_http_headers_out_t headers_out;
 
-    sky_http_request_body_t* request_body;
+    sky_http_request_body_t *request_body;
 
     sky_uint_t index;
-    sky_uchar_t* req_pos;
+    sky_uchar_t *req_pos;
     sky_str_t header_name;
-    void* data;
+    void *data;
 
     sky_uint32_t version;
     sky_uint32_t state: 9;
@@ -101,13 +101,13 @@ struct sky_http_request_s {
     sky_bool_t response: 1;
 };
 
-void sky_http_request_init(sky_http_server_t* server);
+void sky_http_request_init(sky_http_server_t *server);
 
-sky_int32_t sky_http_request_process(sky_coro_t* coro, sky_http_connection_t* conn);
+sky_int32_t sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn);
 
-void sky_http_read_body_none_need(sky_http_request_t* r, sky_buf_t* tmp);
+void sky_http_read_body_none_need(sky_http_request_t *r, sky_buf_t *tmp);
 
-void sky_http_read_body_str(sky_http_request_t* r, sky_buf_t* tmp);
+void sky_http_read_body_str(sky_http_request_t *r, sky_buf_t *tmp);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

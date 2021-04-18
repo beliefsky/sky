@@ -10,7 +10,7 @@
 
 static void server_start();
 
-static sky_json_object_s *json_config_read(sky_pool_t* pool);
+static sky_json_object_s *json_config_read(sky_pool_t *pool);
 
 
 int
@@ -64,7 +64,7 @@ static void
 server_start() {
     sky_json_object_s *json;
 
-    sky_pool_t* pool;
+    sky_pool_t *pool;
 
     pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
 
@@ -78,12 +78,12 @@ server_start() {
 }
 
 static sky_json_object_s *
-json_config_read(sky_pool_t* pool) {
+json_config_read(sky_pool_t *pool) {
     sky_int32_t fd;
     sky_uint32_t size;
     ssize_t n;
     struct stat stat_buf;
-    sky_buf_t* buf;
+    sky_buf_t *buf;
     sky_str_t data;
 
     fd = open("conf/sky.conf", O_RDONLY | O_CLOEXEC);

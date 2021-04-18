@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 static sky_inline sky_redis_conn_t*
-sky_http_ex_redis_conn_get(sky_redis_pool_t* redis_pool, sky_http_request_t* req) {
+sky_http_ex_redis_conn_get(sky_redis_pool_t *redis_pool, sky_http_request_t *req) {
     return sky_redis_conn_get(redis_pool, req->pool, &req->conn->ev, req->conn->coro);
 }
 

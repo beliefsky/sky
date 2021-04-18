@@ -7,8 +7,8 @@
 
 
 sky_array_t*
-sky_array_create(sky_pool_t* p, sky_uint32_t n, sky_size_t size) {
-    sky_array_t* a;
+sky_array_create(sky_pool_t *p, sky_uint32_t n, sky_size_t size) {
+    sky_array_t *a;
 
     // 分配ngx_array_t数组管理结构的内存
     a = sky_palloc(p, sizeof(sky_array_t));
@@ -23,7 +23,7 @@ sky_array_create(sky_pool_t* p, sky_uint32_t n, sky_size_t size) {
 }
 
 void
-sky_array_destroy(sky_array_t* a) {
+sky_array_destroy(sky_array_t *a) {
     const sky_size_t total = a->size * a->nalloc;
     sky_pfree(a->pool, a->elts, total);
     sky_memzero(a, sizeof(sky_array_t));
@@ -35,7 +35,7 @@ sky_array_destroy(sky_array_t* a) {
 如果当前链表节点没有足够的空间则使用ngx_palloc重新分配一个2倍于之前数组空间大小的数组，然后将数据转移过来，并返回新地址的指针
 */
 void*
-sky_array_push(sky_array_t* a) {
+sky_array_push(sky_array_t *a) {
     if (a->nelts == a->nalloc) {
         const sky_size_t total = a->size * a->nalloc;
         const sky_size_t re_size = total << 1;
@@ -44,14 +44,14 @@ sky_array_push(sky_array_t* a) {
         a->elts = sky_prealloc(a->pool, a->elts, total, re_size);
     }
 
-    void* elt = (sky_uchar_t* ) a->elts + (a->size * a->nelts);
+    void *elt = (sky_uchar_t *) a->elts + (a->size * a->nelts);
     a->nelts++;
 
     return elt;
 }
 
 void*
-sky_array_push_n(sky_array_t* a, sky_uint32_t n) {
+sky_array_push_n(sky_array_t *a, sky_uint32_t n) {
     if (a->nelts + n > a->nalloc) {
         const sky_uint32_t max = sky_max(n, a->nalloc);
         const sky_size_t total = a->size * a->nalloc;
@@ -62,7 +62,7 @@ sky_array_push_n(sky_array_t* a, sky_uint32_t n) {
         a->elts = sky_prealloc(a->pool, a->elts, total, re_size);
     }
 
-    void* elt = (sky_uchar_t* ) a->elts + a->size * a->nelts;
+    void *elt = (sky_uchar_t *) a->elts + a->size * a->nelts;
     a->nelts += n;
 
     return elt;

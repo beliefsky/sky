@@ -14,7 +14,7 @@
 
 typedef struct {
     sky_event_t ev;
-    void* data;
+    void *data;
     struct sockaddr *addr;
     socklen_t addr_len;
     sky_udp_msg_pt msg_run;
@@ -26,11 +26,11 @@ typedef struct {
     sky_int32_t timeout;
 } listener_t;
 
-static sky_bool_t udp_listener_run(sky_event_t* ev);
+static sky_bool_t udp_listener_run(sky_event_t *ev);
 
-static void udp_listener_error(sky_event_t* ev);
+static void udp_listener_error(sky_event_t *ev);
 
-static sky_bool_t udp_client_connection(sky_event_t* ev);
+static sky_bool_t udp_client_connection(sky_event_t *ev);
 
 #ifndef SOCK_NONBLOCK
 static sky_bool_t set_socket_nonblock(sky_int32_t fd);
@@ -38,10 +38,10 @@ static sky_bool_t set_socket_nonblock(sky_int32_t fd);
 
 
 void
-sky_udp_listener_create(sky_event_loop_t* loop, sky_pool_t* pool, const sky_udp_conf_t* conf) {
+sky_udp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_udp_conf_t *conf) {
     sky_int32_t fd;
     sky_int32_t opt;
-    listener_t* l;
+    listener_t *l;
     struct addrinfo *addrs;
 
     const struct addrinfo hints = {
@@ -49,7 +49,7 @@ sky_udp_listener_create(sky_event_loop_t* loop, sky_pool_t* pool, const sky_udp_
             .ai_socktype = SOCK_DGRAM,
             .ai_flags = AI_PASSIVE
     };
-    if (sky_unlikely(getaddrinfo((sky_char_t* ) conf->host.data, (sky_char_t* ) conf->port.data,
+    if (sky_unlikely(getaddrinfo((sky_char_t *) conf->host.data, (sky_char_t *) conf->port.data,
                                  &hints, &addrs) == -1)) {
         return;
     }
@@ -106,10 +106,10 @@ sky_udp_listener_create(sky_event_loop_t* loop, sky_pool_t* pool, const sky_udp_
 }
 
 static sky_bool_t
-udp_listener_run(sky_event_t* ev) {
-    listener_t* l = (listener_t* ) ev;
+udp_listener_run(sky_event_t *ev) {
+    listener_t *l = (listener_t *) ev;
 
-    sky_udp_connect_t* conn = l->msg_run(ev, l->data);
+    sky_udp_connect_t *conn = l->msg_run(ev, l->data);
 
     if (sky_unlikely(!conn)) {
         return true;
@@ -178,14 +178,14 @@ udp_listener_run(sky_event_t* ev) {
 }
 
 static void
-udp_listener_error(sky_event_t* ev) {
+udp_listener_error(sky_event_t *ev) {
     sky_log_info("%d: udp listener error", ev->fd);
 }
 
 static sky_bool_t
-udp_client_connection(sky_event_t* ev) {
+udp_client_connection(sky_event_t *ev) {
     const sky_int32_t fd = ev->fd;
-    sky_udp_connect_t* conn = (sky_udp_connect_t* ) ev;
+    sky_udp_connect_t *conn = (sky_udp_connect_t *) ev;
 
     if (connect(fd, (const struct sockaddr *) &conn->addr, sizeof(conn->addr)) < 0) {
         switch (errno) {
@@ -199,7 +199,7 @@ udp_client_connection(sky_event_t* ev) {
         }
     }
 
-    const listener_t* l = conn->listener;
+    const listener_t *l = conn->listener;
 
     return l->run(conn, l->data);
 }

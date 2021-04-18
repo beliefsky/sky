@@ -13,7 +13,7 @@ extern "C" {
 
 typedef struct sky_http_mapper_s sky_http_mapper_t;
 
-typedef void (*sky_http_mapper_pt)(sky_http_request_t* req);
+typedef void (*sky_http_mapper_pt)(sky_http_request_t *req);
 
 struct sky_http_mapper_s {
     sky_str_t path;
@@ -25,13 +25,13 @@ struct sky_http_mapper_s {
 
 typedef struct {
     sky_str_t prefix;
-    sky_http_module_t* module;
-    sky_http_mapper_t* mappers;
+    sky_http_module_t *module;
+    sky_http_mapper_t *mappers;
     sky_size_t mapper_len;
     sky_uint32_t body_max_size;
 } sky_http_dispatcher_conf_t;
 
-void sky_http_module_dispatcher_init(sky_pool_t* pool, const sky_http_dispatcher_conf_t* conf);
+void sky_http_module_dispatcher_init(sky_pool_t *pool, const sky_http_dispatcher_conf_t *conf);
 
 #if defined(__cplusplus)
 } /* extern "C" { */
