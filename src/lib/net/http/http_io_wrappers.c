@@ -122,7 +122,7 @@ http_send_file(sky_http_connection_t* conn, sky_int32_t fd, sky_int64_t offset, 
     sky_int32_t r;
 
     struct iovec vec = {
-            .iov_base = (void *) header,
+            .iov_base = (void* ) header,
             .iov_len = header_len
     };
 
@@ -205,7 +205,7 @@ http_send_file(sky_http_connection_t* conn, sky_int32_t fd, sky_int64_t offset, 
     sky_int32_t r;
 
     struct iovec vec = {
-            .iov_base = (void *) header,
+            .iov_base = (void* ) header,
             .iov_len = header_len
     };
 

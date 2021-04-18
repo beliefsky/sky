@@ -34,7 +34,7 @@ sky_array_destroy(sky_array_t* a) {
 如果已经满了则先判断是否我们的pool中的当前链表节点还有剩余的空间，如果有则直接在当前的pool链表节点中分配内存，并返回
 如果当前链表节点没有足够的空间则使用ngx_palloc重新分配一个2倍于之前数组空间大小的数组，然后将数据转移过来，并返回新地址的指针
 */
-void *
+void*
 sky_array_push(sky_array_t* a) {
     if (a->nelts == a->nalloc) {
         const sky_size_t total = a->size * a->nalloc;
@@ -44,13 +44,13 @@ sky_array_push(sky_array_t* a) {
         a->elts = sky_prealloc(a->pool, a->elts, total, re_size);
     }
 
-    void *elt = (sky_uchar_t* ) a->elts + (a->size * a->nelts);
+    void* elt = (sky_uchar_t* ) a->elts + (a->size * a->nelts);
     a->nelts++;
 
     return elt;
 }
 
-void *
+void*
 sky_array_push_n(sky_array_t* a, sky_uint32_t n) {
     if (a->nelts + n > a->nalloc) {
         const sky_uint32_t max = sky_max(n, a->nalloc);
@@ -62,7 +62,7 @@ sky_array_push_n(sky_array_t* a, sky_uint32_t n) {
         a->elts = sky_prealloc(a->pool, a->elts, total, re_size);
     }
 
-    void *elt = (sky_uchar_t* ) a->elts + a->size * a->nelts;
+    void* elt = (sky_uchar_t* ) a->elts + a->size * a->nelts;
     a->nelts += n;
 
     return elt;

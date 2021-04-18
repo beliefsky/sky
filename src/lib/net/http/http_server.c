@@ -163,7 +163,7 @@ http_connection_accept_cb(sky_event_loop_t* loop, sky_int32_t fd, sky_http_serve
     coro = sky_coro_create2(
             &server->switcher,
             (sky_coro_func_t) sky_http_request_process,
-            (void **) &conn,
+            (void* *) &conn,
             sizeof(sky_http_connection_t)
     );
 
@@ -188,7 +188,7 @@ https_connection_accept_cb(sky_event_loop_t* loop, sky_int32_t fd, sky_http_serv
     coro = sky_coro_create2(
             &server->switcher,
             (sky_coro_func_t) https_connection_process,
-            (void **) &conn,
+            (void* *) &conn,
             sizeof(sky_http_connection_t)
     );
 

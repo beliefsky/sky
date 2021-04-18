@@ -29,11 +29,11 @@ sky_hash_t的开链并不是真的开了一个链表，实际上是开了一段�
  */
 
 typedef struct {
-    void *value;     //value，即某个key对应的值，即<key,value>中的value
+    void* value;     //value，即某个key对应的值，即<key,value>中的value
     sky_uint16_t len;        //name长度
     sky_uchar_t name[1];    //某个要hash的数据(在sky中表现为字符串)，即<key,value>中的key
     // 这里数组长度为1，是一个小技巧。实现时，在具体分配sky_hash_elt_t的大小时使用宏SKY_HASH_ELT_SIZE来确定(并且是内存对齐的)：
-    // #define SKY_HASH_ELT_SIZE(name) (sizeof(void *) + sky_align((name)->key.len + 2, sizeof(void *)))
+    // #define SKY_HASH_ELT_SIZE(name) (sizeof(void* ) + sky_align((name)->key.len + 2, sizeof(void* )))
 } sky_hash_elt_t;
 
 //hash结构
@@ -60,13 +60,13 @@ typedef struct {
     // 基本散列表
     sky_hash_t hash;
     // 当使用这个sky_hash_wildcard_t通配符散列表作为某容器的元素时，可以使用这个value指针指向用户数据
-    void *value;
+    void* value;
 } sky_hash_wildcard_t;
 
 typedef struct {
     sky_str_t key;            //key，为nginx的字符串结构
     sky_uint_t key_hash;       //由该key计算出的hash值(通过hash函数如sky_hash_key_lc())
-    void *value;         //该key对应的值，组成一个键-值对<key,value>
+    void* value;         //该key对应的值，组成一个键-值对<key,value>
 } sky_hash_key_t;
 
 typedef struct {
@@ -154,19 +154,19 @@ typedef struct {
 } sky_table_elt_t;
 
 //hash查找
-void *sky_hash_find(sky_hash_t* hash, sky_uint_t key, sky_uchar_t* name, sky_size_t len);
+void* sky_hash_find(sky_hash_t* hash, sky_uint_t key, sky_uchar_t* name, sky_size_t len);
 
 //该函数查询包含通配符在前的key的hash表的。
 //hwc:	hash表对象的指针。
 //name:	需要查询的域名，例如: www.abc.com。
 //len:	name的长度。
 //该函数返回匹配的通配符对应value。如果没有查到，返回null。
-void *sky_hash_find_wc_head(sky_hash_wildcard_t* hwc, sky_uchar_t* name, sky_size_t len);
+void* sky_hash_find_wc_head(sky_hash_wildcard_t* hwc, sky_uchar_t* name, sky_size_t len);
 
 //该函数查询包含通配符在末尾的key的hash表的。 参数及返回值请参加上个函数的说明。
-void *sky_hash_find_wc_tail(sky_hash_wildcard_t* hwc, sky_uchar_t* name, sky_size_t len);
+void* sky_hash_find_wc_tail(sky_hash_wildcard_t* hwc, sky_uchar_t* name, sky_size_t len);
 
-void *sky_hash_find_combined(sky_hash_combined_t* hash, sky_uint_t key, sky_uchar_t* name, sky_size_t len);
+void* sky_hash_find_combined(sky_hash_combined_t* hash, sky_uint_t key, sky_uchar_t* name, sky_size_t len);
 
 #define sky_hash(key, c) ((sky_uint_t)(key) * 31 + c)
 
@@ -201,7 +201,7 @@ sky_uint_t sky_hash_strlow(sky_uchar_t* dst, sky_uchar_t* src, sky_size_t n);
 
 sky_bool_t sky_hash_keys_array_init(sky_hash_keys_arrays_t* ha, sky_uint_t type);
 
-sky_int8_t sky_hash_add_key(sky_hash_keys_arrays_t* ha, sky_str_t* key, void *value, sky_uint_t flags);
+sky_int8_t sky_hash_add_key(sky_hash_keys_arrays_t* ha, sky_str_t* key, void* value, sky_uint_t flags);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

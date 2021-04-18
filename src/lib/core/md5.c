@@ -20,7 +20,7 @@ sky_md5_init(sky_md5_t* ctx) {
 
 
 void
-sky_md5_update(sky_md5_t* ctx, const void *data, sky_size_t size) {
+sky_md5_update(sky_md5_t* ctx, const void* data, sky_size_t size) {
     sky_size_t used, free;
 
     used = (sky_size_t) (ctx->bytes & 0x3f);

@@ -14,7 +14,7 @@
 
 typedef struct {
     sky_event_t ev;
-    void *data;
+    void* data;
     struct sockaddr *addr;
     socklen_t addr_len;
     sky_udp_msg_pt msg_run;

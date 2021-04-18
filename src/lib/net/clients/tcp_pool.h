@@ -19,7 +19,7 @@ typedef struct sky_tcp_client_s sky_tcp_client_t;
 
 typedef sky_bool_t (*sky_tcp_pool_conn_next)(sky_tcp_conn_t* conn);
 
-typedef sky_bool_t (*sky_tcp_callback_pt)(sky_tcp_conn_t* conn, void *data);
+typedef sky_bool_t (*sky_tcp_callback_pt)(sky_tcp_conn_t* conn, void* data);
 
 typedef struct {
     sky_str_t host;

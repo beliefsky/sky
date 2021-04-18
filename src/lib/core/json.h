@@ -38,7 +38,7 @@ struct sky_json_s {
                 sky_json_object_t* object;
                 sky_json_array_t* array;
             };
-            void *current;
+            void* current;
             sky_pool_t* pool;
         };
     };

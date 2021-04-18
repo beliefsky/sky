@@ -69,7 +69,7 @@ typedef struct {
 typedef struct {
     union {
         sky_str_t str;
-        void *data;
+        void* data;
     };
 } sky_http_request_body_t;
 
@@ -91,7 +91,7 @@ struct sky_http_request_s {
     sky_uint_t index;
     sky_uchar_t* req_pos;
     sky_str_t header_name;
-    void *data;
+    void* data;
 
     sky_uint32_t version;
     sky_uint32_t state: 9;

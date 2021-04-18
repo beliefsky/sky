@@ -19,7 +19,7 @@
 typedef struct {
     sky_event_t ev;
     sky_tcp_accept_cb_pt run;
-    void *data;
+    void* data;
     sky_int32_t timeout;
 } listener_t;
 

@@ -52,7 +52,7 @@ sky_mem_pool_create(sky_size_t size, sky_size_t num) {
 }
 
 
-void *
+void*
 sky_mem_pool_get(sky_mem_pool_t* pool) {
     sky_mem_entry_t* entry;
 
@@ -67,12 +67,12 @@ sky_mem_pool_get(sky_mem_pool_t* pool) {
         entry->prev->next = entry->next;
         entry->next->prev = entry->prev;
     }
-    return (void *) ((sky_uintptr_t)entry + sizeof(sky_mem_entry_t));
+    return (void* ) ((sky_uintptr_t)entry + sizeof(sky_mem_entry_t));
 }
 
 
 void
-sky_mem_pool_put(sky_mem_pool_t* pool, void *ptr) {
+sky_mem_pool_put(sky_mem_pool_t* pool, void* ptr) {
     sky_mem_entry_t* entry;
 
     entry = (sky_mem_entry_t* ) ((sky_uintptr_t) ptr - sizeof(sky_mem_entry_t));

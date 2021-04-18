@@ -9,13 +9,13 @@
  */
 #define SKY_MAX_ALLOC_FROM_POOL  16383
 
-static void *sky_palloc_small(sky_pool_t* pool, sky_size_t size);
+static void* sky_palloc_small(sky_pool_t* pool, sky_size_t size);
 
-static void *sky_palloc_small_align(sky_pool_t* pool, sky_size_t size);
+static void* sky_palloc_small_align(sky_pool_t* pool, sky_size_t size);
 
-static void *sky_palloc_block(sky_pool_t* pool, sky_size_t size);
+static void* sky_palloc_block(sky_pool_t* pool, sky_size_t size);
 
-static void *sky_palloc_large(sky_pool_t* pool, sky_size_t size);
+static void* sky_palloc_large(sky_pool_t* pool, sky_size_t size);
 
 sky_pool_t*
 sky_create_pool(sky_size_t size) {
@@ -86,19 +86,19 @@ sky_reset_pool(sky_pool_t* pool) {
     pool->large = null;
 }
 
-sky_inline void *
+sky_inline void*
 sky_palloc(sky_pool_t* pool, sky_size_t size) {
     return size <= pool->max ? sky_palloc_small_align(pool, size) : sky_palloc_large(pool, size);
 }
 
-sky_inline void *
+sky_inline void*
 sky_pnalloc(sky_pool_t* pool, sky_size_t size) {
     return size <= pool->max ? sky_palloc_small(pool, size) : sky_palloc_large(pool, size);
 }
 
-void *
+void*
 sky_pcalloc(sky_pool_t* pool, sky_size_t size) {
-    void *p;
+    void* p;
 
     p = sky_palloc(pool, size);
     if (sky_likely(p)) {
@@ -108,8 +108,8 @@ sky_pcalloc(sky_pool_t* pool, sky_size_t size) {
     return p;
 }
 
-void *
-sky_prealloc(sky_pool_t* pool, void *ptr, sky_size_t ptr_size, sky_size_t size) {
+void*
+sky_prealloc(sky_pool_t* pool, void* ptr, sky_size_t ptr_size, sky_size_t size) {
     const sky_uchar_t* p = (sky_uchar_t* ) ptr + ptr_size;
     if (p == pool->d.last) {
         if (size <= ptr_size) {
@@ -127,7 +127,7 @@ sky_prealloc(sky_pool_t* pool, void *ptr, sky_size_t ptr_size, sky_size_t size) 
         if (ptr_size > pool->max) {
             for (sky_pool_large_t* l = pool->large; l; l = l->next) {
                 if (ptr == l->alloc) {
-                    void *new_ptr = sky_realloc(ptr, size);
+                    void* new_ptr = sky_realloc(ptr, size);
                     if (sky_unlikely(!size || new_ptr)) {
                         l->alloc = new_ptr;
                     }
@@ -138,15 +138,15 @@ sky_prealloc(sky_pool_t* pool, void *ptr, sky_size_t ptr_size, sky_size_t size) 
         }
     }
 
-    void *new_ptr = sky_pnalloc(pool, size);
+    void* new_ptr = sky_pnalloc(pool, size);
     sky_memcpy(new_ptr, ptr, ptr_size);
 
     return new_ptr;
 }
 
-void *
+void*
 sky_pmemalign(sky_pool_t* pool, sky_size_t size, sky_size_t alignment) {
-    void *p;
+    void* p;
     sky_pool_large_t* large;
 
     p = sky_memalign(alignment, size);
@@ -166,7 +166,7 @@ sky_pmemalign(sky_pool_t* pool, sky_size_t size, sky_size_t alignment) {
 }
 
 void
-sky_pfree(sky_pool_t* pool, const void *ptr, sky_size_t size) {
+sky_pfree(sky_pool_t* pool, const void* ptr, sky_size_t size) {
     const sky_uchar_t* p = ptr + size;
 
     if (p == pool->d.last) {
@@ -209,7 +209,7 @@ sky_pool_cleanup_add(sky_pool_t* p, sky_size_t size) {
 }
 
 
-static sky_inline void *
+static sky_inline void*
 sky_palloc_small(sky_pool_t* pool, sky_size_t size) {
     sky_pool_t* p;
     sky_uchar_t* m;
@@ -228,7 +228,7 @@ sky_palloc_small(sky_pool_t* pool, sky_size_t size) {
     return sky_palloc_block(pool, size);
 }
 
-static sky_inline void *
+static sky_inline void*
 sky_palloc_small_align(sky_pool_t* pool, sky_size_t size) {
     sky_pool_t* p;
     sky_uchar_t* m;
@@ -247,7 +247,7 @@ sky_palloc_small_align(sky_pool_t* pool, sky_size_t size) {
     return sky_palloc_block(pool, size);
 }
 
-static void *
+static void*
 sky_palloc_block(sky_pool_t* pool, sky_size_t size) {
     sky_uchar_t* m;
     sky_size_t psize;
@@ -277,9 +277,9 @@ sky_palloc_block(sky_pool_t* pool, sky_size_t size) {
     return m;
 }
 
-static void *
+static void*
 sky_palloc_large(sky_pool_t* pool, sky_size_t size) {
-    void *p;
+    void* p;
     sky_pool_large_t* large;
     sky_uint8_t n;
 

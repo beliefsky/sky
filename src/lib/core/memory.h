@@ -31,9 +31,9 @@ extern "C" {
 #define sky_memmove                 memmove
 
 
-static sky_inline void *
+static sky_inline void*
 sky_memalign(sky_size_t alignment, sky_size_t size) {
-    void *p;
+    void* p;
     int err;
     err = posix_memalign(&p, alignment, size);
     if (sky_unlikely(err)) {

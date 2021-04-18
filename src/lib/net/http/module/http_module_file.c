@@ -46,9 +46,9 @@ typedef struct {
     sky_pool_t* pool;
     sky_pool_t* tmp_pool;
 
-    sky_bool_t (*pre_run)(sky_http_request_t* req, void *data);
+    sky_bool_t (*pre_run)(sky_http_request_t* req, void* data);
 
-    void *run_data;
+    void* run_data;
 } http_module_file_t;
 
 static void http_run_handler(sky_http_request_t* r, http_module_file_t* data);
@@ -179,7 +179,7 @@ http_run_handler(sky_http_request_t* r, http_module_file_t* data) {
         file->left = 0;
         file->right = stat_buf.st_size - 1;
     }
-    file->file_defer = sky_defer_add(r->conn->coro, (sky_defer_func_t) close, (void *) (sky_uintptr_t) fd);
+    file->file_defer = sky_defer_add(r->conn->coro, (sky_defer_func_t) close, (void* ) (sky_uintptr_t) fd);
 
     sky_http_sendfile(r, fd, (sky_size_t) file->left, (sky_size_t) (file->right - file->left + 1),
                       (sky_size_t) stat_buf.st_size);

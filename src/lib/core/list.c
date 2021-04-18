@@ -18,10 +18,10 @@ sky_list_create(sky_pool_t* pool, sky_uint32_t n, sky_size_t size) {
     return list;
 }
 
-void *
+void*
 sky_list_push(sky_list_t* l) {
     sky_list_part_t* last;
-    void *elt;
+    void* elt;
 
     last = l->last;
 

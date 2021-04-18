@@ -38,7 +38,7 @@ struct sky_tls_s {
     sky_event_t* ev;
     sky_coro_t* coro;
     sky_tls_ctx_t* ctx;
-    void *data;
+    void* data;
 
     sky_str_t session_id;
 };
@@ -58,7 +58,7 @@ sky_tls_ctx_init() {
 
 
 sky_tls_t*
-sky_tls_accept(sky_tls_ctx_t* ctx, sky_event_t* ev, sky_coro_t* coro, void *data) {
+sky_tls_accept(sky_tls_ctx_t* ctx, sky_event_t* ev, sky_coro_t* coro, void* data) {
     sky_tls_t* ssl;
 
     ssl = sky_coro_malloc(coro, sizeof(sky_tls_t));

@@ -27,11 +27,11 @@ typedef sky_ucontext_t sky_coro_context_t;
 typedef struct sky_coro_s sky_coro_t;
 typedef struct sky_defer_s sky_defer_t;
 
-typedef sky_int32_t (*sky_coro_func_t)(sky_coro_t* coro, void *data);
+typedef sky_int32_t (*sky_coro_func_t)(sky_coro_t* coro, void* data);
 
-typedef void (*sky_defer_func_t)(void *data);
+typedef void (*sky_defer_func_t)(void* data);
 
-typedef void (*sky_defer_func2_t)(void *data1, void *data2);
+typedef void (*sky_defer_func2_t)(void* data1, void* data2);
 
 typedef struct {
     sky_coro_context_t caller;
@@ -45,7 +45,7 @@ typedef struct {
  * @param data      异步函数参数
  * @return 协程
  */
-sky_coro_t* sky_coro_create(sky_coro_switcher_t* switcher, sky_coro_func_t func, void *data);
+sky_coro_t* sky_coro_create(sky_coro_switcher_t* switcher, sky_coro_func_t func, void* data);
 
 /**
  * 创建协程
@@ -56,7 +56,7 @@ sky_coro_t* sky_coro_create(sky_coro_switcher_t* switcher, sky_coro_func_t func,
  * @return 协程
  */
 sky_coro_t*
-sky_coro_create2(sky_coro_switcher_t* switcher, sky_coro_func_t func, void **data_ptr, sky_uint32_t size);
+sky_coro_create2(sky_coro_switcher_t* switcher, sky_coro_func_t func, void* *data_ptr, sky_uint32_t size);
 
 /**
  * 重置协程
@@ -64,7 +64,7 @@ sky_coro_create2(sky_coro_switcher_t* switcher, sky_coro_func_t func, void **dat
  * @param func 异步函数
  * @param data 异步函数参数
  */
-void sky_core_reset(sky_coro_t* coro, sky_coro_func_t func, void *data);
+void sky_core_reset(sky_coro_t* coro, sky_coro_func_t func, void* data);
 
 /**
  * 执行协程
@@ -96,7 +96,7 @@ void sky_coro_destroy(sky_coro_t* coro);
  * @param size 分配大小
  * @return 回收标记
  */
-void *sky_coro_malloc(sky_coro_t* coro, sky_uint32_t size);
+void* sky_coro_malloc(sky_coro_t* coro, sky_uint32_t size);
 
 /**
  * 添加回收器
@@ -105,7 +105,7 @@ void *sky_coro_malloc(sky_coro_t* coro, sky_uint32_t size);
  * @param data 回收填充参数
  * @return 回收标记
  */
-sky_defer_t* sky_defer_add(sky_coro_t* coro, sky_defer_func_t func, void *data);
+sky_defer_t* sky_defer_add(sky_coro_t* coro, sky_defer_func_t func, void* data);
 
 /**
  * 添加回收器
@@ -115,7 +115,7 @@ sky_defer_t* sky_defer_add(sky_coro_t* coro, sky_defer_func_t func, void *data);
  * @param data2 回收填充参数2
  * @return 回收标记
  */
-sky_defer_t* sky_defer_add2(sky_coro_t* coro, sky_defer_func2_t func, void *data1, void *data2);
+sky_defer_t* sky_defer_add2(sky_coro_t* coro, sky_defer_func2_t func, void* data1, void* data2);
 
 /**
  * 取消清除回收器

@@ -20,7 +20,7 @@ struct sky_websocket_session_s {
     sky_coro_t* read_work;
     sky_coro_t* write_work;
     sky_bool_t test;
-    void *server;
+    void* server;
 };
 
 struct sky_websocket_message_s {

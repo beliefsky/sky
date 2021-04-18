@@ -26,7 +26,7 @@
 #include <net/udp.h>
 
 
-static void server_start(void *ssl);
+static void server_start(void* ssl);
 
 static void build_http_dispatcher(sky_pool_t* pool, sky_http_module_t* module);
 
@@ -45,7 +45,7 @@ typedef struct {
 } test_udp_connect_t;
 
 static sky_udp_connect_t*
-udp_handle_message(sky_event_t* ev, void *data) {
+udp_handle_message(sky_event_t* ev, void* data) {
     sky_pool_t* pool = sky_create_pool(1024);
     test_udp_connect_t* conn = sky_palloc(pool, sizeof(test_udp_connect_t));
     conn->pool = pool;
@@ -88,7 +88,7 @@ udp_close(sky_event_t* ev) {
 
 
 static sky_bool_t
-udp_connection_accept(sky_udp_connect_t* conn, void *data) {
+udp_connection_accept(sky_udp_connect_t* conn, void* data) {
     sky_event_reset(&conn->ev, udp_run, udp_close);
 
     return true;
@@ -156,7 +156,7 @@ sky_pgsql_pool_t* ps_pool;
 sky_redis_pool_t* redis_pool;
 
 static void
-server_start(void *ssl) {
+server_start(void* ssl) {
     sky_pool_t* pool;
     sky_event_loop_t* loop;
     sky_http_server_t* server;
