@@ -161,7 +161,6 @@ else ()
     set(SKY_COMMON_LIBS -Wl,-whole-archive sky_static -Wl,-no-whole-archive)
 endif ()
 
-
 #
 # Generate sky_build_config.h
 #
