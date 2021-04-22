@@ -28,6 +28,7 @@ struct sky_tcp_client_s {
     sky_event_t ev;
     sky_tcp_conn_t *current;
     sky_tcp_conn_t tasks;
+    sky_bool_t main; // 是否是当前连接触发的事件
 };
 
 static sky_bool_t tcp_run(sky_tcp_client_t *client);
@@ -49,7 +50,7 @@ static sky_bool_t set_socket_nonblock(sky_i32_t fd);
 #endif
 
 
-sky_tcp_pool_t*
+sky_tcp_pool_t *
 sky_tcp_pool_create(sky_pool_t *pool, const sky_tcp_pool_conf_t *conf) {
     sky_u16_t i;
     sky_tcp_pool_t *conn_pool;
@@ -77,6 +78,7 @@ sky_tcp_pool_create(sky_pool_t *pool, const sky_tcp_pool_conf_t *conf) {
         client->ev.loop = null;
         client->current = null;
         client->tasks.next = client->tasks.prev = &client->tasks;
+        client->main = false;
     }
 
     return conn_pool;
@@ -98,8 +100,10 @@ sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event
     conn->next->prev = conn->prev->next = conn;
 
     if (!empty) {
-        event->wait = true;
-        sky_coro_yield(coro, SKY_CORO_MAY_RESUME);
+        do {
+            event->wait = true;
+            sky_coro_yield(coro, SKY_CORO_MAY_RESUME);
+        } while (!client->main);
         event->wait = false;
     }
 
@@ -290,10 +294,12 @@ static sky_bool_t
 tcp_run(sky_tcp_client_t *client) {
     sky_tcp_conn_t *conn;
 
+    client->main = true;
     for (;;) {
         if ((conn = client->current)) {
             if (conn->ev->run(conn->ev)) {
                 if (client->current) {
+                    client->main = false;
                     return true;
                 }
             } else {
@@ -304,6 +310,7 @@ tcp_run(sky_tcp_client_t *client) {
             }
         }
         if (client->tasks.prev == &client->tasks) {
+            client->main = false;
             return true;
         }
         client->current = client->tasks.prev;
