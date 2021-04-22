@@ -7,6 +7,10 @@
 
 #include "../http_server.h"
 
+#define SKY_HTTP_MAPPER_HANDLER(_handler) \
+    void _handler(sky_http_request_t *req)
+
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
