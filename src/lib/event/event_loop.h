@@ -43,28 +43,52 @@ struct sky_event_loop_s {
     sky_bool_t update: 1;
 };
 
-#define sky_event_init(_loop, _ev, _fd, _run, _close)       \
-    sky_timer_entry_init(&(_ev)->timer, null);              \
-    (_ev)->loop = (_loop);                                  \
-    (_ev)->now = (_loop)->now;                              \
-    (_ev)->run = (sky_event_run_pt)(_run);                  \
-    (_ev)->close = (sky_event_close_pt)(_close);            \
-    (_ev)->fd = (_fd);                                      \
-    (_ev)->timeout = 0;                                     \
-    (_ev)->reg = false;                                     \
-    (_ev)->wait = false;                                    \
-    (_ev)->read = true;                                     \
-    (_ev)->write = true
+#define sky_event_init_null(_ev, _run, _close) \
+    do {                                       \
+        sky_timer_entry_init(&(_ev)->timer, null); \
+        (_ev)->loop = null;                    \
+        (_ev)->now = 0;                        \
+        (_ev)->run = (sky_event_run_pt)(_run); \
+        (_ev)->close = (sky_event_close_pt)(_close); \
+        (_ev)->fd = -1;                        \
+        (_ev)->timeout = 0;                    \
+        (_ev)->reg = false;                    \
+        (_ev)->wait = false;                   \
+        (_ev)->read = true;                    \
+        (_ev)->write = true;                   \
+    } while(0)
 
-#define sky_event_rebind(_ev, _fd)                          \
-    (_ev)->fd = (_fd);                                      \
-    (_ev)->wait = false;                                    \
-    (_ev)->read = true;                                     \
-    (_ev)->write = true
+#define sky_event_init(_loop, _ev, _fd, _run, _close) \
+    do {                                              \
+        sky_timer_entry_init(&(_ev)->timer, null);    \
+        (_ev)->loop = (_loop);                        \
+        (_ev)->now = (_loop)->now;                    \
+        (_ev)->run = (sky_event_run_pt)(_run);        \
+        (_ev)->close = (sky_event_close_pt)(_close);  \
+        (_ev)->fd = (_fd);                            \
+        (_ev)->timeout = 0;                           \
+        (_ev)->reg = false;                           \
+        (_ev)->wait = false;                          \
+        (_ev)->read = true;                           \
+        (_ev)->write = true;                          \
+    } while(0)
 
-#define sky_event_reset(_ev, _run, _close)          \
-    (_ev)->run = (sky_event_run_pt)(_run);          \
-    (_ev)->close = (sky_event_close_pt)(_close)
+#define sky_event_rebind(_loop, _ev, _fd) \
+    do {                                  \
+         (_ev)->loop = (_loop);           \
+        (_ev)->now = (_loop)->now;        \
+        (_ev)->fd = (_fd);                \
+        (_ev)->wait = false;              \
+        (_ev)->read = true;               \
+        (_ev)->write = true;              \
+    } while(0)
+
+
+#define sky_event_reset(_ev, _run, _close) \
+    do {                                   \
+        (_ev)->run = (sky_event_run_pt)(_run); \
+        (_ev)->close = (sky_event_close_pt)(_close); \
+    } while(0)
 
 /**
  * 创建io事件触发服务

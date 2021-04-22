@@ -22,11 +22,13 @@ struct sky_timer_wheel_entry_s {
     sky_timer_wheel_pt cb;
 };
 
-#define sky_timer_entry_init(_entry, _cb)       \
-    (_entry)->prev = null;                      \
-    (_entry)->next = null;                      \
-    (_entry)->expire_at = 0;                    \
-    (_entry)->cb = (sky_timer_wheel_pt)(_cb)
+#define sky_timer_entry_init(_entry, _cb) \
+    do {                                  \
+        (_entry)->prev = null;            \
+        (_entry)->next = null;            \
+        (_entry)->expire_at = 0;          \
+        (_entry)->cb = (sky_timer_wheel_pt)(_cb); \
+    } while(0)
 
 
 sky_timer_wheel_t *sky_timer_wheel_create(sky_pool_t *pool, sky_u32_t num_wheels, sky_u64_t now);

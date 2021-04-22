@@ -74,8 +74,7 @@ sky_tcp_pool_create(sky_pool_t *pool, const sky_tcp_pool_conf_t *conf) {
     }
 
     for (client = conn_pool->clients; i; --i, ++client) {
-        client->ev.fd = -1;
-        client->ev.loop = null;
+        sky_event_init_null(&client->ev, tcp_run, tcp_close);
         client->current = null;
         client->tasks.next = client->tasks.prev = &client->tasks;
         client->main = false;
@@ -389,11 +388,7 @@ tcp_connection(sky_tcp_conn_t *conn) {
 }
 #endif
 
-    if (sky_likely(ev->loop)) {
-        sky_event_rebind(ev, fd);
-    } else {
-        sky_event_init(conn->ev->loop, ev, fd, tcp_run, tcp_close);
-    }
+    sky_event_rebind(conn->ev->loop, ev, fd);
 
     if (connect(fd, conn->conn_pool->addr, conn->conn_pool->addr_len) < 0) {
         switch (errno) {
