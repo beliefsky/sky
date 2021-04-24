@@ -1,0 +1,28 @@
+name: freebsd
+on: [ push ]
+env:
+  BUILD_TYPE: Release
+jobs:
+  freebsdBuild:
+    name: freebsd
+    # The CMake configure and build commands are platform agnostic and should work equally
+    # well on Windows or Mac.  You can convert this to a matrix build if you need
+    # cross-platform coverage.
+    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: build in FreeBSD
+        uses: vmactions/freebsd-vm@v0.1.2
+        with:
+          usesh: true
+          prepare: pkg install -y cmake
+          run: |
+            cd $GITHUB_WORKSPACE
+            mkdir build
+            cd build
+            cmake .. -DCMAKE_BUILD_TYPE=$BUILD_TYPE
+            make
