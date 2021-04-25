@@ -117,6 +117,11 @@ sky_tcp_pool_w_bind(sky_tcp_rw_pool_t *tcp_pool, sky_tcp_w_t *conn, sky_event_t 
     return true;
 }
 
+sky_bool_t sky_tcp_w_bind(sky_tcp_r_t *r_conn, sky_tcp_w_t *conn) {
+
+    return false;
+}
+
 sky_bool_t
 sky_tcp_pool_w_write(sky_tcp_w_t *conn, const sky_uchar_t *data, sky_usize_t size) {
 
@@ -139,7 +144,9 @@ sky_tcp_pool_w_unbind(sky_tcp_w_t *conn) {
     conn->client = null;
 }
 
-sky_usize_t sky_tcp_pool_r_read(skt_tcp_r_t *conn, sky_uchar_t *data, sky_usize_t size);
+sky_usize_t sky_tcp_pool_r_read(sky_tcp_r_t *conn, sky_uchar_t *data, sky_usize_t size) {
+
+}
 
 static sky_bool_t
 tcp_run(sky_tcp_rw_client_t *client) {
