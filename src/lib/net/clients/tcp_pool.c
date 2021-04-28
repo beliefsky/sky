@@ -26,6 +26,7 @@ struct sky_tcp_pool_s {
 
 struct sky_tcp_client_s {
     sky_event_t ev;
+    sky_tcp_pool_t *conn_pool;
     sky_tcp_conn_t *current;
     sky_tcp_conn_t tasks;
     sky_bool_t main; // 是否是当前连接触发的事件
@@ -65,6 +66,7 @@ sky_tcp_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_tcp_pool
     conn_pool = sky_palloc(pool, sizeof(sky_tcp_pool_t) + sizeof(sky_tcp_client_t) * i);
     conn_pool->mem_pool = pool;
     conn_pool->connection_ptr = i - 1;
+    client->conn_pool = conn_pool;
     conn_pool->clients = (sky_tcp_client_t *) (conn_pool + 1);
     conn_pool->timeout = conf->timeout;
     conn_pool->next_func = conf->next_func;
@@ -92,7 +94,6 @@ sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event
     conn->client = null;
     conn->ev = event;
     conn->coro = coro;
-    conn->conn_pool = tcp_pool;
     conn->defer = sky_defer_add(coro, (sky_defer_func_t) tcp_connection_defer, conn);
     conn->next = client->tasks.next;
     conn->prev = &client->tasks;
@@ -154,7 +155,7 @@ sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
                 sky_log_error("read errno: %d", errno);
                 return 0;
         }
-        sky_event_register(ev, conn->conn_pool->timeout);
+        sky_event_register(ev, client->conn_pool->timeout);
         ev->read = false;
         sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
         if (sky_unlikely(!conn->client || ev->fd == -1)) {
@@ -224,7 +225,7 @@ sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize
                     return false;
             }
         }
-        sky_event_register(ev, conn->conn_pool->timeout);
+        sky_event_register(ev, client->conn_pool->timeout);
         ev->write = false;
         sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
         if (sky_unlikely(!conn->client || ev->fd == -1)) {
@@ -376,10 +377,12 @@ set_address(sky_tcp_pool_t *tcp_pool, const sky_tcp_pool_conf_t *conf) {
 static sky_bool_t
 tcp_connection(sky_tcp_conn_t *conn) {
     sky_i32_t fd;
+    sky_tcp_pool_t *conn_pool;
     sky_event_t *ev;
 
+    conn_pool = conn->client->conn_pool;
     ev = &conn->client->ev;
-    fd = socket(conn->conn_pool->family, conn->conn_pool->sock_type, conn->conn_pool->protocol);
+    fd = socket(conn_pool->family, conn_pool->sock_type, conn_pool->protocol);
     if (sky_unlikely(fd < 0)) {
         return false;
     }
@@ -392,7 +395,7 @@ tcp_connection(sky_tcp_conn_t *conn) {
 
     sky_event_rebind(ev, fd);
 
-    if (connect(fd, conn->conn_pool->addr, conn->conn_pool->addr_len) < 0) {
+    if (connect(fd, conn_pool->addr, conn_pool->addr_len) < 0) {
         switch (errno) {
             case EALREADY:
             case EINPROGRESS:
@@ -411,7 +414,7 @@ tcp_connection(sky_tcp_conn_t *conn) {
             if (sky_unlikely(!conn->client || ev->fd == -1)) {
                 return false;
             }
-            if (connect(ev->fd, conn->conn_pool->addr, conn->conn_pool->addr_len) < 0) {
+            if (connect(ev->fd, conn_pool->addr, conn_pool->addr_len) < 0) {
                 switch (errno) {
                     case EALREADY:
                     case EINPROGRESS:
@@ -426,7 +429,7 @@ tcp_connection(sky_tcp_conn_t *conn) {
             }
             break;
         }
-        ev->timeout = conn->conn_pool->timeout;
+        ev->timeout = conn_pool->timeout;
     }
     return true;
 }
