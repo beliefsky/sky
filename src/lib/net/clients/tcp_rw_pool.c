@@ -29,13 +29,14 @@ struct sky_tcp_rw_pool_s {
 struct sky_tcp_rw_client_s {
     sky_event_t ev;
     sky_coro_t *coro;
+    sky_tcp_rw_pool_t *conn_pool;
     sky_tcp_w_t *current;
     sky_tcp_w_t tasks;
     sky_bool_t main; // 是否是当前连接触发的事件
 };
 
 struct skt_tcp_r_s {
-
+    sky_tcp_rw_client_t *client;
 };
 
 static sky_bool_t tcp_run(sky_tcp_rw_client_t *client);
@@ -79,6 +80,7 @@ sky_tcp_rw_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_tcp_r
 
     for (client = conn_pool->clients; i; --i, ++client) {
         sky_event_init(loop, &client->ev, -1, tcp_run, tcp_close);
+        client->conn_pool = conn_pool;
         client->current = null;
         client->tasks.next = client->tasks.prev = &client->tasks;
         client->main = false;
@@ -95,7 +97,6 @@ sky_tcp_pool_w_bind(sky_tcp_rw_pool_t *tcp_pool, sky_tcp_w_t *conn, sky_event_t 
     conn->client = null;
     conn->ev = event;
     conn->coro = coro;
-    conn->conn_pool = tcp_pool;
     conn->defer = sky_defer_add(coro, (sky_defer_func_t) tcp_connection_defer, conn);
     conn->next = client->tasks.next;
     conn->prev = &client->tasks;
