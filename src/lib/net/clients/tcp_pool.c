@@ -66,7 +66,6 @@ sky_tcp_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_tcp_pool
     conn_pool = sky_palloc(pool, sizeof(sky_tcp_pool_t) + sizeof(sky_tcp_client_t) * i);
     conn_pool->mem_pool = pool;
     conn_pool->connection_ptr = i - 1;
-    client->conn_pool = conn_pool;
     conn_pool->clients = (sky_tcp_client_t *) (conn_pool + 1);
     conn_pool->timeout = conf->timeout;
     conn_pool->next_func = conf->next_func;
@@ -77,6 +76,7 @@ sky_tcp_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_tcp_pool
 
     for (client = conn_pool->clients; i; --i, ++client) {
         sky_event_init(loop, &client->ev, -1, tcp_run, tcp_close);
+        client->conn_pool = conn_pool;
         client->current = null;
         client->tasks.next = client->tasks.prev = &client->tasks;
         client->main = false;
