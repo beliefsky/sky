@@ -15,9 +15,6 @@ struct sky_tcp_pool_s {
     sky_pool_t *mem_pool;
     struct sockaddr *addr;
     sky_u32_t addr_len;
-    sky_i32_t family;
-    sky_i32_t sock_type;
-    sky_i32_t protocol;
     sky_i32_t timeout;
     sky_u16_t connection_ptr;
     sky_tcp_client_t *clients;
@@ -330,45 +327,29 @@ set_address(sky_tcp_pool_t *tcp_pool, const sky_tcp_pool_conf_t *conf) {
         struct sockaddr_un *addr = sky_pcalloc(tcp_pool->mem_pool, sizeof(struct sockaddr_un));
         tcp_pool->addr = (struct sockaddr *) addr;
         tcp_pool->addr_len = sizeof(struct sockaddr_un);
-        tcp_pool->family = AF_UNIX;
-#ifdef HAVE_ACCEPT4
-        tcp_pool->sock_type = SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC;
-#else
-        tcp_pool->sock_type = SOCK_STREAM;
-#endif
-        tcp_pool->protocol = 0;
 
         addr->sun_family = AF_UNIX;
         sky_memcpy(addr->sun_path, conf->unix_path.data, conf->unix_path.len + 1);
+    } else {
+        const struct addrinfo hints = {
+                .ai_family = AF_UNSPEC,
+                .ai_socktype = SOCK_STREAM,
+                .ai_flags = AI_CANONNAME
+        };
 
-        return true;
+        struct addrinfo *addrs;
+
+        if (sky_unlikely(getaddrinfo(
+                (sky_char_t *) conf->host.data, (sky_char_t *) conf->port.data,
+                &hints, &addrs) == -1 || !addrs)) {
+            return false;
+        }
+        tcp_pool->addr = sky_palloc(tcp_pool->mem_pool, addrs->ai_addrlen);
+        tcp_pool->addr_len = addrs->ai_addrlen;
+        sky_memcpy(tcp_pool->addr, addrs->ai_addr, tcp_pool->addr_len);
+
+        freeaddrinfo(addrs);
     }
-
-    const struct addrinfo hints = {
-            .ai_family = AF_UNSPEC,
-            .ai_socktype = SOCK_STREAM,
-            .ai_flags = AI_CANONNAME
-    };
-
-    struct addrinfo *addrs;
-
-    if (sky_unlikely(getaddrinfo(
-            (sky_char_t *) conf->host.data, (sky_char_t *) conf->port.data,
-            &hints, &addrs) == -1 || !addrs)) {
-        return false;
-    }
-    tcp_pool->family = addrs->ai_family;
-#ifdef HAVE_ACCEPT4
-    tcp_pool->sock_type = addrs->ai_socktype | SOCK_NONBLOCK | SOCK_CLOEXEC;
-#else
-    tcp_pool->sock_type = addrs->ai_socktype;
-#endif
-    tcp_pool->protocol = addrs->ai_protocol;
-    tcp_pool->addr = sky_palloc(tcp_pool->mem_pool, addrs->ai_addrlen);
-    tcp_pool->addr_len = addrs->ai_addrlen;
-    sky_memcpy(tcp_pool->addr, addrs->ai_addr, tcp_pool->addr_len);
-
-    freeaddrinfo(addrs);
 
     return true;
 }
@@ -382,15 +363,20 @@ tcp_connection(sky_tcp_conn_t *conn) {
 
     conn_pool = conn->client->conn_pool;
     ev = &conn->client->ev;
-    fd = socket(conn_pool->family, conn_pool->sock_type, conn_pool->protocol);
+#ifdef HAVE_ACCEPT4
+    fd = socket(conn_pool->addr->sa_family, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
     if (sky_unlikely(fd < 0)) {
         return false;
     }
-#ifndef HAVE_ACCEPT4
+#else
+        fd = socket(conn_pool->addr->sa_family, SOCK_STREAM, 0);
+        if (sky_unlikely(fd < 0)) {
+            return false;
+        }
         if (sky_unlikely(!set_socket_nonblock(fd))) {
-        close(fd);
-        return false;
-    }
+            close(fd);
+            return false;
+        }
 #endif
 
     sky_event_rebind(ev, fd);
