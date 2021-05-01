@@ -623,10 +623,11 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                         buf.pos += 4;
 
 
-                        params->len = size;
                         if (size == SKY_U32_MAX) {
+                            params->len = SKY_USIZE_MAX;
                             continue;
                         }
+                        params->len = size;
                         switch (desc[i].type) {
                             case pgsql_data_bool:
                                 params->bool = *(buf.pos);
@@ -872,10 +873,11 @@ pg_deserialize_array(sky_pool_t *pool, sky_uchar_t *p, sky_pgsql_type_t type) {
                     size = sky_ntohl(*((sky_u32_t *) p));
                     p += 4;
 
-                    data[i].len = size;
                     if (size == SKY_U32_MAX) {
+                        data[i].len = SKY_USIZE_MAX;
                         continue;
                     }
+                    data[i].len = size;
                     data[i].int32 = (sky_i32_t) sky_ntohl(*((sky_u32_t *) p));
                     p += 4;
                 }
@@ -886,10 +888,12 @@ pg_deserialize_array(sky_pool_t *pool, sky_uchar_t *p, sky_pgsql_type_t type) {
                     *p = '\0';
                     p += 4;
 
-                    data[i].len = size;
+
                     if (size == SKY_U32_MAX) {
+                        data[i].len = SKY_USIZE_MAX;
                         continue;
                     }
+                    data[i].len = size;
                     data[i].stream = p;
                     p += size;
                 }

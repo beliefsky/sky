@@ -61,7 +61,7 @@ typedef struct {
 
 union sky_pgsql_data_u {
     struct {
-        sky_u32_t len;
+        sky_usize_t len;
         union {
             sky_bool_t bool;
             sky_char_t ch;
@@ -129,7 +129,7 @@ sky_pgsql_data_array_one_init(sky_pgsql_array_t *array, sky_pgsql_data_t *ds, sk
 
 static sky_inline sky_bool_t
 sky_pgsql_data_is_null(const sky_pgsql_data_t *data) {
-    return data->len == SKY_U32_MAX;
+    return data->len == SKY_USIZE_MAX;
 }
 
 #if defined(__cplusplus)
