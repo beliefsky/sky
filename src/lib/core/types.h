@@ -20,7 +20,16 @@ extern "C" {
 
 #define null    (void *)0x0
 
-#define SKY_UINT64_MAX UINT64_MAX
+#define SKY_I8_MAX INT8_MAX
+#define SKY_U8_MAX UINT8_MAX
+#define SKY_I16_MAX INT16_MAX
+#define SKY_U16_MAX UINT16_MAX
+#define SKY_I32_MAX INT32_MAX
+#define SKY_U32_MAX UINT32_MAX
+#define SKY_I64_MAX INT64_MAX
+#define SKY_U64_MAX UINT64_MAX
+#define SKY_ISIZE_MAX INTMAX_MAX
+#define SKY_USIZE_MAX UINTMAX_MAX
 
 typedef _Bool sky_bool_t;
 typedef char sky_char_t;             /*-128 ~ +127*/

@@ -357,7 +357,7 @@ pg_send_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_
             case pgsql_data_null:
                 *((sky_u16_t *) p) = sky_htons(1);
                 p += 2;
-                *((sky_u32_t *) buf.last) = sky_htonl((sky_u32_t) -1);
+                *((sky_u32_t *) buf.last) = sky_htonl(SKY_U32_MAX);
                 buf.last += 4;
                 break;
             case pgsql_data_bool:
@@ -623,11 +623,10 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                         buf.pos += 4;
 
 
-                        if (size == (sky_u32_t) -1) {
-                            params->len = (sky_usize_t) -1;
+                        params->len = size;
+                        if (size == SKY_U32_MAX) {
                             continue;
                         }
-                        params->len = size;
                         switch (desc[i].type) {
                             case pgsql_data_bool:
                                 params->bool = *(buf.pos);
@@ -873,12 +872,10 @@ pg_deserialize_array(sky_pool_t *pool, sky_uchar_t *p, sky_pgsql_type_t type) {
                     size = sky_ntohl(*((sky_u32_t *) p));
                     p += 4;
 
-                    if (size == (sky_u32_t) -1) {
-                        data[i].len = (sky_usize_t) -1;
+                    data[i].len = size;
+                    if (size == SKY_U32_MAX) {
                         continue;
                     }
-
-                    data[i].len = size;
                     data[i].int32 = (sky_i32_t) sky_ntohl(*((sky_u32_t *) p));
                     p += 4;
                 }
@@ -889,12 +886,10 @@ pg_deserialize_array(sky_pool_t *pool, sky_uchar_t *p, sky_pgsql_type_t type) {
                     *p = '\0';
                     p += 4;
 
-                    if (size == (sky_u32_t) -1) {
-                        data[i].len = (sky_usize_t) -1;
+                    data[i].len = size;
+                    if (size == SKY_U32_MAX) {
                         continue;
                     }
-
-                    data[i].len = size;
                     data[i].stream = p;
                     p += size;
                 }
