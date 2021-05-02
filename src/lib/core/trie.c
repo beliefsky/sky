@@ -5,8 +5,8 @@
 #include "trie.h"
 #include "string.h"
 
-#define NODE_LEN 32
-#define NODE_PTR 31
+#define NODE_LEN 128
+#define NODE_PTR 127
 
 typedef struct sky_trie_node_s sky_trie_node_t;
 
