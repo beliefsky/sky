@@ -5,8 +5,8 @@
 #include "trie.h"
 #include "string.h"
 
-#define NODE_LEN 128
-#define NODE_PTR 127
+#define NODE_LEN 32
+#define NODE_PTR 31
 
 typedef struct sky_trie_node_s sky_trie_node_t;
 
@@ -39,7 +39,8 @@ str_cmp_index(sky_uchar_t *one, sky_uchar_t *two, sky_usize_t min_len) {
     sky_usize_t i;
 
     i = min_len;
-    while (*one++ == *two++ && --i) {
+    while (i && *one++ == *two++) {
+        --i;
     }
 
     return min_len - i;
@@ -57,10 +58,13 @@ sky_trie_put(sky_trie_t *trie, sky_str_t *key, sky_usize_t value) {
         pre_node->value = value;
         return;
     }
-    for (tmp_key = key->data, k_node = &pre_node->next[*tmp_key++ & NODE_PTR];
-         *tmp_key;
-         k_node = &pre_node->next[*tmp_key++ & NODE_PTR]) {
-        if (!(tmp = *k_node)) {
+    tmp_key = key->data;
+
+    do {
+        k_node = &pre_node->next[*tmp_key++ & NODE_PTR];
+        tmp = *k_node;
+
+        if (!tmp) {
             *k_node = tmp = sky_pcalloc(trie->pool, sizeof(sky_trie_node_t));
             tmp->key_n = key->len - (sky_usize_t) (tmp_key - key->data);
             tmp->key = tmp_key;
@@ -100,10 +104,9 @@ sky_trie_put(sky_trie_t *trie, sky_str_t *key, sky_usize_t value) {
                 continue;
             }
         }
-
         *k_node = pre_node = sky_pcalloc(trie->pool, sizeof(sky_trie_node_t));
         pre_node->key_n = index;
-        pre_node->key = tmp->key;
+        pre_node->key = tmp_key;
 
         tmp->key_n -= index + 1;
         tmp->key += index;
@@ -115,7 +118,8 @@ sky_trie_put(sky_trie_t *trie, sky_str_t *key, sky_usize_t value) {
         tmp->value = value;
         pre_node->next[*tmp->key++ & NODE_PTR] = tmp;
         return;
-    }
+
+    } while (*tmp_key);
 }
 
 
