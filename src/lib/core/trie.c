@@ -148,7 +148,7 @@ sky_trie_find(sky_trie_t *trie, sky_str_t *key) {
             break;
         }
         if (len == node->key_n) {
-            if (!len || sky_strncmp(tmp_key, node->key, node->key_n) == 0) {
+            if (!len || sky_strncmp(tmp_key, node->key, len) == 0) {
                 return node->value;
             }
             return 0;
@@ -186,7 +186,7 @@ sky_usize_t sky_trie_contains(sky_trie_t *trie, sky_str_t *key) {
             return 0;
         }
         if (len == node->key_n) {
-            if (!len || sky_strncmp(tmp_key, node->key, node->key_n) == 0) {
+            if (!len || sky_strncmp(tmp_key, node->key, len) == 0) {
                 return node->value;
             }
             return 0;
