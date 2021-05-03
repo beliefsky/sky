@@ -24,6 +24,7 @@
 #include <sys/wait.h>
 #include <core/json.h>
 #include <net/udp.h>
+#include <core/trie.h>
 
 
 static void server_start(void *ssl);
@@ -108,7 +109,7 @@ timer_test(timer_test_t *test) {
     sky_event_timer_register(test->loop, &test->timer, test->timeout);
 }
 
-#define FORK
+//#define FORK
 
 int
 main() {
@@ -157,6 +158,7 @@ sky_redis_pool_t *redis_pool;
 
 static void
 server_start(void *ssl) {
+
     sky_pool_t *pool;
     sky_event_loop_t *loop;
     sky_http_server_t *server;
@@ -167,10 +169,28 @@ server_start(void *ssl) {
 
     pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
 
+    sky_trie_t *test = sky_trie_create(pool);
+    sky_str_t a = sky_string("/bangumi/page");
+    sky_str_t b = sky_string("/bangumi");
+    sky_str_t c = sky_string("/bangumi/type");
+    sky_str_t d = sky_string("/bangumi/pv/page");
+    sky_str_t e = sky_string("/bangumi/pv/pa");
+
+    sky_trie_put(test, &a, 1);
+    sky_trie_put(test, &b, 2);
+    sky_trie_put(test, &c, 3);
+    sky_trie_put(test, &d, 4);
+//    sky_trie_put(test, &e, 5);
+
+    sky_usize_t re = sky_trie_find(test, &d);
+    sky_log_info("==== %lu ======", re);
+
+    return;
+
     loop = sky_event_loop_create(pool);
 
     const sky_pgsql_conf_t pg_conf = {
-            .host = sky_string("localhost"),
+            .host = sky_string("192.168.1.10"),
             .port = sky_string("5432"),
 //            .unix_path = sky_string("/run/postgresql/.s.PGSQL.5432"),
             .database = sky_string("beliefsky"),
