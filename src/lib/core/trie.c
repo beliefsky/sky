@@ -151,7 +151,7 @@ sky_trie_find(sky_trie_t *trie, sky_str_t *key) {
             break;
         }
         if (sky_strncmp(tmp_key, node->key, node->key_n) != 0) {
-            return null;
+            break;
         }
         tmp_key += node->key_n;
         prev_node = node;
