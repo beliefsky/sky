@@ -13,7 +13,7 @@ struct sky_trie_node_s {
     sky_trie_node_t *next[NODE_LEN];
     sky_uchar_t *key;
     sky_usize_t key_n;
-    sky_usize_t value;
+    void *value;
 };
 
 struct sky_trie_s {
@@ -47,7 +47,7 @@ str_cmp_index(sky_uchar_t *one, sky_uchar_t *two, sky_usize_t min_len) {
 
 
 void
-sky_trie_put(sky_trie_t *trie, sky_str_t *key, sky_usize_t value) {
+sky_trie_put(sky_trie_t *trie, sky_str_t *key, void *value) {
     sky_trie_node_t **k_node, *pre_node, *tmp;
     sky_uchar_t *tmp_key;
     sky_usize_t len, index;
@@ -122,7 +122,7 @@ sky_trie_put(sky_trie_t *trie, sky_str_t *key, sky_usize_t value) {
 }
 
 
-sky_usize_t
+void *
 sky_trie_find(sky_trie_t *trie, sky_str_t *key) {
     sky_trie_node_t *node, *prev_node;
     sky_uchar_t *tmp_key;
@@ -137,13 +137,13 @@ sky_trie_find(sky_trie_t *trie, sky_str_t *key) {
     for (;;) {
         node = node->next[*tmp_key++ & NODE_PTR];
         if (!node) {
-            return 0;
+            return null;
         }
         len = key->len - (sky_usize_t) (tmp_key - key->data);
 
         if (len < node->key_n) {
             if (sky_strncmp(tmp_key, node->key, len) != 0) {
-                return 0;
+                return null;
             }
             break;
         }
@@ -151,10 +151,10 @@ sky_trie_find(sky_trie_t *trie, sky_str_t *key) {
             if (!len || sky_strncmp(tmp_key, node->key, len) == 0) {
                 return node->value;
             }
-            return 0;
+            return null;
         }
         if (sky_strncmp(tmp_key, node->key, node->key_n) != 0) {
-            return 0;
+            return null;
         }
         tmp_key += node->key_n;
         prev_node = node;
@@ -164,7 +164,8 @@ sky_trie_find(sky_trie_t *trie, sky_str_t *key) {
 }
 
 
-sky_usize_t sky_trie_contains(sky_trie_t *trie, sky_str_t *key) {
+void *
+sky_trie_contains(sky_trie_t *trie, sky_str_t *key) {
     sky_trie_node_t *node;
     sky_uchar_t *tmp_key;
     sky_usize_t len;
@@ -178,21 +179,21 @@ sky_usize_t sky_trie_contains(sky_trie_t *trie, sky_str_t *key) {
     for (;;) {
         node = node->next[*tmp_key++ & NODE_PTR];
         if (!node) {
-            return 0;
+            return null;
         }
         len = key->len - (sky_usize_t) (tmp_key - key->data);
 
         if (len < node->key_n) {
-            return 0;
+            return null;
         }
         if (len == node->key_n) {
             if (!len || sky_strncmp(tmp_key, node->key, len) == 0) {
                 return node->value;
             }
-            return 0;
+            return null;
         }
         if (sky_strncmp(tmp_key, node->key, node->key_n) != 0) {
-            return 0;
+            return null;
         }
         tmp_key += node->key_n;
     }

@@ -97,7 +97,7 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
 
         module = host->modules;
         for (sky_u16_t j = 0; j < host->modules_n; ++j) {
-            sky_trie_put(trie, &module->prefix, (sky_usize_t) module);
+            sky_trie_put(trie, &module->prefix, module);
             ++module;
         }
         ++host;
