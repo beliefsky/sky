@@ -142,16 +142,13 @@ sky_trie_find(sky_trie_t *trie, sky_str_t *key) {
         len = key->len - (sky_usize_t) (tmp_key - key->data);
 
         if (len < node->key_n) {
-            if (sky_strncmp(tmp_key, node->key, len) != 0) {
-                return null;
-            }
             break;
         }
         if (len == node->key_n) {
             if (!len || sky_strncmp(tmp_key, node->key, len) == 0) {
                 return node->value;
             }
-            return null;
+            break;
         }
         if (sky_strncmp(tmp_key, node->key, node->key_n) != 0) {
             return null;
