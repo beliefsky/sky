@@ -137,21 +137,24 @@ sky_trie_find(sky_trie_t *trie, sky_str_t *key) {
     for (;;) {
         node = node->next[*tmp_key++ & NODE_PTR];
         if (!node) {
-            break;
+            return 0;
         }
         len = key->len - (sky_usize_t) (tmp_key - key->data);
 
         if (len < node->key_n) {
+            if (sky_strncmp(tmp_key, node->key, len) != 0) {
+                return 0;
+            }
             break;
         }
         if (len == node->key_n) {
             if (!len || sky_strncmp(tmp_key, node->key, node->key_n) == 0) {
                 return node->value;
             }
-            break;
+            return 0;
         }
         if (sky_strncmp(tmp_key, node->key, node->key_n) != 0) {
-            break;
+            return 0;
         }
         tmp_key += node->key_n;
         prev_node = node;
