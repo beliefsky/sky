@@ -137,7 +137,7 @@ sky_trie_find(sky_trie_t *trie, sky_str_t *key) {
     for (;;) {
         node = node->next[*tmp_key++ & NODE_PTR];
         if (!node) {
-            return null;
+            break;
         }
         len = key->len - (sky_usize_t) (tmp_key - key->data);
 
