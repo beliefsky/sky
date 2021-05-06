@@ -129,7 +129,7 @@ sky_pgsql_data_array_one_init(sky_pgsql_array_t *array, sky_pgsql_data_t *ds, sk
 
 static sky_inline sky_bool_t
 sky_pgsql_data_is_null(const sky_pgsql_data_t *data) {
-    return data->len == (sky_usize_t) -1;
+    return data->len == SKY_USIZE_MAX;
 }
 
 #if defined(__cplusplus)

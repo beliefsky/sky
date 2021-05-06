@@ -25,7 +25,6 @@
 #include <core/json.h>
 #include <net/udp.h>
 
-
 static void server_start(void *ssl);
 
 static void build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module);
@@ -108,7 +107,7 @@ timer_test(timer_test_t *test) {
     sky_event_timer_register(test->loop, &test->timer, test->timeout);
 }
 
-//#define FORK
+#define FORK
 
 int
 main() {
@@ -157,6 +156,7 @@ sky_redis_pool_t *redis_pool;
 
 static void
 server_start(void *ssl) {
+
     sky_pool_t *pool;
     sky_event_loop_t *loop;
     sky_http_server_t *server;

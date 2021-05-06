@@ -15,9 +15,6 @@ struct sky_tcp_pool_s {
     sky_pool_t *mem_pool;
     struct sockaddr *addr;
     sky_u32_t addr_len;
-    sky_i32_t family;
-    sky_i32_t sock_type;
-    sky_i32_t protocol;
     sky_i32_t timeout;
     sky_u16_t connection_ptr;
     sky_tcp_client_t *clients;
@@ -26,6 +23,7 @@ struct sky_tcp_pool_s {
 
 struct sky_tcp_client_s {
     sky_event_t ev;
+    sky_tcp_pool_t *conn_pool;
     sky_tcp_conn_t *current;
     sky_tcp_conn_t tasks;
     sky_bool_t main; // 是否是当前连接触发的事件
@@ -75,6 +73,7 @@ sky_tcp_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_tcp_pool
 
     for (client = conn_pool->clients; i; --i, ++client) {
         sky_event_init(loop, &client->ev, -1, tcp_run, tcp_close);
+        client->conn_pool = conn_pool;
         client->current = null;
         client->tasks.next = client->tasks.prev = &client->tasks;
         client->main = false;
@@ -92,7 +91,6 @@ sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event
     conn->client = null;
     conn->ev = event;
     conn->coro = coro;
-    conn->conn_pool = tcp_pool;
     conn->defer = sky_defer_add(coro, (sky_defer_func_t) tcp_connection_defer, conn);
     conn->next = client->tasks.next;
     conn->prev = &client->tasks;
@@ -154,7 +152,7 @@ sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
                 sky_log_error("read errno: %d", errno);
                 return 0;
         }
-        sky_event_register(ev, conn->conn_pool->timeout);
+        sky_event_register(ev, client->conn_pool->timeout);
         ev->read = false;
         sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
         if (sky_unlikely(!conn->client || ev->fd == -1)) {
@@ -224,7 +222,7 @@ sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize
                     return false;
             }
         }
-        sky_event_register(ev, conn->conn_pool->timeout);
+        sky_event_register(ev, client->conn_pool->timeout);
         ev->write = false;
         sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
         if (sky_unlikely(!conn->client || ev->fd == -1)) {
@@ -329,45 +327,29 @@ set_address(sky_tcp_pool_t *tcp_pool, const sky_tcp_pool_conf_t *conf) {
         struct sockaddr_un *addr = sky_pcalloc(tcp_pool->mem_pool, sizeof(struct sockaddr_un));
         tcp_pool->addr = (struct sockaddr *) addr;
         tcp_pool->addr_len = sizeof(struct sockaddr_un);
-        tcp_pool->family = AF_UNIX;
-#ifdef HAVE_ACCEPT4
-        tcp_pool->sock_type = SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC;
-#else
-        tcp_pool->sock_type = SOCK_STREAM;
-#endif
-        tcp_pool->protocol = 0;
 
         addr->sun_family = AF_UNIX;
         sky_memcpy(addr->sun_path, conf->unix_path.data, conf->unix_path.len + 1);
+    } else {
+        const struct addrinfo hints = {
+                .ai_family = AF_UNSPEC,
+                .ai_socktype = SOCK_STREAM,
+                .ai_flags = AI_CANONNAME
+        };
 
-        return true;
+        struct addrinfo *addrs;
+
+        if (sky_unlikely(getaddrinfo(
+                (sky_char_t *) conf->host.data, (sky_char_t *) conf->port.data,
+                &hints, &addrs) == -1 || !addrs)) {
+            return false;
+        }
+        tcp_pool->addr = sky_palloc(tcp_pool->mem_pool, addrs->ai_addrlen);
+        tcp_pool->addr_len = addrs->ai_addrlen;
+        sky_memcpy(tcp_pool->addr, addrs->ai_addr, tcp_pool->addr_len);
+
+        freeaddrinfo(addrs);
     }
-
-    const struct addrinfo hints = {
-            .ai_family = AF_UNSPEC,
-            .ai_socktype = SOCK_STREAM,
-            .ai_flags = AI_CANONNAME
-    };
-
-    struct addrinfo *addrs;
-
-    if (sky_unlikely(getaddrinfo(
-            (sky_char_t *) conf->host.data, (sky_char_t *) conf->port.data,
-            &hints, &addrs) == -1 || !addrs)) {
-        return false;
-    }
-    tcp_pool->family = addrs->ai_family;
-#ifdef HAVE_ACCEPT4
-    tcp_pool->sock_type = addrs->ai_socktype | SOCK_NONBLOCK | SOCK_CLOEXEC;
-#else
-    tcp_pool->sock_type = addrs->ai_socktype;
-#endif
-    tcp_pool->protocol = addrs->ai_protocol;
-    tcp_pool->addr = sky_palloc(tcp_pool->mem_pool, addrs->ai_addrlen);
-    tcp_pool->addr_len = addrs->ai_addrlen;
-    sky_memcpy(tcp_pool->addr, addrs->ai_addr, tcp_pool->addr_len);
-
-    freeaddrinfo(addrs);
 
     return true;
 }
@@ -376,23 +358,30 @@ set_address(sky_tcp_pool_t *tcp_pool, const sky_tcp_pool_conf_t *conf) {
 static sky_bool_t
 tcp_connection(sky_tcp_conn_t *conn) {
     sky_i32_t fd;
+    sky_tcp_pool_t *conn_pool;
     sky_event_t *ev;
 
+    conn_pool = conn->client->conn_pool;
     ev = &conn->client->ev;
-    fd = socket(conn->conn_pool->family, conn->conn_pool->sock_type, conn->conn_pool->protocol);
+#ifdef HAVE_ACCEPT4
+    fd = socket(conn_pool->addr->sa_family, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
     if (sky_unlikely(fd < 0)) {
         return false;
     }
-#ifndef HAVE_ACCEPT4
+#else
+        fd = socket(conn_pool->addr->sa_family, SOCK_STREAM, 0);
+        if (sky_unlikely(fd < 0)) {
+            return false;
+        }
         if (sky_unlikely(!set_socket_nonblock(fd))) {
-        close(fd);
-        return false;
-    }
+            close(fd);
+            return false;
+        }
 #endif
 
     sky_event_rebind(ev, fd);
 
-    if (connect(fd, conn->conn_pool->addr, conn->conn_pool->addr_len) < 0) {
+    if (connect(fd, conn_pool->addr, conn_pool->addr_len) < 0) {
         switch (errno) {
             case EALREADY:
             case EINPROGRESS:
@@ -411,7 +400,7 @@ tcp_connection(sky_tcp_conn_t *conn) {
             if (sky_unlikely(!conn->client || ev->fd == -1)) {
                 return false;
             }
-            if (connect(ev->fd, conn->conn_pool->addr, conn->conn_pool->addr_len) < 0) {
+            if (connect(ev->fd, conn_pool->addr, conn_pool->addr_len) < 0) {
                 switch (errno) {
                     case EALREADY:
                     case EINPROGRESS:
@@ -426,7 +415,7 @@ tcp_connection(sky_tcp_conn_t *conn) {
             }
             break;
         }
-        ev->timeout = conn->conn_pool->timeout;
+        ev->timeout = conn_pool->timeout;
     }
     return true;
 }

@@ -75,7 +75,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
     for (;;) {
         sky_timer_wheel_run(ctx, (sky_u64_t) now);
         next_time = sky_timer_wheel_wake_at(ctx);
-        if (next_time == SKY_UINT64_MAX) {
+        if (next_time == SKY_U64_MAX) {
             timeout = false;
         } else {
             timeout = true;

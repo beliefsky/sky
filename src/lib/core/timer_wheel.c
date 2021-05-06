@@ -120,7 +120,7 @@ sky_timer_wheel_wake_at(sky_timer_wheel_t *ctx) {
         }
     }
 
-    return SKY_UINT64_MAX;
+    return SKY_U64_MAX;
 }
 
 void

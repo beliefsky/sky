@@ -32,7 +32,6 @@ struct sky_tcp_conn_s {
     sky_event_t *ev;
     sky_coro_t *coro;
     sky_tcp_client_t *client;
-    sky_tcp_pool_t *conn_pool;
     sky_defer_t *defer;
     sky_tcp_conn_t *prev;
     sky_tcp_conn_t *next;

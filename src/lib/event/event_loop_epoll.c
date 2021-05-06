@@ -67,7 +67,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
     for (;;) {
         sky_timer_wheel_run(ctx, (sky_u64_t) now);
         next_time = sky_timer_wheel_wake_at(ctx);
-        timeout = next_time == SKY_UINT64_MAX ? -1 : (sky_i32_t) (next_time - (sky_u64_t) now) * 1000;
+        timeout = next_time == SKY_U64_MAX ? -1 : (sky_i32_t) (next_time - (sky_u64_t) now) * 1000;
 
         n = epoll_wait(fd, events, max_events, timeout);
         if (sky_unlikely(n < 0)) {

@@ -35,7 +35,7 @@ sky_http_module_dispatcher_init(sky_pool_t *pool, const sky_http_dispatcher_conf
     for (sky_u32_t i = 0; i < conf->mapper_len; ++mapper, ++i) {
         handlers = sky_palloc(pool, size);
         sky_memcpy(handlers, &mapper->get_handler, size);
-        sky_trie_put(data->mappers, &mapper->path, (sky_usize_t) handlers);
+        sky_trie_put(data->mappers, &mapper->path, handlers);
     }
 
     conf->module->prefix = conf->prefix;
