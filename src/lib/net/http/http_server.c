@@ -120,7 +120,7 @@ sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *loop) {
             .run = (sky_tcp_accept_cb_pt) (server->ssl ? https_connection_accept_cb : http_connection_accept_cb),
             .data = server,
             .timeout = 60,
-            .nodelay = false,
+            .nodelay = true,
             .defer_accept = true
     };
 
