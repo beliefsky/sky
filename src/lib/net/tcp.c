@@ -86,7 +86,9 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
         setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_i32_t));
 #endif
 #ifdef TCP_DEFER_ACCEPT
-        setsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &opt, sizeof(sky_i32_t));
+        if (conf->defer_accept) {
+            setsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &opt, sizeof(sky_i32_t));
+        }
 #endif
         if (sky_unlikely(bind(fd, addr->ai_addr, addr->ai_addrlen) != 0)) {
             close(fd);
@@ -96,7 +98,9 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
             close(fd);
             continue;
         }
-        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(sky_i32_t));
+        if (conf->nodelay) {
+            setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(sky_i32_t));
+        }
 
 #ifdef TCP_FASTOPEN
         opt = 5;
@@ -202,13 +206,13 @@ get_backlog_size() {
         return backlog;
     }
     sky_uchar_t ch[16];
-    const sky_i32_t size = (sky_i32_t)read(fd, ch, 16);
+    const sky_i32_t size = (sky_i32_t) read(fd, ch, 16);
     close(fd);
     if (sky_unlikely(size < 1)) {
         return backlog;
     }
 
-    if (sky_unlikely(!sky_str_len_to_i32(ch, (sky_u32_t)size - 1, &backlog))) {
+    if (sky_unlikely(!sky_str_len_to_i32(ch, (sky_u32_t) size - 1, &backlog))) {
         return backlog;
     }
 
