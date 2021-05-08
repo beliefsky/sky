@@ -125,6 +125,9 @@ sky_tcp_pool_w_bind(sky_tcp_rw_pool_t *tcp_pool, sky_tcp_w_t *conn, sky_event_t 
 
 sky_bool_t sky_tcp_w_bind(sky_tcp_r_t *r_conn, sky_tcp_w_t *conn) {
     sky_tcp_rw_client_t *client = r_conn->client;
+    if (!client->connection) {
+        return false;
+    }
     const sky_bool_t empty = client->tasks.next == &client->tasks;
 
     conn->client = null;
@@ -135,7 +138,7 @@ sky_bool_t sky_tcp_w_bind(sky_tcp_r_t *r_conn, sky_tcp_w_t *conn) {
     conn->prev = &client->tasks;
     conn->next->prev = conn->prev->next = conn;
 
-    if (!empty || !client->connection) {
+    if (!empty) {
         do {
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
         } while (!client->main);
