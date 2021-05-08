@@ -36,6 +36,12 @@ struct sky_tcp_w_s {
     sky_tcp_w_t *next;
 };
 
+struct skt_tcp_r_s {
+    sky_event_t *ev;
+    sky_coro_t *coro;
+    sky_tcp_rw_client_t *client;
+};
+
 sky_tcp_rw_pool_t *sky_tcp_rw_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_tcp_rw_conf_t *conf);
 
 sky_bool_t sky_tcp_pool_w_bind(sky_tcp_rw_pool_t *tcp_pool, sky_tcp_w_t *conn, sky_event_t *event, sky_coro_t *coro);
