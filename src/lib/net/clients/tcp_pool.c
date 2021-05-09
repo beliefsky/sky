@@ -156,14 +156,21 @@ sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
         ev->read = false;
         sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
         if (sky_unlikely(!conn->client || ev->fd == -1)) {
-            return false;
+            return 0;
         }
     }
-    for (;;) {
-        if (sky_unlikely(!ev->read)) {
+
+    if (sky_unlikely(!ev->read)) {
+        do {
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-            continue;
-        }
+            if (sky_unlikely(!conn->client || ev->fd == -1)) {
+                return 0;
+            }
+        } while (sky_unlikely(!ev->read));
+    }
+
+    for (;;) {
+
         if ((n = read(ev->fd, data, size)) > 0) {
             return (sky_usize_t) n;
         }
@@ -179,10 +186,12 @@ sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
                 return 0;
         }
         ev->read = false;
-        sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-        if (sky_unlikely(!conn->client || ev->fd == -1)) {
-            return 0;
-        }
+        do {
+            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+            if (sky_unlikely(!conn->client || ev->fd == -1)) {
+                return 0;
+            }
+        } while (sky_unlikely(!ev->read));
     }
 }
 
@@ -229,11 +238,17 @@ sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize
             return false;
         }
     }
-    for (;;) {
-        if (sky_unlikely(!ev->write)) {
+
+    if (sky_unlikely(!ev->write)) {
+        do {
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-            continue;
-        }
+            if (sky_unlikely(!conn->client || ev->fd == -1)) {
+                return false;
+            }
+        } while (sky_unlikely(!ev->write));
+    }
+
+    for (;;) {
         if ((n = write(ev->fd, data, size)) > 0) {
             if ((sky_usize_t) n < size) {
                 data += n;
@@ -255,9 +270,12 @@ sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize
             }
         }
         ev->write = false;
-        if (sky_unlikely(!conn->client || ev->fd == -1)) {
-            return false;
-        }
+        do {
+            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+            if (sky_unlikely(!conn->client || ev->fd == -1)) {
+                return false;
+            }
+        } while (sky_unlikely(!ev->write));
     }
 }
 
