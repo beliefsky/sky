@@ -404,6 +404,18 @@ sky_http_url_decode(sky_str_t *str) {
     }
 }
 
+sky_http_multipart_t *
+sky_http_multipart_decode(sky_http_request_t *r, sky_str_t *str) {
+    sky_str_t *value;
+    if (sky_unlikely(!str || !r->headers_in.content_type)) {
+        return null;
+    }
+    value = &r->headers_in.content_type->value;
+
+
+    return null;
+}
+
 
 static sky_inline sky_bool_t
 http_method_identify(sky_http_request_t *r) {
