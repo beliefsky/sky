@@ -2,6 +2,7 @@
 // Created by weijing on 18-2-23.
 //
 #include "http_parse.h"
+#include "../../core/log.h"
 
 #ifdef __SSE4_2__
 
@@ -406,14 +407,142 @@ sky_http_url_decode(sky_str_t *str) {
 
 sky_http_multipart_t *
 sky_http_multipart_decode(sky_http_request_t *r, sky_str_t *str) {
-    sky_str_t *value;
+    static const sky_str_t type = sky_string("multipart/form-data;");
+    static const sky_str_t boundary_prefix = sky_string("boundary=");
+
+    sky_http_multipart_t *root = null;
+    sky_http_multipart_t *multipart;
     if (sky_unlikely(!str || !r->headers_in.content_type)) {
         return null;
     }
-    value = &r->headers_in.content_type->value;
+    const sky_str_t *value = &r->headers_in.content_type->value;
+    if (sky_unlikely(value->len < type.len || sky_strncmp(value->data, type.data, type.len) != 0)) {
+        return null;
+    }
+    const sky_uchar_t *boundary = value->data + type.len;
+    sky_usize_t boundary_len = value->len - type.len;
 
+    while (*boundary == ' ') {
+        ++boundary;
+        --boundary_len;
+    }
+    if (sky_unlikely(boundary_len < boundary_prefix.len ||
+                     sky_strncmp(boundary, boundary_prefix.data, boundary_prefix.len) != 0)) {
+        return null;
+    }
+    boundary += boundary_prefix.len;
+    boundary_len -= boundary_prefix.len;
 
-    return null;
+    sky_uchar_t *p = str->data;
+    sky_usize_t size = str->len;
+    if (sky_unlikely(size < 2 || !sky_str2_cmp(p, '-', '-'))) {
+        return null;
+    }
+    p += 2;
+    size -= 2;
+
+    if (sky_unlikely(size < boundary_len || sky_strncmp(p, boundary, boundary_len) != 0)) {
+        return null;
+    }
+    p += boundary_len;
+    size -= boundary_len;
+
+    for (;;) {
+        if (sky_unlikely(size < 2)) {
+            return null;
+        }
+        switch (sky_str2_switch(p)) {
+            case sky_str2_num('-', '-'):
+                return root;
+            case sky_str2_num('\r', '\n'):
+                p += 2;
+                size -= 2;
+                break;
+            default:
+                return null;
+
+        }
+        if (!root) {
+            root = sky_palloc(r->pool, sizeof(sky_http_multipart_t));
+            multipart = root;
+        } else {
+            multipart->next = sky_palloc(r->pool, sizeof(sky_http_multipart_t));
+            multipart = multipart->next;
+        }
+        sky_list_init(&multipart->headers, r->pool, 8, sizeof(sky_table_elt_t));
+
+        for (;;) {
+            sky_table_elt_t *elt = sky_list_push(&multipart->headers);
+            sky_isize_t index = parse_token(p, p + size, ':');
+            if (index < 0) {
+                return null;
+            }
+
+            elt->key.len = (sky_usize_t) index;
+            elt->key.data = p;
+            p += index;
+            *(p++) = '\0';
+
+            size -= (sky_usize_t) index + 1;
+
+            while (*p == ' ') {
+                ++p;
+                --size;
+            }
+            index = parse_header_val(r, p, p + size);
+            if (index < 0) {
+                return null;
+            }
+            elt->value.len = (sky_usize_t) index;
+            elt->value.data = p;
+            p += index;
+            *p = '\0';
+            size -= (sky_usize_t) index + 2;
+            p += 2;
+
+            if (size < 2) {
+                return null;
+            }
+
+            if (sky_unlikely(!sky_str2_cmp(p, '\r', '\n'))) {
+                continue;
+            }
+            size -= 2;
+            p += 2;
+            break;
+        }
+        multipart->data.data = p;
+
+        for (;;) {
+            if (size < 4) {
+                return null;
+            }
+            if (*p == '\r') {
+                if (sky_unlikely(!sky_str4_cmp(p, '\r', '\n', '-', '-'))) {
+                    ++p;
+                    --size;
+                }
+                p += 4;
+                if (sky_unlikely(size < boundary_len)) {
+                    return null;
+                }
+                if (sky_unlikely(sky_strncmp(p, boundary, boundary_len) != 0)) {
+                    continue;
+                }
+                multipart->data.len = (sky_usize_t) (p - multipart->data.data) - 4;
+                *(p - 4) = '\0';
+
+                p += boundary_len;
+                size -= boundary_len;
+            } else {
+                ++p;
+                --size;
+                continue;
+            }
+            break;
+        }
+        sky_log_info("============================");
+    }
 }
 
 
