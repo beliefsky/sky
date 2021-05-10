@@ -42,7 +42,7 @@ static sky_isize_t parse_url_code(sky_http_request_t *r, sky_uchar_t *post, cons
 
 static sky_isize_t advance_token(sky_uchar_t *buf, const sky_uchar_t *end);
 
-static sky_isize_t find_ascii_line(sky_uchar_t *post, const sky_uchar_t *end);
+static sky_isize_t find_header_line(sky_uchar_t *post, const sky_uchar_t *end);
 
 static sky_isize_t find_binary_line(sky_uchar_t *post, const sky_uchar_t *end);
 
@@ -275,7 +275,7 @@ sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
                 }
                 break;
             case sw_header_value:
-                index = find_ascii_line(p, end);
+                index = find_header_line(p, end);
 
                 if (sky_unlikely(index < 0)) {
                     if (sky_unlikely(index == -2)) {
@@ -493,7 +493,7 @@ sky_http_multipart_decode(sky_http_request_t *r, sky_str_t *str) {
                 ++p;
                 --size;
             }
-            index = find_ascii_line(p, p + size);
+            index = find_header_line(p, p + size);
             if (sky_unlikely(index < 0)) {
                 return null;
             }
@@ -862,7 +862,7 @@ parse_url_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end)
 }
 
 static sky_inline sky_isize_t
-find_ascii_line(sky_uchar_t *post, const sky_uchar_t *end) {
+find_header_line(sky_uchar_t *post, const sky_uchar_t *end) {
     sky_uchar_t *start = post;
 #ifdef __SSE4_2__
     static const sky_uchar_t ALIGNED(16) ranges[16] = "\0\010"    /* allow HT */
