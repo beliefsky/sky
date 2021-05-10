@@ -536,6 +536,7 @@ sky_http_multipart_decode(sky_http_request_t *r, sky_str_t *str) {
                 if (sky_unlikely(!sky_str4_cmp(p, '\r', '\n', '-', '-'))) {
                     ++p;
                     --size;
+                    continue;
                 }
                 p += 4;
                 if (sky_unlikely(size < boundary_len)) {
