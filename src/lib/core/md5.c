@@ -50,7 +50,7 @@ sky_md5_update(sky_md5_t *ctx, const void *data, sky_usize_t size) {
 
 
 void
-sky_md5_final(sky_uchar_t result[16], sky_md5_t *ctx) {
+sky_md5_final(sky_md5_t *ctx, sky_uchar_t result[16]) {
     sky_usize_t used, free;
 
     used = (sky_usize_t) (ctx->bytes & 0x3f);

@@ -22,7 +22,7 @@ void sky_md5_init(sky_md5_t *ctx);
 
 void sky_md5_update(sky_md5_t *ctx, const void *data, sky_usize_t size);
 
-void sky_md5_final(sky_uchar_t result[16], sky_md5_t *ctx);
+void sky_md5_final(sky_md5_t *ctx, sky_uchar_t result[16]);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

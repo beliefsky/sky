@@ -727,13 +727,13 @@ pg_send_password(sky_pgsql_conn_t *conn,
     sky_md5_init(&ctx);
     sky_md5_update(&ctx, pg_pool->password.data, pg_pool->password.len);
     sky_md5_update(&ctx, pg_pool->username.data, pg_pool->username.len);
-    sky_md5_final(bin, &ctx);
+    sky_md5_final(&ctx, bin);
     sky_byte_to_hex(bin, 16, hex);
 
     sky_md5_init(&ctx);
     sky_md5_update(&ctx, hex, 32);
     sky_md5_update(&ctx, data, size);
-    sky_md5_final(bin, &ctx);
+    sky_md5_final(&ctx, bin);
 
     ch = hex;
     *(ch++) = 'p';
