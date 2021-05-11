@@ -418,7 +418,7 @@ sky_http_multipart_decode(sky_http_request_t *r, sky_str_t *str) {
     if (sky_unlikely(!str || !r->headers_in.content_type)) {
         return null;
     }
-    const sky_str_t *value = &r->headers_in.content_type->value;
+    const sky_str_t *value = r->headers_in.content_type;
     if (sky_unlikely(value->len < type.len || sky_strncmp(value->data, type.data, type.len) != 0)) {
         return null;
     }

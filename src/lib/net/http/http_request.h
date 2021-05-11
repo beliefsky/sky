@@ -34,15 +34,15 @@ typedef struct {
 typedef struct {
     sky_list_t headers;
 
-    sky_table_elt_t *host;
-    sky_table_elt_t *connection;
-    sky_table_elt_t *if_modified_since;
-    sky_table_elt_t *content_type;
-    sky_table_elt_t *content_length;
-    sky_table_elt_t *authorization;
+    sky_str_t *host;
+    sky_str_t *connection;
+    sky_str_t *if_modified_since;
+    sky_str_t *content_type;
+    sky_str_t *content_length;
+    sky_str_t *authorization;
 
-    sky_table_elt_t *range;
-    sky_table_elt_t *if_range;
+    sky_str_t *range;
+    sky_str_t *if_range;
 
     sky_http_module_t *module;
     sky_u32_t content_length_n;
@@ -52,12 +52,12 @@ typedef struct {
 typedef struct {
     sky_list_t headers;
 
-    sky_table_elt_t *sever;
-    sky_table_elt_t *date;
-    sky_table_elt_t *content_length;
-    sky_table_elt_t *last_modified;
-    sky_table_elt_t *content_ranges;
-    sky_table_elt_t *accept_ranges;
+    sky_str_t *sever;
+    sky_str_t *date;
+    sky_str_t *content_length;
+    sky_str_t *last_modified;
+    sky_str_t *content_ranges;
+    sky_str_t *accept_ranges;
 
     sky_str_t content_type;
 
