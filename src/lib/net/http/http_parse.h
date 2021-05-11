@@ -16,6 +16,8 @@ typedef struct sky_http_multipart_s sky_http_multipart_t;
 struct sky_http_multipart_s {
     sky_list_t headers;
     sky_str_t data;
+    sky_str_t *content_type;
+    sky_str_t *content_disposition;
     sky_http_multipart_t *next;
 };
 

@@ -30,7 +30,6 @@ typedef enum {
     sw_line_LF
 } parse_state_t;
 
-
 static sky_bool_t http_method_identify(sky_http_request_t *r);
 
 
@@ -297,9 +296,9 @@ sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
                 *(p++) = '\0';
 
                 h->key = r->header_name;
-                r->req_pos = h->lowcase_key = sky_palloc(r->pool, h->key.len + 1);
-                *(r->req_pos + h->key.len) = '\0';
-                h->hash = sky_hash_strlow(r->req_pos, h->key.data, h->key.len);
+                h->lowcase_key = sky_palloc(r->pool, h->key.len + 1);
+                *(h->lowcase_key + h->key.len) = '\0';
+                h->hash = sky_hash_strlow(h->lowcase_key, h->key.data, h->key.len);
                 r->req_pos = null;
 
                 hh = sky_hash_find(&r->conn->server->headers_in_hash, h->hash, h->lowcase_key, h->key.len);
@@ -467,10 +466,10 @@ sky_http_multipart_decode(sky_http_request_t *r, sky_str_t *str) {
 
         }
         if (!root) {
-            root = sky_palloc(r->pool, sizeof(sky_http_multipart_t));
+            root = sky_pcalloc(r->pool, sizeof(sky_http_multipart_t));
             multipart = root;
         } else {
-            multipart->next = sky_palloc(r->pool, sizeof(sky_http_multipart_t));
+            multipart->next = sky_pcalloc(r->pool, sizeof(sky_http_multipart_t));
             multipart = multipart->next;
         }
         sky_list_init(&multipart->headers, r->pool, 8, sizeof(sky_table_elt_t));
@@ -507,6 +506,24 @@ sky_http_multipart_decode(sky_http_request_t *r, sky_str_t *str) {
             *p = '\0';
             size -= (sky_usize_t) index + 2;
             p += 2;
+
+            elt->lowcase_key = sky_palloc(r->pool, elt->key.len + 1);
+            *(elt->lowcase_key + elt->key.len) = '\0';
+            elt->hash = sky_hash_strlow(elt->lowcase_key, elt->key.data, elt->key.len);
+            switch (elt->key.len) {
+                case 12:
+                    if (sky_likely(sky_strncmp(elt->lowcase_key, "content-type", 12) == 0)) {
+                        multipart->content_type = &elt->value;
+                    }
+                    break;
+                case 19:
+                    if (sky_likely(sky_strncmp(elt->lowcase_key, "content-disposition", 19) == 0)) {
+                        multipart->content_disposition = &elt->value;
+                    }
+                    break;
+                default:
+                    break;
+            }
 
             if (size < 2) {
                 return null;
