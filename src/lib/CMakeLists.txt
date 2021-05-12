@@ -21,6 +21,7 @@ set(SOURCES
         core/md5.c
         core/sha1.c
         core/base64.c
+        core/random.c
         core/uuid.c
         core/json.c
         core/timer_wheel.c

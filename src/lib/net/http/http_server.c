@@ -119,7 +119,9 @@ sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *loop) {
             .port = server->port,
             .run = (sky_tcp_accept_cb_pt) (server->ssl ? https_connection_accept_cb : http_connection_accept_cb),
             .data = server,
-            .timeout = 60
+            .timeout = 60,
+            .nodelay = true,
+            .defer_accept = true
     };
 
     sky_http_request_init(server);
@@ -322,11 +324,11 @@ http_status_build(sky_http_server_t *server) {
 //=========================== header func ============================
 static sky_bool_t
 http_process_header_line(sky_http_request_t *r, sky_table_elt_t *h, sky_usize_t data) {
-    sky_table_elt_t **ph;
+    sky_str_t **value;
 
-    ph = (sky_table_elt_t **) ((sky_usize_t) (&r->headers_in) + data);
-    if (sky_likely(!(*ph))) {
-        *ph = h;
+    value = (sky_str_t **) ((sky_usize_t) (&r->headers_in) + data);
+    if (sky_likely(!(*value))) {
+        *value = &h->value;
     }
     return true;
 }
@@ -334,11 +336,11 @@ http_process_header_line(sky_http_request_t *r, sky_table_elt_t *h, sky_usize_t 
 
 static sky_bool_t
 http_process_unique_header_line(sky_http_request_t *r, sky_table_elt_t *h, sky_usize_t data) {
-    sky_table_elt_t **ph;
+    sky_str_t **value;
 
-    ph = (sky_table_elt_t **) ((sky_usize_t) (&r->headers_in) + data);
-    if (sky_likely(!(*ph))) {
-        *ph = h;
+    value = (sky_str_t **) ((sky_usize_t) (&r->headers_in) + data);
+    if (sky_likely(!(*value))) {
+        *value = &h->value;
         return true;
     }
     return false;
@@ -352,9 +354,9 @@ http_process_host(sky_http_request_t *r, sky_table_elt_t *h, sky_usize_t data) {
     sky_trie_t *trie_prefix;
 
     if (sky_likely(!r->headers_in.host)) {
-        r->headers_in.host = h;
+        r->headers_in.host = &h->value;
 
-        key = &r->headers_in.host->value;
+        key = r->headers_in.host;
         hash = sky_hash_key(key->data, key->len);
         trie_prefix = sky_hash_find(&r->conn->server->modules_hash, hash, key->data, key->len);
         if (trie_prefix) {
@@ -372,7 +374,7 @@ http_process_host(sky_http_request_t *r, sky_table_elt_t *h, sky_usize_t data) {
 static sky_bool_t
 http_process_connection(sky_http_request_t *r, sky_table_elt_t *h, sky_usize_t data) {
     if (sky_likely(!r->headers_in.connection)) {
-        r->headers_in.connection = h;
+        r->headers_in.connection = &h->value;
     }
     if (sky_unlikely(h->value.len == 5)) {
         if (sky_likely(sky_str4_cmp(h->value.data, 'c', 'l', 'o', 's')
@@ -391,7 +393,7 @@ http_process_connection(sky_http_request_t *r, sky_table_elt_t *h, sky_usize_t d
 static sky_bool_t
 http_process_content_length(sky_http_request_t *r, sky_table_elt_t *h, sky_usize_t data) {
     if (sky_likely(!r->headers_in.content_length)) {
-        r->headers_in.content_length = h;
+        r->headers_in.content_length = &h->value;
 
         if (sky_unlikely(!sky_str_to_u32(&h->value, &r->headers_in.content_length_n))) {
             return false;

@@ -19,9 +19,11 @@ typedef sky_event_t *(*sky_tcp_accept_cb_pt)(sky_event_loop_t *loop, sky_i32_t f
 typedef struct {
     sky_str_t host;
     sky_str_t port;
-    sky_i32_t timeout;
     sky_tcp_accept_cb_pt run;
     void *data;
+    sky_i32_t timeout;
+    sky_bool_t nodelay: 1;
+    sky_bool_t defer_accept: 1;
 } sky_tcp_conf_t;
 
 void sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,

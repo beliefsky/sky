@@ -121,15 +121,15 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
 
     if (r->headers_in.if_modified_since) {
         file->modified = true;
-        sky_rfc_str_to_date(&r->headers_in.if_modified_since->value, &file->modified_time);
+        sky_rfc_str_to_date(r->headers_in.if_modified_since, &file->modified_time);
     }
     if (r->headers_in.range) {
         file->range = true;
-        http_header_range(file, &r->headers_in.range->value);
+        http_header_range(file, r->headers_in.range);
 
         if (r->headers_in.if_range) {
             file->if_range = true;
-            sky_rfc_str_to_date(&r->headers_in.if_range->value, &file->range_time);
+            sky_rfc_str_to_date(r->headers_in.if_range, &file->range_time);
         }
     }
     path = sky_palloc(r->pool, data->path.len + r->uri.len + 1);
@@ -160,7 +160,7 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
 
     if (file->modified && file->modified_time == mtime) {
         close(fd);
-        header->value = r->headers_in.if_modified_since->value;
+        header->value = *r->headers_in.if_modified_since;
 
         r->state = 304;
 

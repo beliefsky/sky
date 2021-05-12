@@ -2,16 +2,11 @@
 // Created by weijing on 18-11-9.
 //
 #include <unistd.h>
-#include <sys/mman.h>
 #include "http_request.h"
 #include "http_parse.h"
-#include "../../core/memory.h"
 #include "http_response.h"
 
 static sky_http_request_t *http_header_read(sky_http_connection_t *conn, sky_pool_t *pool);
-
-static void destroy_mmap(sky_str_t *data);
-
 
 void
 sky_http_request_init(sky_http_server_t *server) {
@@ -157,46 +152,25 @@ sky_http_read_body_none_need(sky_http_request_t *r, sky_buf_t *tmp) {
         return;
     }
     // 缓冲区间太小，分配一较大区域
-    if (n < 4096) {
-        n = sky_min(size, 4096);
+    if (n < 4096U) {
+        n = sky_min(size, 4096U);
         sky_buf_rebuild(tmp, n);
     }
 
     do {
-        do {
-            t = sky_min(n, size);
-            size -= server->http_read(r->conn, tmp->pos, t);
-        } while (size > 0);
+        t = sky_min(n, size);
+        size -= server->http_read(r->conn, tmp->pos, t);
     } while (size > 0);
 }
 
 void
 sky_http_read_body_str(sky_http_request_t *r, sky_buf_t *tmp) {
-    sky_usize_t size, n;
+    sky_usize_t size, read_size, n;
     sky_http_server_t *server;
-    sky_uchar_t *p;
 
     const sky_u32_t total = r->headers_in.content_length_n;
-    n = (sky_usize_t) (tmp->last - tmp->pos);
-    if (n >= total) {
-        r->request_body->str.len = n;
-        r->request_body->str.data = tmp->pos;
-        tmp->pos += n;
-        *tmp->pos = '\0';
-
-        return;
-    }
-    size = total - n;
-
-    server = r->conn->server;
-    n = (sky_usize_t) (tmp->end - tmp->last);
-    if (n > size) {
-        do {
-            n = server->http_read(r->conn, tmp->last, size);
-            tmp->last += n;
-            size -= n;
-        } while (size > 0);
-
+    read_size = (sky_usize_t) (tmp->last - tmp->pos);
+    if (read_size >= total) { // 如果数据已读完，则直接返回
         r->request_body->str.len = total;
         r->request_body->str.data = tmp->pos;
         tmp->pos += total;
@@ -204,41 +178,16 @@ sky_http_read_body_str(sky_http_request_t *r, sky_buf_t *tmp) {
 
         return;
     }
-    // 大内存读取
-    if (total > 8192) {
 
-        const sky_u32_t re_size = sky_align(total + 1, 4096U);
+    size = total - read_size; // 未读的数据字节大小
 
-        p = mmap(null, re_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
-        if (sky_unlikely(!p)) {
-            sky_coro_yield(r->conn->coro, SKY_CORO_ABORT);
-            sky_coro_exit();
-        }
-        // 配置回收页
-        sky_str_t *re_call = sky_palloc(r->pool, sizeof(sky_str_t));
-        re_call->data = p;
-        re_call->len = re_size;
-        sky_defer_add(r->conn->coro, (sky_defer_func_t) destroy_mmap, r->request_body);
-
-        r->request_body->str.len = total;
-        r->request_body->str.data = p;
-
-        n = (sky_usize_t) (tmp->end - tmp->last);
-        sky_memcpy(p, tmp->pos, n);
-        tmp->pos += n;
-        p += n;
-
-        do {
-            n = server->http_read(r->conn, p, size);
-            p += n;
-            size -= n;
-        } while (size > 0);
-
-        *p = '\0';
-
-        return;
+    server = r->conn->server;
+    n = (sky_usize_t) (tmp->end - tmp->last);
+    if (n <= size) {
+        // 重新加大缓存大小
+        sky_buf_rebuild(tmp, total + 1);
     }
-    sky_buf_rebuild(tmp, total + 1);
+
     do {
         n = server->http_read(r->conn, tmp->last, size);
         tmp->last += n;
@@ -249,10 +198,5 @@ sky_http_read_body_str(sky_http_request_t *r, sky_buf_t *tmp) {
     r->request_body->str.data = tmp->pos;
     tmp->pos += total;
     *tmp->pos = '\0';
-}
-
-static void
-destroy_mmap(sky_str_t *data) {
-    munmap(data->data, data->len);
 }
 
