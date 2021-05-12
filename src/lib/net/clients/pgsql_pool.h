@@ -68,6 +68,7 @@ union sky_pgsql_data_u {
             sky_i16_t int16;
             sky_i32_t int32;
             sky_i64_t int64;
+            time_t timestamp; // 精确到微妙，即1秒 = 1000000
             sky_uchar_t *stream;
             sky_pgsql_array_t *array;
         };

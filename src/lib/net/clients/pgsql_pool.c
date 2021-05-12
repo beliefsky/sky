@@ -9,6 +9,7 @@
 #include "../../core/md5.h"
 #include "../../core/buf.h"
 
+#define START_TIMESTAMP 946656000
 
 struct sky_pgsql_pool_s {
     sky_tcp_pool_t *conn_pool;
@@ -36,7 +37,7 @@ static sky_uchar_t *pg_serialize_array(const sky_pgsql_array_t *array, sky_uchar
 
 static sky_pgsql_array_t *pg_deserialize_array(sky_pool_t *pool, sky_uchar_t *stream, sky_pgsql_type_t type);
 
-sky_pgsql_pool_t*
+sky_pgsql_pool_t *
 sky_pgsql_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_pgsql_conf_t *conf) {
     sky_pgsql_pool_t *pg_pool;
     sky_tcp_pool_t *tcp_pool;
@@ -82,7 +83,7 @@ sky_pgsql_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_pgsql_
     return pg_pool;
 }
 
-sky_pgsql_conn_t*
+sky_pgsql_conn_t *
 sky_pgsql_conn_get(sky_pgsql_pool_t *conn_pool, sky_pool_t *pool, sky_event_t *event, sky_coro_t *coro) {
     sky_pgsql_conn_t *conn;
 
@@ -98,7 +99,7 @@ sky_pgsql_conn_get(sky_pgsql_pool_t *conn_pool, sky_pool_t *pool, sky_event_t *e
     return conn;
 }
 
-sky_pgsql_result_t*
+sky_pgsql_result_t *
 sky_pgsql_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_t *param_types,
                sky_pgsql_data_t *params, sky_u16_t param_len) {
     if (sky_unlikely(!conn || !pg_send_exec(conn, cmd, param_types, params, param_len))) {
@@ -316,6 +317,7 @@ pg_send_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_
                 size += 10;
                 break;
             case pgsql_data_int64:
+            case pgsql_data_datetime:
                 size += 14;
                 break;
             case pgsql_data_array_int32:
@@ -397,6 +399,17 @@ pg_send_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_
                 *((sky_u64_t *) buf.last) = sky_htonll((sky_u64_t) params[i].int64);
                 buf.last += 8;
                 break;
+            case pgsql_data_datetime: {
+                const sky_i64_t tmp = (params[i].timestamp - START_TIMESTAMP) * 1000000;
+
+                *((sky_u16_t *) p) = sky_htons(1);
+                p += 2;
+                *((sky_u32_t *) buf.last) = sky_htonl(8);
+                buf.last += 4;
+                *((sky_u64_t *) buf.last) = sky_htonll((sky_u64_t) tmp);
+                buf.last += 8;
+                break;
+            }
             case pgsql_data_binary:
                 *((sky_u16_t *) p) = sky_htons(1);
                 p += 2;
@@ -440,7 +453,7 @@ pg_send_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_
     return result;
 }
 
-static sky_pgsql_result_t*
+static sky_pgsql_result_t *
 pg_exec_read(sky_pgsql_conn_t *conn) {
     sky_u16_t i;
     sky_u32_t size;
@@ -645,12 +658,12 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                                 params->int64 = (sky_i64_t) sky_ntohll(*((sky_u64_t *) buf.pos));
                                 break;
                             case pgsql_data_datetime:
-                                sky_log_info("[%u] %s: %d", size, desc[i].name.data,
-                                             sky_htonl(*(sky_u32_t *) buf.pos));
+                                params->timestamp = (sky_time_t) sky_htonll(*(sky_u64_t *) buf.pos) / 1000000;
+                                params->timestamp += START_TIMESTAMP;
                                 break;
                             case pgsql_data_date:
                                 sky_log_info("[%u] %s: %d", size, desc[i].name.data,
-                                             sky_htonl(*(sky_u32_t *) buf.pos));
+                                             (sky_i32_t) sky_htonl(*(sky_u32_t *) buf.pos));
                                 break;
                             case pgsql_data_time:
                                 sky_log_info("[%u] %s: %d", size, desc[i].name.data,
@@ -768,7 +781,7 @@ pg_serialize_size(const sky_pgsql_array_t *array, sky_pgsql_type_t type) {
     return size;
 }
 
-static sky_uchar_t*
+static sky_uchar_t *
 pg_serialize_array(const sky_pgsql_array_t *array, sky_uchar_t *p, sky_pgsql_type_t type) {
     sky_u32_t *oid;
     sky_u32_t i;
@@ -810,7 +823,7 @@ pg_serialize_array(const sky_pgsql_array_t *array, sky_uchar_t *p, sky_pgsql_typ
     return p;
 }
 
-static sky_pgsql_array_t*
+static sky_pgsql_array_t *
 pg_deserialize_array(sky_pool_t *pool, sky_uchar_t *p, sky_pgsql_type_t type) {
     sky_u32_t dimensions;
     sky_u32_t i;
