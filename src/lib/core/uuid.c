@@ -3,37 +3,36 @@
 //
 
 #include "uuid.h"
-#include <stdlib.h>
-#include <stdio.h>
+#include "random.h"
+#include "string.h"
 
-void sky_uuid_generate_random(sky_uchar_t buf[37]) {
-    const sky_char_t *c = "89ab";
-    sky_u32_t b;
-    sky_char_t *p;
+sky_bool_t
+sky_uuid_generate_random(sky_uuid_t *uuid) {
+    sky_uchar_t *bytes = uuid->bytes;
 
-    p = (sky_char_t *) buf;
-    for(sky_u8_t i = 0; i < 16; ++i) {
-        b = rand() % 255;
-        switch (i) {
-            case 6:
-                sprintf(p, "4%x", b % 15);
-                break;
-            case 8:
-                sprintf(p, "%c%x", c[rand() & 3], b % 15);
-                break;
-            default:
-                sprintf(p, "%02x", b);
-                break;
-        }
-        p += 2;
-        switch (i) {
-            case 3:
-            case 5:
-            case 7:
-            case 9:
-                *p++ = '-';
-                break;
-        }
+    if (sky_unlikely(!sky_random_bytes(bytes, 16))) {
+        return false;
     }
-    *p = '\0';
+    bytes[6] &= 0x0f;  /* clear version        */
+    bytes[6] |= 0x40;  /* set to version 4     */
+    bytes[8] &= 0x3f;  /* clear variant        */
+    bytes[8] |= 0x80;  /* set to IETF variant  */
+}
+
+void
+sky_uuid_to_str(sky_uuid_t *uuid, sky_uchar_t out[36]) {
+    sky_uchar_t *bytes = uuid->bytes;
+    sky_byte_to_hex(bytes, 4, out);
+    bytes += 4;
+    out += 8;
+    *out++ = '-';
+    for (int i = 0; i < 3; ++i) {
+        sky_byte_to_hex(bytes, 2, out);
+        bytes += 2;
+        out += 4;
+        *out++ = '-';
+    }
+    sky_byte_to_hex(bytes, 6, out);
+    out += 12;
+    *out = '\0';
 }
