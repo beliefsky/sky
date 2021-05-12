@@ -33,6 +33,4 @@ sky_uuid_to_str(sky_uuid_t *uuid, sky_uchar_t out[36]) {
         *out++ = '-';
     }
     sky_byte_to_hex(bytes, 6, out);
-    out += 12;
-    *out = '\0';
 }
