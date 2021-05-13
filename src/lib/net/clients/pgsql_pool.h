@@ -26,7 +26,7 @@ typedef struct {
     sky_str_t host;
     sky_str_t port;
     sky_u16_t connection_size;
-    sky_u8_t time_zone;
+    sky_i8_t time_zone;
 } sky_pgsql_conf_t;
 
 struct sky_pgsql_conn_s {
