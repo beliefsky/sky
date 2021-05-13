@@ -9,7 +9,7 @@
 #include "../../core/md5.h"
 #include "../../core/buf.h"
 
-#define START_TIMESTAMP 946656000
+#define START_TIMESTAMP 946684800
 
 struct sky_pgsql_pool_s {
     sky_tcp_pool_t *conn_pool;
@@ -400,7 +400,8 @@ pg_send_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_
                 buf.last += 8;
                 break;
             case pgsql_data_datetime: {
-                const sky_i64_t tmp = (params[i].timestamp - START_TIMESTAMP) * 1000000;
+                const sky_i64_t tmp = (params[i].timestamp.sec - START_TIMESTAMP) * 1000000
+                                      + (sky_i64_t) params[i].timestamp.u_sec;
 
                 *((sky_u16_t *) p) = sky_htons(1);
                 p += 2;
@@ -657,10 +658,12 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                             case pgsql_data_int64:
                                 params->int64 = (sky_i64_t) sky_ntohll(*((sky_u64_t *) buf.pos));
                                 break;
-                            case pgsql_data_datetime:
-                                params->timestamp = (sky_time_t) sky_htonll(*(sky_u64_t *) buf.pos) / 1000000;
-                                params->timestamp += START_TIMESTAMP;
+                            case pgsql_data_datetime: {
+                                const sky_i64_t tmp = (sky_i64_t) sky_htonll(*(sky_u64_t *) buf.pos);
+                                params->timestamp.u_sec = (sky_usize_t) (tmp % 1000000);
+                                params->timestamp.sec = (tmp / 1000000) + START_TIMESTAMP;
                                 break;
+                            }
                             case pgsql_data_date:
                                 sky_log_info("[%u] %s: %d", size, desc[i].name.data,
                                              (sky_i32_t) sky_htonl(*(sky_u32_t *) buf.pos));
