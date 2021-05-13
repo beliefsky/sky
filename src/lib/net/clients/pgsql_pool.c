@@ -16,7 +16,7 @@ struct sky_pgsql_pool_s {
     sky_str_t username;
     sky_str_t password;
     sky_str_t conn_info;
-    sky_u32_t time_offset;
+    sky_i32_t time_offset;
 };
 
 
@@ -44,8 +44,8 @@ sky_pgsql_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_pgsql_
     sky_tcp_pool_t *tcp_pool;
     sky_uchar_t *p;
 
-    if (conf->time_zone > 24) {
-        sky_log_error("时区不能大于24");
+    if (conf->time_zone < -11 || conf->time_zone > 12) {
+        sky_log_error("时区所在范围为 -11 ~ +12");
         return null;
     }
 
