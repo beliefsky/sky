@@ -16,6 +16,7 @@ struct sky_pgsql_pool_s {
     sky_str_t username;
     sky_str_t password;
     sky_str_t conn_info;
+    sky_u32_t time_offset;
 };
 
 
@@ -43,7 +44,13 @@ sky_pgsql_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_pgsql_
     sky_tcp_pool_t *tcp_pool;
     sky_uchar_t *p;
 
+    if (conf->time_zone > 24) {
+        sky_log_error("时区不能大于24");
+        return null;
+    }
+
     pg_pool = sky_palloc(pool, sizeof(sky_pgsql_pool_t));
+    pg_pool->time_offset = conf->time_zone * 3600;
     pg_pool->username = conf->username;
     pg_pool->password = conf->password;
 
@@ -317,7 +324,8 @@ pg_send_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_
                 size += 10;
                 break;
             case pgsql_data_int64:
-            case pgsql_data_datetime:
+            case pgsql_data_timestamp:
+            case pgsql_data_timestamp_tz:
                 size += 14;
                 break;
             case pgsql_data_array_int32:
@@ -399,9 +407,21 @@ pg_send_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_
                 *((sky_u64_t *) buf.last) = sky_htonll((sky_u64_t) params[i].int64);
                 buf.last += 8;
                 break;
-            case pgsql_data_datetime: {
-                const sky_i64_t tmp = (params[i].timestamp.sec - START_TIMESTAMP) * 1000000
-                                      + (sky_i64_t) params[i].timestamp.u_sec;
+            case pgsql_data_timestamp: {
+                const sky_i64_t tmp = (params[i].time.sec + conn->pg_pool->time_offset - START_TIMESTAMP) * 1000000
+                                      + (sky_i64_t) params[i].time.u_sec;
+
+                *((sky_u16_t *) p) = sky_htons(1);
+                p += 2;
+                *((sky_u32_t *) buf.last) = sky_htonl(8);
+                buf.last += 4;
+                *((sky_u64_t *) buf.last) = sky_htonll((sky_u64_t) tmp);
+                buf.last += 8;
+                break;
+            }
+            case pgsql_data_timestamp_tz: {
+                const sky_i64_t tmp = (params[i].time.sec - START_TIMESTAMP) * 1000000
+                                      + (sky_i64_t) params[i].time.u_sec;
 
                 *((sky_u16_t *) p) = sky_htons(1);
                 p += 2;
@@ -412,8 +432,8 @@ pg_send_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_
                 break;
             }
             case pgsql_data_time: {
-                const sky_i64_t tmp = params[i].timestamp.sec * 1000000
-                                      + (sky_i64_t) params[i].timestamp.u_sec;
+                const sky_i64_t tmp = params[i].time.sec * 1000000
+                                      + (sky_i64_t) params[i].time.u_sec;
 
                 *((sky_u16_t *) p) = sky_htons(1);
                 p += 2;
@@ -608,12 +628,18 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                                 desc->type = pgsql_data_time;
                                 break;
                             case 1114:
+                                desc->type = pgsql_data_timestamp;
+                                break;
                             case 1184:
-                                desc->type = pgsql_data_datetime;
+                                desc->type = pgsql_data_timestamp_tz;
+                                break;
+                            case 1266:
+                                sky_log_warn("%s 不支持 timetz类型", desc->name.data);
                                 break;
                             default:
                                 sky_log_warn("%s 类型不支持: %u", desc->name.data, sky_ntohl(*((sky_u32_t *) buf.pos)));
                                 desc->type = pgsql_data_binary;
+                                break;
                         }
                         buf.pos += 4;
                         desc->data_size = (sky_i16_t) sky_ntohs(*((sky_u16_t *) buf.pos));
@@ -671,20 +697,28 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                             case pgsql_data_int64:
                                 params->int64 = (sky_i64_t) sky_ntohll(*((sky_u64_t *) buf.pos));
                                 break;
-                            case pgsql_data_datetime: {
+                            case pgsql_data_timestamp: {
                                 const sky_i64_t tmp = (sky_i64_t) sky_htonll(*(sky_u64_t *) buf.pos);
-                                params->timestamp.u_sec = (sky_usize_t) (tmp % 1000000);
-                                params->timestamp.sec = (tmp / 1000000) + START_TIMESTAMP;
+                                params->time.u_sec = (sky_usize_t) (tmp % 1000000);
+                                params->time.sec = (tmp / 1000000) - conn->pg_pool->time_offset + START_TIMESTAMP;
+                                break;
+                            }
+                            case pgsql_data_timestamp_tz: {
+                                const sky_i64_t tmp = (sky_i64_t) sky_htonll(*(sky_u64_t *) buf.pos);
+                                params->time.u_sec = (sky_usize_t) (tmp % 1000000);
+                                params->time.sec = (tmp / 1000000) + START_TIMESTAMP;
                                 break;
                             }
                             case pgsql_data_date:
-                                sky_log_info("[%u] %s: %d", size, desc[i].name.data,
-                                             (sky_i32_t) sky_htonl(*(sky_u32_t *) buf.pos));
+                                params->time.u_sec = 0;
+                                params->time.sec = (sky_i32_t) sky_htonl(*(sky_u32_t *) buf.pos);
+                                params->time.sec *= 86400;
+                                params->time.sec += START_TIMESTAMP - conn->pg_pool->time_offset;
                                 break;
                             case pgsql_data_time: {
                                 const sky_i64_t tmp = (sky_i64_t) sky_htonll(*(sky_u64_t *) buf.pos);
-                                params->timestamp.u_sec = (sky_usize_t) (tmp % 1000000);
-                                params->timestamp.sec = tmp / 1000000;
+                                params->time.u_sec = (sky_usize_t) (tmp % 1000000);
+                                params->time.sec = (tmp / 1000000) - conn->pg_pool->time_offset;
                                 break;
                             }
                             case pgsql_data_array_int32:
