@@ -26,6 +26,7 @@ typedef struct {
     sky_str_t host;
     sky_str_t port;
     sky_u16_t connection_size;
+    sky_u8_t time_zone;
 } sky_pgsql_conf_t;
 
 struct sky_pgsql_conn_s {
@@ -42,7 +43,8 @@ typedef enum {
     pgsql_data_int16,
     pgsql_data_int32,
     pgsql_data_int64,
-    pgsql_data_datetime,
+    pgsql_data_timestamp,
+    pgsql_data_timestamp_tz,
     pgsql_data_date,
     pgsql_data_time,
     pgsql_data_text,
@@ -75,7 +77,7 @@ union sky_pgsql_data_u {
     struct {
         sky_usize_t u_sec; // 微秒
         sky_i64_t sec; // 秒
-    } timestamp;
+    } time;
 
     sky_str_t str;
 };
