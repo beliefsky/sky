@@ -233,6 +233,10 @@ sky_pgsql_row_get_i64(sky_pgsql_row_t *row, sky_u16_t index) {
 
 static sky_inline void
 sky_pgsql_param_set_str(sky_pgsql_params_t *params, sky_u16_t index, sky_str_t *str) {
+    if (!str) {
+        sky_pgsql_param_set_null(params, index);
+        return;
+    }
     params->types[index] = pgsql_data_text;
     params->values[index].str = *str;
 }
