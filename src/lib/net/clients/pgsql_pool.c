@@ -9,14 +9,14 @@
 #include "../../core/md5.h"
 #include "../../core/buf.h"
 
-#define START_TIMESTAMP 946684800
+#define START_TIMESTAMP INT64_C(946684800000000)
+#define START_DAY INT32_C(10957)
 
 struct sky_pgsql_pool_s {
     sky_tcp_pool_t *conn_pool;
     sky_str_t username;
     sky_str_t password;
     sky_str_t conn_info;
-    sky_i32_t time_offset;
 };
 
 
@@ -26,9 +26,12 @@ static sky_bool_t pg_send_password(sky_pgsql_conn_t *conn, sky_pgsql_pool_t *pg_
                                    sky_u32_t auth_type, sky_uchar_t *data,
                                    sky_usize_t size);
 
-static sky_bool_t pg_send_exec(sky_pgsql_conn_t *ps, const sky_str_t *cmd,
-                               const sky_pgsql_type_t *param_types,
-                               sky_pgsql_data_t *params, sky_u16_t param_len);
+static sky_bool_t pg_send_exec(
+        sky_pgsql_conn_t *ps,
+        const sky_str_t *cmd,
+        sky_pgsql_params_t *params,
+        sky_u16_t param_len
+);
 
 static sky_pgsql_result_t *pg_exec_read(sky_pgsql_conn_t *ps);
 
@@ -44,13 +47,7 @@ sky_pgsql_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_pgsql_
     sky_tcp_pool_t *tcp_pool;
     sky_uchar_t *p;
 
-    if (conf->time_zone < -11 || conf->time_zone > 12) {
-        sky_log_error("时区所在范围为 -11 ~ +12");
-        return null;
-    }
-
     pg_pool = sky_palloc(pool, sizeof(sky_pgsql_pool_t));
-    pg_pool->time_offset = conf->time_zone * 3600;
     pg_pool->username = conf->username;
     pg_pool->password = conf->password;
 
@@ -107,9 +104,8 @@ sky_pgsql_conn_get(sky_pgsql_pool_t *conn_pool, sky_pool_t *pool, sky_event_t *e
 }
 
 sky_pgsql_result_t *
-sky_pgsql_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, const sky_pgsql_type_t *param_types,
-               sky_pgsql_data_t *params, sky_u16_t param_len) {
-    if (sky_unlikely(!conn || !pg_send_exec(conn, cmd, param_types, params, param_len))) {
+sky_pgsql_exec(sky_pgsql_conn_t *conn, const sky_str_t *cmd, sky_pgsql_params_t *params, sky_u16_t param_len) {
+    if (sky_unlikely(!conn || !pg_send_exec(conn, cmd, params, param_len))) {
         return null;
     }
     return pg_exec_read(conn);
@@ -271,8 +267,7 @@ static sky_bool_t
 pg_send_exec(
         sky_pgsql_conn_t *conn,
         const sky_str_t *cmd,
-        const sky_pgsql_type_t *param_types,
-        sky_pgsql_data_t *params,
+        sky_pgsql_params_t *params,
         sky_u16_t param_len
 ) {
     sky_u16_t i;
@@ -314,7 +309,7 @@ pg_send_exec(
         return result;
     }
     size = 14;
-    param_type = param_types;
+    param_type = params->types;
     for (i = 0; i != param_len; ++i, ++param_type) {
         switch (*param_type) {
             case pgsql_data_null:
@@ -328,20 +323,22 @@ pg_send_exec(
                 size += 8;
                 break;
             case pgsql_data_int32:
+            case pgsql_data_date:
                 size += 10;
                 break;
             case pgsql_data_int64:
             case pgsql_data_timestamp:
             case pgsql_data_timestamp_tz:
+            case pgsql_data_time:
                 size += 14;
                 break;
             case pgsql_data_array_int32:
             case pgsql_data_array_text:
                 size += 6;
-                size += params[i].len = pg_serialize_size(params[i].array, *param_type);
+                size += params->values[i].len = pg_serialize_size(params->values[i].array, *param_type);
                 break;
             default:
-                size += params[i].len + 6;
+                size += params->values[i].len + 6;
         }
     }
 
@@ -369,9 +366,9 @@ pg_send_exec(
     *((sky_u16_t *) buf.last) = i;
     buf.last += 2;
 
-    param_type = param_types;
-    param = params;
-    for (i = 0; i != param_len; ++i, ++param_type, ++params) {
+    param_type = params->types;
+    param = params->values;
+    for (i = 0; i != param_len; ++i, ++param_type, ++param) {
         switch (*param_type) {
             case pgsql_data_null: {
                 *((sky_u16_t *) p) = sky_htons(1);
@@ -393,7 +390,7 @@ pg_send_exec(
                 p += 2;
                 *((sky_u32_t *) buf.last) = sky_htonl(1);
                 buf.last += 4;
-                *(buf.last++) = (sky_uchar_t) param->ch;
+                *(buf.last++) = (sky_uchar_t) param->int8;
                 break;
             }
             case pgsql_data_int16: {
@@ -414,6 +411,16 @@ pg_send_exec(
                 buf.last += 4;
                 break;
             }
+            case pgsql_data_date: {
+                const sky_i32_t tmp = param->day - START_DAY;
+                *((sky_u16_t *) p) = sky_htons(1);
+                p += 2;
+                *((sky_u32_t *) buf.last) = sky_htonl(4);
+                buf.last += 4;
+                *((sky_u32_t *) buf.last) = sky_htonl((sky_u32_t) tmp);
+                buf.last += 4;
+                break;
+            }
             case pgsql_data_int64: {
                 *((sky_u16_t *) p) = sky_htons(1);
                 p += 2;
@@ -423,21 +430,9 @@ pg_send_exec(
                 buf.last += 8;
                 break;
             }
-            case pgsql_data_timestamp: {
-                const sky_i64_t tmp = (param->time.sec + conn->pg_pool->time_offset - START_TIMESTAMP) * 1000000
-                                      + (sky_i64_t) param->time.u_sec;
-
-                *((sky_u16_t *) p) = sky_htons(1);
-                p += 2;
-                *((sky_u32_t *) buf.last) = sky_htonl(8);
-                buf.last += 4;
-                *((sky_u64_t *) buf.last) = sky_htonll((sky_u64_t) tmp);
-                buf.last += 8;
-                break;
-            }
+            case pgsql_data_timestamp:
             case pgsql_data_timestamp_tz: {
-                const sky_i64_t tmp = (param->time.sec - START_TIMESTAMP) * 1000000
-                                      + (sky_i64_t) param->time.u_sec;
+                const sky_i64_t tmp = param->u_sec - START_TIMESTAMP;
 
                 *((sky_u16_t *) p) = sky_htons(1);
                 p += 2;
@@ -448,14 +443,11 @@ pg_send_exec(
                 break;
             }
             case pgsql_data_time: {
-                const sky_i64_t tmp = param->time.sec * 1000000
-                                      + (sky_i64_t) param->time.u_sec;
-
                 *((sky_u16_t *) p) = sky_htons(1);
                 p += 2;
                 *((sky_u32_t *) buf.last) = sky_htonl(8);
                 buf.last += 4;
-                *((sky_u64_t *) buf.last) = sky_htonll((sky_u64_t) tmp);
+                *((sky_u64_t *) buf.last) = sky_htonll((sky_u64_t) param->u_sec);
                 buf.last += 8;
                 break;
             }
@@ -476,7 +468,7 @@ pg_send_exec(
                 *((sky_u32_t *) buf.last) = sky_htonl((sky_u32_t) param->len);
                 buf.last += 4;
                 if (sky_likely(param->len)) {
-                    sky_memcpy(buf.last, params[i].stream, param->len);
+                    sky_memcpy(buf.last, param->stream, param->len);
                     buf.last += param->len;
                 }
                 break;
@@ -487,7 +479,7 @@ pg_send_exec(
                 p += 2;
                 *((sky_u32_t *) buf.last) = sky_htonl((sky_u32_t) param->len);
                 buf.last += 4;
-                buf.last = pg_serialize_array(param->array, buf.last, *param_types);
+                buf.last = pg_serialize_array(param->array, buf.last, *param_type);
                 break;
             }
             default:
@@ -599,7 +591,7 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                         state = START;
                         continue;
                     }
-                    result->desc = sky_palloc(conn->pool, sizeof(sky_pgsql_desc_t) * result->lines);
+                    result->desc = sky_pnalloc(conn->pool, sizeof(sky_pgsql_desc_t) * result->lines);
                     i = result->lines;
                     for (desc = result->desc; i; --i, ++desc) {
                         desc->name.data = buf.pos;
@@ -683,6 +675,7 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                     } else {
                         result->data = row = sky_palloc(conn->pool, sizeof(sky_pgsql_row_t));
                     }
+                    row->desc = desc;
                     row->next = null;
                     ++result->rows;
                     row->num = sky_ntohs(*((sky_u16_t *) buf.pos));
@@ -707,7 +700,7 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                                 params->bool = *(buf.pos);
                                 break;
                             case pgsql_data_char:
-                                params->ch = *((sky_char_t *) buf.pos);
+                                params->int8 = *((sky_i8_t *) buf.pos);
                                 break;
                             case pgsql_data_int16:
                                 params->int16 = (sky_i16_t) sky_ntohs(*((sky_u16_t *) buf.pos));
@@ -718,28 +711,18 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                             case pgsql_data_int64:
                                 params->int64 = (sky_i64_t) sky_ntohll(*((sky_u64_t *) buf.pos));
                                 break;
-                            case pgsql_data_timestamp: {
-                                const sky_i64_t tmp = (sky_i64_t) sky_htonll(*(sky_u64_t *) buf.pos);
-                                params->time.u_sec = (sky_usize_t) (tmp % 1000000);
-                                params->time.sec = (tmp / 1000000) - conn->pg_pool->time_offset + START_TIMESTAMP;
-                                break;
-                            }
+                            case pgsql_data_timestamp:
                             case pgsql_data_timestamp_tz: {
-                                const sky_i64_t tmp = (sky_i64_t) sky_htonll(*(sky_u64_t *) buf.pos);
-                                params->time.u_sec = (sky_usize_t) (tmp % 1000000);
-                                params->time.sec = (tmp / 1000000) + START_TIMESTAMP;
+                                params->u_sec = (sky_i64_t) sky_htonll(*(sky_u64_t *) buf.pos);
+                                params->u_sec += START_TIMESTAMP;
                                 break;
                             }
                             case pgsql_data_date:
-                                params->time.u_sec = 0;
-                                params->time.sec = (sky_i32_t) sky_htonl(*(sky_u32_t *) buf.pos);
-                                params->time.sec *= 86400;
-                                params->time.sec += START_TIMESTAMP - conn->pg_pool->time_offset;
+                                params->day = (sky_i32_t) sky_htonl(*(sky_u32_t *) buf.pos);
+                                params->day += START_DAY;
                                 break;
                             case pgsql_data_time: {
-                                const sky_i64_t tmp = (sky_i64_t) sky_htonll(*(sky_u64_t *) buf.pos);
-                                params->time.u_sec = (sky_usize_t) (tmp % 1000000);
-                                params->time.sec = (tmp / 1000000) - conn->pg_pool->time_offset;
+                                params->u_sec = (sky_i64_t) sky_htonll(*(sky_u64_t *) buf.pos);
                                 break;
                             }
                             case pgsql_data_array_int32:
