@@ -49,8 +49,13 @@ typedef enum {
     pgsql_data_time,
     pgsql_data_text,
     pgsql_data_binary,
+    pgsql_data_array_bool,
+    pgsql_data_array_char,
+    pgsql_data_array_int16,
     pgsql_data_array_int32,
-    pgsql_data_array_text
+    pgsql_data_array_int64,
+    pgsql_data_array_text,
+
 } sky_pgsql_type_t;
 
 typedef struct {
@@ -113,8 +118,12 @@ typedef struct {
 
 sky_pgsql_pool_t *sky_pgsql_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_pgsql_conf_t *conf);
 
-sky_pgsql_conn_t *sky_pgsql_conn_get(sky_pgsql_pool_t *conn_pool, sky_pool_t *pool,
-                                     sky_event_t *event, sky_coro_t *coro);
+sky_pgsql_conn_t *sky_pgsql_conn_get(
+        sky_pgsql_pool_t *conn_pool,
+        sky_pool_t *pool,
+        sky_event_t *event,
+        sky_coro_t *coro
+);
 
 sky_pgsql_result_t *sky_pgsql_exec(
         sky_pgsql_conn_t *conn,
@@ -129,6 +138,12 @@ static sky_inline void
 sky_pgsql_params_init(sky_pgsql_params_t *params, sky_pool_t *pool, sky_u16_t size) {
     params->types = sky_pnalloc(pool, sizeof(sky_pgsql_type_t) * size);
     params->values = sky_pnalloc(pool, sizeof(sky_pgsql_data_t) * size);
+}
+
+static sky_inline void
+sky_pgsql_param_set_null(sky_pgsql_params_t *params, sky_u16_t index) {
+    params->types[index] = pgsql_data_null;
+    params->values[index].len = SKY_USIZE_MAX;
 }
 
 static sky_inline void
