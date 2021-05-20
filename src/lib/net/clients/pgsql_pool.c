@@ -786,6 +786,10 @@ get_type_by_oid(sky_usize_t oid) {
             return pgsql_data_int16;
         case 23:
             return pgsql_data_int32;
+        case 700:
+            return pgsql_data_float32;
+        case 701:
+            return pgsql_data_float64;
         case 1007:
             return pgsql_data_array_int32;
         case 1015:
@@ -831,9 +835,11 @@ decode_data(sky_pool_t *pool, sky_pgsql_data_t *data, sky_pgsql_desc_t *desc, sk
                 data->int16 = (sky_i16_t) sky_ntohs(*((sky_u16_t *) p));
                 break;
             case pgsql_data_int32:
+            case pgsql_data_float32:
                 data->int32 = (sky_i32_t) sky_ntohl(*((sky_u32_t *) p));
                 break;
             case pgsql_data_int64:
+            case pgsql_data_float64:
                 data->int64 = (sky_i64_t) sky_ntohll(*((sky_u64_t *) p));
                 break;
             case pgsql_data_timestamp:
@@ -881,10 +887,12 @@ encode_data_size(sky_pgsql_type_t *type, sky_pgsql_data_t *data, sky_u16_t param
                 size += 8;
                 break;
             case pgsql_data_int32:
+            case pgsql_data_float32:
             case pgsql_data_date:
                 size += 10;
                 break;
             case pgsql_data_int64:
+            case pgsql_data_float64:
             case pgsql_data_timestamp:
             case pgsql_data_timestamp_tz:
             case pgsql_data_time:
@@ -947,7 +955,8 @@ encode_data(
                 last += 2;
                 break;
             }
-            case pgsql_data_int32: {
+            case pgsql_data_int32:
+            case pgsql_data_float32: {
                 *((sky_u16_t *) p) = sky_htons(1);
                 p += 2;
                 *((sky_u32_t *) last) = sky_htonl(4);
@@ -966,7 +975,8 @@ encode_data(
                 last += 4;
                 break;
             }
-            case pgsql_data_int64: {
+            case pgsql_data_int64:
+            case pgsql_data_float64: {
                 *((sky_u16_t *) p) = sky_htons(1);
                 p += 2;
                 *((sky_u32_t *) last) = sky_htonl(8);
