@@ -43,6 +43,8 @@ typedef enum {
     pgsql_data_int16,
     pgsql_data_int32,
     pgsql_data_int64,
+    pgsql_data_float32,
+    pgsql_data_float64,
     pgsql_data_timestamp,
     pgsql_data_timestamp_tz,
     pgsql_data_date,
@@ -75,8 +77,10 @@ union sky_pgsql_data_u {
             sky_i16_t int16;
             sky_i32_t int32;
             sky_i32_t day;
+            sky_f32_t float32;
             sky_i64_t int64;
             sky_i64_t u_sec;
+            sky_f64_t float64;
             sky_uchar_t *stream;
             sky_pgsql_array_t *array;
         };
@@ -203,7 +207,7 @@ sky_pgsql_param_set_i32(sky_pgsql_params_t *params, sky_u16_t index, sky_i32_t i
     params->values[index].int32 = i32;
 }
 
-static sky_inline int32_t *
+static sky_inline sky_i32_t *
 sky_pgsql_row_get_i32(sky_pgsql_row_t *row, sky_u16_t index) {
     if (sky_unlikely(row->desc[index].type != pgsql_data_int32)) {
         sky_log_error("pgsql type != i32");
@@ -212,6 +216,23 @@ sky_pgsql_row_get_i32(sky_pgsql_row_t *row, sky_u16_t index) {
     sky_pgsql_data_t *data = row->data + index;
 
     return data->len != SKY_USIZE_MAX ? &data->int32 : null;
+}
+
+static sky_inline void
+sky_pgsql_param_set_f32(sky_pgsql_params_t *params, sky_u16_t index, sky_f32_t f32) {
+    params->types[index] = pgsql_data_float32;
+    params->values[index].float32 = f32;
+}
+
+static sky_inline sky_f32_t *
+sky_pgsql_row_get_f32(sky_pgsql_row_t *row, sky_u16_t index) {
+    if (sky_unlikely(row->desc[index].type != pgsql_data_float32)) {
+        sky_log_error("pgsql type != i32");
+        return null;
+    }
+    sky_pgsql_data_t *data = row->data + index;
+
+    return data->len != SKY_USIZE_MAX ? &data->float32 : null;
 }
 
 static sky_inline void
@@ -229,6 +250,23 @@ sky_pgsql_row_get_i64(sky_pgsql_row_t *row, sky_u16_t index) {
     sky_pgsql_data_t *data = row->data + index;
 
     return data->len != SKY_USIZE_MAX ? &data->int64 : null;
+}
+
+static sky_inline void
+sky_pgsql_param_set_f64(sky_pgsql_params_t *params, sky_u16_t index, sky_f64_t f64) {
+    params->types[index] = pgsql_data_float64;
+    params->values[index].float64 = f64;
+}
+
+static sky_inline sky_f64_t *
+sky_pgsql_row_get_f64(sky_pgsql_row_t *row, sky_u16_t index) {
+    if (sky_unlikely(row->desc[index].type != pgsql_data_float64)) {
+        sky_log_error("pgsql type != i64");
+        return null;
+    }
+    sky_pgsql_data_t *data = row->data + index;
+
+    return data->len != SKY_USIZE_MAX ? &data->float64 : null;
 }
 
 static sky_inline void
