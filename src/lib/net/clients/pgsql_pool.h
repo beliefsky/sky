@@ -390,21 +390,36 @@ sky_pgsql_row_get_array(sky_pgsql_row_t *row, sky_u16_t index) {
 }
 
 
-static sky_inline void
-sky_pgsql_data_array_init(sky_pgsql_array_t *array, sky_u32_t *dims, sky_u32_t dl,
-                          sky_pgsql_data_t *ds, sky_u32_t n) {
+static sky_inline sky_pgsql_array_t *
+sky_pgsql_data_array_create(sky_pool_t *pool, sky_u32_t *dims, sky_u32_t dl, sky_pgsql_type_t type, sky_u32_t n) {
+    if (sky_unlikely(type < pgsql_data_array_bool)) {
+        sky_log_error("pgsql type != array");
+        return null;
+    }
+    sky_pgsql_array_t *array = sky_palloc(pool, sizeof(sky_pgsql_array_t));
+    array->type = type;
     array->dimensions = dl;
     array->dims = dims;
     array->nelts = n;
-    array->data = ds;
+    array->data = sky_pnalloc(pool, sizeof(sky_pgsql_data_t) * n);
+
+    return array;
 }
 
-static sky_inline void
-sky_pgsql_data_array_one_init(sky_pgsql_array_t *array, sky_pgsql_data_t *ds, sky_u32_t n) {
+static sky_inline sky_pgsql_array_t *
+sky_pgsql_data_array_one_create(sky_pool_t *pool, sky_pgsql_type_t type, sky_u32_t n) {
+    if (sky_unlikely(type < pgsql_data_array_bool)) {
+        sky_log_error("pgsql type != array");
+        return null;
+    }
+    sky_pgsql_array_t *array = sky_palloc(pool, sizeof(sky_pgsql_array_t));
+    array->type = type;
     array->dimensions = 1;
     array->nelts = n;
     array->dims = &array->nelts;
-    array->data = ds;
+    array->data = sky_pnalloc(pool, sizeof(sky_pgsql_data_t) * n);
+
+    return array;
 }
 
 static sky_inline sky_bool_t
