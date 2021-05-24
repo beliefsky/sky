@@ -59,11 +59,11 @@ static sky_bool_t encode_data(
         sky_uchar_t **last_ptr
 );
 
-static sky_u32_t pg_serialize_size(const sky_pgsql_array_t *array, sky_pgsql_type_t type);
+static sky_u32_t array_serialize_size(const sky_pgsql_array_t *array, sky_pgsql_type_t type);
 
-static sky_uchar_t *pg_serialize_array(const sky_pgsql_array_t *array, sky_uchar_t *p, sky_pgsql_type_t type);
+static sky_uchar_t *array_serialize(const sky_pgsql_array_t *array, sky_uchar_t *p, sky_pgsql_type_t type);
 
-static sky_pgsql_array_t *pg_deserialize_array(sky_pool_t *pool, sky_uchar_t *stream, sky_pgsql_type_t type);
+static sky_pgsql_array_t *array_deserialize(sky_pool_t *pool, sky_uchar_t *stream, sky_pgsql_type_t type);
 
 sky_pgsql_pool_t *
 sky_pgsql_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_pgsql_conf_t *conf) {
@@ -614,7 +614,7 @@ pg_send_password(sky_pgsql_conn_t *conn,
 
 
 static sky_u32_t
-pg_serialize_size(const sky_pgsql_array_t *array, sky_pgsql_type_t type) {
+array_serialize_size(const sky_pgsql_array_t *array, sky_pgsql_type_t type) {
     sky_u32_t size;
 
     switch (type) {
@@ -635,7 +635,7 @@ pg_serialize_size(const sky_pgsql_array_t *array, sky_pgsql_type_t type) {
 }
 
 static sky_uchar_t *
-pg_serialize_array(const sky_pgsql_array_t *array, sky_uchar_t *p, sky_pgsql_type_t type) {
+array_serialize(const sky_pgsql_array_t *array, sky_uchar_t *p, sky_pgsql_type_t type) {
     sky_u32_t *oid;
     sky_u32_t i;
 
@@ -679,7 +679,7 @@ pg_serialize_array(const sky_pgsql_array_t *array, sky_uchar_t *p, sky_pgsql_typ
 }
 
 static sky_pgsql_array_t *
-pg_deserialize_array(sky_pool_t *pool, sky_uchar_t *p, sky_pgsql_type_t type) {
+array_deserialize(sky_pool_t *pool, sky_uchar_t *p, sky_pgsql_type_t type) {
     sky_u32_t dimensions;
     sky_u32_t i;
     sky_u32_t number = 1;
@@ -858,7 +858,7 @@ decode_data(sky_pool_t *pool, sky_pgsql_data_t *data, sky_pgsql_desc_t *desc, sk
             }
             case pgsql_data_array_int32:
             case pgsql_data_array_text:
-                data->array = pg_deserialize_array(pool, p, desc->type);
+                data->array = array_deserialize(pool, p, desc->type);
                 break;
             default:
                 data->stream = p;
@@ -901,7 +901,7 @@ encode_data_size(sky_pgsql_type_t *type, sky_pgsql_data_t *data, sky_u16_t param
             case pgsql_data_array_int32:
             case pgsql_data_array_text:
                 size += 6;
-                size += data->len = pg_serialize_size(data->array, *type);
+                size += data->len = array_serialize_size(data->array, *type);
                 break;
             default:
                 size += data->len + 6;
@@ -1034,7 +1034,7 @@ encode_data(
                 p += 2;
                 *((sky_u32_t *) last) = sky_htonl((sky_u32_t) data->len);
                 last += 4;
-                last = pg_serialize_array(data->array, last, *type);
+                last = array_serialize(data->array, last, *type);
                 break;
             }
             default:
