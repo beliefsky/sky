@@ -61,6 +61,7 @@ typedef enum {
 } sky_pgsql_type_t;
 
 typedef struct {
+    sky_pgsql_type_t type; // 数据类型
     sky_u32_t dimensions; // 数组深度
     sky_u32_t flags;  // 0=no-nulls, 1=has-nulls
     sky_u32_t nelts; //元素数量
@@ -366,6 +367,28 @@ sky_pgsql_row_get_time(sky_pgsql_row_t *row, sky_u16_t index) {
 
     return data->len != SKY_USIZE_MAX ? &data->u_sec : null;
 }
+
+static sky_inline void
+sky_pgsql_param_set_array(sky_pgsql_params_t *params, sky_u16_t index, sky_pgsql_array_t *array) {
+    if (!array) {
+        sky_pgsql_param_set_null(params, index);
+        return;
+    }
+    params->types[index] = array->type;
+    params->values[index].array = array;
+}
+
+static sky_inline sky_pgsql_array_t *
+sky_pgsql_row_get_array(sky_pgsql_row_t *row, sky_u16_t index) {
+    if (sky_unlikely(row->desc[index].type < pgsql_data_array_bool)) {
+        sky_log_error("pgsql type != array");
+        return null;
+    }
+    sky_pgsql_data_t *data = row->data + index;
+
+    return data->len != SKY_USIZE_MAX ? data->array : null;
+}
+
 
 static sky_inline void
 sky_pgsql_data_array_init(sky_pgsql_array_t *array, sky_u32_t *dims, sky_u32_t dl,
