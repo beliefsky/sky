@@ -695,6 +695,7 @@ array_deserialize(sky_pool_t *pool, sky_uchar_t *p, sky_pgsql_type_t type) {
         return array;
     }
     array->dimensions = dimensions;
+    array->type = type;
 
     p += 4;
     array->flags = sky_htonl(*(sky_u32_t *) p); // flags<4byte>: 0=no-nulls, 1=has-nulls;
