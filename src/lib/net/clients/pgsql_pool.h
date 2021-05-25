@@ -187,7 +187,7 @@ sky_pgsql_row_get_i8(sky_pgsql_row_t *row, sky_u16_t index) {
 
 static sky_inline void
 sky_pgsql_param_set_i16(sky_pgsql_params_t *params, sky_u16_t index, sky_i16_t i16) {
-    params->types[index] = pgsql_data_int32;
+    params->types[index] = pgsql_data_int16;
     params->values[index].int16 = i16;
 }
 
