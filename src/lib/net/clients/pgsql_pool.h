@@ -166,7 +166,7 @@ sky_pgsql_array_set_null(sky_pgsql_array_t *array, sky_u32_t index) {
 
 static sky_inline void
 sky_pgsql_param_set_bool(sky_pgsql_params_t *params, sky_u16_t index, sky_bool_t value) {
-    params->types[index] = pgsql_data_int32;
+    params->types[index] = pgsql_data_bool;
     params->values[index].bool = value;
 }
 
@@ -198,7 +198,7 @@ sky_pgsql_array_get_bool(sky_pgsql_array_t *array, sky_u32_t index) {
 
 static sky_inline void
 sky_pgsql_param_set_i8(sky_pgsql_params_t *params, sky_u16_t index, sky_i8_t i8) {
-    params->types[index] = pgsql_data_int32;
+    params->types[index] = pgsql_data_char;
     params->values[index].int8 = i8;
 }
 
