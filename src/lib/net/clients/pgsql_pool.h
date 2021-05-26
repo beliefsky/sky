@@ -51,11 +51,18 @@ typedef enum {
     pgsql_data_time,
     pgsql_data_text,
     pgsql_data_binary,
+    // =========== array ============
     pgsql_data_array_bool,
     pgsql_data_array_char,
     pgsql_data_array_int16,
     pgsql_data_array_int32,
     pgsql_data_array_int64,
+    pgsql_data_array_float32,
+    pgsql_data_array_float64,
+    pgsql_data_array_timestamp,
+    pgsql_data_array_timestamp_tz,
+    pgsql_data_array_date,
+    pgsql_data_array_time,
     pgsql_data_array_text,
 
 } sky_pgsql_type_t;
@@ -152,9 +159,20 @@ sky_pgsql_param_set_null(sky_pgsql_params_t *params, sky_u16_t index) {
 }
 
 static sky_inline void
+sky_pgsql_array_set_null(sky_pgsql_array_t *array, sky_u32_t index) {
+    array->flags = true;
+    array->data[index].len = SKY_USIZE_MAX;
+}
+
+static sky_inline void
 sky_pgsql_param_set_bool(sky_pgsql_params_t *params, sky_u16_t index, sky_bool_t value) {
     params->types[index] = pgsql_data_int32;
     params->values[index].bool = value;
+}
+
+static sky_inline void
+sky_pgsql_array_set_bool(sky_pgsql_array_t *array, sky_u32_t index, sky_bool_t value) {
+    array->data[index].bool = value;
 }
 
 static sky_inline sky_bool_t *
@@ -168,10 +186,25 @@ sky_pgsql_row_get_bool(sky_pgsql_row_t *row, sky_u16_t index) {
     return data->len != SKY_USIZE_MAX ? &data->bool : null;
 }
 
+static sky_inline sky_bool_t *
+sky_pgsql_array_get_bool(sky_pgsql_array_t *array, sky_u32_t index) {
+    if (sky_unlikely(array->type != pgsql_data_array_bool)) {
+        sky_log_error("pgsql array type != bool");
+        return null;
+    }
+    sky_pgsql_data_t *data = array->data + index;
+    return data->len != SKY_USIZE_MAX ? &data->bool : null;
+}
+
 static sky_inline void
 sky_pgsql_param_set_i8(sky_pgsql_params_t *params, sky_u16_t index, sky_i8_t i8) {
     params->types[index] = pgsql_data_int32;
     params->values[index].int8 = i8;
+}
+
+static sky_inline void
+sky_pgsql_array_set_i8(sky_pgsql_array_t *array, sky_u32_t index, sky_i8_t i8) {
+    array->data[index].int8 = i8;
 }
 
 static sky_inline sky_i8_t *
@@ -185,10 +218,26 @@ sky_pgsql_row_get_i8(sky_pgsql_row_t *row, sky_u16_t index) {
     return data->len != SKY_USIZE_MAX ? &data->int8 : null;
 }
 
+static sky_inline sky_i8_t *
+sky_pgsql_array_get_i8(sky_pgsql_array_t *array, sky_u32_t index) {
+    if (sky_unlikely(array->type != pgsql_data_array_char)) {
+        sky_log_error("pgsql array type != i8");
+        return null;
+    }
+    sky_pgsql_data_t *data = array->data + index;
+
+    return data->len != SKY_USIZE_MAX ? &data->int8 : null;
+}
+
 static sky_inline void
 sky_pgsql_param_set_i16(sky_pgsql_params_t *params, sky_u16_t index, sky_i16_t i16) {
     params->types[index] = pgsql_data_int32;
     params->values[index].int16 = i16;
+}
+
+static sky_inline void
+sky_pgsql_array_set_i16(sky_pgsql_array_t *array, sky_u32_t index, sky_i16_t i16) {
+    array->data[index].int16 = i16;
 }
 
 static sky_inline sky_i16_t *
@@ -202,10 +251,26 @@ sky_pgsql_row_get_i16(sky_pgsql_row_t *row, sky_u16_t index) {
     return data->len != SKY_USIZE_MAX ? &data->int16 : null;
 }
 
+static sky_inline sky_i16_t *
+sky_pgsql_array_get_i16(sky_pgsql_array_t *array, sky_u32_t index) {
+    if (sky_unlikely(array->type != pgsql_data_array_int16)) {
+        sky_log_error("pgsql array type != i16");
+        return null;
+    }
+    sky_pgsql_data_t *data = array->data + index;
+
+    return data->len != SKY_USIZE_MAX ? &data->int16 : null;
+}
+
 static sky_inline void
 sky_pgsql_param_set_i32(sky_pgsql_params_t *params, sky_u16_t index, sky_i32_t i32) {
     params->types[index] = pgsql_data_int32;
     params->values[index].int32 = i32;
+}
+
+static sky_inline void
+sky_pgsql_array_set_i32(sky_pgsql_array_t *array, sky_u32_t index, sky_i32_t i32) {
+    array->data[index].int32 = i32;
 }
 
 static sky_inline sky_i32_t *
@@ -219,19 +284,46 @@ sky_pgsql_row_get_i32(sky_pgsql_row_t *row, sky_u16_t index) {
     return data->len != SKY_USIZE_MAX ? &data->int32 : null;
 }
 
+static sky_inline sky_i32_t *
+sky_pgsql_array_get_i32(sky_pgsql_array_t *array, sky_u32_t index) {
+    if (sky_unlikely(array->type != pgsql_data_array_int32)) {
+        sky_log_error("pgsql array type != i32");
+        return null;
+    }
+    sky_pgsql_data_t *data = array->data + index;
+
+    return data->len != SKY_USIZE_MAX ? &data->int32 : null;
+}
+
 static sky_inline void
 sky_pgsql_param_set_f32(sky_pgsql_params_t *params, sky_u16_t index, sky_f32_t f32) {
     params->types[index] = pgsql_data_float32;
     params->values[index].float32 = f32;
 }
 
+static sky_inline void
+sky_pgsql_array_set_f32(sky_pgsql_array_t *array, sky_u32_t index, sky_f32_t f32) {
+    array->data[index].float32 = f32;
+}
+
 static sky_inline sky_f32_t *
 sky_pgsql_row_get_f32(sky_pgsql_row_t *row, sky_u16_t index) {
     if (sky_unlikely(row->desc[index].type != pgsql_data_float32)) {
-        sky_log_error("pgsql type != i32");
+        sky_log_error("pgsql type != f32");
         return null;
     }
     sky_pgsql_data_t *data = row->data + index;
+
+    return data->len != SKY_USIZE_MAX ? &data->float32 : null;
+}
+
+static sky_inline sky_f32_t *
+sky_pgsql_array_get_f32(sky_pgsql_array_t *array, sky_u32_t index) {
+    if (sky_unlikely(array->type != pgsql_data_array_float32)) {
+        sky_log_error("pgsql array type != f32");
+        return null;
+    }
+    sky_pgsql_data_t *data = array->data + index;
 
     return data->len != SKY_USIZE_MAX ? &data->float32 : null;
 }
@@ -240,6 +332,11 @@ static sky_inline void
 sky_pgsql_param_set_i64(sky_pgsql_params_t *params, sky_u16_t index, sky_i64_t i64) {
     params->types[index] = pgsql_data_int64;
     params->values[index].int64 = i64;
+}
+
+static sky_inline void
+sky_pgsql_array_set_i64(sky_pgsql_array_t *array, sky_u32_t index, sky_i64_t i64) {
+    array->data[index].int64 = i64;
 }
 
 static sky_inline sky_i64_t *
@@ -253,19 +350,46 @@ sky_pgsql_row_get_i64(sky_pgsql_row_t *row, sky_u16_t index) {
     return data->len != SKY_USIZE_MAX ? &data->int64 : null;
 }
 
+static sky_inline sky_i64_t *
+sky_pgsql_array_get_i64(sky_pgsql_array_t *array, sky_u32_t index) {
+    if (sky_unlikely(array->type != pgsql_data_array_int64)) {
+        sky_log_error("pgsql array type != i64");
+        return null;
+    }
+    sky_pgsql_data_t *data = array->data + index;
+
+    return data->len != SKY_USIZE_MAX ? &data->int64 : null;
+}
+
 static sky_inline void
 sky_pgsql_param_set_f64(sky_pgsql_params_t *params, sky_u16_t index, sky_f64_t f64) {
     params->types[index] = pgsql_data_float64;
     params->values[index].float64 = f64;
 }
 
+static sky_inline void
+sky_pgsql_array_set_f64(sky_pgsql_array_t *array, sky_u32_t index, sky_f64_t f64) {
+    array->data[index].float64 = f64;
+}
+
 static sky_inline sky_f64_t *
 sky_pgsql_row_get_f64(sky_pgsql_row_t *row, sky_u16_t index) {
     if (sky_unlikely(row->desc[index].type != pgsql_data_float64)) {
-        sky_log_error("pgsql type != i64");
+        sky_log_error("pgsql type != f64");
         return null;
     }
     sky_pgsql_data_t *data = row->data + index;
+
+    return data->len != SKY_USIZE_MAX ? &data->float64 : null;
+}
+
+static sky_inline sky_f64_t *
+sky_pgsql_array_get_f64(sky_pgsql_array_t *array, sky_u32_t index) {
+    if (sky_unlikely(array->type != pgsql_data_array_float64)) {
+        sky_log_error("pgsql array type != f64");
+        return null;
+    }
+    sky_pgsql_data_t *data = array->data + index;
 
     return data->len != SKY_USIZE_MAX ? &data->float64 : null;
 }
@@ -281,10 +405,26 @@ sky_pgsql_param_set_str(sky_pgsql_params_t *params, sky_u16_t index, sky_str_t *
 }
 
 static sky_inline void
+sky_pgsql_array_set_str(sky_pgsql_array_t *array, sky_u32_t index, sky_str_t *str) {
+    if (!str) {
+        sky_pgsql_array_set_null(array, index);
+        return;
+    }
+    array->data[index].str = *str;
+}
+
+static sky_inline void
 sky_pgsql_param_set_str_len(sky_pgsql_params_t *params, sky_u32_t index, sky_uchar_t *value, sky_usize_t len) {
     params->types[index] = pgsql_data_text;
 
     sky_str_t *tmp = &(params->values[index].str);
+    tmp->len = len;
+    tmp->data = value;
+}
+
+static sky_inline void
+sky_pgsql_array_set_str_len(sky_pgsql_array_t *array, sky_u32_t index, sky_uchar_t *value, sky_usize_t len) {
+    sky_str_t *tmp = &(array->data[index].str);
     tmp->len = len;
     tmp->data = value;
 }
@@ -300,10 +440,26 @@ sky_pgsql_row_get_str(sky_pgsql_row_t *row, sky_u16_t index) {
     return data->len != SKY_USIZE_MAX ? &data->str : null;
 }
 
+static sky_inline sky_str_t *
+sky_pgsql_array_get_str(sky_pgsql_array_t *array, sky_u32_t index) {
+    if (sky_unlikely(array->type != pgsql_data_array_text)) {
+        sky_log_error("pgsql array type != string");
+        return null;
+    }
+    sky_pgsql_data_t *data = array->data + index;
+
+    return data->len != SKY_USIZE_MAX ? &data->str : null;
+}
+
 static sky_inline void
 sky_pgsql_param_set_timestamp(sky_pgsql_params_t *params, sky_u16_t index, sky_i64_t u_sec) {
     params->types[index] = pgsql_data_time;
     params->values[index].u_sec = u_sec;
+}
+
+static sky_inline void
+sky_pgsql_array_set_timestamp(sky_pgsql_array_t *array, sky_u32_t index, sky_i64_t u_sec) {
+    array->data[index].u_sec = u_sec;
 }
 
 static sky_inline sky_i64_t *
@@ -317,10 +473,26 @@ sky_pgsql_row_get_timestamp(sky_pgsql_row_t *row, sky_u16_t index) {
     return data->len != SKY_USIZE_MAX ? &data->u_sec : null;
 }
 
+static sky_inline sky_i64_t *
+sky_pgsql_array_get_timestamp(sky_pgsql_array_t *array, sky_u32_t index) {
+    if (sky_unlikely(array->type != pgsql_data_array_timestamp)) {
+        sky_log_error("pgsql array type != timestamp");
+        return null;
+    }
+    sky_pgsql_data_t *data = array->data + index;
+
+    return data->len != SKY_USIZE_MAX ? &data->u_sec : null;
+}
+
 static sky_inline void
 sky_pgsql_param_set_timestamp_tz(sky_pgsql_params_t *params, sky_u16_t index, sky_i64_t u_sec) {
     params->types[index] = pgsql_data_timestamp_tz;
     params->values[index].u_sec = u_sec;
+}
+
+static sky_inline void
+sky_pgsql_array_set_timestamp_tz(sky_pgsql_array_t *array, sky_u32_t index, sky_i64_t u_sec) {
+    array->data[index].u_sec = u_sec;
 }
 
 static sky_inline sky_i64_t *
@@ -334,10 +506,26 @@ sky_pgsql_row_get_timestamp_tz(sky_pgsql_row_t *row, sky_u16_t index) {
     return data->len != SKY_USIZE_MAX ? &data->u_sec : null;
 }
 
+static sky_inline sky_i64_t *
+sky_pgsql_array_get_timestamp_tz(sky_pgsql_array_t *array, sky_u32_t index) {
+    if (sky_unlikely(array->type != pgsql_data_array_timestamp_tz)) {
+        sky_log_error("pgsql array type != timestamp with time zone");
+        return null;
+    }
+    sky_pgsql_data_t *data = array->data + index;
+
+    return data->len != SKY_USIZE_MAX ? &data->u_sec : null;
+}
+
 static sky_inline void
 sky_pgsql_param_set_date(sky_pgsql_params_t *params, sky_u16_t index, sky_i32_t day) {
     params->types[index] = pgsql_data_date;
     params->values[index].day = day;
+}
+
+static sky_inline void
+sky_pgsql_array_set_date(sky_pgsql_array_t *array, sky_u32_t index, sky_i32_t day) {
+    array->data[index].day = day;
 }
 
 static sky_inline sky_i32_t *
@@ -351,10 +539,26 @@ sky_pgsql_row_get_date(sky_pgsql_row_t *row, sky_u16_t index) {
     return data->len != SKY_USIZE_MAX ? &data->day : null;
 }
 
+static sky_inline sky_i32_t *
+sky_pgsql_array_get_date(sky_pgsql_array_t *array, sky_u32_t index) {
+    if (sky_unlikely(array->type != pgsql_data_array_date)) {
+        sky_log_error("pgsql array type != date");
+        return null;
+    }
+    sky_pgsql_data_t *data = array->data + index;
+
+    return data->len != SKY_USIZE_MAX ? &data->day : null;
+}
+
 static sky_inline void
 sky_pgsql_param_set_time(sky_pgsql_params_t *params, sky_u16_t index, sky_i64_t u_sec) {
     params->types[index] = pgsql_data_time;
     params->values[index].u_sec = u_sec;
+}
+
+static sky_inline void
+sky_pgsql_array_set_time(sky_pgsql_array_t *array, sky_u32_t index, sky_i64_t u_sec) {
+    array->data[index].u_sec = u_sec;
 }
 
 static sky_inline sky_i64_t *
@@ -364,6 +568,17 @@ sky_pgsql_row_get_time(sky_pgsql_row_t *row, sky_u16_t index) {
         return null;
     }
     sky_pgsql_data_t *data = row->data + index;
+
+    return data->len != SKY_USIZE_MAX ? &data->u_sec : null;
+}
+
+static sky_inline sky_i64_t *
+sky_pgsql_array_get_time(sky_pgsql_array_t *array, sky_u32_t index) {
+    if (sky_unlikely(array->type != pgsql_data_array_time)) {
+        sky_log_error("pgsql array type != time");
+        return null;
+    }
+    sky_pgsql_data_t *data = array->data + index;
 
     return data->len != SKY_USIZE_MAX ? &data->u_sec : null;
 }
@@ -402,6 +617,7 @@ sky_pgsql_data_array_create(sky_pool_t *pool, sky_u32_t *dims, sky_u32_t dl, sky
     array->dims = dims;
     array->nelts = n;
     array->data = sky_pnalloc(pool, sizeof(sky_pgsql_data_t) * n);
+    array->flags = false;
 
     return array;
 }
@@ -418,6 +634,7 @@ sky_pgsql_data_array_one_create(sky_pool_t *pool, sky_pgsql_type_t type, sky_u32
     array->nelts = n;
     array->dims = &array->nelts;
     array->data = sky_pnalloc(pool, sizeof(sky_pgsql_data_t) * n);
+    array->flags = false;
 
     return array;
 }

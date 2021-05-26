@@ -615,22 +615,71 @@ pg_send_password(sky_pgsql_conn_t *conn,
 
 static sky_u32_t
 array_serialize_size(const sky_pgsql_array_t *array, sky_pgsql_type_t type) {
-    sky_u32_t size;
+    sky_u32_t size = (array->dimensions << 3) + (array->nelts << 2) + 12;;
 
-    switch (type) {
-        case pgsql_data_array_int32:
-            size = (array->dimensions << 3) + (array->nelts << 3) + 12;
-            break;
-        case pgsql_data_array_text:
-            size = (array->dimensions << 3) + (array->nelts << 2) + 12;
-            for (sky_u32_t i = 0; i != array->nelts; ++i) {
-                size += array->data[i].len;
-            }
-            break;
-        default:
-            size = 0;
-            break;
+    if (!array->flags) {
+        switch (type) {
+            case pgsql_data_array_bool:
+            case pgsql_data_array_char:
+                size += array->nelts;
+                break;
+            case pgsql_data_array_int16:
+                size += (array->nelts << 1);
+                break;
+            case pgsql_data_array_int32:
+            case pgsql_data_array_float32:
+            case pgsql_data_array_date:
+                size += (array->nelts << 2);
+                break;
+            case pgsql_data_array_int64:
+            case pgsql_data_array_float64:
+            case pgsql_data_array_timestamp:
+            case pgsql_data_array_timestamp_tz:
+            case pgsql_data_array_time:
+                size += (array->nelts << 3);
+                break;
+            case pgsql_data_array_text:
+                for (sky_u32_t i = 0; i != array->nelts; ++i) {
+                    size += array->data[i].len;
+                }
+                break;
+            default:
+                return 0;
+        }
+    } else {
+        switch (type) {
+            case pgsql_data_array_bool:
+            case pgsql_data_array_char:
+                for (sky_u32_t i = 0; i != array->nelts; ++i) {
+                    size += array->data[i].len;
+                }
+                size += array->nelts;
+                break;
+            case pgsql_data_array_int16:
+                size += (array->nelts << 1);
+                break;
+            case pgsql_data_array_int32:
+            case pgsql_data_array_float32:
+            case pgsql_data_array_date:
+                size += (array->nelts << 2);
+                break;
+            case pgsql_data_array_int64:
+            case pgsql_data_array_float64:
+            case pgsql_data_array_timestamp:
+            case pgsql_data_array_timestamp_tz:
+            case pgsql_data_array_time:
+                size += (array->nelts << 3);
+                break;
+            case pgsql_data_array_text:
+                for (sky_u32_t i = 0; i != array->nelts; ++i) {
+                    size += array->data[i].len;
+                }
+                break;
+            default:
+                return 0;
+        }
     }
+
     return size;
 }
 
@@ -899,7 +948,17 @@ encode_data_size(sky_pgsql_type_t *type, sky_pgsql_data_t *data, sky_u16_t param
             case pgsql_data_time:
                 size += 14;
                 break;
+            case pgsql_data_array_bool:
+            case pgsql_data_array_char:
+            case pgsql_data_array_int16:
             case pgsql_data_array_int32:
+            case pgsql_data_array_float32:
+            case pgsql_data_array_int64:
+            case pgsql_data_array_float64:
+            case pgsql_data_array_timestamp:
+            case pgsql_data_array_timestamp_tz:
+            case pgsql_data_array_date:
+            case pgsql_data_array_time:
             case pgsql_data_array_text:
                 size += 6;
                 size += data->len = array_serialize_size(data->array, *type);
