@@ -638,11 +638,14 @@ array_serialize_size(const sky_pgsql_array_t *array, sky_pgsql_type_t type) {
             case pgsql_data_array_time:
                 size += (array->nelts << 3);
                 break;
-            case pgsql_data_array_text:
-                for (sky_u32_t i = 0; i != array->nelts; ++i) {
-                    size += array->data[i].len;
+            case pgsql_data_array_text: {
+                sky_u32_t i = array->nelts;
+                sky_pgsql_data_t *data = array->data;
+                for (; i; --i, ++data) {
+                    size += data->len;
                 }
                 break;
+            }
             default:
                 return 0;
         }
@@ -670,11 +673,16 @@ array_serialize_size(const sky_pgsql_array_t *array, sky_pgsql_type_t type) {
             case pgsql_data_array_time:
                 size += (array->nelts << 3);
                 break;
-            case pgsql_data_array_text:
-                for (sky_u32_t i = 0; i != array->nelts; ++i) {
-                    size += array->data[i].len;
+            case pgsql_data_array_text: {
+                sky_u32_t i = array->nelts;
+                sky_pgsql_data_t *data = array->data;
+                for (; i; --i, ++data) {
+                    if (!sky_pgsql_data_is_null(data)) {
+                        size += data->len;
+                    }
                 }
                 break;
+            }
             default:
                 return 0;
         }
