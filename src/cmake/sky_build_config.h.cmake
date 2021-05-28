@@ -5,6 +5,7 @@
 
 /* API available in Glibc/Linux, but possibly not elsewhere */
 #cmakedefine HAVE_ACCEPT4
+#cmakedefine HAVE_BUILTIN_BSWAP
 #cmakedefine HAVE_ALLOCA_H
 #cmakedefine HAVE_CLOCK_GETTIME
 #cmakedefine HAVE_GET_CURRENT_DIR_NAME
