@@ -68,7 +68,6 @@ struct sky_http_server_s {
 
 struct sky_http_module_s {
     sky_str_t prefix;
-    sky_module_read_body_pt read_body;
     sky_module_run_pt run;
     void *module_data;
 };

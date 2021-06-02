@@ -72,7 +72,6 @@ sky_http_module_file_init(sky_pool_t *pool, const sky_http_file_conf_t *conf) {
 
     sky_http_module_t *module = conf->module;
     module->prefix = conf->prefix;
-    module->read_body = null;
     module->run = (sky_module_run_pt) http_run_handler;
 
     module->module_data = data;
