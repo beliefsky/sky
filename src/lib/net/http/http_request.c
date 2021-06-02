@@ -17,12 +17,12 @@ sky_http_request_init(sky_http_server_t *server) {
 sky_i32_t
 sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
     sky_pool_t *pool;
-    sky_defer_t *defer;
+    sky_defer_t *pool_defer;
     sky_http_request_t *r;
     sky_http_module_t *module;
 
     pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
-    defer = sky_defer_add(coro, (sky_defer_func_t) sky_destroy_pool, pool);
+    pool_defer = sky_defer_add(coro, (sky_defer_func_t) sky_destroy_pool, pool);
     for (;;) {
         // read buf and parse
         r = http_header_read(conn, pool);
@@ -41,14 +41,17 @@ sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
             sky_str_set(&r->headers_out.content_type, "text/plain");
             sky_http_response_static_len(r, sky_str_line("404 Not Found"));
         }
-        if (!r->keep_alive) {
-            return SKY_CORO_FINISHED;
-        }
-        sky_defer_cancel(coro, defer);
+
+        sky_defer_cancel(coro, pool_defer);
         sky_defer_run(coro);
 
+        if (!r->keep_alive) {
+            sky_destroy_pool(pool);
+            return SKY_CORO_FINISHED;
+        }
+
         sky_reset_pool(pool);
-        defer = sky_defer_add(coro, (sky_defer_func_t) sky_destroy_pool, pool);
+        pool_defer = sky_defer_add(coro, (sky_defer_func_t) sky_destroy_pool, pool);
         sky_coro_yield(coro, SKY_CORO_MAY_RESUME);
     }
 }
