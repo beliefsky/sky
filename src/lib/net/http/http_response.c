@@ -7,6 +7,8 @@
 #include "../../core/date.h"
 #include "../../core/string_buf.h"
 
+#define REQUEST_MAX_SIZE 1048576
+
 static void http_header_build(sky_http_request_t *r, sky_str_buf_t *buf);
 
 void
@@ -18,7 +20,7 @@ sky_http_response_nobody(sky_http_request_t *r) {
     }
     r->response = true;
 
-    if (r->headers_in.content_length && !r->read_request_body) {
+    if (sky_unlikely(r->headers_in.content_length_n > REQUEST_MAX_SIZE && !r->read_request_body)) {
         r->keep_alive = false;
     }
 
@@ -55,7 +57,7 @@ sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_u32_t 
     }
     r->response = true;
 
-    if (r->headers_in.content_length && !r->read_request_body) {
+    if (sky_unlikely(r->headers_in.content_length_n > REQUEST_MAX_SIZE && !r->read_request_body)) {
         r->keep_alive = false;
     }
 
@@ -121,7 +123,7 @@ sky_http_sendfile(sky_http_request_t *r, sky_i32_t fd, sky_usize_t offset, sky_u
     }
     r->response = true;
 
-    if (r->headers_in.content_length && !r->read_request_body) {
+    if (sky_unlikely(r->headers_in.content_length_n > REQUEST_MAX_SIZE && !r->read_request_body)) {
         r->keep_alive = false;
     }
 
