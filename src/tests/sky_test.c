@@ -360,16 +360,16 @@ static SKY_HTTP_MAPPER_HANDLER(hello_world) {
 
 static SKY_HTTP_MAPPER_HANDLER(test_rw) {
 
-    sky_http_multipart_t *multipart = sky_http_multipart_decode(req, &req->request_body->str);
-    while (multipart) {
-        if (multipart->content_type) {
-            sky_log_error("type -> %s", multipart->content_type->data);
-        }
-        if (multipart->content_disposition) {
-            sky_log_error("disposition -> %s", multipart->content_disposition->data);
-        }
-
-        multipart = multipart->next;
-    }
+//    sky_http_multipart_t *multipart = sky_http_multipart_decode(req, &req->request_body->str);
+//    while (multipart) {
+//        if (multipart->content_type) {
+//            sky_log_error("type -> %s", multipart->content_type->data);
+//        }
+//        if (multipart->content_disposition) {
+//            sky_log_error("disposition -> %s", multipart->content_disposition->data);
+//        }
+//
+//        multipart = multipart->next;
+//    }
     sky_http_response_static_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\"}"));
 }

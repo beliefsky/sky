@@ -399,8 +399,5 @@ http_process_content_length(sky_http_request_t *r, sky_table_elt_t *h, sky_usize
             return false;
         }
     }
-    if (sky_likely(r->headers_in.content_length_n)) {
-        r->request_body = sky_pcalloc(r->pool, sizeof(sky_http_request_t));
-    }
     return true;
 }

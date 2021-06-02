@@ -45,7 +45,6 @@ sky_http_module_websocket_init(sky_pool_t *pool, sky_http_module_t *module, sky_
     data->handler = handler;
 
     module->prefix = *prefix;
-    module->read_body = null;
     module->run = (sky_module_run_pt) module_run;
     module->module_data = data;
 
