@@ -26,7 +26,6 @@ sky_http_module_dispatcher_init(sky_pool_t *pool, const sky_http_dispatcher_conf
     data = sky_palloc(pool, sizeof(http_module_dispatcher_t));
     data->pool = pool;
     data->mappers = sky_trie_create(pool);
-    data->body_max_buff = conf->body_max_size ?: 1048576; // 1MB
 
     const sky_usize_t size = sizeof(sky_http_mapper_pt) << 2;
 
