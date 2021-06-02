@@ -131,10 +131,9 @@ sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *loop) {
 }
 
 sky_str_t*
-sky_http_status_find(sky_http_server_t *server, sky_u16_t status) {
+sky_http_status_find(sky_http_server_t *server, sky_u32_t status) {
     status_t *arrays;
-    sky_u16_t tmp;
-    sky_i32_t left, mid, right;
+    sky_i32_t tmp, left, mid, right;
 
 
     arrays = server->status.elts;
