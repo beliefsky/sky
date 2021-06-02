@@ -220,5 +220,7 @@ sky_http_read_body_str(sky_http_request_t *r) {
     *tmp->pos = '\0';
 
     sky_buf_rebuild(tmp, 0);
+
+    return result;
 }
 
