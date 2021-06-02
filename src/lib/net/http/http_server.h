@@ -83,7 +83,7 @@ sky_http_server_t *sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *con
 
 void sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *loop);
 
-sky_str_t *sky_http_status_find(sky_http_server_t *server, sky_u16_t status);
+sky_str_t *sky_http_status_find(sky_http_server_t *server, sky_u32_t status);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

@@ -18,6 +18,10 @@ sky_http_response_nobody(sky_http_request_t *r) {
     }
     r->response = true;
 
+    if (r->headers_in.content_length && !r->read_request_body) {
+        r->keep_alive = false;
+    }
+
     sky_str_buf_init(&str_buf, r->pool, 2048);
     http_header_build(r, &str_buf);
 
@@ -50,6 +54,10 @@ sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_u32_t 
         return;
     }
     r->response = true;
+
+    if (r->headers_in.content_length && !r->read_request_body) {
+        r->keep_alive = false;
+    }
 
     header = sky_list_push(&r->headers_out.headers);
     sky_str_set(&header->key, "Content-Length");
@@ -112,6 +120,10 @@ sky_http_sendfile(sky_http_request_t *r, sky_i32_t fd, sky_usize_t offset, sky_u
         return;
     }
     r->response = true;
+
+    if (r->headers_in.content_length && !r->read_request_body) {
+        r->keep_alive = false;
+    }
 
     data = sky_palloc(r->pool, 16);
     header = sky_list_push(&r->headers_out.headers);
