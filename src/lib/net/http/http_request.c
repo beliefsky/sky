@@ -5,6 +5,7 @@
 #include "http_request.h"
 #include "http_parse.h"
 #include "http_response.h"
+#include "../../core/log.h"
 
 static sky_http_request_t *http_header_read(sky_http_connection_t *conn, sky_pool_t *pool);
 
@@ -52,7 +53,7 @@ sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
     }
 }
 
-static sky_http_request_t*
+static sky_http_request_t *
 http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
     sky_http_request_t *r;
     sky_http_server_t *server;
@@ -133,6 +134,11 @@ sky_http_read_body_none_need(sky_http_request_t *r, sky_buf_t *tmp) {
     sky_http_server_t *server;
     sky_u32_t n, size, t;
 
+    if (sky_unlikely(r->read_request_body)) {
+        sky_log_error("request body read repeat");
+        return;
+    }
+    r->read_request_body = true;
     n = (sky_u32_t) (tmp->last - tmp->pos);
     size = r->headers_in.content_length_n;
 
@@ -168,6 +174,11 @@ sky_http_read_body_str(sky_http_request_t *r, sky_buf_t *tmp) {
     sky_usize_t size, read_size, n;
     sky_http_server_t *server;
 
+    if (sky_unlikely(r->read_request_body)) {
+        sky_log_error("request body read repeat");
+        return;
+    }
+    r->read_request_body = true;
     const sky_u32_t total = r->headers_in.content_length_n;
     read_size = (sky_usize_t) (tmp->last - tmp->pos);
     if (read_size >= total) { // 如果数据已读完，则直接返回

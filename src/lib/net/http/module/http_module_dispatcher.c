@@ -50,18 +50,18 @@ http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
 
     if (r->headers_in.content_length_n) {
         handler = r->data;
-        r->data = null;
         if (!handler) {
             return;
         }
-    } else {
-        handler = (sky_http_mapper_pt *) sky_trie_contains(data->mappers, &r->uri);
-        if (!handler) {
-            r->state = 404;
-            sky_str_set(&r->headers_out.content_type, "application/json");
-            sky_http_response_static_len(r, sky_str_line("{\"errcode\": 404, \"errmsg\": \"404 Not Found\"}"));
-            return;
-        }
+        (*handler)(r);
+        return;
+    }
+    handler = (sky_http_mapper_pt *) sky_trie_contains(data->mappers, &r->uri);
+    if (!handler) {
+        r->state = 404;
+        sky_str_set(&r->headers_out.content_type, "application/json");
+        sky_http_response_static_len(r, sky_str_line("{\"errcode\": 404, \"errmsg\": \"404 Not Found\"}"));
+        return;
     }
     sky_str_set(&r->headers_out.content_type, "application/json");
 
@@ -102,9 +102,8 @@ http_read_body(sky_http_request_t *r, sky_buf_t *tmp, http_module_dispatcher_t *
                                      sky_str_line("{\"errcode\": 413, \"errmsg\": \"413 Request Entity Too Large\"}"));
         return true;
     }
-
-    r->data = (sky_http_mapper_pt *) sky_trie_contains(data->mappers, &r->uri);
-    if (!r->data) {
+    sky_http_mapper_pt *handler = (sky_http_mapper_pt *) sky_trie_contains(data->mappers, &r->uri);
+    if (!handler) {
         sky_http_read_body_none_need(r, tmp);
 
         r->state = 404;
@@ -113,7 +112,37 @@ http_read_body(sky_http_request_t *r, sky_buf_t *tmp, http_module_dispatcher_t *
         return true;
     }
 
+    switch (r->method) {
+        case SKY_HTTP_GET:
+            break;
+        case SKY_HTTP_POST:
+            ++handler;
+            break;
+        case SKY_HTTP_PUT:
+            handler += 2;
+            break;
+        case SKY_HTTP_DELETE:
+            handler += 3;
+            break;
+        default:
+            sky_http_read_body_none_need(r, tmp);
+
+            r->state = 405;
+            sky_http_response_static_len(r, sky_str_line(
+                    "{\"errcode\": 405, \"errmsg\": \"405 Method Not Allowed\"}"));
+            return true;
+    }
+
+    if (!(*handler)) {
+        sky_http_read_body_none_need(r, tmp);
+
+        r->state = 405;
+        sky_http_response_static_len(r, sky_str_line("{\"errcode\": 405, \"errmsg\": \"405 Method Not Allowed\"}"));
+        return true;
+    }
     sky_http_read_body_str(r, tmp);
+    r->data = handler;
+
 
     return true;
 }

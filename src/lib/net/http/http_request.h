@@ -98,6 +98,7 @@ struct sky_http_request_s {
     sky_u8_t method: 7;
     sky_bool_t keep_alive: 1;
     sky_bool_t quoted_uri: 1;
+    sky_bool_t read_request_body: 1;
     sky_bool_t response: 1;
 };
 
