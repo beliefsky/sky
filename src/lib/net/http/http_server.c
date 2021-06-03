@@ -172,8 +172,8 @@ http_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server_
     conn->server = server;
     sky_event_init(loop, &conn->ev, fd, http_connection_run, http_connection_close);
 
-    if (sky_coro_resume(coro) != SKY_CORO_MAY_RESUME) {
-        sky_coro_destroy(coro);
+    if (!http_connection_run(conn)) {
+        http_connection_close(conn);
         return null;
     }
 
@@ -197,11 +197,10 @@ https_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server
     conn->server = server;
     sky_event_init(loop, &conn->ev, fd, http_connection_run, http_connection_close);
 
-    if (sky_coro_resume(conn->coro) != SKY_CORO_MAY_RESUME) {
-        sky_coro_destroy(coro);
+    if (!http_connection_run(conn)) {
+        http_connection_close(conn);
         return null;
     }
-
 
     return &conn->ev;
 
