@@ -27,6 +27,9 @@ sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
         // read buf and parse
         r = http_header_read(conn, pool);
         if (sky_unlikely(!r)) {
+            sky_defer_cancel(coro, pool_defer);
+            sky_defer_run(coro);
+            sky_destroy_pool(pool);
             return SKY_CORO_ABORT;
         }
 
@@ -45,12 +48,12 @@ sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
             sky_http_read_body_none_need(r);
         }
 
-        if (!r->keep_alive) {
-            return SKY_CORO_FINISHED;
-        }
         sky_defer_cancel(coro, pool_defer);
         sky_defer_run(coro);
-
+        if (!r->keep_alive) {
+            sky_destroy_pool(pool);
+            return SKY_CORO_FINISHED;
+        }
         sky_reset_pool(pool);
         pool_defer = sky_defer_add(coro, (sky_defer_func_t) sky_destroy_pool, pool);
         sky_coro_yield(coro, SKY_CORO_MAY_RESUME);
