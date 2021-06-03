@@ -307,22 +307,26 @@ static sky_bool_t
 tcp_run(sky_tcp_client_t *client) {
     sky_bool_t result = true;
     sky_tcp_conn_t *conn;
+    sky_event_t *event;
 
     client->main = true;
     for (;;) {
-        if ((conn = client->current)) {
-            if (conn->ev->run(conn->ev)) {
+        conn = client->current;
+        if (conn) {
+            event = conn->ev;
+
+            if (event->run(event)) {
                 if (client->current) {
                     break;
                 }
             } else {
                 if (client->current) {
                     sky_tcp_pool_conn_unbind(conn);
-                    sky_event_unregister(conn->ev);
+                    sky_event_unregister(event);
                     result = false;
                     break;
                 }
-                sky_event_unregister(conn->ev);
+                sky_event_unregister(event);
             }
         }
         if (client->tasks.prev == &client->tasks) {
