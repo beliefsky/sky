@@ -7,8 +7,6 @@
 #include "../../core/date.h"
 #include "../../core/string_buf.h"
 
-#define REQUEST_MAX_SIZE 1048576
-
 static void http_header_build(sky_http_request_t *r, sky_str_buf_t *buf);
 
 void
@@ -19,10 +17,6 @@ sky_http_response_nobody(sky_http_request_t *r) {
         return;
     }
     r->response = true;
-
-    if (sky_unlikely(r->headers_in.content_length_n > REQUEST_MAX_SIZE && !r->read_request_body)) {
-        r->keep_alive = false;
-    }
 
     sky_str_buf_init(&str_buf, r->pool, 2048);
     http_header_build(r, &str_buf);
@@ -56,10 +50,6 @@ sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_u32_t 
         return;
     }
     r->response = true;
-
-    if (sky_unlikely(r->headers_in.content_length_n > REQUEST_MAX_SIZE && !r->read_request_body)) {
-        r->keep_alive = false;
-    }
 
     header = sky_list_push(&r->headers_out.headers);
     sky_str_set(&header->key, "Content-Length");
@@ -123,16 +113,12 @@ sky_http_sendfile(sky_http_request_t *r, sky_i32_t fd, sky_usize_t offset, sky_u
     }
     r->response = true;
 
-    if (sky_unlikely(r->headers_in.content_length_n > REQUEST_MAX_SIZE && !r->read_request_body)) {
-        r->keep_alive = false;
-    }
-
     data = sky_palloc(r->pool, 16);
     header = sky_list_push(&r->headers_out.headers);
     sky_str_set(&header->key, "Content-Length");
     header->value.len = sky_u64_to_str(size, data);
     header->value.data = data;
-    if (r->state == 206) {
+    if (r->state == 206U) {
         header = sky_list_push(&r->headers_out.headers);
         sky_str_set(&header->key, "Content-Range");
 
