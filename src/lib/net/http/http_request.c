@@ -126,7 +126,7 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
 void
 sky_http_read_body_none_need(sky_http_request_t *r) {
     sky_http_server_t *server;
-    sky_buf_t *tmp = r->tmp;
+    sky_buf_t *tmp;
     sky_u32_t n, size, t;
 
     if (sky_unlikely(r->read_request_body)) {
