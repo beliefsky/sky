@@ -6,7 +6,6 @@
 #include "../../../core/trie.h"
 #include "../http_response.h"
 #include "../../../core/memory.h"
-#include "../../../core/log.h"
 
 typedef struct {
     sky_pool_t *pool;
