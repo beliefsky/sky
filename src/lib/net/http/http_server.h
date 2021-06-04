@@ -68,7 +68,6 @@ struct sky_http_server_s {
 
 struct sky_http_module_s {
     sky_str_t prefix;
-    sky_module_read_body_pt read_body;
     sky_module_run_pt run;
     void *module_data;
 };
@@ -84,7 +83,7 @@ sky_http_server_t *sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *con
 
 void sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *loop);
 
-sky_str_t *sky_http_status_find(sky_http_server_t *server, sky_u16_t status);
+sky_str_t *sky_http_status_find(sky_http_server_t *server, sky_u32_t status);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

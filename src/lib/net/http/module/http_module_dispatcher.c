@@ -16,8 +16,6 @@ typedef struct {
 
 static void http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data);
 
-static sky_bool_t http_read_body(sky_http_request_t *r, sky_buf_t *tmp, http_module_dispatcher_t *data);
-
 void
 sky_http_module_dispatcher_init(sky_pool_t *pool, const sky_http_dispatcher_conf_t *conf) {
     http_module_dispatcher_t *data;
@@ -27,7 +25,6 @@ sky_http_module_dispatcher_init(sky_pool_t *pool, const sky_http_dispatcher_conf
     data = sky_palloc(pool, sizeof(http_module_dispatcher_t));
     data->pool = pool;
     data->mappers = sky_trie_create(pool);
-    data->body_max_buff = conf->body_max_size ?: 1048576; // 1MB
 
     const sky_usize_t size = sizeof(sky_http_mapper_pt) << 2;
 
@@ -39,7 +36,6 @@ sky_http_module_dispatcher_init(sky_pool_t *pool, const sky_http_dispatcher_conf
     }
 
     conf->module->prefix = conf->prefix;
-    conf->module->read_body = (sky_module_read_body_pt) http_read_body;
     conf->module->run = (sky_module_run_pt) http_run_handler;
     conf->module->module_data = data;
 }
@@ -48,20 +44,12 @@ static void
 http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
     sky_http_mapper_pt *handler;
 
-    if (r->headers_in.content_length_n) {
-        handler = r->data;
-        r->data = null;
-        if (!handler) {
-            return;
-        }
-    } else {
-        handler = (sky_http_mapper_pt *) sky_trie_contains(data->mappers, &r->uri);
-        if (!handler) {
-            r->state = 404;
-            sky_str_set(&r->headers_out.content_type, "application/json");
-            sky_http_response_static_len(r, sky_str_line("{\"errcode\": 404, \"errmsg\": \"404 Not Found\"}"));
-            return;
-        }
+    handler = (sky_http_mapper_pt *) sky_trie_contains(data->mappers, &r->uri);
+    if (!handler) {
+        r->state = 404;
+        sky_str_set(&r->headers_out.content_type, "application/json");
+        sky_http_response_static_len(r, sky_str_line("{\"errcode\": 404, \"errmsg\": \"404 Not Found\"}"));
+        return;
     }
     sky_str_set(&r->headers_out.content_type, "application/json");
 
@@ -90,30 +78,4 @@ http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
 
         (*handler)(r);
     }
-}
-
-static sky_bool_t
-http_read_body(sky_http_request_t *r, sky_buf_t *tmp, http_module_dispatcher_t *data) {
-    if (r->headers_in.content_length_n > data->body_max_buff) {
-        sky_http_read_body_none_need(r, tmp);
-        r->state = 413;
-        sky_str_set(&r->headers_out.content_type, "application/json");
-        sky_http_response_static_len(r,
-                                     sky_str_line("{\"errcode\": 413, \"errmsg\": \"413 Request Entity Too Large\"}"));
-        return true;
-    }
-
-    r->data = (sky_http_mapper_pt *) sky_trie_contains(data->mappers, &r->uri);
-    if (!r->data) {
-        sky_http_read_body_none_need(r, tmp);
-
-        r->state = 404;
-        sky_str_set(&r->headers_out.content_type, "application/json");
-        sky_http_response_static_len(r, sky_str_line("{\"errcode\": 404, \"errmsg\": \"404 Not Found\"}"));
-        return true;
-    }
-
-    sky_http_read_body_str(r, tmp);
-
-    return true;
 }

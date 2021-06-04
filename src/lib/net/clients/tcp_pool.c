@@ -62,7 +62,7 @@ sky_tcp_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_tcp_pool
     }
     conn_pool = sky_palloc(pool, sizeof(sky_tcp_pool_t) + sizeof(sky_tcp_client_t) * i);
     conn_pool->mem_pool = pool;
-    conn_pool->connection_ptr = i - 1;
+    conn_pool->connection_ptr = (sky_u16_t) (i - 1);
     conn_pool->clients = (sky_tcp_client_t *) (conn_pool + 1);
     conn_pool->timeout = conf->timeout;
     conn_pool->next_func = conf->next_func;
@@ -307,21 +307,26 @@ static sky_bool_t
 tcp_run(sky_tcp_client_t *client) {
     sky_bool_t result = true;
     sky_tcp_conn_t *conn;
+    sky_event_t *event;
 
     client->main = true;
     for (;;) {
-        if ((conn = client->current)) {
-            if (conn->ev->run(conn->ev)) {
+        conn = client->current;
+        if (conn) {
+            event = conn->ev;
+
+            if (event->run(event)) {
                 if (client->current) {
                     break;
                 }
             } else {
                 if (client->current) {
                     sky_tcp_pool_conn_unbind(conn);
+                    sky_event_unregister(event);
                     result = false;
                     break;
                 }
-                sky_event_unregister(conn->ev);
+                sky_event_unregister(event);
             }
         }
         if (client->tasks.prev == &client->tasks) {

@@ -118,7 +118,7 @@ sky_http_sendfile(sky_http_request_t *r, sky_i32_t fd, sky_usize_t offset, sky_u
     sky_str_set(&header->key, "Content-Length");
     header->value.len = sky_u64_to_str(size, data);
     header->value.data = data;
-    if (r->state == 206) {
+    if (r->state == 206U) {
         header = sky_list_push(&r->headers_out.headers);
         sky_str_set(&header->key, "Content-Range");
 

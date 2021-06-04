@@ -131,10 +131,9 @@ sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *loop) {
 }
 
 sky_str_t*
-sky_http_status_find(sky_http_server_t *server, sky_u16_t status) {
+sky_http_status_find(sky_http_server_t *server, sky_u32_t status) {
     status_t *arrays;
-    sky_u16_t tmp;
-    sky_i32_t left, mid, right;
+    sky_i32_t tmp, left, mid, right;
 
 
     arrays = server->status.elts;
@@ -173,8 +172,8 @@ http_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server_
     conn->server = server;
     sky_event_init(loop, &conn->ev, fd, http_connection_run, http_connection_close);
 
-    if (sky_coro_resume(coro) != SKY_CORO_MAY_RESUME) {
-        sky_coro_destroy(coro);
+    if (!http_connection_run(conn)) {
+        http_connection_close(conn);
         return null;
     }
 
@@ -198,11 +197,10 @@ https_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server
     conn->server = server;
     sky_event_init(loop, &conn->ev, fd, http_connection_run, http_connection_close);
 
-    if (sky_coro_resume(conn->coro) != SKY_CORO_MAY_RESUME) {
-        sky_coro_destroy(coro);
+    if (!http_connection_run(conn)) {
+        http_connection_close(conn);
         return null;
     }
-
 
     return &conn->ev;
 
@@ -398,9 +396,6 @@ http_process_content_length(sky_http_request_t *r, sky_table_elt_t *h, sky_usize
         if (sky_unlikely(!sky_str_to_u32(&h->value, &r->headers_in.content_length_n))) {
             return false;
         }
-    }
-    if (sky_likely(r->headers_in.content_length_n)) {
-        r->request_body = sky_pcalloc(r->pool, sizeof(sky_http_request_t));
     }
     return true;
 }

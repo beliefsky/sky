@@ -66,13 +66,6 @@ typedef struct {
     time_t last_modified_time;
 } sky_http_headers_out_t;
 
-typedef struct {
-    union {
-        sky_str_t str;
-        void *data;
-    };
-} sky_http_request_body_t;
-
 struct sky_http_request_s {
     sky_pool_t *pool;
     sky_http_connection_t *conn;
@@ -86,11 +79,10 @@ struct sky_http_request_s {
     sky_http_headers_in_t headers_in;
     sky_http_headers_out_t headers_out;
 
-    sky_http_request_body_t *request_body;
-
+    sky_str_t header_name;
     sky_usize_t index;
     sky_uchar_t *req_pos;
-    sky_str_t header_name;
+    sky_buf_t *tmp;
     void *data;
 
     sky_u32_t version;
@@ -98,6 +90,7 @@ struct sky_http_request_s {
     sky_u8_t method: 7;
     sky_bool_t keep_alive: 1;
     sky_bool_t quoted_uri: 1;
+    sky_bool_t read_request_body: 1;
     sky_bool_t response: 1;
 };
 
@@ -105,9 +98,9 @@ void sky_http_request_init(sky_http_server_t *server);
 
 sky_i32_t sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn);
 
-void sky_http_read_body_none_need(sky_http_request_t *r, sky_buf_t *tmp);
+void sky_http_read_body_none_need(sky_http_request_t *r);
 
-void sky_http_read_body_str(sky_http_request_t *r, sky_buf_t *tmp);
+sky_str_t *sky_http_read_body_str(sky_http_request_t *r);
 
 #if defined(__cplusplus)
 } /* extern "C" { */
