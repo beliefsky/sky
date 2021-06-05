@@ -471,7 +471,7 @@ sky_u8_t
 sky_i64_to_str(sky_i64_t data, sky_uchar_t *src) {
     if (data < 0) {
         *(src++) = '-';
-        return sky_u64_to_str((sky_u64_t) (~data + 1), src) + 1;
+        return (sky_u8_t) (sky_u64_to_str((sky_u64_t) (~data + 1), src) + 1);
     }
     return sky_u64_to_str((sky_u64_t) data, src);
 }
@@ -615,7 +615,7 @@ small_num_to_str(sky_u64_t x, sky_uchar_t *s) {
     }
 
     low = x;
-    digits = (low > 999) + 3; // (low > 999) ? 4 : 3;
+    digits = (sky_u8_t) ((low > 999) + 3); // (low > 999) ? 4 : 3;
 
     // division and remainder by 100
     // Simply dividing by 100 instead of multiply-and-shift
@@ -640,7 +640,7 @@ small_num_to_str(sky_u64_t x, sky_uchar_t *s) {
         *(sky_u32_t *) s = *(sky_u32_t *) (p + 4);
     } else {
         *(sky_u16_t *) s = *(sky_u16_t *) (p + 5);
-        *(((sky_u8_t *) s) + 2) = *(sky_u8_t *) (p + 7);
+        *(s + 2) = *(p + 7);
     }
 
     return digits;
@@ -666,9 +666,9 @@ large_num_to_str(sky_u64_t x, sky_uchar_t *s) {
     if (x < 100000000) {
         low = x;
         if (low > 999999) {
-            digits = (low > 9999999) ? 8 : 7;
+            digits = (sky_u8_t) ((low > 9999999) ? 8 : 7);
         } else {
-            digits = (low > 99999) ? 6 : 5;
+            digits = (sky_u8_t) ((low > 99999) ? 6 : 5);
         }
     } else {
         ll = (((sky_u64_t) x) * 0x55E63B89) >> 57;
@@ -704,7 +704,7 @@ large_num_to_str(sky_u64_t x, sky_uchar_t *s) {
     } else {
         sky_u8_t d = digits;
         sky_uchar_t *s1 = s;
-        sky_uchar_t *pll = (sky_uchar_t *) &(((sky_uchar_t *) &ll)[8 - digits]);
+        sky_uchar_t *pll = &(((sky_uchar_t *) &ll)[8 - digits]);
 
         if (d >= 4) {
             *(sky_u32_t *) s1 = *(sky_u32_t *) pll;
@@ -721,7 +721,7 @@ large_num_to_str(sky_u64_t x, sky_uchar_t *s) {
             d -= 2;
         }
         if (d > 0) {
-            *(sky_u8_t *) s1 = *(sky_u8_t *) pll;
+            *s1 = *pll;
         }
     }
 
@@ -755,9 +755,9 @@ str_len_to_uint32_nocheck(const sky_uchar_t *in, sky_usize_t in_len, sky_u32_t *
 
 static sky_inline sky_bool_t
 str_len_to_uint64_nocheck(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out) {
-    sky_u64_t mask;
-
     static const sky_u32_t base_dic[] = {1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000};
+
+    sky_u64_t mask;
 
     if (sky_unlikely(!in_len || in_len > 20)) {
         return false;
