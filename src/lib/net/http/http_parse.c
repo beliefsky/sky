@@ -54,7 +54,7 @@ sky_http_request_line_parse(sky_http_request_t *r, sky_buf_t *b) {
     sky_isize_t index;
     sky_uchar_t *p, *end;
 
-    state = r->state;
+    state = (parse_state_t) r->state;
     p = b->pos;
     end = b->last;
 
@@ -108,7 +108,7 @@ sky_http_request_line_parse(sky_http_request_t *r, sky_buf_t *b) {
                     goto again;
                 }
                 p += index;
-                state = r->state;
+                state = (parse_state_t) r->state;
                 break;
             case sw_uri_code:
                 index = parse_url_code(r, p, end);
@@ -121,7 +121,7 @@ sky_http_request_line_parse(sky_http_request_t *r, sky_buf_t *b) {
                     goto again;
                 }
                 p += index;
-                state = r->state;
+                state = (parse_state_t) r->state;
                 break;
             case sw_args:
                 index = advance_token(p, end);
@@ -214,7 +214,7 @@ sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
     sky_table_elt_t *h;
     sky_http_header_t *hh;
 
-    state = r->state;
+    state = (parse_state_t) r->state;
     p = b->pos;
     end = b->last;
 
