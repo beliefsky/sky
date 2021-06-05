@@ -9,7 +9,6 @@
 #include "../../core/memory.h"
 #include "../../core/cpuinfo.h"
 #include "../../core/number.h"
-#include "../../core/date.h"
 #include "../../core/trie.h"
 #include "../tls/tls.h"
 
