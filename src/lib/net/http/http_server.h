@@ -20,8 +20,6 @@ typedef struct sky_http_connection_s sky_http_connection_t;
 typedef struct sky_http_request_s sky_http_request_t;
 typedef struct sky_http_module_s sky_http_module_t;
 
-typedef sky_bool_t (*sky_module_read_body_pt)(sky_http_request_t *r, sky_buf_t *tmp, void *module_data);
-
 typedef void (*sky_module_run_pt)(sky_http_request_t *r, void *module_data);
 
 typedef struct {
