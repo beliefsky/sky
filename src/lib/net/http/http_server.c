@@ -9,6 +9,7 @@
 #include "../../core/memory.h"
 #include "../../core/cpuinfo.h"
 #include "../../core/number.h"
+#include "../../core/date.h"
 #include "../../core/trie.h"
 #include "../tls/tls.h"
 
@@ -73,6 +74,7 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
     server->http_read = http_read;
     server->http_write = http_write;
     server->http_send_file = http_send_file;
+    server->rfc_last = 0;
 
     sky_array_init(&arrays, server->tmp_pool, 32, sizeof(sky_hash_key_t));
     build_headers_in(&arrays, pool);
@@ -209,6 +211,10 @@ https_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server
 
 static sky_bool_t
 http_connection_run(sky_http_connection_t *conn) {
+    if (conn->ev.now > conn->server->rfc_last) {
+        sky_date_to_rfc_str(conn->ev.now, conn->server->rfc_date);
+        conn->server->rfc_last = conn->ev.now;
+    }
     return sky_coro_resume(conn->coro) == SKY_CORO_MAY_RESUME;
 }
 

@@ -61,6 +61,9 @@ struct sky_http_server_s {
     void (*http_send_file)(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky_usize_t size,
                            const sky_uchar_t *header, sky_u32_t header_len);
 
+    sky_uchar_t rfc_date[30];
+    sky_time_t rfc_last;
+
     sky_u16_t header_buf_size;
     sky_u8_t header_buf_n;
     sky_bool_t ssl;
