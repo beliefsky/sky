@@ -211,10 +211,6 @@ https_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server
 
 static sky_bool_t
 http_connection_run(sky_http_connection_t *conn) {
-    if (conn->ev.now > conn->server->rfc_last) {
-        sky_date_to_rfc_str(conn->ev.now, conn->server->rfc_date);
-        conn->server->rfc_last = conn->ev.now;
-    }
     return sky_coro_resume(conn->coro) == SKY_CORO_MAY_RESUME;
 }
 
