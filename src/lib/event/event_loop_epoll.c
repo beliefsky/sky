@@ -64,11 +64,11 @@ sky_event_loop_run(sky_event_loop_t *loop) {
     events = sky_pnalloc(loop->pool, sizeof(struct epoll_event) * (sky_u32_t) max_events);
 
 
-    for (;;) {
-        sky_timer_wheel_run(ctx, (sky_u64_t) now);
-        next_time = sky_timer_wheel_wake_at(ctx);
-        timeout = next_time == SKY_U64_MAX ? -1 : (sky_i32_t) (next_time - (sky_u64_t) now) * 1000;
+    sky_timer_wheel_run(ctx, (sky_u64_t) now);
+    next_time = sky_timer_wheel_wake_at(ctx);
+    timeout = next_time == SKY_U64_MAX ? -1 : (sky_i32_t) (next_time - (sky_u64_t) now) * 1000;
 
+    for (;;) {
         n = epoll_wait(fd, events, max_events, timeout);
         if (sky_unlikely(n < 0)) {
             switch (errno) {
@@ -127,6 +127,10 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             continue;
         }
         now = loop->now;
+
+        sky_timer_wheel_run(ctx, (sky_u64_t) now);
+        next_time = sky_timer_wheel_wake_at(ctx);
+        timeout = next_time == SKY_U64_MAX ? -1 : (sky_i32_t) (next_time - (sky_u64_t) now) * 1000;
     }
 }
 
