@@ -352,7 +352,7 @@ pg_send_exec(
     sky_memcpy(buf.last, cmd->data, cmd->len);
     buf.last += cmd->len;
 
-    sky_memcpy(buf.last, sql_tmp, 4);
+    sky_memcpy4(buf.last, sql_tmp);
     buf.last += 4;
     *((sky_u32_t *) buf.last) = sky_htonl(size);
     buf.last += 4;

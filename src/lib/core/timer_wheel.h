@@ -46,7 +46,7 @@ void sky_timer_wheel_expired(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *en
 
 static sky_inline void
 sky_timer_wheel_unlink(sky_timer_wheel_entry_t *entry) {
-    if (entry->next) {
+    if (sky_likely(entry->next)) {
         entry->next->prev = entry->prev;
         entry->prev->next = entry->next;
         entry->next = entry->prev = null;

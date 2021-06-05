@@ -13,7 +13,7 @@ sky_time_to_str(sky_u32_t secs, sky_uchar_t *out) {
         return 0;
     }
     // divide by 3600 to calculate hours
-    sky_u64_t hours = (secs * 0x91A3) >> 27;
+    const sky_u64_t hours = (secs * 0x91A3) >> 27;
     sky_u64_t xrem = secs - (hours * 3600);
 
     // divide by 60 to calculate minutes
@@ -164,11 +164,11 @@ sky_date_to_rfc_str(time_t time, sky_uchar_t *src) {
     sky_u32_t day_of_time;
 
 
-    day_of_time = time % 86400;
+    day_of_time = (sky_u32_t) (time % 86400);
     if (sky_unlikely(!gmtime_r(&time, &tm))) {
         return 0;
     }
-    sky_memcpy(src, week_days + (tm.tm_wday << 2), 4);
+    sky_memcpy4(src, week_days + (tm.tm_wday << 2));
     src += 4;
     *(src++) = ' ';
     if (tm.tm_mday < 10) {
@@ -178,15 +178,16 @@ sky_date_to_rfc_str(time_t time, sky_uchar_t *src) {
         src += sky_u8_to_str((sky_u8_t) tm.tm_mday, src);
     }
     *(src++) = ' ';
-    sky_memcpy(src, months + (tm.tm_mon << 2), 4);
+    sky_memcpy4(src, months + (tm.tm_mon << 2));
     src += 4;
 
-    src += sky_u16_to_str((sky_u16_t) tm.tm_year + 1900, src);
+    src += sky_i32_to_str(tm.tm_year + 1900, src);
     *(src++) = ' ';
 
     src += sky_time_to_str(day_of_time, src);
-
-    sky_memcpy(src, " GMT\0", 5);
+    sky_memcpy4(src, " GMT");
+    src += 4;
+    *src = '\0';
 
     return 29;
 }
