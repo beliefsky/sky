@@ -105,10 +105,12 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             // 是否可读
             ev->now = loop->now;
 
-            const sky_bool_t status[] = {true, ev->read, ev->write};
-
-            ev->read = status[(event->events & EPOLLIN) == 0];
-            ev->write = status[((event->events & EPOLLOUT) == 0) << 1];
+            if (sky_likely(event->events & EPOLLIN)) {
+                ev->read = true;
+            }
+            if (sky_likely(event->events & EPOLLOUT)) {
+                ev->write = true;
+            }
 
             if (!ev->run(ev)) {
                 close(ev->fd);
