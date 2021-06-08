@@ -502,7 +502,7 @@ sky_f32_to_str(sky_f32_t data, sky_uchar_t *src) {
     *src++ = '.';
     ++i;
 
-    const sky_u32_t frac_int = (sky_u32_t) ((sky_f64_t)frac * 1e6 + 0.5);
+    const sky_u32_t frac_int = (sky_u32_t) ((sky_f64_t) frac * 1e6 + 0.5);
 
     i += sky_u64_to_str(frac_int, src);
 
@@ -551,6 +551,23 @@ sky_u32_to_hex_str(sky_u32_t data, sky_uchar_t *src, sky_bool_t lower_alpha) {
 
 
     return 8;
+}
+
+sky_inline sky_u8_t
+sky_u32_check_str_count(sky_u32_t x) {
+    static const uint64_t table[] = {
+            4294967296, 8589934582, 8589934582, 8589934582, 12884901788,
+            12884901788, 12884901788, 17179868184, 17179868184, 17179868184,
+            21474826480, 21474826480, 21474826480, 21474826480, 25769703776,
+            25769703776, 25769703776, 30063771072, 30063771072, 30063771072,
+            34349738368, 34349738368, 34349738368, 34349738368, 38554705664,
+            38554705664, 38554705664, 41949672960, 41949672960, 41949672960,
+            42949672960, 42949672960
+    };
+
+    const sky_u32_t log2 = (sky_u32_t) (31 - __builtin_clz(x | 1));
+
+    return (sky_u8_t) ((x + table[log2]) >> 32);
 }
 
 
