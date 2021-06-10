@@ -24,9 +24,9 @@ sky_encode_base64(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t len) {
         return 0;
     }
 #ifdef __AVX2__
-    return chromium_base64_encode(dst, src, len);
-#else
     return fast_avx2_base64_encode(dst, src, len);
+#else
+    return chromium_base64_encode(dst, src, len);
 #endif
 }
 
@@ -616,7 +616,7 @@ fast_avx2_base64_decode(sky_uchar_t *out, const sky_uchar_t *src, sky_usize_t le
     if (size == SKY_USIZE_MAX) {
         return SKY_USIZE_MAX;
     };
-    return ((sky_usize_t) (out - out_orig)) + size;
+    return (sky_usize_t) (out - out_orig) + size;
 }
 
 #endif
