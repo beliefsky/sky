@@ -82,18 +82,11 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
 
     sky_sha1_final(&ctx, ch);
 
-
-    sky_str_t key2 = {
-            .len = 20,
-            .data = ch
-    };
-
     sky_uchar_t tem[41];
     sky_byte_to_hex(ch, 20, tem);
 
     key->data = sky_palloc(r->pool, sky_base64_encoded_length(20) + 1);
-
-    sky_encode_base64(key, &key2);
+    key->len = sky_encode_base64(key->data, ch, 20);
 
 
     session = sky_pcalloc(r->pool, sizeof(sky_websocket_session_t));
