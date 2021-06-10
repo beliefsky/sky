@@ -37,7 +37,7 @@ sky_decode_base64(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t len) {
     }
 #ifdef __AVX2__
     const sky_usize_t size = fast_avx2_base64_decode(dst, src, len);
-#elif
+#else
     const sky_usize_t size = chromium_base64_decode(dst, src, len);
 #endif
     if (sky_likely(size != SKY_USIZE_MAX)) {
