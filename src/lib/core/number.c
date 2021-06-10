@@ -14,7 +14,7 @@ static sky_u64_t fast_str_parse_mask(const sky_uchar_t *chars, sky_usize_t len);
 
 static sky_u32_t fast_str_parse_uint32(sky_u64_t mask);
 
-static void fast_u32_to_str(sky_u64_t x, sky_u8_t len, sky_uchar_t *s);
+static void fast_number_to_str(sky_u64_t x, sky_u8_t len, sky_uchar_t *s);
 
 static sky_u64_t num_3_4_str_pre(sky_u64_t x);
 
@@ -436,7 +436,7 @@ sky_i32_to_str(sky_i32_t data, sky_uchar_t *src) {
 sky_inline sky_u8_t
 sky_u32_to_str(sky_u32_t data, sky_uchar_t *src) {
     const sky_u8_t len = sky_u32_check_str_count(data);
-    fast_u32_to_str(data, len, src);
+    fast_number_to_str(data, len, src);
     *(src + len) = '\0';
 
     return len;
@@ -455,13 +455,13 @@ sky_inline sky_u8_t
 sky_u64_to_str(sky_u64_t data, sky_uchar_t *src) {
     if (data < SKY_U32_MAX) {
         const sky_u8_t len = sky_u32_check_str_count((sky_u32_t) data);
-        fast_u32_to_str(data, len, src);
+        fast_number_to_str(data, len, src);
         *(src + len) = '\0';
         return len;
     }
     if (data < 10000000000) {
         if (sky_likely(data < 9999999999)) {
-            fast_u32_to_str(data, 10, src);
+            fast_number_to_str(data, 10, src);
             *(src + 10) = '\0';
         } else {
             sky_memcpy(src, "9999999999", 11);
@@ -469,12 +469,12 @@ sky_u64_to_str(sky_u64_t data, sky_uchar_t *src) {
         return 10;
     }
 
-    const sky_u32_t pre_num = (sky_u32_t) (data / 10000000000);
-    const sky_u8_t len = sky_u32_check_str_count(pre_num);
-    fast_u32_to_str(pre_num, len, src);
+    const sky_u64_t pre_num = data / 10000000000;
+    const sky_u8_t len = sky_u32_check_str_count((sky_u32_t) pre_num);
+    fast_number_to_str(pre_num, len, src);
     src += len;
 
-    fast_u32_to_str(data % 10000000000, 10, src);
+    fast_number_to_str(data % 10000000000, 10, src);
     *(src + 10) = '\0';
 
     return (len + 10);
@@ -593,7 +593,7 @@ fast_str_parse_uint32(sky_u64_t mask) {
  * @param s 输出字符串
  */
 static sky_inline void
-fast_u32_to_str(sky_u64_t x, sky_u8_t len, sky_uchar_t *s) {
+fast_number_to_str(sky_u64_t x, sky_u8_t len, sky_uchar_t *s) {
     switch (len) {
         case 1:
             *s = sky_num_to_uchar(x);
