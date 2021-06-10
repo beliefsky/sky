@@ -6,29 +6,27 @@
 
 static sky_usize_t chromium_base64_encode(sky_uchar_t *dest, const sky_uchar_t *str, sky_usize_t len);
 
-static sky_isize_t
-chromium_base64_decode(sky_uchar_t *dest, const sky_uchar_t *src, sky_usize_t len);
+static sky_usize_t chromium_base64_decode(sky_uchar_t *dest, const sky_uchar_t *src, sky_usize_t len);
 
-void
-sky_encode_base64(sky_str_t *dst, const sky_str_t *src) {
-    if (sky_unlikely(!src || !src->len)) {
-        dst->len = 0;
-        return;
+sky_usize_t
+sky_encode_base64(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t len) {
+    if (sky_unlikely(!len)) {
+        return 0;
     }
-    dst->len = chromium_base64_encode(dst->data, src->data, src->len);
+    return chromium_base64_encode(dst, src, len);
 }
 
-sky_bool_t
-sky_decode_base64(sky_str_t *dst, const sky_str_t *src) {
-    const sky_isize_t size = chromium_base64_decode(dst->data, src->data, src->len);
-    if (sky_unlikely(size == -1)) {
-        dst->len = 0;
-        return false;
+sky_usize_t
+sky_decode_base64(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t len) {
+    if (sky_unlikely(!len)) {
+        return 0;
     }
-    dst->len = (sky_usize_t) size;
-    *(dst->data + size) = '\0';
+    const sky_usize_t size = chromium_base64_decode(dst, src, len);
+    if (sky_likely(size != SKY_USIZE_MAX)) {
+        *(dst + size) = '\0';
+    }
 
-    return true;
+    return size;
 }
 
 static sky_usize_t
@@ -162,7 +160,7 @@ chromium_base64_encode(sky_uchar_t *dest, const sky_uchar_t *str, sky_usize_t le
     return (sky_usize_t) (p - dest);
 }
 
-static sky_isize_t
+static sky_usize_t
 chromium_base64_decode(sky_uchar_t *dest, const sky_uchar_t *src, sky_usize_t len) {
     static const sky_u32_t d0[256] = {
             0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
@@ -356,7 +354,7 @@ chromium_base64_decode(sky_uchar_t *dest, const sky_uchar_t *src, sky_usize_t le
     * 4 chars and be a multiple of 4
     */
     if (len < 4 || ((len & 3) != 0)) {
-        return -1; /* error */
+        return SKY_USIZE_MAX; /* error */
     }
     /* there can be at most 2 pad chars at the end */
     if (src[len - 1] == '=') {
@@ -369,7 +367,7 @@ chromium_base64_decode(sky_uchar_t *dest, const sky_uchar_t *src, sky_usize_t le
 #define BAD_CHAR 0x01FFFFFF
 
     sky_usize_t i;
-    sky_i32_t leftover = len & 3;
+    sky_u32_t leftover = len & 3;
     sky_usize_t chunks = (len >> 2) - (leftover == 0);
 
     sky_uchar_t *p = dest;
@@ -377,7 +375,7 @@ chromium_base64_decode(sky_uchar_t *dest, const sky_uchar_t *src, sky_usize_t le
     const sky_uchar_t *y = src;
     for (i = 0; i < chunks; ++i, y += 4) {
         x = d0[y[0]] | d1[y[1]] | d2[y[2]] | d3[y[3]];
-        if (x >= BAD_CHAR) return -1;
+        if (x >= BAD_CHAR) return SKY_USIZE_MAX;
         *p++ = ((sky_uchar_t *) (&x))[0];
         *p++ = ((sky_uchar_t *) (&x))[1];
         *p++ = ((sky_uchar_t *) (&x))[2];
@@ -387,11 +385,11 @@ chromium_base64_decode(sky_uchar_t *dest, const sky_uchar_t *src, sky_usize_t le
         case 0:
             x = d0[y[0]] | d1[y[1]] | d2[y[2]] | d3[y[3]];
 
-            if (x >= BAD_CHAR) return -1;
+            if (x >= BAD_CHAR) return SKY_USIZE_MAX;
             *p++ = ((sky_uchar_t *) (&x))[0];
             *p++ = ((sky_uchar_t *) (&x))[1];
             *p = ((sky_uchar_t *) (&x))[2];
-            return (sky_isize_t) ((chunks + 1) * 3);
+            return (chunks + 1) * 3;
         case 1:  /* with padding this is an impossible case */
             x = d0[y[0]];
             *p = *((sky_uchar_t *) (&x)); // i.e. first char/byte in int
@@ -407,95 +405,9 @@ chromium_base64_decode(sky_uchar_t *dest, const sky_uchar_t *src, sky_usize_t le
             break;
     }
 
-    if (x >= BAD_CHAR) return -1;
+    if (x >= BAD_CHAR) return SKY_USIZE_MAX;
 
 #undef BAD_CHAR
 
-    return (sky_isize_t) (3 * chunks + (sky_usize_t) ((6 * leftover) >> 3));
-}
-
-
-static void
-sky_encode_base64_internal(sky_str_t *dst, sky_str_t *src, const sky_uchar_t *basis, sky_bool_t padding) {
-    sky_uchar_t *d, *s;
-    sky_usize_t len;
-
-    len = src->len;
-    s = src->data;
-    d = dst->data;
-
-    while (len > 2) {
-        *d++ = basis[(s[0] >> 2) & 0x3f];
-        *d++ = basis[((s[0] & 3) << 4) | (s[1] >> 4)];
-        *d++ = basis[((s[1] & 0x0f) << 2) | (s[2] >> 6)];
-        *d++ = basis[s[2] & 0x3f];
-
-        s += 3;
-        len -= 3;
-    }
-
-    if (len) {
-        *d++ = basis[(s[0] >> 2) & 0x3f];
-
-        if (len == 1) {
-            *d++ = basis[(s[0] & 3) << 4];
-            if (padding) {
-                *d++ = '=';
-            }
-
-        } else {
-            *d++ = basis[((s[0] & 3) << 4) | (s[1] >> 4)];
-            *d++ = basis[(s[1] & 0x0f) << 2];
-        }
-
-        if (padding) {
-            *d++ = '=';
-        }
-    }
-
-    dst->len = (sky_usize_t) (d - dst->data);
-}
-
-static sky_bool_t
-sky_decode_base64_internal(sky_str_t *dst, sky_str_t *src, const sky_uchar_t *basis) {
-    sky_usize_t len;
-    sky_uchar_t *d, *s;
-
-    for (len = 0; len < src->len; len++) {
-        if (src->data[len] == '=') {
-            break;
-        }
-
-        if (basis[src->data[len]] == 77) {
-            return false;
-        }
-    }
-
-    if ((len >> 0x2) == 1) {
-        return false;
-    }
-
-    s = src->data;
-    d = dst->data;
-
-    while (len > 3) {
-        *d++ = (sky_uchar_t) (basis[s[0]] << 2 | basis[s[1]] >> 4);
-        *d++ = (sky_uchar_t) (basis[s[1]] << 4 | basis[s[2]] >> 2);
-        *d++ = (sky_uchar_t) (basis[s[2]] << 6 | basis[s[3]]);
-
-        s += 4;
-        len -= 4;
-    }
-
-    if (len > 1) {
-        *d++ = (sky_uchar_t) (basis[s[0]] << 2 | basis[s[1]] >> 4);
-    }
-
-    if (len > 2) {
-        *d++ = (sky_uchar_t) (basis[s[1]] << 4 | basis[s[2]] >> 2);
-    }
-
-    dst->len = (sky_usize_t) (d - dst->data);
-
-    return true;
+    return 3 * chunks + ((6 * leftover) >> 3);
 }

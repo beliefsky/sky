@@ -23,9 +23,15 @@ extern "C" {
 #define sky_base64_decoded_length(len)  (((len + 3) >> 2) * 3)
 
 //标准base64的编解码
-void sky_encode_base64(sky_str_t *dst, const sky_str_t *src);
+sky_usize_t sky_encode_base64(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t len);
 
-sky_bool_t sky_decode_base64(sky_str_t *dst, const sky_str_t *src);
+sky_usize_t sky_decode_base64(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t len);
+
+
+static sky_inline sky_bool_t
+sky_base64_decode_success(sky_usize_t len) {
+    return len != SKY_USIZE_MAX;
+}
 
 #if defined(__cplusplus)
 } /* extern "C" { */
