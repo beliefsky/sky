@@ -446,7 +446,7 @@ sky_u8_t
 sky_i64_to_str(sky_i64_t data, sky_uchar_t *src) {
     if (data < 0) {
         *(src++) = '-';
-        return (sky_u8_t) (sky_u64_to_str((sky_u64_t) (~data + 1), src) + 1);
+        return sky_u64_to_str((sky_u64_t) (~data + 1), src) + 1;
     }
     return sky_u64_to_str((sky_u64_t) data, src);
 }
@@ -607,33 +607,32 @@ fast_u32_to_str(sky_u32_t x, sky_u8_t len, sky_uchar_t *s) {
         }
         case 5: {
             const sky_u64_t ll = num_5_8_str_pre(x);
-            sky_uchar_t *pll = ((sky_uchar_t *) &ll) + 3;
-
-            *(sky_u32_t *) s = *(sky_u32_t *) pll;
+            const sky_uchar_t *p = ((sky_uchar_t *) &ll) + 3;
+            *(sky_u32_t *) s = *(sky_u32_t *) p;
             s += 4;
-            pll += 4;
-            *s = *pll;
+            p += 4;
+            *s = *p;
             break;
         }
         case 6: {
             const sky_u64_t ll = num_5_8_str_pre(x);
-            sky_uchar_t *pll = ((sky_uchar_t *) &ll) + 2;
-            *(sky_u32_t *) s = *(sky_u32_t *) pll;
+            const sky_uchar_t *p = ((sky_uchar_t *) &ll) + 2;
+            *(sky_u32_t *) s = *(sky_u32_t *) p;
             s += 4;
-            pll += 4;
-            *(sky_u16_t *) s = *(sky_u16_t *) pll;
+            p += 4;
+            *(sky_u16_t *) s = *(sky_u16_t *) p;
             break;
         }
         case 7: {
             const sky_u64_t ll = num_5_8_str_pre(x);
-            sky_uchar_t *pll = ((sky_uchar_t *) &ll) + 1;
-            *(sky_u32_t *) s = *(sky_u32_t *) pll;
+            const sky_uchar_t *p = ((sky_uchar_t *) &ll) + 1;
+            *(sky_u32_t *) s = *(sky_u32_t *) p;
             s += 4;
-            pll += 4;
-            *(sky_u16_t *) s = *(sky_u16_t *) pll;
+            p += 4;
+            *(sky_u16_t *) s = *(sky_u16_t *) p;
             s += 2;
-            pll += 2;
-            *s = *pll;
+            p += 2;
+            *s = *p;
             break;
         }
         case 8: {
@@ -643,24 +642,26 @@ fast_u32_to_str(sky_u32_t x, sky_u8_t len, sky_uchar_t *s) {
         }
         case 9: {
             sky_u64_t ll = (((sky_u64_t) x) * 0x55E63B89) >> 57;
-            fast_u32_to_str((sky_u32_t) ll, 1, s);
-            ++s;
+            *s++ = sky_num_to_uchar((sky_u32_t) ll);
             x -= (ll * 100000000);
             ll = num_5_8_str_pre(x);
             *(sky_u64_t *) (s) = ll;
             break;
         }
-        case 10: {
-            sky_u64_t ll = (((sky_u64_t) x) * 0x55E63B89) >> 57;
-            fast_u32_to_str((sky_u32_t) ll, 2, s);
+        default: { // 10
+            sky_u64_t tmp = (((sky_u64_t) x) * 0x55E63B89) >> 57;
+            x -= (tmp * 100000000);
+
+            sky_u64_t ll = ((tmp * 103) >> 9) & 0x1E;
+            tmp += ll * 3;
+            ll = ((tmp & 0xF0) >> 4) | ((tmp & 0x0F) << 8);
+            *(sky_u16_t *) s = (sky_u16_t) (ll | 0x3030);
             s += 2;
-            x -= (ll * 100000000);
+
             ll = num_5_8_str_pre(x);
             *(sky_u64_t *) (s) = ll;
             break;
         }
-        default:
-            break;
 
     }
 }
