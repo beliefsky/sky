@@ -474,8 +474,13 @@ sky_u64_to_str(sky_u64_t data, sky_uchar_t *src) {
     fast_number_to_str(pre_num, len, src);
     src += len;
 
-    fast_number_to_str(data % 10000000000, 10, src);
-    *(src + 10) = '\0';
+    data %= 10000000000;
+    if (sky_likely(data < 9999999999)) {
+        fast_number_to_str(data, 10, src);
+        *(src + 10) = '\0';
+    } else {
+        sky_memcpy(src, "9999999999", 11);
+    }
 
     return (len + 10);
 
