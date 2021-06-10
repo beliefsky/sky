@@ -7,7 +7,7 @@
 static sky_usize_t chromium_base64_encode(sky_uchar_t *dest, const sky_uchar_t *str, sky_usize_t len);
 
 static sky_isize_t
-chromium_base64_decode(sky_uchar_t *dest, const sky_uchar_t *src, sky_usize_t len, sky_bool_t padding);
+chromium_base64_decode(sky_uchar_t *dest, const sky_uchar_t *src, sky_usize_t len);
 
 void
 sky_encode_base64(sky_str_t *dst, const sky_str_t *src) {
@@ -20,7 +20,7 @@ sky_encode_base64(sky_str_t *dst, const sky_str_t *src) {
 
 sky_bool_t
 sky_decode_base64(sky_str_t *dst, const sky_str_t *src) {
-    const sky_isize_t size = chromium_base64_decode(dst->data, src->data, src->len, true);
+    const sky_isize_t size = chromium_base64_decode(dst->data, src->data, src->len);
     if (sky_unlikely(size == -1)) {
         dst->len = 0;
         return false;
@@ -163,7 +163,7 @@ chromium_base64_encode(sky_uchar_t *dest, const sky_uchar_t *str, sky_usize_t le
 }
 
 static sky_isize_t
-chromium_base64_decode(sky_uchar_t *dest, const sky_uchar_t *src, sky_usize_t len, sky_bool_t padding) {
+chromium_base64_decode(sky_uchar_t *dest, const sky_uchar_t *src, sky_usize_t len) {
     static const sky_u32_t d0[256] = {
             0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
             0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
@@ -351,24 +351,22 @@ chromium_base64_decode(sky_uchar_t *dest, const sky_uchar_t *src, sky_usize_t le
             0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff
     };
 
-#define BAD_CHAR 0x01FFFFFF
-
-    if (padding) {
-        /*
-     * if padding is used, then the message must be at least
-     * 4 chars and be a multiple of 4
-     */
-        if (len < 4 || ((len & 3) != 0)) {
-            return -1; /* error */
-        }
-        /* there can be at most 2 pad chars at the end */
+    /*
+    * if padding is used, then the message must be at least
+    * 4 chars and be a multiple of 4
+    */
+    if (len < 4 || ((len & 3) != 0)) {
+        return -1; /* error */
+    }
+    /* there can be at most 2 pad chars at the end */
+    if (src[len - 1] == '=') {
+        len--;
         if (src[len - 1] == '=') {
             len--;
-            if (src[len - 1] == '=') {
-                len--;
-            }
         }
     }
+
+#define BAD_CHAR 0x01FFFFFF
 
     sky_usize_t i;
     sky_i32_t leftover = len & 3;
