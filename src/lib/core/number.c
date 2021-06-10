@@ -14,7 +14,7 @@ static sky_u64_t fast_str_parse_mask(const sky_uchar_t *chars, sky_usize_t len);
 
 static sky_u32_t fast_str_parse_uint32(sky_u64_t mask);
 
-static void fast_u32_to_str(sky_u32_t x, sky_u8_t len, sky_uchar_t *s);
+static void fast_u32_to_str(sky_u64_t x, sky_u8_t len, sky_uchar_t *s);
 
 static sky_u64_t num_3_4_str_pre(sky_u64_t x);
 
@@ -454,17 +454,26 @@ sky_i64_to_str(sky_i64_t data, sky_uchar_t *src) {
 sky_inline sky_u8_t
 sky_u64_to_str(sky_u64_t data, sky_uchar_t *src) {
     if (data < SKY_U32_MAX) {
-        return sky_u32_to_str((sky_u32_t) data, src);
-    } else {
-        const sky_u32_t pre_num = (sky_u32_t) (data / 1000000000);
-        const sky_u8_t len = sky_u32_check_str_count(pre_num);
-        fast_u32_to_str(pre_num, len, src);
-        src += len;
-        fast_u32_to_str(data % 1000000000, 10, src);
-        *(src + 10) = '\0';
-
-        return (len + 10);
+        const sky_u8_t len = sky_u32_check_str_count((sky_u32_t) data);
+        fast_u32_to_str(data, len, src);
+        *(src + len) = '\0';
+        return len;
     }
+    if (data < 9999999999) {
+        fast_u32_to_str(data, 10, src);
+        *(src + 10) = '\0';
+        return 10;
+    }
+
+    const sky_u32_t pre_num = (sky_u32_t) (data / 10000000000);
+    const sky_u8_t len = sky_u32_check_str_count(pre_num);
+    fast_u32_to_str(pre_num, len, src);
+    src += len;
+
+    fast_u32_to_str(data % 10000000000, 10, src);
+    *(src + 10) = '\0';
+
+    return (len + 10);
 
 }
 
@@ -580,7 +589,7 @@ fast_str_parse_uint32(sky_u64_t mask) {
  * @param s 输出字符串
  */
 static sky_inline void
-fast_u32_to_str(sky_u32_t x, sky_u8_t len, sky_uchar_t *s) {
+fast_u32_to_str(sky_u64_t x, sky_u8_t len, sky_uchar_t *s) {
     switch (len) {
         case 1:
             *s = sky_num_to_uchar(x);
@@ -641,15 +650,15 @@ fast_u32_to_str(sky_u32_t x, sky_u8_t len, sky_uchar_t *s) {
             break;
         }
         case 9: {
-            sky_u64_t ll = (((sky_u64_t) x) * 0x55E63B89) >> 57;
-            *s++ = sky_num_to_uchar((sky_u32_t) ll);
+            sky_u64_t ll = (x * 0x55E63B89) >> 57;
+            *s++ = sky_num_to_uchar(ll);
             x -= (ll * 100000000);
             ll = num_5_8_str_pre(x);
             *(sky_u64_t *) (s) = ll;
             break;
         }
-        default: { // 10
-            sky_u64_t tmp = (((sky_u64_t) x) * 0x55E63B89) >> 57;
+        case 10: {
+            sky_u64_t tmp = (x * 0x55E63B89) >> 57;
             x -= (tmp * 100000000);
 
             sky_u64_t ll = ((tmp * 103) >> 9) & 0x1E;
@@ -657,12 +666,12 @@ fast_u32_to_str(sky_u32_t x, sky_u8_t len, sky_uchar_t *s) {
             ll = ((tmp & 0xF0) >> 4) | ((tmp & 0x0F) << 8);
             *(sky_u16_t *) s = (sky_u16_t) (ll | 0x3030);
             s += 2;
-
             ll = num_5_8_str_pre(x);
             *(sky_u64_t *) (s) = ll;
             break;
         }
-
+        default:
+            break;
     }
 }
 
