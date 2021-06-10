@@ -73,6 +73,7 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
     server->http_read = http_read;
     server->http_write = http_write;
     server->http_send_file = http_send_file;
+    server->rfc_last = 0;
 
     sky_array_init(&arrays, server->tmp_pool, 32, sizeof(sky_hash_key_t));
     build_headers_in(&arrays, pool);

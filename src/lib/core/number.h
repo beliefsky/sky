@@ -75,6 +75,13 @@ sky_u8_t sky_f64_to_str(sky_f64_t data, sky_uchar_t *src);
 
 sky_u32_t sky_u32_to_hex_str(sky_u32_t data, sky_uchar_t *src, sky_bool_t lower_alpha);
 
+/**
+ * 计算u32转换字符串时的长度
+ * @param x 检测的值
+ * @return 占用的字符长度
+ */
+sky_u8_t sky_u32_check_str_count(sky_u32_t x);
+
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif

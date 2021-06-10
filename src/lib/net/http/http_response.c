@@ -4,8 +4,8 @@
 
 #include "http_response.h"
 #include "../../core/number.h"
-#include "../../core/date.h"
 #include "../../core/string_buf.h"
+#include "../../core/date.h"
 
 static void http_header_build(sky_http_request_t *r, sky_str_buf_t *buf);
 
@@ -170,8 +170,13 @@ http_header_build(sky_http_request_t *r, sky_str_buf_t *buf) {
         sky_str_buf_append_str_len(buf, sky_str_line("\r\nConnection: close\r\n"));
     }
     sky_str_buf_append_str_len(buf, sky_str_line("Date: "));
-    sky_str_buf_need_size(buf, 29);
-    buf->post += sky_date_to_rfc_str(r->conn->ev.now, buf->post);
+
+    if (r->conn->ev.now > r->conn->server->rfc_last) {
+        sky_date_to_rfc_str(r->conn->ev.now, r->conn->server->rfc_date);
+        r->conn->server->rfc_last = r->conn->ev.now;
+    }
+
+    sky_str_buf_append_str_len(buf, r->conn->server->rfc_date, 29);
 
     if (header_out->content_type.len) {
         sky_str_buf_append_str_len(buf, sky_str_line("\r\nContent-Type: "));

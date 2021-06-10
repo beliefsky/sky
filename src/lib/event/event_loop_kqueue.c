@@ -72,16 +72,16 @@ sky_event_loop_run(sky_event_loop_t *loop) {
     events = sky_pnalloc(loop->pool, sizeof(struct kevent) * (sky_u32_t) max_events);
     run_ev = sky_pnalloc(loop->pool, sizeof(sky_event_t *) * (sky_u32_t) max_events);
 
-    for (;;) {
-        sky_timer_wheel_run(ctx, (sky_u64_t) now);
-        next_time = sky_timer_wheel_wake_at(ctx);
-        if (next_time == SKY_U64_MAX) {
-            timeout = false;
-        } else {
-            timeout = true;
-            timespec.tv_sec = ((sky_i64_t) (next_time - (sky_u32_t) now));
-        }
+    sky_timer_wheel_run(ctx, (sky_u64_t) now);
+    next_time = sky_timer_wheel_wake_at(ctx);
+    if (next_time == SKY_U64_MAX) {
+        timeout = false;
+    } else {
+        timeout = true;
+        timespec.tv_sec = ((sky_i64_t) (next_time - (sky_u32_t) now));
+    }
 
+    for (;;) {
         n = kevent(fd, null, 0, events, max_events, timeout ? &timespec : null);
         if (sky_unlikely(n < 0)) {
             switch (errno) {
@@ -153,6 +153,15 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             continue;
         }
         now = loop->now;
+
+        sky_timer_wheel_run(ctx, (sky_u64_t) now);
+        next_time = sky_timer_wheel_wake_at(ctx);
+        if (next_time == SKY_U64_MAX) {
+            timeout = false;
+        } else {
+            timeout = true;
+            timespec.tv_sec = ((sky_i64_t) (next_time - (sky_u32_t) now));
+        }
     }
 }
 

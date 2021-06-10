@@ -87,6 +87,7 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
 #endif
 #ifdef TCP_DEFER_ACCEPT
         if (conf->defer_accept) {
+            opt = 1;
             setsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &opt, sizeof(sky_i32_t));
         }
 #endif

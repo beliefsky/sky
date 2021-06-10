@@ -30,8 +30,23 @@ extern "C" {
 #define sky_memcpy                  memcpy
 #define sky_memmove                 memmove
 
+#define sky_memcpy2(_dist, _src)                            \
+    do {                                                    \
+        *(sky_u16_t *)(_dist) = *(((sky_u16_t *)(_src)));   \
+    } while(0)                                              \
 
-static sky_inline void*
+#define sky_memcpy4(_dist, _src)                            \
+    do {                                                    \
+        *(sky_u32_t *)(_dist) = *(((sky_u32_t *)(_src)));   \
+    } while(0)                                              \
+
+#define sky_memcpy8(_dist, _src)                            \
+    do {                                                    \
+        *(sky_u64_t *)(_dist) = *(((sky_u64_t *)(_src)));   \
+    } while(0)                                              \
+
+
+static sky_inline void *
 sky_memalign(sky_usize_t alignment, sky_usize_t size) {
     void *p;
     int err;
