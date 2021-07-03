@@ -81,18 +81,6 @@ typedef struct {
 //将src的前n个字符转换成小写存放在dst字符串当中
 void sky_strlow(sky_uchar_t *dst, sky_uchar_t *src, sky_usize_t n);
 
-/*
-调用者需要保证dst指向的空间大于等于n。操作不会对原字符串产生变动。如要更改原字符串，可以：
-
-sky_str_t str = sky_string("hello world");
-sky_strlow(str->data, str->data, str->len);
-*/
-
-
-/* msvc and icc7 compile strcmp() to inline loop */
-#define sky_strcmp(_s1, _s2) strcmp((const sky_char_t *) _s1, (const sky_char_t *) _s2)
-
-
 // out_len = in_len *2;注意\0结尾，因此申请长度为 in_len *2 + 1；
 void sky_byte_to_hex(sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out);
 

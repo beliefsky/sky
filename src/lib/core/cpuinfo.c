@@ -85,7 +85,7 @@ sky_cpu_info() {
 
     cpu_id(1, cpu);
 
-    if (sky_strcmp(vendor, "GenuineIntel") == 0) {
+    if (strcmp((sky_char_t *) vendor, "GenuineIntel") == 0) {
 
         switch ((cpu[0] & 0xf00) >> 8) {
 
@@ -117,7 +117,7 @@ sky_cpu_info() {
                 break;
         }
 
-    } else if (sky_strcmp(vendor, "AuthenticAMD") == 0) {
+    } else if (strcmp((sky_char_t *) vendor, "AuthenticAMD") == 0) {
         sky_cache_line_size = 64;
     }
 }
