@@ -12,23 +12,6 @@ sky_strlow(sky_uchar_t *dst, sky_uchar_t *src, sky_usize_t n) {
     }
 }
 
-sky_uchar_t*
-sky_cpystrn(sky_uchar_t *dst, sky_uchar_t *src, sky_usize_t n) {
-    if (n == 0) {
-        return dst;
-    }
-    while (--n) {
-        *dst = *src;
-        if (*dst == '\0') {
-            return dst;
-        }
-        ++dst;
-        ++src;
-    }
-    *dst = '\0';
-    return dst;
-}
-
 
 void
 sky_byte_to_hex(sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out) {

@@ -22,7 +22,7 @@ struct sky_trie_s {
 };
 
 
-sky_trie_t*
+sky_trie_t *
 sky_trie_create(sky_pool_t *pool) {
     sky_trie_t *trie;
 
@@ -145,14 +145,14 @@ sky_trie_find(sky_trie_t *trie, sky_str_t *key) {
             break;
         }
         if (len == node->key_n) {
-            if (!len || sky_strncmp(tmp_key, node->key, len) == 0) {
+            if (!len || sky_str_len_equals_unsafe(tmp_key, node->key, len)) {
                 if (node->value) {
                     prev_node = node;
                 }
             }
             break;
         }
-        if (sky_strncmp(tmp_key, node->key, node->key_n) != 0) {
+        if (!sky_str_len_equals_unsafe(tmp_key, node->key, node->key_n)) {
             break;
         }
         tmp_key += node->key_n;
@@ -189,12 +189,12 @@ sky_trie_contains(sky_trie_t *trie, sky_str_t *key) {
             return null;
         }
         if (len == node->key_n) {
-            if (!len || sky_strncmp(tmp_key, node->key, len) == 0) {
+            if (!len || sky_str_len_equals_unsafe(tmp_key, node->key, len)) {
                 return node->value;
             }
             return null;
         }
-        if (sky_strncmp(tmp_key, node->key, node->key_n) != 0) {
+        if (!sky_str_len_equals_unsafe(tmp_key, node->key, node->key_n)) {
             return null;
         }
         tmp_key += node->key_n;
