@@ -6,7 +6,7 @@
 #include "memory.h"
 #include "cpuinfo.h"
 
-void*
+void *
 sky_hash_find(sky_hash_t *hash, sky_usize_t key, sky_uchar_t *name, sky_usize_t len) {
     sky_usize_t i;
     sky_hash_elt_t *elt;
@@ -38,7 +38,7 @@ sky_hash_find(sky_hash_t *hash, sky_usize_t key, sky_uchar_t *name, sky_usize_t 
 }
 
 
-void*
+void *
 sky_hash_find_wc_head(sky_hash_wildcard_t *hwc, sky_uchar_t *name, sky_usize_t len) {
     void *value;
     sky_usize_t i, n, key;
@@ -118,7 +118,7 @@ sky_hash_find_wc_head(sky_hash_wildcard_t *hwc, sky_uchar_t *name, sky_usize_t l
 }
 
 
-void*
+void *
 sky_hash_find_wc_tail(sky_hash_wildcard_t *hwc, sky_uchar_t *name, sky_usize_t len) {
     void *value;
     sky_usize_t i, key;
@@ -169,7 +169,7 @@ sky_hash_find_wc_tail(sky_hash_wildcard_t *hwc, sky_uchar_t *name, sky_usize_t l
 }
 
 
-void*
+void *
 sky_hash_find_combined(sky_hash_combined_t *hash, sky_usize_t key, sky_uchar_t *name, sky_usize_t len) {
     void *value;
 
@@ -461,7 +461,7 @@ sky_hash_wildcard_init(sky_hash_init_t *hinit, sky_hash_key_t *names,
         }
 
         for (i = n + 1; i < nelts; i++) {
-            if (sky_strncmp(names[n].key.data, names[i].key.data, len) != 0) {
+            if (!sky_str_len_equals_unsafe(names[n].key.data, names[i].key.data, len)) {
                 break;
             }
 
@@ -687,7 +687,7 @@ sky_hash_add_key(sky_hash_keys_arrays_t *ha, sky_str_t *key, void *value, sky_us
                 continue;
             }
 
-            if (sky_strncmp(key->data, name[i].data, last) == 0) {
+            if (sky_str_len_equals_unsafe(key->data, name[i].data, last)) {
                 return false;
             }
         }
@@ -739,7 +739,7 @@ sky_hash_add_key(sky_hash_keys_arrays_t *ha, sky_str_t *key, void *value, sky_us
                     continue;
                 }
 
-                if (sky_strncmp(&key->data[1], name[i].data, len) == 0) {
+                if (sky_str_len_equals_unsafe(&key->data[1], name[i].data, len)) {
                     return false;
                 }
             }
@@ -813,7 +813,7 @@ sky_hash_add_key(sky_hash_keys_arrays_t *ha, sky_str_t *key, void *value, sky_us
             return false;
         }
 
-        sky_cpystrn(p, key->data, last);
+        sky_memcpy(p, key->data, last + 1);
 
         hwc = &ha->dns_wc_tail;
         keys = &ha->dns_wc_tail_hash[k];
@@ -832,7 +832,7 @@ sky_hash_add_key(sky_hash_keys_arrays_t *ha, sky_str_t *key, void *value, sky_us
                 continue;
             }
 
-            if (sky_strncmp(key->data + skip, name[i].data, len) == 0) {
+            if (sky_str_len_equals_unsafe(key->data + skip, name[i].data, len)) {
                 return false;
             }
         }
