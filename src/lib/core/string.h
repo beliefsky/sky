@@ -130,7 +130,7 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
 
 static sky_inline sky_uchar_t *
 sky_str_find(const sky_str_t *src, const sky_uchar_t *sub, sky_usize_t sub_len) {
-    return memmem(src->data, src->len, sub, sub_len);
+    return sky_str_len_find(src->data, src->len, sub, sub_len);
 }
 
 #if defined(__cplusplus)
