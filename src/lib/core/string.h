@@ -133,6 +133,16 @@ sky_str_find(const sky_str_t *src, const sky_uchar_t *sub, sky_usize_t sub_len) 
     return sky_str_len_find(src->data, src->len, sub, sub_len);
 }
 
+static sky_inline sky_uchar_t *
+sky_str_len_find_char(const sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t ch) {
+    return memchr(src, ch, src_len);
+}
+
+static sky_inline sky_uchar_t *
+sky_str_find_char(const sky_str_t *src, sky_uchar_t ch) {
+    return sky_str_len_find_char(src->data, src->len, ch);
+}
+
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif
