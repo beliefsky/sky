@@ -335,35 +335,10 @@ sky_bool_t
 sky_http_url_decode(sky_str_t *str) {
     sky_uchar_t *s, *p, ch;
 
-    p = str->data;
-#ifdef __SSE4_2__
-    static const sky_uchar_t ALIGNED(16) ranges[16] = "\000\040"
-                                                      "%%"
-                                                      "\177\177";
-
-
-    if (!find_char_fast(&p, str->len, ranges, 6)) {
-        for (;;) {
-            if (*p == '\0') {
-                return true;
-            }
-            if (*p == '%') {
-                break;
-            }
-            ++p;
-        }
+    p = sky_str_find_char(str, '%');
+    if (!p) {
+        return true;
     }
-#else
-    for (;;) {
-        if (*p == '\0') {
-            return true;
-        }
-        if (*p == '%') {
-            break;
-        }
-        ++p;
-    }
-#endif
 
     s = p++;
 
