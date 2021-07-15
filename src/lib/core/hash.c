@@ -5,6 +5,7 @@
 #include "hash.h"
 #include "memory.h"
 #include "cpuinfo.h"
+#include "log.h"
 
 void *
 sky_hash_find(sky_hash_t *hash, sky_usize_t key, sky_uchar_t *name, sky_usize_t len) {
@@ -376,7 +377,7 @@ sky_hash_init(sky_hash_init_t *hinit, sky_hash_key_t *names, sky_usize_t nelts) 
         elt->value = names[n].value;
         elt->len = (sky_u16_t) names[n].key.len;
 
-        sky_strlow(elt->name, names[n].key.data, names[n].key.len);
+        sky_str_lower(names[n].key.data, elt->name, names[n].key.len);
         //计算下一个要被hash的数据的长度偏移
         test[key] = (sky_u16_t) (test[key] + SKY_HASH_ELT_SIZE(&names[n]));
     }

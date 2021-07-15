@@ -79,7 +79,7 @@ typedef struct {
     (sky_uchar_t) (((_c) >= 'a' && (_c) <= 'z') ? ((_c) & ~0x20) : (_c))
 
 //将src的前n个字符转换成小写存放在dst字符串当中
-void sky_strlow(sky_uchar_t *dst, sky_uchar_t *src, sky_usize_t n);
+void sky_str_lower(sky_uchar_t *src, sky_uchar_t *dst, sky_usize_t n);
 
 // out_len = in_len *2;注意\0结尾，因此申请长度为 in_len *2 + 1；
 void sky_byte_to_hex(sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out);
