@@ -555,15 +555,7 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                     }
                     ch = buf.pos;
                     buf.pos += size;
-                    sky_uchar_t *p;
-                    do {
-                        p = sky_str_len_find_char(buf.pos - size, size, '\0');
-                        if (!p) {
-                            break;
-                        }
-                        *p++ = ' ';
-                        size = (sky_u32_t) (buf.pos - p);
-                    } while (size > 0);
+                    sky_str_len_replace_char(ch, size, '\0', ' ');
 
                     sky_log_error("%s", ch);
 

@@ -89,6 +89,13 @@ sky_str_is_null(const sky_str_t *str) {
     return !str || !str->len;
 }
 
+void sky_str_len_replace_char(sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t old_ch, sky_uchar_t new_ch);
+
+static sky_inline void
+sky_str__replace_char(sky_str_t *src, sky_uchar_t old_ch, sky_uchar_t new_ch) {
+    sky_str_len_replace_char(src->data, src->len, old_ch, new_ch);
+}
+
 static sky_inline sky_bool_t
 sky_str_len_equals(const sky_uchar_t *s1, sky_usize_t s1_len,
                    const sky_uchar_t *s2, sky_usize_t s2_len) {

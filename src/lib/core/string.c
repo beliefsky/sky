@@ -12,6 +12,36 @@
 #endif
 
 void
+sky_str_len_replace_char(sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t old_ch, sky_uchar_t new_ch) {
+#ifdef __SSE2__
+    if (src_len >= 16) {
+        const __m128i slash = _mm_set1_epi8((sky_char_t)old_ch);
+        const __m128i delta = _mm_set1_epi8((sky_char_t) (new_ch - old_ch));
+
+        do {
+            __m128i op = _mm_loadu_si128((__m128i *)src);
+            __m128i eq = _mm_cmpeq_epi8(op, slash);
+            if (_mm_movemask_epi8(eq)) {
+                eq = _mm_and_si128(eq, delta);
+                op = _mm_add_epi8(op, eq);
+                _mm_storeu_si128((__m128i*)src, op);
+            }
+            src_len -= 16;
+            src += 16;
+        } while (src_len >= 16);
+    }
+#endif
+    if (src_len > 0) {
+        sky_uchar_t *tmp;
+
+        while ((tmp = sky_str_len_find_char(src, src_len, old_ch))) {
+            *tmp ++ = new_ch;
+            src_len -= (sky_usize_t)(tmp - src);
+        }
+    }
+}
+
+void
 sky_str_lower(sky_uchar_t *src, sky_uchar_t *dst, sky_usize_t n) {
 #ifdef __SSE2__
     if (n >= 16) {
