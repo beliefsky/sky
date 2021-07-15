@@ -93,7 +93,7 @@ server_start(void *ssl) {
 
     sky_cpu_info();
 
-    pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
+    pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
 
     loop = sky_event_loop_create(pool);
 

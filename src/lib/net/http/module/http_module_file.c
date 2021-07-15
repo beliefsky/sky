@@ -62,11 +62,11 @@ sky_http_module_file_init(sky_pool_t *pool, const sky_http_file_conf_t *conf) {
     http_module_file_t *data = sky_palloc(pool, sizeof(http_module_file_t));
     data->pool = pool;
     data->path = conf->dir;
-    data->tmp_pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
+    data->tmp_pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
 
     http_mime_type_init(data);
 
-    sky_destroy_pool(data->tmp_pool);
+    sky_pool_destroy(data->tmp_pool);
     data->tmp_pool = null;
     data->pre_run = conf->pre_run;
 
