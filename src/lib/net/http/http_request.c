@@ -21,15 +21,15 @@ sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
     sky_http_request_t *r;
     sky_http_module_t *module;
 
-    pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
-    pool_defer = sky_defer_add(coro, (sky_defer_func_t) sky_destroy_pool, pool);
+    pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
+    pool_defer = sky_defer_add(coro, (sky_defer_func_t) sky_pool_destroy, pool);
     for (;;) {
         // read buf and parse
         r = http_header_read(conn, pool);
         if (sky_unlikely(!r)) {
             sky_defer_cancel(coro, pool_defer);
             sky_defer_run(coro);
-            sky_destroy_pool(pool);
+            sky_pool_destroy(pool);
             return SKY_CORO_ABORT;
         }
 
@@ -51,11 +51,11 @@ sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
         sky_defer_cancel(coro, pool_defer);
         sky_defer_run(coro);
         if (!r->keep_alive) {
-            sky_destroy_pool(pool);
+            sky_pool_destroy(pool);
             return SKY_CORO_FINISHED;
         }
-        sky_reset_pool(pool);
-        pool_defer = sky_defer_add(coro, (sky_defer_func_t) sky_destroy_pool, pool);
+        sky_pool_reset(pool);
+        pool_defer = sky_defer_add(coro, (sky_defer_func_t) sky_pool_destroy, pool);
         sky_coro_yield(coro, SKY_CORO_MAY_RESUME);
     }
 }

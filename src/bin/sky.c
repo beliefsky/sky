@@ -66,15 +66,15 @@ server_start() {
 
     sky_pool_t *pool;
 
-    pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
+    pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
 
 
     json = json_config_read(pool);
     if (!json) {
-        sky_destroy_pool(pool);
+        sky_pool_destroy(pool);
         return;
     }
-    sky_destroy_pool(pool);
+    sky_pool_destroy(pool);
 }
 
 static sky_json_object_s *

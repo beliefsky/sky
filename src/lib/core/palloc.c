@@ -18,7 +18,7 @@ static void *sky_palloc_block(sky_pool_t *pool, sky_usize_t size);
 static void *sky_palloc_large(sky_pool_t *pool, sky_usize_t size);
 
 sky_pool_t*
-sky_create_pool(sky_usize_t size) {
+sky_pool_create(sky_usize_t size) {
     sky_pool_t *p;
 
     size = sky_align(size, 4096U);
@@ -41,7 +41,7 @@ sky_create_pool(sky_usize_t size) {
 }
 
 void
-sky_destroy_pool(sky_pool_t *pool) {
+sky_pool_destroy(sky_pool_t *pool) {
     sky_pool_t *p, *n;
     sky_pool_large_t *l;
     sky_pool_cleanup_t *c;
@@ -69,7 +69,7 @@ sky_destroy_pool(sky_pool_t *pool) {
 }
 
 void
-sky_reset_pool(sky_pool_t *pool) {
+sky_pool_reset(sky_pool_t *pool) {
     sky_pool_t *p;
     sky_pool_large_t *l;
 
