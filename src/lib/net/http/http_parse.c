@@ -7,11 +7,6 @@
 
 #include <nmmintrin.h>
 
-#ifdef _MSC_VER
-#define ALIGNED(_n) _declspec(align(_n))
-#else
-#define ALIGNED(_n) __attribute__((aligned(_n)))
-#endif
 #endif
 
 #define IS_PRINTABLE_ASCII(_c) ((_c)-040u < 0137u)
@@ -613,7 +608,8 @@ advance_token(sky_uchar_t *buf, const sky_uchar_t *end) {
     sky_uchar_t *start = buf;
 #ifdef __SSE4_2__
 
-    static const sky_uchar_t ALIGNED(16) ranges[16] = "\000\040""\177\177";
+    static const sky_uchar_t ALIGNED(
+    16) ranges[16] = "\000\040""\177\177";
 
     if (!find_char_fast(&buf, (sky_usize_t) (end - start), ranges, 4)) {
         if (buf == end) {
@@ -646,12 +642,12 @@ static sky_inline sky_isize_t
 parse_url_no_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end) {
     sky_uchar_t *start = post;
 #ifdef __SSE4_2__
-    static const sky_uchar_t ALIGNED(16) ranges[16] = "\000\040"
-                                                      "  "
-                                                      "%%"
-                                                      ".."
-                                                      "??"
-                                                      "\177\177";
+    static const sky_uchar_t sky_align(16) ranges[16] = "\000\040"
+                     "  "
+                     "%%"
+                     ".."
+                     "??"
+                     "\177\177";
 
     while (find_char_fast(&post, (sky_usize_t) (end - start), ranges, 12)) {
         switch (*post) {
@@ -753,11 +749,11 @@ static sky_inline sky_isize_t
 parse_url_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end) {
     sky_uchar_t *start = post;
 #ifdef __SSE4_2__
-    static const sky_uchar_t ALIGNED(16) ranges[16] = "\000\040"
-                                                      "  "
-                                                      ".."
-                                                      "??"
-                                                      "\177\177";
+    static const sky_uchar_t sky_align(16) ranges[16] = "\000\040"
+                     "  "
+                     ".."
+                     "??"
+                     "\177\177";
 
     while (find_char_fast(&post, (sky_usize_t) (end - start), ranges, 10)) {
         switch (*post) {
@@ -857,9 +853,9 @@ static sky_inline sky_isize_t
 find_header_line(sky_uchar_t *post, const sky_uchar_t *end) {
     sky_uchar_t *start = post;
 #ifdef __SSE4_2__
-    static const sky_uchar_t ALIGNED(16) ranges[16] = "\0\010"    /* allow HT */
-                                                      "\012\037"  /* allow SP and up to but not including DEL */
-                                                      "\177\177"; /* allow chars w. MSB set */
+    static const sky_uchar_t sky_align(16) ranges[16] = "\0\010"    /* allow HT */
+                     "\012\037"  /* allow SP and up to but not including DEL */
+                     "\177\177"; /* allow chars w. MSB set */
     if (find_char_fast(&post, (sky_usize_t) (end - start), ranges, 6)) {
         if (*post != '\r' && *post != '\n') {
             return -2;
@@ -933,8 +929,8 @@ static sky_inline sky_isize_t
 find_binary_line(sky_uchar_t *post, const sky_uchar_t *end) {
     sky_uchar_t *start = post;
 #ifdef __SSE4_2__
-    static const sky_uchar_t ALIGNED(16) ranges[16] = "\n\n"
-                                                      "\r\r";
+    static const sky_uchar_t sky_align(16) ranges[16] = "\n\n"
+                     "\r\r";
     if (find_char_fast(&post, (sky_usize_t) (end - start), ranges, 4)) {
         if (*post != '\r' && *post != '\n') {
             return -1;
@@ -970,14 +966,14 @@ parse_token(sky_uchar_t *buf, const sky_uchar_t *end, sky_uchar_t next_char) {
     sky_uchar_t *start = buf;
 #ifdef __SSE4_2__
 
-    static const sky_uchar_t ALIGNED(16) ranges[] = "\x00 "  /* control chars and up to SP */
-                                                    "\"\""   /* 0x22 */
-                                                    "()"     /* 0x28,0x29 */
-                                                    ",,"     /* 0x2c */
-                                                    "//"     /* 0x2f */
-                                                    ":@"     /* 0x3a-0x40 */
-                                                    "[]"     /* 0x5b-0x5d */
-                                                    "{\xff"; /* 0x7b-0xff */
+    static const sky_uchar_t sky_align(16) ranges[] = "\x00 "  /* control chars and up to SP */
+                   "\"\""   /* 0x22 */
+                   "()"     /* 0x28,0x29 */
+                   ",,"     /* 0x2c */
+                   "//"     /* 0x2f */
+                   ":@"     /* 0x3a-0x40 */
+                   "[]"     /* 0x5b-0x5d */
+                   "{\xff"; /* 0x7b-0xff */
 
     if (!find_char_fast(&buf, (sky_usize_t) (end - start), ranges, sizeof(ranges) - 1)) {
         if (buf == end) {

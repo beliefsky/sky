@@ -53,6 +53,12 @@ typedef double sky_f64_t;
 #define sky_likely(_x)       __builtin_expect(!!(_x), 1)
 #define sky_unlikely(_x)     __builtin_expect(!!(_x), 0)
 
+#ifdef _MSC_VER
+#define sky_align(_n) _declspec(align(_n))
+#else
+#define sky_align(_n) __attribute__((aligned(_n)))
+#endif
+
 #define sky_abs(_v)         (((_v) < 0) ? -(_v) : v)
 #define sky_max(_v1, _v2)   ((_v1) ^ ((_v1) ^ (_v2)) & -((_v1) < (_v2)))
 #define sky_min(_v1, _v2)   ((_v2) ^ ((_v1) ^ (_v2)) & -((_v1) < (_v2)))
