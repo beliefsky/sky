@@ -19,39 +19,39 @@ crc_generic_sb8(const sky_uchar_t *input, sky_usize_t length, sky_u32_t crc, con
 static sky_u32_t
 crc_generic_sb16(const sky_uchar_t *input, sky_usize_t length, sky_u32_t crc, const sky_u32_t *table_ptr);
 
-static sky_u32_t crc32_no_slice(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previousCrc32);
+static sky_u32_t crc32_no_slice(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32);
 
 /* Computes CRC32 (Ethernet, gzip, et. al.) using slice-by-4. */
-static sky_u32_t crc32_sb4(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previousCrc32);
+static sky_u32_t crc32_sb4(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32);
 
 /* Computes CRC32 (Ethernet, gzip, et. al.) using slice-by-8. */
-static sky_u32_t crc32_sb8(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previousCrc32);
+static sky_u32_t crc32_sb8(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32);
 
 /* Computes CRC32 (Ethernet, gzip, et. al.) using slice-by-16. */
-static sky_u32_t crc32_sb16(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previousCrc32);
+static sky_u32_t crc32_sb16(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32);
 
-static sky_u32_t crc32_no_slice(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previousCrc32);
+static sky_u32_t crc32_no_slice(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32);
 
 /* Computes CRC32 (Ethernet, gzip, et. al.) using slice-by-4. */
-static sky_u32_t crc32_sb4(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previousCrc32);
+static sky_u32_t crc32_sb4(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32);
 
 /* Computes CRC32 (Ethernet, gzip, et. al.) using slice-by-8. */
-static sky_u32_t crc32_sb8(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previousCrc32);
+static sky_u32_t crc32_sb8(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32);
 
 /* Computes CRC32 (Ethernet, gzip, et. al.) using slice-by-16. */
-static sky_u32_t crc32_sb16(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previousCrc32);
+static sky_u32_t crc32_sb16(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32);
 
 #ifndef __SSE4_2__
-static sky_u32_t crc32c_no_slice(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previousCrc32c);
+static sky_u32_t crc32c_no_slice(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32c);
 
 /* Computes the Castagnoli CRC32c (iSCSI) using slice-by-4. */
-static sky_u32_t crc32c_sb4(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previousCrc32);
+static sky_u32_t crc32c_sb4(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32);
 
 /* Computes the Castagnoli CRC32c (iSCSI) using slice-by-8. */
-static sky_u32_t crc32c_sb8(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previousCrc32);
+static sky_u32_t crc32c_sb8(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32);
 
 /* Computes the Castagnoli CRC32c (iSCSI) using slice-by-16. */
-static sky_u32_t crc32c_sb16(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previousCrc32);
+static sky_u32_t crc32c_sb16(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32);
 #else
 
 #include <smmintrin.h>
@@ -69,7 +69,7 @@ static sky_u32_t crc32_sse(sky_u32_t crc, const sky_uchar_t *p, sky_usize_t len)
 
 /**
  * Computes the Ethernet, gzip CRC32 of the specified data buffer.
- * Pass 0 in the previousCrc32 parameter as an initial value unless continuing to update a running crc in a subsequent
+ * Pass 0 in the previous_crc32 parameter as an initial value unless continuing to update a running crc in a subsequent
  * call
  */
 sky_u32_t
@@ -104,7 +104,7 @@ sky_crc32_update(sky_u32_t crc, const sky_uchar_t *p, sky_usize_t len) {
 
 /**
  * Computes the Castagnoli iSCSI CRC32c of the specified data buffer.
- * Pass 0 in the previousCrc32c parameter as an initial value unless continuing to update a running crc in a subsequent
+ * Pass 0 in the previous_crc32c parameter as an initial value unless continuing to update a running crc in a subsequent
  * call
  */
 sky_u32_t
@@ -1364,29 +1364,29 @@ crc_generic_sb16(const sky_uchar_t *input, sky_usize_t length, sky_u32_t crc, co
     return crc_generic_sb4(&input[length - remaining], remaining, crc, table_ptr);
 }
 
-static sky_u32_t
-crc32_no_slice(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previousCrc32) {
-    return crc_generic_sb1(input, length, previousCrc32, &CRC32_TABLE[0][0]);
+static sky_inline sky_u32_t
+crc32_no_slice(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32) {
+    return crc_generic_sb1(input, length, previous_crc32, &CRC32_TABLE[0][0]);
 }
 
 /* Computes CRC32 (Ethernet, gzip, et. al.) using slice-by-4. */
 static sky_u32_t
-crc32_sb4(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previousCrc32) {
-    sky_u32_t crc = crc_generic_align(&input, &length, previousCrc32, &CRC32_TABLE[0][0]);
+crc32_sb4(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32) {
+    sky_u32_t crc = crc_generic_align(&input, &length, previous_crc32, &CRC32_TABLE[0][0]);
     return crc_generic_sb4(input, length, crc, &CRC32_TABLE[0][0]);
 }
 
 /* Computes CRC32 (Ethernet, gzip, et. al.) using slice-by-8. */
 static sky_u32_t
-crc32_sb8(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previousCrc32) {
-    sky_u32_t crc = crc_generic_align(&input, &length, previousCrc32, &CRC32_TABLE[0][0]);
+crc32_sb8(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32) {
+    sky_u32_t crc = crc_generic_align(&input, &length, previous_crc32, &CRC32_TABLE[0][0]);
     return crc_generic_sb8(input, length, crc, &CRC32_TABLE[0][0]);
 }
 
 /* Computes CRC32 (Ethernet, gzip, et. al.) using slice-by-16. */
 static sky_u32_t
-crc32_sb16(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previousCrc32) {
-    sky_u32_t crc = crc_generic_align(&input, &length, previousCrc32, &CRC32_TABLE[0][0]);
+crc32_sb16(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32) {
+    sky_u32_t crc = crc_generic_align(&input, &length, previous_crc32, &CRC32_TABLE[0][0]);
     return crc_generic_sb16(input, length, crc, &CRC32_TABLE[0][0]);
 }
 
@@ -1521,28 +1521,28 @@ crc32_sse(sky_u32_t crc, const sky_uchar_t *p, sky_usize_t len) {
 #ifndef __SSE4_2__
 
 static sky_u32_t
-crc32c_no_slice(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previousCrc32c) {
-    return crc_generic_sb1(input, length, ~previousCrc32c, &CRC32C_TABLE[0][0]);
+crc32c_no_slice(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32c) {
+    return crc_generic_sb1(input, length, ~previous_crc32c, &CRC32C_TABLE[0][0]);
 }
 
 /* Computes the Castagnoli CRC32c (iSCSI) using slice-by-4. */
 static sky_u32_t
-crc32c_sb4(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previousCrc32) {
-    sky_u32_t crc = crc_generic_align(&input, &length, previousCrc32, &CRC32C_TABLE[0][0]);
+crc32c_sb4(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32) {
+    sky_u32_t crc = crc_generic_align(&input, &length, previous_crc32, &CRC32C_TABLE[0][0]);
     return crc_generic_sb4(input, length, crc, &CRC32C_TABLE[0][0]);
 }
 
 /* Computes the Castagnoli CRC32c (iSCSI) using slice-by-8. */
 static sky_u32_t
-crc32c_sb8(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previousCrc32) {
-    sky_u32_t crc = crc_generic_align(&input, &length, previousCrc32, &CRC32C_TABLE[0][0]);
+crc32c_sb8(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32) {
+    sky_u32_t crc = crc_generic_align(&input, &length, previous_crc32, &CRC32C_TABLE[0][0]);
     return crc_generic_sb8(input, length, crc, &CRC32C_TABLE[0][0]);
 }
 
 /* Computes the Castagnoli CRC32c (iSCSI) using slice-by-16. */
 static sky_u32_t
-crc32c_sb16(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previousCrc32) {
-    sky_u32_t crc = crc_generic_align(&input, &length, previousCrc32, &CRC32C_TABLE[0][0]);
+crc32c_sb16(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32) {
+    sky_u32_t crc = crc_generic_align(&input, &length, previous_crc32, &CRC32C_TABLE[0][0]);
     return crc_generic_sb16(input, length, crc, &CRC32C_TABLE[0][0]);
 }
 
