@@ -554,13 +554,10 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
                         break;
                     }
                     ch = buf.pos;
-                    for (i = 0; i != size; ++i) {
-                        if (ch[i] == '\0') {
-                            ch[i] = ' ';
-                        }
-                    }
-                    sky_log_error("%s", ch);
                     buf.pos += size;
+                    sky_str_len_replace_char(ch, size, '\0', ' ');
+
+                    sky_log_error("%s", ch);
 
                     sky_buf_destroy(&buf);
                     conn->error = true;

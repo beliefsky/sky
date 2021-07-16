@@ -55,7 +55,7 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
     server->host = conf->host;
     server->port = conf->port;
     server->pool = pool;
-    server->tmp_pool = sky_create_pool(SKY_DEFAULT_POOL_SIZE);
+    server->tmp_pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
 
     if (!conf->header_buf_n) {
         conf->header_buf_n = 4; // 4 buff
@@ -127,7 +127,7 @@ sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *loop) {
 
     sky_http_request_init(server);
     sky_tcp_listener_create(loop, server->pool, &conf);
-    sky_destroy_pool(server->tmp_pool);
+    sky_pool_destroy(server->tmp_pool);
     server->tmp_pool = null;
 }
 

@@ -19,7 +19,7 @@ static sky_usize_t fast_avx2_base64_decode(sky_uchar_t *out, const sky_uchar_t *
 #endif
 
 sky_usize_t
-sky_encode_base64(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t len) {
+sky_base64_encode(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t len) {
     if (sky_unlikely(!len)) {
         return 0;
     }
@@ -31,7 +31,7 @@ sky_encode_base64(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t len) {
 }
 
 sky_usize_t
-sky_decode_base64(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t len) {
+sky_base64_decode(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t len) {
     if (sky_unlikely(!len)) {
         return 0;
     }

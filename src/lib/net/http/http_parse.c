@@ -335,35 +335,10 @@ sky_bool_t
 sky_http_url_decode(sky_str_t *str) {
     sky_uchar_t *s, *p, ch;
 
-    p = str->data;
-#ifdef __SSE4_2__
-    static const sky_uchar_t ALIGNED(16) ranges[16] = "\000\040"
-                                                      "%%"
-                                                      "\177\177";
-
-
-    if (!find_char_fast(&p, str->len, ranges, 6)) {
-        for (;;) {
-            if (*p == '\0') {
-                return true;
-            }
-            if (*p == '%') {
-                break;
-            }
-            ++p;
-        }
+    p = sky_str_find_char(str, '%');
+    if (!p) {
+        return true;
     }
-#else
-    for (;;) {
-        if (*p == '\0') {
-            return true;
-        }
-        if (*p == '%') {
-            break;
-        }
-        ++p;
-    }
-#endif
 
     s = p++;
 
@@ -419,7 +394,7 @@ sky_http_multipart_decode(sky_http_request_t *r, sky_str_t *str) {
         return null;
     }
     const sky_str_t *value = r->headers_in.content_type;
-    if (sky_unlikely(value->len < type.len || sky_strncmp(value->data, type.data, type.len) != 0)) {
+    if (sky_unlikely(!sky_str_starts_with(value, type.data, type.len))) {
         return null;
     }
     const sky_uchar_t *boundary = value->data + type.len;
@@ -429,8 +404,7 @@ sky_http_multipart_decode(sky_http_request_t *r, sky_str_t *str) {
         ++boundary;
         --boundary_len;
     }
-    if (sky_unlikely(boundary_len < boundary_prefix.len ||
-                     sky_strncmp(boundary, boundary_prefix.data, boundary_prefix.len) != 0)) {
+    if (sky_unlikely(!sky_str_len_starts_with(boundary, boundary_len, boundary_prefix.data, boundary_prefix.len))) {
         return null;
     }
     boundary += boundary_prefix.len;
@@ -444,7 +418,7 @@ sky_http_multipart_decode(sky_http_request_t *r, sky_str_t *str) {
     p += 2;
     size -= 2;
 
-    if (sky_unlikely(size < boundary_len || sky_strncmp(p, boundary, boundary_len) != 0)) {
+    if (sky_unlikely(!sky_str_len_starts_with(p, size, boundary, boundary_len))) {
         return null;
     }
     p += boundary_len;
@@ -512,12 +486,12 @@ sky_http_multipart_decode(sky_http_request_t *r, sky_str_t *str) {
             elt->hash = sky_hash_strlow(elt->lowcase_key, elt->key.data, elt->key.len);
             switch (elt->key.len) {
                 case 12:
-                    if (sky_likely(sky_strncmp(elt->lowcase_key, "content-type", 12) == 0)) {
+                    if (sky_likely(sky_str_len_equals_unsafe(elt->lowcase_key, sky_str_line("content-type")))) {
                         multipart->content_type = &elt->value;
                     }
                     break;
                 case 19:
-                    if (sky_likely(sky_strncmp(elt->lowcase_key, "content-disposition", 19) == 0)) {
+                    if (sky_likely(sky_str_len_equals_unsafe(elt->lowcase_key, sky_str_line("content-disposition")))) {
                         multipart->content_disposition = &elt->value;
                     }
                     break;
@@ -559,7 +533,7 @@ sky_http_multipart_decode(sky_http_request_t *r, sky_str_t *str) {
                 if (sky_unlikely(size < boundary_len)) {
                     return null;
                 }
-                if (sky_unlikely(sky_strncmp(p, boundary, boundary_len) != 0)) {
+                if (sky_unlikely(!sky_str_len_equals_unsafe(p, boundary, boundary_len))) {
                     continue;
                 }
                 multipart->data.len = (sky_usize_t) (p - multipart->data.data) - 4;

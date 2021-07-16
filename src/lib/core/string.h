@@ -49,7 +49,6 @@ extern "C" {
     ((_str)->len + 1)
 
 
-
 // sky_str_t来表示字符串，切记不能把data当做字符串处理，data并没有规定以\0结尾
 // data+len 才代表字符串，所以如果把data当做字符串处理，有可能导致内存越界。
 // 不使用字符串能有效降低内存使用量
@@ -80,36 +79,77 @@ typedef struct {
     (sky_uchar_t) (((_c) >= 'a' && (_c) <= 'z') ? ((_c) & ~0x20) : (_c))
 
 //将src的前n个字符转换成小写存放在dst字符串当中
-void sky_strlow(sky_uchar_t *dst, sky_uchar_t *src, sky_usize_t n);
-
-/*
-调用者需要保证dst指向的空间大于等于n。操作不会对原字符串产生变动。如要更改原字符串，可以：
-
-sky_str_t str = sky_string("hello world");
-sky_strlow(str->data, str->data, str->len);
-*/
-
-
-
-//区分大小写的字符串比较，只比较前n个字符。
-#define sky_strncmp(_s1, _s2, _n) strncmp((const sky_char_t *) _s1, (const sky_char_t *) _s2, _n)
-
-/* msvc and icc7 compile strcmp() to inline loop */
-#define sky_strcmp(_s1, _s2) strcmp((const sky_char_t *) _s1, (const sky_char_t *) _s2)
-
-#define sky_strstr(s1, s2)  strstr((const sky_char_t *) s1, (const sky_char_t *) s2)
-
-#define sky_strchr(s1, c)   strchr((const sky_char_t *) s1, (sky_i32_t) c)
-
-sky_uchar_t *sky_cpystrn(sky_uchar_t *dst, sky_uchar_t *src, sky_usize_t n);
-
+void sky_str_lower(sky_uchar_t *src, sky_uchar_t *dst, sky_usize_t n);
 
 // out_len = in_len *2;注意\0结尾，因此申请长度为 in_len *2 + 1；
-void sky_byte_to_hex(sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out);
+void sky_byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out);
+
+void sky_byte_to_hex_upper(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out);
 
 static sky_inline sky_bool_t
 sky_str_is_null(const sky_str_t *str) {
     return !str || !str->len;
+}
+
+void sky_str_len_replace_char(sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t old_ch, sky_uchar_t new_ch);
+
+static sky_inline void
+sky_str_replace_char(sky_str_t *src, sky_uchar_t old_ch, sky_uchar_t new_ch) {
+    sky_str_len_replace_char(src->data, src->len, old_ch, new_ch);
+}
+
+static sky_inline sky_bool_t
+sky_str_len_equals(const sky_uchar_t *s1, sky_usize_t s1_len,
+                   const sky_uchar_t *s2, sky_usize_t s2_len) {
+    if (s1_len != s2_len) {
+        return false;
+    }
+    return memcmp(s1, s2, s1_len) == 0;
+}
+
+static sky_inline sky_bool_t
+sky_str_len_equals_unsafe(const sky_uchar_t *s1, const sky_uchar_t *s2, sky_usize_t len) {
+    return memcmp(s1, s2, len) == 0;
+}
+
+static sky_inline sky_bool_t
+sky_str_equals(const sky_str_t *s1, const sky_str_t *s2) {
+    return sky_str_len_equals(s1->data, s1->len, s2->data, s2->len);
+}
+
+static sky_inline sky_bool_t
+sky_str_len_starts_with(const sky_uchar_t *src, sky_usize_t src_len,
+                        const sky_uchar_t *prefix, sky_usize_t prefix_len) {
+    if (src_len < prefix_len) {
+        return false;
+    }
+    return memcmp(src, prefix, prefix_len) == 0;
+}
+
+static sky_inline sky_bool_t
+sky_str_starts_with(const sky_str_t *src, const sky_uchar_t *prefix, sky_usize_t prefix_len) {
+    return sky_str_len_starts_with(src->data, src->len, prefix, prefix_len);
+}
+
+
+static sky_inline sky_uchar_t *
+sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *sub, sky_usize_t sub_len) {
+    return memmem(src, src_len, sub, sub_len);
+}
+
+static sky_inline sky_uchar_t *
+sky_str_find(const sky_str_t *src, const sky_uchar_t *sub, sky_usize_t sub_len) {
+    return sky_str_len_find(src->data, src->len, sub, sub_len);
+}
+
+static sky_inline sky_uchar_t *
+sky_str_len_find_char(const sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t ch) {
+    return memchr(src, ch, src_len);
+}
+
+static sky_inline sky_uchar_t *
+sky_str_find_char(const sky_str_t *src, sky_uchar_t ch) {
+    return sky_str_len_find_char(src->data, src->len, ch);
 }
 
 #if defined(__cplusplus)
