@@ -608,8 +608,7 @@ advance_token(sky_uchar_t *buf, const sky_uchar_t *end) {
     sky_uchar_t *start = buf;
 #ifdef __SSE4_2__
 
-    static const sky_uchar_t ALIGNED(
-    16) ranges[16] = "\000\040""\177\177";
+    static const sky_uchar_t sky_align(16) ranges[16] = "\000\040""\177\177";
 
     if (!find_char_fast(&buf, (sky_usize_t) (end - start), ranges, 4)) {
         if (buf == end) {
