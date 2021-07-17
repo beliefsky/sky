@@ -21,27 +21,27 @@ extern "C" {
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 #define sky_str2_num(c0, c1)            \
-    (((c1) << 0x8) | (c0))
+    (((c1) << 8) | (c0))
 #define sky_str4_num(c0, c1, c2, c3)    \
-    (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0))
+    (((c3) << 24) | ((c2) << 16) | ((c1) << 8) | (c0))
 
 #define sky_str2_cmp(m, c0, c1)                                                         \
-    (*(sky_u16_t *) (m) == (((c1) << 0x8) | (c0)))
+    (*(sky_u16_t *) (m) == (((c1) << 8) | (c0)))
 #define sky_str4_cmp(m, c0, c1, c2, c3)                                                 \
-    (*(sky_u32_t *) (m) == (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0)))
+    (*(sky_u32_t *) (m) == (((c3) << 24) | ((c2) << 16) | ((c1) << 8) | (c0)))
 
 #else
 
 #define sky_str2_num(c1, c0)            \
-    (((c1) << 0x8) | (c0))
+    (((c1) << 8) | (c0))
 #define sky_str4_num(c3, c2, c1, c0)    \
-    (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0))
+    (((c3) << 24) | ((c2) << 16) | ((c1) << 8) | (c0))
 
 #define sky_str2_cmp(m, c1, c0)                                                         \
-    (*(sky_u16_t *) (m) == (((c1) << 0x8) | (c0)))
+    (*(sky_u16_t *) (m) == (((c1) << 8) | (c0)))
 
 #define sky_str4_cmp(m, c3, c2, c1, c0)                                                 \
-    (*(sky_u32_t *) (m) == (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0)))
+    (*(sky_u32_t *) (m) == (((c3) << 24) | ((c2) << 16) | ((c1) << 8) | (c0)))
 
 #endif
 
