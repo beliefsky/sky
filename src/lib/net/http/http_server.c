@@ -81,7 +81,7 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
     hash.hash = &server->headers_in_hash;
     hash.key = sky_hash_key_lc;
     hash.max_size = 512;
-    hash.bucket_size = sky_align(64, sky_cache_line_size);
+    hash.bucket_size = sky_align_size(64, sky_cache_line_size);
     hash.pool = server->pool;
     hash.temp_pool = null;
 

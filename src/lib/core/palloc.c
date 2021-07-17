@@ -21,7 +21,7 @@ sky_pool_t*
 sky_pool_create(sky_usize_t size) {
     sky_pool_t *p;
 
-    size = sky_align(size, 4096U);
+    size = sky_align_size(size, 4096U);
 
     p = mmap(null, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     if (sky_unlikely(!p)) {
