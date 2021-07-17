@@ -8,6 +8,7 @@
 #include "../../event/event_loop.h"
 #include "../../core/coro.h"
 #include "../../core/buf.h"
+#include "../../core/trie.h"
 #include "../../core/hash.h"
 
 #if defined(__cplusplus)
@@ -52,6 +53,7 @@ struct sky_http_server_s {
     sky_hash_t modules_hash;
 
     sky_str_t *status_map;
+    sky_trie_t *default_host;
 
     sky_usize_t (*http_read)(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size);
 

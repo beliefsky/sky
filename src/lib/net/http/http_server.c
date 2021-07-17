@@ -86,10 +86,15 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
     sky_array_init(&arrays, server->tmp_pool, conf->modules_n, sizeof(sky_hash_key_t));
     host = conf->modules_host;
     for (sky_u16_t i = 0; i < conf->modules_n; ++i) {
-        key = sky_array_push(&arrays);
-        key->key = host->host;
-        key->key_hash = sky_hash_key(key->key.data, key->key.len);
-        key->value = trie = sky_trie_create(pool);
+        trie = sky_trie_create(pool);
+        if (!host->host.len) {
+            server->default_host = trie;
+        } else {
+            key = sky_array_push(&arrays);
+            key->key = host->host;
+            key->key_hash = sky_hash_key(key->key.data, key->key.len);
+            key->value = trie;
+        }
 
         module = host->modules;
         for (sky_u16_t j = 0; j < host->modules_n; ++j) {
@@ -350,6 +355,9 @@ http_process_host(sky_http_request_t *r, sky_table_elt_t *h, sky_usize_t data) {
         key = r->headers_in.host;
         hash = sky_hash_key(key->data, key->len);
         trie_prefix = sky_hash_find(&r->conn->server->modules_hash, hash, key->data, key->len);
+        if (!trie_prefix) {
+            trie_prefix = r->conn->server->default_host;
+        }
         if (trie_prefix) {
             sky_http_module_t *module = (sky_http_module_t *) sky_trie_find(trie_prefix, &r->uri);
             if (module && module->prefix.len) {
