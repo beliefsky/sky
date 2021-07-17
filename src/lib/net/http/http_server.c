@@ -12,11 +12,6 @@
 #include "../../core/trie.h"
 #include "../tls/tls.h"
 
-typedef struct {
-    sky_str_t msg;
-    sky_u16_t status: 9;
-} status_t;
-
 static sky_event_t *http_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server_t *server);
 
 static sky_event_t *https_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server_t *server);
@@ -29,7 +24,7 @@ static sky_i32_t https_connection_process(sky_coro_t *coro, sky_http_connection_
 
 static void build_headers_in(sky_array_t *array, sky_pool_t *pool);
 
-void http_status_build(sky_http_server_t *server);
+static void http_status_build(sky_http_server_t *server);
 
 static sky_bool_t http_process_header_line(sky_http_request_t *r, sky_table_elt_t *h, sky_usize_t data);
 
@@ -133,27 +128,10 @@ sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *loop) {
 
 sky_str_t*
 sky_http_status_find(sky_http_server_t *server, sky_u32_t status) {
-    status_t *arrays;
-    sky_i32_t tmp, left, mid, right;
-
-
-    arrays = server->status.elts;
-    left = 0;
-    right = (sky_i32_t) server->status.nelts - 1;
-
-    while (left <= right) {
-        mid = sky_two_avg(left, right);
-        tmp = (sky_u16_t) arrays[mid].status;
-        if (tmp == status) {
-            return &arrays[mid].msg;
-        }
-        if (tmp < status) {
-            left = mid + 1;
-        } else {
-            right = mid - 1;
-        }
+    if (sky_unlikely(status < 100 || status > 512)) {
+        return null;
     }
-    return null;
+    return server->status_map + (status - 100);
 }
 
 
@@ -263,59 +241,58 @@ build_headers_in(sky_array_t *array, sky_pool_t *pool) {
 #undef http_header_push
 }
 
-void
+static void
 http_status_build(sky_http_server_t *server) {
-    sky_array_t *status;
-    status_t *tmp;
+    sky_str_t *status_map;
+    sky_str_t *status;
 
-    status = &server->status;
-    sky_array_init(status, server->pool, 64, sizeof(status_t));
-
-#define http_status_push(_arrays, _item, _status, _msg) \
-    (_item) = sky_array_push(_arrays);                  \
-    (_item)->status = _status;                          \
-    sky_str_set(&(_item)->msg, _msg)
+    server->status_map = status_map = sky_pcalloc(server->pool, sizeof(sky_str_t) * 512);
 
 
-    http_status_push(status, tmp, 100, "100 Continue");
-    http_status_push(status, tmp, 101, "101 Switching Protocols");
-    http_status_push(status, tmp, 200, "200 OK");
-    http_status_push(status, tmp, 201, "201 Created");
-    http_status_push(status, tmp, 202, "202 Accepted");
-    http_status_push(status, tmp, 203, "203 Non-Authoritative Information");
-    http_status_push(status, tmp, 204, "204 No Content");
-    http_status_push(status, tmp, 205, "205 Reset Content");
-    http_status_push(status, tmp, 206, "206 Partial Content");
-    http_status_push(status, tmp, 300, "300 Multiple Choices");
-    http_status_push(status, tmp, 301, "301 Moved Permanently");
-    http_status_push(status, tmp, 302, "302 Found");
-    http_status_push(status, tmp, 303, "303 See Other");
-    http_status_push(status, tmp, 304, "304 Not Modified");
-    http_status_push(status, tmp, 305, "305 Use Proxy");
-    http_status_push(status, tmp, 307, "307 Temporary Redirect");
-    http_status_push(status, tmp, 400, "400 Bad Request");
-    http_status_push(status, tmp, 401, "401 Unauthorized");
-    http_status_push(status, tmp, 403, "403 Forbidden");
-    http_status_push(status, tmp, 404, "404 Not Found");
-    http_status_push(status, tmp, 405, "405 Method Not Allowed");
-    http_status_push(status, tmp, 406, "406 Not Acceptable");
-    http_status_push(status, tmp, 407, "407 Proxy Authentication Required");
-    http_status_push(status, tmp, 408, "408 Request Time-out");
-    http_status_push(status, tmp, 409, "409 Conflict");
-    http_status_push(status, tmp, 410, "410 Gone");
-    http_status_push(status, tmp, 411, "411 Length Required");
-    http_status_push(status, tmp, 412, "412 Precondition Failed");
-    http_status_push(status, tmp, 413, "413 Request Entity Too Large");
-    http_status_push(status, tmp, 414, "414 Request-URI Too Large");
-    http_status_push(status, tmp, 415, "415 Unsupported Media Type");
-    http_status_push(status, tmp, 416, "416 Requested range not satisfiable");
-    http_status_push(status, tmp, 417, "417 Expectation Failed");
-    http_status_push(status, tmp, 500, "500 Internal Server Error");
-    http_status_push(status, tmp, 501, "501 Not Implemented");
-    http_status_push(status, tmp, 502, "502 Bad Gateway");
-    http_status_push(status, tmp, 503, "503 Service Unavailable");
-    http_status_push(status, tmp, 504, "504 Gateway Time-out");
-    http_status_push(status, tmp, 505, "505 HTTP Version not supported");
+#define http_status_push(_status, _msg)     \
+    status = status_map + (_status - 100);  \
+    sky_str_set(status, _msg)
+
+
+    http_status_push(100, "100 Continue");
+    http_status_push(101, "101 Switching Protocols");
+    http_status_push(200, "200 OK");
+    http_status_push(201, "201 Created");
+    http_status_push(202, "202 Accepted");
+    http_status_push(203, "203 Non-Authoritative Information");
+    http_status_push(204, "204 No Content");
+    http_status_push(205, "205 Reset Content");
+    http_status_push(206, "206 Partial Content");
+    http_status_push(300, "300 Multiple Choices");
+    http_status_push(301, "301 Moved Permanently");
+    http_status_push(302, "302 Found");
+    http_status_push(303, "303 See Other");
+    http_status_push(304, "304 Not Modified");
+    http_status_push(305, "305 Use Proxy");
+    http_status_push(307, "307 Temporary Redirect");
+    http_status_push(400, "400 Bad Request");
+    http_status_push(401, "401 Unauthorized");
+    http_status_push(403, "403 Forbidden");
+    http_status_push(404, "404 Not Found");
+    http_status_push(405, "405 Method Not Allowed");
+    http_status_push(406, "406 Not Acceptable");
+    http_status_push(407, "407 Proxy Authentication Required");
+    http_status_push(408, "408 Request Time-out");
+    http_status_push(409, "409 Conflict");
+    http_status_push(410, "410 Gone");
+    http_status_push(411, "411 Length Required");
+    http_status_push(412, "412 Precondition Failed");
+    http_status_push(413, "413 Request Entity Too Large");
+    http_status_push(414, "414 Request-URI Too Large");
+    http_status_push(415, "415 Unsupported Media Type");
+    http_status_push(416, "416 Requested range not satisfiable");
+    http_status_push(417, "417 Expectation Failed");
+    http_status_push(500, "500 Internal Server Error");
+    http_status_push(501, "501 Not Implemented");
+    http_status_push(502, "502 Bad Gateway");
+    http_status_push(503, "503 Service Unavailable");
+    http_status_push(504, "504 Gateway Time-out");
+    http_status_push(505, "505 HTTP Version not supported");
 
 #undef http_status_push
 }
