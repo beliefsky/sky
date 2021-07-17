@@ -246,7 +246,7 @@ http_status_build(sky_http_server_t *server) {
     sky_str_t *status_map;
     sky_str_t *status;
 
-    server->status_map = status_map = sky_pcalloc(server->pool, sizeof(sky_str_t) * 512);
+    server->status_map = status_map = sky_pcalloc(server->pool, sizeof(sky_str_t) * 412);
 
 
 #define http_status_push(_status, _msg)     \
