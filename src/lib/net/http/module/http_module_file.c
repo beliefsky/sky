@@ -290,7 +290,7 @@ http_mime_type_init(http_module_file_t *data) {
     hash.hash = &data->mime_types;
     hash.key = sky_hash_key_lc;
     hash.max_size = 512;
-    hash.bucket_size = sky_align(64, sky_cache_line_size);
+    hash.bucket_size = sky_align_size(64, sky_cache_line_size);
     hash.pool = data->pool;
     if (!sky_hash_init(&hash, arrays.elts, arrays.nelts)) {
         sky_log_error("文件类型初始化出错");

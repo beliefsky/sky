@@ -33,7 +33,7 @@ typedef struct {
     sky_u16_t len;        //name长度
     sky_uchar_t name[1];    //某个要hash的数据(在sky中表现为字符串)，即<key,value>中的key
     // 这里数组长度为1，是一个小技巧。实现时，在具体分配sky_hash_elt_t的大小时使用宏SKY_HASH_ELT_SIZE来确定(并且是内存对齐的)：
-    // #define SKY_HASH_ELT_SIZE(name) (sizeof(void *) + sky_align((name)->key.len + 2, sizeof(void *)))
+    // #define SKY_HASH_ELT_SIZE(name) (sizeof(void *) + sky_align_size((name)->key.len + 2, sizeof(void *)))
 } sky_hash_elt_t;
 
 //hash结构
