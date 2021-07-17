@@ -256,6 +256,7 @@ http_status_build(sky_http_server_t *server) {
 
     http_status_push(100, "100 Continue");
     http_status_push(101, "101 Switching Protocols");
+    http_status_push(102, "102 Processing");
     http_status_push(200, "200 OK");
     http_status_push(201, "201 Created");
     http_status_push(202, "202 Accepted");
@@ -263,6 +264,7 @@ http_status_build(sky_http_server_t *server) {
     http_status_push(204, "204 No Content");
     http_status_push(205, "205 Reset Content");
     http_status_push(206, "206 Partial Content");
+    http_status_push(207, "207 Multi-Status");
     http_status_push(300, "300 Multiple Choices");
     http_status_push(301, "301 Moved Permanently");
     http_status_push(302, "302 Found");
@@ -287,12 +289,25 @@ http_status_build(sky_http_server_t *server) {
     http_status_push(415, "415 Unsupported Media Type");
     http_status_push(416, "416 Requested range not satisfiable");
     http_status_push(417, "417 Expectation Failed");
+    http_status_push(418, "418 I'm a teapot");
+    http_status_push(421, "421 Misdirected Request");
+    http_status_push(422, "422 Unprocessable Entity");
+    http_status_push(423, "423 Locked");
+    http_status_push(424, "424 Failed Dependency");
+    http_status_push(425, "425 Too Early");
+    http_status_push(426, "426 Upgrade Required");
+    http_status_push(449, "449 Retry With");
+    http_status_push(451, "451 Unavailable For Legal Reasons");
     http_status_push(500, "500 Internal Server Error");
     http_status_push(501, "501 Not Implemented");
     http_status_push(502, "502 Bad Gateway");
     http_status_push(503, "503 Service Unavailable");
     http_status_push(504, "504 Gateway Time-out");
     http_status_push(505, "505 HTTP Version not supported");
+    http_status_push(506, "506 Variant Also Negotiates");
+    http_status_push(507, "507 Insufficient Storage");
+    http_status_push(509, "509 Bandwidth Limit Exceeded");
+    http_status_push(510, "510 Not Extended");
 
 #undef http_status_push
 }
