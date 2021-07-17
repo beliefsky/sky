@@ -128,11 +128,10 @@ sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *loop) {
 
 sky_str_t*
 sky_http_status_find(sky_http_server_t *server, sky_u32_t status) {
-    if (sky_unlikely(status < 100 || status > 512)) {
+    if (sky_unlikely(status < 100 || status > 510)) {
         return null;
     }
-    status -= 100;
-    return server->status_map + ((status >> 2U) + (status & 31U));
+    return server->status_map + (status - 100);
 }
 
 
@@ -247,53 +246,53 @@ http_status_build(sky_http_server_t *server) {
     sky_str_t *status_map;
     sky_str_t *status;
 
-    server->status_map = status_map = sky_pcalloc(server->pool, sizeof(sky_str_t) * 125);
+    server->status_map = status_map = sky_pcalloc(server->pool, sizeof(sky_str_t) * 412);
 
 
 #define http_status_push(_status, _msg)     \
-    status = status_map + (((_status - 100) >> 2U) + ((_status - 100) & 31U));  \
+    status = status_map + (_status - 100);  \
     sky_str_set(status, _msg)
 
 
-    http_status_push(100U, "100 Continue");
-    http_status_push(101U, "101 Switching Protocols");
-    http_status_push(200U, "200 OK");
-    http_status_push(201U, "201 Created");
-    http_status_push(202U, "202 Accepted");
-    http_status_push(203U, "203 Non-Authoritative Information");
-    http_status_push(204U, "204 No Content");
-    http_status_push(205U, "205 Reset Content");
-    http_status_push(206U, "206 Partial Content");
-    http_status_push(300U, "300 Multiple Choices");
-    http_status_push(301U, "301 Moved Permanently");
-    http_status_push(302U, "302 Found");
-    http_status_push(303U, "303 See Other");
-    http_status_push(304U, "304 Not Modified");
-    http_status_push(305U, "305 Use Proxy");
-    http_status_push(307U, "307 Temporary Redirect");
-    http_status_push(400U, "400 Bad Request");
-    http_status_push(401U, "401 Unauthorized");
-    http_status_push(403U, "403 Forbidden");
-    http_status_push(404U, "404 Not Found");
-    http_status_push(405U, "405 Method Not Allowed");
-    http_status_push(406U, "406 Not Acceptable");
-    http_status_push(407U, "407 Proxy Authentication Required");
-    http_status_push(408U, "408 Request Time-out");
-    http_status_push(409U, "409 Conflict");
-    http_status_push(410U, "410 Gone");
-    http_status_push(411U, "411 Length Required");
-    http_status_push(412U, "412 Precondition Failed");
-    http_status_push(413U, "413 Request Entity Too Large");
-    http_status_push(414U, "414 Request-URI Too Large");
-    http_status_push(415U, "415 Unsupported Media Type");
-    http_status_push(416U, "416 Requested range not satisfiable");
-    http_status_push(417U, "417 Expectation Failed");
-    http_status_push(500U, "500 Internal Server Error");
-    http_status_push(501U, "501 Not Implemented");
-    http_status_push(502U, "502 Bad Gateway");
-    http_status_push(503U, "503 Service Unavailable");
-    http_status_push(504U, "504 Gateway Time-out");
-    http_status_push(505U, "505 HTTP Version not supported");
+    http_status_push(100, "100 Continue");
+    http_status_push(101, "101 Switching Protocols");
+    http_status_push(200, "200 OK");
+    http_status_push(201, "201 Created");
+    http_status_push(202, "202 Accepted");
+    http_status_push(203, "203 Non-Authoritative Information");
+    http_status_push(204, "204 No Content");
+    http_status_push(205, "205 Reset Content");
+    http_status_push(206, "206 Partial Content");
+    http_status_push(300, "300 Multiple Choices");
+    http_status_push(301, "301 Moved Permanently");
+    http_status_push(302, "302 Found");
+    http_status_push(303, "303 See Other");
+    http_status_push(304, "304 Not Modified");
+    http_status_push(305, "305 Use Proxy");
+    http_status_push(307, "307 Temporary Redirect");
+    http_status_push(400, "400 Bad Request");
+    http_status_push(401, "401 Unauthorized");
+    http_status_push(403, "403 Forbidden");
+    http_status_push(404, "404 Not Found");
+    http_status_push(405, "405 Method Not Allowed");
+    http_status_push(406, "406 Not Acceptable");
+    http_status_push(407, "407 Proxy Authentication Required");
+    http_status_push(408, "408 Request Time-out");
+    http_status_push(409, "409 Conflict");
+    http_status_push(410, "410 Gone");
+    http_status_push(411, "411 Length Required");
+    http_status_push(412, "412 Precondition Failed");
+    http_status_push(413, "413 Request Entity Too Large");
+    http_status_push(414, "414 Request-URI Too Large");
+    http_status_push(415, "415 Unsupported Media Type");
+    http_status_push(416, "416 Requested range not satisfiable");
+    http_status_push(417, "417 Expectation Failed");
+    http_status_push(500, "500 Internal Server Error");
+    http_status_push(501, "501 Not Implemented");
+    http_status_push(502, "502 Bad Gateway");
+    http_status_push(503, "503 Service Unavailable");
+    http_status_push(504, "504 Gateway Time-out");
+    http_status_push(505, "505 HTTP Version not supported");
 
 #undef http_status_push
 }
