@@ -50,7 +50,8 @@ struct sky_http_server_s {
 
     sky_hash_t headers_in_hash;
     sky_hash_t modules_hash;
-    sky_array_t status;
+
+    sky_str_t *status_map;
 
     sky_usize_t (*http_read)(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size);
 
