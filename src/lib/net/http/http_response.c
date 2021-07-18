@@ -44,7 +44,7 @@ void
 sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_u32_t buf_len) {
     sky_str_buf_t str_buf;
     sky_uchar_t *data;
-    sky_table_elt_t *header;
+    sky_http_header_t *header;
 
     if (sky_unlikely(r->response)) {
         return;
@@ -55,7 +55,7 @@ sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_u32_t 
     sky_str_set(&header->key, "Content-Length");
 
     if (!buf_len) {
-        sky_str_set(&header->value, "0");
+        sky_str_set(&header->val, "0");
         sky_str_buf_init(&str_buf, r->pool, 2048);
         http_header_build(r, &str_buf);
 
@@ -69,8 +69,8 @@ sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_u32_t 
         return;
     }
 
-    header->value.data = data = sky_palloc(r->pool, 16);
-    header->value.len = sky_u64_to_str(buf_len, data);
+    header->val.data = data = sky_palloc(r->pool, 16);
+    header->val.len = sky_u64_to_str(buf_len, data);
 
     if (buf_len < 8192) {
         sky_str_buf_init(&str_buf, r->pool, 2048 + (sky_u32_t) buf_len);
@@ -106,7 +106,7 @@ void
 sky_http_sendfile(sky_http_request_t *r, sky_i32_t fd, sky_usize_t offset, sky_usize_t size, sky_usize_t file_size) {
     sky_str_buf_t str_buf;
     sky_uchar_t *data;
-    sky_table_elt_t *header;
+    sky_http_header_t *header;
 
     if (sky_unlikely(r->response)) {
         return;
@@ -116,8 +116,8 @@ sky_http_sendfile(sky_http_request_t *r, sky_i32_t fd, sky_usize_t offset, sky_u
     data = sky_palloc(r->pool, 16);
     header = sky_list_push(&r->headers_out.headers);
     sky_str_set(&header->key, "Content-Length");
-    header->value.len = sky_u64_to_str(size, data);
-    header->value.data = data;
+    header->val.len = sky_u64_to_str(size, data);
+    header->val.data = data;
     if (r->state == 206U) {
         header = sky_list_push(&r->headers_out.headers);
         sky_str_set(&header->key, "Content-Range");
@@ -130,7 +130,7 @@ sky_http_sendfile(sky_http_request_t *r, sky_i32_t fd, sky_usize_t offset, sky_u
         sky_str_buf_append_uchar(&str_buf, '/');
         sky_str_buf_append_uint64(&str_buf, file_size);
 
-        sky_str_buf_build(&str_buf, &header->value);
+        sky_str_buf_build(&str_buf, &header->val);
     }
 
     sky_str_buf_init(&str_buf, r->pool, 2048);
@@ -187,10 +187,10 @@ http_header_build(sky_http_request_t *r, sky_str_buf_t *buf) {
 
     sky_str_buf_append_str_len(buf, sky_str_line("\r\nServer: sky\r\n"));
 
-    sky_list_foreach(&r->headers_out.headers, sky_table_elt_t, item, {
+    sky_list_foreach(&r->headers_out.headers, sky_http_header_t, item, {
         sky_str_buf_append_str(buf, &item->key);
         sky_str_buf_append_two_uchar(buf, ':', ' ');
-        sky_str_buf_append_str(buf, &item->value);
+        sky_str_buf_append_str(buf, &item->val);
         sky_str_buf_append_two_uchar(buf, '\r', '\n');
     });
 

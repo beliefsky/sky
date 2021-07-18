@@ -441,10 +441,10 @@ sky_http_multipart_decode(sky_http_request_t *r, sky_str_t *str) {
             multipart->next = sky_pcalloc(r->pool, sizeof(sky_http_multipart_t));
             multipart = multipart->next;
         }
-        sky_list_init(&multipart->headers, r->pool, 8, sizeof(sky_table_elt_t));
+        sky_list_init(&multipart->headers, r->pool, 8, sizeof(sky_http_header_t));
 
         for (;;) {
-            sky_table_elt_t *elt = sky_list_push(&multipart->headers);
+            sky_http_header_t *elt = sky_list_push(&multipart->headers);
             sky_isize_t index = parse_token(p, p + size, ':');
             if (index < 0) {
                 return null;
@@ -465,8 +465,8 @@ sky_http_multipart_decode(sky_http_request_t *r, sky_str_t *str) {
             if (sky_unlikely(index < 0)) {
                 return null;
             }
-            elt->value.len = (sky_usize_t) index;
-            elt->value.data = p;
+            elt->val.len = (sky_usize_t) index;
+            elt->val.data = p;
 
             p += index;
             if (sky_unlikely(!sky_str2_cmp(p, '\r', '\n'))) {
@@ -476,18 +476,16 @@ sky_http_multipart_decode(sky_http_request_t *r, sky_str_t *str) {
             size -= (sky_usize_t) index + 2;
             p += 2;
 
-            elt->lowcase_key = sky_palloc(r->pool, elt->key.len + 1);
-            *(elt->lowcase_key + elt->key.len) = '\0';
-            elt->hash = sky_hash_strlow(elt->lowcase_key, elt->key.data, elt->key.len);
+            sky_str_lower(elt->key.data, elt->key.data, elt->key.len);
             switch (elt->key.len) {
                 case 12:
-                    if (sky_likely(sky_str_len_equals_unsafe(elt->lowcase_key, sky_str_line("content-type")))) {
-                        multipart->content_type = &elt->value;
+                    if (sky_likely(sky_str_len_equals_unsafe(elt->key.data, sky_str_line("content-type")))) {
+                        multipart->content_type = &elt->val;
                     }
                     break;
                 case 19:
-                    if (sky_likely(sky_str_len_equals_unsafe(elt->lowcase_key, sky_str_line("content-disposition")))) {
-                        multipart->content_disposition = &elt->value;
+                    if (sky_likely(sky_str_len_equals_unsafe(elt->key.data, sky_str_line("content-disposition")))) {
+                        multipart->content_disposition = &elt->val;
                     }
                     break;
                 default:
