@@ -340,13 +340,15 @@ sky_http_url_decode(sky_str_t *str) {
     for (;;) {
         ch = *(p++);
         if (ch >= '0' && ch <= '9') {
-            *s = (sky_uchar_t) ((ch - '0') << 4);
+            ch -= '0';
+            *s = (sky_uchar_t) (ch << 4U);
         } else {
             ch |= 0x20U;
-            if (sky_unlikely(ch < 'a' && ch > 'f')) {
+            if (sky_unlikely(ch < 'a' || ch > 'f')) {
                 return false;
             }
-            *s = (sky_uchar_t) ((ch - 'a' + 10) << 4);
+            ch -= 'a' - 10;
+            *s = (sky_uchar_t) (ch << 4U);
         }
 
         ch = *(p++);
@@ -354,7 +356,7 @@ sky_http_url_decode(sky_str_t *str) {
             *(s++) += ch - '0';
         } else {
             ch |= 0x20U;
-            if (sky_unlikely(ch < 'a' && ch > 'f')) {
+            if (sky_unlikely(ch < 'a' || ch > 'f')) {
                 return false;
             }
             *(s++) += ch - 'a' + 10;
