@@ -18,26 +18,48 @@ extern "C" {
 #define sky_str4_switch(_m) \
     (*(sky_u32_t *)(_m))
 
+#define sky_str8_switch(_m) \
+    (*(sky_u64_t *)(_m))
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 #define sky_str2_num(c0, c1)            \
-    (((c1) << 8) | (c0))
+    ((sky_u16_t)(((sky_u32_t)(c1) << 8U) | (sky_u32_t)(c0)))
+
 #define sky_str4_num(c0, c1, c2, c3)    \
-    (((c3) << 24) | ((c2) << 16) | ((c1) << 8) | (c0))
+    (((sky_u32_t)(c3) << 24U)           \
+    | ((sky_u32_t)(c2) << 16U)          \
+    | ((sky_u32_t)(c1) << 8U)           \
+    | ((sky_u32_t)c0))
 
 #define sky_str8_num(c0, c1, c2, c3, c4, c5, c6, c7)    \
-    (((c7) << 56) | ((c6) << 48) | ((c5) << 40) | ((c4) << 32) | ((c3) << 24) | ((c2) << 16) | ((c1) << 8) | (c0))
+    (((sky_u64_t)(c7) << 56UL)                          \
+    | ((sky_u64_t)(c6) << 48UL)                         \
+    | ((sky_u64_t)(c5) << 40UL)                         \
+    | ((sky_u64_t)(c4) << 32UL)                         \
+    | ((sky_u64_t)(c3) << 24UL)                         \
+    | ((sky_u64_t)(c2) << 16UL)                         \
+    | ((sky_u64_t)(c1) << 8UL)                          \
+    | (sky_u64_t)(c0))
 
 #else
 #define sky_str2_num(c1, c0)            \
-    (((c1) << 8) | (c0))
+    ((sky_u16_t)(((sky_u32_t)(c1) << 8U) | (sky_u32_t)(c0)))
 
 #define sky_str4_num(c3, c2, c1, c0)    \
-    (((c3) << 24) | ((c2) << 16) | ((c1) << 8) | (c0))
+    (((sky_u32_t)(c3) << 24U)           \
+    | ((sky_u32_t)(c2) << 16U)          \
+    | ((sky_u32_t)(c1) << 8U)           \
+    | ((sky_u32_t)c0))
 
 #define sky_str8_num(c7, c6, c5, c4, c3, c2, c1, c0)    \
-    (((c7) << 56) | ((c6) << 48) | ((c5) << 40) | ((c4) << 32) | ((c3) << 24) | ((c2) << 16) | ((c1) << 8) | (c0))
-
+    (((sky_u64_t)(c7) << 56UL)                          \
+    | ((sky_u64_t)(c6) << 48UL)                         \
+    | ((sky_u64_t)(c5) << 40UL)                         \
+    | ((sky_u64_t)(c4) << 32UL)                         \
+    | ((sky_u64_t)(c3) << 24UL)                         \
+    | ((sky_u64_t)(c2) << 16UL)                         \
+    | ((sky_u64_t)(c1) << 8UL)                          \
+    | (sky_u64_t)(c0))
 #endif
 
 
