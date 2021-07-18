@@ -25,25 +25,29 @@ extern "C" {
 #define sky_str4_num(c0, c1, c2, c3)    \
     (((c3) << 24) | ((c2) << 16) | ((c1) << 8) | (c0))
 
-#define sky_str2_cmp(m, c0, c1)                                                         \
-    (*(sky_u16_t *) (m) == (((c1) << 8) | (c0)))
-#define sky_str4_cmp(m, c0, c1, c2, c3)                                                 \
-    (*(sky_u32_t *) (m) == (((c3) << 24) | ((c2) << 16) | ((c1) << 8) | (c0)))
+#define sky_str8_num(c0, c1, c2, c3, c4, c5, c6, c7)    \
+    (((c7) << 56) | ((c6) << 48) | ((c5) << 40) | ((c4) << 32) | ((c3) << 24) | ((c2) << 16) | ((c1) << 8) | (c0))
 
 #else
-
 #define sky_str2_num(c1, c0)            \
     (((c1) << 8) | (c0))
+
 #define sky_str4_num(c3, c2, c1, c0)    \
     (((c3) << 24) | ((c2) << 16) | ((c1) << 8) | (c0))
 
-#define sky_str2_cmp(m, c1, c0)                                                         \
-    (*(sky_u16_t *) (m) == (((c1) << 8) | (c0)))
-
-#define sky_str4_cmp(m, c3, c2, c1, c0)                                                 \
-    (*(sky_u32_t *) (m) == (((c3) << 24) | ((c2) << 16) | ((c1) << 8) | (c0)))
+#define sky_str8_num(c7, c6, c5, c4, c3, c2, c1, c0)    \
+    (((c7) << 56) | ((c6) << 48) | ((c5) << 40) | ((c4) << 32) | ((c3) << 24) | ((c2) << 16) | ((c1) << 8) | (c0))
 
 #endif
+
+
+#define sky_str2_cmp(m, c0, c1)                                                         \
+    (*(sky_u16_t *) (m) == sky_str2_num(c0, c1))
+#define sky_str4_cmp(m, c0, c1, c2, c3)                                                 \
+    (*(sky_u32_t *) (m) == sky_str4_num(c0, c1, c2, c3))
+
+#define sky_str8_cmp(m, c0, c1, c2, c3, c4, c5, c6, c7)                                 \
+    (*(sky_u64_t *) (m) == sky_str8_num(c0, c1, c2, c3, c4, c5, c6, c7))
 
 #define sky_str_alloc_size(_str) \
     ((_str)->len + 1)

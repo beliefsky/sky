@@ -5,7 +5,7 @@
 #include "trie.h"
 
 #define NODE_LEN 32
-#define NODE_PTR 31
+#define NODE_PTR 31U
 
 typedef struct sky_trie_node_s sky_trie_node_t;
 
@@ -123,7 +123,7 @@ sky_trie_put(sky_trie_t *trie, sky_str_t *key, void *value) {
 
 
 void *
-sky_trie_find(sky_trie_t *trie, sky_str_t *key) {
+sky_trie_find(const sky_trie_t *trie, sky_str_t *key) {
     sky_trie_node_t *node, *prev_node;
     sky_uchar_t *tmp_key;
     sky_usize_t len;
@@ -167,7 +167,7 @@ sky_trie_find(sky_trie_t *trie, sky_str_t *key) {
 
 
 void *
-sky_trie_contains(sky_trie_t *trie, sky_str_t *key) {
+sky_trie_contains(const sky_trie_t *trie, sky_str_t *key) {
     sky_trie_node_t *node;
     sky_uchar_t *tmp_key;
     sky_usize_t len;

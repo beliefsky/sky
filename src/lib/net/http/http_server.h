@@ -48,8 +48,6 @@ struct sky_http_server_s {
     sky_str_t port;
 
     sky_coro_switcher_t switcher;
-
-    sky_hash_t headers_in_hash;
     sky_hash_t modules_hash;
 
     sky_str_t *status_map;
