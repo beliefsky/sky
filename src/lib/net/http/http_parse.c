@@ -1005,6 +1005,7 @@ header_handle_run(sky_http_request_t *req, const sky_http_header_t *h) {
     switch (h->key.len) {
         case 4: {
             if (sky_likely(sky_str4_cmp(p, 'h', 'o', 's', 't'))) { // Host
+                req->headers_in.host = &h->val;
                 const sky_trie_t *trie_prefix = req->conn->server->default_host;
                 if (trie_prefix) {
                     sky_http_module_t *module = (sky_http_module_t *) sky_trie_find(trie_prefix, &req->uri);
