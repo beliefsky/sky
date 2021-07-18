@@ -12,13 +12,13 @@
 extern "C" {
 #endif
 
-#define true    0x1
-#define false   0x0
+#define true    1
+#define false   0
 
 #define sky_inline  inline __attribute__((always_inline))
 #define sky_offset_of(_TYPE, _MEMBER) __builtin_offsetof (_TYPE, _MEMBER)
 
-#define null    (void *)0x0
+#define null    (void *)0
 
 #define SKY_I8_MAX INT8_MAX
 #define SKY_U8_MAX UINT8_MAX
