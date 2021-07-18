@@ -54,15 +54,15 @@ static void
 
 module_run(sky_http_request_t *r, websocket_data_t *data) {
     sky_websocket_session_t *session;
-    sky_table_elt_t *header;
+    sky_http_header_t *header;
 
     r->keep_alive = false;
 
     sky_str_t *key = null;
 
-    sky_list_foreach(&r->headers_in.headers, sky_table_elt_t, item, {
+    sky_list_foreach(&r->headers_in.headers, sky_http_header_t, item, {
         if (item->key.len == 17 && sky_str4_cmp(item->key.data, 'S', 'e', 'c', '-')) {
-            key = &item->value;
+            key = &item->val;
             break;
         }
     });
@@ -101,16 +101,16 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
     r->state = 101;
     header = sky_list_push(&r->headers_out.headers);
     sky_str_set(&header->key, "Upgrade");
-    sky_str_set(&header->value, "websocket");
+    sky_str_set(&header->val, "websocket");
 
     header = sky_list_push(&r->headers_out.headers);
     sky_str_set(&header->key, "Connection");
-    sky_str_set(&header->value, "upgrade");
+    sky_str_set(&header->val, "upgrade");
 
 
     header = sky_list_push(&r->headers_out.headers);
     sky_str_set(&header->key, "Sec-WebSocket-Accept");
-    header->value = *key;
+    header->val = *key;
 
     sky_http_response_nobody(r);
 

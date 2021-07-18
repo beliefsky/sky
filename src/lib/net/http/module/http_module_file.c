@@ -83,7 +83,7 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
     sky_i64_t mtime;
     http_file_t *file;
     http_mime_type_t *mime_type;
-    sky_table_elt_t *header;
+    sky_http_header_t *header;
     sky_char_t *path;
     sky_i32_t fd;
 
@@ -159,15 +159,15 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
 
     if (file->modified && file->modified_time == mtime) {
         close(fd);
-        header->value = *r->headers_in.if_modified_since;
+        header->val = *r->headers_in.if_modified_since;
 
         r->state = 304;
 
         sky_http_response_nobody(r);
         return;
     }
-    header->value.data = sky_palloc(r->pool, 30);
-    header->value.len = sky_date_to_rfc_str(mtime, header->value.data);
+    header->val.data = sky_palloc(r->pool, 30);
+    header->val.len = sky_date_to_rfc_str(mtime, header->val.data);
 
     if (file->range && (!file->if_range || file->range_time == mtime)) {
         r->state = 206;
