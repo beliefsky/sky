@@ -24,11 +24,10 @@ extern "C" {
 #define SKY_HTTP_OPTIONS                   0x0020
 #define SKY_HTTP_PATCH                     0x0040
 
-typedef sky_bool_t (*sky_http_header_handler_pt)(sky_http_request_t *r, sky_table_elt_t *h, sky_usize_t data);
 
 typedef struct {
-    sky_http_header_handler_pt handler;
-    sky_usize_t data;
+    sky_str_t key;
+    sky_str_t val;
 } sky_http_header_t;
 
 typedef struct {
