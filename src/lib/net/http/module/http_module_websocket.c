@@ -15,7 +15,6 @@
 
 typedef struct {
     sky_http_websocket_handler_t *handler;
-    sky_hash_t hash;
 } websocket_data_t;
 
 static void module_run(sky_http_request_t *r, websocket_data_t *data);
