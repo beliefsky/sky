@@ -23,18 +23,14 @@ static void http_status_build(sky_http_server_t *server);
 sky_http_server_t*
 sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
     sky_http_server_t *server;
-    sky_array_t arrays;
     sky_http_module_host_t *host;
     sky_http_module_t *module;
-    sky_hash_key_t *key;
-    sky_hash_init_t hash;
     sky_trie_t *trie;
 
     server = sky_palloc(pool, sizeof(sky_http_server_t));
     server->host = conf->host;
     server->port = conf->port;
     server->pool = pool;
-    server->tmp_pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
 
     if (!conf->header_buf_n) {
         conf->header_buf_n = 4; // 4 buff
@@ -55,29 +51,19 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
     server->rfc_last = 0;
 
     // ====================================================================================
-    sky_array_init(&arrays, server->tmp_pool, conf->modules_n, sizeof(sky_hash_key_t));
     host = conf->modules_host;
     for (sky_u16_t i = 0; i < conf->modules_n; ++i) {
-        trie = sky_trie_create(pool);
         if (!host->host.len) {
+            trie = sky_trie_create(pool);
             server->default_host = trie;
-        } else {
-            key = sky_array_push(&arrays);
-            key->key = host->host;
-            key->key_hash = sky_hash_key(key->key.data, key->key.len);
-            key->value = trie;
-        }
-
-        module = host->modules;
-        for (sky_u16_t j = 0; j < host->modules_n; ++j) {
-            sky_trie_put(trie, &module->prefix, module);
-            ++module;
+            module = host->modules;
+            for (sky_u16_t j = 0; j < host->modules_n; ++j) {
+                sky_trie_put(trie, &module->prefix, module);
+                ++module;
+            }
         }
         ++host;
     }
-    hash.hash = &server->modules_hash;
-    hash.key = sky_hash_key;
-    sky_hash_init(&hash, arrays.elts, arrays.nelts);
 
     http_status_build(server);
 
@@ -99,8 +85,6 @@ sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *loop) {
 
     sky_http_request_init(server);
     sky_tcp_listener_create(loop, server->pool, &conf);
-    sky_pool_destroy(server->tmp_pool);
-    server->tmp_pool = null;
 }
 
 sky_str_t*
