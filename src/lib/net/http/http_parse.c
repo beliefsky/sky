@@ -642,11 +642,11 @@ parse_url_no_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *e
     sky_uchar_t *start = post;
 #ifdef __SSE4_2__
     static const sky_uchar_t sky_align(16) ranges[16] = "\000\040"
-                     "  "
-                     "%%"
-                     ".."
-                     "??"
-                     "\177\177";
+                                                        "  "
+                                                        "%%"
+                                                        ".."
+                                                        "??"
+                                                        "\177\177";
 
     while (find_char_fast(&post, (sky_usize_t) (end - start), ranges, 12)) {
         switch (*post) {
@@ -749,10 +749,10 @@ parse_url_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end)
     sky_uchar_t *start = post;
 #ifdef __SSE4_2__
     static const sky_uchar_t sky_align(16) ranges[16] = "\000\040"
-                     "  "
-                     ".."
-                     "??"
-                     "\177\177";
+                                                        "  "
+                                                        ".."
+                                                        "??"
+                                                        "\177\177";
 
     while (find_char_fast(&post, (sky_usize_t) (end - start), ranges, 10)) {
         switch (*post) {
@@ -854,8 +854,8 @@ find_header_line(sky_uchar_t *post, const sky_uchar_t *end) {
     sky_uchar_t *start = post;
 #ifdef __SSE4_2__
     static const sky_uchar_t sky_align(16) ranges[16] = "\0\010"    /* allow HT */
-                     "\012\037"  /* allow SP and up to but not including DEL */
-                     "\177\177"; /* allow chars w. MSB set */
+                                                        "\012\037"  /* allow SP and up to but not including DEL */
+                                                        "\177\177"; /* allow chars w. MSB set */
     if (find_char_fast(&post, (sky_usize_t) (end - start), ranges, 6)) {
         if (*post != '\r' && *post != '\n') {
             return -2;
@@ -930,7 +930,7 @@ find_binary_line(sky_uchar_t *post, const sky_uchar_t *end) {
     sky_uchar_t *start = post;
 #ifdef __SSE4_2__
     static const sky_uchar_t sky_align(16) ranges[16] = "\n\n"
-                     "\r\r";
+                                                        "\r\r";
     if (find_char_fast(&post, (sky_usize_t) (end - start), ranges, 4)) {
         if (*post != '\r' && *post != '\n') {
             return -1;
@@ -952,8 +952,7 @@ find_binary_line(sky_uchar_t *post, const sky_uchar_t *end) {
 
 static sky_isize_t
 parse_token(sky_uchar_t *buf, const sky_uchar_t *end, sky_uchar_t next_char) {
-
-    static const sky_uchar_t *token_char_map = (sky_uchar_t *)
+    static const sky_uchar_t token_char_map[] =
             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
             "\0\1\0\1\1\1\1\1\0\0\1\1\0\1\1\0\1\1\1\1\1\1\1\1\1\1\0\0\0\0\0\0"
             "\0\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\1\0\0\0\1\1"
@@ -967,13 +966,13 @@ parse_token(sky_uchar_t *buf, const sky_uchar_t *end, sky_uchar_t next_char) {
 #ifdef __SSE4_2__
 
     static const sky_uchar_t sky_align(16) ranges[] = "\x00 "  /* control chars and up to SP */
-                   "\"\""   /* 0x22 */
-                   "()"     /* 0x28,0x29 */
-                   ",,"     /* 0x2c */
-                   "//"     /* 0x2f */
-                   ":@"     /* 0x3a-0x40 */
-                   "[]"     /* 0x5b-0x5d */
-                   "{\xff"; /* 0x7b-0xff */
+                                                      "\"\""   /* 0x22 */
+                                                      "()"     /* 0x28,0x29 */
+                                                      ",,"     /* 0x2c */
+                                                      "//"     /* 0x2f */
+                                                      ":@"     /* 0x3a-0x40 */
+                                                      "[]"     /* 0x5b-0x5d */
+                                                      "{\xff"; /* 0x7b-0xff */
 
     if (!find_char_fast(&buf, (sky_usize_t) (end - start), ranges, sizeof(ranges) - 1)) {
         if (buf == end) {

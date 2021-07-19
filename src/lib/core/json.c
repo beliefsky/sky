@@ -917,16 +917,9 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end) {
         } while (loop);
     }
 #elif defined(__SSE4_2__)
-#ifdef _MSC_VER
-#define ALIGNED(_n) _declspec(align(_n))
-#else
-#define ALIGNED(_n) __attribute__((aligned(_n)))
-#endif
-
-    static const sky_uchar_t ALIGNED(16) ranges[16] = "\0\037"
+    static const sky_uchar_t sky_align(16) ranges[16] = "\0\037"
                                                       "\"\""
                                                       "\\\\";
-#undef ALIGNED
     sky_bool_t loop = false;
     sky_usize_t size = (sky_usize_t) (end - p);
     if (sky_likely(size >= 16)) {
