@@ -12,7 +12,6 @@ sky_str_buf_t*
 sky_str_buf_create(sky_pool_t *pool, sky_u32_t n) {
     sky_str_buf_t *buf;
 
-    // 分配ngx_array_t数组管理结构的内存
     buf = sky_palloc(pool, sizeof(sky_str_buf_t));
     if (sky_unlikely(!buf)) {
         return null;
