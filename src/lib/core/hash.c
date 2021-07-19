@@ -7,7 +7,13 @@
 #include "cpuinfo.h"
 #include "log.h"
 
-void *
+#define sky_tolower(_c) \
+    (sky_uchar_t) (((_c) >= 'A' && (_c) <= 'Z') ? ((_c) | 0x20) : (_c))
+#define sky_toupper(_c) \
+    (sky_uchar_t) (((_c) >= 'a' && (_c) <= 'z') ? ((_c) & ~0x20) : (_c))
+
+
+void*
 sky_hash_find(sky_hash_t *hash, sky_usize_t key, sky_uchar_t *name, sky_usize_t len) {
     sky_usize_t i;
     sky_hash_elt_t *elt;
@@ -39,7 +45,7 @@ sky_hash_find(sky_hash_t *hash, sky_usize_t key, sky_uchar_t *name, sky_usize_t 
 }
 
 
-void *
+void*
 sky_hash_find_wc_head(sky_hash_wildcard_t *hwc, sky_uchar_t *name, sky_usize_t len) {
     void *value;
     sky_usize_t i, n, key;
@@ -119,7 +125,7 @@ sky_hash_find_wc_head(sky_hash_wildcard_t *hwc, sky_uchar_t *name, sky_usize_t l
 }
 
 
-void *
+void*
 sky_hash_find_wc_tail(sky_hash_wildcard_t *hwc, sky_uchar_t *name, sky_usize_t len) {
     void *value;
     sky_usize_t i, key;
@@ -170,7 +176,7 @@ sky_hash_find_wc_tail(sky_hash_wildcard_t *hwc, sky_uchar_t *name, sky_usize_t l
 }
 
 
-void *
+void*
 sky_hash_find_combined(sky_hash_combined_t *hash, sky_usize_t key, sky_uchar_t *name, sky_usize_t len) {
     void *value;
 
@@ -206,7 +212,7 @@ sky_hash_find_combined(sky_hash_combined_t *hash, sky_usize_t key, sky_uchar_t *
 }
 
 //计算sky_hash_elt_t结构大小，name为sky_hash_elt_t结构指针
-#define SKY_HASH_ELT_SIZE(name) (sizeof(void *) + sky_align((name)->key.len + 2, sizeof(void *)))
+#define SKY_HASH_ELT_SIZE(name) (sizeof(void *) + sky_align_size((name)->key.len + 2, sizeof(void *)))
 
 // 第一个参数hinit是初始化的一些参数的一个集合。 names是初始化一个sky_hash_t所需要的所有<key,value>对的一个数组，而nelts是该数组的个数。
 // 备注：我倒是觉得可以直接使用一个ngx_array_t*作为参数呢？
@@ -317,7 +323,7 @@ sky_hash_init(sky_hash_init_t *hinit, sky_hash_key_t *names, sky_usize_t nelts) 
             continue;
         }
         //对test[i]按ngx_cacheline_size对齐(32位平台，ngx_cacheline_size=32)
-        test[i] = (sky_u16_t) (sky_align(test[i], sky_cache_line_size));
+        test[i] = (sky_u16_t) (sky_align_size(test[i], sky_cache_line_size));
 
         len += test[i];
     }
@@ -462,7 +468,7 @@ sky_hash_wildcard_init(sky_hash_init_t *hinit, sky_hash_key_t *names,
         }
 
         for (i = n + 1; i < nelts; i++) {
-            if (!sky_str_len_equals_unsafe(names[n].key.data, names[i].key.data, len)) {
+            if (strncmp(names[n].key.data, names[i].key.data, len) != 0) {
                 break;
             }
 
@@ -688,7 +694,7 @@ sky_hash_add_key(sky_hash_keys_arrays_t *ha, sky_str_t *key, void *value, sky_us
                 continue;
             }
 
-            if (sky_str_len_equals_unsafe(key->data, name[i].data, last)) {
+            if (strncmp(key->data, name[i].data, last) == 0) {
                 return false;
             }
         }
@@ -740,7 +746,7 @@ sky_hash_add_key(sky_hash_keys_arrays_t *ha, sky_str_t *key, void *value, sky_us
                     continue;
                 }
 
-                if (sky_str_len_equals_unsafe(&key->data[1], name[i].data, len)) {
+                if (strncmp(&key->data[1], name[i].data, len) == 0) {
                     return false;
                 }
             }
@@ -814,7 +820,7 @@ sky_hash_add_key(sky_hash_keys_arrays_t *ha, sky_str_t *key, void *value, sky_us
             return false;
         }
 
-        sky_memcpy(p, key->data, last + 1);
+        strncpy(p, key->data, last);
 
         hwc = &ha->dns_wc_tail;
         keys = &ha->dns_wc_tail_hash[k];
@@ -833,7 +839,7 @@ sky_hash_add_key(sky_hash_keys_arrays_t *ha, sky_str_t *key, void *value, sky_us
                 continue;
             }
 
-            if (sky_str_len_equals_unsafe(key->data + skip, name[i].data, len)) {
+            if (strncmp(key->data + skip, name[i].data, len) == 0) {
                 return false;
             }
         }

@@ -21,7 +21,7 @@ sky_pool_t*
 sky_pool_create(sky_usize_t size) {
     sky_pool_t *p;
 
-    size = sky_align(size, 4096U);
+    size = sky_align_size(size, 4096U);
 
     p = mmap(null, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
     if (sky_unlikely(!p)) {
@@ -98,9 +98,7 @@ sky_pnalloc(sky_pool_t *pool, sky_usize_t size) {
 
 void*
 sky_pcalloc(sky_pool_t *pool, sky_usize_t size) {
-    void *p;
-
-    p = sky_palloc(pool, size);
+    void *p = sky_palloc(pool, size);
     if (sky_likely(p)) {
         sky_memzero(p, size);
     }
@@ -250,18 +248,18 @@ sky_palloc_small_align(sky_pool_t *pool, sky_usize_t size) {
 static void*
 sky_palloc_block(sky_pool_t *pool, sky_usize_t size) {
     sky_uchar_t *m;
-    sky_usize_t psize;
+    sky_usize_t p_size;
     sky_pool_t *p, *new;
 
-    psize = (sky_usize_t) (pool->d.end - (sky_uchar_t *) pool);
+    p_size = (sky_usize_t) (pool->d.end - (sky_uchar_t *) pool);
 
-    m = mmap(null, psize, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    m = mmap(null, p_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
 
     if (sky_unlikely(!m)) {
         return null;
     }
     new = (sky_pool_t *) m;
-    new->d.end = m + psize;
+    new->d.end = m + p_size;
     new->d.next = null;
     new->d.failed = 0;
     m += sizeof(sky_pool_data_t);

@@ -12,13 +12,25 @@
 extern "C" {
 #endif
 
-#define true    0x1
-#define false   0x0
+#define true    1
+#define false   0
 
-#define sky_inline  inline __attribute__((always_inline))
 #define sky_offset_of(_TYPE, _MEMBER) __builtin_offsetof (_TYPE, _MEMBER)
+#ifdef _MSC_VER
+#define sky_inline      __forceinline
+#define sky_align(_n)   _declspec(align(_n))
+#define sky_likely_is(_x, _y)   (_x)
+#define sky_likely(_x)          (_x)
+#define sky_unlikely(_x)        (_x)
+#else
+#define sky_inline  __attribute__((always_inline)) inline
+#define sky_align(_n) __attribute__((aligned(_n)))
+#define sky_likely_is(_x, _y) __builtin_expect((_x), (_y))
+#define sky_likely(_x)       __builtin_expect(!!(_x), 1)
+#define sky_unlikely(_x)     __builtin_expect(!!(_x), 0)
+#endif
 
-#define null    (void *)0x0
+#define null    (void *)0
 
 #define SKY_I8_MAX INT8_MAX
 #define SKY_U8_MAX UINT8_MAX
@@ -48,10 +60,6 @@ typedef time_t sky_time_t;
 
 typedef float sky_f32_t;
 typedef double sky_f64_t;
-
-#define sky_likely_is(_x, _y) __builtin_expect((_x), (_y))
-#define sky_likely(_x)       __builtin_expect(!!(_x), 1)
-#define sky_unlikely(_x)     __builtin_expect(!!(_x), 0)
 
 #define sky_abs(_v)         (((_v) < 0) ? -(_v) : v)
 #define sky_max(_v1, _v2)   ((_v1) ^ ((_v1) ^ (_v2)) & -((_v1) < (_v2)))

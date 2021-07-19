@@ -18,32 +18,58 @@ extern "C" {
 #define sky_str4_switch(_m) \
     (*(sky_u32_t *)(_m))
 
+#define sky_str8_switch(_m) \
+    (*(sky_u64_t *)(_m))
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 #define sky_str2_num(c0, c1)            \
-    (((c1) << 0x8) | (c0))
-#define sky_str4_num(c0, c1, c2, c3)    \
-    (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0))
+    ((sky_u16_t)(((sky_u32_t)(c1) << 8U) | (sky_u32_t)(c0)))
 
-#define sky_str2_cmp(m, c0, c1)                                                         \
-    (*(sky_u16_t *) (m) == (((c1) << 0x8) | (c0)))
-#define sky_str4_cmp(m, c0, c1, c2, c3)                                                 \
-    (*(sky_u32_t *) (m) == (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0)))
+#define sky_str4_num(c0, c1, c2, c3)    \
+    (((sky_u32_t)(c3) << 24U)           \
+    | ((sky_u32_t)(c2) << 16U)          \
+    | ((sky_u32_t)(c1) << 8U)           \
+    | (sky_u32_t)(c0))
+
+#define sky_str8_num(c0, c1, c2, c3, c4, c5, c6, c7)    \
+    (((sky_u64_t)(c7) << 56UL)                          \
+    | ((sky_u64_t)(c6) << 48UL)                         \
+    | ((sky_u64_t)(c5) << 40UL)                         \
+    | ((sky_u64_t)(c4) << 32UL)                         \
+    | ((sky_u64_t)(c3) << 24UL)                         \
+    | ((sky_u64_t)(c2) << 16UL)                         \
+    | ((sky_u64_t)(c1) << 8UL)                          \
+    | (sky_u64_t)(c0))
 
 #else
-
 #define sky_str2_num(c1, c0)            \
-    (((c1) << 0x8) | (c0))
+    ((sky_u16_t)(((sky_u32_t)(c1) << 8U) | (sky_u32_t)(c0)))
+
 #define sky_str4_num(c3, c2, c1, c0)    \
-    (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0))
+    (((sky_u32_t)(c3) << 24U)           \
+    | ((sky_u32_t)(c2) << 16U)          \
+    | ((sky_u32_t)(c1) << 8U)           \
+    | (sky_u32_t)(c0))
 
-#define sky_str2_cmp(m, c1, c0)                                                         \
-    (*(sky_u16_t *) (m) == (((c1) << 0x8) | (c0)))
-
-#define sky_str4_cmp(m, c3, c2, c1, c0)                                                 \
-    (*(sky_u32_t *) (m) == (((c3) << 0x18) | ((c2) << 0x10) | ((c1) << 0x8) | (c0)))
-
+#define sky_str8_num(c7, c6, c5, c4, c3, c2, c1, c0)    \
+    (((sky_u64_t)(c7) << 56UL)                          \
+    | ((sky_u64_t)(c6) << 48UL)                         \
+    | ((sky_u64_t)(c5) << 40UL)                         \
+    | ((sky_u64_t)(c4) << 32UL)                         \
+    | ((sky_u64_t)(c3) << 24UL)                         \
+    | ((sky_u64_t)(c2) << 16UL)                         \
+    | ((sky_u64_t)(c1) << 8UL)                          \
+    | (sky_u64_t)(c0))
 #endif
+
+
+#define sky_str2_cmp(m, c0, c1)                                                         \
+    (*(sky_u16_t *) (m) == sky_str2_num(c0, c1))
+#define sky_str4_cmp(m, c0, c1, c2, c3)                                                 \
+    (*(sky_u32_t *) (m) == sky_str4_num(c0, c1, c2, c3))
+
+#define sky_str8_cmp(m, c0, c1, c2, c3, c4, c5, c6, c7)                                 \
+    (*(sky_u64_t *) (m) == sky_str8_num(c0, c1, c2, c3, c4, c5, c6, c7))
 
 #define sky_str_alloc_size(_str) \
     ((_str)->len + 1)
@@ -73,11 +99,6 @@ typedef struct {
 //设置字符串str为空串，长度为0，data为NULL。
 #define sky_str_null(str)   (str)->len = 0; (str)->data = null
 
-#define sky_tolower(_c) \
-    (sky_uchar_t) (((_c) >= 'A' && (_c) <= 'Z') ? ((_c) | 0x20) : (_c))
-#define sky_toupper(_c) \
-    (sky_uchar_t) (((_c) >= 'a' && (_c) <= 'z') ? ((_c) & ~0x20) : (_c))
-
 //将src的前n个字符转换成小写存放在dst字符串当中
 void sky_str_lower(sky_uchar_t *src, sky_uchar_t *dst, sky_usize_t n);
 
@@ -99,17 +120,17 @@ sky_str_replace_char(sky_str_t *src, sky_uchar_t old_ch, sky_uchar_t new_ch) {
 }
 
 static sky_inline sky_bool_t
+sky_str_len_equals_unsafe(const sky_uchar_t *s1, const sky_uchar_t *s2, sky_usize_t len) {
+    return memcmp(s1, s2, len) == 0;
+}
+
+static sky_inline sky_bool_t
 sky_str_len_equals(const sky_uchar_t *s1, sky_usize_t s1_len,
                    const sky_uchar_t *s2, sky_usize_t s2_len) {
     if (s1_len != s2_len) {
         return false;
     }
-    return memcmp(s1, s2, s1_len) == 0;
-}
-
-static sky_inline sky_bool_t
-sky_str_len_equals_unsafe(const sky_uchar_t *s1, const sky_uchar_t *s2, sky_usize_t len) {
-    return memcmp(s1, s2, len) == 0;
+    return sky_str_len_equals_unsafe(s1, s2, s2_len);
 }
 
 static sky_inline sky_bool_t
@@ -118,12 +139,22 @@ sky_str_equals(const sky_str_t *s1, const sky_str_t *s2) {
 }
 
 static sky_inline sky_bool_t
+sky_str_equals2(const sky_str_t *s1, const sky_uchar_t *s2, sky_usize_t s2_len) {
+    return sky_str_len_equals(s1->data, s1->len, s2, s2_len);
+}
+
+static sky_inline sky_bool_t
+sky_str_len_starts_with_unsafe(const sky_uchar_t *src, const sky_uchar_t *prefix, sky_usize_t prefix_len) {
+    return sky_str_len_equals_unsafe(src, prefix, prefix_len);
+}
+
+static sky_inline sky_bool_t
 sky_str_len_starts_with(const sky_uchar_t *src, sky_usize_t src_len,
                         const sky_uchar_t *prefix, sky_usize_t prefix_len) {
     if (src_len < prefix_len) {
         return false;
     }
-    return memcmp(src, prefix, prefix_len) == 0;
+    return sky_str_len_equals_unsafe(src, prefix, prefix_len);
 }
 
 static sky_inline sky_bool_t

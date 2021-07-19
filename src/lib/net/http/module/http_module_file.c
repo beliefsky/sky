@@ -9,8 +9,6 @@
 #include "../http_response.h"
 #include "../../../core/date.h"
 #include "../../../core/memory.h"
-#include "../../../core/cpuinfo.h"
-#include "../../../core/log.h"
 
 #define http_error_page(_r, _status, _msg)                              \
     (_r)->state = _status;                                              \
@@ -40,11 +38,9 @@ typedef struct {
 } http_mime_type_t;
 
 typedef struct {
-    sky_hash_t mime_types;
     http_mime_type_t default_mime_type;
     sky_str_t path;
     sky_pool_t *pool;
-    sky_pool_t *tmp_pool;
 
     sky_bool_t (*pre_run)(sky_http_request_t *req, void *data);
 
@@ -53,21 +49,19 @@ typedef struct {
 
 static void http_run_handler(sky_http_request_t *r, http_module_file_t *data);
 
-static sky_bool_t http_header_range(http_file_t *file, sky_str_t *value);
+static sky_bool_t http_mime_type_get(const sky_str_t *exten, http_mime_type_t *type);
 
-static void http_mime_type_init(http_module_file_t *data);
+static sky_bool_t http_header_range(http_file_t *file, sky_str_t *value);
 
 void
 sky_http_module_file_init(sky_pool_t *pool, const sky_http_file_conf_t *conf) {
     http_module_file_t *data = sky_palloc(pool, sizeof(http_module_file_t));
     data->pool = pool;
     data->path = conf->dir;
-    data->tmp_pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
 
-    http_mime_type_init(data);
+    sky_str_set(&data->default_mime_type.val, "application/octet-stream");
+    data->default_mime_type.binary = true;
 
-    sky_pool_destroy(data->tmp_pool);
-    data->tmp_pool = null;
     data->pre_run = conf->pre_run;
 
     sky_http_module_t *module = conf->module;
@@ -82,13 +76,14 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
     struct stat stat_buf;
     sky_i64_t mtime;
     http_file_t *file;
-    http_mime_type_t *mime_type;
-    sky_table_elt_t *header;
+    http_mime_type_t mime_type;
+    sky_http_header_t *header;
     sky_char_t *path;
     sky_i32_t fd;
 
     if (sky_unlikely(!r->uri.len)) {
         http_error_page(r, 404, "404 Not Found");
+        return;
     }
     if (r->uri.len == 1 && *r->uri.data == '/') {
         sky_str_set(&r->uri, "/index.html");
@@ -102,16 +97,17 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
     }
 
     if (!r->exten.len) {
-        mime_type = &data->default_mime_type;
+        mime_type = data->default_mime_type;
     } else {
-        mime_type = sky_hash_find(
-                &data->mime_types,
-                sky_hash_key_lc(r->exten.data, r->exten.len),
-                r->exten.data,
-                r->exten.len
-        );
-        if (!mime_type) {
-            mime_type = &data->default_mime_type;
+        const sky_str_t lower = {
+                .len = r->exten.len,
+                .data = sky_palloc(r->pool, sizeof(r->exten.len) + 1)
+        };
+        sky_str_lower(r->exten.data, lower.data, lower.len);
+        lower.data[lower.len] = '\0';
+
+        if (!http_mime_type_get(&lower, &mime_type)) {
+            mime_type = data->default_mime_type;
         }
     }
 
@@ -153,21 +149,21 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
     mtime = stat_buf.st_mtim.tv_sec;
 #endif
 
-    r->headers_out.content_type = mime_type->val;
+    r->headers_out.content_type = mime_type.val;
     header = sky_list_push(&r->headers_out.headers);
     sky_str_set(&header->key, "Last-Modified");
 
     if (file->modified && file->modified_time == mtime) {
         close(fd);
-        header->value = *r->headers_in.if_modified_since;
+        header->val = *r->headers_in.if_modified_since;
 
         r->state = 304;
 
         sky_http_response_nobody(r);
         return;
     }
-    header->value.data = sky_palloc(r->pool, 30);
-    header->value.len = sky_date_to_rfc_str(mtime, header->value.data);
+    header->val.data = sky_palloc(r->pool, 30);
+    header->val.len = sky_date_to_rfc_str(mtime, header->val.data);
 
     if (file->range && (!file->if_range || file->range_time == mtime)) {
         r->state = 206;
@@ -236,63 +232,114 @@ http_header_range(http_file_t *file, sky_str_t *value) {
     return true;
 }
 
-static void
-http_mime_type_init(http_module_file_t *data) {
-    sky_hash_init_t hash;
-    sky_array_t arrays;
-    sky_hash_key_t *hk;
-    http_mime_type_t *mime_type;
 
-    sky_str_set(&data->default_mime_type.val, "application/octet-stream");
-    data->default_mime_type.binary = true;
-    sky_array_init(&arrays, data->tmp_pool, 64, sizeof(sky_hash_key_t));
+static sky_inline sky_bool_t
+http_mime_type_get(const sky_str_t *exten, http_mime_type_t *type) {
+#define mine_set(_type, _b)         \
+    sky_str_set(&type->val, _type);  \
+    type->binary = (_b)
 
-#define http_mime_type_push(_exten, _type, _binary)                            \
-    hk = sky_array_push(&arrays);                                               \
-    sky_str_set(&hk->key, _exten);                                              \
-    hk->key_hash = sky_hash_key_lc(hk->key.data, hk->key.len);                  \
-    hk->value = mime_type = sky_palloc(data->pool, sizeof(http_mime_type_t));   \
-    mime_type->binary = _binary;                                                \
-    sky_str_set(&mime_type->val, _type)
-
-
-    http_mime_type_push(".html", "text/html", false);
-    http_mime_type_push(".htm", "text/html", false);
-    http_mime_type_push(".css", "text/css", false);
-    http_mime_type_push(".js", "application/x-javascript", false);
-    http_mime_type_push(".txt", "text/plain", false);
-    http_mime_type_push(".json", "application/json", false);
-    http_mime_type_push(".xml", "text/xml", false);
-    http_mime_type_push(".pdf", "application/pdf", true);
-
-    http_mime_type_push(".jpg", "image/jpeg", true);
-    http_mime_type_push(".jpeg", "image/jpeg", true);
-    http_mime_type_push(".png", "image/png", true);
-    http_mime_type_push(".icon", "image/x-icon", true);
-    http_mime_type_push(".gif", "image/gif", true);
-    http_mime_type_push(".svg", "image/svg+xml", false);
-
-    http_mime_type_push(".woff", "application/font-woff", true);
-    http_mime_type_push(".7z", "application/x-7z-compressed", true);
-    http_mime_type_push(".rar", "application/x-rar-compressed", true);
-    http_mime_type_push(".zip", "application/zip", true);
-    http_mime_type_push(".gz", "application/x-gzip", true);
-    http_mime_type_push(".tar", "application/x-tar", true);
-
-    http_mime_type_push(".mp3", "audio/mp3", true);
-    http_mime_type_push(".ogg", "audio/ogg", true);
-    http_mime_type_push(".mp4", "video/mp4", true);
-    http_mime_type_push(".webm", "video/webm", false);
-
-
-#undef http_mime_type_push
-
-    hash.hash = &data->mime_types;
-    hash.key = sky_hash_key_lc;
-    hash.max_size = 512;
-    hash.bucket_size = sky_align(64, sky_cache_line_size);
-    hash.pool = data->pool;
-    if (!sky_hash_init(&hash, arrays.elts, arrays.nelts)) {
-        sky_log_error("文件类型初始化出错");
+    const sky_uchar_t *p = exten->data;
+    switch (exten->len) {
+        case 3: {
+            switch (sky_str4_switch(p)) {
+                case sky_str4_num('.', 'j', 's', '\0'):
+                mine_set("application/x-javascript", false);
+                    return true;
+                case sky_str4_num('.', '7', 'z', '\0'):
+                mine_set("application/x-7z-compressed", true);
+                    return true;
+                case sky_str4_num('.', 'g', 'z', '\0'):
+                mine_set("application/x-gzip", true);
+                    return true;
+                default:
+                    break;
+            }
+            break;
+        }
+        case 4: {
+            switch (sky_str4_switch(p)) {
+                case sky_str4_num('.', 'h', 't', 'm'):
+                mine_set("text/html", false);
+                    return true;
+                case sky_str4_num('.', 'c', 's', 's'):
+                mine_set("text/css", false);
+                    return true;
+                case sky_str4_num('.', 't', 'x', 't'):
+                mine_set("text/plain", false);
+                    return true;
+                case sky_str4_num('.', 'x', 'm', 'l'):
+                mine_set("text/xml", false);
+                    return true;
+                case sky_str4_num('.', 'p', 'd', 'f'):
+                mine_set("application/pdf", true);
+                    return true;
+                case sky_str4_num('.', 'j', 'p', 'g'):
+                mine_set("image/jpeg", true);
+                    return true;
+                case sky_str4_num('.', 'p', 'n', 'g'):
+                mine_set("image/png", true);
+                    return true;
+                case sky_str4_num('.', 'g', 'i', 'f'):
+                mine_set("image/gif", true);
+                    return true;
+                case sky_str4_num('.', 's', 'v', 'g'):
+                mine_set("image/svg+xml", false);
+                    return true;
+                case sky_str4_num('.', 'r', 'a', 'r'):
+                mine_set("application/x-rar-compressed", true);
+                    return true;
+                case sky_str4_num('.', 'z', 'i', 'p'):
+                mine_set("application/zip", true);
+                    return true;
+                case sky_str4_num('.', 't', 'a', 'r'):
+                mine_set("application/x-tar", true);
+                    return true;
+                case sky_str4_num('.', 'm', 'p', '3'):
+                mine_set("audio/mp3", true);
+                    return true;
+                case sky_str4_num('.', 'o', 'g', 'g'):
+                mine_set("audio/ogg", true);
+                    return true;
+                case sky_str4_num('.', 'm', 'p', '4'):
+                mine_set("video/mp4", true);
+                    return true;
+                default:
+                    break;
+            }
+            break;
+        }
+        case 5: {
+            ++p;
+            switch (sky_str4_switch(p)) {
+                case sky_str4_num('h', 't', 'm', 'l'):
+                mine_set("text/html", false);
+                    return true;
+                case sky_str4_num('j', 's', 'o', 'n'):
+                mine_set("application/json", false);
+                    return true;
+                case sky_str4_num('j', 'p', 'e', 'g'):
+                mine_set("image/jpeg", true);
+                    return true;
+                case sky_str4_num('i', 'c', 'o', 'n'):
+                mine_set("image/x-icon", true);
+                    return true;
+                case sky_str4_num('w', 'o', 'f', 'f'):
+                mine_set("application/font-woff", true);
+                    return true;
+                case sky_str4_num('w', 'w', 'b', 'm'):
+                mine_set("video/webm", false);
+                    return true;
+                default:
+                    break;
+            }
+            break;
+        }
+        default:
+            break;
     }
+
+    return false;
+
+#undef mine_set
 }

@@ -8,7 +8,7 @@
 #include "../../event/event_loop.h"
 #include "../../core/coro.h"
 #include "../../core/buf.h"
-#include "../../core/hash.h"
+#include "../../core/trie.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -41,16 +41,14 @@ typedef struct {
 
 struct sky_http_server_s {
     sky_pool_t *pool;
-    sky_pool_t *tmp_pool;
     void *ssl_ctx;
     sky_str_t host;
     sky_str_t port;
 
     sky_coro_switcher_t switcher;
 
-    sky_hash_t headers_in_hash;
-    sky_hash_t modules_hash;
-    sky_array_t status;
+    sky_str_t *status_map;
+    sky_trie_t *default_host;
 
     sky_usize_t (*http_read)(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size);
 
