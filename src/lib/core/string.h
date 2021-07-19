@@ -29,7 +29,7 @@ extern "C" {
     (((sky_u32_t)(c3) << 24U)           \
     | ((sky_u32_t)(c2) << 16U)          \
     | ((sky_u32_t)(c1) << 8U)           \
-    | ((sky_u32_t)c0))
+    | (sky_u32_t)(c0))
 
 #define sky_str8_num(c0, c1, c2, c3, c4, c5, c6, c7)    \
     (((sky_u64_t)(c7) << 56UL)                          \
@@ -49,7 +49,7 @@ extern "C" {
     (((sky_u32_t)(c3) << 24U)           \
     | ((sky_u32_t)(c2) << 16U)          \
     | ((sky_u32_t)(c1) << 8U)           \
-    | ((sky_u32_t)c0))
+    | (sky_u32_t)(c0))
 
 #define sky_str8_num(c7, c6, c5, c4, c3, c2, c1, c0)    \
     (((sky_u64_t)(c7) << 56UL)                          \
