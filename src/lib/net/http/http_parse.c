@@ -41,7 +41,7 @@ static sky_isize_t find_header_line(sky_uchar_t *post, const sky_uchar_t *end);
 
 static sky_isize_t find_binary_line(sky_uchar_t *post, const sky_uchar_t *end);
 
-static sky_bool_t header_handle_run(sky_http_request_t *req, const sky_http_header_t *h);
+static sky_bool_t header_handle_run(sky_http_request_t *req, sky_http_header_t *h);
 
 static sky_bool_t find_char_fast(sky_uchar_t **buf, sky_usize_t buf_size,
                                  const sky_uchar_t *ranges, sky_i32_t ranges_size);
@@ -1000,7 +1000,7 @@ parse_token(sky_uchar_t *buf, const sky_uchar_t *end, sky_uchar_t next_char) {
 
 
 static sky_inline sky_bool_t
-header_handle_run(sky_http_request_t *req, const sky_http_header_t *h) {
+header_handle_run(sky_http_request_t *req, sky_http_header_t *h) {
     const sky_uchar_t *p = h->key.data;
 
     switch (h->key.len) {
