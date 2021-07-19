@@ -211,23 +211,8 @@ sky_hash_find_combined(sky_hash_combined_t *hash, sky_usize_t key, sky_uchar_t *
     return null;
 }
 
-//计算sky_hash_elt_t结构大小，name为sky_hash_elt_t结构指针
-#define SKY_HASH_ELT_SIZE(name) (sizeof(void *) + sky_align_size((name)->key.len + 2, sizeof(void *)))
 
-// 第一个参数hinit是初始化的一些参数的一个集合。 names是初始化一个sky_hash_t所需要的所有<key,value>对的一个数组，而nelts是该数组的个数。
-// 备注：我倒是觉得可以直接使用一个ngx_array_t*作为参数呢？
-//
-//初始化步骤
-//1. 遍历待初始化的sky_hash_key_t数组, 保证占用空间最大的sky_hash_elt_t元素可以装进bucket_size大小空间
-//2. 预估一个可以装入所有元素的hash表长度start, 判断是否可以将所有元素装进这个size大小的hash表
-//3. 装不下, 增加size, 如果size达到max_size仍然不能创建这个hash表, 则失败. 否则确定了要构建的hash表长度(buckets个数)
-//4. found:处开始,, 计算所有元素占用总空间, 为hash表的各个bucket分配各自的空间
-//5. 将sky_hash_key_t数组元素分别放入对应的bucket中
-//
-//其中第2步中怎么计算初始的可能hash表的大小start?
-//start = nelts / (bucket_size / (2 * sizeof(void *)));
-//也即认为一个bucket最多放入的元素个数为bucket_size / (2 * sizeof(void *));
-//64位机器上, sizeof(void *) 为8 Bytes,  sizeof(unsigned short)为2Bytes, sizeof(name)为1 Byte, sizeof(sky_hash_elt_t)为16Bytes, 正好与2 * sizeof(void *)相等.
+#define SKY_HASH_ELT_SIZE(name) (sizeof(void *) + sky_align_size((name)->key.len + 2, sizeof(void *)))
 sky_bool_t
 sky_hash_init(sky_hash_init_t *hinit, sky_hash_key_t *names, sky_usize_t nelts) {
     sky_uchar_t *elts;
@@ -322,25 +307,20 @@ sky_hash_init(sky_hash_init_t *hinit, sky_hash_key_t *names, sky_usize_t nelts) 
             //若test[i]仍为初始化的值为sizeof(void *)，即没有变化，则继续
             continue;
         }
-        //对test[i]按ngx_cacheline_size对齐(32位平台，ngx_cacheline_size=32)
         test[i] = (sky_u16_t) (sky_align_size(test[i], sky_cache_line_size));
 
         len += test[i];
     }
 
     if (!hinit->hash) {
-        //在内存池中分配hash头及buckets数组(size个ngx_hash_elt_t*结构)
         hinit->hash = sky_pcalloc(hinit->pool, sizeof(sky_hash_wildcard_t) + size * sizeof(sky_hash_elt_t *));
         if (sky_unlikely(!hinit->hash)) {
             sky_free(test);
             return false;
         }
-
-        //计算buckets的启示位置(在ngx_hash_wildcard_t结构之后)
         buckets = (sky_hash_elt_t **) ((sky_uchar_t *) hinit->hash + sizeof(sky_hash_wildcard_t));
 
     } else {
-        //在内存池中分配buckets数组(size个ngx_hash_elt_t*结构)
         buckets = sky_pcalloc(hinit->pool, size * sizeof(sky_hash_elt_t *));
         if (sky_unlikely(!buckets)) {
             sky_free(test);
@@ -348,7 +328,6 @@ sky_hash_init(sky_hash_init_t *hinit, sky_hash_key_t *names, sky_usize_t nelts) 
         }
     }
 
-    //接着分配elts，大小为len+ngx_cacheline_size，此处为什么+ngx_cacheline_size？——下面要按ngx_cacheline_size字节对齐
     elts = sky_palloc(hinit->pool, len + sky_cache_line_size);
     if (sky_unlikely(!elts)) {
         sky_free(test);
@@ -379,7 +358,6 @@ sky_hash_init(sky_hash_init_t *hinit, sky_hash_key_t *names, sky_usize_t nelts) 
         //计算key，即将被hash的数据在第几个bucket，并计算其对应的elts位置
         key = names[n].key_hash % size;
         elt = (sky_hash_elt_t *) ((sky_uchar_t *) buckets[key] + test[key]);
-        //对ngx_hash_elt_t结构赋值
         elt->value = names[n].value;
         elt->len = (sky_u16_t) names[n].key.len;
 
