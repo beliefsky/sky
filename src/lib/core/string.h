@@ -143,6 +143,29 @@ sky_str_equals2(const sky_str_t *s1, const sky_uchar_t *s2, sky_usize_t s2_len) 
     return sky_str_len_equals(s1->data, s1->len, s2, s2_len);
 }
 
+static sky_inline sky_i32_t
+sky_str_len_cmp_unsafe(const sky_uchar_t *s1, const sky_uchar_t *s2, sky_usize_t len) {
+    return memcmp(s1, s2, len);
+}
+
+static sky_inline sky_i32_t
+sky_str_len_cmp(const sky_uchar_t *s1, sky_usize_t s1_len, const sky_uchar_t *s2, sky_usize_t s2_len) {
+    if (s1_len != s2_len) {
+        return (sky_i32_t) (s1_len - s2_len);
+    }
+    return sky_str_len_cmp_unsafe(s1, s2, s2_len);
+}
+
+static sky_inline sky_i32_t
+sky_str_cmp(const sky_str_t *s1, const sky_str_t *s2) {
+    return sky_str_len_cmp(s1->data, s1->len, s2->data, s2->len);
+}
+
+static sky_inline sky_i32_t
+sky_str_cmp2(const sky_str_t *s1, const sky_uchar_t *s2, sky_usize_t s2_len) {
+    return sky_str_len_cmp(s1->data, s1->len, s2, s2_len);
+}
+
 static sky_inline sky_bool_t
 sky_str_len_starts_with_unsafe(const sky_uchar_t *src, const sky_uchar_t *prefix, sky_usize_t prefix_len) {
     return sky_str_len_equals_unsafe(src, prefix, prefix_len);
