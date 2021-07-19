@@ -4,13 +4,10 @@
 
 #include "trie.h"
 
-#define NODE_LEN 32
-#define NODE_PTR 31U
-
 typedef struct sky_trie_node_s sky_trie_node_t;
 
 struct sky_trie_node_s {
-    sky_trie_node_t *next[NODE_LEN];
+    sky_trie_node_t *next[256];
     sky_uchar_t *key;
     sky_usize_t key_n;
     void *value;
@@ -60,7 +57,7 @@ sky_trie_put(sky_trie_t *trie, sky_str_t *key, void *value) {
     tmp_key = key->data;
 
     for (;;) {
-        k_node = &pre_node->next[*tmp_key++ & NODE_PTR];
+        k_node = &pre_node->next[*tmp_key++];
         tmp = *k_node;
 
         if (!tmp) {
@@ -92,7 +89,7 @@ sky_trie_put(sky_trie_t *trie, sky_str_t *key, void *value) {
 
                 tmp->key_n -= len + 1;
                 tmp->key += len;
-                pre_node->next[*tmp->key++ & NODE_PTR] = tmp;
+                pre_node->next[*tmp->key++] = tmp;
                 return;
             }
         } else {
@@ -109,13 +106,13 @@ sky_trie_put(sky_trie_t *trie, sky_str_t *key, void *value) {
 
         tmp->key_n -= index + 1;
         tmp->key += index;
-        pre_node->next[*tmp->key++ & NODE_PTR] = tmp;
+        pre_node->next[*tmp->key++] = tmp;
 
         tmp = sky_pcalloc(trie->pool, sizeof(sky_trie_node_t));
         tmp->key_n = len - index - 1;
         tmp->key = tmp_key + index;
         tmp->value = value;
-        pre_node->next[*tmp->key++ & NODE_PTR] = tmp;
+        pre_node->next[*tmp->key++] = tmp;
         return;
 
     }
@@ -135,7 +132,7 @@ sky_trie_find(const sky_trie_t *trie, sky_str_t *key) {
     tmp_key = key->data;
     prev_node = node;
     for (;;) {
-        node = node->next[*tmp_key++ & NODE_PTR];
+        node = node->next[*tmp_key++];
         if (!node) {
             break;
         }
@@ -179,7 +176,7 @@ sky_trie_contains(const sky_trie_t *trie, sky_str_t *key) {
     tmp_key = key->data;
 
     for (;;) {
-        node = node->next[*tmp_key++ & NODE_PTR];
+        node = node->next[*tmp_key++];
         if (!node) {
             return null;
         }
@@ -194,7 +191,7 @@ sky_trie_contains(const sky_trie_t *trie, sky_str_t *key) {
             }
             return null;
         }
-        if (!sky_str_len_equals_unsafe(tmp_key, node->key, node->key_n)) {
+        if (!sky_str_len_starts_with_unsafe(tmp_key, node->key, node->key_n)) {
             return null;
         }
         tmp_key += node->key_n;
