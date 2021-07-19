@@ -183,7 +183,7 @@ sky_http_read_body_str(sky_http_request_t *r) {
     }
     r->read_request_body = true;
 
-    result = sky_pcalloc(r->pool, sizeof(sky_str_t));
+    result = sky_palloc(r->pool, sizeof(sky_str_t));
     const sky_u32_t total = r->headers_in.content_length_n;
 
 
