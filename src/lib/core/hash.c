@@ -7,6 +7,12 @@
 #include "cpuinfo.h"
 #include "log.h"
 
+#define sky_tolower(_c) \
+    (sky_uchar_t) (((_c) >= 'A' && (_c) <= 'Z') ? ((_c) | 0x20) : (_c))
+#define sky_toupper(_c) \
+    (sky_uchar_t) (((_c) >= 'a' && (_c) <= 'z') ? ((_c) & ~0x20) : (_c))
+
+
 void*
 sky_hash_find(sky_hash_t *hash, sky_usize_t key, sky_uchar_t *name, sky_usize_t len) {
     sky_usize_t i;

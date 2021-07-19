@@ -99,11 +99,6 @@ typedef struct {
 //设置字符串str为空串，长度为0，data为NULL。
 #define sky_str_null(str)   (str)->len = 0; (str)->data = null
 
-#define sky_tolower(_c) \
-    (sky_uchar_t) (((_c) >= 'A' && (_c) <= 'Z') ? ((_c) | 0x20) : (_c))
-#define sky_toupper(_c) \
-    (sky_uchar_t) (((_c) >= 'a' && (_c) <= 'z') ? ((_c) & ~0x20) : (_c))
-
 //将src的前n个字符转换成小写存放在dst字符串当中
 void sky_str_lower(sky_uchar_t *src, sky_uchar_t *dst, sky_usize_t n);
 
