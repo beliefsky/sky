@@ -30,17 +30,6 @@ static sky_u32_t crc32_sb8(const sky_uchar_t *input, sky_usize_t length, sky_u32
 /* Computes CRC32 (Ethernet, gzip, et. al.) using slice-by-16. */
 static sky_u32_t crc32_sb16(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32);
 
-static sky_u32_t crc32_no_slice(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32);
-
-/* Computes CRC32 (Ethernet, gzip, et. al.) using slice-by-4. */
-static sky_u32_t crc32_sb4(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32);
-
-/* Computes CRC32 (Ethernet, gzip, et. al.) using slice-by-8. */
-static sky_u32_t crc32_sb8(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32);
-
-/* Computes CRC32 (Ethernet, gzip, et. al.) using slice-by-16. */
-static sky_u32_t crc32_sb16(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32);
-
 #ifndef __SSE4_2__
 static sky_u32_t crc32c_no_slice(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32c);
 
