@@ -100,7 +100,12 @@ typedef struct {
 #define sky_str_null(str)   (str)->len = 0; (str)->data = null
 
 //将src的前n个字符转换成小写存放在dst字符串当中
-void sky_str_lower(sky_uchar_t *src, sky_uchar_t *dst, sky_usize_t n);
+void sky_str_lower(const sky_uchar_t *src, sky_uchar_t *dst, sky_usize_t n);
+
+static sky_inline void
+sky_str_lower2(sky_str_t *str) {
+    sky_str_lower(str->data, str->data, str->len);
+}
 
 // out_len = in_len *2;注意\0结尾，因此申请长度为 in_len *2 + 1；
 void sky_byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out);

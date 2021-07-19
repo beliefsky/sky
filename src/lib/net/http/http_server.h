@@ -49,6 +49,7 @@ struct sky_http_server_s {
 
     sky_str_t *status_map;
     sky_trie_t *default_host;
+    sky_trie_t *host_map;
 
     sky_usize_t (*http_read)(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size);
 
