@@ -13,10 +13,9 @@ static sky_inline void cpu_id(sky_u32_t i, sky_u32_t *buf);
 
 #if (__i386__)
 
-static ngx_inline void
+static sky_inline void
 cpu_id(sky_u32_t i, sky_u32_t *buf)
 {
-
     /*
      * we could not use %ebx as output parameter if gcc builds PIC,
      * and we could not save %ebx on stack, because %esp is used,
