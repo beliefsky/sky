@@ -138,9 +138,6 @@ sky_trie_find(const sky_trie_t *trie, sky_str_t *key) {
         }
         len = key->len - (sky_usize_t) (tmp_key - key->data);
 
-        if (len < node->key_n) {
-            break;
-        }
         if (len == node->key_n) {
             if (!len || sky_str_len_equals_unsafe(tmp_key, node->key, len)) {
                 if (node->value) {
@@ -149,7 +146,7 @@ sky_trie_find(const sky_trie_t *trie, sky_str_t *key) {
             }
             break;
         }
-        if (!sky_str_len_starts_with_unsafe(tmp_key, node->key, node->key_n)) {
+        if (len < node->key_n || !sky_str_len_starts_with_unsafe(tmp_key, node->key, node->key_n)) {
             break;
         }
         tmp_key += node->key_n;
@@ -182,16 +179,13 @@ sky_trie_contains(const sky_trie_t *trie, sky_str_t *key) {
         }
         len = key->len - (sky_usize_t) (tmp_key - key->data);
 
-        if (len < node->key_n) {
-            return null;
-        }
         if (len == node->key_n) {
             if (!len || sky_str_len_equals_unsafe(tmp_key, node->key, len)) {
                 return node->value;
             }
             return null;
         }
-        if (!sky_str_len_starts_with_unsafe(tmp_key, node->key, node->key_n)) {
+        if (len < node->key_n || !sky_str_len_starts_with_unsafe(tmp_key, node->key, node->key_n)) {
             return null;
         }
         tmp_key += node->key_n;
