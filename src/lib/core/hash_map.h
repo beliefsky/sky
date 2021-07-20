@@ -25,7 +25,7 @@ typedef struct sky_hash_map_s sky_hash_map_t;
  */
 sky_hash_map_t *sky_hash_map_bucket(sky_pool_t *pool, sky_u32_t bucket_size);
 
-void *sky_hash_map_put(sky_hash_map_t *hash, const sky_uchar_t *key, sky_usize_t key_len, const void *data);
+void *sky_hash_map_put(sky_hash_map_t *hash, sky_uchar_t *key, sky_usize_t key_len, void *data);
 
 void *sky_hash_map_get(const sky_hash_map_t *hash, const sky_uchar_t *key, sky_usize_t key_len);
 
