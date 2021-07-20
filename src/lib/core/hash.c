@@ -2,15 +2,15 @@
 // Created by weijing on 17-11-24.
 //
 
-#include "hash_map.h"
+#include "hash.h"
 #include "crc32.h"
 #include "log.h"
 
 typedef struct hash_entry_s hash_entry_t;
 
-typedef void *(*put_pt)(sky_hash_map_t *hash, sky_uchar_t *key, sky_usize_t key_len, void *data);
+typedef void *(*put_pt)(sky_hash_t *hash, sky_uchar_t *key, sky_usize_t key_len, void *data);
 
-typedef void *(*get_pt)(const sky_hash_map_t *hash, const sky_uchar_t *key, sky_usize_t key_len);
+typedef void *(*get_pt)(const sky_hash_t *hash, const sky_uchar_t *key, sky_usize_t key_len);
 
 struct hash_entry_s {
     sky_u32_t hash;
@@ -19,7 +19,7 @@ struct hash_entry_s {
     hash_entry_t *next;
 };
 
-struct sky_hash_map_s {
+struct sky_hash_s {
     sky_pool_t *pool;
     put_pt put;
     get_pt get;
@@ -31,12 +31,12 @@ struct sky_hash_map_s {
     };
 };
 
-static void *map_buckets_put(sky_hash_map_t *hash, sky_uchar_t *key, sky_usize_t key_len, void *data);
+static void *map_buckets_put(sky_hash_t *hash, sky_uchar_t *key, sky_usize_t key_len, void *data);
 
-void *map_buckets_get(const sky_hash_map_t *hash, const sky_uchar_t *key, sky_usize_t key_len);
+void *map_buckets_get(const sky_hash_t *hash, const sky_uchar_t *key, sky_usize_t key_len);
 
-sky_hash_map_t *
-sky_hash_map_bucket(sky_pool_t *pool, sky_u32_t bucket_size) {
+sky_hash_t *
+sky_hash_bucket(sky_pool_t *pool, sky_u32_t bucket_size) {
     if (sky_unlikely(!bucket_size)) {
         sky_log_error("bucket_size 必须大于0");
         return null;
@@ -46,7 +46,7 @@ sky_hash_map_bucket(sky_pool_t *pool, sky_u32_t bucket_size) {
         return null;
     }
 
-    sky_hash_map_t *hash = sky_palloc(pool, sizeof(sky_hash_map_t));
+    sky_hash_t *hash = sky_palloc(pool, sizeof(sky_hash_t));
     hash->pool = pool;
     hash->put = map_buckets_put;
     hash->get = map_buckets_get;
@@ -57,17 +57,17 @@ sky_hash_map_bucket(sky_pool_t *pool, sky_u32_t bucket_size) {
 }
 
 void *
-sky_hash_map_put(sky_hash_map_t *hash, sky_uchar_t *key, sky_usize_t key_len, void *data) {
+sky_hash_put(sky_hash_t *hash, sky_uchar_t *key, sky_usize_t key_len, void *data) {
     return hash->put(hash, key, key_len, data);
 }
 
 void *
-sky_hash_map_get(const sky_hash_map_t *hash, const sky_uchar_t *key, sky_usize_t key_len) {
+sky_hash_get(const sky_hash_t *hash, const sky_uchar_t *key, sky_usize_t key_len) {
     return hash->get(hash, key, key_len);
 }
 
 static void *
-map_buckets_put(sky_hash_map_t *hash, sky_uchar_t *key, sky_usize_t key_len, void *data) {
+map_buckets_put(sky_hash_t *hash, sky_uchar_t *key, sky_usize_t key_len, void *data) {
     sky_u32_t h;
     hash_entry_t *entry, **ptr;
 
@@ -114,7 +114,7 @@ map_buckets_put(sky_hash_map_t *hash, sky_uchar_t *key, sky_usize_t key_len, voi
 }
 
 void *
-map_buckets_get(const sky_hash_map_t *hash, const sky_uchar_t *key, sky_usize_t key_len) {
+map_buckets_get(const sky_hash_t *hash, const sky_uchar_t *key, sky_usize_t key_len) {
     sky_u32_t h;
     hash_entry_t *entry, **ptr;
 
