@@ -65,7 +65,7 @@ sky_str_buf_append_str_len(sky_str_buf_t *buf, const sky_uchar_t *str, sky_u32_t
 
 void
 sky_str_buf_append_uchar(sky_str_buf_t *buf, sky_uchar_t ch) {
-    if (sky_unlikely((buf->post + 1) > buf->end)) {
+    if (sky_unlikely(buf->post >= buf->end)) {
         str_buf_append(buf, 1);
     }
     *(buf->post++) = ch;
@@ -166,7 +166,7 @@ sky_str_buf_build(sky_str_buf_t *buf, sky_str_t *out) {
 static sky_inline void
 str_buf_append(sky_str_buf_t *buf, sky_usize_t size) {
     const sky_usize_t total = (sky_usize_t) (buf->end - buf->start);
-    const sky_usize_t next_size = total << 1; // 内存正常扩展
+    const sky_usize_t next_size = total << 1U; // 内存正常扩展
     const sky_usize_t min_size = total + size; // 最小内存大小
     const sky_usize_t re_size = sky_max(next_size, min_size);
 
