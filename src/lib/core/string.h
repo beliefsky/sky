@@ -100,7 +100,12 @@ typedef struct {
 #define sky_str_null(str)   (str)->len = 0; (str)->data = null
 
 //将src的前n个字符转换成小写存放在dst字符串当中
-void sky_str_lower(sky_uchar_t *src, sky_uchar_t *dst, sky_usize_t n);
+void sky_str_lower(const sky_uchar_t *src, sky_uchar_t *dst, sky_usize_t n);
+
+static sky_inline void
+sky_str_lower2(sky_str_t *str) {
+    sky_str_lower(str->data, str->data, str->len);
+}
 
 // out_len = in_len *2;注意\0结尾，因此申请长度为 in_len *2 + 1；
 void sky_byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out);
@@ -141,6 +146,29 @@ sky_str_equals(const sky_str_t *s1, const sky_str_t *s2) {
 static sky_inline sky_bool_t
 sky_str_equals2(const sky_str_t *s1, const sky_uchar_t *s2, sky_usize_t s2_len) {
     return sky_str_len_equals(s1->data, s1->len, s2, s2_len);
+}
+
+static sky_inline sky_i32_t
+sky_str_len_cmp_unsafe(const sky_uchar_t *s1, const sky_uchar_t *s2, sky_usize_t len) {
+    return memcmp(s1, s2, len);
+}
+
+static sky_inline sky_i32_t
+sky_str_len_cmp(const sky_uchar_t *s1, sky_usize_t s1_len, const sky_uchar_t *s2, sky_usize_t s2_len) {
+    if (s1_len != s2_len) {
+        return (sky_i32_t) (s1_len - s2_len);
+    }
+    return sky_str_len_cmp_unsafe(s1, s2, s2_len);
+}
+
+static sky_inline sky_i32_t
+sky_str_cmp(const sky_str_t *s1, const sky_str_t *s2) {
+    return sky_str_len_cmp(s1->data, s1->len, s2->data, s2->len);
+}
+
+static sky_inline sky_i32_t
+sky_str_cmp2(const sky_str_t *s1, const sky_uchar_t *s2, sky_usize_t s2_len) {
+    return sky_str_len_cmp(s1->data, s1->len, s2, s2_len);
 }
 
 static sky_inline sky_bool_t

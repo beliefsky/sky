@@ -51,16 +51,21 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
     server->rfc_last = 0;
 
     // ====================================================================================
+    server->host_map = sky_trie_create(pool);
+
     host = conf->modules_host;
     for (sky_u16_t i = 0; i < conf->modules_n; ++i) {
+        trie = sky_trie_create(pool);
         if (!host->host.len) {
-            trie = sky_trie_create(pool);
             server->default_host = trie;
-            module = host->modules;
-            for (sky_u16_t j = 0; j < host->modules_n; ++j) {
-                sky_trie_put(trie, &module->prefix, module);
-                ++module;
-            }
+        } else {
+            sky_trie_put(server->host_map, &host->host, trie);
+        }
+
+        module = host->modules;
+        for (sky_u16_t j = 0; j < host->modules_n; ++j) {
+            sky_trie_put(trie, &module->prefix, module);
+            ++module;
         }
         ++host;
     }
