@@ -149,7 +149,7 @@ sky_trie_find(const sky_trie_t *trie, sky_str_t *key) {
             }
             break;
         }
-        if (!sky_str_len_equals_unsafe(tmp_key, node->key, node->key_n)) {
+        if (!sky_str_len_starts_with_unsafe(tmp_key, node->key, node->key_n)) {
             break;
         }
         tmp_key += node->key_n;
