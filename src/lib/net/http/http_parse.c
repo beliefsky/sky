@@ -1072,7 +1072,7 @@ header_handle_run(sky_http_request_t *req, sky_http_header_t *h) {
         case 14: {
             if (sky_str_len_equals_unsafe(p, sky_str_line("content-length"))) { // Content-Length
                 if (sky_likely(!req->headers_in.content_length)) {
-                    req->headers_in.authorization = &h->val;
+                    req->headers_in.content_length = &h->val;
 
                     return sky_str_to_u32(&h->val, &req->headers_in.content_length_n);
                 }

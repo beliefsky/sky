@@ -8,7 +8,7 @@ set(SOURCES
         core/array.c
         core/list.c
         core/cpuinfo.c
-        core/hash_map.c
+        core/hash.c
         core/rbtree.c
         core/trie.c
         core/coro.c
@@ -87,7 +87,7 @@ install(FILES
         core/memory.h
         core/palloc.h
         core/array.h
-        core/hash_map.h
+        core/hash.h
         core/list.h
         core/rbtree.h
         core/trie.h
