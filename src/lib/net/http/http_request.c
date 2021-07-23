@@ -9,6 +9,8 @@
 
 static sky_http_request_t *http_header_read(sky_http_connection_t *conn, sky_pool_t *pool);
 
+static void http_read_body_none_need(sky_http_request_t *r);
+
 void
 sky_http_request_init(sky_http_server_t *server) {
 
@@ -126,48 +128,12 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
 
 void
 sky_http_read_body_none_need(sky_http_request_t *r) {
-    sky_http_server_t *server;
-    sky_buf_t *tmp;
-    sky_u32_t n, size, t;
-
     if (sky_unlikely(r->read_request_body)) {
         sky_log_error("request body read repeat");
         return;
     }
     r->read_request_body = true;
-    tmp = r->tmp;
-    n = (sky_u32_t) (tmp->last - tmp->pos);
-    size = r->headers_in.content_length_n;
-
-    if (n >= size) {
-        sky_buf_rebuild(tmp, 0);
-        return;
-    }
-    size -= n;
-
-    n = (sky_u32_t) (tmp->end - tmp->pos);
-    server = r->conn->server;
-
-    // 实际数据小于缓冲
-    if (size <= n) {
-        do {
-            size -= server->http_read(r->conn, tmp->pos, size);
-        } while (size > 0);
-        sky_buf_rebuild(tmp, 0);
-        return;
-    }
-    // 缓冲区间太小，分配一较大区域
-    if (n < 4096U) {
-        n = sky_min(size, 4096U);
-        sky_buf_rebuild(tmp, n);
-    }
-
-    do {
-        t = sky_min(n, size);
-        size -= server->http_read(r->conn, tmp->pos, t);
-    } while (size > 0);
-
-    sky_buf_rebuild(tmp, 0);
+    http_read_body_none_need(r);
 }
 
 sky_str_t *
@@ -225,3 +191,171 @@ sky_http_read_body_str(sky_http_request_t *r) {
     return result;
 }
 
+typedef enum {
+    start = 0,
+    header,
+    body_str,
+    body_file
+} multipart_state_t;
+
+sky_http_multipart_t *
+sky_http_read_multipart(sky_http_request_t *r) {
+    if (sky_unlikely(r->read_request_body)) {
+        sky_log_error("request body read repeat");
+        return null;
+    }
+    r->read_request_body = true;
+
+    sky_str_t *content_type = r->headers_in.content_type;
+    if (sky_unlikely(!content_type || !sky_str_starts_with(content_type, sky_str_line("multipart/form-data;")))) {
+        http_read_body_none_need(r);
+        return null;
+    }
+    sky_uchar_t *boundary = content_type->data + (sizeof("multipart/form-data;") - 1);
+    while (*boundary == ' ') {
+        ++boundary;
+    }
+    sky_usize_t boundary_len = content_type->len - (sky_usize_t) (boundary - content_type->data);
+    if (sky_unlikely(!sky_str_len_starts_with(boundary, boundary_len, sky_str_line("boundary=")))) {
+        http_read_body_none_need(r);
+        return null;
+    }
+    boundary += sizeof("boundary=") - 1;
+    boundary_len -= sizeof("boundary=") - 1;
+
+    sky_u64_t content_size = r->headers_in.content_length_n;
+    sky_buf_t *buf = r->tmp;
+    sky_http_server_t *server = r->conn->server;
+    multipart_state_t state = start;
+    sky_http_multipart_t *root, *multipart = null;
+
+    content_size -= (sky_usize_t) (buf->last - buf->pos);
+    sky_usize_t n, size = (boundary_len + 4);
+
+    if (sky_unlikely((sky_usize_t) (buf->end - buf->pos) < size)) { // 保证读取内存能容纳
+        const sky_u32_t re_size = sky_max((sky_u32_t) size, server->header_buf_size);
+        sky_buf_rebuild(buf, re_size);
+    }
+    for (;;) { // multipart loop
+        switch (state) {
+            case start: {
+                if (sky_unlikely((sky_usize_t) (buf->last - buf->pos) < size)) {
+                    break;
+                }
+                if (!sky_str2_cmp(buf->pos, '-', '-')
+                    || !sky_str_len_starts_with_unsafe(buf->pos + 2, boundary, boundary_len)) {
+                    goto error;
+                }
+                buf->pos += boundary_len + 2;
+                if (sky_str2_cmp(buf->pos, '\r', '\n')) {
+                    buf->pos += 2;
+                } else if (*buf->pos == '\n') {
+                    ++buf->pos;
+                } else {
+                    goto error;
+                }
+                if (!multipart) {
+                    multipart = sky_pcalloc(r->pool, sizeof(sky_http_multipart_t));
+                    root = multipart;
+                } else {
+                    multipart->next = sky_pcalloc(r->pool, sizeof(sky_http_multipart_t));
+                    multipart = multipart->next;
+                }
+                sky_list_init(&multipart->headers, r->pool, 4, sizeof(sky_http_header_t));
+                state = header;
+                size = sky_min(content_size, server->header_buf_size);
+                if (sky_unlikely((sky_usize_t) (buf->end - buf->pos) < size)) { // 保证读取内存能容纳
+                    const sky_u32_t re_size = sky_max((sky_u32_t) size, server->header_buf_size);
+                    sky_buf_rebuild(buf, re_size);
+                }
+                continue;
+            }
+            case header: {
+                switch (sky_http_multipart_header_parse(multipart, buf)) {
+                    case 0:
+                        if (sky_likely(buf->last >= buf->end)) {
+                            goto error;
+                        }
+                        break;
+                    case 1:
+                        if (multipart->content_type) {
+                            state = body_file;
+                        } else {
+                            state = body_str;
+                        }
+                        size = (boundary_len + 6);
+                        continue;
+                    case -1:
+                        goto error;
+                };
+                break;
+            }
+            case body_str: {
+                if (sky_unlikely((sky_usize_t) (buf->last - buf->pos) < size)) {
+                    break;
+                }
+                sky_str_len_find(buf->pos, (buf->last - buf->pos), boundary, boundary_len);
+                // 读取
+                sky_log_info("%s", buf->pos);
+
+                break;
+            }
+            case body_file:
+                // 读取 loop -> 存盘
+
+            default:
+                goto error;
+        }
+        if (sky_unlikely(!content_size)) {
+            return null;
+        }
+        n = server->http_read(r->conn, buf->last, (sky_usize_t) (buf->end - buf->last));
+        buf->last += n;
+        content_size -= n;
+    }
+
+    error:
+    return null;
+}
+
+
+static void
+http_read_body_none_need(sky_http_request_t *r) {
+    sky_http_server_t *server;
+    sky_buf_t *tmp;
+    sky_u32_t n, size, t;
+
+    tmp = r->tmp;
+    n = (sky_u32_t) (tmp->last - tmp->pos);
+    size = r->headers_in.content_length_n;
+
+    if (n >= size) {
+        sky_buf_rebuild(tmp, 0);
+        return;
+    }
+    size -= n;
+
+    n = (sky_u32_t) (tmp->end - tmp->pos);
+    server = r->conn->server;
+
+    // 实际数据小于缓冲
+    if (size <= n) {
+        do {
+            size -= server->http_read(r->conn, tmp->pos, size);
+        } while (size > 0);
+        sky_buf_rebuild(tmp, 0);
+        return;
+    }
+    // 缓冲区间太小，分配一较大区域
+    if (n < 4096U) {
+        n = sky_min(size, 4096U);
+        sky_buf_rebuild(tmp, n);
+    }
+
+    do {
+        t = sky_min(n, size);
+        size -= server->http_read(r->conn, tmp->pos, t);
+    } while (size > 0);
+
+    sky_buf_rebuild(tmp, 0);
+}

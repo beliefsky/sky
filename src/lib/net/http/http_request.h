@@ -24,6 +24,8 @@ extern "C" {
 #define SKY_HTTP_OPTIONS                   0x0020
 #define SKY_HTTP_PATCH                     0x0040
 
+typedef struct sky_http_multipart_s sky_http_multipart_t;
+
 
 typedef struct {
     sky_str_t key;
@@ -93,6 +95,26 @@ struct sky_http_request_s {
     sky_bool_t response: 1;
 };
 
+struct sky_http_multipart_s {
+    sky_u32_t state;
+
+    sky_list_t headers;
+    sky_str_t header_name;
+    sky_uchar_t *req_pos;
+
+    sky_str_t *content_type;
+    sky_str_t *content_disposition;
+
+    union {
+        sky_str_t data;
+        struct {
+            sky_i32_t fd;
+            sky_u64_t size;
+        } file;
+    };
+    sky_http_multipart_t *next;
+};
+
 void sky_http_request_init(sky_http_server_t *server);
 
 sky_i32_t sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn);
@@ -100,6 +122,8 @@ sky_i32_t sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn
 void sky_http_read_body_none_need(sky_http_request_t *r);
 
 sky_str_t *sky_http_read_body_str(sky_http_request_t *r);
+
+sky_http_multipart_t *sky_http_read_multipart(sky_http_request_t *r);
 
 #if defined(__cplusplus)
 } /* extern "C" { */
