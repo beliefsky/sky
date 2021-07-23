@@ -43,6 +43,8 @@ static sky_isize_t find_binary_line(sky_uchar_t *post, const sky_uchar_t *end);
 
 static sky_bool_t header_handle_run(sky_http_request_t *req, sky_http_header_t *h);
 
+static sky_bool_t multipart_header_handle_run(sky_http_multipart_t *req, sky_http_header_t *h);
+
 static sky_bool_t find_char_fast(sky_uchar_t **buf, sky_usize_t buf_size,
                                  const sky_uchar_t *ranges, sky_i32_t ranges_size);
 
@@ -325,6 +327,127 @@ sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
     return 1;
 }
 
+sky_i8_t
+sky_http_multipart_header_parse(sky_http_multipart_t *r, sky_buf_t *b) {
+    parse_state_t state;
+    sky_isize_t index;
+    sky_uchar_t *p, *end;
+    sky_http_header_t *h;
+
+    state = (parse_state_t) r->state;
+    p = b->pos;
+    end = b->last;
+
+    for (;;) {
+        switch (state) {
+            case sw_start:
+                for (;;) {
+
+                    if (sky_unlikely(p == end)) {
+                        goto again;
+                    }
+                    if (*p == '\r') {
+                        ++p;
+                        continue;
+                    }
+                    if (*p == '\n') {
+                        ++p;
+                        goto done;
+                    }
+
+                    r->req_pos = p++;
+                    state = sw_header_name;
+                    break;
+                }
+                break;
+            case sw_header_name:
+                index = parse_token(p, end, ':');
+
+                if (sky_unlikely(index < 0)) {
+                    if (sky_unlikely(index == -2)) {
+                        return -1;
+                    }
+                    p = end;
+                    goto again;
+                }
+                p += index;
+
+                r->header_name.data = r->req_pos;
+                r->header_name.len = (sky_u32_t) (p - r->req_pos);
+                *(p++) = '\0';
+                state = sw_header_value_first;
+                r->req_pos = null;
+
+                break;
+            case sw_header_value_first:
+                for (;;) {
+                    if (sky_unlikely(p == end)) {
+                        goto again;
+                    }
+                    if (*p == ' ') {
+                        ++p;
+                        continue;
+                    }
+                    r->req_pos = p++;
+                    state = sw_header_value;
+                    break;
+                }
+                break;
+            case sw_header_value:
+                index = find_header_line(p, end);
+
+                if (sky_unlikely(index < 0)) {
+                    if (sky_unlikely(index == -2)) {
+                        return -1;
+                    }
+                    p = end;
+                    goto again;
+                }
+                p += index;
+                if (*p == '\r') {
+                    state = sw_line_LF;
+                } else {
+                    state = sw_header_value_first;
+                }
+
+                h = sky_list_push(&r->headers);
+                h->val.data = r->req_pos;
+                h->val.len = (sky_u32_t) (p - r->req_pos);
+                *(p++) = '\0';
+
+                h->key = r->header_name;
+
+                sky_str_lower2(&h->key);
+                r->req_pos = null;
+
+                if (sky_unlikely(!multipart_header_handle_run(r, h))) {
+                    return -1;
+                }
+                break;
+            case sw_line_LF:
+                if (sky_unlikely(*p != '\n')) {
+                    if (sky_likely(p == end)) {
+                        goto again;
+                    }
+                    return -1;
+                }
+                ++p;
+                state = sw_start;
+                break;
+            default:
+                return -1;
+        }
+    }
+    again:
+    b->pos = p;
+    r->state = state;
+    return 0;
+    done:
+    b->pos = p;
+    r->state = sw_start;
+    return 1;
+}
+
 
 sky_bool_t
 sky_http_url_decode(sky_str_t *str) {
@@ -382,168 +505,169 @@ sky_http_url_decode(sky_str_t *str) {
 
 sky_http_multipart_t *
 sky_http_multipart_decode(sky_http_request_t *r, sky_str_t *str) {
-    static const sky_str_t type = sky_string("multipart/form-data;");
-    static const sky_str_t boundary_prefix = sky_string("boundary=");
-
-    sky_http_multipart_t *root = null;
-    sky_http_multipart_t *multipart;
-    if (sky_unlikely(!str || !r->headers_in.content_type)) {
-        return null;
-    }
-    const sky_str_t *value = r->headers_in.content_type;
-    if (sky_unlikely(!sky_str_starts_with(value, type.data, type.len))) {
-        return null;
-    }
-    const sky_uchar_t *boundary = value->data + type.len;
-    sky_usize_t boundary_len = value->len - type.len;
-
-    while (*boundary == ' ') {
-        ++boundary;
-        --boundary_len;
-    }
-    if (sky_unlikely(!sky_str_len_starts_with(boundary, boundary_len, boundary_prefix.data, boundary_prefix.len))) {
-        return null;
-    }
-    boundary += boundary_prefix.len;
-    boundary_len -= boundary_prefix.len;
-
-    sky_uchar_t *p = str->data;
-    sky_usize_t size = str->len;
-    if (sky_unlikely(size < 2 || !sky_str2_cmp(p, '-', '-'))) {
-        return null;
-    }
-    p += 2;
-    size -= 2;
-
-    if (sky_unlikely(!sky_str_len_starts_with(p, size, boundary, boundary_len))) {
-        return null;
-    }
-    p += boundary_len;
-    size -= boundary_len;
-
-    for (;;) {
-        if (sky_unlikely(size < 2)) {
-            return null;
-        }
-        switch (sky_str2_switch(p)) {
-            case sky_str2_num('-', '-'):
-                return root;
-            case sky_str2_num('\r', '\n'):
-                p += 2;
-                size -= 2;
-                break;
-            default:
-                return null;
-
-        }
-        if (!root) {
-            root = sky_pcalloc(r->pool, sizeof(sky_http_multipart_t));
-            multipart = root;
-        } else {
-            multipart->next = sky_pcalloc(r->pool, sizeof(sky_http_multipart_t));
-            multipart = multipart->next;
-        }
-        sky_list_init(&multipart->headers, r->pool, 8, sizeof(sky_http_header_t));
-
-        for (;;) {
-            sky_http_header_t *elt = sky_list_push(&multipart->headers);
-            sky_isize_t index = parse_token(p, p + size, ':');
-            if (index < 0) {
-                return null;
-            }
-
-            elt->key.len = (sky_usize_t) index;
-            elt->key.data = p;
-            p += index;
-            *(p++) = '\0';
-
-            size -= (sky_usize_t) index + 1;
-
-            while (*p == ' ') {
-                ++p;
-                --size;
-            }
-            index = find_header_line(p, p + size);
-            if (sky_unlikely(index < 0)) {
-                return null;
-            }
-            elt->val.len = (sky_usize_t) index;
-            elt->val.data = p;
-
-            p += index;
-            if (sky_unlikely(!sky_str2_cmp(p, '\r', '\n'))) {
-                return null;
-            }
-            *p = '\0';
-            size -= (sky_usize_t) index + 2;
-            p += 2;
-
-            sky_str_lower(elt->key.data, elt->key.data, elt->key.len);
-            switch (elt->key.len) {
-                case 12:
-                    if (sky_likely(sky_str_len_equals_unsafe(elt->key.data, sky_str_line("content-type")))) {
-                        multipart->content_type = &elt->val;
-                    }
-                    break;
-                case 19:
-                    if (sky_likely(sky_str_len_equals_unsafe(elt->key.data, sky_str_line("content-disposition")))) {
-                        multipart->content_disposition = &elt->val;
-                    }
-                    break;
-                default:
-                    break;
-            }
-
-            if (size < 2) {
-                return null;
-            }
-
-            if (sky_unlikely(!sky_str2_cmp(p, '\r', '\n'))) {
-                continue;
-            }
-            size -= 2;
-            p += 2;
-            break;
-        }
-        multipart->data.data = p;
-
-        for (;;) {
-            if (size < 4) {
-                return null;
-            }
-            const sky_isize_t index = find_binary_line(p, p + size);
-            if (index < 0) {
-                return null;
-            }
-            p += index;
-            size -= (sky_usize_t) index;
-
-            if (*p == '\r') {
-                if (sky_unlikely(!sky_str4_cmp(p, '\r', '\n', '-', '-'))) {
-                    ++p;
-                    --size;
-                    continue;
-                }
-                p += 4;
-                if (sky_unlikely(size < boundary_len)) {
-                    return null;
-                }
-                if (sky_unlikely(!sky_str_len_equals_unsafe(p, boundary, boundary_len))) {
-                    continue;
-                }
-                multipart->data.len = (sky_usize_t) (p - multipart->data.data) - 4;
-                *(p - 4) = '\0';
-
-                p += boundary_len;
-                size -= boundary_len;
-            } else {
-                ++p;
-                --size;
-                continue;
-            }
-            break;
-        }
-    }
+    return null;
+//    static const sky_str_t type = sky_string("multipart/form-data;");
+//    static const sky_str_t boundary_prefix = sky_string("boundary=");
+//
+//    sky_http_multipart_t *root = null;
+//    sky_http_multipart_t *multipart;
+//    if (sky_unlikely(!str || !r->headers_in.content_type)) {
+//        return null;
+//    }
+//    const sky_str_t *value = r->headers_in.content_type;
+//    if (sky_unlikely(!sky_str_starts_with(value, type.data, type.len))) {
+//        return null;
+//    }
+//    const sky_uchar_t *boundary = value->data + type.len;
+//    sky_usize_t boundary_len = value->len - type.len;
+//
+//    while (*boundary == ' ') {
+//        ++boundary;
+//        --boundary_len;
+//    }
+//    if (sky_unlikely(!sky_str_len_starts_with(boundary, boundary_len, boundary_prefix.data, boundary_prefix.len))) {
+//        return null;
+//    }
+//    boundary += boundary_prefix.len;
+//    boundary_len -= boundary_prefix.len;
+//
+//    sky_uchar_t *p = str->data;
+//    sky_usize_t size = str->len;
+//    if (sky_unlikely(size < 2 || !sky_str2_cmp(p, '-', '-'))) {
+//        return null;
+//    }
+//    p += 2;
+//    size -= 2;
+//
+//    if (sky_unlikely(!sky_str_len_starts_with(p, size, boundary, boundary_len))) {
+//        return null;
+//    }
+//    p += boundary_len;
+//    size -= boundary_len;
+//
+//    for (;;) {
+//        if (sky_unlikely(size < 2)) {
+//            return null;
+//        }
+//        switch (sky_str2_switch(p)) {
+//            case sky_str2_num('-', '-'):
+//                return root;
+//            case sky_str2_num('\r', '\n'):
+//                p += 2;
+//                size -= 2;
+//                break;
+//            default:
+//                return null;
+//
+//        }
+//        if (!root) {
+//            root = sky_pcalloc(r->pool, sizeof(sky_http_multipart_t));
+//            multipart = root;
+//        } else {
+//            multipart->next = sky_pcalloc(r->pool, sizeof(sky_http_multipart_t));
+//            multipart = multipart->next;
+//        }
+//        sky_list_init(&multipart->headers, r->pool, 8, sizeof(sky_http_header_t));
+//
+//        for (;;) {
+//            sky_http_header_t *elt = sky_list_push(&multipart->headers);
+//            sky_isize_t index = parse_token(p, p + size, ':');
+//            if (index < 0) {
+//                return null;
+//            }
+//
+//            elt->key.len = (sky_usize_t) index;
+//            elt->key.data = p;
+//            p += index;
+//            *(p++) = '\0';
+//
+//            size -= (sky_usize_t) index + 1;
+//
+//            while (*p == ' ') {
+//                ++p;
+//                --size;
+//            }
+//            index = find_header_line(p, p + size);
+//            if (sky_unlikely(index < 0)) {
+//                return null;
+//            }
+//            elt->val.len = (sky_usize_t) index;
+//            elt->val.data = p;
+//
+//            p += index;
+//            if (sky_unlikely(!sky_str2_cmp(p, '\r', '\n'))) {
+//                return null;
+//            }
+//            *p = '\0';
+//            size -= (sky_usize_t) index + 2;
+//            p += 2;
+//
+//            sky_str_lower(elt->key.data, elt->key.data, elt->key.len);
+//            switch (elt->key.len) {
+//                case 12:
+//                    if (sky_likely(sky_str_len_equals_unsafe(elt->key.data, sky_str_line("content-type")))) {
+//                        multipart->content_type = &elt->val;
+//                    }
+//                    break;
+//                case 19:
+//                    if (sky_likely(sky_str_len_equals_unsafe(elt->key.data, sky_str_line("content-disposition")))) {
+//                        multipart->content_disposition = &elt->val;
+//                    }
+//                    break;
+//                default:
+//                    break;
+//            }
+//
+//            if (size < 2) {
+//                return null;
+//            }
+//
+//            if (sky_unlikely(!sky_str2_cmp(p, '\r', '\n'))) {
+//                continue;
+//            }
+//            size -= 2;
+//            p += 2;
+//            break;
+//        }
+//        multipart->data.data = p;
+//
+//        for (;;) {
+//            if (size < 4) {
+//                return null;
+//            }
+//            const sky_isize_t index = find_binary_line(p, p + size);
+//            if (index < 0) {
+//                return null;
+//            }
+//            p += index;
+//            size -= (sky_usize_t) index;
+//
+//            if (*p == '\r') {
+//                if (sky_unlikely(!sky_str4_cmp(p, '\r', '\n', '-', '-'))) {
+//                    ++p;
+//                    --size;
+//                    continue;
+//                }
+//                p += 4;
+//                if (sky_unlikely(size < boundary_len)) {
+//                    return null;
+//                }
+//                if (sky_unlikely(!sky_str_len_equals_unsafe(p, boundary, boundary_len))) {
+//                    continue;
+//                }
+//                multipart->data.len = (sky_usize_t) (p - multipart->data.data) - 4;
+//                *(p - 4) = '\0';
+//
+//                p += boundary_len;
+//                size -= boundary_len;
+//            } else {
+//                ++p;
+//                --size;
+//                continue;
+//            }
+//            break;
+//        }
+//    }
 }
 
 
@@ -1082,6 +1206,29 @@ header_handle_run(sky_http_request_t *req, sky_http_header_t *h) {
         case 17: {
             if (sky_str_len_equals_unsafe(p, sky_str_line("if-modified-since"))) { // If-Modified-Since
                 req->headers_in.if_modified_since = &h->val;
+            }
+        }
+        default:
+            break;
+    }
+
+    return true;
+}
+
+static sky_inline sky_bool_t
+multipart_header_handle_run(sky_http_multipart_t *r, sky_http_header_t *h) {
+    const sky_uchar_t *p = h->key.data;
+
+    switch (h->key.len) {
+        case 12: {
+            if (sky_str_len_equals_unsafe(p, sky_str_line("content-type"))) { // Content-Type
+                r->content_type = &h->val;
+            }
+            break;
+        }
+        case 19: {
+            if (sky_str_len_equals_unsafe(p, sky_str_line("content-disposition"))) { // If-Modified-Since
+                r->content_disposition = &h->val;
             }
         }
         default:

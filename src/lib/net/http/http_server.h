@@ -61,7 +61,7 @@ struct sky_http_server_s {
     sky_uchar_t rfc_date[30];
     sky_time_t rfc_last;
 
-    sky_u16_t header_buf_size;
+    sky_u32_t header_buf_size;
     sky_u8_t header_buf_n;
     sky_bool_t ssl;
 };
