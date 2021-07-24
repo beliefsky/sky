@@ -21,9 +21,9 @@ extern "C" {
 /**
  * sky_memzero使用的是memset原型，memset使用汇编进行编写
  */
-#define sky_memzero(ptr, size)      memset(ptr,0x0,size)
-#define sky_memcpy                  memcpy
-#define sky_memmove                 memmove
+#define sky_memzero(ptr, size)          memset(ptr,0x0,size)
+#define sky_memcpy(_dest, _src, _n)     memcpy(_dest, _src, _n)
+#define sky_memmove(_dest, _src, _n)   memmove(_dest, _src, _n)
 
 #define sky_memcpy2(_dist, _src)                            \
     do {                                                    \
