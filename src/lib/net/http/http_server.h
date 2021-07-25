@@ -34,7 +34,7 @@ typedef struct {
     sky_str_t port;
     void *ssl_ctx;
     sky_u16_t modules_n;
-    sky_u16_t header_buf_size;
+    sky_u32_t header_buf_size;
     sky_u8_t header_buf_n;
     sky_bool_t ssl;
 } sky_http_conf_t;
