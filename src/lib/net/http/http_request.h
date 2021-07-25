@@ -97,7 +97,7 @@ struct sky_http_request_s {
 
 struct sky_http_multipart_s {
     sky_u32_t state;
-
+    sky_bool_t is_file;
     sky_list_t headers;
     sky_str_t header_name;
     sky_uchar_t *req_pos;
@@ -106,12 +106,12 @@ struct sky_http_multipart_s {
     sky_str_t *content_disposition;
 
     union {
-        sky_str_t data;
+        sky_str_t str;
         struct {
             sky_i32_t fd;
-            sky_u64_t size;
         } file;
     };
+
     sky_http_multipart_t *next;
 };
 
