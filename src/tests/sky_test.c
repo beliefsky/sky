@@ -150,17 +150,7 @@ server_start(void *ssl) {
 
     sky_http_module_host_t hosts[] = {
             {
-                    .host = sky_string("localhost:8080"),
-                    .modules = modules.elts,
-                    .modules_n = (sky_u16_t) modules.nelts
-            },
-            {
-                    .host = sky_string("0.0.0.0:8080"),
-                    .modules = modules.elts,
-                    .modules_n = (sky_u16_t) modules.nelts
-            },
-            {
-                    .host = sky_string("192.168.10.107:8080"),
+                    .host = sky_null_string,
                     .modules = modules.elts,
                     .modules_n = (sky_u16_t) modules.nelts
             }
@@ -171,7 +161,7 @@ server_start(void *ssl) {
             .header_buf_size = 2048,
             .header_buf_n = 4,
             .modules_host = hosts,
-            .modules_n = 3,
+            .modules_n = 1,
             .ssl = (ssl != null),
             .ssl_ctx = ssl
     };
