@@ -190,11 +190,7 @@ sky_str_starts_with(const sky_str_t *src, const sky_uchar_t *prefix, sky_usize_t
     return sky_str_len_starts_with(src->data, src->len, prefix, prefix_len);
 }
 
-
-static sky_inline sky_uchar_t *
-sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *sub, sky_usize_t sub_len) {
-    return memmem(src, src_len, sub, sub_len);
-}
+sky_uchar_t *sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *sub, sky_usize_t sub_len);
 
 static sky_inline sky_uchar_t *
 sky_str_find(const sky_str_t *src, const sky_uchar_t *sub, sky_usize_t sub_len) {

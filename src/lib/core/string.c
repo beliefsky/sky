@@ -4,6 +4,7 @@
 
 
 #include "string.h"
+#include "../net/inet.h"
 
 #if defined(__SSE4_1__)
 
@@ -100,6 +101,147 @@ sky_byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out) {
 
 void sky_byte_to_hex_upper(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out) {
     byte_to_hex(in, in_len, out, true);
+}
+
+sky_uchar_t *
+sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *sub, sky_usize_t sub_len) {
+    const sky_uchar_t *src_ptr;
+    const sky_uchar_t *sub_ptr;
+    sky_usize_t compare_len;
+    sky_usize_t last_sub_chars;
+    sky_usize_t last_src_chars;
+    sky_usize_t i;
+    sky_i32_t sums_diff;
+
+    switch (sub_len) {
+        case 0:
+            return (sky_uchar_t *) src;
+        case 1:
+            return sky_str_len_find_char(src, src_len, *sub);
+        default:
+            break;
+    }
+    src_ptr = sky_str_len_find_char(src, src_len, *sub);
+    if (!src_ptr) {
+        return null;
+    }
+    src_len -= (sky_usize_t) (src_ptr - src);
+    if (src_len < sub_len) {
+        return null;
+    }
+    src = src_ptr;
+
+    if (sub_len > sizeof(sky_usize_t) + 1) {
+        sub_ptr = sub;
+        sums_diff = 0;
+
+        for (i = sub_len; i > 0; --i) {
+            sums_diff -= *sub_ptr++;
+            sums_diff += *src_ptr++;
+        }
+        last_sub_chars = *(((sky_usize_t *) sub_ptr) - 1);
+        last_src_chars = *(((sky_usize_t *) src_ptr) - 1);
+#if SKY_U64_MAX == SKY_USIZE_MAX
+        last_sub_chars = sky_ntohll(last_sub_chars);
+        last_src_chars = sky_ntohll(last_src_chars);
+#else
+        last_sub_chars = sky_ntohl(last_sub_chars);
+        last_src_chars = sky_ntohl(last_src_chars);
+#endif
+        compare_len = sub_len - (sizeof(sky_usize_t) + 1);
+        if (sums_diff == 0
+            && last_src_chars == last_sub_chars
+            && sky_str_len_equals_unsafe(src, sub, compare_len)) {
+            return (sky_uchar_t *) src;
+        }
+
+        for (i = src_len - sub_len; i > 0; --i) {
+            last_src_chars <<= 8;
+            last_src_chars ^= *src_ptr;
+            sums_diff -= *src++;
+            sums_diff += *src_ptr++;
+
+            if (sums_diff == 0
+                && last_src_chars == last_sub_chars
+                && sky_str_len_equals_unsafe(src, sub, compare_len)) {
+                return (sky_uchar_t *) src;
+            }
+        }
+
+    } else if (sub_len < sizeof(sky_usize_t)) {
+        sub_ptr = sub;
+        sums_diff = 0;
+        for (i = sub_len; i > 0; --i) {
+            sums_diff -= *sub_ptr++;
+            sums_diff += *src_ptr++;
+        }
+        compare_len = sub_len - 1;
+
+        if (sums_diff == 0 && sky_str_len_equals_unsafe(src, sub, compare_len)) {
+            return (sky_uchar_t *) src;
+        }
+
+        for (i = src_len - sub_len; i > 0; --i) {
+            sums_diff -= *src++;
+            sums_diff += *src_ptr++;
+
+            if (sums_diff == 0 && sky_str_len_equals_unsafe(src, sub, compare_len)) {
+                return (sky_uchar_t *) src;
+            }
+        }
+
+    } else if (sub_len == sizeof(sky_usize_t)) {
+
+        last_sub_chars = *(sky_usize_t *) sub;
+        last_src_chars = *(sky_usize_t *) src;
+#if SKY_U64_MAX == SKY_USIZE_MAX
+        last_sub_chars = sky_ntohll(last_sub_chars);
+        last_src_chars = sky_ntohll(last_src_chars);
+#else
+        last_sub_chars = sky_ntohl(last_sub_chars);
+        last_src_chars = sky_ntohl(last_src_chars);
+#endif
+        src_ptr += sizeof(sky_usize_t);
+
+        if (last_src_chars == last_sub_chars) {
+            return (sky_uchar_t *) src;
+        }
+
+        for (i = src_len - sub_len; i > 0; --i) {
+            last_src_chars <<= 8;
+            last_src_chars ^= *src_ptr++;
+            if (last_src_chars == last_sub_chars) {
+                return (sky_uchar_t *) (src_ptr - sub_len);
+            }
+        }
+    } else {
+        last_sub_chars = *(sky_usize_t *) sub;
+        last_src_chars = *(sky_usize_t *) src;
+#if SKY_U64_MAX == SKY_USIZE_MAX
+        last_sub_chars = sky_ntohll(last_sub_chars);
+        last_src_chars = sky_ntohll(last_src_chars);
+#else
+        last_sub_chars = sky_ntohl(last_sub_chars);
+        last_src_chars = sky_ntohl(last_src_chars);
+#endif
+        src_ptr += sizeof(sky_usize_t);
+
+        sky_uchar_t last_sub_char = *(sub + sizeof(sky_usize_t));
+
+        if (last_src_chars == last_sub_chars && *src_ptr == last_sub_char) {
+            return (sky_uchar_t *) src;
+        }
+
+        for (i = src_len - sub_len; i > 0; --i) {
+            last_src_chars <<= 8;
+            last_src_chars ^= *src_ptr++;
+            if (last_src_chars == last_sub_chars && *src_ptr == last_sub_char) {
+                return (sky_uchar_t *) (src_ptr - (sub_len - 1));
+            }
+        }
+    }
+
+    return null;
 }
 
 static sky_inline void
