@@ -381,6 +381,7 @@ sky_http_read_multipart(sky_http_request_t *r) {
                 if (!p) {
                     size = (sky_usize_t)(buf->last - buf->pos) - (boundary_len + 4);
                     write(multipart->file.fd, buf->pos, size);
+                    multipart->file.size += size;
 
                     sky_memmove(buf->pos, buf->pos + size, (boundary_len + 4));
                     buf->last -= size;
@@ -391,6 +392,8 @@ sky_http_read_multipart(sky_http_request_t *r) {
                 }
                 size = (sky_usize_t)(p - buf->pos) - 4;
                 write(multipart->file.fd, buf->pos, size);
+                multipart->file.size += size;
+
                 p += boundary_len;
                 size = (sky_usize_t)(buf->last - p);
                 if (size >= 4) {
