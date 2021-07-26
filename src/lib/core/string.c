@@ -551,6 +551,8 @@ mem_equals2(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
 
 static sky_bool_t
 mem_equals3(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
     return ((*(sky_u32_t *) a) & 0x00ffffff) == ((*(sky_u32_t *) b) & 0x00ffffff);
 }
 
