@@ -405,7 +405,7 @@ sky_http_read_multipart(sky_http_request_t *r) {
                     size -= 2;
 
                     if (size < 128) {
-                        sky_memmove(buf->pos + size, buf->pos, size);
+                        sky_memmove(buf->pos, p, size);
                         buf->last = buf->pos + size;
                     } else {
                         buf->pos = p;
@@ -415,7 +415,7 @@ sky_http_read_multipart(sky_http_request_t *r) {
                     continue;
                 }
 
-                sky_memmove(buf->pos + size, buf->pos, size);
+                sky_memmove(buf->pos, p, size);
                 buf->last = buf->pos + size;
 
                 state = end;
