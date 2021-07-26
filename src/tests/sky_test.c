@@ -347,11 +347,27 @@ static SKY_HTTP_MAPPER_HANDLER(hello_world) {
     sky_http_response_static(req, sky_json_tostring(json));
 }
 
+static void *
+multipart_init(sky_http_request_t *r, sky_http_multipart_t *multipart) {
+    return null;
+}
+
+static void
+multipart_update(void *result, const sky_uchar_t *data, sky_usize_t size) {
+
+}
+
 static SKY_HTTP_MAPPER_HANDLER(test_rw) {
-    sky_http_multipart_t *multipart = sky_http_read_multipart(req);
+    const sky_http_multipart_conf_t conf = {
+            .init = multipart_init,
+            .update = multipart_update,
+            .final = multipart_update
+    };
+
+    sky_http_multipart_t *multipart = sky_http_read_multipart(req, &conf);
     while (multipart) {
-        if (multipart->content_type) {
-            sky_log_info("%d", multipart->file.fd);
+        if (multipart->is_file) {
+            sky_log_info("file size: %lu", multipart->file.size);
         } else {
             sky_log_info("(%lu)%s", multipart->str.len, multipart->str.data);
         }
