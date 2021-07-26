@@ -207,7 +207,7 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
                 return (sky_uchar_t *) (src + (i + bit_pos));
             }
 
-            mask = mask & (mask - 1);
+            mask &= (mask - 1);
         }
     }
 
@@ -285,7 +285,7 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
                 return (sky_uchar_t *) (src + (i + bit_pos));
             }
 
-            mask = mask & (mask - 1);
+            mask &= (mask - 1);
         }
     }
 
@@ -466,8 +466,8 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
 static sky_inline void
 byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out, sky_bool_t upper) {
     static const sky_uchar_t hex_map[2][16] = {
-            "0123456789abcdef",
-            "0123456789ABCDEF"
+            {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'},
+            {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'}
     };
 #ifdef __SSE4_1__
     static const sky_char_t offset_map[2] = {
