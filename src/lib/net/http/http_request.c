@@ -193,7 +193,7 @@ sky_http_read_body_str(sky_http_request_t *r) {
 }
 
 sky_http_multipart_t *
-sky_http_read_multipart(sky_http_request_t *r) {
+sky_http_read_multipart(sky_http_request_t *r, const sky_http_multipart_conf_t *conf) {
     if (sky_unlikely(r->read_request_body)) {
         sky_log_error("request body read repeat");
         return null;
@@ -301,11 +301,7 @@ sky_http_read_multipart(sky_http_request_t *r) {
                         if (multipart->content_type) {
                             state = body_file;
                             multipart->is_file = true;
-
-                            char temp_filename[] = "/tmp/sky_upload.XXXXXX";
-                            multipart->file.fd = mkstemp(temp_filename);
-                            unlink(temp_filename);
-                            sky_defer_add(r->conn->coro, (sky_defer_func_t) close, (void *) multipart->file.fd);
+                            multipart->file.result = conf->init(r, multipart);
                         } else {
                             state = body_str;
                             size = 0;
@@ -380,8 +376,8 @@ sky_http_read_multipart(sky_http_request_t *r) {
                 );
                 if (!p) {
                     size = (sky_usize_t)(buf->last - buf->pos) - (boundary_len + 4);
-                    write(multipart->file.fd, buf->pos, size);
                     multipart->file.size += size;
+                    conf->update(multipart->file.result, buf->pos, size);
 
                     sky_memmove(buf->pos, buf->pos + size, (boundary_len + 4));
                     buf->last -= size;
@@ -391,8 +387,8 @@ sky_http_read_multipart(sky_http_request_t *r) {
                     goto error;
                 }
                 size = (sky_usize_t)(p - buf->pos) - 4;
-                write(multipart->file.fd, buf->pos, size);
                 multipart->file.size += size;
+                conf->final(multipart->file.result, buf->pos, size);
 
                 p += boundary_len;
                 size = (sky_usize_t)(buf->last - p);
