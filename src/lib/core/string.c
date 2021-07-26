@@ -16,7 +16,36 @@
 
 #endif
 
+typedef sky_bool_t (*mem_equals_pt)(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
 static void byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out, sky_bool_t upper);
+
+static sky_bool_t mem_always_true(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals1(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals2(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals3(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals4(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals5(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals6(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals7(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals8(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals9(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals10(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals11(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals12(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
 
 void
 sky_str_len_replace_char(sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t old_ch, sky_uchar_t new_ch) {
@@ -103,146 +132,174 @@ void sky_byte_to_hex_upper(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_
     byte_to_hex(in, in_len, out, true);
 }
 
+#if SKY_USIZE_MAX == SKY_U64_MAX
+
 sky_uchar_t *
 sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *sub, sky_usize_t sub_len) {
-    const sky_uchar_t *src_ptr;
-    const sky_uchar_t *sub_ptr;
-    sky_usize_t compare_len;
-    sky_usize_t last_sub_chars;
-    sky_usize_t last_src_chars;
-    sky_usize_t i;
-    sky_i32_t sums_diff;
+    mem_equals_pt func;
+
+    if (src_len < sub_len) {
+        return null;
+    }
 
     switch (sub_len) {
         case 0:
             return (sky_uchar_t *) src;
         case 1:
-            return sky_str_len_find_char(src, src_len, *sub);
+            return sky_str_len_find_char(src, src_len, sub[0]);
+        case 2:
+            func = mem_always_true;
+            break;
+        case 3:
+            func = mem_equals1;
+            break;
+        case 4:
+            func = mem_equals2;
+            break;
+        case 5:
+        case 6:
+            func = mem_equals4;
+            break;
+        case 7:
+            func = mem_equals5;
+            break;
+        case 8:
+            func = mem_equals6;
+            break;
+        case 9:
+        case 10:
+            func = mem_equals8;
+            break;
+        case 11:
+            func = mem_equals9;
+            break;
+        case 12:
+            func = mem_equals10;
+            break;
         default:
+            func = sky_str_len_equals_unsafe;
             break;
     }
-    src_ptr = sky_str_len_find_char(src, src_len, *sub);
-    if (!src_ptr) {
-        return null;
-    }
-    src_len -= (sky_usize_t) (src_ptr - src);
-    if (src_len < sub_len) {
-        return null;
-    }
-    src = src_ptr;
 
-    if (sub_len > sizeof(sky_usize_t) + 1) {
-        sub_ptr = sub;
-        sums_diff = 0;
+    const sky_u64_t first = 0x0101010101010101llu * sub[0];
+    const sky_u64_t last = 0x0101010101010101llu * sub[sub_len - 1];
 
-        for (i = sub_len; i > 0; --i) {
-            sums_diff -= *sub_ptr++;
-            sums_diff += *src_ptr++;
-        }
-        last_sub_chars = *(((sky_usize_t *) sub_ptr) - 1);
-        last_src_chars = *(((sky_usize_t *) src_ptr) - 1);
-#if SKY_U64_MAX == SKY_USIZE_MAX
-        last_sub_chars = sky_ntohll(last_sub_chars);
-        last_src_chars = sky_ntohll(last_src_chars);
-#else
-        last_sub_chars = sky_ntohl(last_sub_chars);
-        last_src_chars = sky_ntohl(last_src_chars);
-#endif
-        compare_len = sub_len - (sizeof(sky_usize_t) + 1);
-        if (sums_diff == 0
-            && last_src_chars == last_sub_chars
-            && sky_str_len_equals_unsafe(src, sub, compare_len)) {
-            return (sky_uchar_t *) src;
-        }
+    sky_u64_t *block_first = (sky_u64_t *) src;
+    sky_u64_t *block_last = (sky_u64_t *) (src + sub_len - 1);
 
-        for (i = src_len - sub_len; i > 0; --i) {
-            last_src_chars <<= 8;
-            last_src_chars ^= *src_ptr;
-            sums_diff -= *src++;
-            sums_diff += *src_ptr++;
+    // 2. sequence scan
+    for (sky_usize_t i = 0; i < src_len; i += 8, block_first++, block_last++) {
+        // 0 bytes in eq indicate matching chars
+        const sky_u64_t eq = (*block_first ^ first) | (*block_last ^ last);
 
-            if (sums_diff == 0
-                && last_src_chars == last_sub_chars
-                && sky_str_len_equals_unsafe(src, sub, compare_len)) {
-                return (sky_uchar_t *) src;
+        // 7th bit set if lower 7 bits are zero
+        const sky_u64_t t0 = (~eq & 0x7f7f7f7f7f7f7f7fllu) + 0x0101010101010101llu;
+        // 7th bit set if 7th bit is zero
+        const sky_u64_t t1 = (~eq & 0x8080808080808080llu);
+        sky_u64_t zeros = t0 & t1;
+        sky_usize_t j = 0;
+
+        while (zeros) {
+            if (zeros & 0x80) {
+                const sky_uchar_t *substr = (sky_uchar_t *) (block_first) + j + 1;
+                if (func(substr, sub + 1, sub_len - 2)) {
+                    return (sky_uchar_t *) (src + (i + j));
+                }
             }
-        }
 
-    } else if (sub_len < sizeof(sky_usize_t)) {
-        sub_ptr = sub;
-        sums_diff = 0;
-        for (i = sub_len; i > 0; --i) {
-            sums_diff -= *sub_ptr++;
-            sums_diff += *src_ptr++;
-        }
-        compare_len = sub_len - 1;
-
-        if (sums_diff == 0 && sky_str_len_equals_unsafe(src, sub, compare_len)) {
-            return (sky_uchar_t *) src;
-        }
-
-        for (i = src_len - sub_len; i > 0; --i) {
-            sums_diff -= *src++;
-            sums_diff += *src_ptr++;
-
-            if (sums_diff == 0 && sky_str_len_equals_unsafe(src, sub, compare_len)) {
-                return (sky_uchar_t *) src;
-            }
-        }
-
-    } else if (sub_len == sizeof(sky_usize_t)) {
-
-        last_sub_chars = *(sky_usize_t *) sub;
-        last_src_chars = *(sky_usize_t *) src;
-#if SKY_U64_MAX == SKY_USIZE_MAX
-        last_sub_chars = sky_ntohll(last_sub_chars);
-        last_src_chars = sky_ntohll(last_src_chars);
-#else
-        last_sub_chars = sky_ntohl(last_sub_chars);
-        last_src_chars = sky_ntohl(last_src_chars);
-#endif
-        src_ptr += sizeof(sky_usize_t);
-
-        if (last_src_chars == last_sub_chars) {
-            return (sky_uchar_t *) src;
-        }
-
-        for (i = src_len - sub_len; i > 0; --i) {
-            last_src_chars <<= 8;
-            last_src_chars ^= *src_ptr++;
-            if (last_src_chars == last_sub_chars) {
-                return (sky_uchar_t *) (src_ptr - sub_len);
-            }
-        }
-    } else {
-        last_sub_chars = *(sky_usize_t *) sub;
-        last_src_chars = *(sky_usize_t *) src;
-#if SKY_U64_MAX == SKY_USIZE_MAX
-        last_sub_chars = sky_ntohll(last_sub_chars);
-        last_src_chars = sky_ntohll(last_src_chars);
-#else
-        last_sub_chars = sky_ntohl(last_sub_chars);
-        last_src_chars = sky_ntohl(last_src_chars);
-#endif
-        src_ptr += sizeof(sky_usize_t);
-
-        sky_uchar_t last_sub_char = *(sub + sizeof(sky_usize_t));
-
-        if (last_src_chars == last_sub_chars && *src_ptr == last_sub_char) {
-            return (sky_uchar_t *) src;
-        }
-
-        for (i = src_len - sub_len; i > 0; --i) {
-            last_src_chars <<= 8;
-            last_src_chars ^= *src_ptr++;
-            if (last_src_chars == last_sub_chars && *src_ptr == last_sub_char) {
-                return (sky_uchar_t *) (src_ptr - (sub_len - 1));
-            }
+            zeros >>= 8;
+            j += 1;
         }
     }
 
     return null;
 }
+
+#else
+
+sky_uchar_t *
+sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *sub, sky_usize_t sub_len) {
+    mem_equals_pt func;
+
+    if (src_len < sub_len) {
+        return null;
+    }
+
+    switch (sub_len) {
+        case 0:
+            return (sky_uchar_t *) src;
+        case 1:
+            return sky_str_len_find_char(src, src_len, sub[0]);
+        case 2:
+            func = mem_always_true;
+            break;
+        case 3:
+            func = mem_equals1;
+            break;
+        case 4:
+            func = mem_equals2;
+            break;
+        case 5:
+        case 6:
+            func = mem_equals4;
+            break;
+        case 7:
+            func = mem_equals5;
+            break;
+        case 8:
+            func = mem_equals6;
+            break;
+        case 9:
+        case 10:
+            func = mem_equals8;
+            break;
+        case 11:
+            func = mem_equals9;
+            break;
+        case 12:
+            func = mem_equals10;
+            break;
+        default:
+            func = sky_str_len_equals_unsafe;
+            break;
+    }
+
+    const sky_u32_t first = 0x01010101U * sub[0];
+    const sky_u32_t last = 0x01010101U * sub[sub_len - 1];
+
+    sky_u32_t *block_first = (sky_u32_t *) src;
+    sky_u32_t *block_last = (sky_u32_t *) (src + sub_len - 1);
+
+    // 2. sequence scan
+    for (sky_usize_t i = 0; i < src_len; i += 4, block_first++, block_last++) {
+        // 0 bytes in eq indicate matching chars
+        const sky_u32_t eq = (*block_first ^ first) | (*block_last ^ last);
+
+        // 7th bit set if lower 7 bits are zero
+        const sky_u32_t t0 = (~eq & 0x7f7f7f7fU) + 0x01010101U;
+        // 7th bit set if 7th bit is zero
+        const sky_u32_t t1 = (~eq & 0x80808080U);
+        sky_u32_t zeros = t0 & t1;
+        sky_usize_t j = 0;
+
+        while (zeros) {
+            if (zeros & 0x80) {
+                const sky_uchar_t *substr = (sky_uchar_t *) (block_first) + j + 1;
+                if (func(substr, sub + 1, sub_len - 2)) {
+                    return (sky_uchar_t *) (src + (i + j));
+                }
+            }
+
+            zeros >>= 8;
+            j += 1;
+        }
+    }
+
+    return null;
+
+}
+
+#endif
 
 static sky_inline void
 byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out, sky_bool_t upper) {
@@ -306,3 +363,136 @@ byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out, sky_boo
     }
     *out = '\0';
 }
+
+
+static sky_inline sky_uchar_t *
+str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *sub, sky_usize_t sub_len) {
+    const sky_u32_t first = 0x01010101u * sub[0];
+    const sky_u32_t last = 0x01010101u * sub[sub_len - 1];
+
+    sky_u32_t *block_first = (sky_u32_t *) src;
+    sky_u32_t *block_last = (sky_u32_t *) (src + sub_len - 1);
+
+    // 2. sequence scan
+    for (sky_usize_t i = 0; i < src_len; i += 4, block_first++, block_last++) {
+        // 0 bytes in eq indicate matching chars
+        const sky_u32_t eq = (*block_first ^ first) | (*block_last ^ last);
+
+        // 7th bit set if lower 7 bits are zero
+        const sky_u32_t t0 = (~eq & 0x7f7f7f7fu) + 0x01010101u;
+        // 7th bit set if 7th bit is zero
+        const sky_u32_t t1 = (~eq & 0x80808080u);
+        sky_u32_t zeros = t0 & t1;
+        sky_usize_t j = 0;
+
+        while (zeros) {
+            if (zeros & 0x80) {
+                const sky_uchar_t *substr = (sky_uchar_t *) (block_first) + j + 1;
+                if (sky_str_len_equals_unsafe(substr, sub + 1, sub_len - 2)) {
+                    return (sky_uchar_t *) (src + (i + j));
+                }
+            }
+
+            zeros >>= 8;
+            j += 1;
+        }
+    }
+
+    return null;
+}
+
+static sky_bool_t
+mem_always_true(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) a;
+    (void) b;
+    (void) len;
+
+    return true;
+}
+
+static sky_bool_t
+mem_equals1(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
+    return a[0] == b[0];
+}
+
+static sky_bool_t
+mem_equals2(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
+    return (*(sky_u16_t *) a) == (*(sky_u16_t *) b);
+}
+
+static sky_bool_t
+mem_equals3(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    return ((*(sky_u32_t *) a) & 0x00ffffff) == ((*(sky_u32_t *) b) & 0x00ffffff);
+}
+
+static sky_bool_t
+mem_equals4(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
+    return (*(sky_u32_t *) a) == (*(sky_u32_t *) b);
+}
+
+static sky_bool_t
+mem_equals5(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
+    return (((*(sky_u64_t *) a) ^ (*(sky_u64_t *) b)) & 0x000000ffffffffffLU) == 0;
+}
+
+static sky_bool_t
+mem_equals6(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
+    return (((*(sky_u64_t *) a) ^ (*(sky_u64_t *) b)) & 0x0000ffffffffffffLU) == 0;
+}
+
+static sky_bool_t
+mem_equals7(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
+    return (((*(sky_u64_t *) a) ^ (*(sky_u64_t *) b)) & 0x00ffffffffffffffLU) == 0;
+}
+
+static sky_bool_t
+mem_equals8(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
+    return (*(sky_u64_t *) a) == (*(sky_u64_t *) b);
+}
+
+static sky_bool_t
+mem_equals9(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
+    return ((*(sky_u64_t *) a) == (*(sky_u64_t *) b)) & (a[8] == b[8]);
+}
+
+static sky_bool_t
+mem_equals10(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
+    return ((*(sky_u64_t *) a) == (*(sky_u64_t *) b))
+           & ((*(sky_u16_t *) (a + 8)) == (*(sky_u16_t *) (b + 8)));
+}
+
+static sky_bool_t
+mem_equals11(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
+    return ((*(sky_u64_t *) a) == (*(sky_u64_t *) b))
+           & (((*(sky_u16_t *) (a + 8)) & 0x00ffffff) == ((*(sky_u16_t *) (b + 8)) & 0x00ffffff));
+}
+
+static sky_bool_t
+mem_equals12(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
+    return ((*(sky_u64_t *) a) == (*(sky_u64_t *) b))
+           & ((*(sky_u32_t *) (a + 8)) == (*(sky_u32_t *) (b + 8)));
+}
+
+
