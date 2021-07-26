@@ -191,9 +191,9 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
         const __m128i D = _mm_loadu_si128((__m128i *) (src + i));
         const __m128i res = _mm_cmpestrm(
                 N,
-                sub_len,
+                (sky_i32_t)sub_len,
                 D,
-                src_len - i,
+                (sky_i32_t)(src_len - i),
                 _SIDD_UBYTE_OPS | _SIDD_CMP_EQUAL_ORDERED | _SIDD_BIT_MASK
         );
         sky_u64_t mask = (sky_u64_t) _mm_cvtsi128_si64(res);
