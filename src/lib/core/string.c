@@ -364,43 +364,6 @@ byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out, sky_boo
     *out = '\0';
 }
 
-
-static sky_inline sky_uchar_t *
-str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *sub, sky_usize_t sub_len) {
-    const sky_u32_t first = 0x01010101u * sub[0];
-    const sky_u32_t last = 0x01010101u * sub[sub_len - 1];
-
-    sky_u32_t *block_first = (sky_u32_t *) src;
-    sky_u32_t *block_last = (sky_u32_t *) (src + sub_len - 1);
-
-    // 2. sequence scan
-    for (sky_usize_t i = 0; i < src_len; i += 4, block_first++, block_last++) {
-        // 0 bytes in eq indicate matching chars
-        const sky_u32_t eq = (*block_first ^ first) | (*block_last ^ last);
-
-        // 7th bit set if lower 7 bits are zero
-        const sky_u32_t t0 = (~eq & 0x7f7f7f7fu) + 0x01010101u;
-        // 7th bit set if 7th bit is zero
-        const sky_u32_t t1 = (~eq & 0x80808080u);
-        sky_u32_t zeros = t0 & t1;
-        sky_usize_t j = 0;
-
-        while (zeros) {
-            if (zeros & 0x80) {
-                const sky_uchar_t *substr = (sky_uchar_t *) (block_first) + j + 1;
-                if (sky_str_len_equals_unsafe(substr, sub + 1, sub_len - 2)) {
-                    return (sky_uchar_t *) (src + (i + j));
-                }
-            }
-
-            zeros >>= 8;
-            j += 1;
-        }
-    }
-
-    return null;
-}
-
 static sky_bool_t
 mem_always_true(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
     (void) a;
