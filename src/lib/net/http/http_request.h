@@ -109,6 +109,7 @@ struct sky_http_multipart_s {
         sky_str_t str;
         struct {
             sky_i32_t fd;
+            sky_u64_t size;
         } file;
     };
 
