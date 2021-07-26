@@ -6,7 +6,7 @@
 
 #ifdef __SSE4_2__
 
-#include <nmmintrin.h>
+#include <smmintrin.h>
 
 #endif
 
