@@ -25,8 +25,15 @@ extern "C" {
 #define SKY_HTTP_PATCH                     0x0040
 
 typedef struct sky_http_multipart_s sky_http_multipart_t;
-typedef void *(*sky_http_multipart_init_pt)(sky_http_request_t *r, sky_http_multipart_t *multipart);
-typedef void (*sky_http_multipart_update_pt)(void *result, const sky_uchar_t *data, sky_usize_t size);
+typedef struct sky_http_multipart_conf_s sky_http_multipart_conf_t;
+
+typedef void *(*sky_http_multipart_init_pt)(
+        sky_http_request_t *r,
+        sky_http_multipart_t *multipart,
+        sky_http_multipart_conf_t *conf
+);
+
+typedef void (*sky_http_multipart_update_pt)(void *file, const sky_uchar_t *data, sky_usize_t size);
 
 typedef struct {
     sky_str_t key;
@@ -96,11 +103,11 @@ struct sky_http_request_s {
     sky_bool_t response: 1;
 };
 
-typedef struct {
+struct sky_http_multipart_conf_s {
     sky_http_multipart_init_pt init;
     sky_http_multipart_update_pt update;
     sky_http_multipart_update_pt final;
-} sky_http_multipart_conf_t;
+};
 
 struct sky_http_multipart_s {
     sky_u32_t state;
@@ -131,7 +138,7 @@ void sky_http_read_body_none_need(sky_http_request_t *r);
 
 sky_str_t *sky_http_read_body_str(sky_http_request_t *r);
 
-sky_http_multipart_t *sky_http_read_multipart(sky_http_request_t *r, const sky_http_multipart_conf_t *conf);
+sky_http_multipart_t *sky_http_read_multipart(sky_http_request_t *r, sky_http_multipart_conf_t *conf);
 
 #if defined(__cplusplus)
 } /* extern "C" { */
