@@ -348,17 +348,23 @@ static SKY_HTTP_MAPPER_HANDLER(hello_world) {
 }
 
 static void *
-multipart_init(sky_http_request_t *r, sky_http_multipart_t *multipart) {
+multipart_init(sky_http_request_t *r, sky_http_multipart_t *multipart, sky_http_multipart_conf_t *conf) {
+    (void) r;
+    (void) multipart;
+    (void) conf;
+
     return null;
 }
 
 static void
-multipart_update(void *result, const sky_uchar_t *data, sky_usize_t size) {
-
+multipart_update(void *file, const sky_uchar_t *data, sky_usize_t size) {
+    (void) file;
+    (void) data;
+    (void) size;
 }
 
 static SKY_HTTP_MAPPER_HANDLER(test_rw) {
-    const sky_http_multipart_conf_t conf = {
+    sky_http_multipart_conf_t conf = {
             .init = multipart_init,
             .update = multipart_update,
             .final = multipart_update

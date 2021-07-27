@@ -193,7 +193,7 @@ sky_http_read_body_str(sky_http_request_t *r) {
 }
 
 sky_http_multipart_t *
-sky_http_read_multipart(sky_http_request_t *r, const sky_http_multipart_conf_t *conf) {
+sky_http_read_multipart(sky_http_request_t *r, sky_http_multipart_conf_t *conf) {
     if (sky_unlikely(r->read_request_body)) {
         sky_log_error("request body read repeat");
         return null;
@@ -301,7 +301,7 @@ sky_http_read_multipart(sky_http_request_t *r, const sky_http_multipart_conf_t *
                         if (multipart->content_type) {
                             state = body_file;
                             multipart->is_file = true;
-                            multipart->file.result = conf->init(r, multipart);
+                            multipart->file.result = conf->init(r, multipart, conf);
                         } else {
                             state = body_str;
                             size = 0;
