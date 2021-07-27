@@ -5,7 +5,7 @@
 
 #include "string.h"
 
-#if defined(__SSE4_1__)
+#if defined(__SSE4_2__)
 
 #include <smmintrin.h>
 
@@ -15,7 +15,36 @@
 
 #endif
 
+typedef sky_bool_t (*mem_equals_pt)(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
 static void byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out, sky_bool_t upper);
+
+static sky_bool_t mem_always_true(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals1(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals2(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals3(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals4(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals5(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals6(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals7(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals8(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals9(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals10(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals11(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
+static sky_bool_t mem_equals12(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
+
 
 void
 sky_str_len_replace_char(sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t old_ch, sky_uchar_t new_ch) {
@@ -102,11 +131,343 @@ void sky_byte_to_hex_upper(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_
     byte_to_hex(in, in_len, out, true);
 }
 
+#if defined(__SSE4_2__)
+
+sky_uchar_t *
+sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *sub, sky_usize_t sub_len) {
+    mem_equals_pt func;
+
+    if (src_len < sub_len) {
+        return null;
+    }
+
+    switch (sub_len) {
+        case 0:
+            return (sky_uchar_t *) src;
+        case 1:
+            return sky_str_len_find_char(src, src_len, sub[0]);
+        case 2:
+            func = mem_equals1;
+            break;
+        case 3:
+            func = mem_equals2;
+            break;
+        case 4:
+            func = mem_equals3;
+            break;
+        case 5:
+            func = mem_equals4;
+            break;
+        case 6:
+            func = mem_equals5;
+            break;
+        case 7:
+            func = mem_equals6;
+            break;
+        case 8:
+            func = mem_equals7;
+            break;
+        case 9:
+            func = mem_equals8;
+            break;
+        case 10:
+            func = mem_equals9;
+            break;
+        case 11:
+            func = mem_equals10;
+            break;
+        case 12:
+            func = mem_equals11;
+            break;
+        default:
+            func = sky_str_len_equals_unsafe;
+            break;
+    }
+
+    const __m128i N = _mm_loadu_si128((__m128i *) sub);
+
+    for (sky_usize_t i = 0; i < src_len; i += 16) {
+
+        const __m128i D = _mm_loadu_si128((__m128i *) (src + i));
+        const __m128i res = _mm_cmpestrm(
+                N,
+                (sky_i32_t)sub_len,
+                D,
+                (sky_i32_t)(src_len - i),
+                _SIDD_UBYTE_OPS | _SIDD_CMP_EQUAL_ORDERED | _SIDD_BIT_MASK
+        );
+        sky_u64_t mask = (sky_u64_t) _mm_cvtsi128_si64(res);
+
+        while (mask != 0) {
+
+            const sky_usize_t bit_pos = (sky_usize_t) __builtin_ctzl(mask);
+
+            // we know that at least the first character of needle matches
+            if (func(src + i + bit_pos + 1, sub + 1, sub_len - 1)) {
+                return (sky_uchar_t *) (src + (i + bit_pos));
+            }
+
+            mask &= (mask - 1);
+        }
+    }
+
+    return null;
+}
+
+#elif defined(__SSE2__)
+
+sky_uchar_t *
+sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *sub, sky_usize_t sub_len) {
+    mem_equals_pt func;
+
+    if (src_len < sub_len) {
+        return null;
+    }
+
+    switch (sub_len) {
+        case 0:
+            return (sky_uchar_t *) src;
+        case 1:
+            return sky_str_len_find_char(src, src_len, sub[0]);
+        case 2:
+            func = mem_always_true;
+            break;
+        case 3:
+            func = mem_equals1;
+            break;
+        case 4:
+            func = mem_equals2;
+            break;
+        case 5:
+        case 6:
+            func = mem_equals4;
+            break;
+        case 7:
+            func = mem_equals5;
+            break;
+        case 8:
+            func = mem_equals6;
+            break;
+        case 9:
+        case 10:
+            func = mem_equals8;
+            break;
+        case 11:
+            func = mem_equals9;
+            break;
+        case 12:
+            func = mem_equals10;
+            break;
+        default:
+            func = sky_str_len_equals_unsafe;
+            break;
+    }
+
+
+    const __m128i first = _mm_set1_epi8((sky_char_t) sub[0]);
+    const __m128i last = _mm_set1_epi8((sky_char_t) sub[sub_len - 1]);
+
+    for (sky_usize_t i = 0; i < src_len; i += 16) {
+
+        const __m128i block_first = _mm_loadu_si128((const __m128i *) (src + i));
+        const __m128i block_last = _mm_loadu_si128((const __m128i *) (src + i + sub_len - 1));
+
+        const __m128i eq_first = _mm_cmpeq_epi8(first, block_first);
+        const __m128i eq_last = _mm_cmpeq_epi8(last, block_last);
+
+        sky_u16_t mask = (sky_u16_t) _mm_movemask_epi8(_mm_and_si128(eq_first, eq_last));
+
+        while (mask != 0) {
+
+            const sky_usize_t bit_pos = (sky_usize_t) __builtin_ctz(mask);
+
+            if (func(src + i + bit_pos + 1, sub + 1, sub_len - 2)) {
+                return (sky_uchar_t *) (src + (i + bit_pos));
+            }
+
+            mask &= (mask - 1);
+        }
+    }
+
+    return null;
+}
+
+#else
+#if SKY_USIZE_MAX == SKY_U64_MAX
+
+sky_uchar_t *
+sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *sub, sky_usize_t sub_len) {
+    mem_equals_pt func;
+
+    if (src_len < sub_len) {
+        return null;
+    }
+
+    switch (sub_len) {
+        case 0:
+            return (sky_uchar_t *) src;
+        case 1:
+            return sky_str_len_find_char(src, src_len, sub[0]);
+        case 2:
+            func = mem_always_true;
+            break;
+        case 3:
+            func = mem_equals1;
+            break;
+        case 4:
+            func = mem_equals2;
+            break;
+        case 5:
+        case 6:
+            func = mem_equals4;
+            break;
+        case 7:
+            func = mem_equals5;
+            break;
+        case 8:
+            func = mem_equals6;
+            break;
+        case 9:
+        case 10:
+            func = mem_equals8;
+            break;
+        case 11:
+            func = mem_equals9;
+            break;
+        case 12:
+            func = mem_equals10;
+            break;
+        default:
+            func = sky_str_len_equals_unsafe;
+            break;
+    }
+
+    const sky_u64_t first = 0x0101010101010101llu * sub[0];
+    const sky_u64_t last = 0x0101010101010101llu * sub[sub_len - 1];
+
+    sky_u64_t *block_first = (sky_u64_t *) src;
+    sky_u64_t *block_last = (sky_u64_t *) (src + sub_len - 1);
+
+    // 2. sequence scan
+    for (sky_usize_t i = 0; i < src_len; i += 8, block_first++, block_last++) {
+        // 0 bytes in eq indicate matching chars
+        const sky_u64_t eq = (*block_first ^ first) | (*block_last ^ last);
+
+        // 7th bit set if lower 7 bits are zero
+        const sky_u64_t t0 = (~eq & 0x7f7f7f7f7f7f7f7fllu) + 0x0101010101010101llu;
+        // 7th bit set if 7th bit is zero
+        const sky_u64_t t1 = (~eq & 0x8080808080808080llu);
+        sky_u64_t zeros = t0 & t1;
+        sky_usize_t j = 0;
+
+        while (zeros) {
+            if (zeros & 0x80) {
+                const sky_uchar_t *substr = (sky_uchar_t *) (block_first) + j + 1;
+                if (func(substr, sub + 1, sub_len - 2)) {
+                    return (sky_uchar_t *) (src + (i + j));
+                }
+            }
+
+            zeros >>= 8;
+            j += 1;
+        }
+    }
+
+    return null;
+}
+
+#else
+
+sky_uchar_t *
+sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *sub, sky_usize_t sub_len) {
+    mem_equals_pt func;
+
+    if (src_len < sub_len) {
+        return null;
+    }
+
+    switch (sub_len) {
+        case 0:
+            return (sky_uchar_t *) src;
+        case 1:
+            return sky_str_len_find_char(src, src_len, sub[0]);
+        case 2:
+            func = mem_always_true;
+            break;
+        case 3:
+            func = mem_equals1;
+            break;
+        case 4:
+            func = mem_equals2;
+            break;
+        case 5:
+        case 6:
+            func = mem_equals4;
+            break;
+        case 7:
+            func = mem_equals5;
+            break;
+        case 8:
+            func = mem_equals6;
+            break;
+        case 9:
+        case 10:
+            func = mem_equals8;
+            break;
+        case 11:
+            func = mem_equals9;
+            break;
+        case 12:
+            func = mem_equals10;
+            break;
+        default:
+            func = sky_str_len_equals_unsafe;
+            break;
+    }
+
+    const sky_u32_t first = 0x01010101U * sub[0];
+    const sky_u32_t last = 0x01010101U * sub[sub_len - 1];
+
+    sky_u32_t *block_first = (sky_u32_t *) src;
+    sky_u32_t *block_last = (sky_u32_t *) (src + sub_len - 1);
+
+    // 2. sequence scan
+    for (sky_usize_t i = 0; i < src_len; i += 4, block_first++, block_last++) {
+        // 0 bytes in eq indicate matching chars
+        const sky_u32_t eq = (*block_first ^ first) | (*block_last ^ last);
+
+        // 7th bit set if lower 7 bits are zero
+        const sky_u32_t t0 = (~eq & 0x7f7f7f7fU) + 0x01010101U;
+        // 7th bit set if 7th bit is zero
+        const sky_u32_t t1 = (~eq & 0x80808080U);
+        sky_u32_t zeros = t0 & t1;
+        sky_usize_t j = 0;
+
+        while (zeros) {
+            if (zeros & 0x80) {
+                const sky_uchar_t *substr = (sky_uchar_t *) (block_first) + j + 1;
+                if (func(substr, sub + 1, sub_len - 2)) {
+                    return (sky_uchar_t *) (src + (i + j));
+                }
+            }
+
+            zeros >>= 8;
+            j += 1;
+        }
+    }
+
+    return null;
+
+}
+
+#endif
+#endif
+
 static sky_inline void
 byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out, sky_bool_t upper) {
     static const sky_uchar_t hex_map[2][16] = {
-            "0123456789abcdef",
-            "0123456789ABCDEF"
+            {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'},
+            {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'}
     };
 #ifdef __SSE4_1__
     static const sky_char_t offset_map[2] = {
@@ -164,3 +525,101 @@ byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out, sky_boo
     }
     *out = '\0';
 }
+
+static sky_bool_t
+mem_always_true(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) a;
+    (void) b;
+    (void) len;
+
+    return true;
+}
+
+static sky_bool_t
+mem_equals1(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
+    return a[0] == b[0];
+}
+
+static sky_bool_t
+mem_equals2(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
+    return (*(sky_u16_t *) a) == (*(sky_u16_t *) b);
+}
+
+static sky_bool_t
+mem_equals3(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
+    return ((*(sky_u32_t *) a) & 0x00ffffff) == ((*(sky_u32_t *) b) & 0x00ffffff);
+}
+
+static sky_bool_t
+mem_equals4(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
+    return (*(sky_u32_t *) a) == (*(sky_u32_t *) b);
+}
+
+static sky_bool_t
+mem_equals5(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
+    return (((*(sky_u64_t *) a) ^ (*(sky_u64_t *) b)) & 0x000000ffffffffffLU) == 0;
+}
+
+static sky_bool_t
+mem_equals6(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
+    return (((*(sky_u64_t *) a) ^ (*(sky_u64_t *) b)) & 0x0000ffffffffffffLU) == 0;
+}
+
+static sky_bool_t
+mem_equals7(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
+    return (((*(sky_u64_t *) a) ^ (*(sky_u64_t *) b)) & 0x00ffffffffffffffLU) == 0;
+}
+
+static sky_bool_t
+mem_equals8(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
+    return (*(sky_u64_t *) a) == (*(sky_u64_t *) b);
+}
+
+static sky_bool_t
+mem_equals9(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
+    return ((*(sky_u64_t *) a) == (*(sky_u64_t *) b)) & (a[8] == b[8]);
+}
+
+static sky_bool_t
+mem_equals10(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
+    return ((*(sky_u64_t *) a) == (*(sky_u64_t *) b))
+           & ((*(sky_u16_t *) (a + 8)) == (*(sky_u16_t *) (b + 8)));
+}
+
+static sky_bool_t
+mem_equals11(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
+    return ((*(sky_u64_t *) a) == (*(sky_u64_t *) b))
+           & (((*(sky_u16_t *) (a + 8)) & 0x00ffffff) == ((*(sky_u16_t *) (b + 8)) & 0x00ffffff));
+}
+
+static sky_bool_t
+mem_equals12(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
+    (void) len;
+
+    return ((*(sky_u64_t *) a) == (*(sky_u64_t *) b))
+           & ((*(sky_u32_t *) (a + 8)) == (*(sky_u32_t *) (b + 8)));
+}
+
+

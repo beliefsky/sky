@@ -2,9 +2,9 @@
 // Created by weijing on 18-3-12.
 //
 
-#include <assert.h>
 #include "coro.h"
 
+#include <assert.h>
 #include <sys/mman.h>
 
 #define PAGE_SIZE 4096

@@ -37,10 +37,10 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
     }
     server->header_buf_n = conf->header_buf_n;
 
-    if (!conf->header_buf_size || conf->header_buf_size < 64) {
+    if (!conf->header_buf_size) {
         conf->header_buf_size = 2047;   // 2kb
     }
-    server->header_buf_size = conf->header_buf_size;
+    server->header_buf_size = sky_max(conf->header_buf_size, 511U);
     server->ssl = conf->ssl;
     if (conf->ssl) {
         server->ssl_ctx = conf->ssl_ctx;

@@ -190,15 +190,25 @@ sky_str_starts_with(const sky_str_t *src, const sky_uchar_t *prefix, sky_usize_t
     return sky_str_len_starts_with(src->data, src->len, prefix, prefix_len);
 }
 
-
-static sky_inline sky_uchar_t *
-sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *sub, sky_usize_t sub_len) {
-    return memmem(src, src_len, sub, sub_len);
-}
+sky_uchar_t *sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *sub, sky_usize_t sub_len);
 
 static sky_inline sky_uchar_t *
 sky_str_find(const sky_str_t *src, const sky_uchar_t *sub, sky_usize_t sub_len) {
     return sky_str_len_find(src->data, src->len, sub, sub_len);
+}
+
+static sky_inline sky_isize_t
+sky_str_len_index(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *sub, sky_usize_t sub_len) {
+    const sky_uchar_t *p = sky_str_len_find(src, src_len, sub, sub_len);
+    if (!p) {
+        return -1;
+    }
+    return (p - src);
+}
+
+static sky_inline sky_isize_t
+sky_str_index(const sky_str_t *src, const sky_uchar_t *sub, sky_usize_t sub_len) {
+    return sky_str_len_index(src->data, src->len, sub, sub_len);
 }
 
 static sky_inline sky_uchar_t *
@@ -209,6 +219,20 @@ sky_str_len_find_char(const sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t c
 static sky_inline sky_uchar_t *
 sky_str_find_char(const sky_str_t *src, sky_uchar_t ch) {
     return sky_str_len_find_char(src->data, src->len, ch);
+}
+
+static sky_inline sky_isize_t
+sky_str_len_index_char(const sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t ch) {
+    const sky_uchar_t *p = sky_str_len_find_char(src, src_len, ch);
+    if (!p) {
+        return -1;
+    }
+    return (p - src);
+}
+
+static sky_inline sky_isize_t
+sky_str_index_char(const sky_str_t *src, sky_uchar_t ch) {
+    return sky_str_len_index_char(src->data, src->len, ch);
 }
 
 #if defined(__cplusplus)

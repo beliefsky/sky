@@ -17,6 +17,8 @@ sky_uuid_generate_random(sky_uuid_t *uuid) {
     bytes[6] |= 0x40;  /* set to version 4     */
     bytes[8] &= 0x3f;  /* clear variant        */
     bytes[8] |= 0x80;  /* set to IETF variant  */
+
+    return true;
 }
 
 void
