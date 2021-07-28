@@ -373,7 +373,7 @@ static SKY_HTTP_MAPPER_HANDLER(test_rw) {
     sky_http_multipart_t *multipart = sky_http_read_multipart(req, &conf);
     while (multipart) {
         if (multipart->is_file) {
-            sky_log_info("file size: %lu", multipart->file.size);
+            sky_log_info("file size: %lu", multipart->file_size);
         } else {
             sky_log_info("(%lu)%s", multipart->str.len, multipart->str.data);
         }
