@@ -301,7 +301,7 @@ sky_http_read_multipart(sky_http_request_t *r, sky_http_multipart_conf_t *conf) 
                         if (multipart->content_type) {
                             state = body_file;
                             multipart->is_file = true;
-                            multipart->file.result = conf->init(r, multipart, conf);
+                            multipart->file = conf->init(r, multipart, conf);
                         } else {
                             state = body_str;
                             size = 0;
@@ -376,8 +376,8 @@ sky_http_read_multipart(sky_http_request_t *r, sky_http_multipart_conf_t *conf) 
                 );
                 if (!p) {
                     size = (sky_usize_t)(buf->last - buf->pos) - (boundary_len + 4);
-                    multipart->file.size += size;
-                    conf->update(multipart->file.result, buf->pos, size);
+                    multipart->file_size += size;
+                    conf->update(multipart->file, buf->pos, size);
 
                     sky_memmove(buf->pos, buf->pos + size, (boundary_len + 4));
                     buf->last -= size;
@@ -387,8 +387,8 @@ sky_http_read_multipart(sky_http_request_t *r, sky_http_multipart_conf_t *conf) 
                     goto error;
                 }
                 size = (sky_usize_t)(p - buf->pos) - 4;
-                multipart->file.size += size;
-                conf->final(multipart->file.result, buf->pos, size);
+                multipart->file_size += size;
+                conf->final(multipart->file, buf->pos, size);
 
                 p += boundary_len;
                 size = (sky_usize_t)(buf->last - p);
