@@ -121,10 +121,11 @@ struct sky_http_multipart_s {
 
     union {
         sky_str_t str;
+
         struct {
-            void *result;
-            sky_u64_t size;
-        } file;
+            void *file;
+            sky_u64_t file_size;
+        };
     };
 
     sky_http_multipart_t *next;
