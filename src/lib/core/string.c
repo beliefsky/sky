@@ -164,7 +164,7 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
                 // next = [c, d]
                 // substring = [palignr(b, a, i), palignr(c, b, i)]
                 __m256i next1;
-                next1 = _mm256_inserti128_si256(next1, _mm256_extracti128_si256(curr, 1), 0); // b
+                next1 = _mm256_inserti128_si256(eq, _mm256_extracti128_si256(curr, 1), 0); // b
                 next1 = _mm256_inserti128_si256(next1, _mm256_extracti128_si256(next, 0), 1); // c
 
                 {
