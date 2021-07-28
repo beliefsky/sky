@@ -5,7 +5,11 @@
 
 #include "string.h"
 
-#if defined(__SSE4_2__)
+#if defined(__AVX2__)
+
+#include <immintrin.h>
+
+#elif defined(__SSE4_2__)
 
 #include <smmintrin.h>
 
@@ -25,25 +29,17 @@ static sky_bool_t mem_equals1(const sky_uchar_t *a, const sky_uchar_t *b, sky_us
 
 static sky_bool_t mem_equals2(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
 
-static sky_bool_t mem_equals3(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
-
 static sky_bool_t mem_equals4(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
 
 static sky_bool_t mem_equals5(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
 
 static sky_bool_t mem_equals6(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
 
-static sky_bool_t mem_equals7(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
-
 static sky_bool_t mem_equals8(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
 
 static sky_bool_t mem_equals9(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
 
 static sky_bool_t mem_equals10(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
-
-static sky_bool_t mem_equals11(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
-
-static sky_bool_t mem_equals12(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len);
 
 
 void
@@ -131,7 +127,128 @@ void sky_byte_to_hex_upper(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_
     byte_to_hex(in, in_len, out, true);
 }
 
-#if defined(__SSE2__)
+#if defined(__AVX2__)
+
+sky_uchar_t *
+sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *sub, sky_usize_t sub_len) {
+    mem_equals_pt func;
+
+    if (src_len < sub_len) {
+        return null;
+    }
+
+    switch (sub_len) {
+        case 0:
+            return (sky_uchar_t *) src;
+        case 1:
+            return sky_str_len_find_char(src, src_len, sub[0]);
+        case 2: {
+            __m256i broad_casted[] = {
+                    _mm256_set1_epi8((sky_char_t) sub[0]),
+                    _mm256_set1_epi8((sky_char_t) sub[1])
+            };
+            __m256i curr = _mm256_loadu_si256((const __m256i *) (src));
+
+            for (sky_usize_t i = 0; i < src_len; i += 32) {
+                const __m256i next = _mm256_loadu_si256((const __m256i *) (src + i + 32));
+                // AVX2 palignr works on 128-bit lanes, thus some extra work is needed
+                //
+                // curr = [a, b] (2 x 128 bit)
+                // next = [c, d]
+                // substring = [palignr(b, a, i), palignr(c, b, i)]
+                __m256i eq = _mm256_cmpeq_epi8(curr, broad_casted[0]);
+
+                // AVX2 palignr works on 128-bit lanes, thus some extra work is needed
+                //
+                // curr = [a, b] (2 x 128 bit)
+                // next = [c, d]
+                // substring = [palignr(b, a, i), palignr(c, b, i)]
+                __m256i next1;
+                next1 = _mm256_inserti128_si256(next1, _mm256_extracti128_si256(curr, 1), 0); // b
+                next1 = _mm256_inserti128_si256(next1, _mm256_extracti128_si256(next, 0), 1); // c
+
+                {
+                    const __m256i substring = _mm256_alignr_epi8(next1, curr, 0);
+                    eq = _mm256_and_si256(eq, _mm256_cmpeq_epi8(substring, broad_casted[0]));
+                }
+                {
+                    const __m256i substring = _mm256_alignr_epi8(next1, curr, 1);
+                    eq = _mm256_and_si256(eq, _mm256_cmpeq_epi8(substring, broad_casted[1]));
+                }
+
+                curr = next;
+
+                const sky_u32_t mask = (sky_u32_t) _mm256_movemask_epi8(eq);
+                if (mask != 0) {
+                    const sky_usize_t bit_pos = (sky_usize_t) __builtin_ctz(mask);
+
+                    return (sky_uchar_t *) (src + (i + bit_pos));
+                }
+            }
+
+            return null;
+        }
+        case 3:
+            func = mem_equals1;
+            break;
+        case 4:
+            func = mem_equals2;
+            break;
+        case 5:
+        case 6:
+            func = mem_equals4;
+            break;
+        case 7:
+            func = mem_equals5;
+            break;
+        case 8:
+            func = mem_equals6;
+            break;
+        case 9:
+        case 10:
+            func = mem_equals8;
+            break;
+        case 11:
+            func = mem_equals9;
+            break;
+        case 12:
+            func = mem_equals10;
+            break;
+        default:
+            func = sky_str_len_equals_unsafe;
+            break;
+    }
+
+    const __m256i first = _mm256_set1_epi8((sky_char_t) sub[0]);
+    const __m256i last = _mm256_set1_epi8((sky_char_t) sub[sub_len - 1]);
+
+    for (sky_usize_t i = 0; i < src_len; i += 32) {
+
+        const __m256i block_first = _mm256_loadu_si256((const __m256i *) (src + i));
+        const __m256i block_last = _mm256_loadu_si256((const __m256i *) (src + i + sub_len - 1));
+
+        const __m256i eq_first = _mm256_cmpeq_epi8(first, block_first);
+        const __m256i eq_last = _mm256_cmpeq_epi8(last, block_last);
+
+        sky_u32_t mask = (sky_u32_t) _mm256_movemask_epi8(_mm256_and_si256(eq_first, eq_last));
+
+        while (mask != 0) {
+
+            const sky_usize_t bit_pos = (sky_usize_t) __builtin_ctz(mask);
+
+            if (func(src + i + bit_pos + 1, sub + 1, sub_len - 2)) {
+                return (sky_uchar_t *) (src + (i + bit_pos));
+            }
+
+            mask &= (mask - 1);
+        }
+    }
+
+
+    return null;
+}
+
+#elif defined(__SSE2__)
 
 sky_uchar_t *
 sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *sub, sky_usize_t sub_len) {
@@ -467,13 +584,6 @@ mem_equals2(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
 }
 
 static sky_bool_t
-mem_equals3(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
-    (void) len;
-
-    return ((*(sky_u32_t *) a) & 0x00ffffff) == ((*(sky_u32_t *) b) & 0x00ffffff);
-}
-
-static sky_bool_t
 mem_equals4(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
     (void) len;
 
@@ -492,13 +602,6 @@ mem_equals6(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
     (void) len;
 
     return (((*(sky_u64_t *) a) ^ (*(sky_u64_t *) b)) & 0x0000ffffffffffffLU) == 0;
-}
-
-static sky_bool_t
-mem_equals7(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
-    (void) len;
-
-    return (((*(sky_u64_t *) a) ^ (*(sky_u64_t *) b)) & 0x00ffffffffffffffLU) == 0;
 }
 
 static sky_bool_t
@@ -523,20 +626,5 @@ mem_equals10(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
            & ((*(sky_u16_t *) (a + 8)) == (*(sky_u16_t *) (b + 8)));
 }
 
-static sky_bool_t
-mem_equals11(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
-    (void) len;
-
-    return ((*(sky_u64_t *) a) == (*(sky_u64_t *) b))
-           & (((*(sky_u16_t *) (a + 8)) & 0x00ffffff) == ((*(sky_u16_t *) (b + 8)) & 0x00ffffff));
-}
-
-static sky_bool_t
-mem_equals12(const sky_uchar_t *a, const sky_uchar_t *b, sky_usize_t len) {
-    (void) len;
-
-    return ((*(sky_u64_t *) a) == (*(sky_u64_t *) b))
-           & ((*(sky_u32_t *) (a + 8)) == (*(sky_u32_t *) (b + 8)));
-}
 
 
