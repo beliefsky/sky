@@ -385,7 +385,7 @@ chromium_base64_decode(sky_uchar_t *dest, const sky_uchar_t *src, sky_usize_t le
 #define BAD_CHAR 0x01FFFFFF
 
     sky_usize_t i;
-    sky_u32_t leftover = len & 3;
+    sky_u32_t leftover = (sky_u32_t) (len & 3);
     sky_usize_t chunks = (len >> 2) - (leftover == 0);
 
     sky_uchar_t *p = dest;
@@ -615,7 +615,7 @@ fast_avx2_base64_decode(sky_uchar_t *out, const sky_uchar_t *src, sky_usize_t le
     sky_usize_t size = chromium_base64_decode(out, src, len);
     if (size == SKY_USIZE_MAX) {
         return SKY_USIZE_MAX;
-    };
+    }
     return (sky_usize_t) (out - out_orig) + size;
 }
 
