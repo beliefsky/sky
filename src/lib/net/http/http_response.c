@@ -41,7 +41,7 @@ sky_http_response_static(sky_http_request_t *r, sky_str_t *buf) {
 }
 
 void
-sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_u32_t buf_len) {
+sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_usize_t buf_len) {
     sky_str_buf_t str_buf;
     sky_uchar_t *data;
     sky_http_header_t *header;
@@ -73,7 +73,7 @@ sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_u32_t 
     header->val.len = sky_u64_to_str(buf_len, data);
 
     if (buf_len < 8192) {
-        sky_str_buf_init(&str_buf, r->pool, 2048 + (sky_u32_t) buf_len);
+        sky_str_buf_init(&str_buf, r->pool, 2048 + buf_len);
         http_header_build(r, &str_buf);
         sky_str_buf_append_str_len(&str_buf, buf, buf_len);
 
