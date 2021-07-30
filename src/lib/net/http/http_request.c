@@ -464,13 +464,15 @@ sky_http_read_multipart(sky_http_request_t *r, sky_http_multipart_conf_t *conf) 
 
     size = (sky_usize_t)(buf->end - buf->pos);
     if (size < 4096U) {
-        size = sky_min(size, 4096U);
+        size = sky_min(body_size, 4096U);
         sky_buf_rebuild(buf, (sky_u32_t) size);
     }
     do {
         size = sky_min(size, body_size);
         body_size -= server->http_read(r->conn, buf->pos, size);
     } while (body_size > 0);
+    sky_buf_rebuild(buf, 0);
+
     return null;
 }
 
