@@ -9,7 +9,7 @@
 static sky_inline void str_buf_append(sky_str_buf_t *buf, sky_usize_t size);
 
 sky_str_buf_t*
-sky_str_buf_create(sky_pool_t *pool, sky_u32_t n) {
+sky_str_buf_create(sky_pool_t *pool, sky_usize_t n) {
     sky_str_buf_t *buf;
 
     buf = sky_palloc(pool, sizeof(sky_str_buf_t));
@@ -33,7 +33,7 @@ sky_str_buf_destroy(sky_str_buf_t *buf) {
 }
 
 void
-sky_str_buf_need_size(sky_str_buf_t *buf, sky_u32_t size) {
+sky_str_buf_need_size(sky_str_buf_t *buf, sky_usize_t size) {
     if (sky_unlikely((buf->post + size) > buf->end)) {
         str_buf_append(buf, size);
     }
@@ -52,7 +52,7 @@ sky_str_buf_append_str(sky_str_buf_t *buf, const sky_str_t *str) {
 }
 
 void
-sky_str_buf_append_str_len(sky_str_buf_t *buf, const sky_uchar_t *str, sky_u32_t len) {
+sky_str_buf_append_str_len(sky_str_buf_t *buf, const sky_uchar_t *str, sky_usize_t len) {
     if (sky_unlikely(!len)) {
         return;
     }

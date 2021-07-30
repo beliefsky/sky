@@ -1207,5 +1207,5 @@ json_array_init(sky_json_t *json, sky_pool_t *pool) {
 
 static sky_inline void
 json_coding_str(sky_str_buf_t *buf, const sky_uchar_t *v, sky_usize_t v_len) {
-    sky_str_buf_append_str_len(buf, v, (sky_u32_t) v_len);
+    sky_str_buf_append_str_len(buf, v, v_len);
 }
