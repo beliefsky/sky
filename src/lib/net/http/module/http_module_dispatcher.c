@@ -48,7 +48,9 @@ sky_http_module_dispatcher_init(sky_pool_t *pool, const sky_http_dispatcher_conf
 static void
 http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
     if (data->pre_run) {
-        data->pre_run(r, data->run_data);
+        if (!data->pre_run(r, data->run_data)) {
+            return;
+        }
     }
     sky_http_mapper_pt *handler = (sky_http_mapper_pt *) sky_trie_contains(data->mappers, &r->uri);
     if (!handler) {
