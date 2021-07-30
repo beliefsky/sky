@@ -54,7 +54,7 @@ typedef struct {
     sky_str_t *if_range;
 
     sky_http_module_t *module;
-    sky_u32_t content_length_n;
+    sky_u64_t content_length_n;
 
 } sky_http_headers_in_t;
 
