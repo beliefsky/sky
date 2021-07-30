@@ -41,7 +41,7 @@ sky_str_len_to_i8(const sky_uchar_t *in, sky_usize_t in_len, sky_i8_t *out) {
         if (sky_unlikely((!fast_str_check_number(mask)))) {
             return false;
         }
-        *out = ~((sky_i8_t) fast_str_parse_uint32(mask)) + 1;
+        *out = (sky_i8_t) (~((sky_i8_t) fast_str_parse_uint32(mask)) + 1);
     } else {
         mask = fast_str_parse_mask(in, in_len);
         if (sky_unlikely((!fast_str_check_number(mask)))) {
@@ -93,7 +93,7 @@ sky_str_len_to_i16(const sky_uchar_t *in, sky_usize_t in_len, sky_i16_t *out) {
         if (sky_unlikely((!fast_str_check_number(mask)))) {
             return false;
         }
-        *out = ~((sky_i16_t) fast_str_parse_uint32(mask)) + 1;
+        *out = (sky_i16_t) (~((sky_i16_t) fast_str_parse_uint32(mask)) + 1);
     } else {
         mask = fast_str_parse_mask(in, in_len);
         if (sky_unlikely((!fast_str_check_number(mask)))) {
@@ -414,7 +414,7 @@ sky_u8_to_str(sky_u8_t data, sky_uchar_t *src) {
 
 sky_u8_t
 sky_i16_to_str(sky_i16_t data, sky_uchar_t *src) {
-    return sky_i32_to_str(data, src);;
+    return sky_i32_to_str(data, src);
 }
 
 sky_u8_t
@@ -428,7 +428,7 @@ sky_i32_to_str(sky_i32_t data, sky_uchar_t *src) {
         *(src++) = '-';
         const sky_u32_t tmp = (sky_u32_t) (~data + 1);
         const sky_u8_t len = sky_u32_to_str(tmp, src);
-        return (len + 1);
+        return (sky_u8_t) (len + 1);
     }
     return sky_u32_to_str((sky_u32_t) data, src);
 }
@@ -446,7 +446,7 @@ sky_u8_t
 sky_i64_to_str(sky_i64_t data, sky_uchar_t *src) {
     if (data < 0) {
         *(src++) = '-';
-        return sky_u64_to_str((sky_u64_t) (~data + 1), src) + 1;
+        return (sky_u8_t) (sky_u64_to_str((sky_u64_t) (~data + 1), src) + 1);
     }
     return sky_u64_to_str((sky_u64_t) data, src);
 }
@@ -482,7 +482,8 @@ sky_u64_to_str(sky_u64_t data, sky_uchar_t *src) {
         sky_memcpy(src, "9999999999", 11);
     }
 
-    return (len + 10);
+
+    return (sky_u8_t) (len + 10);
 
 }
 
@@ -509,7 +510,7 @@ sky_u8_t
 sky_f64_to_str(sky_f64_t data, sky_uchar_t *src) {
     const sky_i64_t int_val = (sky_i64_t) data;
     const sky_f64_t frac = int_val > 0 ? (data - (sky_f64_t) int_val) : ((sky_f64_t) int_val - data);
-    sky_u8_t i = sky_f64_to_str(int_val, src);
+    sky_u8_t i = sky_i64_to_str(int_val, src);
     if (frac < 1e-17) {
         return i;
     }
@@ -588,7 +589,7 @@ static sky_inline sky_u32_t
 fast_str_parse_uint32(sky_u64_t mask) {
     mask = (mask & 0x0F0F0F0F0F0F0F0F) * 2561 >> 8;
     mask = (mask & 0x00FF00FF00FF00FF) * 6553601 >> 16;
-    return (mask & 0x0000FFFF0000FFFF) * 42949672960001 >> 32;
+    return (sky_u32_t) ((mask & 0x0000FFFF0000FFFF) * 42949672960001 >> 32);
 }
 
 /**
