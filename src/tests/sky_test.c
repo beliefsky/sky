@@ -36,7 +36,7 @@ static SKY_HTTP_MAPPER_HANDLER(hello_world);
 
 static SKY_HTTP_MAPPER_HANDLER(test_rw);
 
-//#define FORK
+#define FORK
 
 int
 main() {
