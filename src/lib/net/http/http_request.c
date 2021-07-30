@@ -173,7 +173,7 @@ sky_http_read_body_str(sky_http_request_t *r) {
     n = (sky_usize_t) (tmp->end - tmp->last);
     if (n <= size) {
         // 重新加大缓存大小
-        sky_buf_rebuild(tmp, (sky_u32_t) (total + 1));
+        sky_buf_rebuild(tmp, (sky_usize_t) (total + 1));
     }
 
     do {
@@ -238,7 +238,7 @@ sky_http_read_multipart(sky_http_request_t *r, sky_http_multipart_conf_t *conf) 
     if (sky_unlikely((sky_usize_t) (buf->end - buf->pos) < size)) { // 保证读取内存能容纳
         sky_usize_t re_size = sky_min(server->header_buf_size, total);
         re_size = sky_max(re_size, size);
-        sky_buf_rebuild(buf, (sky_u32_t) re_size);
+        sky_buf_rebuild(buf, re_size);
     }
 
     enum {
@@ -275,7 +275,7 @@ sky_http_read_multipart(sky_http_request_t *r, sky_http_multipart_conf_t *conf) 
                 size = (sky_usize_t)(buf->last - buf->pos) + body_size;
                 size = sky_min(size, server->header_buf_size);
                 if (sky_unlikely((sky_usize_t) (buf->end - buf->pos) < size)) { // 保证读取内存能容纳
-                    sky_buf_rebuild(buf, (sky_u32_t) size);
+                    sky_buf_rebuild(buf, size);
                 }
                 if (!multipart) {
                     multipart = sky_pcalloc(r->pool, sizeof(sky_http_multipart_t));
@@ -296,7 +296,7 @@ sky_http_read_multipart(sky_http_request_t *r, sky_http_multipart_conf_t *conf) 
                         size = (sky_usize_t)(buf->last - buf->pos) + body_size;
                         size = sky_min(size, SKY_USIZE(4096));
                         if (sky_unlikely((sky_usize_t) (buf->end - buf->pos) < size)) { // 保证读取内存能容纳
-                            sky_buf_rebuild(buf, (sky_u32_t) size);
+                            sky_buf_rebuild(buf, size);
                         }
                         if (multipart->content_type) {
                             state = body_file;
@@ -327,7 +327,7 @@ sky_http_read_multipart(sky_http_request_t *r, sky_http_multipart_conf_t *conf) 
 
                     sky_usize_t re_size = sky_min(body_size, SKY_USIZE(4096));
                     re_size += (sky_usize_t)(buf->last - buf->pos);
-                    sky_buf_rebuild(buf, (sky_u32_t) re_size);
+                    sky_buf_rebuild(buf, re_size);
                     break;
                 }
                 if (sky_unlikely(!sky_str4_cmp(p - 4, '\r', '\n', '-', '-'))) {
@@ -359,7 +359,7 @@ sky_http_read_multipart(sky_http_request_t *r, sky_http_multipart_conf_t *conf) 
                     sky_usize_t re_size = (sky_usize_t)(buf->last - buf->pos) + body_size;
                     re_size = sky_min(server->header_buf_size, re_size);
                     re_size = sky_max(re_size, size);
-                    sky_buf_rebuild(buf, (sky_u32_t) re_size);
+                    sky_buf_rebuild(buf, re_size);
                 }
                 continue;
 
@@ -423,7 +423,7 @@ sky_http_read_multipart(sky_http_request_t *r, sky_http_multipart_conf_t *conf) 
                     sky_usize_t re_size = (sky_usize_t)(buf->last - buf->pos) + body_size;
                     re_size = sky_min(server->header_buf_size, re_size);
                     re_size = sky_max(re_size, size);
-                    sky_buf_rebuild(buf, (sky_u32_t) re_size);
+                    sky_buf_rebuild(buf, re_size);
                 }
                 continue;
             }
@@ -446,7 +446,7 @@ sky_http_read_multipart(sky_http_request_t *r, sky_http_multipart_conf_t *conf) 
                     sky_usize_t re_size = (sky_usize_t)(buf->last - buf->pos) + body_size;
                     re_size = sky_min(server->header_buf_size, re_size);
                     re_size = sky_max(re_size, size);
-                    sky_buf_rebuild(buf, (sky_u32_t) re_size);
+                    sky_buf_rebuild(buf, re_size);
                 }
                 continue;
             }
@@ -465,7 +465,7 @@ sky_http_read_multipart(sky_http_request_t *r, sky_http_multipart_conf_t *conf) 
     size = (sky_usize_t) (buf->end - buf->pos);
     if (size < SKY_USIZE(4096)) {
         size = sky_min(body_size, SKY_USIZE(4096));
-        sky_buf_rebuild(buf, (sky_u32_t) size);
+        sky_buf_rebuild(buf, size);
     }
     do {
         size = sky_min(size, body_size);
