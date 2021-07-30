@@ -84,6 +84,21 @@ sky_pgsql_pool_t *ps_pool;
 sky_redis_pool_t *redis_pool;
 sky_tcp_rw_pool_t *test_pool;
 
+static sky_bool_t
+http_header_add(sky_http_request_t *r, void *data) {
+    (void) data;
+
+    sky_http_header_t *header;
+    header = sky_list_push(&r->headers_out.headers);
+    sky_str_set(&header->key, "X-Content-Type-Options");
+    sky_str_set(&header->val, "nosniff");
+    header = sky_list_push(&r->headers_out.headers);
+    sky_str_set(&header->key, "X-XSS-Protection");
+    sky_str_set(&header->val, "1; mode=block");
+
+    return true;
+}
+
 static void
 server_start(void *ssl) {
     sky_pool_t *pool;
@@ -199,6 +214,7 @@ build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module) {
             .mappers = mappers,
             .mapper_len = 3,
             .module = module,
+            .pre_run = http_header_add
     };
 
     sky_http_module_dispatcher_init(pool, &conf);

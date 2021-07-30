@@ -3,13 +3,16 @@
 //
 
 #include "http_module_dispatcher.h"
-#include "../../../core/trie.h"
 #include "../http_response.h"
 #include "../../../core/memory.h"
 
 typedef struct {
     sky_pool_t *pool;
     sky_trie_t *mappers;
+
+    sky_bool_t (*pre_run)(sky_http_request_t *req, void *data);
+
+    void *run_data;
     sky_u32_t body_max_buff;
 } http_module_dispatcher_t;
 
@@ -25,6 +28,8 @@ sky_http_module_dispatcher_init(sky_pool_t *pool, const sky_http_dispatcher_conf
     data = sky_palloc(pool, sizeof(http_module_dispatcher_t));
     data->pool = pool;
     data->mappers = sky_trie_create(pool);
+    data->pre_run = conf->pre_run;
+    data->run_data = conf->run_data;
 
     const sky_usize_t size = sizeof(sky_http_mapper_pt) << 2;
 
@@ -42,9 +47,12 @@ sky_http_module_dispatcher_init(sky_pool_t *pool, const sky_http_dispatcher_conf
 
 static void
 http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
-    sky_http_mapper_pt *handler;
-
-    handler = (sky_http_mapper_pt *) sky_trie_contains(data->mappers, &r->uri);
+    if (data->pre_run) {
+        if (!data->pre_run(r, data->run_data)) {
+            return;
+        }
+    }
+    sky_http_mapper_pt *handler = (sky_http_mapper_pt *) sky_trie_contains(data->mappers, &r->uri);
     if (!handler) {
         r->state = 404;
         sky_str_set(&r->headers_out.content_type, "application/json");
