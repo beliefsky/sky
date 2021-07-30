@@ -84,7 +84,7 @@ sky_pgsql_pool_t *ps_pool;
 sky_redis_pool_t *redis_pool;
 sky_tcp_rw_pool_t *test_pool;
 
-static void
+static sky_bool_t
 http_header_add(sky_http_request_t *r, void *data) {
     (void) data;
 
@@ -95,6 +95,8 @@ http_header_add(sky_http_request_t *r, void *data) {
     header = sky_list_push(&r->headers_out.headers);
     sky_str_set(&header->key, "X-XSS-Protection");
     sky_str_set(&header->val, "1; mode=block");
+
+    return true;
 }
 
 static void
