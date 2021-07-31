@@ -39,11 +39,11 @@ sky_timer_wheel_create(sky_pool_t *pool, sky_u32_t num_wheels, sky_u64_t now) {
     sky_usize_t i, j;
 
 
-    num_wheels = sky_max(num_wheels, UINT32_C(2));
+    num_wheels = sky_max(num_wheels, SKY_U32(2));
 
     ctx = sky_palloc(pool, sky_offset_of(sky_timer_wheel_t, wheels) + sizeof(ctx->wheels[0]) * num_wheels);
     ctx->last_run = now;
-    ctx->max_ticks = (UINT64_C(1) << (TIMER_WHEEL_BITS * (num_wheels - 1))) * (TIMER_WHEEL_SLOTS - 1);
+    ctx->max_ticks = (SKY_U64(1) << (TIMER_WHEEL_BITS * (num_wheels - 1))) * (TIMER_WHEEL_SLOTS - 1);
     ctx->num_wheels = num_wheels;
 
     for (i = 0; i < ctx->num_wheels; ++i) {
@@ -163,7 +163,7 @@ sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_u64_t now) {
             wheel = 0;
             goto redo;
         }
-        ctx->last_run += UINT64_C(1) << (wheel * TIMER_WHEEL_BITS);
+        ctx->last_run += SKY_U64(1) << (wheel * TIMER_WHEEL_BITS);
         if (ctx->last_run > now) {
             ctx->last_run = now;
             return;

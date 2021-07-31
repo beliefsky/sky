@@ -1255,7 +1255,7 @@ static const sky_u32_t CRC32C_TABLE[16][256] = {
 /* private (static) function factoring out byte-by-byte CRC computation using just one slice of the lookup table*/
 static sky_u32_t
 crc_generic_sb1(const sky_uchar_t *input, sky_usize_t length, sky_u32_t crc, const sky_u32_t *table_ptr) {
-    const sky_u32_t(*table)[16][256] = (sky_u32_t(*)[16][256]) table_ptr;
+    const sky_u32_t(*table)[16][256] = (const sky_u32_t(*)[16][256]) table_ptr;
     while (length-- > 0) {
         crc = (crc >> 8) ^ (*table)[0][(crc & 0xff) ^ *input++];
     }
@@ -1291,7 +1291,7 @@ crc_generic_align(const sky_uchar_t **input, sky_usize_t *length, sky_u32_t crc,
 static sky_u32_t
 crc_generic_sb4(const sky_uchar_t *input, sky_usize_t length, sky_u32_t crc, const sky_u32_t *table_ptr) {
     const sky_u32_t *current = (const sky_u32_t *) input;
-    const sky_u32_t(*table)[16][256] = (sky_u32_t(*)[16][256]) table_ptr;
+    const sky_u32_t(*table)[16][256] = (const sky_u32_t(*)[16][256]) table_ptr;
     sky_usize_t remaining = length;
 
     while (remaining >= 4) {
@@ -1308,7 +1308,7 @@ crc_generic_sb4(const sky_uchar_t *input, sky_usize_t length, sky_u32_t crc, con
 static sky_u32_t
 crc_generic_sb8(const sky_uchar_t *input, sky_usize_t length, sky_u32_t crc, const sky_u32_t *table_ptr) {
     const sky_u32_t *current = (const sky_u32_t *) input;
-    const sky_u32_t(*table)[16][256] = (sky_u32_t(*)[16][256]) table_ptr;
+    const sky_u32_t(*table)[16][256] = (const sky_u32_t(*)[16][256]) table_ptr;
     sky_usize_t remaining = length;
 
     while (remaining >= 8) {
@@ -1329,7 +1329,7 @@ crc_generic_sb8(const sky_uchar_t *input, sky_usize_t length, sky_u32_t crc, con
 static sky_u32_t
 crc_generic_sb16(const sky_uchar_t *input, sky_usize_t length, sky_u32_t crc, const sky_u32_t *table_ptr) {
     const sky_u32_t *current = (const sky_u32_t *) input;
-    const sky_u32_t(*table)[16][256] = (sky_u32_t(*)[16][256]) table_ptr;
+    const sky_u32_t(*table)[16][256] = (const sky_u32_t(*)[16][256]) table_ptr;
     sky_usize_t remaining = length;
 
     while (remaining >= 16) {
@@ -1502,7 +1502,7 @@ crc32_sse(sky_u32_t crc, const sky_uchar_t *p, sky_usize_t len) {
     /*
      * Return the crc32.
      */
-    return _mm_extract_epi32(x1, 1);
+    return (sky_u32_t) _mm_extract_epi32(x1, 1);
 }
 
 #endif

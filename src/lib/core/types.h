@@ -43,6 +43,18 @@ extern "C" {
 #define SKY_ISIZE_MAX INTMAX_MAX
 #define SKY_USIZE_MAX UINTMAX_MAX
 
+#define SKY_I8(_c)  INT8_C(_c)
+#define SKY_U8(_c)  UINT8_C(_c)
+#define SKY_I16(_c)  INT16_C(_c)
+#define SKY_U16(_c)  UINT16_C(_c)
+#define SKY_I32(_c)  INT32_C(_c)
+#define SKY_U32(_c)  UINT32_C(_c)
+#define SKY_I64(_c)  INT64_C(_c)
+#define SKY_U64(_c)  UINT64_C(_c)
+#define SKY_ISIZE(_c)  INTMAX_C(_c)
+#define SKY_USIZE(_c)  UINTMAX_C(_c)
+
+
 typedef _Bool sky_bool_t;
 typedef char sky_char_t;             /*-128 ~ +127*/
 typedef unsigned char sky_uchar_t;            /*0 ~ 255*/
@@ -77,54 +89,6 @@ typedef double sky_f64_t;
  */
 #define sky_uchar_four_has_zero(_v)  \
     (((_v) - 0x01010101UL) & ~(_v) & 0x80808080UL)
-
-/**
- * 可以计算查找4个字节是否有n, 需要提前把 v 转成 uint32
- */
-#define sky_uchar_four_has_value(_v, _n)    \
-    (sky_uchar_four_has_zero((_v) ^ (~0UL / 255 * (_n))))
-
-/**
- * 可以计算8个字节是否都小于n, 需要提前把 v 转成 uint32或uint64
- * x >= 0; 0<= n <=128
- */
-#define sky_uchar_eight_has_less(_x, _n) \
-    (((_x) - ~0UL / 255 * (_n)) & ~(_x) & ~0UL / 255 * 128)
-
-/**
- * 可以计算8个字节小于n的字节数, 需要提前把 v 转成 uint32或uint64
- *  x >= 0; 0<= n <=128
- */
-#define sky_uchar_eight_count_less(_x, _n)    \
-    (((~0UL / 255 * (127 + (_n)) - ((_x) & ~0UL / 255 * 127)) & ~(_x) & ~0UL / 255 * 128) / 128 % 255)
-
-/**
- * 可以计算8个字节是否都大于n, 需要提前把 v 转成 uint32或uint64
- * x >= 0; 0<= n <=128
- */
-#define sky_uchar_eight_has_more(_x, _n)    \
-    (((_x) + ~0UL / 255 * (127 - (_n)) | (_x)) & ~0UL / 255 * 128)
-
-/**
- * 可以计算8个字节大于n的字节数, 需要提前把 v 转成 uint32或uint64
- * x >= 0; 0<= n <=128_
- */
-#define sky_uchar_eight_count_more(_x, _n)    \
-    (((((_x) & ~0UL / 255 * 127) + ~0UL / 255 * (127 - (_n)) | (_x)) & ~0UL / 255 * 128) / 128 % 255)
-
-/**
-* 可以计算8个字节是否都 m < v < n, 需要提前把 v 转成 uint32或uint64
-* x >= 0; 0<= n <=128
-*/
-#define sky_uchar_eight_has_between(_x, _m, _n) \
-    ((~0UL / 255 * ( 127 + (_n)) - ((_x) & ~0UL / 255 * 127 )& ~(_x) & ((_x) & ~0UL / 255 * 127) + ~0UL / 255 * (127-(_m))) & ~0UL / 255 * 128)
-
-/**
-* 可以计算8个字节在 m < v < n 的字节数, 需要提前把 v 转成 uint32或uint64
-* x >= 0; 0<= n <=128
-*/
-#define sky_uchar_eight_count_between(_x, _m, _n)   \
-    (sky_uchar_eight_has_between(_x, _m, _n) / 128 % 255)
 
 #if defined(__cplusplus)
 } /* extern "C" { */
