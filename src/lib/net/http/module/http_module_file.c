@@ -226,6 +226,8 @@ http_header_range(http_file_t *file, sky_str_t *value) {
                 }
                 tmp = tmp * 10 + (p - '0');
                 break;
+            default:
+                return false;
         }
     }
     file->right = tmp;
@@ -244,7 +246,7 @@ http_mime_type_get(const sky_str_t *exten, http_mime_type_t *type) {
         case 3: {
             switch (sky_str4_switch(p)) {
                 case sky_str4_num('.', 'j', 's', '\0'):
-                mine_set("application/x-javascript", false);
+                mine_set("application/javascript", false);
                     return true;
                 case sky_str4_num('.', '7', 'z', '\0'):
                 mine_set("application/x-7z-compressed", true);
