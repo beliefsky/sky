@@ -74,8 +74,9 @@ typedef float sky_f32_t;
 typedef double sky_f64_t;
 
 #define sky_abs(_v)         (((_v) < 0) ? -(_v) : v)
-#define sky_max(_v1, _v2)   ((_v1) ^ ((_v1) ^ (_v2)) & -((_v1) < (_v2)))
-#define sky_min(_v1, _v2)   ((_v2) ^ ((_v1) ^ (_v2)) & -((_v1) < (_v2)))
+
+#define sky_max(_v1, _v2)   ((_v1) ^ (((_v1) ^ (_v2)) & -((_v1) < (_v2))))
+#define sky_min(_v1, _v2)   ((_v2) ^ (((_v1) ^ (_v2)) & -((_v1) < (_v2))))
 #define sky_swap(_a, _b)    (((_a) ^ (_b)) && ((_b) ^= (_a) ^= (_b), (_a) ^= (_b)))
 #define sky_two_avg(_a, _b) (_a & _b) + ((_a ^ _b) >> 1)
 
