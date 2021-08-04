@@ -132,17 +132,17 @@ sky_md5_final(sky_md5_t *ctx, sky_uchar_t result[16]) {
  * does not work.
  */
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-#define SET(n)      (*(sky_u32_t *) &p[n << 2])
-#define GET(n)      (*(sky_u32_t *) &p[n << 2])
+#define SET(_n)      (*(sky_u32_t *) &p[(_n) << 2])
+#define GET(_n)      (*(sky_u32_t *) &p[(_n) << 2])
 #else
-#define SET(n)                                                                  \
-    (block[n] =                                                                 \
-    (sky_u32_t) p[n << 2] |                                                      \
-    ((sky_u32_t) p[(n << 2) + 1] << 8) |                                         \
-    ((sky_u32_t) p[(n << 2) + 2] << 16) |                                        \
-    ((sky_u32_t) p[(n << 2) + 3] << 24))
+#define SET(_n)                                 \
+    (block[_n] =                                \
+    (sky_u32_t) p[(_n) << 2] |                  \
+    ((sky_u32_t) p[((_n) << 2) + 1] << 8) |     \
+    ((sky_u32_t) p[((_n) << 2) + 2] << 16) |    \
+    ((sky_u32_t) p[((_n) << 2) + 3] << 24))
 
-#define GET(n)      block[n]*/
+#define GET(_n)      block[_n]*/
 #endif
 
 
