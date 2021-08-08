@@ -192,13 +192,19 @@ sky_timer_wheel_link(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky
 
 void
 sky_timer_wheel_expired(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky_u64_t at) {
-    if (sky_likely(entry->next)) {
-        entry->next->prev = entry->prev;
-        entry->prev->next = entry->next;
-
-        entry->expire_at = sky_max(at, ctx->last_run);
-        link_timer(ctx, entry);
+    if (sky_unlikely(!entry->next)) {
+        return;
     }
+    at = sky_max(at, ctx->last_run);
+    if (at == entry->expire_at) {
+        return;
+    }
+
+    entry->next->prev = entry->prev;
+    entry->prev->next = entry->next;
+
+    entry->expire_at = at;
+    link_timer(ctx, entry);
 }
 
 static sky_inline sky_bool_t
