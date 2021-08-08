@@ -55,8 +55,6 @@ void *sky_pcalloc(sky_pool_t *pool, sky_usize_t size);
 
 void *sky_prealloc(sky_pool_t *pool, void *ptr, sky_usize_t ptr_size, sky_usize_t size);
 
-void *sky_pmemalign(sky_pool_t *pool, sky_usize_t size, sky_usize_t alignment);
-
 void sky_pfree(sky_pool_t *pool, const void *ptr, sky_usize_t size);
 
 sky_pool_cleanup_t *sky_pool_cleanup_add(sky_pool_t *p, sky_usize_t size);
