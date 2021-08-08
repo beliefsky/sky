@@ -71,23 +71,23 @@ sky_list_init(sky_list_t *list, sky_pool_t *pool, sky_u32_t n, sky_usize_t size)
  */
 void *sky_list_push(sky_list_t *list);
 
-#define sky_list_foreach(_list, _type, _item, _code)        \
-    do {                                                    \
-        sky_list_part_t *_part = &((_list)->part);          \
-        sky_u32_t _i;                                    \
-        _type* (_item) = null, *_data = _part->elts;        \
-        for(_i = 0; ; ++_i) {                               \
-            if (_i >= _part->nelts) {                       \
-                if (!(_part->next)) {                       \
-                    break;                                  \
-                }                                           \
-                (_part) = _part->next;                      \
-                (_data) = _part->elts;                      \
-                _i = 0;                                     \
-            }                                               \
-            (_item) = &(_data[_i]);                         \
-            _code                                           \
-        }                                                   \
+#define sky_list_foreach(_list, _type, _item, _code) \
+    do {                                             \
+        sky_list_part_t *_part = &((_list)->part);   \
+        sky_u32_t _i;                                \
+        _type* (_item) = null, *_data = _part->elts; \
+        for(_i = 0; ; ++_i) {                        \
+            if (_i >= _part->nelts) {                \
+                if (!(_part->next)) {                \
+                    break;                           \
+                }                                    \
+                (_part) = _part->next;               \
+                (_data) = _part->elts;               \
+                _i = 0;                              \
+            }                                        \
+            (_item) = &(_data[_i]);                  \
+            _code                                    \
+        }                                            \
     } while(0)
 
 #if defined(__cplusplus)
