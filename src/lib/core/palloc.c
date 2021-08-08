@@ -142,26 +142,6 @@ sky_prealloc(sky_pool_t *pool, void *ptr, sky_usize_t ptr_size, sky_usize_t size
     return new_ptr;
 }
 
-void*
-sky_pmemalign(sky_pool_t *pool, sky_usize_t size, sky_usize_t alignment) {
-    void *p;
-    sky_pool_large_t *large;
-
-    p = sky_memalign(alignment, size);
-    if (sky_unlikely(!p)) {
-        return null;
-    }
-    large = sky_palloc_small_align(pool, sizeof(sky_pool_large_t));
-    if (sky_unlikely(!large)) {
-        sky_free(p);
-        return null;
-    }
-    large->alloc = p;
-    large->next = pool->large;
-    pool->large = large;
-
-    return p;
-}
 
 void
 sky_pfree(sky_pool_t *pool, const void *ptr, sky_usize_t size) {

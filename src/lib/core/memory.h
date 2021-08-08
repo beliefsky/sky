@@ -41,17 +41,6 @@ extern "C" {
     } while(0)                                              \
 
 
-static sky_inline void *
-sky_memalign(sky_usize_t alignment, sky_usize_t size) {
-    void *p;
-    int err;
-    err = posix_memalign(&p, alignment, size);
-    if (sky_unlikely(err)) {
-        p = null;
-    }
-    return p;
-}
-
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif
