@@ -378,7 +378,7 @@ sky_inline void*
 sky_coro_malloc(sky_coro_t *coro, sky_u32_t size) {
     sky_uchar_t *ptr;
     if (sky_unlikely(coro->ptr_size < size)) {
-        if (sky_unlikely(size > 2048)) {
+        if (sky_unlikely(size > 1024)) {
             return null;
         }
         mem_block_add(coro);
