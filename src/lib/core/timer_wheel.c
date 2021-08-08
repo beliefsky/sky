@@ -192,11 +192,9 @@ sky_timer_wheel_link(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky
 
 void
 sky_timer_wheel_expired(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky_u64_t at) {
-    if (sky_unlikely(!entry->next)) {
-        return;
-    }
     at = sky_max(at, ctx->last_run);
-    if (at == entry->expire_at) {
+
+    if (!entry->next || at == entry->expire_at) {
         return;
     }
 
