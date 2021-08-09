@@ -1,6 +1,7 @@
 //
 // Created by weijing on 18-11-6.
 //
+#if defined(__linux__)
 #include <sys/resource.h>
 #include <unistd.h>
 #include <errno.h>
@@ -221,3 +222,5 @@ setup_open_file_count_limits() {
     }
     return (sky_i32_t) r.rlim_cur;
 }
+
+#endif
