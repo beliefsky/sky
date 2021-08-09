@@ -2,6 +2,7 @@
 // Created by weijing on 18-11-6.
 //
 #if defined(__linux__)
+
 #include <sys/resource.h>
 #include <unistd.h>
 #include <errno.h>
@@ -28,7 +29,7 @@ static void event_timer_callback(sky_event_t *ev);
 
 static sky_i32_t setup_open_file_count_limits();
 
-sky_event_loop_t*
+sky_event_loop_t *
 sky_event_loop_create(sky_pool_t *pool) {
     sky_event_loop_t *loop;
     struct sigaction sa;
