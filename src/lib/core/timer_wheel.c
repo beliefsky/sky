@@ -82,7 +82,7 @@ sky_timer_wheel_wake_at(sky_timer_wheel_t *ctx) {
 
 
     for (wheel = 0; wheel < ctx->num_wheels; ++wheel) {
-        at_incr = 1UL << (wheel * TIMER_WHEEL_BITS);
+        at_incr = SKY_U64(1) << (wheel * TIMER_WHEEL_BITS);
         slot_base = timer_slot(wheel, at);
         for (slot = slot_base; slot < TIMER_WHEEL_SLOTS; ++slot) {
             s = &ctx->wheels[wheel][slot];
