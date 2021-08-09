@@ -31,7 +31,7 @@ sky_trie_create(sky_pool_t *pool) {
 
 
 static sky_inline sky_usize_t
-str_cmp_index(sky_uchar_t *one, sky_uchar_t *two, sky_usize_t min_len) {
+str_cmp_index(const sky_uchar_t *one, const sky_uchar_t *two, sky_usize_t min_len) {
     sky_usize_t i;
 
     i = min_len;
@@ -44,7 +44,7 @@ str_cmp_index(sky_uchar_t *one, sky_uchar_t *two, sky_usize_t min_len) {
 
 
 void
-sky_trie_put(sky_trie_t *trie, sky_str_t *key, void *value) {
+sky_trie_put(sky_trie_t *trie, const sky_str_t *key, void *value) {
     sky_trie_node_t **k_node, *pre_node, *tmp;
     sky_uchar_t *tmp_key;
     sky_usize_t len, index;
@@ -121,8 +121,8 @@ sky_trie_put(sky_trie_t *trie, sky_str_t *key, void *value) {
 
 void *
 sky_trie_find(const sky_trie_t *trie, sky_str_t *key) {
-    sky_trie_node_t *node, *prev_node;
-    sky_uchar_t *tmp_key;
+    const sky_trie_node_t *node, *prev_node;
+    const sky_uchar_t *tmp_key;
     sky_usize_t len;
 
     node = &trie->root;
@@ -162,8 +162,8 @@ sky_trie_find(const sky_trie_t *trie, sky_str_t *key) {
 
 void *
 sky_trie_contains(const sky_trie_t *trie, sky_str_t *key) {
-    sky_trie_node_t *node;
-    sky_uchar_t *tmp_key;
+    const sky_trie_node_t *node;
+    const sky_uchar_t *tmp_key;
     sky_usize_t len;
 
     node = &trie->root;

@@ -17,7 +17,7 @@ typedef struct sky_trie_s sky_trie_t;
 
 sky_trie_t *sky_trie_create(sky_pool_t *pool);
 
-void sky_trie_put(sky_trie_t *trie, sky_str_t *key, void *value);
+void sky_trie_put(sky_trie_t *trie, const sky_str_t *key, void *value);
 
 void *sky_trie_find(const sky_trie_t *trie, sky_str_t *key);
 
