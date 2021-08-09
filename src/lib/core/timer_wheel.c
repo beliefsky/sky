@@ -32,7 +32,7 @@ static sky_bool_t cascade_all(sky_timer_wheel_t *ctx, sky_usize_t wheel);
 static void link_timer(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry);
 
 
-sky_timer_wheel_t*
+sky_timer_wheel_t *
 sky_timer_wheel_create(sky_pool_t *pool, sky_u32_t num_wheels, sky_u64_t now) {
     sky_timer_wheel_t *ctx;
     timer_wheel_slot_t *s;
@@ -183,6 +183,10 @@ sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_u64_t now) {
 void
 sky_timer_wheel_link(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky_u64_t at) {
     if (sky_unlikely(entry->next)) {
+        if (at == entry->expire_at) {
+            return;
+        }
+
         entry->next->prev = entry->prev;
         entry->prev->next = entry->next;
     }
