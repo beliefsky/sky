@@ -1,6 +1,7 @@
 //
 // Created by weijing on 18-11-6.
 //
+#if defined(__FreeBSD__) || defined(__APPLE__)
 #include <sys/resource.h>
 #include <unistd.h>
 #include <errno.h>
@@ -251,3 +252,4 @@ setup_open_file_count_limits() {
     out:
     return (sky_i32_t) r.rlim_cur;
 }
+#endif

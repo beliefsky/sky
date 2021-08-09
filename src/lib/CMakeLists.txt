@@ -26,7 +26,8 @@ set(SOURCES
         core/json.c
         core/timer_wheel.c
         math/matrix.c
-        event/event_loop.c
+        event/event_loop_epoll.c
+        event/event_loop_kqueue.c
         net/tcp.c
         net/udp.c
         net/clients/tcp_pool.c
