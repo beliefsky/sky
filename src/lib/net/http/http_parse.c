@@ -955,7 +955,7 @@ header_handle_run(sky_http_request_t *req, sky_http_header_t *h) {
             break;
         }
         case 5: {
-            if (sky_likely(sky_str4_cmp(p, 'r', 'a', 'n', 'g') && p[4] == 'r')) { // Range
+            if (sky_likely(sky_str4_cmp(p, 'r', 'a', 'n', 'g') && p[4] == 'e')) { // Range
                 //
                 req->headers_in.range = &h->val;
             }
