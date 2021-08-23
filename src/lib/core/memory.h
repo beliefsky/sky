@@ -16,14 +16,16 @@ extern "C" {
 #define sky_free                    free
 #define sky_malloc                  malloc
 #define sky_realloc                 realloc
-#define sky_align_size(d, a)             (((d) + (a - 1)) & ~(a - 1))
-#define sky_align_ptr(p, a)         (sky_uchar_t *) (((sky_usize_t) (p) + ((sky_usize_t) a - 0x1)) & ~((sky_usize_t) a - 0x1))
+#define sky_align_size(_d, _a) \
+    (((_d) + ((_a) - 1)) & ~((_a) - 1))
+#define sky_align_ptr(_p, _a) \
+    (sky_uchar_t *) (((sky_usize_t) (_p) + ((sky_usize_t) (_a) - 1)) & ~((sky_usize_t) (_a) - 1))
 /**
  * sky_memzero使用的是memset原型，memset使用汇编进行编写
  */
-#define sky_memzero(ptr, size)          memset(ptr,0x0,size)
+#define sky_memzero(_ptr, _size)        memset(_ptr,0,_size)
 #define sky_memcpy(_dest, _src, _n)     memcpy(_dest, _src, _n)
-#define sky_memmove(_dest, _src, _n)   memmove(_dest, _src, _n)
+#define sky_memmove(_dest, _src, _n)    memmove(_dest, _src, _n)
 
 #define sky_memcpy2(_dist, _src)                            \
     do {                                                    \
@@ -40,17 +42,6 @@ extern "C" {
         *(sky_u64_t *)(_dist) = *(((sky_u64_t *)(_src)));   \
     } while(0)                                              \
 
-
-static sky_inline void *
-sky_memalign(sky_usize_t alignment, sky_usize_t size) {
-    void *p;
-    int err;
-    err = posix_memalign(&p, alignment, size);
-    if (sky_unlikely(err)) {
-        p = null;
-    }
-    return p;
-}
 
 #if defined(__cplusplus)
 } /* extern "C" { */

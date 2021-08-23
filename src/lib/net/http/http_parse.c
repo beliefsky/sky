@@ -63,8 +63,7 @@ sky_http_request_line_parse(sky_http_request_t *r, sky_buf_t *b) {
                 for (;;) {
                     if (p == end) {
                         goto again;
-                    }
-                    if (*p == ' ') {
+                    } else if (*p == ' ') {
                         ++p;
                         continue;
                     }
@@ -226,8 +225,7 @@ sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
                     if (*p == '\r') {
                         ++p;
                         continue;
-                    }
-                    if (*p == '\n') {
+                    } else if (*p == '\n') {
                         ++p;
                         goto done;
                     }
@@ -941,7 +939,7 @@ header_handle_run(sky_http_request_t *req, sky_http_header_t *h) {
                 sky_str_lower2(&h->val);
 
                 const sky_http_server_t *server = req->conn->server;
-                sky_trie_t *host_trie = sky_trie_contains(server->host_map, &h->val);
+                const sky_trie_t *host_trie = sky_trie_contains(server->host_map, &h->val);
                 if (!host_trie) {
                     host_trie = server->default_host;
                 }
@@ -957,7 +955,7 @@ header_handle_run(sky_http_request_t *req, sky_http_header_t *h) {
             break;
         }
         case 5: {
-            if (sky_likely(*p++ == 'r' && sky_str4_cmp(p, 'a', 'n', 'g', 'e'))) { // Range
+            if (sky_likely(sky_str4_cmp(p, 'r', 'a', 'n', 'g') && p[4] == 'e')) { // Range
                 //
                 req->headers_in.range = &h->val;
             }

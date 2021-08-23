@@ -1,6 +1,8 @@
 //
 // Created by weijing on 18-11-6.
 //
+#if defined(__linux__)
+
 #include <sys/resource.h>
 #include <unistd.h>
 #include <errno.h>
@@ -27,7 +29,7 @@ static void event_timer_callback(sky_event_t *ev);
 
 static sky_i32_t setup_open_file_count_limits();
 
-sky_event_loop_t*
+sky_event_loop_t *
 sky_event_loop_create(sky_pool_t *pool) {
     sky_event_loop_t *loop;
     struct sigaction sa;
@@ -48,6 +50,7 @@ sky_event_loop_create(sky_pool_t *pool) {
 
 void
 sky_event_loop_run(sky_event_loop_t *loop) {
+    sky_bool_t flag;
     sky_i32_t fd, max_events, n, timeout;
     sky_time_t now;
     sky_u64_t next_time;
@@ -105,12 +108,11 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             // 是否可读
             ev->now = loop->now;
 
-            if (sky_likely(event->events & EPOLLIN)) {
-                ev->read = true;
-            }
-            if (sky_likely(event->events & EPOLLOUT)) {
-                ev->write = true;
-            }
+            flag = (event->events & EPOLLIN) != 0;
+            ev->read = sky_max(flag, ev->read);
+
+            flag = (event->events & EPOLLOUT) != 0;
+            ev->write = sky_max(flag, ev->write);
 
             if (!ev->run(ev)) {
                 close(ev->fd);
@@ -221,3 +223,5 @@ setup_open_file_count_limits() {
     }
     return (sky_i32_t) r.rlim_cur;
 }
+
+#endif
