@@ -95,22 +95,13 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 ev->close(ev);
                 continue;
             }
-            // 是否出现异常
-            if (sky_unlikely(event->events & (EPOLLRDHUP | EPOLLHUP))) {
-                close(ev->fd);
-                ev->reg = false;
-                ev->fd = -1;
-                sky_timer_wheel_unlink(&ev->timer);
-                ev->close(ev);
-                continue;
-            }
             // 是否可读
             ev->now = loop->now;
-
             ev->read = !!(!!(event->events & EPOLLIN) + ev->read);
             ev->write = !!(!!(event->events & EPOLLOUT) + ev->write);
 
-            if (!ev->run(ev)) {
+            // 是否出现异常
+            if (sky_unlikely(!!(event->events & (EPOLLRDHUP | EPOLLHUP)) || !ev->run(ev))) {
                 close(ev->fd);
                 ev->reg = false;
                 ev->fd = -1;
@@ -121,12 +112,12 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             sky_timer_wheel_expired(ctx, &ev->timer, (sky_u64_t) (ev->now + ev->timeout));
         }
 
-        if (loop->update) {
-            loop->update = false;
-        } else if (now == loop->now) {
+        if (!loop->update && now == loop->now) {
             continue;
         }
+
         now = loop->now;
+        loop->update = false;
 
         sky_timer_wheel_run(ctx, (sky_u64_t) now);
         next_time = sky_timer_wheel_wake_at(ctx);
