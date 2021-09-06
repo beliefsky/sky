@@ -50,7 +50,6 @@ sky_event_loop_create(sky_pool_t *pool) {
 
 void
 sky_event_loop_run(sky_event_loop_t *loop) {
-    sky_bool_t flag;
     sky_i32_t fd, max_events, n, timeout;
     sky_time_t now;
     sky_u64_t next_time;
@@ -108,11 +107,8 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             // 是否可读
             ev->now = loop->now;
 
-            flag = (event->events & EPOLLIN) != 0;
-            ev->read = sky_max(flag, ev->read);
-
-            flag = (event->events & EPOLLOUT) != 0;
-            ev->write = sky_max(flag, ev->write);
+            ev->read = !!(!!(event->events & EPOLLIN) + ev->read);
+            ev->write = !!(!!(event->events & EPOLLOUT) + ev->write);
 
             if (!ev->run(ev)) {
                 close(ev->fd);
