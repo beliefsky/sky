@@ -137,22 +137,24 @@ sky_event_loop_shutdown(sky_event_loop_t *loop) {
 void
 sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
     struct epoll_event event;
+    sky_event_loop_t *loop;
+
+    loop = ev->loop;
     if (timeout < 0) {
         timeout = -1;
         sky_timer_wheel_unlink(&ev->timer);
     } else {
-        if (timeout == 0) {
-            ev->loop->update = true;
-        }
+        loop->update = !!((timeout == 0) + loop->update);
         ev->timer.cb = (sky_timer_wheel_pt) event_timer_callback;
-        sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_u64_t) (ev->loop->now + timeout));
+        sky_timer_wheel_link(loop->ctx, &ev->timer, (sky_u64_t) (loop->now + timeout));
     }
+
     ev->timeout = timeout;
     ev->reg = true;
 
     event.events = EPOLLIN | EPOLLOUT | EPOLLPRI | EPOLLRDHUP | EPOLLERR | EPOLLET;
     event.data.ptr = ev;
-    (void) epoll_ctl(ev->loop->fd, EPOLL_CTL_ADD, ev->fd, &event);
+    (void) epoll_ctl(loop->fd, EPOLL_CTL_ADD, ev->fd, &event);
 }
 
 
