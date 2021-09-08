@@ -207,7 +207,7 @@ sky_i8_t
 sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
     parse_state_t state;
     sky_isize_t index;
-    sky_uchar_t *p, *end;
+    sky_uchar_t ch, *p, *end;
     sky_http_header_t *h;
 
     state = (parse_state_t) r->state;
@@ -278,11 +278,7 @@ sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
                     goto again;
                 }
                 p += index;
-                if (*p == '\r') {
-                    state = sw_line_LF;
-                } else {
-                    state = sw_header_value_first;
-                }
+                ch = *p;
 
                 h = sky_list_push(&r->headers_in.headers);
                 h->val.data = r->req_pos;
@@ -297,7 +293,13 @@ sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
                 if (sky_unlikely(!header_handle_run(r, h))) {
                     return -1;
                 }
-                break;
+
+                if (*p == '\r') {
+                    state = sw_line_LF;
+                } else {
+                    state = sw_start;
+                    break;
+                }
             }
             case sw_line_LF: {
                 if (sky_unlikely(*p != '\n')) {
@@ -328,7 +330,7 @@ sky_i8_t
 sky_http_multipart_header_parse(sky_http_multipart_t *r, sky_buf_t *b) {
     parse_state_t state;
     sky_isize_t index;
-    sky_uchar_t *p, *end;
+    sky_uchar_t ch, *p, *end;
     sky_http_header_t *h;
 
     state = (parse_state_t) r->state;
@@ -400,11 +402,7 @@ sky_http_multipart_header_parse(sky_http_multipart_t *r, sky_buf_t *b) {
                     goto again;
                 }
                 p += index;
-                if (*p == '\r') {
-                    state = sw_line_LF;
-                } else {
-                    state = sw_header_value_first;
-                }
+                ch = *p;
 
                 h = sky_list_push(&r->headers);
                 h->val.data = r->req_pos;
@@ -419,7 +417,13 @@ sky_http_multipart_header_parse(sky_http_multipart_t *r, sky_buf_t *b) {
                 if (sky_unlikely(!multipart_header_handle_run(r, h))) {
                     return -1;
                 }
-                break;
+
+                if (ch == '\r') {
+                    state = sw_line_LF;
+                } else {
+                    state = sw_start;
+                    break;
+                }
             }
             case sw_line_LF: {
                 if (sky_unlikely(*p != '\n')) {
