@@ -50,7 +50,6 @@ sky_event_loop_create(sky_pool_t *pool) {
 
 void
 sky_event_loop_run(sky_event_loop_t *loop) {
-    sky_bool_t flag;
     sky_i32_t fd, max_events, n, timeout;
     sky_time_t now;
     sky_u64_t next_time;
@@ -96,25 +95,13 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 ev->close(ev);
                 continue;
             }
-            // 是否出现异常
-            if (sky_unlikely(event->events & (EPOLLRDHUP | EPOLLHUP))) {
-                close(ev->fd);
-                ev->reg = false;
-                ev->fd = -1;
-                sky_timer_wheel_unlink(&ev->timer);
-                ev->close(ev);
-                continue;
-            }
             // 是否可读
             ev->now = loop->now;
+            ev->read = !!(!!(event->events & EPOLLIN) + ev->read);
+            ev->write = !!(!!(event->events & EPOLLOUT) + ev->write);
 
-            flag = (event->events & EPOLLIN) != 0;
-            ev->read = sky_max(flag, ev->read);
-
-            flag = (event->events & EPOLLOUT) != 0;
-            ev->write = sky_max(flag, ev->write);
-
-            if (!ev->run(ev)) {
+            // 是否出现异常
+            if (sky_unlikely(!!(event->events & (EPOLLRDHUP | EPOLLHUP)) || !ev->run(ev))) {
                 close(ev->fd);
                 ev->reg = false;
                 ev->fd = -1;
@@ -125,12 +112,12 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             sky_timer_wheel_expired(ctx, &ev->timer, (sky_u64_t) (ev->now + ev->timeout));
         }
 
-        if (loop->update) {
-            loop->update = false;
-        } else if (now == loop->now) {
+        if (!loop->update && now == loop->now) {
             continue;
         }
+
         now = loop->now;
+        loop->update = false;
 
         sky_timer_wheel_run(ctx, (sky_u64_t) now);
         next_time = sky_timer_wheel_wake_at(ctx);
@@ -150,22 +137,24 @@ sky_event_loop_shutdown(sky_event_loop_t *loop) {
 void
 sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
     struct epoll_event event;
+    sky_event_loop_t *loop;
+
+    loop = ev->loop;
     if (timeout < 0) {
         timeout = -1;
         sky_timer_wheel_unlink(&ev->timer);
     } else {
-        if (timeout == 0) {
-            ev->loop->update = true;
-        }
+        loop->update = !!((timeout == 0) + loop->update);
         ev->timer.cb = (sky_timer_wheel_pt) event_timer_callback;
-        sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_u64_t) (ev->loop->now + timeout));
+        sky_timer_wheel_link(loop->ctx, &ev->timer, (sky_u64_t) (loop->now + timeout));
     }
+
     ev->timeout = timeout;
     ev->reg = true;
 
     event.events = EPOLLIN | EPOLLOUT | EPOLLPRI | EPOLLRDHUP | EPOLLERR | EPOLLET;
     event.data.ptr = ev;
-    (void) epoll_ctl(ev->loop->fd, EPOLL_CTL_ADD, ev->fd, &event);
+    (void) epoll_ctl(loop->fd, EPOLL_CTL_ADD, ev->fd, &event);
 }
 
 

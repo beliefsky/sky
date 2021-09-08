@@ -9,6 +9,7 @@
 #include "../http_response.h"
 #include "../../../core/date.h"
 #include "../../../core/memory.h"
+#include "../../../core/number.h"
 
 #define http_error_page(_r, _status, _msg)                              \
     (_r)->state = _status;                                              \
@@ -184,53 +185,38 @@ http_run_handler(sky_http_request_t *r, http_module_file_t *data) {
 
 static sky_bool_t
 http_header_range(http_file_t *file, sky_str_t *value) {
-    sky_uchar_t *start, *end, p;
-    sky_i64_t tmp;
+    sky_isize_t index;
+    sky_usize_t size;
+    sky_uchar_t *start;
 
-    enum {
-        rang_start = 0,
-        rang_left,
-        rang_right
-    } state;
+    index = sky_str_index_char(value, '=');
+    if (sky_unlikely(index == -1)) {
+        return false;
+    }
+    ++index;
+    size = value->len - index;
+    start = value->data + index;
 
-    start = value->data;
-    end = start + value->len;
-    state = rang_start;
-    tmp = 0;
-
-
-    for (; start != end; ++start) {
-        p = *start;
-        switch (state) {
-            case rang_start:
-                if (p == '=') {
-                    tmp = 0;
-                    state = rang_left;
-                }
-                break;
-            case rang_left:
-                if (p == '-') {
-                    file->left = tmp;
-                    tmp = 0;
-                    state = rang_right;
-                } else {
-                    if (sky_unlikely(p < '0' || p > '9')) {
-                        return false;
-                    }
-                    tmp = tmp * 10 + (p - '0');
-                }
-                break;
-            case rang_right:
-                if (sky_unlikely(p < '0' || p > '9')) {
-                    return false;
-                }
-                tmp = tmp * 10 + (p - '0');
-                break;
-            default:
-                return false;
+    index = sky_str_len_index_char(start, size, '-');
+    if (sky_unlikely(index == -1)) {
+        return false;
+    } else if (index > 0) {
+        if (sky_unlikely(!sky_str_len_to_i64(start, (sky_usize_t) index, &file->left))) {
+            return false;
         }
     }
-    file->right = tmp;
+
+    ++index;
+    size -= index;
+    start += index;
+    if (size > 0) {
+        if (sky_unlikely(!sky_str_len_to_i64(start, size, &file->right))) {
+            return false;
+        }
+    }
+
+
+
     return true;
 }
 
