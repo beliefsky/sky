@@ -396,9 +396,14 @@ coro_create(sky_coro_switcher_t *switcher) {
 
 static sky_inline void
 mem_block_add(sky_coro_t *coro) {
-    mem_block_t *block;
-
-    block = mmap(null, PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    mem_block_t *block = mmap(
+            null,
+            PAGE_SIZE,
+            PROT_READ | PROT_WRITE,
+            MAP_ANONYMOUS | MAP_PRIVATE,
+            -1,
+            0
+    );
 
     block->prev = &coro->blocks;
     block->next = block->prev->next;
