@@ -222,17 +222,17 @@ sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
                     if (sky_unlikely(p == end)) {
                         goto again;
                     }
-                    if (*p == '\r') {
-                        ++p;
-                        continue;
-                    } else if (*p == '\n') {
+
+                    ch = *p;
+                    if (ch == '\n') {
                         ++p;
                         goto done;
+                    } else if (ch != '\r') {
+                        r->req_pos = p++;
+                        state = sw_header_name;
+                        break;
                     }
-
-                    r->req_pos = p++;
-                    state = sw_header_name;
-                    break;
+                    ++p;
                 }
             }
             case sw_header_name: {
@@ -258,13 +258,12 @@ sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
                     if (sky_unlikely(p == end)) {
                         goto again;
                     }
-                    if (*p == ' ') {
-                        ++p;
-                        continue;
+                    if (*p != ' ') {
+                        r->req_pos = p++;
+                        state = sw_header_value;
+                        break;
                     }
-                    r->req_pos = p++;
-                    state = sw_header_value;
-                    break;
+                    ++p;
                 }
             }
             case sw_header_value: {
@@ -294,12 +293,11 @@ sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
                     return -1;
                 }
 
-                if (ch == '\r') {
-                    state = sw_line_LF;
-                } else {
+                if (ch != '\r') {
                     state = sw_start;
                     break;
                 }
+                state = sw_line_LF;
             }
             case sw_line_LF: {
                 if (sky_unlikely(*p != '\n')) {
@@ -345,18 +343,16 @@ sky_http_multipart_header_parse(sky_http_multipart_t *r, sky_buf_t *b) {
                     if (sky_unlikely(p == end)) {
                         goto again;
                     }
-                    if (*p == '\r') {
-                        ++p;
-                        continue;
-                    }
-                    if (*p == '\n') {
+                    ch = *p;
+                    if (ch == '\n') {
                         ++p;
                         goto done;
+                    } else if (ch != '\r') {
+                        r->req_pos = p++;
+                        state = sw_header_name;
+                        break;
                     }
-
-                    r->req_pos = p++;
-                    state = sw_header_name;
-                    break;
+                    ++p;
                 }
             }
             case sw_header_name: {
@@ -382,13 +378,12 @@ sky_http_multipart_header_parse(sky_http_multipart_t *r, sky_buf_t *b) {
                     if (sky_unlikely(p == end)) {
                         goto again;
                     }
-                    if (*p == ' ') {
-                        ++p;
-                        continue;
+                    if (*p != ' ') {
+                        r->req_pos = p++;
+                        state = sw_header_value;
+                        break;
                     }
-                    r->req_pos = p++;
-                    state = sw_header_value;
-                    break;
+                    ++p;
                 }
             }
             case sw_header_value: {
@@ -418,12 +413,11 @@ sky_http_multipart_header_parse(sky_http_multipart_t *r, sky_buf_t *b) {
                     return -1;
                 }
 
-                if (ch == '\r') {
-                    state = sw_line_LF;
-                } else {
+                if (ch != '\r') {
                     state = sw_start;
                     break;
                 }
+                state = sw_line_LF;
             }
             case sw_line_LF: {
                 if (sky_unlikely(*p != '\n')) {
@@ -1055,7 +1049,7 @@ static sky_inline sky_bool_t
 find_char_fast(sky_uchar_t **buf, sky_usize_t buf_size, const sky_uchar_t *ranges, sky_i32_t ranges_size) {
     if (sky_likely(buf_size >= 16)) {
         sky_uchar_t *tmp = *buf;
-        sky_usize_t left = buf_size & ~15U;
+        sky_usize_t left = buf_size & ~SKY_USIZE(15);
 
         __m128i ranges16 = _mm_loadu_si128((const __m128i *) ranges);
 
