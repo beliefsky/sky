@@ -294,7 +294,7 @@ sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
                     return -1;
                 }
 
-                if (*p == '\r') {
+                if (ch == '\r') {
                     state = sw_line_LF;
                 } else {
                     state = sw_start;
