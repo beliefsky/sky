@@ -13,9 +13,9 @@
 extern "C" {
 #endif
 
-#define sky_free                    free
-#define sky_malloc                  malloc
-#define sky_realloc                 realloc
+#define sky_free(_ptr)                  free(_ptr)
+#define sky_malloc(_size)               malloc(_size)
+#define sky_realloc(_ptr, _resize)      realloc(_ptr, _resize)
 #define sky_align_size(_d, _a) \
     (((_d) + ((_a) - 1)) & ~((_a) - 1))
 #define sky_align_ptr(_p, _a) \

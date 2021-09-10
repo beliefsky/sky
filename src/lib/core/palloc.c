@@ -1,6 +1,5 @@
 #include "palloc.h"
 #include "memory.h"
-#include <sys/mman.h>
 
 #define SKY_ALIGNMENT   sizeof(sky_usize_t)
 
@@ -21,9 +20,9 @@ sky_pool_t *
 sky_pool_create(sky_usize_t size) {
     sky_pool_t *p;
 
-    size = sky_align_size(size, 4096U);
+    size = sky_align_size(size, SKY_USIZE(4096));
 
-    p = mmap(null, size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    p = sky_malloc(size);
     if (sky_unlikely(!p)) {
         return null;
     }
@@ -43,18 +42,16 @@ void
 sky_pool_destroy(sky_pool_t *pool) {
     sky_pool_t *p, *n;
     sky_pool_large_t *l;
-    sky_usize_t size;
 
     for (l = pool->large; l; l = l->next) {
         if (sky_likely(l->alloc)) {
             sky_free(l->alloc);
         }
     }
-    size = (sky_usize_t) (pool->d.end - (sky_uchar_t *) pool);
 
     for (p = pool, n = pool->d.next; /* void */; p = n, n = n->d.next) {
 
-        munmap(p, size);
+        sky_free(p);
         if (!n) {
             break;
         }
@@ -201,7 +198,7 @@ sky_palloc_block(sky_pool_t *pool, sky_usize_t size) {
 
     p_size = (sky_usize_t) (pool->d.end - (sky_uchar_t *) pool);
 
-    m = mmap(null, p_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    new = sky_malloc(p_size);
 
     if (sky_unlikely(!m)) {
         return null;

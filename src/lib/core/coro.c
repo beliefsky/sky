@@ -3,9 +3,9 @@
 //
 
 #include "coro.h"
+#include "memory.h"
 
 #include <assert.h>
-#include <sys/mman.h>
 
 #define PAGE_SIZE 4096
 
@@ -348,9 +348,10 @@ sky_coro_destroy(sky_coro_t *coro) {
         block->prev->next = block->next;
         block->next->prev = block->prev;
 
-        munmap(block, PAGE_SIZE);
+        sky_free(block);
     }
-    munmap(coro, CORE_BLOCK_SIZE);
+    sky_free(coro);
+//    munmap(coro, CORE_BLOCK_SIZE);
 }
 
 sky_inline void *
@@ -372,14 +373,15 @@ sky_coro_malloc(sky_coro_t *coro, sky_u32_t size) {
 
 static sky_inline sky_coro_t *
 coro_create(sky_coro_switcher_t *switcher) {
-    sky_coro_t *coro = mmap(
-            null,
-            CORE_BLOCK_SIZE,
-            PROT_READ | PROT_WRITE,
-            MAP_ANONYMOUS | MAP_PRIVATE,
-            -1,
-            0
-    );
+//    sky_coro_t *coro = mmap(
+//            null,
+//            CORE_BLOCK_SIZE,
+//            PROT_READ | PROT_WRITE,
+//            MAP_ANONYMOUS | MAP_PRIVATE,
+//            -1,
+//            0
+//    );
+    sky_coro_t *coro = sky_malloc(CORE_BLOCK_SIZE);
 
     coro->switcher = switcher;
     coro->defers.prev = coro->defers.next = &coro->defers;
@@ -396,14 +398,7 @@ coro_create(sky_coro_switcher_t *switcher) {
 
 static sky_inline void
 mem_block_add(sky_coro_t *coro) {
-    mem_block_t *block = mmap(
-            null,
-            PAGE_SIZE,
-            PROT_READ | PROT_WRITE,
-            MAP_ANONYMOUS | MAP_PRIVATE,
-            -1,
-            0
-    );
+    mem_block_t *block = sky_malloc(PAGE_SIZE);
 
     block->prev = &coro->blocks;
     block->next = block->prev->next;
