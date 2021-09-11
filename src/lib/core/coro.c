@@ -162,7 +162,7 @@ coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     coro->context[7 /* RSI */] = (sky_usize_t) func;
     coro->context[8 /* RIP */] = (sky_usize_t) coro_entry_point_x86_64;
 #define STACK_PTR 9
-    coro->context[STACK_PTR /* RSP */] = (((sky_usize_t) coro->stack + CORO_STACK_MIN) & ~0xful) - 0x8ul;
+    coro->context[STACK_PTR /* RSP */] = (((sky_usize_t) coro->stack + CORO_STACK_MIN) & ~0xfUL) - 0x8UL;
 }
 
 #elif defined(__i386__)
