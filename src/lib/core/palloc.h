@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-#define SKY_POOL_DEFAULT_SIZE   65536              /*(64 * 1024) = 65536*/
+#define SKY_POOL_DEFAULT_SIZE   32768              /*(64 * 1024) = 65536*/
 
 typedef void (*sky_pool_cleanup_pt)(void *data);
 
