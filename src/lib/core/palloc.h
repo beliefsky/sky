@@ -9,15 +9,6 @@ extern "C" {
 
 #define SKY_POOL_DEFAULT_SIZE   32768
 
-typedef void (*sky_pool_cleanup_pt)(void *data);
-
-typedef struct sky_pool_cleanup_s sky_pool_cleanup_t;
-
-struct sky_pool_cleanup_s {
-    sky_pool_cleanup_pt handler;
-    void *data;
-    sky_pool_cleanup_t *next;
-};
 typedef struct sky_pool_large_s sky_pool_large_t;
 
 struct sky_pool_large_s {
