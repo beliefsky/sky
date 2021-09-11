@@ -60,15 +60,12 @@ sky_pool_destroy(sky_pool_t *pool) {
 
 void
 sky_pool_reset(sky_pool_t *pool) {
-    sky_pool_t *p;
-    sky_pool_large_t *l;
-
-    for (l = pool->large; l; l = l->next) {
+    for (sky_pool_large_t *l = pool->large; l; l = l->next) {
         if (sky_likely(l->alloc)) {
             sky_free(l->alloc);
         }
     }
-    for (p = pool; p; p = p->d.next) {
+    for (sky_pool_t *p = pool; p; p = p->d.next) {
         p->d.last = (sky_uchar_t *) p + sizeof(sky_pool_t);
         p->d.failed = 0;
     }
