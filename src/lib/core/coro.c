@@ -374,6 +374,7 @@ sky_coro_malloc(sky_coro_t *coro, sky_u32_t size) {
 
 static sky_inline sky_coro_t *
 coro_create(sky_coro_switcher_t *switcher) {
+#ifdef MAP_STACK
     sky_uchar_t *ptr = mmap(
             null,
             CORE_BLOCK_SIZE,
@@ -382,6 +383,16 @@ coro_create(sky_coro_switcher_t *switcher) {
             -1,
             0
     );
+#else
+    sky_uchar_t *ptr = mmap(
+            null,
+            CORE_BLOCK_SIZE,
+            PROT_READ | PROT_WRITE,
+            MAP_ANONYMOUS | MAP_PRIVATE,
+            -1,
+            0
+    );
+#endif
 
     sky_coro_t *coro = (sky_coro_t *) (ptr + CORO_STACK_MIN);
 
