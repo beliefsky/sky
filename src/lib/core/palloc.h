@@ -7,17 +7,8 @@
 extern "C" {
 #endif
 
-#define SKY_POOL_DEFAULT_SIZE   65536              /*(64 * 1024) = 65536*/
+#define SKY_POOL_DEFAULT_SIZE   32768
 
-typedef void (*sky_pool_cleanup_pt)(void *data);
-
-typedef struct sky_pool_cleanup_s sky_pool_cleanup_t;
-
-struct sky_pool_cleanup_s {
-    sky_pool_cleanup_pt handler;
-    void *data;
-    sky_pool_cleanup_t *next;
-};
 typedef struct sky_pool_large_s sky_pool_large_t;
 
 struct sky_pool_large_s {
@@ -38,7 +29,6 @@ struct sky_pool_s {
     sky_usize_t max;
     sky_pool_t *current;
     sky_pool_large_t *large;
-    sky_pool_cleanup_t *cleanup;
 };
 
 sky_pool_t *sky_pool_create(sky_usize_t size);
@@ -56,8 +46,6 @@ void *sky_pcalloc(sky_pool_t *pool, sky_usize_t size);
 void *sky_prealloc(sky_pool_t *pool, void *ptr, sky_usize_t ptr_size, sky_usize_t size);
 
 void sky_pfree(sky_pool_t *pool, const void *ptr, sky_usize_t size);
-
-sky_pool_cleanup_t *sky_pool_cleanup_add(sky_pool_t *p, sky_usize_t size);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

@@ -84,7 +84,7 @@ sky_http_request_line_parse(sky_http_request_t *r, sky_buf_t *b) {
                 p += index;
 
                 r->method_name.data = r->req_pos;
-                r->method_name.len = (sky_u32_t) (p - r->req_pos);
+                r->method_name.len = (sky_usize_t) (p - r->req_pos);
                 *(p++) = '\0';
                 if (sky_unlikely(!http_method_identify(r))) {
                     return -1;
@@ -133,7 +133,7 @@ sky_http_request_line_parse(sky_http_request_t *r, sky_buf_t *b) {
                 p += index;
 
                 r->args.data = r->req_pos;
-                r->args.len = (sky_u32_t) (p - r->req_pos);
+                r->args.len = (sky_usize_t) (p - r->req_pos);
                 *(p++) = '\0';
 
                 r->req_pos = null;
@@ -222,17 +222,17 @@ sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
                     if (sky_unlikely(p == end)) {
                         goto again;
                     }
-                    if (*p == '\r') {
-                        ++p;
-                        continue;
-                    } else if (*p == '\n') {
+
+                    ch = *p;
+                    if (ch == '\n') {
                         ++p;
                         goto done;
+                    } else if (ch != '\r') {
+                        r->req_pos = p++;
+                        state = sw_header_name;
+                        break;
                     }
-
-                    r->req_pos = p++;
-                    state = sw_header_name;
-                    break;
+                    ++p;
                 }
             }
             case sw_header_name: {
@@ -248,23 +248,22 @@ sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
                 p += index;
 
                 r->header_name.data = r->req_pos;
-                r->header_name.len = (sky_u32_t) (p - r->req_pos);
+                r->header_name.len = (sky_usize_t) (p - r->req_pos);
                 *(p++) = '\0';
-                state = sw_header_value_first;
                 r->req_pos = null;
+                state = sw_header_value_first;
             }
             case sw_header_value_first: {
                 for (;;) {
                     if (sky_unlikely(p == end)) {
                         goto again;
                     }
-                    if (*p == ' ') {
-                        ++p;
-                        continue;
+                    if (*p != ' ') {
+                        r->req_pos = p++;
+                        state = sw_header_value;
+                        break;
                     }
-                    r->req_pos = p++;
-                    state = sw_header_value;
-                    break;
+                    ++p;
                 }
             }
             case sw_header_value: {
@@ -282,7 +281,7 @@ sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
 
                 h = sky_list_push(&r->headers_in.headers);
                 h->val.data = r->req_pos;
-                h->val.len = (sky_u32_t) (p - r->req_pos);
+                h->val.len = (sky_usize_t) (p - r->req_pos);
                 *(p++) = '\0';
 
                 h->key = r->header_name;
@@ -294,12 +293,11 @@ sky_http_request_header_parse(sky_http_request_t *r, sky_buf_t *b) {
                     return -1;
                 }
 
-                if (*p == '\r') {
-                    state = sw_line_LF;
-                } else {
+                if (ch != '\r') {
                     state = sw_start;
                     break;
                 }
+                state = sw_line_LF;
             }
             case sw_line_LF: {
                 if (sky_unlikely(*p != '\n')) {
@@ -345,18 +343,16 @@ sky_http_multipart_header_parse(sky_http_multipart_t *r, sky_buf_t *b) {
                     if (sky_unlikely(p == end)) {
                         goto again;
                     }
-                    if (*p == '\r') {
-                        ++p;
-                        continue;
-                    }
-                    if (*p == '\n') {
+                    ch = *p;
+                    if (ch == '\n') {
                         ++p;
                         goto done;
+                    } else if (ch != '\r') {
+                        r->req_pos = p++;
+                        state = sw_header_name;
+                        break;
                     }
-
-                    r->req_pos = p++;
-                    state = sw_header_name;
-                    break;
+                    ++p;
                 }
             }
             case sw_header_name: {
@@ -372,7 +368,7 @@ sky_http_multipart_header_parse(sky_http_multipart_t *r, sky_buf_t *b) {
                 p += index;
 
                 r->header_name.data = r->req_pos;
-                r->header_name.len = (sky_u32_t) (p - r->req_pos);
+                r->header_name.len = (sky_usize_t) (p - r->req_pos);
                 *(p++) = '\0';
                 state = sw_header_value_first;
                 r->req_pos = null;
@@ -382,13 +378,12 @@ sky_http_multipart_header_parse(sky_http_multipart_t *r, sky_buf_t *b) {
                     if (sky_unlikely(p == end)) {
                         goto again;
                     }
-                    if (*p == ' ') {
-                        ++p;
-                        continue;
+                    if (*p != ' ') {
+                        r->req_pos = p++;
+                        state = sw_header_value;
+                        break;
                     }
-                    r->req_pos = p++;
-                    state = sw_header_value;
-                    break;
+                    ++p;
                 }
             }
             case sw_header_value: {
@@ -406,7 +401,7 @@ sky_http_multipart_header_parse(sky_http_multipart_t *r, sky_buf_t *b) {
 
                 h = sky_list_push(&r->headers);
                 h->val.data = r->req_pos;
-                h->val.len = (sky_u32_t) (p - r->req_pos);
+                h->val.len = (sky_usize_t) (p - r->req_pos);
                 *(p++) = '\0';
 
                 h->key = r->header_name;
@@ -418,12 +413,11 @@ sky_http_multipart_header_parse(sky_http_multipart_t *r, sky_buf_t *b) {
                     return -1;
                 }
 
-                if (ch == '\r') {
-                    state = sw_line_LF;
-                } else {
+                if (ch != '\r') {
                     state = sw_start;
                     break;
                 }
+                state = sw_line_LF;
             }
             case sw_line_LF: {
                 if (sky_unlikely(*p != '\n')) {
@@ -491,7 +485,7 @@ sky_http_url_decode(sky_str_t *str) {
             switch (*p) {
                 case '\0':
                     *s = '\0';
-                    str->len = (sky_u32_t) (s - str->data);
+                    str->len = (sky_usize_t) (s - str->data);
                     return true;
                 case '%':
                     break;
@@ -611,7 +605,7 @@ parse_url_no_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *e
         switch (*post) {
             case ' ':
                 r->uri.data = r->req_pos;
-                r->uri.len = (sky_u32_t) (post - r->req_pos);
+                r->uri.len = (sky_usize_t) (post - r->req_pos);
                 if (r->index) {
                     r->exten.data = r->req_pos + r->index;
                     r->exten.len = r->uri.len - r->index;
@@ -634,7 +628,7 @@ parse_url_no_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *e
                 break;
             case '?':
                 r->uri.data = r->req_pos;
-                r->uri.len = (sky_u32_t) (post - r->req_pos);
+                r->uri.len = (sky_usize_t) (post - r->req_pos);
                 if (r->index) {
                     r->exten.data = r->req_pos + r->index;
                     r->exten.len = r->uri.len - r->index;
@@ -658,7 +652,7 @@ parse_url_no_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *e
         switch (*post) {
             case ' ':
                 r->uri.data = r->req_pos;
-                r->uri.len = (sky_u32_t) (post - r->req_pos);
+                r->uri.len = (sky_usize_t) (post - r->req_pos);
                 if (r->index) {
                     r->exten.data = r->req_pos + r->index;
                     r->exten.len = r->uri.len - r->index;
@@ -681,7 +675,7 @@ parse_url_no_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *e
                 break;
             case '?':
                 r->uri.data = r->req_pos;
-                r->uri.len = (sky_u32_t) (post - r->req_pos);
+                r->uri.len = (sky_usize_t) (post - r->req_pos);
                 if (r->index) {
                     r->exten.data = r->req_pos + r->index;
                     r->exten.len = r->uri.len - r->index;
@@ -717,7 +711,7 @@ parse_url_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end)
         switch (*post) {
             case ' ':
                 r->uri.data = r->req_pos;
-                r->uri.len = (sky_u32_t) (post - r->req_pos);
+                r->uri.len = (sky_usize_t) (post - r->req_pos);
                 if (r->index) {
                     r->exten.data = r->req_pos + r->index;
                     r->exten.len = r->uri.len - r->index;
@@ -736,7 +730,7 @@ parse_url_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end)
                 break;
             case '?':
                 r->uri.data = r->req_pos;
-                r->uri.len = (sky_u32_t) (post - r->req_pos);
+                r->uri.len = (sky_usize_t) (post - r->req_pos);
                 if (r->index) {
                     r->exten.data = r->req_pos + r->index;
                     r->exten.len = r->uri.len - r->index;
@@ -764,7 +758,7 @@ parse_url_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end)
         switch (*post) {
             case ' ':
                 r->uri.data = r->req_pos;
-                r->uri.len = (sky_u32_t) (post - r->req_pos);
+                r->uri.len = (sky_usize_t) (post - r->req_pos);
                 if (r->index) {
                     r->exten.data = r->req_pos + r->index;
                     r->exten.len = r->uri.len - r->index;
@@ -783,7 +777,7 @@ parse_url_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end)
                 break;
             case '?':
                 r->uri.data = r->req_pos;
-                r->uri.len = (sky_u32_t) (post - r->req_pos);
+                r->uri.len = (sky_usize_t) (post - r->req_pos);
                 if (r->index) {
                     r->exten.data = r->req_pos + r->index;
                     r->exten.len = r->uri.len - r->index;
@@ -1055,7 +1049,7 @@ static sky_inline sky_bool_t
 find_char_fast(sky_uchar_t **buf, sky_usize_t buf_size, const sky_uchar_t *ranges, sky_i32_t ranges_size) {
     if (sky_likely(buf_size >= 16)) {
         sky_uchar_t *tmp = *buf;
-        sky_usize_t left = buf_size & ~15U;
+        sky_usize_t left = buf_size & ~SKY_USIZE(15);
 
         __m128i ranges16 = _mm_loadu_si128((const __m128i *) ranges);
 
