@@ -97,8 +97,8 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             }
             // 是否可读
             ev->now = loop->now;
-            ev->read |= !!(event->events & EPOLLIN);
-            ev->write |= !!(event->events & EPOLLOUT);
+            ev->read |= (event->events & EPOLLIN) != 0;
+            ev->write |= (event->events & EPOLLOUT) != 0;
 
             // 是否出现异常
             if (sky_unlikely(!!(event->events & (EPOLLRDHUP | EPOLLHUP)) || !ev->run(ev))) {

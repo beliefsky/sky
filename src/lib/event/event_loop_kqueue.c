@@ -51,7 +51,6 @@ sky_event_loop_create(sky_pool_t *pool) {
 
 void
 sky_event_loop_run(sky_event_loop_t *loop) {
-    sky_bool_t timeout;
     sky_i16_t index, i;
     sky_i32_t fd, max_events, n;
     sky_time_t now;
@@ -59,6 +58,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
     sky_event_t *ev, **run_ev;
     sky_u64_t next_time;
     struct kevent *events, *event;
+    struct timespec *timeout;
     struct timespec timespec = {
             .tv_sec = 0,
             .tv_nsec = 0
@@ -77,14 +77,14 @@ sky_event_loop_run(sky_event_loop_t *loop) {
     sky_timer_wheel_run(ctx, (sky_u64_t) now);
     next_time = sky_timer_wheel_wake_at(ctx);
     if (next_time == SKY_U64_MAX) {
-        timeout = false;
+        timeout = null;
     } else {
-        timeout = true;
+        timeout = &timespec;
         timespec.tv_sec = ((sky_i64_t) (next_time - (sky_u32_t) now));
     }
 
     for (;;) {
-        n = kevent(fd, null, 0, events, max_events, timeout ? &timespec : null);
+        n = kevent(fd, null, 0, events, max_events, timeout);
         if (sky_unlikely(n < 0)) {
             switch (errno) {
                 case EBADF:
@@ -140,8 +140,8 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             }
             if (!ev->run(ev)) {
                 close(ev->fd);
-                ev->reg = false;
                 ev->fd = -1;
+                ev->reg = false;
                 sky_timer_wheel_unlink(&ev->timer);
                 ev->close(ev);
                 continue;
@@ -149,19 +149,18 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             sky_timer_wheel_expired(ctx, &ev->timer, (sky_u64_t) (ev->now + ev->timeout));
         }
 
-        if (loop->update) {
-            loop->update = false;
-        } else if (now == loop->now) {
+        if (!loop->update && now == loop->now) {
             continue;
         }
         now = loop->now;
+        loop->update = false;
 
         sky_timer_wheel_run(ctx, (sky_u64_t) now);
         next_time = sky_timer_wheel_wake_at(ctx);
         if (next_time == SKY_U64_MAX) {
-            timeout = false;
+            timeout = null;
         } else {
-            timeout = true;
+            timeout = &timespec;
             timespec.tv_sec = ((sky_i64_t) (next_time - (sky_u32_t) now));
         }
     }
@@ -178,15 +177,16 @@ sky_event_loop_shutdown(sky_event_loop_t *loop) {
 void
 sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
     struct kevent event[2];
+    sky_event_loop_t *loop;
+
+    loop = ev->loop;
     if (timeout < 0) {
         timeout = -1;
         sky_timer_wheel_unlink(&ev->timer);
     } else {
-        if (timeout == 0) {
-            ev->loop->update = true;
-        }
+        loop->update |= (timeout == 0);
         ev->timer.cb = (sky_timer_wheel_pt) event_timer_callback;
-        sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_u64_t) (ev->loop->now + timeout));
+        sky_timer_wheel_link(loop->ctx, &ev->timer, (sky_u64_t) (loop->now + timeout));
     }
     ev->timeout = timeout;
     ev->reg = true;
@@ -194,7 +194,7 @@ sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
 
     EV_SET(event, ev->fd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
     EV_SET(event + 1, ev->fd, EVFILT_WRITE, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
-    kevent(ev->loop->fd, event, 2, null, 0, null);
+    kevent(loop->fd, event, 2, null, 0, null);
 }
 
 
