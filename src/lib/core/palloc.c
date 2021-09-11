@@ -198,7 +198,7 @@ sky_palloc_block(sky_pool_t *pool, sky_usize_t size) {
 
     p_size = (sky_usize_t) (pool->d.end - (sky_uchar_t *) pool);
 
-    new = sky_malloc(p_size);
+    m = sky_malloc(p_size);
 
     if (sky_unlikely(!m)) {
         return null;
