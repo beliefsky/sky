@@ -8,7 +8,7 @@
 #include <assert.h>
 #include <sys/mman.h>
 
-#define PAGE_SIZE 4096
+#define PAGE_SIZE 2048
 
 #define CORE_BLOCK_SIZE 65536
 
