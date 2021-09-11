@@ -378,7 +378,7 @@ coro_create(sky_coro_switcher_t *switcher) {
             null,
             CORE_BLOCK_SIZE,
             PROT_READ | PROT_WRITE,
-            MAP_ANONYMOUS | MAP_PRIVATE | MAP_STACK,
+            MAP_ANONYMOUS | MAP_PRIVATE,
             -1,
             0
     );
