@@ -8,11 +8,7 @@
 #include <assert.h>
 #include <sys/mman.h>
 
-#define PAGE_SIZE 4096
-
 #define CORE_BLOCK_SIZE 65536
-
-#define CORO_STACK_MIN (CORE_BLOCK_SIZE - PAGE_SIZE)
 
 #if defined(__MACH__)
 #define ASM_SYMBOL(name_) "_" #name_
@@ -162,14 +158,14 @@ coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     coro->context[7 /* RSI */] = (sky_usize_t) func;
     coro->context[8 /* RIP */] = (sky_usize_t) coro_entry_point_x86_64;
 #define STACK_PTR 9
-    coro->context[STACK_PTR /* RSP */] = (((sky_usize_t) coro->stack + CORO_STACK_MIN) & ~0xful) - 0x8ul;
+    coro->context[STACK_PTR /* RSP */] = (((sky_usize_t) coro->stack + CORE_BLOCK_SIZE) & ~0xful) - 0x8ul;
 }
 
 #elif defined(__i386__)
 
 static sky_inline void
 coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
-    sky_uchar_t *stack = (sky_uchar_t *) (sky_usize_t) (coro->stack + CORO_STACK_MIN);
+    sky_uchar_t *stack = (sky_uchar_t *) (sky_usize_t) (coro->stack + CORE_BLOCK_SIZE);
     stack = (sky_uchar_t *) ((sky_usize_t) (stack - (3 * sizeof(sky_usize_t))) & (sky_usize_t) ~0x3);
 
     sky_usize_t *argp = (sky_usize_t *) stack;
@@ -189,7 +185,7 @@ static sky_inline void
 coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     sky_getcontext(&coro->context);
     coro->context.uc_stack.ss_sp = coro->stack;
-    coro->context.uc_stack.ss_size = CORO_STACK_MIN;
+    coro->context.uc_stack.ss_size = CORE_BLOCK_SIZE;
     coro->context.uc_stack.ss_flags = 0;
     coro->context.uc_link = null;
 
@@ -230,7 +226,7 @@ sky_inline sky_i32_t
 sky_coro_resume(sky_coro_t *coro) {
 #if defined(STACK_PTR)
     assert(coro->context[STACK_PTR] >= (sky_usize_t) coro->stack &&
-           coro->context[STACK_PTR] <= (sky_usize_t) (coro->stack + CORO_STACK_MIN));
+           coro->context[STACK_PTR] <= (sky_usize_t) (coro->stack + CORE_BLOCK_SIZE));
 #endif
     coro_swapcontext(&coro->switcher->caller, &coro->context);
     return coro->yield_value;
@@ -351,8 +347,8 @@ sky_coro_destroy(sky_coro_t *coro) {
 
         sky_free(block);
     }
-//    sky_free(coro);
-    munmap(coro, CORE_BLOCK_SIZE);
+    munmap(coro->stack, CORE_BLOCK_SIZE);
+    sky_free(coro);
 }
 
 sky_inline void *
@@ -374,37 +370,41 @@ sky_coro_malloc(sky_coro_t *coro, sky_u32_t size) {
 
 static sky_inline sky_coro_t *
 coro_create(sky_coro_switcher_t *switcher) {
-    sky_coro_t *coro = mmap(
+    sky_coro_t *coro = sky_malloc(1024);
+
+    coro->stack = mmap(
             null,
             CORE_BLOCK_SIZE,
             PROT_READ | PROT_WRITE,
-            MAP_ANONYMOUS | MAP_PRIVATE,
+            MAP_ANONYMOUS | MAP_PRIVATE | MAP_STACK,
             -1,
             0
     );
-//    sky_coro_t *coro = sky_malloc(CORE_BLOCK_SIZE);
+
+    if (sky_unlikely(coro->stack == MAP_FAILED)) {
+        sky_free(coro);
+        return null;
+    }
 
     coro->switcher = switcher;
     coro->defers.prev = coro->defers.next = &coro->defers;
     coro->free_defers.prev = coro->free_defers.next = &coro->free_defers;
     coro->blocks.next = coro->blocks.prev = &coro->blocks;
 
-    coro->stack = ((sky_uchar_t *) coro) + (CORE_BLOCK_SIZE - CORO_STACK_MIN);
-
     coro->ptr = (sky_uchar_t *) (coro + 1);
-    coro->ptr_size = (sky_u32_t) (coro->stack - coro->ptr);
+    coro->ptr_size = SKY_U32(1024) - sizeof(sky_coro_t);
 
     return coro;
 }
 
 static sky_inline void
 mem_block_add(sky_coro_t *coro) {
-    mem_block_t *block = sky_malloc(PAGE_SIZE);
+    mem_block_t *block = sky_malloc(2048);
 
     block->prev = &coro->blocks;
     block->next = block->prev->next;
     block->next->prev = block->prev->next = block;
 
     coro->ptr = (sky_uchar_t *) (block + 1);
-    coro->ptr_size = PAGE_SIZE - sizeof(mem_block_t);
+    coro->ptr_size = 2048 - sizeof(mem_block_t);
 }
