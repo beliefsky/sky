@@ -1,14 +1,15 @@
 //
 // Created by weijing on 18-11-6.
 //
-#if defined(__FreeBSD__) || defined(__APPLE__)
+#include "event_loop.h"
+
+#ifdef HAVE_KQUEUE
 
 #include <sys/resource.h>
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>
 #include <sys/event.h>
-#include "event_loop.h"
 #include "../core/palloc.h"
 #include "../core/log.h"
 #include "../core/memory.h"

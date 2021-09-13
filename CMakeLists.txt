@@ -42,8 +42,9 @@ endif ()
 #find_package(OpenSSL REQUIRED)
 set(ADDITIONAL_LIBRARIES #[[${OPENSSL_LIBRARIES}]] #[[${ZLIB_LIBRARIES}]])
 
+check_include_file(sys/epoll.h HAVE_EPOLL)
+check_include_file(sys/event.h HAVE_KQUEUE)
 
-check_function_exists(mempcpy HAVE_MEMPCPY)
 check_function_exists(accept4 HAVE_ACCEPT4)
 
 if (NOT HAS_CLOCK_GETTIME AND ${CMAKE_SYSTEM_NAME} MATCHES "Linux")

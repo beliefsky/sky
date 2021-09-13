@@ -1,14 +1,16 @@
 //
 // Created by weijing on 18-11-6.
 //
-#if defined(__linux__)
+
+#include "event_loop.h"
+
+#ifdef HAVE_EPOLL
 
 #include <sys/resource.h>
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>
 #include <sys/epoll.h>
-#include "event_loop.h"
 #include "../core/log.h"
 #include "../core/memory.h"
 
