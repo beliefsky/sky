@@ -164,10 +164,9 @@ endif ()
 #
 # Generate sky_build_config.h
 #
-add_definitions(-include ${CMAKE_BINARY_DIR}/sky_build_config.h)
 configure_file(
         "${CMAKE_CURRENT_SOURCE_DIR}/src/cmake/sky_build_config.h.cmake"
-        "${CMAKE_CURRENT_BINARY_DIR}/sky_build_config.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/sky_build_config.h"
 )
 
 configure_file(
