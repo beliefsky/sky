@@ -84,6 +84,10 @@ install(TARGETS sky_shared sky_static
 set(CMAKE_INSTALL_FULL_INCLUDEDIR "/usr/local/include")
 
 install(FILES
+        sky_build_config.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky")
+
+install(FILES
         core/types.h
         core/memory.h
         core/palloc.h
