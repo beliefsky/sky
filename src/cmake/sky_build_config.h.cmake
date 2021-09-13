@@ -8,12 +8,16 @@
 #cmakedefine HAVE_BUILTIN_BSWAP
 #cmakedefine HAVE_EPOLL
 #cmakedefine HAVE_KQUEUE
+#cmakedefine HAVE_MALLOC
 
 /* Compiler builtins for specific CPU instruction support */
 #cmakedefine HAVE_BUILTIN_IA32_CRC32
 #cmakedefine HAVE_BUILTIN_MUL_OVERFLOW
 #cmakedefine HAVE_BUILTIN_ADD_OVERFLOW
 #cmakedefine HAVE_BUILTIN_FPCLASSIFY
+
+/* C11 _Static_assert() */
+#cmakedefine HAVE_STATIC_ASSERT
 
 #endif
 

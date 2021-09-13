@@ -44,6 +44,7 @@ set(ADDITIONAL_LIBRARIES #[[${OPENSSL_LIBRARIES}]] #[[${ZLIB_LIBRARIES}]])
 
 check_include_file(sys/epoll.h HAVE_EPOLL)
 check_include_file(sys/event.h HAVE_KQUEUE)
+check_include_file(malloc.h HAVE_MALLOC)
 
 check_function_exists(accept4 HAVE_ACCEPT4)
 
