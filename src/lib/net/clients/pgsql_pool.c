@@ -77,7 +77,7 @@ sky_pgsql_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_pgsql_
     pg_pool->conn_info.len = 11 + sizeof("user") + sizeof("database") + conf->username.len + conf->database.len;
     pg_pool->conn_info.data = p = sky_pnalloc(pool, pg_pool->conn_info.len);
 
-    *((sky_u32_t *) p) = sky_htonl(pg_pool->conn_info.len);
+    *((sky_u32_t *) p) = sky_htonl((sky_u32_t)pg_pool->conn_info.len);
     p += 4;
     *((sky_u32_t *) p) = 3 << 8; // version
     p += 4;
@@ -349,7 +349,7 @@ pg_send_exec(
     sky_buf_init(&buf, conn->pool, size + 32);
 
     *(buf.last++) = 'P';
-    *((sky_u32_t *) buf.last) = sky_htonl(cmd->len + 8);
+    *((sky_u32_t *) buf.last) = sky_htonl((sky_u32_t)cmd->len + 8);
     buf.last += 4;
     *(buf.last++) = '\0';
     sky_memcpy(buf.last, cmd->data, cmd->len);
@@ -830,7 +830,7 @@ array_serialize(const sky_pgsql_array_t *array, sky_uchar_t *p, sky_pgsql_type_t
             case pgsql_data_array_text: {
                 *oid = sky_ntohl(SKY_U32(1043));
                 for (; i; --i, ++data) {
-                    *(sky_u32_t *) p = sky_ntohl(data->len);
+                    *(sky_u32_t *) p = sky_ntohl((sky_u32_t)data->len);
                     p += 4;
                     sky_memcpy(p, data->stream, data->len);
                     p += data->len;
@@ -1017,7 +1017,7 @@ array_serialize(const sky_pgsql_array_t *array, sky_uchar_t *p, sky_pgsql_type_t
                         p += 4;
                         continue;
                     }
-                    *(sky_u32_t *) p = sky_ntohl(data->len);
+                    *(sky_u32_t *) p = sky_ntohl((sky_u32_t)data->len);
                     p += 4;
                     sky_memcpy(p, data->stream, data->len);
                     p += data->len;
@@ -1535,7 +1535,7 @@ encode_data(
                 p += 2;
                 *((sky_u32_t *) last) = sky_htonl(SKY_U32(2));
                 last += 4;
-                *((sky_u16_t *) last) = sky_htons(data->int16);
+                *((sky_u16_t *) last) = sky_htons((sky_u16_t)data->int16);
                 last += 2;
                 break;
             }

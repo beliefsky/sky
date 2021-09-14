@@ -189,7 +189,7 @@ write_handshake(sky_tls_t *ssl) {
 
     *(buff++) = 0;
     size -= 4;
-    *(sky_u16_t *) buff = sky_htons(size); // length
+    *(sky_u16_t *) buff = sky_htons((sky_u16_t)size); // length
     // copy random data
     //...
     buff += 32;

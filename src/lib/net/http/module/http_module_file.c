@@ -194,7 +194,7 @@ http_header_range(http_file_t *file, sky_str_t *value) {
         return false;
     }
     ++index;
-    size = value->len - index;
+    size = value->len - (sky_usize_t)index;
     start = value->data + index;
 
     index = sky_str_len_index_char(start, size, '-');
@@ -207,7 +207,7 @@ http_header_range(http_file_t *file, sky_str_t *value) {
     }
 
     ++index;
-    size -= index;
+    size -= (sky_usize_t)index;
     start += index;
     if (size > 0) {
         if (sky_unlikely(!sky_str_len_to_i64(start, size, &file->right))) {
