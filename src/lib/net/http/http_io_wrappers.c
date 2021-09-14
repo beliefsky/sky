@@ -152,8 +152,8 @@ http_send_file(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky_
             }
         }
         size -= (sky_usize_t) sbytes;
-        if (sbytes < vec.iov_len) {
-            vec.iov_len -= sbytes;
+        if ((sky_usize_t) sbytes < vec.iov_len) {
+            vec.iov_len -= (sky_usize_t) sbytes;
             vec.iov_base += sbytes;
         } else {
             sbytes -= vec.iov_len;
@@ -237,8 +237,8 @@ http_send_file(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky_
             }
         }
         size -= (sky_usize_t) sbytes;
-        if (sbytes < vec.iov_len) {
-            vec.iov_len -= sbytes;
+        if ((sky_usize_t)sbytes < vec.iov_len) {
+            vec.iov_len -= (sky_usize_t) sbytes;
             vec.iov_base += sbytes;
         } else {
             sbytes -= vec.iov_len;
