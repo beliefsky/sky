@@ -39,8 +39,14 @@ endif ()
 #
 # Find libraries
 #
-#find_package(OpenSSL REQUIRED)
-set(ADDITIONAL_LIBRARIES #[[${OPENSSL_LIBRARIES}]] #[[${ZLIB_LIBRARIES}]])
+
+check_include_file(openssl/ssl.h HAVE_OPENSSL)
+if (HAVE_OPENSSL)
+    find_package(OpenSSL REQUIRED)
+    set(ADDITIONAL_LIBRARIES ${ADDITIONAL_LIBRARIES} ${OPENSSL_LIBRARIES})
+endif ()
+
+message("lib : ${ADDITIONAL_LIBRARIES}")
 
 check_include_file(sys/epoll.h HAVE_EPOLL)
 check_include_file(sys/event.h HAVE_KQUEUE)
