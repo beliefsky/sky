@@ -9,6 +9,7 @@
 #include "../../core/coro.h"
 #include "../../core/buf.h"
 #include "../../core/trie.h"
+#include "../tls/tls.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -32,7 +33,7 @@ typedef struct {
     sky_http_module_host_t *modules_host;
     sky_str_t host;
     sky_str_t port;
-    void *ssl_ctx;
+    sky_tls_ctx_t *tls_ctx;
     sky_u16_t modules_n;
     sky_u32_t header_buf_size;
     sky_u8_t header_buf_n;
@@ -41,7 +42,7 @@ typedef struct {
 
 struct sky_http_server_s {
     sky_pool_t *pool;
-    void *ssl_ctx;
+    sky_tls_ctx_t *tls_ctx;
     sky_str_t host;
     sky_str_t port;
 
@@ -76,7 +77,7 @@ struct sky_http_connection_s {
     sky_event_t ev;
     sky_coro_t *coro;
     sky_http_server_t *server;
-    void *ssl;
+    sky_tls_t *tls;
 };
 
 sky_http_server_t *sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf);

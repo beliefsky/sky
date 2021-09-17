@@ -48,15 +48,19 @@ typedef struct {
 sky_coro_t *sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func, void *data);
 
 /**
- * 创建协程
+ * 创建一个未指定函数的协程
  * @param switcher  协程切换器
- * @param func      异步函数
- * @param data_ptr  异步函数参数的地址
- * @param size      需要分配参数内存大小
  * @return 协程
  */
-sky_coro_t*
-sky_coro_create2(sky_coro_switcher_t *switcher, sky_coro_func_t func, void **data_ptr, sky_u32_t size);
+sky_coro_t *sky_coro_new(sky_coro_switcher_t *switcher);
+
+/**
+ * 协程配置函数
+ * @param coro 协程
+ * @param func 异步函数
+ * @param data 异步函数参数
+ */
+void sky_core_set(sky_coro_t *coro, sky_coro_func_t func, void *data);
 
 /**
  * 重置协程
