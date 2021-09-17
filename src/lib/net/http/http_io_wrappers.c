@@ -298,19 +298,16 @@ https_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size) {
             continue;
         }
 
-        n = sky_min(size, SKY_I32_MAX);
+        n = (sky_i32_t) sky_min(size, SKY_I32_MAX);
 
         if ((n = sky_tls_read(tls, data, n)) < 1) {
-            switch (sky_tls_get_error(tls, n)) {
-                case SKY_TLS_WANT_READ:
-                case SKY_TLS_WANT_WRITE:
-                    conn->ev.read = false;
-                    sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-                    continue;
-                default:
-                    sky_coro_yield(conn->coro, SKY_CORO_ABORT);
-                    sky_coro_exit();
+            if (sky_tls_get_error(tls, n) == SKY_TLS_WANT_READ) {
+                conn->ev.read = false;
+                sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+                continue;
             }
+            sky_coro_yield(conn->coro, SKY_CORO_ABORT);
+            sky_coro_exit();
         }
         return (sky_usize_t) n;
     }
@@ -326,19 +323,16 @@ https_write(sky_http_connection_t *conn, const sky_uchar_t *data, sky_usize_t si
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
             continue;
         }
-        n = sky_min(size, SKY_I32_MAX);
+        n = (sky_i32_t) sky_min(size, SKY_I32_MAX);
 
         if ((n = sky_tls_write(tls, data, n)) < 1) {
-            switch (sky_tls_get_error(tls, n)) {
-                case SKY_TLS_WANT_READ:
-                case SKY_TLS_WANT_WRITE:
-                    conn->ev.write = false;
-                    sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-                    continue;
-                default:
-                    sky_coro_yield(conn->coro, SKY_CORO_ABORT);
-                    sky_coro_exit();
+            if (sky_tls_get_error(tls, n) == SKY_TLS_WANT_WRITE) {
+                conn->ev.write = false;
+                sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+                continue;
             }
+            sky_coro_yield(conn->coro, SKY_CORO_ABORT);
+            sky_coro_exit();
         }
 
         if ((sky_usize_t) n < size) {
