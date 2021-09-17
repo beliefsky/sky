@@ -11,6 +11,7 @@
 #include <sys/socket.h>
 #include <sys/uio.h>
 #endif
+
 #include <unistd.h>
 #include <errno.h>
 #include "http_io_wrappers.h"
@@ -38,7 +39,7 @@ http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size) {
                     sky_coro_exit();
             }
         }
-        return (sky_usize_t)n;
+        return (sky_usize_t) n;
     }
 }
 
@@ -66,9 +67,9 @@ http_write(sky_http_connection_t *conn, const sky_uchar_t *data, sky_usize_t siz
             }
         }
 
-        if ((sky_usize_t)n < size) {
+        if ((sky_usize_t) n < size) {
             data += n;
-            size -= (sky_usize_t)n;
+            size -= (sky_usize_t) n;
             conn->ev.write = false;
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
             continue;
@@ -284,3 +285,68 @@ http_send_file(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky_
 
 #endif
 
+
+sky_usize_t
+https_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size) {
+    sky_i32_t n;
+
+    sky_tls_t *tls = conn->tls;
+    for (;;) {
+        if (sky_unlikely(!conn->ev.read)) {
+            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+            continue;
+        }
+
+        n = sky_min(size, SKY_I32_MAX);
+
+        if ((n = sky_tls_read(tls, data, n)) < 1) {
+            switch (sky_tls_get_error(tls, n)) {
+                case SKY_TLS_WANT_READ:
+                case SKY_TLS_WANT_WRITE:
+                    conn->ev.read = false;
+                    sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+                    continue;
+                default:
+                    sky_coro_yield(conn->coro, SKY_CORO_ABORT);
+                    sky_coro_exit();
+            }
+        }
+        return (sky_usize_t) n;
+    }
+}
+
+void
+https_write(sky_http_connection_t *conn, const sky_uchar_t *data, sky_usize_t size) {
+    sky_i32_t n;
+
+    sky_tls_t *tls = conn->tls;
+    for (;;) {
+        if (sky_unlikely(!conn->ev.write)) {
+            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+            continue;
+        }
+        n = sky_min(size, SKY_I32_MAX);
+
+        if ((n = sky_tls_write(tls, data, n)) < 1) {
+            switch (sky_tls_get_error(tls, n)) {
+                case SKY_TLS_WANT_READ:
+                case SKY_TLS_WANT_WRITE:
+                    conn->ev.write = false;
+                    sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+                    continue;
+                default:
+                    sky_coro_yield(conn->coro, SKY_CORO_ABORT);
+                    sky_coro_exit();
+            }
+        }
+
+        if ((sky_usize_t) n < size) {
+            data += n;
+            size -= (sky_usize_t) n;
+            conn->ev.write = false;
+            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+            continue;
+        }
+        break;
+    }
+}

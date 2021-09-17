@@ -45,9 +45,12 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
     server->ssl = conf->ssl;
     if (conf->ssl) {
         server->tls_ctx = conf->tls_ctx;
+        server->http_read = https_read;
+        server->http_write = https_write;
+    } else {
+        server->http_read = http_read;
+        server->http_write = http_write;
     }
-    server->http_read = http_read;
-    server->http_write = http_write;
     server->http_send_file = http_send_file;
     server->rfc_last = 0;
 
@@ -168,6 +171,7 @@ https_handshake(sky_http_connection_t *conn) {
 }
 
 static void https_connection_close(sky_http_connection_t *conn) {
+    sky_tls_destroy(conn->tls);
     sky_coro_destroy(conn->coro);
 }
 
