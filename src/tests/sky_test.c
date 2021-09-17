@@ -178,7 +178,7 @@ server_start(void *ssl) {
             .modules_host = hosts,
             .modules_n = 1,
             .ssl = (ssl != null),
-            .ssl_ctx = ssl
+            .tls_ctx = ssl
     };
 
     server = sky_http_server_create(pool, &conf);
