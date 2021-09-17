@@ -9,15 +9,19 @@
 
 static sky_event_t *http_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server_t *server);
 
-static sky_event_t *https_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server_t *server);
-
 static sky_bool_t http_connection_run(sky_http_connection_t *conn);
 
 static void http_connection_close(sky_http_connection_t *conn);
 
+#ifdef HAVE_TLS
+
+static sky_event_t *https_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server_t *server);
+
 static sky_bool_t https_handshake(sky_http_connection_t *conn);
 
 static void https_connection_close(sky_http_connection_t *conn);
+
+#endif
 
 static void http_status_build(sky_http_server_t *server);
 
@@ -42,14 +46,19 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
         conf->header_buf_size = 2047;   // 2kb
     }
     server->header_buf_size = sky_max(conf->header_buf_size, 511U);
+
+#ifdef HAVE_TLS
     if (conf->tls_ctx) {
         server->tls_ctx = conf->tls_ctx;
         server->http_read = https_read;
         server->http_write = https_write;
     } else {
-        server->http_read = http_read;
-        server->http_write = http_write;
+#endif
+    server->http_read = http_read;
+    server->http_write = http_write;
+#ifdef HAVE_TLS
     }
+#endif
     server->http_send_file = http_send_file;
     server->rfc_last = 0;
 
@@ -84,7 +93,11 @@ sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *loop) {
     sky_tcp_conf_t conf = {
             .host = server->host,
             .port = server->port,
+#ifdef HAVE_TLS
             .run = (sky_tcp_accept_cb_pt) (server->tls_ctx ? https_connection_accept_cb : http_connection_accept_cb),
+#else
+            .run = (sky_tcp_accept_cb_pt) http_connection_accept_cb,
+#endif
             .data = server,
             .timeout = 60,
             .nodelay = true,
@@ -123,6 +136,19 @@ http_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server_
 
 }
 
+
+static sky_bool_t
+http_connection_run(sky_http_connection_t *conn) {
+    return sky_coro_resume(conn->coro) == SKY_CORO_MAY_RESUME;
+}
+
+static void
+http_connection_close(sky_http_connection_t *conn) {
+    sky_coro_destroy(conn->coro);
+}
+
+#ifdef HAVE_TLS
+
 static sky_event_t *
 https_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server_t *server) {
     sky_coro_t *coro = sky_coro_new(&server->switcher);
@@ -143,16 +169,6 @@ https_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server
 
 
 static sky_bool_t
-http_connection_run(sky_http_connection_t *conn) {
-    return sky_coro_resume(conn->coro) == SKY_CORO_MAY_RESUME;
-}
-
-static void
-http_connection_close(sky_http_connection_t *conn) {
-    sky_coro_destroy(conn->coro);
-}
-
-static sky_bool_t
 https_handshake(sky_http_connection_t *conn) {
     const sky_i8_t ret = sky_tls_accept(conn->tls);
     switch (ret) {
@@ -169,10 +185,13 @@ https_handshake(sky_http_connection_t *conn) {
     return false;
 }
 
-static void https_connection_close(sky_http_connection_t *conn) {
+static void
+https_connection_close(sky_http_connection_t *conn) {
     sky_tls_destroy(conn->tls);
     sky_coro_destroy(conn->coro);
 }
+
+#endif
 
 
 static sky_inline void

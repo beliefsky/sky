@@ -45,8 +45,6 @@ if (HAVE_S2N_TLS)
     set(ADDITIONAL_LIBRARIES ${ADDITIONAL_LIBRARIES} AWS::s2n)
 else ()
     check_include_file(openssl/ssl.h HAVE_OPENSSL)
-
-    message("openssl : ${HAVE_OPENSSL}")
     if (HAVE_OPENSSL)
         find_package(OpenSSL QUIET)
         set(ADDITIONAL_LIBRARIES ${ADDITIONAL_LIBRARIES} ${OPENSSL_LIBRARIES})
