@@ -11,6 +11,8 @@
 
 #include <s2n.h>
 
+#define HAVE_TLS
+
 typedef struct s2n_config sky_tls_ctx_t;
 typedef struct s2n_connection sky_tls_t;
 
@@ -20,6 +22,7 @@ typedef struct s2n_connection sky_tls_t;
 #include <openssl/err.h>
 #include <openssl/conf.h>
 
+#define HAVE_TLS
 #define SKY_TLS_WANT_READ SSL_ERROR_WANT_READ
 #define SKY_TLS_WANT_WRITE SSL_ERROR_WANT_WRITE
 #define sky_tls_get_error(_tls, _ret) SSL_get_error(_tls, _ret)

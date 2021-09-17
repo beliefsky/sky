@@ -42,8 +42,7 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
         conf->header_buf_size = 2047;   // 2kb
     }
     server->header_buf_size = sky_max(conf->header_buf_size, 511U);
-    server->ssl = conf->ssl;
-    if (conf->ssl) {
+    if (conf->tls_ctx) {
         server->tls_ctx = conf->tls_ctx;
         server->http_read = https_read;
         server->http_write = https_write;
@@ -85,7 +84,7 @@ sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *loop) {
     sky_tcp_conf_t conf = {
             .host = server->host,
             .port = server->port,
-            .run = (sky_tcp_accept_cb_pt) (server->ssl ? https_connection_accept_cb : http_connection_accept_cb),
+            .run = (sky_tcp_accept_cb_pt) (server->tls_ctx ? https_connection_accept_cb : http_connection_accept_cb),
             .data = server,
             .timeout = 60,
             .nodelay = true,
