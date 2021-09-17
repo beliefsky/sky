@@ -177,8 +177,7 @@ server_start(void *ssl) {
             .header_buf_n = 4,
             .modules_host = hosts,
 #ifdef HAVE_TLS 
-            .modules_n = 1,           
-            .ssl = (ssl != null),
+            .modules_n = 1,
             .tls_ctx = ssl
 #else
             .modules_n = 1
