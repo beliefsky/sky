@@ -70,22 +70,13 @@ sky_tls_server_create(sky_tls_ctx_t *ctx, sky_i32_t fd) {
 
 #elif defined(HAVE_OPENSSL)
 
-#endif
-
-
 static sky_inline sky_bool_t
 sky_tls_init() {
-#if OPENSSL_VERSION_NUMBER >= 0x10100003L
+
     if (OPENSSL_init_ssl(OPENSSL_INIT_LOAD_CONFIG, NULL) == 0) {
         return false;
     }
     ERR_clear_error();
-#else
-    OPENSSL_config(null);
-    SSL_library_init();
-    SSL_load_error_strings();
-    OpenSSL_add_all_algorithms();
-#endif
 
     return true;
 }
@@ -146,6 +137,8 @@ static sky_inline sky_i32_t
 sky_tls_write(sky_tls_t *tls, const sky_uchar_t *data, sky_i32_t size) {
     return SSL_write(tls, data, size);
 }
+
+#endif
 
 #if defined(__cplusplus)
 } /* extern "C" { */
