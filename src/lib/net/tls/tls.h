@@ -20,6 +20,10 @@ typedef struct s2n_connection sky_tls_t;
 #include <openssl/err.h>
 #include <openssl/conf.h>
 
+#define SKY_TLS_WANT_READ SSL_ERROR_WANT_READ
+#define SKY_TLS_WANT_WRITE SSL_ERROR_WANT_WRITE
+#define sky_tls_get_error(_tls, _ret) SSL_get_error(_tls, _ret)
+
 typedef SSL_CTX sky_tls_ctx_t;
 typedef SSL sky_tls_t;
 
@@ -81,12 +85,17 @@ sky_tls_ctx_create() {
     sky_tls_ctx_t *ctx = SSL_CTX_new(SSLv23_method());
     SSL_CTX_clear_options(ctx, SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_TLSv1);
 
+    SSL_CTX_use_certificate_file(ctx, "/mnt/d/private/sky/conf/localhost.crt", SSL_FILETYPE_PEM);
+    SSL_CTX_use_PrivateKey_file(ctx, "/mnt/d/private/sky/conf/localhost.key", SSL_FILETYPE_PEM);
+    SSL_CTX_check_private_key(ctx);
+
     return ctx;
 }
 
 
 static sky_inline void
 sky_tls_ctx_free(sky_tls_ctx_t *ctx) {
+    SSL_CTX_free(ctx);
 }
 
 static sky_inline sky_tls_t *
@@ -112,6 +121,21 @@ sky_tls_accept(sky_tls_t *tls) {
     return -1;
 }
 
+static sky_inline void
+sky_tls_destroy(sky_tls_t *tls) {
+    SSL_shutdown(tls);
+    SSL_free(tls);
+}
+
+static sky_inline sky_i32_t
+sky_tls_read(sky_tls_t *tls, sky_uchar_t *data, sky_i32_t size) {
+    return SSL_read(tls, data, size);
+}
+
+static sky_inline sky_i32_t
+sky_tls_write(sky_tls_t *tls, const sky_uchar_t *data, sky_i32_t size) {
+    return SSL_write(tls, data, size);
+}
 
 #if defined(__cplusplus)
 } /* extern "C" { */
