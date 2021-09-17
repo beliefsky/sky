@@ -112,9 +112,7 @@ void sky_event_unregister(sky_event_t *ev);
  */
 static sky_inline void
 sky_event_timer_register(sky_event_loop_t *loop, sky_timer_wheel_entry_t *timer, sky_u32_t timeout) {
-    if (!timeout) {
-        loop->update = true;
-    }
+    loop->update |= (timeout == 0);
     sky_timer_wheel_link(loop->ctx, timer, (sky_u64_t) (loop->now + timeout));
 }
 
