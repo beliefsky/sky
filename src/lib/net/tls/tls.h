@@ -72,10 +72,17 @@ sky_tls_server_create(sky_tls_ctx_t *ctx, sky_i32_t fd) {
 
 static sky_inline sky_bool_t
 sky_tls_init() {
+#if OPENSSL_VERSION_NUMBER >= 0x10100003L
     if (OPENSSL_init_ssl(OPENSSL_INIT_LOAD_CONFIG, NULL) == 0) {
         return false;
     }
     ERR_clear_error();
+#else
+    OPENSSL_config(null);
+    SSL_library_init();
+    SSL_load_error_strings();
+    OpenSSL_add_all_algorithms();
+#endif
 
     return true;
 }
