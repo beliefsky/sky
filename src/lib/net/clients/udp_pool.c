@@ -211,22 +211,28 @@ sky_udp_pool_conn_write(sky_udp_conn_t *conn, const sky_uchar_t *data, sky_usize
     ev = &conn->client->ev;
     if (!ev->reg) {
         if ((n = write(ev->fd, data, size)) > 0) {
-            return true;
-        }
-        if (sky_unlikely(!n)) {
-            close(ev->fd);
-            ev->fd = -1;
-            return false;
-        }
-        switch (errno) {
-            case EINTR:
-            case EAGAIN:
-                break;
-            default:
+            if ((sky_usize_t) n < size) {
+                data += n;
+                size -= (sky_usize_t) n;
+            } else {
+                return true;
+            }
+        } else {
+            if (sky_unlikely(!n)) {
                 close(ev->fd);
                 ev->fd = -1;
-                sky_log_error("write errno: %d", errno);
                 return false;
+            }
+            switch (errno) {
+                case EINTR:
+                case EAGAIN:
+                    break;
+                default:
+                    close(ev->fd);
+                    ev->fd = -1;
+                    sky_log_error("write errno: %d", errno);
+                    return false;
+            }
         }
         sky_event_register(ev, client->conn_pool->timeout);
         ev->write = false;
@@ -247,18 +253,24 @@ sky_udp_pool_conn_write(sky_udp_conn_t *conn, const sky_uchar_t *data, sky_usize
 
     for (;;) {
         if ((n = write(ev->fd, data, size)) > 0) {
-            return true;
-        }
-        if (sky_unlikely(!n)) {
-            return false;
-        }
-        switch (errno) {
-            case EINTR:
-            case EAGAIN:
-                break;
-            default:
-                sky_log_error("write errno: %d", errno);
+            if ((sky_usize_t) n < size) {
+                data += n;
+                size -= (sky_usize_t) n;
+            } else {
+                return true;
+            }
+        } else {
+            if (sky_unlikely(!n)) {
                 return false;
+            }
+            switch (errno) {
+                case EINTR:
+                case EAGAIN:
+                    break;
+                default:
+                    sky_log_error("write errno: %d", errno);
+                    return false;
+            }
         }
         ev->write = false;
         do {
