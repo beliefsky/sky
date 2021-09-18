@@ -39,16 +39,10 @@ endif ()
 #
 # Find libraries
 #
-check_include_file(s2n.h HAVE_S2N_TLS)
-if (HAVE_S2N_TLS)
-    find_package(s2n QUIET)
-    set(ADDITIONAL_LIBRARIES ${ADDITIONAL_LIBRARIES} AWS::s2n)
-else ()
-    check_include_file(openssl/ssl.h HAVE_OPENSSL)
-    if (HAVE_OPENSSL)
-        find_package(OpenSSL QUIET)
-        set(ADDITIONAL_LIBRARIES ${ADDITIONAL_LIBRARIES} ${OPENSSL_LIBRARIES})
-    endif ()
+#check_include_file(openssl/ssl.h HAVE_OPENSSL)
+if (HAVE_OPENSSL)
+    find_package(OpenSSL QUIET)
+    set(ADDITIONAL_LIBRARIES ${ADDITIONAL_LIBRARIES} ${OPENSSL_LIBRARIES})
 endif ()
 
 check_include_file(sys/epoll.h HAVE_EPOLL)
