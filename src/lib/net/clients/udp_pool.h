@@ -24,6 +24,7 @@ typedef struct {
     sky_str_t port;
     sky_str_t unix_path;
     sky_u16_t connection_size;
+    sky_i32_t keep_alive;
     sky_i32_t timeout;
     sky_udp_pool_conn_next next_func;
 } sky_udp_pool_conf_t;
