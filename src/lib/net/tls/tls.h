@@ -7,16 +7,7 @@
 
 #include "../../core/palloc.h"
 
-#ifdef HAVE_S2N_TLS
-
-#include <s2n.h>
-
-#define HAVE_TLS
-
-typedef struct s2n_config sky_tls_ctx_t;
-typedef struct s2n_connection sky_tls_t;
-
-#elif defined(HAVE_OPENSSL)
+#if defined(HAVE_OPENSSL)
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -27,48 +18,16 @@ typedef struct s2n_connection sky_tls_t;
 #define SKY_TLS_WANT_WRITE SSL_ERROR_WANT_WRITE
 #define sky_tls_get_error(_tls, _ret) SSL_get_error((_tls)->ssl, _ret)
 
-typedef struct sky_tls_ctx_s sky_tls_ctx_t;
-typedef struct sky_tls_s sky_tls_t;
-
 #endif
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-#ifdef HAVE_S2N_TLS
+#if defined(HAVE_OPENSSL)
 
-static sky_inline void
-sky_tls_init() {
-    s2n_init();
-}
-
-static sky_inline sky_tls_ctx_t *
-sky_tls_ctx_create() {
-    sky_tls_ctx_t *ctx = s2n_config_new();
-    s2n_config_set_cipher_preferences(ctx, "default");
-
-    return ctx;
-}
-
-
-static sky_inline void
-sky_tls_ctx_free(sky_tls_ctx_t *ctx) {
-    s2n_config_free(ctx);
-}
-
-static sky_inline sky_tls_t *
-sky_tls_server_create(sky_tls_ctx_t *ctx, sky_i32_t fd) {
-    sky_tls_t *tls = s2n_connection_new(S2N_SERVER);
-    s2n_connection_set_blinding(tls, S2N_SELF_SERVICE_BLINDING);
-    s2n_connection_set_config(tls, ctx);
-    s2n_connection_prefer_low_latency(tls);
-    s2n_connection_set_fd(tls, fd);
-
-    return tls;
-}
-
-#elif defined(HAVE_OPENSSL)
+typedef struct sky_tls_ctx_s sky_tls_ctx_t;
+typedef struct sky_tls_s sky_tls_t;
 
 struct sky_tls_ctx_s {
     SSL_CTX *ssl_ctx;
@@ -80,7 +39,6 @@ struct sky_tls_s {
 
 
 static sky_inline sky_bool_t
-
 sky_tls_init() {
 
     if (OPENSSL_init_ssl(OPENSSL_INIT_LOAD_CONFIG, NULL) == 0) {
