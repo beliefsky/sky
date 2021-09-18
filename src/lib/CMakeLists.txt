@@ -30,6 +30,7 @@ set(SOURCES
         net/tcp.c
         net/udp.c
         net/clients/tcp_pool.c
+        net/clients/udp_pool.c
         net/clients/tcp_rw_pool.c
         net/clients/tcp_async_pool.c
         net/clients/pgsql_pool.c
@@ -122,6 +123,7 @@ install(FILES
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net")
 install(FILES
         net/clients/tcp_pool.h
+        net/clients/udp_pool.h
         net/clients/redis_pool.h
         net/clients/pgsql_pool.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/clients")
