@@ -19,7 +19,6 @@
 /* C11 _Static_assert() */
 #cmakedefine HAVE_STATIC_ASSERT
 
-#cmakedefine HAVE_S2N_TLS
 #cmakedefine HAVE_OPENSSL
 
 #endif
