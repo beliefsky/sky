@@ -29,6 +29,7 @@ set(SOURCES
         event/event_loop_kqueue.c
         net/tcp.c
         net/udp.c
+        net/tls/tls.c
         net/clients/tcp_pool.c
         net/clients/udp_pool.c
         net/clients/tcp_rw_pool.c
@@ -43,7 +44,6 @@ set(SOURCES
         net/http/module/http_module_file.c
         net/http/module/http_module_dispatcher.c
         net/http/module/http_module_websocket.c
-        net/tls/tls.c
         )
 add_library(sky_static STATIC ${SOURCES})
 
@@ -121,6 +121,9 @@ install(FILES
         net/tcp.h
         net/udp.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net")
+install(FILES
+        net/tls/tls.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/tls")
 install(FILES
         net/clients/tcp_pool.h
         net/clients/udp_pool.h
