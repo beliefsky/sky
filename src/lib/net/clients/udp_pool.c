@@ -383,17 +383,15 @@ udp_connection(sky_udp_conn_t *conn) {
         return false;
     }
 #else
-    fd = socket(conn_pool->addr->sa_family, SOCK_DGRAM, 0);
-    if (sky_unlikely(fd < 0)) {
-        return false;
-    }
-    if (sky_unlikely(!set_socket_nonblock(fd))) {
-        close(fd);
-        return false;
-    }
+        fd = socket(conn_pool->addr->sa_family, SOCK_DGRAM, 0);
+        if (sky_unlikely(fd < 0)) {
+            return false;
+        }
+        if (sky_unlikely(!set_socket_nonblock(fd))) {
+            close(fd);
+            return false;
+        }
 #endif
-    sky_i32_t opt = 1;
-    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_i32_t));
 
     sky_event_rebind(ev, fd);
 
