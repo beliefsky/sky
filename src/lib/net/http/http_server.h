@@ -80,7 +80,7 @@ struct sky_http_connection_s {
     sky_coro_t *coro;
     sky_http_server_t *server;
 #ifdef HAVE_TLS
-    sky_tls_t *tls;
+    sky_tls_t tls;
 #endif
 };
 
