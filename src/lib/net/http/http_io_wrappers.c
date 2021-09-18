@@ -291,7 +291,6 @@ sky_usize_t
 https_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size) {
     sky_i32_t n;
 
-    sky_tls_t *tls = conn->tls;
     for (;;) {
         if (sky_unlikely(!conn->ev.read)) {
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
@@ -300,8 +299,8 @@ https_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size) {
 
         n = (sky_i32_t) sky_min(size, SKY_I32_MAX);
 
-        if ((n = sky_tls_read(tls, data, n)) < 1) {
-            if (sky_tls_get_error(tls, n) == SKY_TLS_WANT_READ) {
+        if ((n = sky_tls_read(&conn->tls, data, n)) < 1) {
+            if (sky_tls_get_error(&conn->tls, n) == SKY_TLS_WANT_READ) {
                 conn->ev.read = false;
                 sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
                 continue;
@@ -317,7 +316,6 @@ void
 https_write(sky_http_connection_t *conn, const sky_uchar_t *data, sky_usize_t size) {
     sky_i32_t n;
 
-    sky_tls_t *tls = conn->tls;
     for (;;) {
         if (sky_unlikely(!conn->ev.write)) {
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
@@ -325,8 +323,8 @@ https_write(sky_http_connection_t *conn, const sky_uchar_t *data, sky_usize_t si
         }
         n = (sky_i32_t) sky_min(size, SKY_I32_MAX);
 
-        if ((n = sky_tls_write(tls, data, n)) < 1) {
-            if (sky_tls_get_error(tls, n) == SKY_TLS_WANT_WRITE) {
+        if ((n = sky_tls_write(&conn->tls, data, n)) < 1) {
+            if (sky_tls_get_error(&conn->tls, n) == SKY_TLS_WANT_WRITE) {
                 conn->ev.write = false;
                 sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
                 continue;

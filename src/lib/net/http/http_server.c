@@ -155,7 +155,7 @@ https_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server
     sky_http_connection_t *conn = sky_coro_malloc(coro, sizeof(sky_http_connection_t));
     conn->coro = coro;
     conn->server = server;
-    conn->tls = sky_tls_server_create(server->tls_ctx, fd);
+    sky_tls_server_init(server->tls_ctx, &conn->tls, fd);
     sky_event_init(loop, &conn->ev, fd, https_handshake, https_connection_close);
 
     if (!https_handshake(conn)) {
@@ -170,7 +170,7 @@ https_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server
 
 static sky_bool_t
 https_handshake(sky_http_connection_t *conn) {
-    const sky_i8_t ret = sky_tls_accept(conn->tls);
+    const sky_i8_t ret = sky_tls_accept(&conn->tls);
     switch (ret) {
         case 0:
             return true;
@@ -187,7 +187,7 @@ https_handshake(sky_http_connection_t *conn) {
 
 static void
 https_connection_close(sky_http_connection_t *conn) {
-    sky_tls_destroy(conn->tls);
+    sky_tls_destroy(&conn->tls);
     sky_coro_destroy(conn->coro);
 }
 
