@@ -21,7 +21,8 @@ sky_redis_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_redis_
             .port = conf->port,
             .unix_path = conf->unix_path,
             .connection_size = conf->connection_size,
-            .timeout = 300,
+            .timeout = 5,
+            .keep_alive = 300,
             .next_func = null
     };
 

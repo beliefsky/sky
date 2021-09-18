@@ -15,6 +15,7 @@ struct sky_tcp_pool_s {
     sky_pool_t *mem_pool;
     struct sockaddr *addr;
     socklen_t addr_len;
+    sky_i32_t keep_alive;
     sky_i32_t timeout;
     sky_u16_t connection_ptr;
     sky_tcp_client_t *clients;
@@ -64,8 +65,10 @@ sky_tcp_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_tcp_pool
     conn_pool->mem_pool = pool;
     conn_pool->connection_ptr = (sky_u16_t) (i - 1);
     conn_pool->clients = (sky_tcp_client_t *) (conn_pool + 1);
-    conn_pool->timeout = conf->timeout;
     conn_pool->next_func = conf->next_func;
+
+    conn_pool->keep_alive = conf->keep_alive ?: -1;
+    conn_pool->timeout = conf->timeout ?: 5;
 
     if (!set_address(conn_pool, conf)) {
         return null;
@@ -159,6 +162,8 @@ sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
         if (sky_unlikely(!conn->client || ev->fd == -1)) {
             return 0;
         }
+    } else {
+        ev->timeout = client->conn_pool->timeout;
     }
 
     if (sky_unlikely(!ev->read)) {
@@ -173,6 +178,7 @@ sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
     for (;;) {
 
         if ((n = read(ev->fd, data, size)) > 0) {
+            ev->timeout = client->conn_pool->keep_alive;
             return (sky_usize_t) n;
         }
         if (sky_unlikely(!n)) {
@@ -239,6 +245,8 @@ sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize
         if (sky_unlikely(!conn->client || ev->fd == -1)) {
             return false;
         }
+    } else {
+        ev->timeout = client->conn_pool->timeout;
     }
 
     if (sky_unlikely(!ev->write)) {
@@ -256,6 +264,7 @@ sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize
                 data += n;
                 size -= (sky_usize_t) n;
             } else {
+                ev->timeout = client->conn_pool->keep_alive;
                 return true;
             }
         } else {
@@ -419,7 +428,7 @@ tcp_connection(sky_tcp_conn_t *conn) {
                 sky_log_error("connect errno: %d", errno);
                 return false;
         }
-        sky_event_register(ev, 10);
+        sky_event_register(ev, conn_pool->timeout);
         sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
         for (;;) {
             if (sky_unlikely(!conn->client || ev->fd == -1)) {
@@ -440,7 +449,7 @@ tcp_connection(sky_tcp_conn_t *conn) {
             }
             break;
         }
-        ev->timeout = conn_pool->timeout;
+        ev->timeout = conn_pool->keep_alive;
     }
     return true;
 }
