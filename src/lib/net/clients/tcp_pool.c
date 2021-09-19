@@ -181,7 +181,6 @@ sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
             case EAGAIN:
                 break;
             default:
-                sky_event_unregister(ev);
                 sky_log_error("read errno: %d", errno);
                 return 0;
         }
@@ -261,7 +260,6 @@ sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize
                 case EAGAIN:
                     break;
                 default:
-                    sky_event_unregister(ev);
                     sky_log_error("write errno: %d", errno);
                     return false;
             }
@@ -429,7 +427,6 @@ tcp_connection(sky_tcp_conn_t *conn) {
                     case EISCONN:
                         break;
                     default:
-                        sky_event_unregister(ev);
                         sky_log_error("connect errno: %d", errno);
                         return false;
                 }
