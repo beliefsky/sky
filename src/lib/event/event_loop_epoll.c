@@ -138,14 +138,11 @@ sky_event_loop_shutdown(sky_event_loop_t *loop) {
 
 void
 sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
-    struct epoll_event event;
-    sky_event_loop_t *loop;
-
     if (sky_unlikely(ev->reg)) {
         return;
     }
 
-    loop = ev->loop;
+    sky_event_loop_t *loop = ev->loop;
     if (timeout < 0) {
         timeout = -1;
         sky_timer_wheel_unlink(&ev->timer);
@@ -158,8 +155,11 @@ sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
     ev->timeout = timeout;
     ev->reg = true;
 
-    event.events = EPOLLIN | EPOLLOUT | EPOLLPRI | EPOLLRDHUP | EPOLLERR | EPOLLET;
-    event.data.ptr = ev;
+    struct epoll_event event = {
+            .events = EPOLLIN | EPOLLOUT | EPOLLPRI | EPOLLRDHUP | EPOLLERR | EPOLLET,
+            .data.ptr = ev
+    };
+
     (void) epoll_ctl(loop->fd, EPOLL_CTL_ADD, ev->fd, &event);
 }
 
