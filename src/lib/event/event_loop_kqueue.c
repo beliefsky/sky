@@ -180,6 +180,10 @@ sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
     struct kevent event[2];
     sky_event_loop_t *loop;
 
+    if (sky_unlikely(ev->reg)) {
+        return;
+    }
+
     loop = ev->loop;
     if (timeout < 0) {
         timeout = -1;
