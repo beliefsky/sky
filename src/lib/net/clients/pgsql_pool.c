@@ -647,7 +647,7 @@ array_serialize_size(const sky_pgsql_array_t *array, sky_pgsql_type_t type) {
                 sky_u32_t i = array->nelts;
                 sky_pgsql_data_t *data = array->data;
                 for (; i; --i, ++data) {
-                    size += data->len;
+                    size += (sky_u32_t) data->len;
                 }
                 break;
             }
@@ -680,7 +680,7 @@ array_serialize_size(const sky_pgsql_array_t *array, sky_pgsql_type_t type) {
                 sky_pgsql_data_t *data = array->data;
                 for (; i; --i, ++data) {
                     if (!sky_pgsql_data_is_null(data)) {
-                        size += data->len;
+                        size += (sky_u32_t) data->len;
                     }
                 }
                 break;

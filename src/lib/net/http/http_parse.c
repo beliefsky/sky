@@ -459,7 +459,7 @@ sky_http_url_decode(sky_str_t *str) {
     for (;;) {
         ch = *(p++);
         if (ch >= '0' && ch <= '9') {
-            ch -= '0';
+            ch -= (sky_uchar_t) '0';
             *s = (sky_uchar_t) (ch << 4U);
         } else {
             ch |= 0x20U;
