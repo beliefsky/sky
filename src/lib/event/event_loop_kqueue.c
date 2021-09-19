@@ -206,6 +206,8 @@ sky_event_unregister(sky_event_t *ev) {
     if (sky_unlikely(!ev->reg)) {
         return;
     }
+    close(ev->fd);
+    ev->fd = -1;
     ev->reg = false;
     // 此处应添加 应追加需要处理的连接
     ev->loop->update = true;
