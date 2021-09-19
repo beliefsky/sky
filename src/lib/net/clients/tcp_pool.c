@@ -141,11 +141,6 @@ sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
         if ((n = read(ev->fd, data, size)) > 0) {
             return (sky_usize_t) n;
         }
-        if (sky_unlikely(!n)) {
-            close(ev->fd);
-            ev->fd = -1;
-            return 0;
-        }
         switch (errno) {
             case EINTR:
             case EAGAIN:
@@ -180,9 +175,6 @@ sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
         if ((n = read(ev->fd, data, size)) > 0) {
             ev->timeout = client->conn_pool->keep_alive;
             return (sky_usize_t) n;
-        }
-        if (sky_unlikely(!n)) {
-            return 0;
         }
         switch (errno) {
             case EINTR:
@@ -223,11 +215,6 @@ sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize
                 return true;
             }
         } else {
-            if (sky_unlikely(!n)) {
-                close(ev->fd);
-                ev->fd = -1;
-                return false;
-            }
             switch (errno) {
                 case EINTR:
                 case EAGAIN:
@@ -268,9 +255,6 @@ sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize
                 return true;
             }
         } else {
-            if (sky_unlikely(!n)) {
-                return false;
-            }
             switch (errno) {
                 case EINTR:
                 case EAGAIN:
