@@ -204,10 +204,10 @@ sky_timer_wheel_expired(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, 
         return;
     }
 
+    entry->expire_at = at;
     entry->next->prev = entry->prev;
     entry->prev->next = entry->next;
 
-    entry->expire_at = at;
     link_timer(ctx, entry);
 }
 
