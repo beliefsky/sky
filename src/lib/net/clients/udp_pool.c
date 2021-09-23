@@ -1,8 +1,8 @@
 //
-// Created by edz on 2021/2/4.
+// Created by edz on 2021/9/18.
 //
 
-#include "tcp_pool.h"
+#include "udp_pool.h"
 #include "../../core/memory.h"
 #include "../../core/log.h"
 #include <netdb.h>
@@ -11,34 +11,34 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 
-struct sky_tcp_pool_s {
+struct sky_udp_pool_s {
     sky_pool_t *mem_pool;
     struct sockaddr *addr;
     socklen_t addr_len;
     sky_i32_t keep_alive;
     sky_i32_t timeout;
     sky_u16_t connection_ptr;
-    sky_tcp_client_t *clients;
-    sky_tcp_pool_conn_next next_func;
+    sky_udp_client_t *clients;
+    sky_udp_pool_conn_next next_func;
 };
 
-struct sky_tcp_client_s {
+struct sky_udp_client_s {
     sky_event_t ev;
-    sky_tcp_pool_t *conn_pool;
-    sky_tcp_conn_t *current;
-    sky_tcp_conn_t tasks;
+    sky_udp_pool_t *conn_pool;
+    sky_udp_conn_t *current;
+    sky_udp_conn_t tasks;
     sky_bool_t main; // 是否是当前连接触发的事件
 };
 
-static sky_bool_t tcp_run(sky_tcp_client_t *client);
+static sky_bool_t udp_run(sky_udp_client_t *client);
 
-static void tcp_close(sky_tcp_client_t *client);
+static void udp_close(sky_udp_client_t *client);
 
-static sky_bool_t set_address(sky_tcp_pool_t *tcp_pool, const sky_tcp_pool_conf_t *conf);
+static sky_bool_t set_address(sky_udp_pool_t *udp_pool, const sky_udp_pool_conf_t *conf);
 
-static sky_bool_t tcp_connection(sky_tcp_conn_t *conn);
+static sky_bool_t udp_connection(sky_udp_conn_t *conn);
 
-static void tcp_connection_defer(sky_tcp_conn_t *conn);
+static void udp_connection_defer(sky_udp_conn_t *conn);
 
 #ifndef HAVE_ACCEPT4
 
@@ -49,11 +49,11 @@ static sky_bool_t set_socket_nonblock(sky_i32_t fd);
 #endif
 
 
-sky_tcp_pool_t *
-sky_tcp_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_tcp_pool_conf_t *conf) {
+sky_udp_pool_t *
+sky_udp_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_udp_pool_conf_t *conf) {
     sky_u16_t i;
-    sky_tcp_pool_t *conn_pool;
-    sky_tcp_client_t *client;
+    sky_udp_pool_t *conn_pool;
+    sky_udp_client_t *client;
 
     if (!(i = conf->connection_size)) {
         i = 2;
@@ -61,10 +61,10 @@ sky_tcp_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_tcp_pool
         sky_log_error("连接数必须为2的整数幂");
         return null;
     }
-    conn_pool = sky_palloc(pool, sizeof(sky_tcp_pool_t) + sizeof(sky_tcp_client_t) * i);
+    conn_pool = sky_palloc(pool, sizeof(sky_udp_pool_t) + sizeof(sky_udp_client_t) * i);
     conn_pool->mem_pool = pool;
     conn_pool->connection_ptr = (sky_u16_t) (i - 1);
-    conn_pool->clients = (sky_tcp_client_t *) (conn_pool + 1);
+    conn_pool->clients = (sky_udp_client_t *) (conn_pool + 1);
     conn_pool->next_func = conf->next_func;
 
     conn_pool->keep_alive = conf->keep_alive ?: -1;
@@ -75,7 +75,7 @@ sky_tcp_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_tcp_pool
     }
 
     for (client = conn_pool->clients; i; --i, ++client) {
-        sky_event_init(loop, &client->ev, -1, tcp_run, tcp_close);
+        sky_event_init(loop, &client->ev, -1, udp_run, udp_close);
         client->conn_pool = conn_pool;
         client->current = null;
         client->tasks.next = client->tasks.prev = &client->tasks;
@@ -86,15 +86,15 @@ sky_tcp_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_tcp_pool
 }
 
 sky_bool_t
-sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event_t *event, sky_coro_t *coro) {
+sky_udp_pool_conn_bind(sky_udp_pool_t *udp_pool, sky_udp_conn_t *conn, sky_event_t *event, sky_coro_t *coro) {
 
-    sky_tcp_client_t *client = tcp_pool->clients + (event->fd & tcp_pool->connection_ptr);
+    sky_udp_client_t *client = udp_pool->clients + (event->fd & udp_pool->connection_ptr);
     const sky_bool_t empty = client->tasks.next == &client->tasks;
 
     conn->client = null;
     conn->ev = event;
     conn->coro = coro;
-    conn->defer = sky_defer_add(coro, (sky_defer_func_t) tcp_connection_defer, conn);
+    conn->defer = sky_defer_add(coro, (sky_defer_func_t) udp_connection_defer, conn);
     conn->next = client->tasks.next;
     conn->prev = &client->tasks;
     conn->next->prev = conn->prev->next = conn;
@@ -109,13 +109,13 @@ sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event
     client->current = conn;
 
     if (sky_unlikely(client->ev.fd == -1)) {
-        if (sky_unlikely(!tcp_connection(conn))) {
-            sky_tcp_pool_conn_unbind(conn);
+        if (sky_unlikely(!udp_connection(conn))) {
+            sky_udp_pool_conn_unbind(conn);
             return false;
         }
-        if (tcp_pool->next_func) {
-            if (sky_unlikely(!tcp_pool->next_func(conn))) {
-                sky_tcp_pool_conn_close(conn);
+        if (udp_pool->next_func) {
+            if (sky_unlikely(!udp_pool->next_func(conn))) {
+                sky_udp_pool_conn_close(conn);
                 return false;
             }
         }
@@ -126,8 +126,8 @@ sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event
 }
 
 sky_usize_t
-sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size) {
-    sky_tcp_client_t *client;
+sky_udp_pool_conn_read(sky_udp_conn_t *conn, sky_uchar_t *data, sky_usize_t size) {
+    sky_udp_client_t *client;
     sky_event_t *ev;
     ssize_t n;
 
@@ -157,8 +157,8 @@ sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
         if (sky_unlikely(!conn->client || ev->fd == -1)) {
             return 0;
         }
-    } else {
-        ev->timeout = client->conn_pool->timeout;
+    } else{
+        ev->timeout = client->conn_pool->keep_alive;
     }
 
     if (sky_unlikely(!ev->read)) {
@@ -195,8 +195,8 @@ sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
 }
 
 sky_bool_t
-sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize_t size) {
-    sky_tcp_client_t *client;
+sky_udp_pool_conn_write(sky_udp_conn_t *conn, const sky_uchar_t *data, sky_usize_t size) {
+    sky_udp_client_t *client;
     sky_event_t *ev;
     ssize_t n;
 
@@ -275,13 +275,13 @@ sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize
 }
 
 sky_inline void
-sky_tcp_pool_conn_close(sky_tcp_conn_t *conn) {
+sky_udp_pool_conn_close(sky_udp_conn_t *conn) {
     sky_defer_cancel(conn->coro, conn->defer);
-    tcp_connection_defer(conn);
+    udp_connection_defer(conn);
 }
 
 sky_inline void
-sky_tcp_pool_conn_unbind(sky_tcp_conn_t *conn) {
+sky_udp_pool_conn_unbind(sky_udp_conn_t *conn) {
     sky_defer_cancel(conn->coro, conn->defer);
 
     if (conn->next) {
@@ -299,9 +299,9 @@ sky_tcp_pool_conn_unbind(sky_tcp_conn_t *conn) {
 
 
 static sky_bool_t
-tcp_run(sky_tcp_client_t *client) {
+udp_run(sky_udp_client_t *client) {
     sky_bool_t result = true;
-    sky_tcp_conn_t *conn;
+    sky_udp_conn_t *conn;
     sky_event_t *event;
 
     client->main = true;
@@ -316,7 +316,7 @@ tcp_run(sky_tcp_client_t *client) {
                 }
             } else {
                 if (client->current) {
-                    sky_tcp_pool_conn_unbind(conn);
+                    sky_udp_pool_conn_unbind(conn);
                     sky_event_unregister(event);
                     result = false;
                     break;
@@ -335,16 +335,16 @@ tcp_run(sky_tcp_client_t *client) {
 }
 
 static void
-tcp_close(sky_tcp_client_t *client) {
-    tcp_run(client);
+udp_close(sky_udp_client_t *client) {
+    udp_run(client);
 }
 
 static sky_bool_t
-set_address(sky_tcp_pool_t *tcp_pool, const sky_tcp_pool_conf_t *conf) {
+set_address(sky_udp_pool_t *udp_pool, const sky_udp_pool_conf_t *conf) {
     if (conf->unix_path.len) {
-        struct sockaddr_un *addr = sky_pcalloc(tcp_pool->mem_pool, sizeof(struct sockaddr_un));
-        tcp_pool->addr = (struct sockaddr *) addr;
-        tcp_pool->addr_len = sizeof(struct sockaddr_un);
+        struct sockaddr_un *addr = sky_pcalloc(udp_pool->mem_pool, sizeof(struct sockaddr_un));
+        udp_pool->addr = (struct sockaddr *) addr;
+        udp_pool->addr_len = sizeof(struct sockaddr_un);
 
         addr->sun_family = AF_UNIX;
         sky_memcpy(addr->sun_path, conf->unix_path.data, conf->unix_path.len + 1);
@@ -362,9 +362,9 @@ set_address(sky_tcp_pool_t *tcp_pool, const sky_tcp_pool_conf_t *conf) {
                 &hints, &addrs) == -1 || !addrs)) {
             return false;
         }
-        tcp_pool->addr = sky_palloc(tcp_pool->mem_pool, addrs->ai_addrlen);
-        tcp_pool->addr_len = addrs->ai_addrlen;
-        sky_memcpy(tcp_pool->addr, addrs->ai_addr, tcp_pool->addr_len);
+        udp_pool->addr = sky_palloc(udp_pool->mem_pool, addrs->ai_addrlen);
+        udp_pool->addr_len = addrs->ai_addrlen;
+        sky_memcpy(udp_pool->addr, addrs->ai_addr, udp_pool->addr_len);
 
         freeaddrinfo(addrs);
     }
@@ -374,20 +374,20 @@ set_address(sky_tcp_pool_t *tcp_pool, const sky_tcp_pool_conf_t *conf) {
 
 
 static sky_bool_t
-tcp_connection(sky_tcp_conn_t *conn) {
+udp_connection(sky_udp_conn_t *conn) {
     sky_i32_t fd;
-    sky_tcp_pool_t *conn_pool;
+    sky_udp_pool_t *conn_pool;
     sky_event_t *ev;
 
     conn_pool = conn->client->conn_pool;
     ev = &conn->client->ev;
 #ifdef HAVE_ACCEPT4
-    fd = socket(conn_pool->addr->sa_family, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+    fd = socket(conn_pool->addr->sa_family, SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
     if (sky_unlikely(fd < 0)) {
         return false;
     }
 #else
-        fd = socket(conn_pool->addr->sa_family, SOCK_STREAM, 0);
+        fd = socket(conn_pool->addr->sa_family, SOCK_DGRAM, 0);
         if (sky_unlikely(fd < 0)) {
             return false;
         }
@@ -440,7 +440,7 @@ tcp_connection(sky_tcp_conn_t *conn) {
 
 
 static sky_inline void
-tcp_connection_defer(sky_tcp_conn_t *conn) {
+udp_connection_defer(sky_udp_conn_t *conn) {
     if (conn->next) {
         conn->prev->next = conn->next;
         conn->next->prev = conn->prev;

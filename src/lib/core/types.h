@@ -5,6 +5,7 @@
 #ifndef SKY_TYPES_H
 #define SKY_TYPES_H
 
+#include "../sky_build_config.h"
 #include <stdint.h>
 #include <time.h>
 

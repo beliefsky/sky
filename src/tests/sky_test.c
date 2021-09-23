@@ -176,9 +176,12 @@ server_start(void *ssl) {
             .header_buf_size = 2048,
             .header_buf_n = 4,
             .modules_host = hosts,
+#ifdef HAVE_TLS 
             .modules_n = 1,
-            .ssl = (ssl != null),
-            .ssl_ctx = ssl
+            .tls_ctx = ssl
+#else
+            .modules_n = 1
+#endif            
     };
 
     server = sky_http_server_create(pool, &conf);

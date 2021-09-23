@@ -25,12 +25,13 @@ set(SOURCES
         core/uuid.c
         core/json.c
         core/timer_wheel.c
-        math/matrix.c
         event/event_loop_epoll.c
         event/event_loop_kqueue.c
         net/tcp.c
         net/udp.c
+        net/tls/tls.c
         net/clients/tcp_pool.c
+        net/clients/udp_pool.c
         net/clients/tcp_rw_pool.c
         net/clients/tcp_async_pool.c
         net/clients/pgsql_pool.c
@@ -43,7 +44,6 @@ set(SOURCES
         net/http/module/http_module_file.c
         net/http/module/http_module_dispatcher.c
         net/http/module/http_module_websocket.c
-        net/tls/tls.c
         )
 add_library(sky_static STATIC ${SOURCES})
 
@@ -84,6 +84,10 @@ install(TARGETS sky_shared sky_static
 set(CMAKE_INSTALL_FULL_INCLUDEDIR "/usr/local/include")
 
 install(FILES
+        sky_build_config.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky")
+
+install(FILES
         core/types.h
         core/memory.h
         core/palloc.h
@@ -118,7 +122,11 @@ install(FILES
         net/udp.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net")
 install(FILES
+        net/tls/tls.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/tls")
+install(FILES
         net/clients/tcp_pool.h
+        net/clients/udp_pool.h
         net/clients/redis_pool.h
         net/clients/pgsql_pool.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/clients")

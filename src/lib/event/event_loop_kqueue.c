@@ -1,14 +1,15 @@
 //
 // Created by weijing on 18-11-6.
 //
-#if defined(__FreeBSD__) || defined(__APPLE__)
+#include "event_loop.h"
+
+#ifdef HAVE_KQUEUE
 
 #include <sys/resource.h>
 #include <unistd.h>
 #include <errno.h>
 #include <signal.h>
 #include <sys/event.h>
-#include "event_loop.h"
 #include "../core/palloc.h"
 #include "../core/log.h"
 #include "../core/memory.h"
@@ -176,10 +177,11 @@ sky_event_loop_shutdown(sky_event_loop_t *loop) {
 
 void
 sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
-    struct kevent event[2];
-    sky_event_loop_t *loop;
+    if (sky_unlikely(ev->reg || ev->fd == -1)) {
+        return;
+    }
 
-    loop = ev->loop;
+    sky_event_loop_t *loop = ev->loop;
     if (timeout < 0) {
         timeout = -1;
         sky_timer_wheel_unlink(&ev->timer);
@@ -192,20 +194,20 @@ sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
     ev->reg = true;
     ev->index = -1;
 
-    EV_SET(event, ev->fd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
-    EV_SET(event + 1, ev->fd, EVFILT_WRITE, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
+    struct kevent event[2];
+    EV_SET(&event[0], ev->fd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
+    EV_SET(&event[1], ev->fd, EVFILT_WRITE, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
     kevent(loop->fd, event, 2, null, 0, null);
 }
 
 
 void
 sky_event_unregister(sky_event_t *ev) {
-    close(ev->fd);
-    ev->fd = -1;
-    if (sky_unlikely(!ev->reg)) {
-        ev->close(ev);
+    if (sky_unlikely(!ev->reg && ev->fd == -1)) {
         return;
     }
+    close(ev->fd);
+    ev->fd = -1;
     ev->reg = false;
     // 此处应添加 应追加需要处理的连接
     ev->loop->update = true;

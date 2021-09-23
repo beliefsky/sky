@@ -7,7 +7,14 @@
 
 #include "types.h"
 #include <string.h>
+
+#ifdef HAVE_MALLOC
+#include <malloc.h>
+#else
+
 #include <stdlib.h>
+
+#endif
 
 #if defined(__cplusplus)
 extern "C" {

@@ -39,11 +39,16 @@ endif ()
 #
 # Find libraries
 #
-#find_package(OpenSSL REQUIRED)
-set(ADDITIONAL_LIBRARIES #[[${OPENSSL_LIBRARIES}]] #[[${ZLIB_LIBRARIES}]])
+#check_include_file(openssl/ssl.h HAVE_OPENSSL)
+if (HAVE_OPENSSL)
+    find_package(OpenSSL QUIET)
+    set(ADDITIONAL_LIBRARIES ${ADDITIONAL_LIBRARIES} ${OPENSSL_LIBRARIES})
+endif ()
 
+check_include_file(sys/epoll.h HAVE_EPOLL)
+check_include_file(sys/event.h HAVE_KQUEUE)
+check_include_file(malloc.h HAVE_MALLOC)
 
-check_function_exists(mempcpy HAVE_MEMPCPY)
 check_function_exists(accept4 HAVE_ACCEPT4)
 
 if (NOT HAS_CLOCK_GETTIME AND ${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -164,10 +169,9 @@ endif ()
 #
 # Generate sky_build_config.h
 #
-add_definitions(-include ${CMAKE_BINARY_DIR}/sky_build_config.h)
 configure_file(
         "${CMAKE_CURRENT_SOURCE_DIR}/src/cmake/sky_build_config.h.cmake"
-        "${CMAKE_CURRENT_BINARY_DIR}/sky_build_config.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/sky_build_config.h"
 )
 
 configure_file(
