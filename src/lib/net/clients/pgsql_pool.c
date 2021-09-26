@@ -3,7 +3,6 @@
 //
 
 #include "pgsql_pool.h"
-#include "../inet.h"
 #include "../../core/memory.h"
 #include "../../core/md5.h"
 #include "../../core/buf.h"
@@ -93,9 +92,7 @@ sky_pgsql_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_pgsql_
     *p = '\0';
 
     const sky_tcp_pool_conf_t c = {
-            .host = conf->host,
-            .port = conf->port,
-            .unix_path = conf->unix_path,
+            .address = conf->address,
             .connection_size = conf->connection_size,
             .keep_alive = 300,
             .timeout = 10,

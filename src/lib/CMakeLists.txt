@@ -27,6 +27,7 @@ set(SOURCES
         core/timer_wheel.c
         event/event_loop_epoll.c
         event/event_loop_kqueue.c
+        net/inet.c
         net/tcp.c
         net/udp.c
         net/tls/tls.c

@@ -3,18 +3,12 @@
 //
 
 #include "udp_pool.h"
-#include "../../core/memory.h"
 #include "../../core/log.h"
-#include <netdb.h>
 #include <errno.h>
 #include <unistd.h>
-#include <sys/socket.h>
-#include <sys/un.h>
 
 struct sky_udp_pool_s {
-    sky_pool_t *mem_pool;
-    struct sockaddr *addr;
-    socklen_t addr_len;
+    sky_inet_address_t address;
     sky_i32_t keep_alive;
     sky_i32_t timeout;
     sky_u16_t connection_ptr;
@@ -33,8 +27,6 @@ struct sky_udp_client_s {
 static sky_bool_t udp_run(sky_udp_client_t *client);
 
 static void udp_close(sky_udp_client_t *client);
-
-static sky_bool_t set_address(sky_udp_pool_t *udp_pool, const sky_udp_pool_conf_t *conf);
 
 static sky_bool_t udp_connection(sky_udp_conn_t *conn);
 
@@ -62,17 +54,13 @@ sky_udp_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_udp_pool
         return null;
     }
     conn_pool = sky_palloc(pool, sizeof(sky_udp_pool_t) + sizeof(sky_udp_client_t) * i);
-    conn_pool->mem_pool = pool;
+    conn_pool->address = conf->address;
     conn_pool->connection_ptr = (sky_u16_t) (i - 1);
     conn_pool->clients = (sky_udp_client_t *) (conn_pool + 1);
     conn_pool->next_func = conf->next_func;
 
     conn_pool->keep_alive = conf->keep_alive ?: -1;
     conn_pool->timeout = conf->timeout ?: 5;
-
-    if (!set_address(conn_pool, conf)) {
-        return null;
-    }
 
     for (client = conn_pool->clients; i; --i, ++client) {
         sky_event_init(loop, &client->ev, -1, udp_run, udp_close);
@@ -339,39 +327,6 @@ udp_close(sky_udp_client_t *client) {
     udp_run(client);
 }
 
-static sky_bool_t
-set_address(sky_udp_pool_t *udp_pool, const sky_udp_pool_conf_t *conf) {
-    if (conf->unix_path.len) {
-        struct sockaddr_un *addr = sky_pcalloc(udp_pool->mem_pool, sizeof(struct sockaddr_un));
-        udp_pool->addr = (struct sockaddr *) addr;
-        udp_pool->addr_len = sizeof(struct sockaddr_un);
-
-        addr->sun_family = AF_UNIX;
-        sky_memcpy(addr->sun_path, conf->unix_path.data, conf->unix_path.len + 1);
-    } else {
-        const struct addrinfo hints = {
-                .ai_family = AF_UNSPEC,
-                .ai_socktype = SOCK_STREAM,
-                .ai_flags = AI_CANONNAME
-        };
-
-        struct addrinfo *addrs;
-
-        if (sky_unlikely(getaddrinfo(
-                (sky_char_t *) conf->host.data, (sky_char_t *) conf->port.data,
-                &hints, &addrs) == -1 || !addrs)) {
-            return false;
-        }
-        udp_pool->addr = sky_palloc(udp_pool->mem_pool, addrs->ai_addrlen);
-        udp_pool->addr_len = addrs->ai_addrlen;
-        sky_memcpy(udp_pool->addr, addrs->ai_addr, udp_pool->addr_len);
-
-        freeaddrinfo(addrs);
-    }
-
-    return true;
-}
-
 
 static sky_bool_t
 udp_connection(sky_udp_conn_t *conn) {
@@ -382,7 +337,7 @@ udp_connection(sky_udp_conn_t *conn) {
     conn_pool = conn->client->conn_pool;
     ev = &conn->client->ev;
 #ifdef HAVE_ACCEPT4
-    fd = socket(conn_pool->addr->sa_family, SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+    fd = socket(conn_pool->address.addr->sa_family, SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
     if (sky_unlikely(fd < 0)) {
         return false;
     }
@@ -399,7 +354,7 @@ udp_connection(sky_udp_conn_t *conn) {
 
     sky_event_rebind(ev, fd);
 
-    if (connect(fd, conn_pool->addr, conn_pool->addr_len) < 0) {
+    if (connect(fd, conn_pool->address.addr, conn_pool->address.len) < 0) {
         switch (errno) {
             case EALREADY:
             case EINPROGRESS:
@@ -418,7 +373,7 @@ udp_connection(sky_udp_conn_t *conn) {
             if (sky_unlikely(!conn->client || ev->fd == -1)) {
                 return false;
             }
-            if (connect(ev->fd, conn_pool->addr, conn_pool->addr_len) < 0) {
+            if (connect(ev->fd, conn_pool->address.addr, conn_pool->address.len) < 0) {
                 switch (errno) {
                     case EALREADY:
                     case EINPROGRESS:
