@@ -44,8 +44,6 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
     sky_i32_t backlog;
     listener_t *l;
 
-    backlog = get_backlog_size();
-
 #ifdef HAVE_ACCEPT4
     fd = socket(conf->address.addr->sa_family, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
 
@@ -81,6 +79,7 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
         close(fd);
         return false;
     }
+    backlog = get_backlog_size();
     if (sky_unlikely(listen(fd, backlog) != 0)) {
         close(fd);
         return false;
