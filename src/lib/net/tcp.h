@@ -7,7 +7,6 @@
 
 #include "../event/event_loop.h"
 #include "../core/palloc.h"
-#include "../core/string.h"
 #include "inet.h"
 
 #if defined(__cplusplus)
