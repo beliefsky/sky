@@ -9,6 +9,7 @@
 #include "tcp.h"
 #include "../core/log.h"
 #include "../core/number.h"
+#include <unistd.h>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
