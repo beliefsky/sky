@@ -9,7 +9,6 @@
 #include "../core/palloc.h"
 #include "../core/string.h"
 #include "inet.h"
-#include <unistd.h>
 
 #if defined(__cplusplus)
 extern "C" {
