@@ -9,6 +9,7 @@
 #include "../../core/coro.h"
 #include "../../core/buf.h"
 #include "../../core/trie.h"
+#include "../inet.h"
 #include "../tls/tls.h"
 
 #if defined(__cplusplus)
@@ -31,8 +32,6 @@ typedef struct {
 
 typedef struct {
     sky_http_module_host_t *modules_host;
-    sky_str_t host;
-    sky_str_t port;
 #ifdef HAVE_TLS
     sky_tls_ctx_t *tls_ctx;
 #endif
@@ -46,9 +45,6 @@ struct sky_http_server_s {
 #ifdef HAVE_TLS
     sky_tls_ctx_t *tls_ctx;
 #endif
-    sky_str_t host;
-    sky_str_t port;
-
     sky_coro_switcher_t switcher;
 
     sky_str_t *status_map;
@@ -86,7 +82,7 @@ struct sky_http_connection_s {
 
 sky_http_server_t *sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf);
 
-void sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *loop);
+sky_bool_t sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *loop, const sky_inet_address_t *address);
 
 sky_str_t *sky_http_status_find(sky_http_server_t *server, sky_u32_t status);
 

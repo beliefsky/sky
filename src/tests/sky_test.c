@@ -184,8 +184,6 @@ server_start() {
             }
     };
     sky_http_conf_t conf = {
-            .host = sky_string("::"),
-            .port = sky_string("8080"),
             .header_buf_size = 2048,
             .header_buf_n = 4,
             .modules_host = hosts,
@@ -198,11 +196,30 @@ server_start() {
     };
 
     server = sky_http_server_create(pool, &conf);
-    sky_http_server_bind(server, loop);
 
-    sky_str_set(&conf.host, "0.0.0.0");
-    server = sky_http_server_create(pool, &conf);
-    sky_http_server_bind(server, loop);
+    sky_inet_address_t http_address;
+
+    {
+        struct sockaddr_in *address_tmp = sky_pcalloc(pool, sizeof(struct sockaddr_in));
+        address_tmp->sin_family = AF_INET;
+        address_tmp->sin_addr.s_addr = INADDR_ANY;
+        address_tmp->sin_port = sky_htons(8080);
+
+        http_address.len = sizeof(struct sockaddr_in);
+        http_address.addr = (struct sockaddr *) address_tmp;
+    }
+    sky_http_server_bind(server, loop, &http_address);
+
+    {
+        struct sockaddr_in6 *address_tmp = sky_pcalloc(pool, sizeof(struct sockaddr_in6));
+        address_tmp->sin6_family = AF_INET6;
+        address_tmp->sin6_addr = in6addr_any;
+        address_tmp->sin6_port = sky_htons(8080);
+
+        http_address.len = sizeof(struct sockaddr_in6);
+        http_address.addr = (struct sockaddr *) address_tmp;
+    }
+    sky_http_server_bind(server, loop, &http_address);
 
     sky_event_loop_run(loop);
     sky_event_loop_shutdown(loop);

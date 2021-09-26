@@ -12,8 +12,6 @@
 #include <fcntl.h>
 #include <netdb.h>
 #include <netinet/tcp.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 
 
 typedef struct {
@@ -37,85 +35,72 @@ static sky_bool_t set_socket_nonblock(sky_i32_t fd);
 static sky_i32_t get_backlog_size();
 
 
-void
+sky_bool_t
 sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
                         const sky_tcp_conf_t *conf) {
     sky_i32_t fd;
     sky_i32_t opt;
     sky_i32_t backlog;
     listener_t *l;
-    struct addrinfo *addrs;
 
-    const struct addrinfo hints = {
-            .ai_family = AF_UNSPEC,
-            .ai_socktype = SOCK_STREAM,
-            .ai_flags = AI_PASSIVE
-    };
-
-    if (sky_unlikely(getaddrinfo((sky_char_t *) conf->host.data, (sky_char_t *) conf->port.data,
-                                 &hints, &addrs) == -1)) {
-        return;
-    }
     backlog = get_backlog_size();
-    for (struct addrinfo *addr = addrs; addr; addr = addr->ai_next) {
-#ifdef HAVE_ACCEPT4
-        fd = socket(addr->ai_family,
-                    addr->ai_socktype | SOCK_NONBLOCK | SOCK_CLOEXEC,
-                    addr->ai_protocol);
 
-        if (sky_unlikely(fd == -1)) {
-            continue;
-        }
+#ifdef HAVE_ACCEPT4
+    fd = socket(conf->address.addr->sa_family, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+
+    if (sky_unlikely(fd == -1)) {
+        return false;
+    }
 #else
-        fd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
+    fd = socket(conf->address.addr->sa_family, SOCK_STREAM, 0);
         if (sky_unlikely(fd == -1)) {
-            continue;
+            return false;
         }
         if (sky_unlikely(!set_socket_nonblock(fd))) {
             close(fd);
-            continue;
+            return false;
         }
 #endif
 
 
-        opt = 1;
-        setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_i32_t));
+    opt = 1;
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_i32_t));
 #ifdef SO_REUSEPORT_LB
-        setsockopt(fd, SOL_SOCKET, SO_REUSEPORT_LB, &opt, sizeof(sky_i32_t));
+    setsockopt(fd, SOL_SOCKET, SO_REUSEPORT_LB, &opt, sizeof(sky_i32_t));
 #else
-        setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_i32_t));
+    setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_i32_t));
 #endif
 #ifdef TCP_DEFER_ACCEPT
-        if (conf->defer_accept) {
-            opt = 1;
-            setsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &opt, sizeof(sky_i32_t));
-        }
+    if (conf->defer_accept) {
+        opt = 1;
+        setsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &opt, sizeof(sky_i32_t));
+    }
 #endif
-        if (sky_unlikely(bind(fd, addr->ai_addr, addr->ai_addrlen) != 0)) {
-            close(fd);
-            continue;
-        }
-        if (sky_unlikely(listen(fd, backlog) != 0)) {
-            close(fd);
-            continue;
-        }
-        if (conf->nodelay) {
-            setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(sky_i32_t));
-        }
+    if (sky_unlikely(bind(fd, conf->address.addr, conf->address.len) != 0)) {
+        close(fd);
+        return false;
+    }
+    if (sky_unlikely(listen(fd, backlog) != 0)) {
+        close(fd);
+        return false;
+    }
+    if (conf->nodelay) {
+        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(sky_i32_t));
+    }
 
 #ifdef TCP_FASTOPEN
-        opt = 5;
-        setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &opt, sizeof(sky_i32_t));
+    opt = 5;
+    setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &opt, sizeof(sky_i32_t));
 #endif
 
-        l = sky_palloc(pool, sizeof(listener_t));
-        l->run = conf->run;
-        l->data = conf->data;
-        l->timeout = conf->timeout;
-        sky_event_init(loop, &l->ev, fd, tcp_listener_accept, tcp_listener_error);
-        sky_event_register(&l->ev, -1);
-    }
-    freeaddrinfo(addrs);
+    l = sky_palloc(pool, sizeof(listener_t));
+    l->run = conf->run;
+    l->data = conf->data;
+    l->timeout = conf->timeout;
+    sky_event_init(loop, &l->ev, fd, tcp_listener_accept, tcp_listener_error);
+    sky_event_register(&l->ev, -1);
+
+    return true;
 }
 
 static sky_bool_t
