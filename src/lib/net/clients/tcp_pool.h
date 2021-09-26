@@ -8,6 +8,7 @@
 #include "../../event/event_loop.h"
 #include "../../core//coro.h"
 #include "../../core/string.h"
+#include "../inet.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -20,9 +21,7 @@ typedef struct sky_tcp_client_s sky_tcp_client_t;
 typedef sky_bool_t (*sky_tcp_pool_conn_next)(sky_tcp_conn_t *conn);
 
 typedef struct {
-    sky_str_t host;
-    sky_str_t port;
-    sky_str_t unix_path;
+    sky_inet_address_t address;
     sky_u16_t connection_size;
     sky_i32_t keep_alive;
     sky_i32_t timeout;

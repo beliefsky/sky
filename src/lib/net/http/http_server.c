@@ -33,8 +33,6 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
     sky_trie_t *trie;
 
     server = sky_palloc(pool, sizeof(sky_http_server_t));
-    server->host = conf->host;
-    server->port = conf->port;
     server->pool = pool;
 
     if (!conf->header_buf_n) {
@@ -88,11 +86,10 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
 }
 
 
-void
-sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *loop) {
+sky_bool_t
+sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *loop, const sky_inet_address_t *address) {
     sky_tcp_conf_t conf = {
-            .host = server->host,
-            .port = server->port,
+            .address = *address,
 #ifdef HAVE_TLS
             .run = (sky_tcp_accept_cb_pt) (server->tls_ctx ? https_connection_accept_cb : http_connection_accept_cb),
 #else
@@ -104,8 +101,7 @@ sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *loop) {
             .defer_accept = true
     };
 
-    sky_http_request_init(server);
-    sky_tcp_listener_create(loop, server->pool, &conf);
+    return sky_tcp_listener_create(loop, server->pool, &conf);
 }
 
 sky_str_t *
