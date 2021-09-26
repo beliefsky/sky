@@ -6,10 +6,7 @@
 #define SKY_INET_H
 
 #include "../core/types.h"
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
+#include <sys/socket.h>
 
 #ifdef HAVE_BUILTIN_BSWAP
 #define sky_swap_u16(_ll) __builtin_bswap16(_ll)
@@ -49,6 +46,17 @@ extern "C" {
 #define sky_htonll(_ll) (_ll)
 #define sky_ntohll(_ll) (_ll)
 #endif
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
+typedef struct {
+    socklen_t len;
+    struct sockaddr *addr;
+} sky_inet_address_t;
+
+
 
 #if defined(__cplusplus)
 } /* extern "C" { */

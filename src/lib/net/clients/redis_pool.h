@@ -22,9 +22,7 @@ typedef struct sky_redis_conn_s sky_redis_conn_t;
 typedef sky_tcp_pool_t sky_redis_pool_t;
 
 typedef struct {
-    sky_str_t host;
-    sky_str_t port;
-    sky_str_t unix_path;
+    sky_inet_address_t address;
     sky_u16_t connection_size;
 } sky_redis_conf_t;
 

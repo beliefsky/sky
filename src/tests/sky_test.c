@@ -8,6 +8,7 @@
 
 #include <event/event_loop.h>
 #include <unistd.h>
+#include <netinet/in.h>
 
 #include <net/http/http_server.h>
 #include <core/cpuinfo.h>
@@ -23,10 +24,9 @@
 #include <sys/wait.h>
 #include <core/json.h>
 #include <net/clients/tcp_rw_pool.h>
-#include <net/http/http_parse.h>
 #include <core/date.h>
 
-static void server_start(void *ssl);
+static void server_start();
 
 static void build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module);
 
@@ -100,7 +100,7 @@ http_header_add(sky_http_request_t *r, void *data) {
 }
 
 static void
-server_start(void *ssl) {
+server_start() {
     sky_pool_t *pool;
     sky_event_loop_t *loop;
     sky_http_server_t *server;
@@ -112,10 +112,16 @@ server_start(void *ssl) {
 
     loop = sky_event_loop_create(pool);
 
+    struct sockaddr_in *pg_address = sky_pcalloc(pool, sizeof(struct sockaddr_in));
+    pg_address->sin_family = AF_INET;
+    pg_address->sin_family = INADDR_ANY;
+    pg_address->sin_port = sky_htons(5432);
+
     const sky_pgsql_conf_t pg_conf = {
-            .host = sky_string("localhost"),
-            .port = sky_string("5432"),
-//            .unix_path = sky_string("/run/postgresql/.s.PGSQL.5432"),
+            .address = {
+                    .len = sizeof(struct sockaddr_in),
+                    .addr = (struct sockaddr *) pg_address
+            },
             .database = sky_string("beliefsky"),
             .username = sky_string("postgres"),
             .password = sky_string("123456"),
@@ -128,9 +134,16 @@ server_start(void *ssl) {
         return;
     }
 
+    struct sockaddr_in *redis_address = sky_pcalloc(pool, sizeof(struct sockaddr_in));
+    pg_address->sin_family = AF_INET;
+    pg_address->sin_family = INADDR_ANY;
+    pg_address->sin_port = sky_htons(6379);
+
     const sky_redis_conf_t redis_conf = {
-            .host = sky_string("localhost"),
-            .port = sky_string("6379"),
+            .address = {
+                    .len = sizeof(struct sockaddr_in),
+                    .addr = (struct sockaddr *) redis_address
+            },
             .connection_size = 16
     };
 
@@ -176,12 +189,12 @@ server_start(void *ssl) {
             .header_buf_size = 2048,
             .header_buf_n = 4,
             .modules_host = hosts,
-#ifdef HAVE_TLS 
+#ifdef HAVE_TLS
             .modules_n = 1,
             .tls_ctx = ssl
 #else
             .modules_n = 1
-#endif            
+#endif
     };
 
     server = sky_http_server_create(pool, &conf);

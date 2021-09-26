@@ -17,9 +17,7 @@ static sky_redis_result_t *redis_exec_read(sky_redis_conn_t *rc);
 sky_redis_pool_t *
 sky_redis_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_redis_conf_t *conf) {
     const sky_tcp_pool_conf_t c = {
-            .host = conf->host,
-            .port = conf->port,
-            .unix_path = conf->unix_path,
+            .address = conf->address,
             .connection_size = conf->connection_size,
             .timeout = 5,
             .keep_alive = 300,
