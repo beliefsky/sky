@@ -36,7 +36,7 @@ sky_udp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_udp_
     listener_t *l;
 
 #ifndef SOCK_NONBLOCK
-    fd = socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
+    fd = socket(conf->address.addr->sa_family,SOCK_DGRAM, 0);
         if (sky_unlikely(fd == -1)) {
             return false;
         }
