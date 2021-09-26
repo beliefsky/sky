@@ -114,7 +114,7 @@ server_start() {
 
     struct sockaddr_in *pg_address = sky_pcalloc(pool, sizeof(struct sockaddr_in));
     pg_address->sin_family = AF_INET;
-    pg_address->sin_family = INADDR_ANY;
+    pg_address->sin_addr.s_addr = INADDR_ANY;
     pg_address->sin_port = sky_htons(5432);
 
     const sky_pgsql_conf_t pg_conf = {
@@ -136,7 +136,7 @@ server_start() {
 
     struct sockaddr_in *redis_address = sky_pcalloc(pool, sizeof(struct sockaddr_in));
     pg_address->sin_family = AF_INET;
-    pg_address->sin_family = INADDR_ANY;
+    pg_address->sin_addr.s_addr = INADDR_ANY;
     pg_address->sin_port = sky_htons(6379);
 
     const sky_redis_conf_t redis_conf = {
