@@ -341,7 +341,7 @@ tcp_connection(sky_tcp_conn_t *conn) {
         return false;
     }
 #else
-        fd = socket(conn_pool->addr->sa_family, SOCK_STREAM, 0);
+        fd = socket(conn_pool->address.addr->sa_family, SOCK_STREAM, 0);
         if (sky_unlikely(fd < 0)) {
             return false;
         }
