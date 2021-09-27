@@ -249,6 +249,7 @@ sky_core_reset(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     while ((defer = coro->defers.next) != &coro->defers) {
         defer->prev->next = defer->next;
         defer->next->prev = defer->prev;
+        defer->free = true;
 
         defer->one_arg ? defer->one.func(defer->one.data)
                        : defer->two.func(defer->two.data1, defer->two.data2);
@@ -291,6 +292,7 @@ sky_coro_destroy(sky_coro_t *coro) {
     while ((defer = coro->defers.next) != &coro->defers) {
         defer->prev->next = defer->next;
         defer->next->prev = defer->prev;
+        defer->free = true;
 
         defer->one_arg ? defer->one.func(defer->one.data)
                        : defer->two.func(defer->two.data1, defer->two.data2);
@@ -362,7 +364,7 @@ sky_defer_cancel(sky_coro_t *coro, sky_defer_t *defer) {
 
 sky_inline void
 sky_defer_remove(sky_coro_t *coro, sky_defer_t *defer) {
-    if (defer->free) {
+    if (sky_unlikely(defer->free)) {
         return;
     }
     defer->prev->next = defer->next;
