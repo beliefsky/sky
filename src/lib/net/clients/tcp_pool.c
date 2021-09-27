@@ -126,7 +126,7 @@ sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
 
     ev = &conn->client->ev;
     if (!ev->reg) {
-        if ((n = read(ev->fd, data, size)) > 0) {
+        if ((n = recv(ev->fd, data, size, 0)) > 0) {
             return (sky_usize_t) n;
         }
         switch (errno) {
@@ -160,7 +160,7 @@ sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
 
     for (;;) {
 
-        if ((n = read(ev->fd, data, size)) > 0) {
+        if ((n = recv(ev->fd, data, size, 0)) > 0) {
             ev->timeout = client->conn_pool->keep_alive;
             return (sky_usize_t) n;
         }
@@ -195,7 +195,7 @@ sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize
 
     ev = &conn->client->ev;
     if (!ev->reg) {
-        if ((n = write(ev->fd, data, size)) > 0) {
+        if ((n = send(ev->fd, data, size, 0)) > 0) {
             if ((sky_usize_t) n < size) {
                 data += n;
                 size -= (sky_usize_t) n;
@@ -234,7 +234,7 @@ sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize
     }
 
     for (;;) {
-        if ((n = write(ev->fd, data, size)) > 0) {
+        if ((n = send(ev->fd, data, size, 0)) > 0) {
             if ((sky_usize_t) n < size) {
                 data += n;
                 size -= (sky_usize_t) n;
