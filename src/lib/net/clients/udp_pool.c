@@ -126,7 +126,7 @@ sky_udp_pool_conn_read(sky_udp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
 
     ev = &conn->client->ev;
     if (!ev->reg) {
-        if ((n = recv(ev->fd, data, size, 0)) > 0) {
+        if ((n = read(ev->fd, data, size)) > 0) {
             return (sky_usize_t) n;
         }
         switch (errno) {
@@ -145,7 +145,7 @@ sky_udp_pool_conn_read(sky_udp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
         if (sky_unlikely(!conn->client || ev->fd == -1)) {
             return 0;
         }
-    } else{
+    } else {
         ev->timeout = client->conn_pool->keep_alive;
     }
 
@@ -160,7 +160,7 @@ sky_udp_pool_conn_read(sky_udp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
 
     for (;;) {
 
-        if ((n = recv(ev->fd, data, size, 0)) > 0) {
+        if ((n = read(ev->fd, data, size)) > 0) {
             ev->timeout = client->conn_pool->keep_alive;
             return (sky_usize_t) n;
         }
@@ -195,7 +195,7 @@ sky_udp_pool_conn_write(sky_udp_conn_t *conn, const sky_uchar_t *data, sky_usize
 
     ev = &conn->client->ev;
     if (!ev->reg) {
-        if ((n = send(ev->fd, data, size, 0)) > 0) {
+        if ((n = write(ev->fd, data, size)) > 0) {
             if ((sky_usize_t) n < size) {
                 data += n;
                 size -= (sky_usize_t) n;
@@ -234,7 +234,7 @@ sky_udp_pool_conn_write(sky_udp_conn_t *conn, const sky_uchar_t *data, sky_usize
     }
 
     for (;;) {
-        if ((n = send(ev->fd, data, size, 0)) > 0) {
+        if ((n = write(ev->fd, data, size)) > 0) {
             if ((sky_usize_t) n < size) {
                 data += n;
                 size -= (sky_usize_t) n;
