@@ -103,7 +103,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             ev->write |= (event->events & EPOLLOUT) != 0;
 
             // 是否出现异常
-            if (sky_unlikely(!!(event->events & (EPOLLRDHUP | EPOLLHUP)) || !ev->run(ev))) {
+            if (!!(event->events & (EPOLLRDHUP | EPOLLHUP)) || !ev->run(ev)) {
                 close(ev->fd);
                 ev->reg = false;
                 ev->fd = -1;
