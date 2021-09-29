@@ -123,7 +123,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             // 是否可读
             // 是否可写
             ev->now = loop->now;
-            ev->status |= event->filter == EVFILT_READ ? 0x00000002 : 0x00000004;
+            ev->status |= 1 << ((sky_u32_t)(event->filter == EVFILT_READ) + 1);
             if ((ev->status & 0x80000000) != 0) {
                 ev->status &= (index << 16) | 0x0000FFFF; // ev->index = index;
                 run_ev[index++] = ev;
