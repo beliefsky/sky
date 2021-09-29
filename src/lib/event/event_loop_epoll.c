@@ -105,8 +105,8 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             // 是否出现异常
             if (!!(event->events & (EPOLLRDHUP | EPOLLHUP)) || !ev->run(ev)) {
                 close(ev->fd);
-                ev->status &= 0xFFFFFFFE; // reg = false
                 ev->fd = -1;
+                ev->status &= 0xFFFFFFFE; // reg = false
                 sky_timer_wheel_unlink(&ev->timer);
                 ev->close(ev);
                 continue;
