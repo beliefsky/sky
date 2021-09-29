@@ -27,10 +27,7 @@ struct sky_event_s {
     sky_time_t now; // 当前时间
     sky_i32_t fd; //事件句柄
     sky_i32_t timeout; // 节点超时时间
-    sky_i16_t index; // 用于内部多时间合并寻址的相关功能
-    sky_bool_t reg: 1; // 该事件监听是否注册，用于防止非法提交
-    sky_bool_t read: 1; // 目前io可读
-    sky_bool_t write: 1; // 目前io可写
+    sky_u32_t status;
 };
 
 struct sky_event_loop_s {
@@ -42,6 +39,17 @@ struct sky_event_loop_s {
     sky_bool_t update: 1;
 };
 
+#define sky_event_is_reg(_ev)    (((_ev)->status | 0x00000001) != 0)
+#define sky_event_is_read(_ev)   (((_ev)->status | 0x00000002) != 0)
+#define sky_event_is_write(_ev)  (((_ev)->status | 0xFFFF0004) != 0)
+
+#define sky_event_none_reg(_ev)    (((_ev)->status | 0x00000001) == 0)
+#define sky_event_none_read(_ev)   (((_ev)->status | 0x00000002) == 0)
+#define sky_event_none_write(_ev)  (((_ev)->status | 0xFFFF0004) == 0)
+
+#define sky_event_clean_read(_ev)   (_ev)->status &= 0xFFFF0002
+#define sky_event_clean_write(_ev)  (_ev)->status &= 0xFFFF0004
+
 #define sky_event_init(_loop, _ev, _fd, _run, _close) \
     do {                                              \
         sky_timer_entry_init(&(_ev)->timer, null);    \
@@ -51,16 +59,13 @@ struct sky_event_loop_s {
         (_ev)->close = (sky_event_close_pt)(_close);  \
         (_ev)->fd = (_fd);                            \
         (_ev)->timeout = 0;                           \
-        (_ev)->reg = false;                           \
-        (_ev)->read = true;                           \
-        (_ev)->write = true;                          \
+        (_ev)->status = 0x0000FFFF;                   \
     } while(0)
 
-#define sky_event_rebind(_ev, _fd) \
-    do {                           \
-        (_ev)->fd = (_fd);         \
-        (_ev)->read = true;        \
-        (_ev)->write = true;       \
+#define sky_event_rebind(_ev, _fd)     \
+    do {                               \
+        (_ev)->fd = (_fd);             \
+        (_ev)->status |= 0x0000FFFF;   \
     } while(0)
 
 
