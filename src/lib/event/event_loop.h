@@ -59,7 +59,7 @@ struct sky_event_loop_s {
         (_ev)->close = (sky_event_close_pt)(_close);  \
         (_ev)->fd = (_fd);                            \
         (_ev)->timeout = 0;                           \
-        (_ev)->status = 0x0000FFFF;                   \
+        (_ev)->status = 0x8000FFFF;                   \
     } while(0)
 
 #define sky_event_rebind(_ev, _fd)     \
