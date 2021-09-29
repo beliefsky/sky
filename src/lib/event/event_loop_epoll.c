@@ -92,20 +92,20 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             ev = event->data.ptr;
 
             // 需要处理被移除的请求
-            if (!ev->reg) {
+            if (sky_event_none_reg(ev)) {
                 sky_timer_wheel_unlink(&ev->timer);
                 ev->close(ev);
                 continue;
             }
             // 是否可读
             ev->now = loop->now;
-            ev->read |= (event->events & EPOLLIN) != 0;
-            ev->write |= (event->events & EPOLLOUT) != 0;
+            ev->status |= ((sky_u32_t) ((event->events & EPOLLIN) != 0) << 1)
+                          | ((sky_u32_t) ((event->events & EPOLLOUT) != 0) << 2);
 
             // 是否出现异常
             if (!!(event->events & (EPOLLRDHUP | EPOLLHUP)) || !ev->run(ev)) {
                 close(ev->fd);
-                ev->reg = false;
+                ev->status &= 0xFFFFFFFE; // reg = false
                 ev->fd = -1;
                 sky_timer_wheel_unlink(&ev->timer);
                 ev->close(ev);
@@ -138,7 +138,7 @@ sky_event_loop_shutdown(sky_event_loop_t *loop) {
 
 void
 sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
-    if (sky_unlikely(ev->reg || ev->fd == -1)) {
+    if (sky_unlikely(sky_event_is_reg(ev) || ev->fd == -1)) {
         return;
     }
 
@@ -153,7 +153,7 @@ sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
     }
 
     ev->timeout = timeout;
-    ev->reg = true;
+    ev->status |= 0x00000001; // reg = true
 
     struct epoll_event event = {
             .events = EPOLLIN | EPOLLOUT | EPOLLPRI | EPOLLRDHUP | EPOLLERR | EPOLLET,
@@ -166,12 +166,12 @@ sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
 
 void
 sky_event_unregister(sky_event_t *ev) {
-    if (sky_unlikely(!ev->reg && ev->fd == -1)) {
+    if (sky_unlikely(sky_event_none_reg(ev) && ev->fd == -1)) {
         return;
     }
     close(ev->fd);
     ev->fd = -1;
-    ev->reg = false;
+    ev->status &= 0xFFFFFFFE; // reg = false
     // 此处应添加 应追加需要处理的连接
     ev->loop->update = true;
     sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_u64_t) ev->loop->now);
@@ -179,10 +179,10 @@ sky_event_unregister(sky_event_t *ev) {
 
 static void
 event_timer_callback(sky_event_t *ev) {
-    if (ev->reg) {
+    if (sky_event_is_reg(ev)) {
         close(ev->fd);
         ev->fd = -1;
-        ev->reg = false;
+        ev->status &= 0xFFFFFFFE; // reg = false
     }
     ev->close(ev);
 }
