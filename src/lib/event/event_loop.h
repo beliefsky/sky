@@ -39,13 +39,13 @@ struct sky_event_loop_s {
     sky_bool_t update: 1;
 };
 
-#define sky_event_is_reg(_ev)    (((_ev)->status & 0x00000001) != 0)
-#define sky_event_is_read(_ev)   (((_ev)->status & 0x00000002) != 0)
-#define sky_event_is_write(_ev)  (((_ev)->status & 0x00000004) != 0)
+#define sky_event_is_reg(_ev)    (!!((_ev)->status & 0x00000001))
+#define sky_event_is_read(_ev)   (!!((_ev)->status & 0x00000002))
+#define sky_event_is_write(_ev)  (!!((_ev)->status & 0x00000004))
 
-#define sky_event_none_reg(_ev)    (((_ev)->status & 0x00000001) == 0)
-#define sky_event_none_read(_ev)   (((_ev)->status & 0x00000002) == 0)
-#define sky_event_none_write(_ev)  (((_ev)->status & 0x00000004) == 0)
+#define sky_event_none_reg(_ev)    (!((_ev)->status & 0x00000001))
+#define sky_event_none_read(_ev)   (!((_ev)->status & 0x00000002))
+#define sky_event_none_write(_ev)  (!((_ev)->status & 0x00000004))
 
 #define sky_event_clean_read(_ev)   (_ev)->status &= 0xFFFFFFFD
 #define sky_event_clean_write(_ev)  (_ev)->status &= 0xFFFFFFFB
