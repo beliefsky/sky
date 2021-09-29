@@ -125,7 +125,7 @@ sky_udp_pool_conn_read(sky_udp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
     }
 
     ev = &conn->client->ev;
-    if (sky_event_none_read(ev)) {
+    if (sky_event_none_reg(ev)) {
         if ((n = read(ev->fd, data, size)) > 0) {
             return (sky_usize_t) n;
         }
