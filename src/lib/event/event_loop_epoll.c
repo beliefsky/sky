@@ -99,8 +99,8 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             }
             // 是否可读
             ev->now = loop->now;
-            ev->status |= ((sky_u32_t) ((event->events & EPOLLIN) != 0) << 1)
-                          | ((sky_u32_t) ((event->events & EPOLLOUT) != 0) << 2);
+            ev->status |= ((sky_u32_t) ((event->events & EPOLLOUT) != 0) << 2)
+                          | ((sky_u32_t) ((event->events & EPOLLIN) != 0) << 1);
 
             // 是否出现异常
             if (!!(event->events & (EPOLLRDHUP | EPOLLHUP)) || !ev->run(ev)) {
