@@ -34,7 +34,6 @@ set(SOURCES
         net/clients/tcp_pool.c
         net/clients/udp_pool.c
         net/clients/tcp_rw_pool.c
-        net/clients/tcp_async_pool.c
         net/clients/pgsql_pool.c
         net/clients/redis_pool.c
         net/http/http_io_wrappers.c
