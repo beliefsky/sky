@@ -210,7 +210,7 @@ sky_event_unregister(sky_event_t *ev) {
     ev->status &= 0xFFFFFFFE; // reg = false
     // 此处应添加 应追加需要处理的连接
     ev->loop->update = true;
-    sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_u64_t) ev->loop->now);
+    sky_timer_wheel_link(ev->loop->ctx, &ev->timer, 0);
 }
 
 static void
