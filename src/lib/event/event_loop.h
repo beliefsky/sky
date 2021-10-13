@@ -58,6 +58,7 @@ struct sky_event_loop_s {
         (_ev)->run = (sky_event_run_pt)(_run);        \
         (_ev)->close = (sky_event_close_pt)(_close);  \
         (_ev)->fd = (_fd);                            \
+        (_ev)->timeout = 0;                           \
         (_ev)->status = 0x0000FFFE;                   \
     } while(0)
 
