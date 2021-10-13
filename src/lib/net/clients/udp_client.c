@@ -1,14 +1,14 @@
 //
-// Created by edz on 2021/4/30.
+// Created by edz on 2021/10/13.
 //
 
-#include "tcp_client.h"
+#include "udp_client.h"
 #include "../../core/log.h"
 #include "../../core/memory.h"
 #include <errno.h>
 #include <unistd.h>
 
-struct sky_tcp_client_s {
+struct sky_udp_client_s {
     sky_event_t ev;
     sky_event_t *main_ev;
     sky_coro_t *coro;
@@ -18,11 +18,11 @@ struct sky_tcp_client_s {
     sky_bool_t free: 1;
 };
 
-static sky_bool_t tcp_run(sky_tcp_client_t *client);
+static sky_bool_t udp_run(sky_udp_client_t *client);
 
-static void tcp_close(sky_tcp_client_t *client);
+static void udp_close(sky_udp_client_t *client);
 
-static void tcp_client_defer(sky_tcp_client_t *client);
+static void udp_client_defer(sky_udp_client_t *client);
 
 #ifndef HAVE_ACCEPT4
 
@@ -32,23 +32,23 @@ static sky_bool_t set_socket_nonblock(sky_i32_t fd);
 
 #endif
 
-sky_tcp_client_t *
-sky_tcp_client_create(const sky_tcp_client_conf_t *conf) {
-    sky_tcp_client_t *client = sky_malloc(sizeof(sky_tcp_client_t));
-    sky_event_init(conf->event->loop, &client->ev, -1, tcp_run, tcp_close);
+sky_udp_client_t *
+sky_udp_client_create(const sky_udp_client_conf_t *conf) {
+    sky_udp_client_t *client = sky_malloc(sizeof(sky_udp_client_t));
+    sky_event_init(conf->event->loop, &client->ev, -1, udp_run, udp_close);
     client->main_ev = conf->event;
     client->coro = conf->coro;
     client->keep_alive = conf->keep_alive ?: -1;
     client->timeout = conf->timeout ?: 5;
     client->free = false;
 
-    client->defer = sky_defer_add(client->coro, (sky_defer_func_t) tcp_client_defer, client);
+    client->defer = sky_defer_add(client->coro, (sky_defer_func_t) udp_client_defer, client);
 
     return client;
 }
 
 sky_bool_t
-sky_tcp_client_connection(sky_tcp_client_t *client, sky_inet_address_t *address) {
+sky_udp_client_connection(sky_udp_client_t *client, sky_inet_address_t *address) {
     sky_event_t *ev = &client->ev;
 
     if (sky_unlikely(client->free)) {
@@ -58,12 +58,12 @@ sky_tcp_client_connection(sky_tcp_client_t *client, sky_inet_address_t *address)
         sky_event_unregister(ev);
     }
 #ifdef HAVE_ACCEPT4
-    sky_i32_t fd = socket(address->addr->sa_family, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+    sky_i32_t fd = socket(address->addr->sa_family, SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
     if (sky_unlikely(fd < 0)) {
         return false;
     }
 #else
-        sky_i32_t fd = socket(address->addr->sa_family, SOCK_STREAM, 0);
+        sky_i32_t fd = socket(address->addr->sa_family, SOCK_DGRAM, 0);
             if (sky_unlikely(fd < 0)) {
                 return false;
             }
@@ -116,7 +116,7 @@ sky_tcp_client_connection(sky_tcp_client_t *client, sky_inet_address_t *address)
 }
 
 sky_usize_t
-sky_tcp_client_read(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t size) {
+sky_udp_client_read(sky_udp_client_t *client, sky_uchar_t *data, sky_usize_t size) {
     sky_event_t *ev;
     ssize_t n;
 
@@ -183,7 +183,7 @@ sky_tcp_client_read(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t siz
 }
 
 sky_bool_t
-sky_tcp_client_write(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usize_t size) {
+sky_udp_client_write(sky_udp_client_t *client, const sky_uchar_t *data, sky_usize_t size) {
     sky_event_t *ev;
     ssize_t n;
 
@@ -261,32 +261,32 @@ sky_tcp_client_write(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usiz
 }
 
 void
-sky_tcp_client_destroy(sky_tcp_client_t *client) {
+sky_udp_client_destroy(sky_udp_client_t *client) {
     if (sky_unlikely(client->free)) {
         return;
     }
     sky_defer_cancel(client->coro, client->defer);
-    tcp_client_defer(client);
+    udp_client_defer(client);
 }
 
 static sky_bool_t
-tcp_run(sky_tcp_client_t *client) {
+udp_run(sky_udp_client_t *client) {
     sky_event_t *event = client->main_ev;
 
     return event->run(event);
 }
 
 static void
-tcp_close(sky_tcp_client_t *client) {
+udp_close(sky_udp_client_t *client) {
     if (client->free) {
         sky_free(client);
     } else {
-        tcp_run(client);
+        udp_run(client);
     }
 }
 
 static sky_inline void
-tcp_client_defer(sky_tcp_client_t *client) {
+udp_client_defer(sky_udp_client_t *client) {
     client->free = true;
 
     if (sky_unlikely(client->ev.fd == -1)) {
@@ -326,4 +326,3 @@ set_socket_nonblock(sky_i32_t fd) {
 }
 
 #endif
-
