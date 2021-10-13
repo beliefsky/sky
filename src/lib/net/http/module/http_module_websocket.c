@@ -131,7 +131,7 @@ module_run_next(sky_websocket_session_t *session) {
     session->write_work = write_work = sky_coro_create(&switcher, (sky_coro_func_t) write_message, session);
     (void) sky_defer_add(conn->coro, (sky_defer_func_t) sky_coro_destroy, write_work);
     for (;;) {
-        if (conn->ev.read) {
+        if (sky_event_is_read(&conn->ev)) {
             result = sky_coro_resume(read_work);
             if (sky_unlikely(result != SKY_CORO_MAY_RESUME)) {
                 sky_coro_destroy(read_work);
@@ -139,7 +139,7 @@ module_run_next(sky_websocket_session_t *session) {
                 return;
             }
         }
-        if (conn->ev.write) {
+        if (sky_event_is_write(&conn->ev)) {
             result = sky_coro_resume(write_work);
             if (sky_unlikely(result != SKY_CORO_MAY_RESUME)) {
                 sky_coro_destroy(write_work);
@@ -380,13 +380,13 @@ websocket_read_wait(sky_websocket_session_t *session, sky_uchar_t *data, sky_u32
     }
     fd = session->event->fd;
     for (;;) {
-        if (sky_unlikely(!session->event->read)) {
+        if (sky_unlikely(sky_event_none_read(session->event))) {
             sky_coro_yield(session->read_work, SKY_CORO_MAY_RESUME);
             continue;
         }
 
         if ((n = read(fd, data, size)) < 1) {
-            session->event->read = false;
+            sky_event_clean_read(session->event);
             if (sky_unlikely(!n)) {
                 sky_coro_yield(session->read_work, SKY_CORO_ABORT);
                 sky_coro_exit();
@@ -417,13 +417,13 @@ websocket_read(sky_websocket_session_t *session, sky_uchar_t *data, sky_u32_t si
 
     fd = session->event->fd;
     for (;;) {
-        if (sky_unlikely(!session->event->read)) {
+        if (sky_unlikely(sky_event_none_read(session->event))) {
             sky_coro_yield(session->read_work, SKY_CORO_MAY_RESUME);
             continue;
         }
 
         if ((n = read(fd, data, size)) < 1) {
-            session->event->read = false;
+            sky_event_clean_read(session->event);
             if (sky_unlikely(!n)) {
                 sky_coro_yield(session->read_work, SKY_CORO_ABORT);
                 sky_coro_exit();
@@ -449,13 +449,13 @@ websocket_write(sky_websocket_session_t *session, sky_uchar_t *data, sky_u32_t s
 
     fd = session->event->fd;
     for (;;) {
-        if (sky_unlikely(!session->event->write)) {
+        if (sky_unlikely(sky_event_none_write(session->event))) {
             sky_coro_yield(session->write_work, SKY_CORO_MAY_RESUME);
             continue;
         }
 
         if ((n = write(fd, data, size)) < 1) {
-            session->event->write = false;
+            sky_event_clean_write(session->event);
             if (sky_unlikely(!n)) {
                 sky_coro_yield(session->write_work, SKY_CORO_ABORT);
                 sky_coro_exit();
@@ -473,7 +473,7 @@ websocket_write(sky_websocket_session_t *session, sky_uchar_t *data, sky_u32_t s
 
         if (n < size) {
             data += n, size -= (sky_u32_t) n;
-            session->event->write = false;
+            sky_event_clean_write(session->event);
             sky_coro_yield(session->write_work, SKY_CORO_MAY_RESUME);
             continue;
         }

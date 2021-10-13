@@ -22,7 +22,7 @@ http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size) {
 
     const sky_i32_t fd = conn->ev.fd;
     for (;;) {
-        if (sky_unlikely(!conn->ev.read)) {
+        if (sky_unlikely(sky_event_none_read(&conn->ev))) {
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
             continue;
         }
@@ -31,7 +31,7 @@ http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size) {
             switch (errno) {
                 case EINTR:
                 case EAGAIN:
-                    conn->ev.read = false;
+                    sky_event_clean_read(&conn->ev);
                     sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
                     continue;
                 default:
@@ -49,7 +49,7 @@ http_write(sky_http_connection_t *conn, const sky_uchar_t *data, sky_usize_t siz
 
     const sky_i32_t fd = conn->ev.fd;
     for (;;) {
-        if (sky_unlikely(!conn->ev.write)) {
+        if (sky_unlikely(sky_event_none_write(&conn->ev))) {
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
             continue;
         }
@@ -58,7 +58,7 @@ http_write(sky_http_connection_t *conn, const sky_uchar_t *data, sky_usize_t siz
             switch (errno) {
                 case EINTR:
                 case EAGAIN:
-                    conn->ev.write = false;
+                    sky_event_clean_write(&conn->ev);
                     sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
                     continue;
                 default:
@@ -70,7 +70,7 @@ http_write(sky_http_connection_t *conn, const sky_uchar_t *data, sky_usize_t siz
         if ((sky_usize_t) n < size) {
             data += n;
             size -= (sky_usize_t) n;
-            conn->ev.write = false;
+            sky_event_clean_write(&conn->ev);
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
             continue;
         }
@@ -88,6 +88,10 @@ http_send_file(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky_
 
     const sky_i32_t socket_fd = conn->ev.fd;
     for (;;) {
+        if (sky_unlikely(sky_event_none_write(&conn->ev))) {
+            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+            continue;
+        }
         const sky_i64_t n = sendfile(socket_fd, fd, &offset, size);
         if (n < 1) {
             if (sky_unlikely(n == 0)) {
@@ -97,7 +101,7 @@ http_send_file(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky_
             switch (errno) {
                 case EAGAIN:
                 case EINTR:
-                    conn->ev.write = false;
+                    sky_event_clean_write(&conn->ev);
                     sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
                     continue;
                 default:
@@ -109,7 +113,7 @@ http_send_file(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky_
         if (!size) {
             return;
         }
-        conn->ev.write = false;
+        sky_event_clean_write(&conn->ev);
         sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
     }
 }
@@ -136,7 +140,7 @@ http_send_file(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky_
 
     const sky_i32_t socket_fd = conn->ev.fd;
     for (;;) {
-        if (sky_unlikely(!conn->ev.write)) {
+         if (sky_unlikely(sky_event_none_write(&conn->ev))) {
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
             continue;
         }
@@ -164,14 +168,14 @@ http_send_file(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky_
             }
             break;
         }
-        conn->ev.write = false;
+        sky_event_clean_write(&conn->ev);
         sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
     }
-    conn->ev.write = false;
+    sky_event_clean_write(&conn->ev);
     sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
 
     for (;;) {
-        if (sky_unlikely(!conn->ev.write)) {
+         if (sky_unlikely(sky_event_none_write(&conn->ev))) {
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
             continue;
         }
@@ -192,7 +196,7 @@ http_send_file(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky_
         if (!size) {
             return;
         }
-        conn->ev.write = false;
+        sky_event_clean_write(&conn->ev);
         sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
     }
 }
@@ -220,7 +224,7 @@ http_send_file(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky_
     const sky_i32_t socket_fd = conn->ev.fd;
 
     for (;;) {
-        if (sky_unlikely(!conn->ev.write)) {
+         if (sky_unlikely(sky_event_none_write(&conn->ev))) {
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
             continue;
         }
@@ -249,14 +253,14 @@ http_send_file(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky_
             }
             break;
         }
-        conn->ev.write = false;
+        sky_event_clean_write(&conn->ev);
         sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
     }
-    conn->ev.write = false;
+    sky_event_clean_write(&conn->ev);
     sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
 
     for (;;) {
-        if (sky_unlikely(!conn->ev.write)) {
+         if (sky_unlikely(sky_event_none_write(&conn->ev))) {
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
             continue;
         }
@@ -278,7 +282,7 @@ http_send_file(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky_
         if (!size) {
             return;
         }
-        conn->ev.write = false;
+        sky_event_clean_write(&conn->ev);
         sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
     }
 }

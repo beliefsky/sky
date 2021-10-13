@@ -6,21 +6,35 @@
 #define SKY_TCP_CLIENT_H
 
 #include "../../event/event_loop.h"
-#include "../../core//coro.h"
+#include "../../core/coro.h"
+#include "../inet.h"
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 typedef struct {
+    sky_event_t *event;
+    sky_coro_t *coro;
+    sky_i32_t keep_alive;
     sky_i32_t timeout;
-    sky_i32_t family;
-    sky_i32_t sock_type;
-    sky_i32_t protocol;
-    sky_u32_t addr_len;
-    struct sockaddr *addr;
 } sky_tcp_client_conf_t;
 
-sky_bool_t sky_tcp_connection(sky_tcp_client_conf_t *conf);
+typedef struct sky_tcp_client_s sky_tcp_client_t;
 
-void sky_tcp_conn_read();
+sky_tcp_client_t *sky_tcp_client_create(const sky_tcp_client_conf_t *conf);
 
-void sky_tcp_conn_write();
+sky_bool_t sky_tcp_client_connection(sky_tcp_client_t *client, sky_inet_address_t *address);
+
+sky_usize_t sky_tcp_client_read(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t size);
+
+sky_bool_t sky_tcp_client_write(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usize_t size);
+
+void sky_tcp_client_destroy(sky_tcp_client_t *client);
+
+
+#if defined(__cplusplus)
+} /* extern "C" { */
+#endif
 
 #endif //SKY_TCP_CLIENT_H

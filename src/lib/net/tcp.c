@@ -110,7 +110,7 @@ tcp_listener_accept(sky_event_t *ev) {
     sky_event_loop_t *loop;
     sky_event_t *event;
 
-    if (!ev->read) {
+    if (sky_event_none_read(ev)) {
         return true;
     }
     l = (listener_t *) ev;

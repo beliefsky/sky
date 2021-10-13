@@ -34,9 +34,10 @@ set(SOURCES
         net/clients/tcp_pool.c
         net/clients/udp_pool.c
         net/clients/tcp_rw_pool.c
-        net/clients/tcp_async_pool.c
         net/clients/pgsql_pool.c
         net/clients/redis_pool.c
+        net/clients/tcp_client.c
+        net/clients/udp_client.c
         net/http/http_io_wrappers.c
         net/http/http_request.c
         net/http/http_response.c
@@ -130,6 +131,8 @@ install(FILES
         net/clients/udp_pool.h
         net/clients/redis_pool.h
         net/clients/pgsql_pool.h
+        net/clients/tcp_client.h
+        net/clients/udp_client.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/clients")
 install(FILES
         net/http/http_parse.h
