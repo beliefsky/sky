@@ -18,15 +18,14 @@ typedef void (*sky_timer_wheel_pt)(sky_timer_wheel_entry_t *entry);
 struct sky_timer_wheel_entry_s {
     sky_timer_wheel_entry_t *prev;
     sky_timer_wheel_entry_t *next;
-    sky_u64_t expire_at;
     sky_timer_wheel_pt cb;
+    sky_u64_t expire_at;
 };
 
 #define sky_timer_entry_init(_entry, _cb) \
     do {                                  \
         (_entry)->prev = null;            \
         (_entry)->next = null;            \
-        (_entry)->expire_at = 0;          \
         (_entry)->cb = (sky_timer_wheel_pt)(_cb); \
     } while(0)
 
