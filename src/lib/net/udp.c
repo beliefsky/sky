@@ -4,17 +4,19 @@
 
 #include "udp.h"
 #include "../core/log.h"
+#include "../core/memory.h"
 #include <unistd.h>
 #include <errno.h>
 
 typedef struct {
     sky_event_t ev;
-    sky_inet_address_t address;
     sky_udp_msg_pt msg_run;
     sky_udp_connect_err_pt connect_err;
     sky_udp_connect_cb_pt run;
-    sky_i32_t timeout;
     void *data;
+    sky_inet_address_t *address;
+    sky_u32_t address_len;
+    sky_i32_t timeout;
 } listener_t;
 
 static sky_bool_t udp_listener_run(sky_event_t *ev);
@@ -36,7 +38,7 @@ sky_udp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_udp_
     listener_t *l;
 
 #ifndef SOCK_NONBLOCK
-    fd = socket(conf->address.addr->sa_family,SOCK_DGRAM, 0);
+    fd = socket(conf->address->sa_family,SOCK_DGRAM, 0);
         if (sky_unlikely(fd == -1)) {
             return false;
         }
@@ -46,7 +48,7 @@ sky_udp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_udp_
         }
 #else
 
-    fd = socket(conf->address.addr->sa_family,SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+    fd = socket(conf->address->sa_family, SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
 
     if (sky_unlikely(fd == -1)) {
         return false;
@@ -59,13 +61,16 @@ sky_udp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_udp_
 #else
     setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_i32_t));
 #endif
-    if (sky_likely(bind(fd, conf->address.addr, conf->address.len) != 0)) {
+    if (sky_likely(bind(fd, conf->address, conf->address_len) != 0)) {
         close(fd);
         return false;
     }
 
-    l = sky_palloc(pool, sizeof(listener_t));
-    l->address = conf->address;
+    l = sky_palloc(pool, sizeof(listener_t) + conf->address_len);
+    l->address_len = conf->address_len;
+    l->address = (sky_inet_address_t *) (l + 1);
+    sky_memcpy(l->address, conf->address, l->address_len);
+
     l->msg_run = conf->msg_run;
     l->connect_err = conf->connect_err;
     l->run = conf->run;
@@ -88,7 +93,7 @@ udp_listener_run(sky_event_t *ev) {
         return true;
     }
 #ifndef SOCK_NONBLOCK
-    sky_i32_t fd = socket(l->address.addr->sa_family, SOCK_DGRAM, 0);
+    sky_i32_t fd = socket(l->address->sa_family, SOCK_DGRAM, 0);
     if (sky_unlikely(fd == -1)) {
         l->connect_err(conn);
         return true;
@@ -98,7 +103,7 @@ udp_listener_run(sky_event_t *ev) {
         return true;
     }
 #else
-    sky_i32_t fd = socket(l->address.addr->sa_family,SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+    sky_i32_t fd = socket(l->address->sa_family, SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
 
     if (sky_unlikely(fd == -1)) {
         l->connect_err(conn);
@@ -113,7 +118,7 @@ udp_listener_run(sky_event_t *ev) {
 #else
     setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_i32_t));
 #endif
-    if (sky_unlikely(bind(fd, l->address.addr, l->address.len) != 0)) {
+    if (sky_unlikely(bind(fd, l->address, l->address_len) != 0)) {
         close(fd);
         l->connect_err(conn);
         return true;
@@ -122,7 +127,7 @@ udp_listener_run(sky_event_t *ev) {
     conn->listener = l;
     sky_event_init(ev->loop, &conn->ev, fd, udp_client_connection, l->connect_err);
 
-    if (connect(fd, conn->address.addr, conn->address.len) < 0) {
+    if (connect(fd, conn->address, conn->address_len) < 0) {
         switch (errno) {
             case EALREADY:
             case EINPROGRESS:
@@ -158,7 +163,7 @@ udp_client_connection(sky_event_t *ev) {
     const sky_i32_t fd = ev->fd;
     sky_udp_connect_t *conn = (sky_udp_connect_t *) ev;
 
-    if (connect(fd, conn->address.addr, conn->address.len) < 0) {
+    if (connect(fd, conn->address, conn->address_len) < 0) {
         switch (errno) {
             case EALREADY:
             case EINPROGRESS:

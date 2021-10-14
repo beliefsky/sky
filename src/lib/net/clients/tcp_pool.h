@@ -20,10 +20,11 @@ typedef struct sky_tcp_node_s sky_tcp_node_t;
 typedef sky_bool_t (*sky_tcp_pool_conn_next)(sky_tcp_conn_t *conn);
 
 typedef struct {
-    sky_inet_address_t address;
     sky_u16_t connection_size;
     sky_i32_t keep_alive;
     sky_i32_t timeout;
+    sky_u32_t address_len;
+    sky_inet_address_t *address;
     sky_tcp_pool_conn_next next_func;
 } sky_tcp_pool_conf_t;
 

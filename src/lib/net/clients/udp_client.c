@@ -48,7 +48,7 @@ sky_udp_client_create(const sky_udp_client_conf_t *conf) {
 }
 
 sky_bool_t
-sky_udp_client_connection(sky_udp_client_t *client, sky_inet_address_t *address) {
+sky_udp_client_connection(sky_udp_client_t *client, sky_inet_address_t *address, sky_u32_t address_len) {
     sky_event_t *ev = &client->ev;
 
     if (sky_unlikely(client->free)) {
@@ -58,12 +58,12 @@ sky_udp_client_connection(sky_udp_client_t *client, sky_inet_address_t *address)
         sky_event_unregister(ev);
     }
 #ifdef HAVE_ACCEPT4
-    sky_i32_t fd = socket(address->addr->sa_family, SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+    sky_i32_t fd = socket(address->sa_family, SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
     if (sky_unlikely(fd < 0)) {
         return false;
     }
 #else
-        sky_i32_t fd = socket(address->addr->sa_family, SOCK_DGRAM, 0);
+        sky_i32_t fd = socket(address->sa_family, SOCK_DGRAM, 0);
             if (sky_unlikely(fd < 0)) {
                 return false;
             }
@@ -74,7 +74,7 @@ sky_udp_client_connection(sky_udp_client_t *client, sky_inet_address_t *address)
 #endif
     sky_event_rebind(ev, fd);
 
-    if (connect(fd, address->addr, address->len) < 0) {
+    if (connect(fd, address, address_len) < 0) {
         switch (errno) {
             case EALREADY:
             case EINPROGRESS:
@@ -93,7 +93,7 @@ sky_udp_client_connection(sky_udp_client_t *client, sky_inet_address_t *address)
             if (sky_unlikely(ev->fd == -1)) {
                 return false;
             }
-            if (connect(ev->fd, address->addr, address->len) < 0) {
+            if (connect(ev->fd, address, address_len) < 0) {
                 switch (errno) {
                     case EALREADY:
                     case EINPROGRESS:
