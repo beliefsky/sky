@@ -57,7 +57,7 @@ sky_udp_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_udp_pool
     conn_pool = sky_palloc(pool, sizeof(sky_udp_pool_t) + (sizeof(sky_udp_node_t) * i) + conf->address.len);
     conn_pool->clients = (sky_udp_node_t *) (conn_pool + 1);
 
-    conn_pool->address.addr = (struct sockaddr *) (conn_pool->clients + i);
+    conn_pool->address.addr = (sky_sockaddr_t *) (conn_pool->clients + i);
     conn_pool->address.len = conf->address.len;
     sky_memcpy(conn_pool->address.addr, conf->address.addr, conn_pool->address.len);
 
