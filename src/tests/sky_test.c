@@ -112,15 +112,16 @@ server_start() {
 
     loop = sky_event_loop_create(pool);
 
-    struct sockaddr_in *pg_address = sky_pcalloc(pool, sizeof(struct sockaddr_in));
-    pg_address->sin_family = AF_INET;
-    pg_address->sin_addr.s_addr = INADDR_ANY;
-    pg_address->sin_port = sky_htons(5432);
+    struct sockaddr_in address = {
+            .sin_family = AF_INET,
+            .sin_addr.s_addr = INADDR_ANY,
+            .sin_port = sky_htons(5432)
+    };
 
     const sky_pgsql_conf_t pg_conf = {
             .address = {
                     .len = sizeof(struct sockaddr_in),
-                    .addr = (struct sockaddr *) pg_address
+                    .addr = (struct sockaddr *) &address
             },
             .database = sky_string("beliefsky"),
             .username = sky_string("postgres"),
@@ -134,15 +135,16 @@ server_start() {
         return;
     }
 
-    struct sockaddr_in *redis_address = sky_pcalloc(pool, sizeof(struct sockaddr_in));
-    redis_address->sin_family = AF_INET;
-    redis_address->sin_addr.s_addr = INADDR_ANY;
-    redis_address->sin_port = sky_htons(6379);
+    struct sockaddr_in redis_address = {
+            .sin_family = AF_INET,
+            .sin_addr.s_addr = INADDR_ANY,
+            .sin_port = sky_htons(6379)
+    };
 
     const sky_redis_conf_t redis_conf = {
             .address = {
                     .len = sizeof(struct sockaddr_in),
-                    .addr = (struct sockaddr *) redis_address
+                    .addr = (struct sockaddr *) &redis_address
             },
             .connection_size = 16
     };
@@ -200,26 +202,29 @@ server_start() {
     sky_inet_address_t http_address;
 
     {
-        struct sockaddr_in *address_tmp = sky_pcalloc(pool, sizeof(struct sockaddr_in));
-        address_tmp->sin_family = AF_INET;
-        address_tmp->sin_addr.s_addr = INADDR_ANY;
-        address_tmp->sin_port = sky_htons(8080);
+        struct sockaddr_in address_tmp = {
+                .sin_family = AF_INET,
+                .sin_addr.s_addr = INADDR_ANY,
+                .sin_port = sky_htons(8080)
+        };
 
         http_address.len = sizeof(struct sockaddr_in);
-        http_address.addr = (struct sockaddr *) address_tmp;
+        http_address.addr = (struct sockaddr *) &address_tmp;
+
+        sky_http_server_bind(server, loop, &http_address);
     }
-    sky_http_server_bind(server, loop, &http_address);
 
     {
-        struct sockaddr_in6 *address_tmp = sky_pcalloc(pool, sizeof(struct sockaddr_in6));
-        address_tmp->sin6_family = AF_INET6;
-        address_tmp->sin6_addr = in6addr_any;
-        address_tmp->sin6_port = sky_htons(8080);
+        struct sockaddr_in6 address_tmp = {
+                .sin6_family = AF_INET6,
+                .sin6_addr = in6addr_any,
+                .sin6_port = sky_htons(8080)
+        };
 
         http_address.len = sizeof(struct sockaddr_in6);
-        http_address.addr = (struct sockaddr *) address_tmp;
+        http_address.addr = (struct sockaddr *) &address_tmp;
+        sky_http_server_bind(server, loop, &http_address);
     }
-    sky_http_server_bind(server, loop, &http_address);
 
     sky_event_loop_run(loop);
     sky_event_loop_shutdown(loop);
