@@ -4,6 +4,7 @@
 
 #include "udp_pool.h"
 #include "../../core/log.h"
+#include "../../core/memory.h"
 #include <errno.h>
 #include <unistd.h>
 
@@ -53,11 +54,12 @@ sky_udp_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_udp_pool
         sky_log_error("连接数必须为2的整数幂");
         return null;
     }
-    conn_pool = sky_palloc(pool, sizeof(sky_udp_pool_t) + sizeof(sky_udp_node_t) * i);
-    conn_pool->address = conf->address;
-    conn_pool->connection_ptr = (sky_u16_t) (i - 1);
+    conn_pool = sky_palloc(pool, sizeof(sky_udp_pool_t) + (sizeof(sky_udp_node_t) * i) + conf->address.len);
     conn_pool->clients = (sky_udp_node_t *) (conn_pool + 1);
-    conn_pool->next_func = conf->next_func;
+
+    conn_pool->address.addr = (struct sockaddr *) (conn_pool->clients + i);
+    conn_pool->address.len = conf->address.len;
+    sky_memcpy(conn_pool->address.addr, conf->address.addr, conn_pool->address.len);
 
     conn_pool->keep_alive = conf->keep_alive ?: -1;
     conn_pool->timeout = conf->timeout ?: 5;
