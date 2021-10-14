@@ -45,13 +45,13 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
     listener_t *l;
 
 #ifdef HAVE_ACCEPT4
-    fd = socket(conf->address.addr->sa_family, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+    fd = socket(conf->address->sa_family, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
 
     if (sky_unlikely(fd == -1)) {
         return false;
     }
 #else
-    fd = socket(conf->address.addr->sa_family, SOCK_STREAM, 0);
+    fd = socket(conf->address->sa_family, SOCK_STREAM, 0);
         if (sky_unlikely(fd == -1)) {
             return false;
         }
@@ -75,7 +75,7 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
         setsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &opt, sizeof(sky_i32_t));
     }
 #endif
-    if (sky_unlikely(bind(fd, conf->address.addr, conf->address.len) != 0)) {
+    if (sky_unlikely(bind(fd, conf->address, conf->address_len) != 0)) {
         close(fd);
         return false;
     }
