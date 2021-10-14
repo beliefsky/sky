@@ -4,14 +4,16 @@
 
 #include "udp_pool.h"
 #include "../../core/log.h"
+#include "../../core/memory.h"
 #include <errno.h>
 #include <unistd.h>
 
 struct sky_udp_pool_s {
-    sky_inet_address_t address;
+    sky_u16_t connection_ptr;
     sky_i32_t keep_alive;
     sky_i32_t timeout;
-    sky_u16_t connection_ptr;
+    sky_u32_t address_len;
+    sky_inet_address_t *address;;
     sky_udp_node_t *clients;
     sky_udp_pool_conn_next next_func;
 };
@@ -53,11 +55,12 @@ sky_udp_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_udp_pool
         sky_log_error("连接数必须为2的整数幂");
         return null;
     }
-    conn_pool = sky_palloc(pool, sizeof(sky_udp_pool_t) + sizeof(sky_udp_node_t) * i);
-    conn_pool->address = conf->address;
-    conn_pool->connection_ptr = (sky_u16_t) (i - 1);
+    conn_pool = sky_palloc(pool, sizeof(sky_udp_pool_t) + (sizeof(sky_udp_node_t) * i) + conf->address_len);
     conn_pool->clients = (sky_udp_node_t *) (conn_pool + 1);
-    conn_pool->next_func = conf->next_func;
+
+    conn_pool->address = (sky_inet_address_t *) (conn_pool->clients + i);
+    conn_pool->address_len = conf->address_len;
+    sky_memcpy(conn_pool->address, conf->address, conn_pool->address_len);
 
     conn_pool->keep_alive = conf->keep_alive ?: -1;
     conn_pool->timeout = conf->timeout ?: 5;
@@ -337,12 +340,12 @@ udp_connection(sky_udp_conn_t *conn) {
     conn_pool = conn->client->conn_pool;
     ev = &conn->client->ev;
 #ifdef HAVE_ACCEPT4
-    fd = socket(conn_pool->address.addr->sa_family, SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+    fd = socket(conn_pool->address->sa_family, SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
     if (sky_unlikely(fd < 0)) {
         return false;
     }
 #else
-        fd = socket(conn_pool->address.addr->sa_family, SOCK_DGRAM, 0);
+        fd = socket(conn_pool->address->sa_family, SOCK_DGRAM, 0);
         if (sky_unlikely(fd < 0)) {
             return false;
         }
@@ -354,7 +357,7 @@ udp_connection(sky_udp_conn_t *conn) {
 
     sky_event_rebind(ev, fd);
 
-    if (connect(fd, conn_pool->address.addr, conn_pool->address.len) < 0) {
+    if (connect(fd, conn_pool->address, conn_pool->address_len) < 0) {
         switch (errno) {
             case EALREADY:
             case EINPROGRESS:
@@ -373,7 +376,7 @@ udp_connection(sky_udp_conn_t *conn) {
             if (sky_unlikely(!conn->client || ev->fd == -1)) {
                 return false;
             }
-            if (connect(ev->fd, conn_pool->address.addr, conn_pool->address.len) < 0) {
+            if (connect(ev->fd, conn_pool->address, conn_pool->address_len) < 0) {
                 switch (errno) {
                     case EALREADY:
                     case EINPROGRESS:

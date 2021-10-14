@@ -112,16 +112,15 @@ server_start() {
 
     loop = sky_event_loop_create(pool);
 
-    struct sockaddr_in *pg_address = sky_pcalloc(pool, sizeof(struct sockaddr_in));
-    pg_address->sin_family = AF_INET;
-    pg_address->sin_addr.s_addr = INADDR_ANY;
-    pg_address->sin_port = sky_htons(5432);
+    struct sockaddr_in pg_address = {
+            .sin_family = AF_INET,
+            .sin_addr.s_addr = INADDR_ANY,
+            .sin_port = sky_htons(5432)
+    };
 
     const sky_pgsql_conf_t pg_conf = {
-            .address = {
-                    .len = sizeof(struct sockaddr_in),
-                    .addr = (struct sockaddr *) pg_address
-            },
+            .address = (sky_inet_address_t *) &pg_address,
+            .address_len = sizeof(struct sockaddr_in),
             .database = sky_string("beliefsky"),
             .username = sky_string("postgres"),
             .password = sky_string("123456"),
@@ -134,16 +133,15 @@ server_start() {
         return;
     }
 
-    struct sockaddr_in *redis_address = sky_pcalloc(pool, sizeof(struct sockaddr_in));
-    redis_address->sin_family = AF_INET;
-    redis_address->sin_addr.s_addr = INADDR_ANY;
-    redis_address->sin_port = sky_htons(6379);
+    struct sockaddr_in redis_address = {
+            .sin_family = AF_INET,
+            .sin_addr.s_addr = INADDR_ANY,
+            .sin_port = sky_htons(6379)
+    };
 
     const sky_redis_conf_t redis_conf = {
-            .address = {
-                    .len = sizeof(struct sockaddr_in),
-                    .addr = (struct sockaddr *) redis_address
-            },
+            .address = (sky_inet_address_t *) &redis_address,
+            .address_len = sizeof(struct sockaddr_in),
             .connection_size = 16
     };
 
@@ -152,18 +150,6 @@ server_start() {
         sky_log_error("create redis connection pool error");
         return;
     }
-
-//    const sky_tcp_rw_conf_t tcp_conf = {
-//            .host = sky_string("192.168.0.15"),
-//            .port = sky_string("1883"),
-//            .timeout = 600,
-//            .connection_size = 1
-//    };
-//    test_pool = sky_tcp_rw_pool_create(loop, pool, &tcp_conf);
-//    if (!redis_pool) {
-//        sky_log_error("create tcp rw connection pool error");
-//        return;
-//    }
 
     sky_array_init(&modules, pool, 32, sizeof(sky_http_module_t));
 
@@ -197,29 +183,24 @@ server_start() {
 
     server = sky_http_server_create(pool, &conf);
 
-    sky_inet_address_t http_address;
+    {
+        struct sockaddr_in http_address = {
+                .sin_family = AF_INET,
+                .sin_addr.s_addr = INADDR_ANY,
+                .sin_port = sky_htons(8080)
+        };
+        sky_http_server_bind(server, loop, (sky_inet_address_t *) &http_address, sizeof(struct sockaddr_in));
+    }
 
     {
-        struct sockaddr_in *address_tmp = sky_pcalloc(pool, sizeof(struct sockaddr_in));
-        address_tmp->sin_family = AF_INET;
-        address_tmp->sin_addr.s_addr = INADDR_ANY;
-        address_tmp->sin_port = sky_htons(8080);
+        struct sockaddr_in6 http_address = {
+                .sin6_family = AF_INET6,
+                .sin6_addr = in6addr_any,
+                .sin6_port = sky_htons(8080)
+        };
 
-        http_address.len = sizeof(struct sockaddr_in);
-        http_address.addr = (struct sockaddr *) address_tmp;
+        sky_http_server_bind(server, loop, (sky_inet_address_t *) &http_address, sizeof(struct sockaddr_in6));
     }
-    sky_http_server_bind(server, loop, &http_address);
-
-    {
-        struct sockaddr_in6 *address_tmp = sky_pcalloc(pool, sizeof(struct sockaddr_in6));
-        address_tmp->sin6_family = AF_INET6;
-        address_tmp->sin6_addr = in6addr_any;
-        address_tmp->sin6_port = sky_htons(8080);
-
-        http_address.len = sizeof(struct sockaddr_in6);
-        http_address.addr = (struct sockaddr *) address_tmp;
-    }
-    sky_http_server_bind(server, loop, &http_address);
 
     sky_event_loop_run(loop);
     sky_event_loop_shutdown(loop);

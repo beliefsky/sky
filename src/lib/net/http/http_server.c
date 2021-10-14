@@ -87,9 +87,15 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
 
 
 sky_bool_t
-sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *loop, const sky_inet_address_t *address) {
+sky_http_server_bind(
+        sky_http_server_t *server,
+        sky_event_loop_t *loop,
+        sky_inet_address_t *address,
+        sky_u32_t address_len
+) {
     sky_tcp_conf_t conf = {
-            .address = *address,
+            .address = address,
+            .address_len = address_len,
 #ifdef HAVE_TLS
             .run = (sky_tcp_accept_cb_pt) (server->tls_ctx ? https_connection_accept_cb : http_connection_accept_cb),
 #else

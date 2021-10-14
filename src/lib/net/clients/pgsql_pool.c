@@ -93,6 +93,7 @@ sky_pgsql_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_pgsql_
 
     const sky_tcp_pool_conf_t c = {
             .address = conf->address,
+            .address_len = conf->address_len,
             .connection_size = conf->connection_size,
             .keep_alive = 300,
             .timeout = 10,
