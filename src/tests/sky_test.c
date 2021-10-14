@@ -121,7 +121,7 @@ server_start() {
     const sky_pgsql_conf_t pg_conf = {
             .address = {
                     .len = sizeof(struct sockaddr_in),
-                    .addr = (struct sockaddr *) &address
+                    .addr = (sky_sockaddr_t *) &address
             },
             .database = sky_string("beliefsky"),
             .username = sky_string("postgres"),
@@ -144,7 +144,7 @@ server_start() {
     const sky_redis_conf_t redis_conf = {
             .address = {
                     .len = sizeof(struct sockaddr_in),
-                    .addr = (struct sockaddr *) &redis_address
+                    .addr = (sky_sockaddr_t *) &redis_address
             },
             .connection_size = 16
     };
@@ -209,7 +209,7 @@ server_start() {
         };
 
         http_address.len = sizeof(struct sockaddr_in);
-        http_address.addr = (struct sockaddr *) &address_tmp;
+        http_address.addr = (sky_sockaddr_t *) &address_tmp;
 
         sky_http_server_bind(server, loop, &http_address);
     }
@@ -222,7 +222,7 @@ server_start() {
         };
 
         http_address.len = sizeof(struct sockaddr_in6);
-        http_address.addr = (struct sockaddr *) &address_tmp;
+        http_address.addr = (sky_sockaddr_t *) &address_tmp;
         sky_http_server_bind(server, loop, &http_address);
     }
 

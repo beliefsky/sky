@@ -51,9 +51,11 @@
 extern "C" {
 #endif
 
+typedef struct sockaddr sky_sockaddr_t;
+
 typedef struct {
     socklen_t len;
-    struct sockaddr *addr;
+    sky_sockaddr_t *addr;
 } sky_inet_address_t;
 
 
