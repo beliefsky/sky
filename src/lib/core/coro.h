@@ -20,8 +20,15 @@ typedef sky_usize_t sky_coro_context_t[10];
 #elif defined(__i386__)
 typedef sky_usize_t sky_coro_context_t[7];
 #else
-#include "./arch/ucontext.h"
-typedef sky_ucontext_t sky_coro_context_t;
+
+#include <ucontext.h>
+typedef ucontext_t sky_ucontext_t;
+
+#define sky_getcontext getcontext
+#define sky_makecontext makecontext
+#define sky_swapcontext swapcontext
+
+typedef ucontext_t sky_coro_context_t;
 #endif
 
 typedef struct sky_coro_s sky_coro_t;
