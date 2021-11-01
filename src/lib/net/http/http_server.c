@@ -3,7 +3,7 @@
 //
 
 #include "http_server.h"
-#include "../tcp.h"
+#include "../tcp_server.h"
 #include "http_request.h"
 #include "http_io_wrappers.h"
 
@@ -93,7 +93,7 @@ sky_http_server_bind(
         sky_inet_address_t *address,
         sky_u32_t address_len
 ) {
-    sky_tcp_conf_t conf = {
+    sky_tcp_server_conf_t conf = {
             .address = address,
             .address_len = address_len,
 #ifdef HAVE_TLS
@@ -107,7 +107,7 @@ sky_http_server_bind(
             .defer_accept = true
     };
 
-    return sky_tcp_listener_create(loop, server->pool, &conf);
+    return sky_tcp_server_create(loop, server->pool, &conf);
 }
 
 sky_str_t *
