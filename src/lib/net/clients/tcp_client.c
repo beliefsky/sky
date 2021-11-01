@@ -115,6 +115,11 @@ sky_tcp_client_connection(sky_tcp_client_t *client, sky_inet_address_t *address,
     return true;
 }
 
+sky_inline sky_bool_t
+sky_tcp_client_is_connection(sky_tcp_client_t *client) {
+    return !client->free && client->ev.fd != -1;
+}
+
 sky_usize_t
 sky_tcp_client_read(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t size) {
     sky_event_t *ev;
