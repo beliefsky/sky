@@ -34,8 +34,9 @@ set(SOURCES
         net/udp_pool.c
         net/tcp_client.c
         net/udp_client.c
+        net/tcp_listener.c
+        net/udp_listener.c
         net/tls/tls.c
-        net/extend/tcp_rw_pool.c
         net/extend/pgsql_pool.c
         net/extend/redis_pool.c
         net/http/http_io_wrappers.c
