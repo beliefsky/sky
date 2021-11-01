@@ -23,7 +23,6 @@
 #include <net/http/http_response.h>
 #include <sys/wait.h>
 #include <core/json.h>
-#include <net/extend/tcp_rw_pool.h>
 #include <core/date.h>
 
 static void server_start();
@@ -82,7 +81,6 @@ main() {
 
 sky_pgsql_pool_t *ps_pool;
 sky_redis_pool_t *redis_pool;
-sky_tcp_rw_pool_t *test_pool;
 
 static sky_bool_t
 http_header_add(sky_http_request_t *r, void *data) {
