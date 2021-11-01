@@ -5,7 +5,7 @@
 #ifndef SKY_PGSQL_POOL_H
 #define SKY_PGSQL_POOL_H
 
-#include "tcp_pool.h"
+#include "../tcp_pool.h"
 #include "../../core/string.h"
 #include "../../core/log.h"
 

@@ -3,8 +3,8 @@
 //
 
 #include "tcp_client.h"
-#include "../../core/log.h"
-#include "../../core/memory.h"
+#include "../core/log.h"
+#include "../core/memory.h"
 #include <errno.h>
 #include <unistd.h>
 

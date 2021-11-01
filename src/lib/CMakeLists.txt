@@ -28,16 +28,16 @@ set(SOURCES
         event/event_loop_epoll.c
         event/event_loop_kqueue.c
         net/inet.c
-        net/tcp.c
+        net/tcp_server.c
         net/udp.c
+        net/tcp_pool.c
+        net/udp_pool.c
+        net/tcp_client.c
+        net/udp_client.c
         net/tls/tls.c
-        net/clients/tcp_pool.c
-        net/clients/udp_pool.c
-        net/clients/tcp_rw_pool.c
-        net/clients/pgsql_pool.c
-        net/clients/redis_pool.c
-        net/clients/tcp_client.c
-        net/clients/udp_client.c
+        net/extend/tcp_rw_pool.c
+        net/extend/pgsql_pool.c
+        net/extend/redis_pool.c
         net/http/http_io_wrappers.c
         net/http/http_request.c
         net/http/http_response.c
@@ -120,20 +120,20 @@ install(FILES
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/event")
 install(FILES
         net/inet.h
-        net/tcp.h
+        net/tcp_server.h
         net/udp.h
+        net/tcp_pool.h
+        net/udp_pool.h
+        net/tcp_client.h
+        net/udp_client.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net")
 install(FILES
         net/tls/tls.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/tls")
 install(FILES
-        net/clients/tcp_pool.h
-        net/clients/udp_pool.h
-        net/clients/redis_pool.h
-        net/clients/pgsql_pool.h
-        net/clients/tcp_client.h
-        net/clients/udp_client.h
-        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/clients")
+        net/extend/redis_pool.h
+        net/extend/pgsql_pool.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/extend")
 install(FILES
         net/http/http_parse.h
         net/http/http_request.h
