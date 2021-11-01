@@ -48,7 +48,7 @@ sky_tcp_client_create(const sky_tcp_client_conf_t *conf) {
 }
 
 sky_bool_t
-sky_tcp_client_connection(sky_tcp_client_t *client, sky_inet_address_t *address, sky_u32_t address_len) {
+sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_address_t *address, sky_u32_t address_len) {
     sky_event_t *ev = &client->ev;
 
     if (sky_unlikely(client->free)) {
