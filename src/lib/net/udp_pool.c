@@ -127,7 +127,7 @@ sky_udp_pool_conn_read(sky_udp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
         return 0;
     }
 
-    ev = &conn->client->ev;
+    ev = &client->ev;
     if (sky_event_none_reg(ev)) {
         if ((n = read(ev->fd, data, size)) > 0) {
             return (sky_usize_t) n;
@@ -196,7 +196,7 @@ sky_udp_pool_conn_write(sky_udp_conn_t *conn, const sky_uchar_t *data, sky_usize
         return false;
     }
 
-    ev = &conn->client->ev;
+    ev = &client->ev;
     if (sky_event_none_reg(ev)) {
         if ((n = write(ev->fd, data, size)) > 0) {
             if ((sky_usize_t) n < size) {
