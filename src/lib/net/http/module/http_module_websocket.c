@@ -371,7 +371,7 @@ write_test(sky_websocket_session_t *session, sky_pool_t *pool, sky_uchar_t *data
 
 static sky_inline void
 websocket_read_wait(sky_websocket_session_t *session, sky_uchar_t *data, sky_u32_t size) {
-    ssize_t n;
+    sky_isize_t n;
     sky_i32_t fd;
 
 
@@ -411,7 +411,7 @@ websocket_read_wait(sky_websocket_session_t *session, sky_uchar_t *data, sky_u32
 
 static sky_inline sky_u32_t
 websocket_read(sky_websocket_session_t *session, sky_uchar_t *data, sky_u32_t size) {
-    ssize_t n;
+    sky_isize_t n;
     sky_i32_t fd;
 
 
@@ -444,7 +444,7 @@ websocket_read(sky_websocket_session_t *session, sky_uchar_t *data, sky_u32_t si
 
 static sky_inline void
 websocket_write(sky_websocket_session_t *session, sky_uchar_t *data, sky_u32_t size) {
-    ssize_t n;
+    sky_isize_t n;
     sky_i32_t fd;
 
     fd = session->event->fd;
