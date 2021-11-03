@@ -58,7 +58,7 @@ sky_tcp_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_tcp_pool
     conn_pool = sky_palloc(pool, sizeof(sky_tcp_pool_t) + (sizeof(sky_tcp_node_t) * i) + conf->address_len);
     conn_pool->clients = (sky_tcp_node_t *) (conn_pool + 1);
 
-    conn_pool->address = (sky_inet_address_t * )(conn_pool->clients + i);
+    conn_pool->address = (sky_inet_address_t *) (conn_pool->clients + i);
     conn_pool->address_len = conf->address_len;
     sky_memcpy(conn_pool->address, conf->address, conn_pool->address_len);
 
@@ -130,7 +130,7 @@ sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
         return 0;
     }
 
-    ev = &conn->client->ev;
+    ev = &client->ev;
     if (sky_event_none_reg(ev)) {
         if ((n = read(ev->fd, data, size)) > 0) {
             return (sky_usize_t) n;
@@ -199,7 +199,7 @@ sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize
         return false;
     }
 
-    ev = &conn->client->ev;
+    ev = &client->ev;
     if (sky_event_none_reg(ev)) {
         if ((n = write(ev->fd, data, size)) > 0) {
             if ((sky_usize_t) n < size) {
