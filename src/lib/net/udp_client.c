@@ -123,7 +123,7 @@ sky_udp_client_is_connection(sky_udp_client_t *client) {
 sky_usize_t
 sky_udp_client_read(sky_udp_client_t *client, sky_uchar_t *data, sky_usize_t size) {
     sky_event_t *ev;
-    ssize_t n;
+    sky_isize_t n;
 
     if (sky_unlikely(client->free || client->ev.fd == -1)) {
         return 0;
@@ -190,7 +190,7 @@ sky_udp_client_read(sky_udp_client_t *client, sky_uchar_t *data, sky_usize_t siz
 sky_bool_t
 sky_udp_client_write(sky_udp_client_t *client, const sky_uchar_t *data, sky_usize_t size) {
     sky_event_t *ev;
-    ssize_t n;
+    sky_isize_t n;
 
     if (sky_unlikely(client->free || client->ev.fd == -1)) {
         return false;
