@@ -45,8 +45,6 @@ struct sky_http_server_s {
 #ifdef HAVE_TLS
     sky_tls_ctx_t *tls_ctx;
 #endif
-    sky_coro_switcher_t switcher;
-
     sky_str_t *status_map;
     sky_trie_t *default_host;
     sky_trie_t *host_map;
