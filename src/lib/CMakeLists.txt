@@ -113,6 +113,7 @@ install(FILES
         core/log.h
         core/json.h
         core/timer_wheel.h
+        core/thread.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/core")
 
 install(FILES
