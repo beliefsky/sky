@@ -34,6 +34,7 @@ static sky_i8_t tcp_connection(sky_tcp_listener_t *listener);
 
 static void tcp_connection_defer(sky_tcp_w_t *writer);
 
+
 #ifndef HAVE_ACCEPT4
 
 #include <fcntl.h>
@@ -234,7 +235,7 @@ tcp_connection(sky_tcp_listener_t *listener) {
         if (sky_unlikely(fd < 0)) {
             return -1;
         }
-#elif
+#else
         fd = socket(listener->reader.address->sa_family, SOCK_STREAM, 0);
         if (sky_unlikely(fd < 0)) {
             return -1;
