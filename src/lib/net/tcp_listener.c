@@ -35,8 +35,8 @@ static sky_i8_t tcp_connection(sky_tcp_listener_t *listener);
 static void tcp_connection_defer(sky_tcp_w_t *writer);
 
 sky_tcp_listener_t *
-sky_tcp_listener_create(sky_event_loop_t *loop, sky_coro_switcher_t *switcher, const sky_tcp_listener_conf_t *conf) {
-    sky_coro_t *coro = sky_coro_new(switcher);
+sky_tcp_listener_create(sky_event_loop_t *loop, const sky_tcp_listener_conf_t *conf) {
+    sky_coro_t *coro = sky_coro_new();
 
     sky_tcp_listener_t *listener = sky_coro_malloc(coro, sizeof(sky_tcp_listener_t) + conf->address_len);
     sky_tcp_r_t *reader = &listener->reader;

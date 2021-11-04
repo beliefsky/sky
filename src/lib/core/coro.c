@@ -4,6 +4,7 @@
 
 #include "coro.h"
 #include "memory.h"
+#include "thread.h"
 
 #include <assert.h>
 #include <sys/mman.h>
@@ -24,12 +25,33 @@
     ".globl " ASM_SYMBOL(name_) "\n\t" ASM_SYMBOL(name_) ":\n\t"
 
 
+#if defined(__x86_64__)
+typedef sky_usize_t sky_coro_context_t[10];
+#elif defined(__i386__)
+typedef sky_usize_t sky_coro_context_t[7];
+#else
+
+#include <ucontext.h>
+typedef ucontext_t sky_ucontext_t;
+
+#define sky_getcontext getcontext
+#define sky_makecontext makecontext
+#define sky_swapcontext swapcontext
+
+typedef ucontext_t sky_coro_context_t;
+#endif
+
+
 typedef struct mem_block_s mem_block_t;
 
 struct mem_block_s {
     mem_block_t *prev;
     mem_block_t *next;
 };
+
+typedef struct {
+    sky_coro_context_t caller;
+} sky_coro_switcher_t;
 
 struct sky_defer_s {
     union {
@@ -65,6 +87,9 @@ struct sky_coro_s {
 
 
 static void mem_block_add(sky_coro_t *coro);
+
+
+static sky_thread sky_coro_switcher_t switcher;
 
 #if defined(__x86_64__)
 
@@ -197,8 +222,8 @@ sky_core_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
 
 
 sky_coro_t *
-sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func, void *data) {
-    sky_coro_t *coro = sky_coro_new(switcher);
+sky_coro_create(sky_coro_func_t func, void *data) {
+    sky_coro_t *coro = sky_coro_new();
 
     sky_core_set(coro, func, data);
 
@@ -206,7 +231,7 @@ sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func, void *data)
 }
 
 sky_inline sky_coro_t *
-sky_coro_new(sky_coro_switcher_t *switcher) {
+sky_coro_new() {
 #ifdef MAP_STACK
     sky_uchar_t *ptr = mmap(
             null,
@@ -229,7 +254,7 @@ sky_coro_new(sky_coro_switcher_t *switcher) {
 
     sky_coro_t *coro = (sky_coro_t *) (ptr + CORO_STACK_MIN);
 
-    coro->switcher = switcher;
+    coro->switcher = &switcher;
     coro->defers.prev = coro->defers.next = &coro->defers;
     coro->free_defers.prev = coro->free_defers.next = &coro->free_defers;
     coro->blocks.next = coro->blocks.prev = &coro->blocks;
