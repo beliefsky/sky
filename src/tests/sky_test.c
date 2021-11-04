@@ -33,17 +33,19 @@ main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
-    sky_i32_t size = (sky_i32_t) sysconf(_SC_NPROCESSORS_CONF);
-    if (size < 1) {
-        size = 1;
+    const sky_i32_t size = (sky_i32_t) sysconf(_SC_NPROCESSORS_CONF);
+    if (size < 2) {
+        server_start(null);
+        return 0;
     }
+
     sky_thread_t *thread = sky_malloc(sizeof(sky_thread_t) * (sky_usize_t) size);
     for (sky_i32_t i = 0; i < size; ++i) {
         sky_thread_attr_t attr;
 
         sky_thread_attr_init(&attr);
         sky_thread_attr_set_scope(&attr, SKY_THREAD_SCOPE_SYSTEM);
-        sky_thread_attr_set_stack_size(&attr, 4096);
+//        sky_thread_attr_set_stack_size(&attr, 4096);
 
         sky_thread_create(&thread[i], &attr, server_start, null);
 
@@ -51,13 +53,12 @@ main() {
 
         sky_thread_set_cpu(thread[i], i);
     }
-
-    sky_log_info("=== start server ==");
-
     for (sky_i32_t i = 0; i < size; ++i) {
         sky_thread_join(thread[i], null);
     }
     sky_free(thread);
+
+    return 0;
 }
 
 sky_thread sky_pgsql_pool_t *ps_pool;
@@ -121,7 +122,7 @@ server_start(void *args) {
     const sky_redis_conf_t redis_conf = {
             .address = (sky_inet_address_t *) &redis_address,
             .address_len = sizeof(struct sockaddr_in),
-            .connection_size = 16
+            .connection_size = 4
     };
 
     redis_pool = sky_redis_pool_create(loop, pool, &redis_conf);
