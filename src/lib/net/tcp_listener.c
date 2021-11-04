@@ -34,6 +34,14 @@ static sky_i8_t tcp_connection(sky_tcp_listener_t *listener);
 
 static void tcp_connection_defer(sky_tcp_w_t *writer);
 
+#ifndef HAVE_ACCEPT4
+
+#include <fcntl.h>
+
+static sky_bool_t set_socket_nonblock(sky_i32_t fd);
+
+#endif
+
 sky_tcp_listener_t *
 sky_tcp_listener_create(sky_event_loop_t *loop, const sky_tcp_listener_conf_t *conf) {
     sky_coro_t *coro = sky_coro_new();
@@ -294,4 +302,35 @@ tcp_connection_defer(sky_tcp_w_t *writer) {
     writer->reader->current = null;
     writer->reader = null;
 }
+
+#ifndef HAVE_ACCEPT4
+
+static sky_inline sky_bool_t
+set_socket_nonblock(sky_i32_t fd) {
+    sky_i32_t flags;
+
+    flags = fcntl(fd, F_GETFD);
+
+    if (sky_unlikely(flags < 0)) {
+        return false;
+    }
+
+    if (sky_unlikely(fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0)) {
+        return false;
+    }
+
+    flags = fcntl(fd, F_GETFD);
+
+    if (sky_unlikely(flags < 0)) {
+        return false;
+    }
+
+    if (sky_unlikely(fcntl(fd, F_SETFD, flags | O_NONBLOCK) < 0)) {
+        return false;
+    }
+
+    return true;
+}
+
+#endif
 
