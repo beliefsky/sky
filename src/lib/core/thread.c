@@ -29,6 +29,6 @@ sky_thread_set_cpu(sky_thread_t thread, sky_i32_t n) {
 
     CPU_ZERO(&set);
     CPU_SET(n, &set);
-    pthread_setaffinity_np(thread, sizeof(cpu_set_t), &set);
+    pthread_setaffinity_np(thread, sizeof(cpuset_t), &set);
 #endif
 }
