@@ -75,7 +75,7 @@ struct sky_defer_s {
 struct sky_coro_s {
     sky_coro_switcher_t *switcher;
     sky_coro_context_t context;
-    sky_i32_t yield_value;
+    sky_isize_t yield_value;
 //===================================
     sky_u32_t ptr_size;
     sky_defer_t defers;
@@ -292,7 +292,7 @@ sky_core_reset(sky_coro_t *coro, sky_coro_func_t func, void *data) {
 }
 
 
-sky_inline sky_i32_t
+sky_inline sky_isize_t
 sky_coro_resume(sky_coro_t *coro) {
 #if defined(STACK_PTR)
     assert(coro->context[STACK_PTR] >= (sky_usize_t) coro->stack &&
@@ -302,8 +302,8 @@ sky_coro_resume(sky_coro_t *coro) {
     return coro->yield_value;
 }
 
-sky_inline sky_i32_t
-sky_coro_yield(sky_coro_t *coro, sky_i32_t value) {
+sky_inline sky_isize_t
+sky_coro_yield(sky_coro_t *coro, sky_isize_t value) {
     coro->yield_value = value;
     coro_swapcontext(&coro->context, &coro->switcher->caller);
     return coro->yield_value;

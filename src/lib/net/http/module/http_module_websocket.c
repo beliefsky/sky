@@ -21,9 +21,9 @@ static void module_run(sky_http_request_t *r, websocket_data_t *data);
 
 static void module_run_next(sky_websocket_session_t *session);
 
-static sky_i8_t read_message(sky_coro_t *coro, sky_websocket_session_t *session);
+static sky_isize_t read_message(sky_coro_t *coro, sky_websocket_session_t *session);
 
-static sky_i8_t write_message(sky_coro_t *coro, sky_websocket_session_t *session);
+static sky_isize_t write_message(sky_coro_t *coro, sky_websocket_session_t *session);
 
 static void websocket_decoding(sky_uchar_t *p, const sky_uchar_t *key, sky_u64_t payload_size);
 
@@ -152,7 +152,7 @@ module_run_next(sky_websocket_session_t *session) {
 }
 
 
-static sky_i8_t
+static sky_isize_t
 read_message(sky_coro_t *coro, sky_websocket_session_t *session) {
     sky_u64_t payload_size;
     sky_pool_t *pool;
@@ -258,7 +258,7 @@ read_message(sky_coro_t *coro, sky_websocket_session_t *session) {
 
 }
 
-static sky_i8_t
+static sky_isize_t
 write_message(sky_coro_t *coro, sky_websocket_session_t *session) {
     sky_pool_t *pool = sky_pool_create(4096);
 

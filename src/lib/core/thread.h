@@ -14,6 +14,9 @@ extern "C" {
 
 #define sky_thread __thread
 
+
+
+
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif

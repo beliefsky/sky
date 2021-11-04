@@ -17,7 +17,7 @@ sky_http_request_init(sky_http_server_t *server) {
 
 }
 
-sky_i32_t
+sky_isize_t
 sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn) {
     sky_pool_t *pool;
     sky_defer_t *pool_defer;
