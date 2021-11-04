@@ -4,7 +4,6 @@
 
 #include "coro.h"
 #include "memory.h"
-#include "thread.h"
 
 #include <assert.h>
 #include <sys/mman.h>
