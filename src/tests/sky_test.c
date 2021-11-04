@@ -14,8 +14,11 @@
 #include <net/http/http_response.h>
 #include <core/json.h>
 #include <core/date.h>
+#include <core/memory.h>
+#include <core/thread.h>
+#include <unistd.h>
 
-static void server_start();
+static void *server_start(void *args);
 
 static void build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module);
 
@@ -30,14 +33,35 @@ main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
+    sky_i32_t size = (sky_i32_t) sysconf(_SC_NPROCESSORS_CONF);
+    if (size < 1) {
+        size = 1;
+    }
+    sky_thread_t *thread = sky_malloc(sizeof(sky_thread_t) * (sky_usize_t) size);
+    for (sky_i32_t i = 0; i < size; ++i) {
+        sky_thread_attr_t attr;
+
+        sky_thread_attr_init(&attr);
+        sky_thread_attr_set_scope(&attr, SKY_THREAD_SCOPE_SYSTEM);
+        sky_thread_attr_set_stack_size(&attr, 4096);
+
+        sky_thread_create(&thread[i], &attr, server_start, null);
+
+        sky_thread_attr_destroy(&attr);
+
+        sky_thread_set_cpu(thread[i], i);
+    }
+
     sky_log_info("=== start server ==");
 
-    server_start(null);
-    return 0;
+    for (sky_i32_t i = 0; i < size; ++i) {
+        sky_thread_join(thread[i], null);
+    }
+    sky_free(thread);
 }
 
-sky_pgsql_pool_t *ps_pool;
-sky_redis_pool_t *redis_pool;
+sky_thread sky_pgsql_pool_t *ps_pool;
+sky_thread sky_redis_pool_t *redis_pool;
 
 static sky_bool_t
 http_header_add(sky_http_request_t *r, void *data) {
@@ -54,8 +78,10 @@ http_header_add(sky_http_request_t *r, void *data) {
     return true;
 }
 
-static void
-server_start() {
+static void *
+server_start(void *args) {
+    (void) args;
+
     sky_pool_t *pool;
     sky_event_loop_t *loop;
     sky_http_server_t *server;
@@ -83,7 +109,7 @@ server_start() {
     ps_pool = sky_pgsql_pool_create(loop, pool, &pg_conf);
     if (!ps_pool) {
         sky_log_error("create postgresql connection pool error");
-        return;
+        return null;
     }
 
     struct sockaddr_in redis_address = {
@@ -101,7 +127,7 @@ server_start() {
     redis_pool = sky_redis_pool_create(loop, pool, &redis_conf);
     if (!redis_pool) {
         sky_log_error("create redis connection pool error");
-        return;
+        return null;
     }
 
     sky_array_init(&modules, pool, 32, sizeof(sky_http_module_t));
@@ -157,6 +183,8 @@ server_start() {
 
     sky_event_loop_run(loop);
     sky_event_loop_shutdown(loop);
+
+    return null;
 }
 
 static void
