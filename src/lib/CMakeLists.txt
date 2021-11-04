@@ -7,7 +7,6 @@ set(SOURCES
         core/palloc.c
         core/array.c
         core/list.c
-        core/cpuinfo.c
         core/hash.c
         core/rbtree.c
         core/trie.c
@@ -105,7 +104,6 @@ install(FILES
         core/string_buf.h
         core/number.h
         core/date.h
-        core/cpuinfo.h
         core/buf.h
         core/crc32.h
         core/md5.h
