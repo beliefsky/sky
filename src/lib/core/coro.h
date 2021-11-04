@@ -18,7 +18,7 @@
 typedef struct sky_coro_s sky_coro_t;
 typedef struct sky_defer_s sky_defer_t;
 
-typedef sky_i32_t (*sky_coro_func_t)(sky_coro_t *coro, void *data);
+typedef sky_isize_t (*sky_coro_func_t)(sky_coro_t *coro, void *data);
 
 typedef void (*sky_defer_func_t)(void *data);
 
@@ -61,7 +61,7 @@ void sky_core_reset(sky_coro_t *coro, sky_coro_func_t func, void *data);
  * @param coro 协程
  * @return 协程执行状态
  */
-sky_i32_t sky_coro_resume(sky_coro_t *coro);
+sky_isize_t sky_coro_resume(sky_coro_t *coro);
 
 /**
  * 释放执行权
@@ -69,7 +69,7 @@ sky_i32_t sky_coro_resume(sky_coro_t *coro);
  * @param value 协程状态
  * @return 最终协程状态
  */
-sky_i32_t sky_coro_yield(sky_coro_t *coro, sky_i32_t value);
+sky_isize_t sky_coro_yield(sky_coro_t *coro, sky_isize_t value);
 
 
 /**
