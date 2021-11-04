@@ -1,27 +1,17 @@
 //
 // Created by weijing on 18-2-8.
 //
-
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
-#include <event/event_loop.h>
-#include <unistd.h>
 #include <netinet/in.h>
 
+#include <event/event_loop.h>
 #include <net/http/http_server.h>
-#include <core/cpuinfo.h>
 #include <net/http/module/http_module_file.h>
 #include <net/http/module/http_module_dispatcher.h>
 #include <net/http/http_request.h>
 #include <net/http/extend//http_extend_pgsql_pool.h>
 #include <net/http/extend/http_extend_redis_pool.h>
-
-#include <core/log.h>
 #include <core/number.h>
 #include <net/http/http_response.h>
-#include <sys/wait.h>
 #include <core/json.h>
 #include <core/date.h>
 
@@ -35,48 +25,15 @@ static SKY_HTTP_MAPPER_HANDLER(hello_world);
 
 static SKY_HTTP_MAPPER_HANDLER(test_rw);
 
-#define FORK
-
 int
 main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
-#ifndef FORK
+
+    sky_log_info("=== start server ==");
+
     server_start(null);
     return 0;
-#else
-
-    sky_i32_t cpu_num = (sky_i32_t) sysconf(_SC_NPROCESSORS_ONLN);
-    if (cpu_num < 1) {
-        cpu_num = 1;
-    }
-
-    for (sky_i32_t i = 0; i <= cpu_num; ++i) {
-        pid_t pid = fork();
-        switch (pid) {
-            case -1:
-                break;
-            case 0: {
-                sky_cpu_set_t mask;
-                CPU_ZERO(&mask);
-                CPU_SET(i, &mask);
-                for (sky_i32_t j = 0; j < CPU_SETSIZE; ++j) {
-                    if (CPU_ISSET(j, &mask)) {
-                        sky_log_info("sky_setaffinity(): using cpu #%d", j);
-                        break;
-                    }
-                }
-                sky_setaffinity(&mask);
-
-                server_start(null);
-            }
-                break;
-        }
-    }
-
-    sky_i32_t status;
-    wait(&status);
-#endif
 }
 
 sky_pgsql_pool_t *ps_pool;
@@ -103,8 +60,6 @@ server_start() {
     sky_event_loop_t *loop;
     sky_http_server_t *server;
     sky_array_t modules;
-
-    sky_cpu_info();
 
     pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
 
