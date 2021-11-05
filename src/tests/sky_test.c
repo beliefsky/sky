@@ -34,10 +34,6 @@ main() {
     setvbuf(stderr, null, _IOLBF, 0);
 
     const sky_i32_t size = (sky_i32_t) sysconf(_SC_NPROCESSORS_CONF);
-    if (size < 2) {
-        server_start(null);
-        return 0;
-    }
 
     sky_thread_t *thread = sky_malloc(sizeof(sky_thread_t) * (sky_usize_t) size);
     for (sky_i32_t i = 0; i < size; ++i) {

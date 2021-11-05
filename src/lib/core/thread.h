@@ -27,6 +27,11 @@ sky_thread_create(sky_thread_t *thread, sky_thread_attr_t *attr, sky_thread_pt h
     pthread_create(thread, attr, handle, data);
 }
 
+static sky_inline sky_thread_t
+sky_thread_self() {
+    return pthread_self();
+}
+
 void sky_thread_set_cpu(sky_thread_t thread, sky_i32_t n);
 
 static sky_inline void

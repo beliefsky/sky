@@ -6,7 +6,6 @@
 #include "memory.h"
 
 #include <assert.h>
-#include <sys/mman.h>
 
 #define PAGE_SIZE 2048
 
@@ -231,35 +230,15 @@ sky_coro_create(sky_coro_func_t func, void *data) {
 
 sky_inline sky_coro_t *
 sky_coro_new() {
-#ifdef MAP_STACK
-    sky_uchar_t *ptr = mmap(
-            null,
-            CORE_BLOCK_SIZE,
-            PROT_READ | PROT_WRITE,
-            MAP_ANONYMOUS | MAP_PRIVATE | MAP_STACK,
-            -1,
-            0
-    );
-#else
-    sky_uchar_t *ptr = mmap(
-            null,
-            CORE_BLOCK_SIZE,
-            PROT_READ | PROT_WRITE,
-            MAP_ANONYMOUS | MAP_PRIVATE,
-            -1,
-            0
-    );
-#endif
-
-    sky_coro_t *coro = (sky_coro_t *) (ptr + CORO_STACK_MIN);
+    sky_coro_t *coro = sky_malloc(CORE_BLOCK_SIZE);
 
     coro->switcher = &switcher;
     coro->defers.prev = coro->defers.next = &coro->defers;
     coro->free_defers.prev = coro->free_defers.next = &coro->free_defers;
     coro->blocks.next = coro->blocks.prev = &coro->blocks;
-    coro->stack = ptr;
     coro->ptr = (sky_uchar_t *) (coro + 1);
     coro->ptr_size = PAGE_SIZE - sizeof(sky_coro_t);
+    coro->stack = coro->ptr + coro->ptr_size;
 
     return coro;
 }
@@ -327,8 +306,7 @@ sky_coro_destroy(sky_coro_t *coro) {
 
         sky_free(block);
     }
-    sky_uchar_t *ptr = ((sky_uchar_t *) coro) - CORO_STACK_MIN;
-    munmap(ptr, CORE_BLOCK_SIZE);
+    sky_free(coro);
 }
 
 sky_defer_t *
