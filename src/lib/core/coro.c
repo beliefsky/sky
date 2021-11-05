@@ -5,15 +5,18 @@
 #include "coro.h"
 #include "memory.h"
 
-#define PAGE_SIZE 2048
-
 
 #if !defined(SIGSTKSZ) || SIGSTKSZ < 4096
+
 #define CORE_BLOCK_SIZE 32768
+
 #else
+
 #define CORE_BLOCK_SIZE SIGSTKSZ
+
 #endif
 
+#define PAGE_SIZE 2048
 #define CORO_STACK_MIN (CORE_BLOCK_SIZE - PAGE_SIZE)
 
 #if defined(__MACH__)
