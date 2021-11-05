@@ -22,18 +22,8 @@ if (NOT CMAKE_BUILD_TYPE)
 endif ()
 
 
-if (CMAKE_SYSTEM_PROCESSOR MATCHES "^arm")
-    message(STATUS "${CMAKE_SYSTEM_PROCESSOR} processor detected, looking for libucontext")
-
-    find_library(LIBUCONTEXT_LIBRARY NAMES libucontext.a)
-    if (LIBUCONTEXT_LIBRARY)
-        message(STATUS "libucontext found, using it for context switching routines")
-        list(APPEND ADDITIONAL_LIBRARIES "${LIBUCONTEXT_LIBRARY}")
-    else ()
-        message(STATUS "Trying to use libc context switching; this might not work!")
-    endif ()
-else ()
-    message(STATUS "Using built-in context switching routines for ${CMAKE_SYSTEM_PROCESSOR} processors")
+if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^i[3456]86|x86_64")
+    set(HAVE_LIBUCONTEXT 1)
 endif ()
 
 #

@@ -5,8 +5,6 @@
 #include "coro.h"
 #include "memory.h"
 
-#include <assert.h>
-
 #define PAGE_SIZE 2048
 
 #define CORE_BLOCK_SIZE 32768
@@ -22,21 +20,28 @@
 #define ASM_ROUTINE(name_)                                      \
     ".globl " ASM_SYMBOL(name_) "\n\t" ASM_SYMBOL(name_) ":\n\t"
 
-
 #if defined(__x86_64__)
+
+#include <assert.h>
+
 typedef sky_usize_t sky_coro_context_t[10];
+
 #elif defined(__i386__)
+
+#include <assert.h>
 typedef sky_usize_t sky_coro_context_t[7];
+
+#elif defined(HAVE_LIBUCONTEXT)
+
+#include <libucontext/libucontext.h>
+
+#define sky_getcontext libucontext_getcontext
+#define sky_makecontext libucontext_makecontext
+#define sky_swapcontext libucontext_swapcontext
+
+typedef libucontext_ucontext_t sky_coro_context_t;
 #else
-
-#include <ucontext.h>
-typedef ucontext_t sky_ucontext_t;
-
-#define sky_getcontext getcontext
-#define sky_makecontext makecontext
-#define sky_swapcontext swapcontext
-
-typedef ucontext_t sky_coro_context_t;
+#error Unsupported platform.
 #endif
 
 
@@ -150,8 +155,10 @@ ASM_ROUTINE(coro_swapcontext)
 "movl   0xc(%eax),%ebp\n\t"  /* EBP */
 "movl   0x1c(%eax),%ecx\n\t" /* ECX */
 "ret\n\t");
+#elif defined(HAVE_LIBUCONTEXT)
+#define coro_swapcontext(cur, oth) sky_swapcontext(cur, oth)
 #else
-#define coro_swapcontext(cur,oth) sky_swapcontext(cur, oth)
+#error Unsupported platform.
 #endif
 
 __attribute__((used, visibility("internal"))) void
@@ -203,7 +210,7 @@ sky_core_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     coro->context[STACK_PTR /* ESP */] = (sky_usize_t) stack;
 }
 
-#else
+#elif defined(HAVE_LIBUCONTEXT)
 
 sky_inline void
 sky_core_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
