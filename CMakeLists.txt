@@ -17,8 +17,8 @@ include(TrySanitizer)
 include(GNUInstallDirs)
 
 if (NOT CMAKE_BUILD_TYPE)
-    message(STATUS "No build type selected, defaulting to Debug")
-    set(CMAKE_BUILD_TYPE "Debug")
+    message(STATUS "No build type selected, defaulting to Release")
+    set(CMAKE_BUILD_TYPE "Release")
 endif ()
 
 
@@ -41,6 +41,7 @@ endif ()
 #
 find_package(Threads REQUIRED)
 set(ADDITIONAL_LIBRARIES ${ADDITIONAL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+
 #check_include_file(openssl/ssl.h HAVE_OPENSSL)
 if (HAVE_OPENSSL)
     find_package(OpenSSL QUIET)
