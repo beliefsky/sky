@@ -5,6 +5,10 @@
 #ifndef SKY_THREAD_H
 #define SKY_THREAD_H
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include <pthread.h>
 #include "types.h"
 
