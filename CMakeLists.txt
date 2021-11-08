@@ -24,6 +24,8 @@ endif ()
 
 if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^i[3456]86|x86_64|amd64")
     set(HAVE_LIBUCONTEXT 1)
+    else()
+    message(cpu : ${CMAKE_SYSTEM_PROCESSOR})
 endif ()
 
 #
