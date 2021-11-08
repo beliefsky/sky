@@ -21,7 +21,7 @@ jobs:
           usesh: true
           prepare: pkg install -y cmake
           run: |
-            cat /proc/cpuinfo | grep name | cut -f2 -d: | uniq -c
+            echo "$(< /proc/cpuinfo)"
             cd $GITHUB_WORKSPACE
             mkdir build
             cd build
