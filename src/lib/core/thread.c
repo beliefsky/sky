@@ -2,6 +2,9 @@
 // Created by edz on 2021/11/4.
 //
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 
 #include "thread.h"
 
