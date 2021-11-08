@@ -21,7 +21,7 @@ jobs:
           usesh: true
           prepare: pkg install -y cmake
           run: |
-            echo "$(< /proc/cpuinfo)"
+            dmesg | grep -i cpu
             cd $GITHUB_WORKSPACE
             mkdir build
             cd build
