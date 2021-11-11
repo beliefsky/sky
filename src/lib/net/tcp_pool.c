@@ -20,6 +20,7 @@ struct sky_tcp_pool_s {
 
 struct sky_tcp_node_s {
     sky_event_t ev;
+    sky_i64_t conn_time;
     sky_tcp_pool_t *conn_pool;
     sky_tcp_conn_t *current;
     sky_tcp_conn_t tasks;
@@ -70,6 +71,7 @@ sky_tcp_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_tcp_pool
 
     for (client = conn_pool->clients; i; --i, ++client) {
         sky_event_init(loop, &client->ev, -1, tcp_run, tcp_close);
+        client->conn_time = 0;
         client->conn_pool = conn_pool;
         client->current = null;
         client->tasks.next = client->tasks.prev = &client->tasks;
@@ -103,10 +105,16 @@ sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event
     client->current = conn;
 
     if (sky_unlikely(client->ev.fd == -1)) {
-        if (sky_unlikely(!tcp_connection(conn))) {
+        if (sky_likely(client->conn_time > client->ev.loop->now)) {
             sky_tcp_pool_conn_unbind(conn);
             return false;
         }
+        if (sky_unlikely(!tcp_connection(conn))) {
+            client->conn_time = client->ev.loop->now + 5;
+            sky_tcp_pool_conn_unbind(conn);
+            return false;
+        }
+        client->conn_time = 0;
         if (tcp_pool->next_func) {
             if (sky_unlikely(!tcp_pool->next_func(conn))) {
                 sky_tcp_pool_conn_close(conn);
@@ -341,6 +349,7 @@ tcp_connection(sky_tcp_conn_t *conn) {
 
     conn_pool = conn->client->conn_pool;
     ev = &conn->client->ev;
+
 #ifdef HAVE_ACCEPT4
     fd = socket(conn_pool->address->sa_family, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
     if (sky_unlikely(fd < 0)) {
