@@ -1,32 +1,24 @@
 //
 // Created by weijing on 18-2-8.
 //
-
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
-#include <event/event_loop.h>
-#include <unistd.h>
 #include <netinet/in.h>
 
+#include <event/event_loop.h>
 #include <net/http/http_server.h>
-#include <core/cpuinfo.h>
 #include <net/http/module/http_module_file.h>
 #include <net/http/module/http_module_dispatcher.h>
 #include <net/http/http_request.h>
 #include <net/http/extend//http_extend_pgsql_pool.h>
 #include <net/http/extend/http_extend_redis_pool.h>
-
-#include <core/log.h>
 #include <core/number.h>
 #include <net/http/http_response.h>
-#include <sys/wait.h>
 #include <core/json.h>
-#include <net/clients/tcp_rw_pool.h>
 #include <core/date.h>
+#include <core/memory.h>
+#include <core/thread.h>
+#include <unistd.h>
 
-static void server_start();
+static void *server_start(void *args);
 
 static void build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module);
 
@@ -36,53 +28,37 @@ static SKY_HTTP_MAPPER_HANDLER(hello_world);
 
 static SKY_HTTP_MAPPER_HANDLER(test_rw);
 
-#define FORK
-
 int
 main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
-#ifndef FORK
-    server_start(null);
+
+    const sky_i32_t size = (sky_i32_t) sysconf(_SC_NPROCESSORS_CONF);
+
+    sky_thread_t *thread = sky_malloc(sizeof(sky_thread_t) * (sky_usize_t) size);
+    for (sky_i32_t i = 0; i < size; ++i) {
+        sky_thread_attr_t attr;
+
+        sky_thread_attr_init(&attr);
+        sky_thread_attr_set_scope(&attr, SKY_THREAD_SCOPE_SYSTEM);
+//        sky_thread_attr_set_stack_size(&attr, 4096);
+
+        sky_thread_create(&thread[i], &attr, server_start, null);
+
+        sky_thread_attr_destroy(&attr);
+
+        sky_thread_set_cpu(thread[i], i);
+    }
+    for (sky_i32_t i = 0; i < size; ++i) {
+        sky_thread_join(thread[i], null);
+    }
+    sky_free(thread);
+
     return 0;
-#else
-
-    sky_i32_t cpu_num = (sky_i32_t) sysconf(_SC_NPROCESSORS_ONLN);
-    if (cpu_num < 1) {
-        cpu_num = 1;
-    }
-
-    for (sky_i32_t i = 0; i <= cpu_num; ++i) {
-        pid_t pid = fork();
-        switch (pid) {
-            case -1:
-                break;
-            case 0: {
-                sky_cpu_set_t mask;
-                CPU_ZERO(&mask);
-                CPU_SET(i, &mask);
-                for (sky_i32_t j = 0; j < CPU_SETSIZE; ++j) {
-                    if (CPU_ISSET(j, &mask)) {
-                        sky_log_info("sky_setaffinity(): using cpu #%d", j);
-                        break;
-                    }
-                }
-                sky_setaffinity(&mask);
-
-                server_start(null);
-            }
-                break;
-        }
-    }
-
-    sky_i32_t status;
-    wait(&status);
-#endif
 }
 
-sky_pgsql_pool_t *ps_pool;
-sky_redis_pool_t *redis_pool;
-sky_tcp_rw_pool_t *test_pool;
+sky_thread sky_pgsql_pool_t *ps_pool;
+sky_thread sky_redis_pool_t *redis_pool;
 
 static sky_bool_t
 http_header_add(sky_http_request_t *r, void *data) {
@@ -99,14 +75,14 @@ http_header_add(sky_http_request_t *r, void *data) {
     return true;
 }
 
-static void
-server_start() {
+static void *
+server_start(void *args) {
+    (void) args;
+
     sky_pool_t *pool;
     sky_event_loop_t *loop;
     sky_http_server_t *server;
     sky_array_t modules;
-
-    sky_cpu_info();
 
     pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
 
@@ -130,7 +106,7 @@ server_start() {
     ps_pool = sky_pgsql_pool_create(loop, pool, &pg_conf);
     if (!ps_pool) {
         sky_log_error("create postgresql connection pool error");
-        return;
+        return null;
     }
 
     struct sockaddr_in redis_address = {
@@ -142,13 +118,13 @@ server_start() {
     const sky_redis_conf_t redis_conf = {
             .address = (sky_inet_address_t *) &redis_address,
             .address_len = sizeof(struct sockaddr_in),
-            .connection_size = 16
+            .connection_size = 4
     };
 
     redis_pool = sky_redis_pool_create(loop, pool, &redis_conf);
     if (!redis_pool) {
         sky_log_error("create redis connection pool error");
-        return;
+        return null;
     }
 
     sky_array_init(&modules, pool, 32, sizeof(sky_http_module_t));
@@ -204,6 +180,8 @@ server_start() {
 
     sky_event_loop_run(loop);
     sky_event_loop_shutdown(loop);
+
+    return null;
 }
 
 static void

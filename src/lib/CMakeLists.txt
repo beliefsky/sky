@@ -7,7 +7,6 @@ set(SOURCES
         core/palloc.c
         core/array.c
         core/list.c
-        core/cpuinfo.c
         core/hash.c
         core/rbtree.c
         core/trie.c
@@ -25,19 +24,21 @@ set(SOURCES
         core/uuid.c
         core/json.c
         core/timer_wheel.c
+        core/thread.c
         event/event_loop_epoll.c
         event/event_loop_kqueue.c
         net/inet.c
-        net/tcp.c
+        net/tcp_server.c
         net/udp.c
+        net/tcp_pool.c
+        net/udp_pool.c
+        net/tcp_client.c
+        net/udp_client.c
+        net/tcp_listener.c
+        net/udp_listener.c
         net/tls/tls.c
-        net/clients/tcp_pool.c
-        net/clients/udp_pool.c
-        net/clients/tcp_rw_pool.c
-        net/clients/pgsql_pool.c
-        net/clients/redis_pool.c
-        net/clients/tcp_client.c
-        net/clients/udp_client.c
+        net/extend/pgsql_pool.c
+        net/extend/redis_pool.c
         net/http/http_io_wrappers.c
         net/http/http_request.c
         net/http/http_response.c
@@ -79,6 +80,34 @@ if (NOT HAVE_BUILTIN_FPCLASSIFY)
     set(ADDITIONAL_LIBRARIES ${ADDITIONAL_LIBRARIES} PARENT_SCOPE)
 endif ()
 
+
+if (HAVE_LIBUCONTEXT)
+    message(STATUS "Using libucontext/${CMAKE_SYSTEM_PROCESSOR} for coroutine context switching")
+
+    include(ExternalProject)
+
+    ExternalProject_Add(libucontext
+            GIT_REPOSITORY https://github.com/beliefsky/libucontext
+
+            BUILD_IN_SOURCE ON
+
+            CONFIGURE_COMMAND ""
+            BUILD_COMMAND make
+            INSTALL_COMMAND make install DESTDIR=${CMAKE_BINARY_DIR}
+
+            BUILD_BYPRODUCTS ${CMAKE_BINARY_DIR}/lib/libucontext.a
+
+            BUILD_ALWAYS OFF
+            UPDATE_DISCONNECTED ON
+            )
+    add_dependencies(sky_static libucontext)
+
+    set(ADDITIONAL_LIBRARIES ${CMAKE_BINARY_DIR}/lib/libucontext.a ${ADDITIONAL_LIBRARIES} PARENT_SCOPE)
+    include_directories(${CMAKE_BINARY_DIR}/usr/include)
+else ()
+    message(STATUS "Using built-in context switching routines for ${CMAKE_SYSTEM_PROCESSOR} processors")
+endif ()
+
 install(TARGETS sky_shared sky_static
         DESTINATION /usr/local/lib/sky
         )
@@ -103,7 +132,6 @@ install(FILES
         core/string_buf.h
         core/number.h
         core/date.h
-        core/cpuinfo.h
         core/buf.h
         core/crc32.h
         core/md5.h
@@ -113,6 +141,7 @@ install(FILES
         core/log.h
         core/json.h
         core/timer_wheel.h
+        core/thread.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/core")
 
 install(FILES
@@ -120,20 +149,20 @@ install(FILES
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/event")
 install(FILES
         net/inet.h
-        net/tcp.h
+        net/tcp_server.h
         net/udp.h
+        net/tcp_pool.h
+        net/udp_pool.h
+        net/tcp_client.h
+        net/udp_client.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net")
 install(FILES
         net/tls/tls.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/tls")
 install(FILES
-        net/clients/tcp_pool.h
-        net/clients/udp_pool.h
-        net/clients/redis_pool.h
-        net/clients/pgsql_pool.h
-        net/clients/tcp_client.h
-        net/clients/udp_client.h
-        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/clients")
+        net/extend/redis_pool.h
+        net/extend/pgsql_pool.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/extend")
 install(FILES
         net/http/http_parse.h
         net/http/http_request.h

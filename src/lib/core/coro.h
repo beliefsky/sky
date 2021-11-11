@@ -15,44 +15,30 @@
 #define SKY_CORO_MAY_RESUME 0
 #define SKY_CORO_FINISHED   1
 
-#if defined(__x86_64__)
-typedef sky_usize_t sky_coro_context_t[10];
-#elif defined(__i386__)
-typedef sky_usize_t sky_coro_context_t[7];
-#else
-#include "./arch/ucontext.h"
-typedef sky_ucontext_t sky_coro_context_t;
-#endif
-
 typedef struct sky_coro_s sky_coro_t;
 typedef struct sky_defer_s sky_defer_t;
 
-typedef sky_i32_t (*sky_coro_func_t)(sky_coro_t *coro, void *data);
+typedef sky_isize_t (*sky_coro_func_t)(sky_coro_t *coro, void *data);
 
 typedef void (*sky_defer_func_t)(void *data);
 
 typedef void (*sky_defer_func2_t)(void *data1, void *data2);
 
-typedef struct {
-    sky_coro_context_t caller;
-} sky_coro_switcher_t;
-
 
 /**
  * 创建协程
- * @param switcher  协程切换器
  * @param func      异步函数
  * @param data      异步函数参数
  * @return 协程
  */
-sky_coro_t *sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func, void *data);
+sky_coro_t *sky_coro_create(sky_coro_func_t func, void *data);
 
 /**
  * 创建一个未指定函数的协程
  * @param switcher  协程切换器
  * @return 协程
  */
-sky_coro_t *sky_coro_new(sky_coro_switcher_t *switcher);
+sky_coro_t *sky_coro_new();
 
 /**
  * 协程配置函数
@@ -75,7 +61,7 @@ void sky_core_reset(sky_coro_t *coro, sky_coro_func_t func, void *data);
  * @param coro 协程
  * @return 协程执行状态
  */
-sky_i32_t sky_coro_resume(sky_coro_t *coro);
+sky_isize_t sky_coro_resume(sky_coro_t *coro);
 
 /**
  * 释放执行权
@@ -83,7 +69,7 @@ sky_i32_t sky_coro_resume(sky_coro_t *coro);
  * @param value 协程状态
  * @return 最终协程状态
  */
-sky_i32_t sky_coro_yield(sky_coro_t *coro, sky_i32_t value);
+sky_isize_t sky_coro_yield(sky_coro_t *coro, sky_isize_t value);
 
 
 /**

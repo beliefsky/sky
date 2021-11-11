@@ -21,9 +21,9 @@ static void module_run(sky_http_request_t *r, websocket_data_t *data);
 
 static void module_run_next(sky_websocket_session_t *session);
 
-static sky_i8_t read_message(sky_coro_t *coro, sky_websocket_session_t *session);
+static sky_isize_t read_message(sky_coro_t *coro, sky_websocket_session_t *session);
 
-static sky_i8_t write_message(sky_coro_t *coro, sky_websocket_session_t *session);
+static sky_isize_t write_message(sky_coro_t *coro, sky_websocket_session_t *session);
 
 static void websocket_decoding(sky_uchar_t *p, const sky_uchar_t *key, sky_u64_t payload_size);
 
@@ -119,16 +119,15 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
 static void
 module_run_next(sky_websocket_session_t *session) {
     sky_http_connection_t *conn;
-    sky_coro_switcher_t switcher;
     sky_coro_t *read_work, *write_work;
     sky_i32_t result;
 
     conn = session->request->conn;
     conn->ev.timeout = 3600;
 
-    session->read_work = read_work = sky_coro_create(&switcher, (sky_coro_func_t) read_message, session);
+    session->read_work = read_work = sky_coro_create((sky_coro_func_t) read_message, session);
     (void) sky_defer_add(conn->coro, (sky_defer_func_t) sky_coro_destroy, read_work);
-    session->write_work = write_work = sky_coro_create(&switcher, (sky_coro_func_t) write_message, session);
+    session->write_work = write_work = sky_coro_create((sky_coro_func_t) write_message, session);
     (void) sky_defer_add(conn->coro, (sky_defer_func_t) sky_coro_destroy, write_work);
     for (;;) {
         if (sky_event_is_read(&conn->ev)) {
@@ -153,7 +152,7 @@ module_run_next(sky_websocket_session_t *session) {
 }
 
 
-static sky_i8_t
+static sky_isize_t
 read_message(sky_coro_t *coro, sky_websocket_session_t *session) {
     sky_u64_t payload_size;
     sky_pool_t *pool;
@@ -259,7 +258,7 @@ read_message(sky_coro_t *coro, sky_websocket_session_t *session) {
 
 }
 
-static sky_i8_t
+static sky_isize_t
 write_message(sky_coro_t *coro, sky_websocket_session_t *session) {
     sky_pool_t *pool = sky_pool_create(4096);
 
@@ -371,7 +370,7 @@ write_test(sky_websocket_session_t *session, sky_pool_t *pool, sky_uchar_t *data
 
 static sky_inline void
 websocket_read_wait(sky_websocket_session_t *session, sky_uchar_t *data, sky_u32_t size) {
-    ssize_t n;
+    sky_isize_t n;
     sky_i32_t fd;
 
 
@@ -411,7 +410,7 @@ websocket_read_wait(sky_websocket_session_t *session, sky_uchar_t *data, sky_u32
 
 static sky_inline sky_u32_t
 websocket_read(sky_websocket_session_t *session, sky_uchar_t *data, sky_u32_t size) {
-    ssize_t n;
+    sky_isize_t n;
     sky_i32_t fd;
 
 
@@ -444,7 +443,7 @@ websocket_read(sky_websocket_session_t *session, sky_uchar_t *data, sky_u32_t si
 
 static sky_inline void
 websocket_write(sky_websocket_session_t *session, sky_uchar_t *data, sky_u32_t size) {
-    ssize_t n;
+    sky_isize_t n;
     sky_i32_t fd;
 
     fd = session->event->fd;

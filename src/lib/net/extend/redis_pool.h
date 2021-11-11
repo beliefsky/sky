@@ -5,7 +5,7 @@
 #ifndef SKY_REDIS_POOL_H
 #define SKY_REDIS_POOL_H
 
-#include "tcp_pool.h"
+#include "../tcp_pool.h"
 #include "../../core/string.h"
 
 #if defined(__cplusplus)

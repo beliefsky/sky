@@ -6,7 +6,7 @@
 #define _GNU_SOURCE
 #endif
 
-#include "tcp.h"
+#include "tcp_server.h"
 #include "../core/log.h"
 #include "../core/number.h"
 #include <unistd.h>
@@ -37,8 +37,8 @@ static sky_i32_t get_backlog_size();
 
 
 sky_bool_t
-sky_tcp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool,
-                        const sky_tcp_conf_t *conf) {
+sky_tcp_server_create(sky_event_loop_t *loop, sky_pool_t *pool,
+                        const sky_tcp_server_conf_t *conf) {
     sky_i32_t fd;
     sky_i32_t opt;
     sky_i32_t backlog;

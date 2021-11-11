@@ -17,28 +17,21 @@ include(TrySanitizer)
 include(GNUInstallDirs)
 
 if (NOT CMAKE_BUILD_TYPE)
-    message(STATUS "No build type selected, defaulting to Debug")
-    set(CMAKE_BUILD_TYPE "Debug")
+    message(STATUS "No build type selected, defaulting to Release")
+    set(CMAKE_BUILD_TYPE "Release")
 endif ()
 
 
-if (CMAKE_SYSTEM_PROCESSOR MATCHES "^arm")
-    message(STATUS "${CMAKE_SYSTEM_PROCESSOR} processor detected, looking for libucontext")
-
-    find_library(LIBUCONTEXT_LIBRARY NAMES libucontext.a)
-    if (LIBUCONTEXT_LIBRARY)
-        message(STATUS "libucontext found, using it for context switching routines")
-        list(APPEND ADDITIONAL_LIBRARIES "${LIBUCONTEXT_LIBRARY}")
-    else ()
-        message(STATUS "Trying to use libc context switching; this might not work!")
-    endif ()
-else ()
-    message(STATUS "Using built-in context switching routines for ${CMAKE_SYSTEM_PROCESSOR} processors")
+if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^i[3456]86|x86|amd64|AMD64")
+    set(HAVE_LIBUCONTEXT 1)
 endif ()
 
 #
 # Find libraries
 #
+find_package(Threads REQUIRED)
+set(ADDITIONAL_LIBRARIES ${ADDITIONAL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+
 #check_include_file(openssl/ssl.h HAVE_OPENSSL)
 if (HAVE_OPENSSL)
     find_package(OpenSSL QUIET)

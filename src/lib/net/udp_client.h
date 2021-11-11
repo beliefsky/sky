@@ -5,9 +5,9 @@
 #ifndef SKY_UDP_CLIENT_H
 #define SKY_UDP_CLIENT_H
 
-#include "../../event/event_loop.h"
-#include "../../core/coro.h"
-#include "../inet.h"
+#include "../event/event_loop.h"
+#include "../core/coro.h"
+#include "inet.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -24,7 +24,9 @@ typedef struct sky_udp_client_s sky_udp_client_t;
 
 sky_udp_client_t *sky_udp_client_create(const sky_udp_client_conf_t *conf);
 
-sky_bool_t sky_udp_client_connection(sky_udp_client_t *client, sky_inet_address_t *address, sky_u32_t address_len);
+sky_bool_t sky_udp_client_connection(sky_udp_client_t *client, const sky_inet_address_t *address, sky_u32_t address_len);
+
+sky_bool_t sky_udp_client_is_connection(sky_udp_client_t *client);
 
 sky_usize_t sky_udp_client_read(sky_udp_client_t *client, sky_uchar_t *data, sky_usize_t size);
 

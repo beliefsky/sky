@@ -5,9 +5,9 @@
 #ifndef SKY_TCP_POOL_H
 #define SKY_TCP_POOL_H
 
-#include "../../event/event_loop.h"
-#include "../../core/coro.h"
-#include "../inet.h"
+#include "../event/event_loop.h"
+#include "../core/coro.h"
+#include "inet.h"
 
 #if defined(__cplusplus)
 extern "C" {

@@ -5,13 +5,18 @@
 #include "coro.h"
 #include "memory.h"
 
-#include <assert.h>
-#include <sys/mman.h>
 
-#define PAGE_SIZE 2048
+#if !defined(SIGSTKSZ) || SIGSTKSZ < 4096
 
 #define CORE_BLOCK_SIZE 32768
 
+#else
+
+#define CORE_BLOCK_SIZE SIGSTKSZ
+
+#endif
+
+#define PAGE_SIZE 2048
 #define CORO_STACK_MIN (CORE_BLOCK_SIZE - PAGE_SIZE)
 
 #if defined(__MACH__)
@@ -23,6 +28,30 @@
 #define ASM_ROUTINE(name_)                                      \
     ".globl " ASM_SYMBOL(name_) "\n\t" ASM_SYMBOL(name_) ":\n\t"
 
+#if defined(__x86_64__)
+
+#include <assert.h>
+
+typedef sky_usize_t sky_coro_context_t[10];
+
+#elif defined(__i386__)
+
+#include <assert.h>
+typedef sky_usize_t sky_coro_context_t[7];
+
+#elif defined(HAVE_LIBUCONTEXT)
+
+#include <libucontext/libucontext.h>
+
+#define sky_getcontext libucontext_getcontext
+#define sky_makecontext libucontext_makecontext
+#define sky_swapcontext libucontext_swapcontext
+
+typedef libucontext_ucontext_t sky_coro_context_t;
+#else
+#error Unsupported platform.
+#endif
+
 
 typedef struct mem_block_s mem_block_t;
 
@@ -30,6 +59,10 @@ struct mem_block_s {
     mem_block_t *prev;
     mem_block_t *next;
 };
+
+typedef struct {
+    sky_coro_context_t caller;
+} sky_coro_switcher_t;
 
 struct sky_defer_s {
     union {
@@ -53,7 +86,7 @@ struct sky_defer_s {
 struct sky_coro_s {
     sky_coro_switcher_t *switcher;
     sky_coro_context_t context;
-    sky_i32_t yield_value;
+    sky_isize_t yield_value;
 //===================================
     sky_u32_t ptr_size;
     sky_defer_t defers;
@@ -65,6 +98,9 @@ struct sky_coro_s {
 
 
 static void mem_block_add(sky_coro_t *coro);
+
+
+static sky_thread sky_coro_switcher_t switcher;
 
 #if defined(__x86_64__)
 
@@ -127,8 +163,10 @@ ASM_ROUTINE(coro_swapcontext)
 "movl   0xc(%eax),%ebp\n\t"  /* EBP */
 "movl   0x1c(%eax),%ecx\n\t" /* ECX */
 "ret\n\t");
+#elif defined(HAVE_LIBUCONTEXT)
+#define coro_swapcontext(cur, oth) sky_swapcontext(cur, oth)
 #else
-#define coro_swapcontext(cur,oth) sky_swapcontext(cur, oth)
+#error Unsupported platform.
 #endif
 
 __attribute__((used, visibility("internal"))) void
@@ -180,7 +218,7 @@ sky_core_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     coro->context[STACK_PTR /* ESP */] = (sky_usize_t) stack;
 }
 
-#else
+#elif defined(HAVE_LIBUCONTEXT)
 
 sky_inline void
 sky_core_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
@@ -197,8 +235,8 @@ sky_core_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
 
 
 sky_coro_t *
-sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func, void *data) {
-    sky_coro_t *coro = sky_coro_new(switcher);
+sky_coro_create(sky_coro_func_t func, void *data) {
+    sky_coro_t *coro = sky_coro_new();
 
     sky_core_set(coro, func, data);
 
@@ -206,36 +244,16 @@ sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func, void *data)
 }
 
 sky_inline sky_coro_t *
-sky_coro_new(sky_coro_switcher_t *switcher) {
-#ifdef MAP_STACK
-    sky_uchar_t *ptr = mmap(
-            null,
-            CORE_BLOCK_SIZE,
-            PROT_READ | PROT_WRITE,
-            MAP_ANONYMOUS | MAP_PRIVATE | MAP_STACK,
-            -1,
-            0
-    );
-#else
-    sky_uchar_t *ptr = mmap(
-            null,
-            CORE_BLOCK_SIZE,
-            PROT_READ | PROT_WRITE,
-            MAP_ANONYMOUS | MAP_PRIVATE,
-            -1,
-            0
-    );
-#endif
+sky_coro_new() {
+    sky_coro_t *coro = sky_malloc(CORE_BLOCK_SIZE);
 
-    sky_coro_t *coro = (sky_coro_t *) (ptr + CORO_STACK_MIN);
-
-    coro->switcher = switcher;
+    coro->switcher = &switcher;
     coro->defers.prev = coro->defers.next = &coro->defers;
     coro->free_defers.prev = coro->free_defers.next = &coro->free_defers;
     coro->blocks.next = coro->blocks.prev = &coro->blocks;
-    coro->stack = ptr;
     coro->ptr = (sky_uchar_t *) (coro + 1);
     coro->ptr_size = PAGE_SIZE - sizeof(sky_coro_t);
+    coro->stack = coro->ptr + coro->ptr_size;
 
     return coro;
 }
@@ -267,7 +285,7 @@ sky_core_reset(sky_coro_t *coro, sky_coro_func_t func, void *data) {
 }
 
 
-sky_inline sky_i32_t
+sky_inline sky_isize_t
 sky_coro_resume(sky_coro_t *coro) {
 #if defined(STACK_PTR)
     assert(coro->context[STACK_PTR] >= (sky_usize_t) coro->stack &&
@@ -277,8 +295,8 @@ sky_coro_resume(sky_coro_t *coro) {
     return coro->yield_value;
 }
 
-sky_inline sky_i32_t
-sky_coro_yield(sky_coro_t *coro, sky_i32_t value) {
+sky_inline sky_isize_t
+sky_coro_yield(sky_coro_t *coro, sky_isize_t value) {
     coro->yield_value = value;
     coro_swapcontext(&coro->context, &coro->switcher->caller);
     return coro->yield_value;
@@ -303,8 +321,7 @@ sky_coro_destroy(sky_coro_t *coro) {
 
         sky_free(block);
     }
-    sky_uchar_t *ptr = ((sky_uchar_t *) coro) - CORO_STACK_MIN;
-    munmap(ptr, CORE_BLOCK_SIZE);
+    sky_free(coro);
 }
 
 sky_defer_t *

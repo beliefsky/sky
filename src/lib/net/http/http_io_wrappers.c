@@ -18,7 +18,7 @@
 
 sky_usize_t
 http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size) {
-    ssize_t n;
+    sky_isize_t n;
 
     const sky_i32_t fd = conn->ev.fd;
     for (;;) {
@@ -45,7 +45,7 @@ http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size) {
 
 void
 http_write(sky_http_connection_t *conn, const sky_uchar_t *data, sky_usize_t size) {
-    ssize_t n;
+    sky_isize_t n;
 
     const sky_i32_t fd = conn->ev.fd;
     for (;;) {
