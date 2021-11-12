@@ -8,6 +8,14 @@
 #include <errno.h>
 #include <unistd.h>
 
+typedef enum {
+    START,
+    HAND_SHAKE,
+    CONNECTION,
+    READY,
+    DESTROY
+} listener_status_t;
+
 struct sky_tcp_r_s {
     sky_event_t ev;
     sky_tcp_w_t tasks;
@@ -17,18 +25,23 @@ struct sky_tcp_r_s {
     sky_u32_t address_len;
     sky_i32_t keep_alive;
     sky_i32_t timeout;
+    listener_status_t status;
     sky_bool_t main: 1;
     sky_bool_t free: 1;
 };
 
 struct sky_tcp_listener_s {
     sky_tcp_r_t reader;
-    // ...
+
+    sky_tcp_listener_pt listener;
+    void *data;
 };
 
 static sky_bool_t tcp_run(sky_tcp_listener_t *listener);
 
 static void tcp_close(sky_tcp_listener_t *listener);
+
+static sky_isize_t tcp_listener_process(sky_coro_t *coro, sky_tcp_listener_t *listener);
 
 static sky_i8_t tcp_connection(sky_tcp_listener_t *listener);
 
@@ -48,6 +61,8 @@ sky_tcp_listener_create(sky_event_loop_t *loop, const sky_tcp_listener_conf_t *c
     sky_coro_t *coro = sky_coro_new();
 
     sky_tcp_listener_t *listener = sky_coro_malloc(coro, sizeof(sky_tcp_listener_t) + conf->address_len);
+    listener->listener = conf->listener;
+    listener->data = conf->data;
     sky_tcp_r_t *reader = &listener->reader;
     sky_event_init(loop, &reader->ev, -1, tcp_run, tcp_close);
     reader->tasks.next = reader->tasks.prev = &reader->tasks;
@@ -57,6 +72,7 @@ sky_tcp_listener_create(sky_event_loop_t *loop, const sky_tcp_listener_conf_t *c
     reader->address_len = conf->address_len;
     reader->keep_alive = conf->keep_alive ?: -1;
     reader->timeout = conf->timeout ?: 5;
+    reader->status = START;
     reader->main = false;
     reader->free = false;
 
@@ -66,8 +82,7 @@ sky_tcp_listener_create(sky_event_loop_t *loop, const sky_tcp_listener_conf_t *c
         sky_log_error("tcp listener connection error");
     }
 
-//    sky_core_set(coro, null, listener);
-    // try connection
+    sky_core_set(coro, (sky_coro_func_t) tcp_listener_process, listener);
 
     return listener;
 }
@@ -217,13 +232,67 @@ sky_tcp_listener_destroy(sky_tcp_listener_t *listener) {
 
 static sky_bool_t
 tcp_run(sky_tcp_listener_t *listener) {
+    sky_tcp_w_t *writer;
+    sky_event_t *event;
+    sky_bool_t result = true;
 
-    return true;
+    listener->reader.main = true;
+    // 开始连接(有 bind的需要执行完)
+    // 连接中
+    // 连接完成
+    // 连接完成后续交互
+
+    // writer相关处理, writer出现异常可能会后续处理
+    for (;;) {
+        writer = listener->reader.current;
+        if (writer) {
+            event = writer->ev;
+
+            if (event->run(event)) {
+                if (listener->reader.current) {
+                    break;
+                }
+            } else {
+                if (listener->reader.current) {
+                    sky_tcp_listener_unbind(writer);
+                    sky_event_unregister(event);
+                    result = false;
+                    break;
+                }
+                sky_event_unregister(event);
+            }
+        }
+        if (listener->reader.tasks.prev == &listener->reader.tasks) {
+            break;
+        }
+        listener->reader.current = listener->reader.tasks.prev;
+    }
+
+    sky_coro_resume(listener->reader.coro);
+
+
+    listener->reader.main = false;
+
+    return result;
 }
 
 static void
 tcp_close(sky_tcp_listener_t *listener) {
 
+}
+
+static sky_isize_t
+tcp_listener_process(sky_coro_t *coro, sky_tcp_listener_t *listener) {
+    (void) coro;
+    sky_bool_t result;
+
+    for (;;) {
+        result = listener->listener(&listener->reader, listener->data);
+
+        if (sky_unlikely(!result)) {
+            return SKY_CORO_ABORT;
+        }
+    }
 }
 
 static sky_i8_t

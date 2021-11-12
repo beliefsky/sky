@@ -17,6 +17,8 @@ typedef struct sky_tcp_listener_s sky_tcp_listener_t;
 typedef struct sky_tcp_r_s sky_tcp_r_t;
 typedef struct sky_tcp_w_s sky_tcp_w_t;
 
+typedef sky_bool_t (*sky_tcp_listener_pt)(sky_tcp_r_t *reader, void *data);
+
 struct sky_tcp_w_s {
     sky_event_t *ev;
     sky_coro_t *coro;
@@ -31,6 +33,8 @@ typedef struct {
     sky_i32_t timeout;
     sky_u32_t address_len;
     sky_inet_address_t *address;
+    sky_tcp_listener_pt listener;
+    void *data;
 } sky_tcp_listener_conf_t;
 
 
@@ -41,7 +45,8 @@ sky_tcp_listener_t *sky_tcp_listener_create(
 
 sky_usize_t sky_tcp_listener_read(sky_tcp_r_t *reader, sky_uchar_t *data, sky_usize_t size);
 
-sky_bool_t sky_tcp_listener_bind(sky_tcp_listener_t *listener, sky_tcp_w_t *writer, sky_event_t *event, sky_coro_t *coro);
+sky_bool_t
+sky_tcp_listener_bind(sky_tcp_listener_t *listener, sky_tcp_w_t *writer, sky_event_t *event, sky_coro_t *coro);
 
 sky_bool_t sky_tcp_listener_bind_self(sky_tcp_r_t *reader, sky_tcp_w_t *writer);
 
