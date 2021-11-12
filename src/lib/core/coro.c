@@ -88,6 +88,7 @@ struct sky_coro_s {
     sky_coro_context_t context;
     sky_isize_t yield_value;
 //===================================
+    sky_bool_t self;
     sky_u32_t ptr_size;
     sky_defer_t defers;
     sky_defer_t free_defers;
@@ -251,6 +252,7 @@ sky_coro_new() {
     coro->defers.prev = coro->defers.next = &coro->defers;
     coro->free_defers.prev = coro->free_defers.next = &coro->free_defers;
     coro->blocks.next = coro->blocks.prev = &coro->blocks;
+    coro->self = false;
     coro->ptr = (sky_uchar_t *) (coro + 1);
     coro->ptr_size = PAGE_SIZE - sizeof(sky_coro_t);
     coro->stack = coro->ptr + coro->ptr_size;
@@ -291,14 +293,19 @@ sky_coro_resume(sky_coro_t *coro) {
     assert(coro->context[STACK_PTR] >= (sky_usize_t) coro->stack &&
            coro->context[STACK_PTR] <= (sky_usize_t) (coro->stack + CORO_STACK_MIN));
 #endif
+    coro->self = true;
     coro_swapcontext(&coro->switcher->caller, &coro->context);
+    coro->self = false;
     return coro->yield_value;
 }
 
 sky_inline sky_isize_t
 sky_coro_yield(sky_coro_t *coro, sky_isize_t value) {
-    coro->yield_value = value;
-    coro_swapcontext(&coro->context, &coro->switcher->caller);
+    if (sky_likely(coro->self)) {
+        coro->yield_value = value;
+        coro_swapcontext(&coro->context, &coro->switcher->caller);
+    }
+
     return coro->yield_value;
 }
 
