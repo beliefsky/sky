@@ -97,6 +97,7 @@ struct sky_coro_s {
     sky_uchar_t *stack;
 };
 
+static sky_isize_t coro_yield(sky_coro_t *coro, sky_isize_t value);
 
 static void mem_block_add(sky_coro_t *coro);
 
@@ -172,7 +173,7 @@ ASM_ROUTINE(coro_swapcontext)
 
 __attribute__((used, visibility("internal"))) void
 coro_entry_point(sky_coro_t *coro, sky_coro_func_t func, void *data) {
-    return (void) sky_coro_yield(coro, func(coro, data));
+    return (void) coro_yield(coro, func(coro, data));
 }
 
 #ifdef __x86_64__
@@ -302,10 +303,8 @@ sky_coro_resume(sky_coro_t *coro) {
 sky_inline sky_isize_t
 sky_coro_yield(sky_coro_t *coro, sky_isize_t value) {
     if (sky_likely(coro->self)) {
-        coro->yield_value = value;
-        coro_swapcontext(&coro->context, &coro->switcher->caller);
+        return coro_yield(coro, value);
     }
-
     return coro->yield_value;
 }
 
@@ -436,6 +435,14 @@ sky_coro_malloc(sky_coro_t *coro, sky_u32_t size) {
 
 
     return ptr;
+}
+
+static sky_inline sky_isize_t
+coro_yield(sky_coro_t *coro, sky_isize_t value) {
+    coro->yield_value = value;
+    coro_swapcontext(&coro->context, &coro->switcher->caller);
+
+    return coro->yield_value;
 }
 
 static sky_inline void
