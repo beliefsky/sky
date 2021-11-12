@@ -9,6 +9,7 @@
 #include <net/http/http_request.h>
 #include <core/memory.h>
 #include <core/thread.h>
+#include <core/log.h>
 #include <unistd.h>
 
 static void *server_start(void *args);
