@@ -30,7 +30,7 @@ endif ()
 # Find libraries
 #
 find_package(Threads REQUIRED)
-set(ADDITIONAL_LIBRARIES ${ADDITIONAL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
+set(ADDITIONAL_LIBRARIES ${ADDITIONAL_LIBRARIES} Threads::Threads)
 
 #check_include_file(openssl/ssl.h HAVE_OPENSSL)
 if (HAVE_OPENSSL)
