@@ -7,38 +7,23 @@
 #include <net/http/http_server.h>
 #include <net/http/module/http_module_file.h>
 #include <net/http/http_request.h>
-#include <core/memory.h>
-#include <core/thread.h>
 #include <core/log.h>
-#include <unistd.h>
+#include <platform.h>
 
-static void *server_start(void *args);
+static void server_start(sky_u32_t index);
 
 int
 main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
-    const sky_i32_t size = (sky_i32_t) sysconf(_SC_NPROCESSORS_CONF);;
+    const sky_platform_conf_t conf = {
+            .run = server_start
+    };
 
-    sky_thread_t *thread = sky_malloc(sizeof(sky_thread_t) * (sky_usize_t) size);
-    for (sky_i32_t i = 0; i < size; ++i) {
-        sky_thread_attr_t attr;
-
-        sky_thread_attr_init(&attr);
-        sky_thread_attr_set_scope(&attr, SKY_THREAD_SCOPE_SYSTEM);
-//        sky_thread_attr_set_stack_size(&attr, 4096);
-
-        sky_thread_create(&thread[i], &attr, server_start, null);
-
-        sky_thread_attr_destroy(&attr);
-
-//        sky_thread_set_cpu(thread[i], 7);
-    }
-    for (sky_i32_t i = 0; i < size; ++i) {
-        sky_thread_join(thread[i], null);
-    }
-    sky_free(thread);
+    sky_platform_t *platform = sky_platform_create(&conf);
+    sky_platform_wait(platform);
+    sky_platform_destroy(platform);
 
     return 0;
 }
@@ -63,9 +48,9 @@ http_index_router(sky_http_request_t *req, void *data) {
     return true;
 }
 
-static void *
-server_start(void *args) {
-    (void) args;
+static void
+server_start(sky_u32_t index) {
+    sky_log_info("thread-%u", index);
 
     sky_pool_t *pool;
     sky_event_loop_t *loop;
@@ -132,7 +117,5 @@ server_start(void *args) {
 
     sky_event_loop_run(loop);
     sky_event_loop_shutdown(loop);
-
-    return null;
 }
 
