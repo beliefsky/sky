@@ -45,7 +45,7 @@ sky_event_loop_create(sky_pool_t *pool) {
     loop->fd = kqueue();
     loop->conn_max = setup_open_file_count_limits();
     loop->now = time(null);
-    loop->ctx = sky_timer_wheel_create(pool, TIMER_WHEEL_DEFAULT_NUM, (sky_u64_t) loop->now);
+    loop->ctx = sky_timer_wheel_create(TIMER_WHEEL_DEFAULT_NUM, (sky_u64_t) loop->now);
 
     return loop;
 }
@@ -171,6 +171,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 void
 sky_event_loop_shutdown(sky_event_loop_t *loop) {
     close(loop->fd);
+    sky_timer_wheel_destroy(loop->ctx);
     sky_pool_destroy(loop->pool);
 }
 
