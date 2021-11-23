@@ -2,6 +2,7 @@
 // Created by weijing on 2020/10/10.
 //
 #include "timer_wheel.h"
+#include "memory.h"
 
 #define TIMER_WHEEL_BITS        5
 #define TIMER_WHEEL_SLOTS       (1 << TIMER_WHEEL_BITS)
@@ -33,7 +34,7 @@ static void link_timer(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry);
 
 
 sky_timer_wheel_t *
-sky_timer_wheel_create(sky_pool_t *pool, sky_u32_t num_wheels, sky_u64_t now) {
+sky_timer_wheel_create(sky_u32_t num_wheels, sky_u64_t now) {
     sky_timer_wheel_t *ctx;
     timer_wheel_slot_t *s;
     sky_usize_t i, j;
@@ -41,7 +42,7 @@ sky_timer_wheel_create(sky_pool_t *pool, sky_u32_t num_wheels, sky_u64_t now) {
 
     num_wheels = sky_max(num_wheels, SKY_U32(2));
 
-    ctx = sky_palloc(pool, sky_offset_of(sky_timer_wheel_t, wheels) + sizeof(ctx->wheels[0]) * num_wheels);
+    ctx = sky_malloc(sky_offset_of(sky_timer_wheel_t, wheels) + sizeof(ctx->wheels[0]) * num_wheels);
     ctx->last_run = now;
     ctx->max_ticks = (SKY_U64(1) << (TIMER_WHEEL_BITS * (num_wheels - 1))) * (TIMER_WHEEL_SLOTS - 1);
     ctx->num_wheels = num_wheels;
@@ -72,6 +73,7 @@ void sky_timer_wheel_destroy(sky_timer_wheel_t *ctx) {
             }
         }
     }
+    sky_free(ctx);
 }
 
 sky_u64_t
