@@ -77,7 +77,7 @@ server_start(sky_u32_t index) {
             .connection_size = 8
     };
 
-    ps_pool = sky_pgsql_pool_create(loop, pool, &pg_conf);
+    ps_pool = sky_pgsql_pool_create(loop, &pg_conf);
     if (!ps_pool) {
         sky_log_error("create postgresql connection pool error");
         return;

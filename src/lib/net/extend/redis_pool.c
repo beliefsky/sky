@@ -63,6 +63,11 @@ sky_redis_conn_put(sky_redis_conn_t *rc) {
     }
 }
 
+void
+sky_redis_pool_shutdown(sky_redis_pool_t *conn_pool) {
+    sky_tcp_pool_shutdown(conn_pool);
+}
+
 
 static sky_bool_t
 redis_send_exec(sky_redis_conn_t *rc, sky_redis_data_t *params, sky_u16_t param_len) {

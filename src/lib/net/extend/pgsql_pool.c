@@ -64,17 +64,20 @@ static sky_uchar_t *array_serialize(const sky_pgsql_array_t *array, sky_uchar_t 
 static sky_pgsql_array_t *array_deserialize(sky_pool_t *pool, sky_uchar_t *p, sky_pgsql_type_t type);
 
 sky_pgsql_pool_t *
-sky_pgsql_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_pgsql_conf_t *conf) {
+sky_pgsql_pool_create(sky_event_loop_t *loop, const sky_pgsql_conf_t *conf) {
     sky_pgsql_pool_t *pg_pool;
-    sky_tcp_pool_t *tcp_pool;
     sky_uchar_t *p;
+    sky_u32_t buf_size;
 
-    pg_pool = sky_palloc(pool, sizeof(sky_pgsql_pool_t));
+
+    buf_size = 11 + sizeof("user") + sizeof("database") + (sky_u32_t)conf->username.len + (sky_u32_t)conf->database.len;
+
+    pg_pool = sky_malloc(sizeof(sky_pgsql_pool_t) + buf_size);
     pg_pool->username = conf->username;
     pg_pool->password = conf->password;
 
-    pg_pool->conn_info.len = 11 + sizeof("user") + sizeof("database") + conf->username.len + conf->database.len;
-    pg_pool->conn_info.data = p = sky_pnalloc(pool, pg_pool->conn_info.len);
+    pg_pool->conn_info.len = buf_size;
+    pg_pool->conn_info.data = p = (sky_uchar_t *) (pg_pool + 1);
 
     *((sky_u32_t *) p) = sky_htonl((sky_u32_t) pg_pool->conn_info.len);
     p += 4;
@@ -100,11 +103,10 @@ sky_pgsql_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_pgsql_
             .next_func = (sky_tcp_pool_conn_next) pg_auth
     };
 
-    tcp_pool = sky_tcp_pool_create(loop, &c);
-    if (sky_unlikely(!tcp_pool)) {
+    pg_pool->conn_pool  = sky_tcp_pool_create(loop, &c);
+    if (sky_unlikely(!pg_pool->conn_pool)) {
         return null;
     }
-    pg_pool->conn_pool = tcp_pool;
 
     return pg_pool;
 }
@@ -153,6 +155,12 @@ sky_pgsql_conn_put(sky_pgsql_conn_t *conn) {
     } else {
         sky_tcp_pool_conn_unbind(&conn->conn);
     }
+}
+
+void
+sky_pgsql_pool_shutdown(sky_pgsql_pool_t *conn_pool) {
+    sky_tcp_pool_shutdown(conn_pool->conn_pool);
+    sky_free(conn_pool);
 }
 
 

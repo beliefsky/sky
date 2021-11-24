@@ -61,6 +61,8 @@ sky_redis_result_t *sky_redis_exec(sky_redis_conn_t *rc, sky_redis_data_t *param
 
 void sky_redis_conn_put(sky_redis_conn_t *rc);
 
+void sky_redis_pool_shutdown(sky_pgsql_pool_t *conn_pool);
+
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif
