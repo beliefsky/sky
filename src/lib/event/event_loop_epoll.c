@@ -32,7 +32,8 @@ static void event_timer_callback(sky_event_t *ev);
 static sky_i32_t setup_open_file_count_limits();
 
 sky_event_loop_t *
-sky_event_loop_create(sky_pool_t *pool) {
+sky_event_loop_create() {
+    sky_i32_t max_events;
     sky_event_loop_t *loop;
     struct sigaction sa;
 
@@ -40,10 +41,12 @@ sky_event_loop_create(sky_pool_t *pool) {
     sa.sa_handler = SIG_IGN;
     sigaction(SIGPIPE, &sa, null);
 
-    loop = sky_pcalloc(pool, sizeof(sky_event_loop_t));
-    loop->pool = pool;
+    max_events = setup_open_file_count_limits();
+    max_events = sky_min(max_events, 1024);
+
+    loop = sky_malloc(sizeof(sky_event_loop_t) + (sizeof(struct epoll_event) * (sky_u32_t) max_events));
     loop->fd = epoll_create1(EPOLL_CLOEXEC);
-    loop->conn_max = setup_open_file_count_limits();
+    loop->max_events = max_events;
     loop->now = time(null);
     loop->ctx = sky_timer_wheel_create(TIMER_WHEEL_DEFAULT_NUM, (sky_u64_t) loop->now);
 
@@ -64,8 +67,8 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
     now = loop->now;
 
-    max_events = sky_min(loop->conn_max, 1024);
-    events = sky_pnalloc(loop->pool, sizeof(struct epoll_event) * (sky_u32_t) max_events);
+    max_events = loop->max_events;
+    events = (struct epoll_event *) (loop + 1);
 
 
     sky_timer_wheel_run(ctx, (sky_u64_t) now);
@@ -132,7 +135,8 @@ void
 sky_event_loop_shutdown(sky_event_loop_t *loop) {
     close(loop->fd);
     sky_timer_wheel_destroy(loop->ctx);
-    sky_pool_destroy(loop->pool);
+
+    sky_free(loop);
 }
 
 

@@ -60,7 +60,7 @@ server_start(sky_u32_t index) {
 
     pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
 
-    loop = sky_event_loop_create(pool);
+    loop = sky_event_loop_create();
 
     struct sockaddr_in pg_address = {
             .sin_family = AF_INET,

@@ -59,7 +59,7 @@ server_start(sky_u32_t index) {
 
     pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
 
-    loop = sky_event_loop_create(pool);
+    loop = sky_event_loop_create();
 
     sky_array_init(&modules, pool, 8, sizeof(sky_http_module_t));
 
