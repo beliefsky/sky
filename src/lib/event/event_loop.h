@@ -5,7 +5,6 @@
 #ifndef SKY_EVENT_LOOP_H
 #define SKY_EVENT_LOOP_H
 
-#include "../core/palloc.h"
 #include "../core/timer_wheel.h"
 
 #if defined(__cplusplus)
@@ -32,10 +31,9 @@ struct sky_event_s {
 
 struct sky_event_loop_s {
     sky_timer_wheel_t *ctx;
-    sky_pool_t *pool;
     sky_time_t now;
     sky_i32_t fd;
-    sky_i32_t conn_max;
+    sky_i32_t max_events;
     sky_bool_t update: 1;
 };
 
@@ -80,7 +78,7 @@ struct sky_event_loop_s {
  * @param pool 创建时所需的内存池
  * @return 触发列队服务
  */
-sky_event_loop_t *sky_event_loop_create(sky_pool_t *pool);
+sky_event_loop_t *sky_event_loop_create();
 
 /**
  * 执行事件触发服务，该服务线程阻塞

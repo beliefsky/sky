@@ -46,12 +46,7 @@ static void
 server_start(sky_u32_t index) {
     sky_log_info("thread-%u", index);
 
-    sky_pool_t *pool;
-    sky_event_loop_t *loop;
-
-    pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
-
-    loop = sky_event_loop_create(pool);
+    sky_event_loop_t *loop = sky_event_loop_create();
 
 
     sky_uchar_t mq_ip[] = {192, 168, 0, 15};
