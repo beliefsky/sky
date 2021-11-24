@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 struct sky_udp_pool_s {
+    sky_bool_t shutdown;
     sky_u16_t connection_ptr;
     sky_i32_t keep_alive;
     sky_i32_t timeout;
@@ -63,6 +64,7 @@ sky_udp_pool_create(sky_event_loop_t *loop, const sky_udp_pool_conf_t *conf) {
     conn_pool->address_len = conf->address_len;
     sky_memcpy(conn_pool->address, conf->address, conn_pool->address_len);
 
+    conn_pool->shutdown = false;
     conn_pool->keep_alive = conf->keep_alive ?: -1;
     conn_pool->timeout = conf->timeout ?: 5;
 
@@ -80,7 +82,9 @@ sky_udp_pool_create(sky_event_loop_t *loop, const sky_udp_pool_conf_t *conf) {
 
 sky_bool_t
 sky_udp_pool_conn_bind(sky_udp_pool_t *udp_pool, sky_udp_conn_t *conn, sky_event_t *event, sky_coro_t *coro) {
-
+    if (sky_unlikely(udp_pool->shutdown)) {
+        return false;
+    }
     sky_udp_node_t *client = udp_pool->clients + (event->fd & udp_pool->connection_ptr);
     const sky_bool_t empty = client->tasks.next == &client->tasks;
 
@@ -102,7 +106,7 @@ sky_udp_pool_conn_bind(sky_udp_pool_t *udp_pool, sky_udp_conn_t *conn, sky_event
     client->current = conn;
 
     if (sky_unlikely(client->ev.fd == -1)) {
-        if (sky_likely(client->conn_time > client->ev.loop->now)) {
+        if (sky_likely(udp_pool->shutdown || client->conn_time > client->ev.loop->now)) {
             sky_udp_pool_conn_unbind(conn);
             return false;
         }
@@ -297,8 +301,11 @@ sky_udp_pool_conn_unbind(sky_udp_conn_t *conn) {
 
 
 void
-sky_udp_pool_shutdown(sky_udp_conn_t *tcp_pool) {
-
+sky_udp_pool_shutdown(sky_udp_pool_t *udp_pool) {
+    if (sky_unlikely(udp_pool->shutdown)) {
+        return;
+    }
+    udp_pool->shutdown = true;
 }
 
 
