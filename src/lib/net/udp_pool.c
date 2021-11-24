@@ -45,7 +45,7 @@ static sky_bool_t set_socket_nonblock(sky_i32_t fd);
 
 
 sky_udp_pool_t *
-sky_udp_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_udp_pool_conf_t *conf) {
+sky_udp_pool_create(sky_event_loop_t *loop, const sky_udp_pool_conf_t *conf) {
     sky_u16_t i;
     sky_udp_pool_t *conn_pool;
     sky_udp_node_t *client;
@@ -56,7 +56,7 @@ sky_udp_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_udp_pool
         sky_log_error("连接数必须为2的整数幂");
         return null;
     }
-    conn_pool = sky_palloc(pool, sizeof(sky_udp_pool_t) + (sizeof(sky_udp_node_t) * i) + conf->address_len);
+    conn_pool = sky_malloc(sizeof(sky_udp_pool_t) + (sizeof(sky_udp_node_t) * i) + conf->address_len);
     conn_pool->clients = (sky_udp_node_t *) (conn_pool + 1);
 
     conn_pool->address = (sky_inet_address_t *) (conn_pool->clients + i);
@@ -293,6 +293,12 @@ sky_udp_pool_conn_unbind(sky_udp_conn_t *conn) {
     }
     conn->client->current = null;
     conn->client = null;
+}
+
+
+void
+sky_udp_pool_shutdown(sky_udp_conn_t *tcp_pool) {
+
 }
 
 

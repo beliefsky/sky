@@ -7,6 +7,7 @@
 
 #include "../tcp_pool.h"
 #include "../../core/string.h"
+#include "../../core/palloc.h"
 #include "../../core/log.h"
 
 #if defined(__cplusplus)
