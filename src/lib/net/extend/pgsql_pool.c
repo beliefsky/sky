@@ -100,7 +100,7 @@ sky_pgsql_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_pgsql_
             .next_func = (sky_tcp_pool_conn_next) pg_auth
     };
 
-    tcp_pool = sky_tcp_pool_create(loop, pool, &c);
+    tcp_pool = sky_tcp_pool_create(loop, &c);
     if (sky_unlikely(!tcp_pool)) {
         return null;
     }

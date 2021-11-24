@@ -95,7 +95,7 @@ server_start(sky_u32_t index) {
             .connection_size = 4
     };
 
-    redis_pool = sky_redis_pool_create(loop, pool, &redis_conf);
+    redis_pool = sky_redis_pool_create(loop, &redis_conf);
     if (!redis_pool) {
         sky_log_error("create redis connection pool error");
         return;

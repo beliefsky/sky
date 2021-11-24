@@ -38,7 +38,7 @@ struct sky_udp_conn_s {
     sky_udp_conn_t *next;
 };
 
-sky_udp_pool_t *sky_udp_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_udp_pool_conf_t *conf);
+sky_udp_pool_t *sky_udp_pool_create(sky_event_loop_t *loop, const sky_udp_pool_conf_t *conf);
 
 sky_bool_t sky_udp_pool_conn_bind(sky_udp_pool_t *udp_pool, sky_udp_conn_t *conn, sky_event_t *event, sky_coro_t *coro);
 
@@ -49,6 +49,8 @@ sky_bool_t sky_udp_pool_conn_write(sky_udp_conn_t *conn, const sky_uchar_t *data
 void sky_udp_pool_conn_close(sky_udp_conn_t *conn);
 
 void sky_udp_pool_conn_unbind(sky_udp_conn_t *conn);
+
+void sky_udp_pool_shutdown(sky_udp_conn_t *tcp_pool);
 
 #if defined(__cplusplus)
 } /* extern "C" { */
