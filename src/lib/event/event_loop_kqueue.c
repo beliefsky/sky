@@ -219,6 +219,28 @@ sky_event_unregister(sky_event_t *ev) {
     sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_u64_t) ev->loop->now);
 }
 
+void
+sky_event_reset_timeout_self(sky_event_t *ev, sky_i32_t timeout) {
+    if (timeout < 0) {
+        sky_timer_wheel_unlink(&ev->timer);
+        return;
+    } else if (ev->timeout < 0) {
+        sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_u64_t) (ev->loop->now + timeout));
+    } else {
+        ev->timeout = timeout;
+    }
+}
+
+void
+sky_event_reset_timeout(sky_event_t *ev, sky_i32_t timeout) {
+    if (timeout < 0) {
+        sky_timer_wheel_unlink(&ev->timer);
+        return;
+    } else {
+        sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_u64_t) (ev->loop->now + timeout));
+    }
+}
+
 static void
 event_timer_callback(sky_event_t *ev) {
     if (sky_event_is_reg(ev)) {
