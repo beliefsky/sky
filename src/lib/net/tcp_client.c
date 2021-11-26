@@ -22,6 +22,8 @@ static sky_bool_t tcp_run(sky_tcp_client_t *client);
 
 static void tcp_close(sky_tcp_client_t *client);
 
+static void tcp_shutdown(sky_tcp_client_t *client);
+
 static void tcp_client_defer(sky_tcp_client_t *client);
 
 #ifndef HAVE_ACCEPT4
@@ -283,11 +285,12 @@ tcp_run(sky_tcp_client_t *client) {
 
 static void
 tcp_close(sky_tcp_client_t *client) {
-    if (client->free) {
-        sky_free(client);
-    } else {
-        tcp_run(client);
-    }
+    tcp_run(client);
+}
+
+static void
+tcp_shutdown(sky_tcp_client_t *client) {
+    sky_free(client);
 }
 
 static sky_inline void
@@ -297,6 +300,7 @@ tcp_client_defer(sky_tcp_client_t *client) {
     if (sky_unlikely(client->ev.fd == -1)) {
         sky_free(client);
     } else {
+        sky_event_reset(&client->ev, tcp_run, tcp_shutdown);
         sky_event_unregister(&client->ev);
     }
 }

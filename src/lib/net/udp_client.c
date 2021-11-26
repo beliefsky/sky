@@ -22,6 +22,8 @@ static sky_bool_t udp_run(sky_udp_client_t *client);
 
 static void udp_close(sky_udp_client_t *client);
 
+static void udp_shutdown(sky_udp_client_t *client);
+
 static void udp_client_defer(sky_udp_client_t *client);
 
 #ifndef HAVE_ACCEPT4
@@ -283,11 +285,12 @@ udp_run(sky_udp_client_t *client) {
 
 static void
 udp_close(sky_udp_client_t *client) {
-    if (client->free) {
-        sky_free(client);
-    } else {
-        udp_run(client);
-    }
+    udp_run(client);
+}
+
+static void
+udp_shutdown(sky_udp_client_t *client) {
+    sky_free(client);
 }
 
 static sky_inline void
@@ -297,6 +300,7 @@ udp_client_defer(sky_udp_client_t *client) {
     if (sky_unlikely(client->ev.fd == -1)) {
         sky_free(client);
     } else {
+        sky_event_reset(&client->ev, udp_run, udp_shutdown);
         sky_event_unregister(&client->ev);
     }
 }
