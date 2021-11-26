@@ -83,9 +83,10 @@ server_start(sky_u32_t index) {
         return;
     }
 
+    sky_uchar_t redis_ip[] = {192, 168, 0, 77};
     struct sockaddr_in redis_address = {
             .sin_family = AF_INET,
-            .sin_addr.s_addr = INADDR_ANY,
+            .sin_addr.s_addr = *(sky_u32_t *) redis_ip,
             .sin_port = sky_htons(6379)
     };
 
