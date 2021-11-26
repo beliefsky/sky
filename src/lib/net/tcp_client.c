@@ -202,7 +202,7 @@ sky_tcp_client_nowait(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t s
 
     if (sky_event_none_reg(ev)) {
         if ((n = read(ev->fd, data, size)) > 0) {
-            return (sky_isize_t) n;
+            return n;
         }
         switch (errno) {
             case EINTR:
@@ -220,7 +220,7 @@ sky_tcp_client_nowait(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t s
         if (sky_likely(sky_event_is_read(ev))) {
             if ((n = read(ev->fd, data, size)) > 0) {
                 ev->timeout = client->keep_alive;
-                return (sky_isize_t) n;
+                return n;
             }
             switch (errno) {
                 case EINTR:
