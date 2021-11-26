@@ -107,6 +107,10 @@ void sky_event_register(sky_event_t *ev, sky_i32_t timeout);
 void sky_event_unregister(sky_event_t *ev);
 
 
+void sky_event_reset_timeout_self(sky_event_t *ev, sky_i32_t timeout);
+
+void sky_event_reset_timeout(sky_event_t *ev, sky_i32_t timeout);
+
 /**
  * 向事件中主动加入定时器，自定义处理
  * @param loop 事件触发服务

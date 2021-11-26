@@ -110,7 +110,7 @@ sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_address_t *ad
             }
             break;
         }
-        ev->timeout = client->keep_alive;
+        sky_event_reset_timeout_self(ev, client->timeout);
     }
 
 
@@ -153,7 +153,7 @@ sky_tcp_client_read(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t siz
             return 0;
         }
     } else {
-        ev->timeout = client->timeout;
+        sky_event_reset_timeout_self(ev, client->timeout);
     }
 
     if (sky_unlikely(sky_event_none_read(ev))) {
@@ -168,7 +168,7 @@ sky_tcp_client_read(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t siz
     for (;;) {
 
         if ((n = read(ev->fd, data, size)) > 0) {
-            ev->timeout = client->keep_alive;
+            sky_event_reset_timeout_self(ev, client->keep_alive);
             return (sky_usize_t) n;
         }
         switch (errno) {
@@ -219,7 +219,7 @@ sky_tcp_client_nowait(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t s
     } else {
         if (sky_likely(sky_event_is_read(ev))) {
             if ((n = read(ev->fd, data, size)) > 0) {
-                ev->timeout = client->keep_alive;
+                sky_event_reset_timeout_self(ev, client->keep_alive);
                 return n;
             }
             switch (errno) {
@@ -274,7 +274,7 @@ sky_tcp_client_write(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usiz
             return false;
         }
     } else {
-        ev->timeout = client->timeout;
+        sky_event_reset_timeout_self(ev, client->timeout);
     }
 
     if (sky_unlikely(sky_event_none_write(ev))) {
@@ -292,7 +292,7 @@ sky_tcp_client_write(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usiz
                 data += n;
                 size -= (sky_usize_t) n;
             } else {
-                ev->timeout = client->keep_alive;
+                sky_event_reset_timeout_self(ev, client->keep_alive);
                 return true;
             }
         } else {
