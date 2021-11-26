@@ -6,7 +6,6 @@
 #define SKY_TCP_SERVER_H
 
 #include "../event/event_loop.h"
-#include "../core/palloc.h"
 #include "inet.h"
 
 #if defined(__cplusplus)
@@ -25,8 +24,7 @@ typedef struct {
     sky_bool_t defer_accept: 1;
 } sky_tcp_server_conf_t;
 
-sky_bool_t sky_tcp_server_create(sky_event_loop_t *loop, sky_pool_t *pool,
-                             const sky_tcp_server_conf_t *conf);
+sky_bool_t sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf);
 
 #if defined(__cplusplus)
 } /* extern "C" { */
