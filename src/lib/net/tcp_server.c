@@ -9,6 +9,7 @@
 #include "tcp_server.h"
 #include "../core/log.h"
 #include "../core/number.h"
+#include "../core/memory.h"
 #include <unistd.h>
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -37,8 +38,7 @@ static sky_i32_t get_backlog_size();
 
 
 sky_bool_t
-sky_tcp_server_create(sky_event_loop_t *loop, sky_pool_t *pool,
-                        const sky_tcp_server_conf_t *conf) {
+sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf) {
     sky_i32_t fd;
     sky_i32_t opt;
     sky_i32_t backlog;
@@ -93,7 +93,7 @@ sky_tcp_server_create(sky_event_loop_t *loop, sky_pool_t *pool,
     setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &opt, sizeof(sky_i32_t));
 #endif
 
-    l = sky_palloc(pool, sizeof(listener_t));
+    l = sky_malloc(sizeof(listener_t));
     l->run = conf->run;
     l->data = conf->data;
     l->timeout = conf->timeout;
@@ -146,6 +146,7 @@ tcp_listener_accept(sky_event_t *ev) {
 
 static void tcp_listener_error(sky_event_t *ev) {
     sky_log_info("%d: tcp listener error", ev->fd);
+    sky_free(ev);
 }
 
 #ifndef HAVE_ACCEPT4
