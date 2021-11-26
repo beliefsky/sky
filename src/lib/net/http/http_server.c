@@ -107,7 +107,7 @@ sky_http_server_bind(
             .defer_accept = true
     };
 
-    return sky_tcp_server_create(loop, server->pool, &conf);
+    return sky_tcp_server_create(loop, &conf);
 }
 
 sky_str_t *
