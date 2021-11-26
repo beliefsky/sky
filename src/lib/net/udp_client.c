@@ -201,7 +201,7 @@ sky_isize_t sky_udp_client_read_nowait(sky_udp_client_t *client, sky_uchar_t *da
 
     if (sky_event_none_reg(ev)) {
         if ((n = read(ev->fd, data, size)) > 0) {
-            return (sky_isize_t) n;
+            return n;
         }
         switch (errno) {
             case EINTR:
@@ -219,7 +219,7 @@ sky_isize_t sky_udp_client_read_nowait(sky_udp_client_t *client, sky_uchar_t *da
         if (sky_likely(sky_event_is_read(ev))) {
             if ((n = read(ev->fd, data, size)) > 0) {
                 ev->timeout = client->keep_alive;
-                return (sky_isize_t) n;
+                return n;
             }
             switch (errno) {
                 case EINTR:
