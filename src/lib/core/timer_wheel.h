@@ -21,8 +21,8 @@ struct sky_timer_wheel_entry_s {
     sky_u64_t expire_at;
 };
 
-#define sky_timer_is_link(_entry) (null != (_entry)->next)
-#define sky_timer_none_link(_entry) (null == (_entry)->next)
+#define sky_timer_is_link(_entry) ((_entry)->next)
+#define sky_timer_none_link(_entry) (!(_entry)->next)
 
 #define sky_timer_entry_init(_entry, _cb) \
     do {                                  \

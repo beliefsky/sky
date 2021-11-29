@@ -194,7 +194,7 @@ sky_tcp_client_read(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t siz
 }
 
 sky_isize_t
-sky_tcp_client_nowait(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t size) {
+sky_tcp_client_read_nowait(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t size) {
     sky_event_t *ev;
     sky_isize_t n;
 
@@ -331,8 +331,14 @@ sky_tcp_client_destroy(sky_tcp_client_t *client) {
 static sky_bool_t
 tcp_run(sky_tcp_client_t *client) {
     sky_event_t *event = client->main_ev;
+    sky_bool_t result = event->run(event);
 
-    return event->run(event);
+    if (!result) {
+        sky_event_unregister(event);
+        sky_event_reset(&client->ev, tcp_run, tcp_shutdown);
+    }
+
+    return result;
 }
 
 static void
@@ -340,7 +346,7 @@ tcp_close(sky_tcp_client_t *client) {
     tcp_run(client);
 }
 
-static void
+static sky_inline void
 tcp_shutdown(sky_tcp_client_t *client) {
     sky_free(client);
 }
@@ -349,8 +355,10 @@ static sky_inline void
 tcp_client_defer(sky_tcp_client_t *client) {
     client->free = true;
 
-    if (sky_unlikely(client->ev.fd == -1)) {
-        sky_free(client);
+    if (sky_unlikely(sky_event_none_callback(&client->ev))) {
+        close(client->ev.fd);
+        sky_event_rebind(&client->ev, -1);
+        tcp_shutdown(client);
     } else {
         sky_event_reset(&client->ev, tcp_run, tcp_shutdown);
         sky_event_unregister(&client->ev);
