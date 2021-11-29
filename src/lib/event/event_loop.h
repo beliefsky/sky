@@ -48,6 +48,9 @@ struct sky_event_loop_s {
 #define sky_event_clean_read(_ev)   (_ev)->status &= 0xFFFFFFFD
 #define sky_event_clean_write(_ev)  (_ev)->status &= 0xFFFFFFFB
 
+#define sky_event_has_callback(_ev) (sky_event_is_reg(_ev) || sky_timer_is_link(&(_ev)->timer))
+#define sky_event_none_callback(_ev) (sky_timer_none_link(&(_ev)->timer))
+
 #define sky_event_init(_loop, _ev, _fd, _run, _close) \
     do {                                              \
         sky_timer_entry_init(&(_ev)->timer, null);    \
