@@ -94,6 +94,8 @@ server_start(sky_u32_t index) {
 
 static sky_event_t *
 tcp_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, void *data) {
+    (void) data;
+
     sky_coro_t *coro = sky_coro_new();
 
     tcp_proxy_conn_t *conn = sky_coro_malloc(coro, sizeof(tcp_proxy_conn_t));
@@ -101,7 +103,7 @@ tcp_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, void *data) {
     sky_event_init(loop, &conn->event, fd, tcp_proxy_run, tcp_proxy_close);
 
     sky_core_set(coro, (sky_coro_func_t) tcp_proxy_process, conn);
-    if (tcp_proxy_run(conn)) {
+    if (!tcp_proxy_run(conn)) {
         tcp_proxy_close(conn);
         return null;
     }
@@ -130,23 +132,17 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
 
     sky_tcp_client_t *client = sky_tcp_client_create(&conf);
 
-    sky_uchar_t mq_ip[] = {192, 168, 0, 15};
+    sky_uchar_t mq_ip[] = {192, 168, 0, 79};
     const struct sockaddr_in mqtt_address = {
             .sin_family = AF_INET,
             .sin_addr.s_addr = *(sky_u32_t *) mq_ip,
-            .sin_port = sky_htons(1883)
+            .sin_port = sky_htons(9000)
     };
-
-    sky_log_info("================== 111111 ===============");
 
     if (sky_unlikely(!sky_tcp_client_connection(client, (const sky_inet_address_t *) &mqtt_address,
                                                 sizeof(struct sockaddr_in)))) {
-        sky_log_info("================== conn error ===============");
-
         return SKY_CORO_ABORT;
     }
-
-    sky_log_info("================== 22222222 ===============");
 
     sky_u32_t buf_size = 1024 * 16;
     sky_uchar_t *read_buf = sky_malloc(buf_size);
@@ -155,7 +151,6 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
     sky_defer_add2(coro, (sky_defer_func2_t) tcp_proxy_buf_free, read_buf, write_buf);
 
     for (;;) {
-        sky_log_info("=======================");
         sky_bool_t wait = false;
 
         if (sky_event_is_read(&conn->event)) {

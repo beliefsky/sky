@@ -56,7 +56,11 @@ sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_address_t *ad
     if (sky_unlikely(client->free)) {
         return false;
     }
-    if (sky_unlikely(ev->fd != -1)) {
+
+    if (sky_event_none_callback(ev)) {
+        close(ev->fd);
+        ev->fd = -1;
+    } else {
         sky_event_unregister(ev);
     }
 #ifdef HAVE_ACCEPT4
