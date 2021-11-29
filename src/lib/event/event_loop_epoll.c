@@ -136,19 +136,18 @@ sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
     if (sky_unlikely(sky_event_is_reg(ev) || ev->fd == -1)) {
         return false;
     }
+    ev->timer.cb = (sky_timer_wheel_pt) event_timer_callback;
+    ev->status |= 0x00000001; // reg = true
 
     sky_event_loop_t *loop = ev->loop;
     if (timeout < 0) {
-        timeout = -1;
+        timeout = 0;
         sky_timer_wheel_unlink(&ev->timer);
     } else {
         loop->update |= (timeout == 0);
-        ev->timer.cb = (sky_timer_wheel_pt) event_timer_callback;
         sky_timer_wheel_link(loop->ctx, &ev->timer, (sky_u64_t) (loop->now + timeout));
     }
-
     ev->timeout = timeout;
-    ev->status |= 0x00000001; // reg = true
 
     struct epoll_event event = {
             .events = EPOLLIN | EPOLLOUT | EPOLLPRI | EPOLLRDHUP | EPOLLERR | EPOLLET,
@@ -163,18 +162,19 @@ sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
 
 sky_bool_t
 sky_event_unregister(sky_event_t *ev) {
-    if (sky_likely(sky_event_is_reg(ev))) {
-        close(ev->fd);
-        ev->fd = -1;
-        ev->timeout = 0;
-        ev->status &= 0xFFFFFFFE; // reg = false
-        // 此处应添加 应追加需要处理的连接
-        ev->loop->update = true;
-        sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_u64_t) ev->loop->now);
-        return true;
+    if (sky_unlikely(sky_event_none_reg(ev))) {
+        return false;
     }
 
-    return false;
+    close(ev->fd);
+    ev->fd = -1;
+    ev->timeout = 0;
+    ev->status &= 0xFFFFFFFE; // reg = false
+    // 此处应添加 应追加需要处理的连接
+    ev->loop->update = true;
+    sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_u64_t) ev->loop->now);
+
+    return true;
 }
 
 static void
