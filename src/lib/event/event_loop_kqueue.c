@@ -175,18 +175,18 @@ sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
     if (sky_unlikely(sky_event_is_reg(ev) || ev->fd == -1)) {
         return false;
     }
+    ev->timer.cb = (sky_timer_wheel_pt) event_timer_callback;
+    ev->status |= 0x80000001; // index = none, reg = true
 
     sky_event_loop_t *loop = ev->loop;
     if (timeout < 0) {
-        timeout = -1;
+        timeout = 0;
         sky_timer_wheel_unlink(&ev->timer);
     } else {
         loop->update |= (timeout == 0);
-        ev->timer.cb = (sky_timer_wheel_pt) event_timer_callback;
         sky_timer_wheel_link(loop->ctx, &ev->timer, (sky_u64_t) (loop->now + timeout));
     }
     ev->timeout = timeout;
-    ev->status |= 0x80000001; // index = none, reg = true
 
     struct kevent event[2];
     EV_SET(&event[0], ev->fd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);

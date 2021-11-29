@@ -21,9 +21,9 @@ sky_event_reset_timeout_self(sky_event_t *ev, sky_i32_t timeout) {
     }
 
     if (timeout < 0) {
-        timeout = -1;
+        timeout = 0;
         sky_timer_wheel_unlink(&ev->timer);
-    } else if (ev->timeout < 0) {
+    } else if (!ev->timer.next) {
         sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_u64_t) (ev->loop->now + timeout));
     }
 
@@ -37,7 +37,7 @@ sky_event_reset_timeout(sky_event_t *ev, sky_i32_t timeout) {
     }
 
     if (timeout < 0) {
-        timeout = -1;
+        timeout = 0;
         sky_timer_wheel_unlink(&ev->timer);
     } else {
         sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_u64_t) (ev->loop->now + timeout));
