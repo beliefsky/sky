@@ -102,11 +102,20 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             }
             // 是否可读
             ev->now = loop->now;
+            if (sky_unlikely(event->events & (EPOLLRDHUP | EPOLLHUP))) {
+                close(ev->fd);
+                ev->fd = -1;
+                ev->status &= 0xFFFFFFF8; // reg = false ev->read = false, ev->write = false
+                sky_timer_wheel_unlink(&ev->timer);
+                ev->close(ev);
+                continue;
+            }
+
             ev->status |= ((sky_u32_t) ((event->events & EPOLLOUT) != 0) << 2)
                           | ((sky_u32_t) ((event->events & EPOLLIN) != 0) << 1);
 
             // 是否出现异常
-            if (!!(event->events & (EPOLLRDHUP | EPOLLHUP)) || !ev->run(ev)) {
+            if (!ev->run(ev)) {
                 close(ev->fd);
                 ev->fd = -1;
                 ev->status &= 0xFFFFFFFE; // reg = false

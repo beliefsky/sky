@@ -116,10 +116,12 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 close(ev->fd);
                 ev->fd = -1;
                 if ((ev->status & 0x80000000) != 0) {
-                    ev->status = (index << 16) | (ev->status & 0x0000FFFE); // ev->index = index, ev->reg = false;
+                    // ev->index = index, ev->reg = false, ev->read = false, ev->write = false
+                    ev->status = (index << 16) | (ev->status & 0x0000FFF8);
                     run_ev[index++] = ev;
                 } else {
-                    ev->status &= 0xFFFFFFFE; // ev->reg = false;
+                    // ev->reg = false, ev->read = false, ev->write = false
+                    ev->status &= 0xFFFFFFF8;
                 }
                 continue;
             }
@@ -199,17 +201,18 @@ sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
 
 sky_bool_t
 sky_event_unregister(sky_event_t *ev) {
-    if (sky_likely(sky_event_is_reg(ev))) {
-        close(ev->fd);
-        ev->fd = -1;
-        ev->timeout = 0;
-        ev->status &= 0xFFFFFFFE; // reg = false
-        // 此处应添加 应追加需要处理的连接
-        ev->loop->update = true;
-        sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_u64_t) ev->loop->now);
-        return true;
+    if (sky_likely(sky_event_none_reg(ev))) {
+        return false;
     }
-    return false;
+    close(ev->fd);
+    ev->fd = -1;
+    ev->timeout = 0;
+    ev->status &= 0xFFFFFFFE; // reg = false
+    // 此处应添加 应追加需要处理的连接
+    ev->loop->update = true;
+    sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_u64_t) ev->loop->now);
+
+    return true;
 }
 
 static void
