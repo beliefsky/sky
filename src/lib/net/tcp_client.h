@@ -34,6 +34,9 @@ sky_isize_t sky_tcp_client_read_nowait(sky_tcp_client_t *client, sky_uchar_t *da
 
 sky_bool_t sky_tcp_client_write(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usize_t size);
 
+sky_isize_t sky_tcp_client_write_nowait(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usize_t size);
+
+
 void sky_tcp_client_destroy(sky_tcp_client_t *client);
 
 

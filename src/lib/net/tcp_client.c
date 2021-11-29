@@ -218,12 +218,11 @@ sky_tcp_client_read_nowait(sky_tcp_client_t *client, sky_uchar_t *data, sky_usiz
                 sky_log_error("read errno: %d", errno);
                 return -1;
         }
-        sky_event_register(ev, client->timeout);
+        sky_event_register(ev, client->keep_alive);
         sky_event_clean_read(ev);
     } else {
         if (sky_likely(sky_event_is_read(ev))) {
             if ((n = read(ev->fd, data, size)) > 0) {
-                sky_event_reset_timeout_self(ev, client->keep_alive);
                 return n;
             }
             switch (errno) {
@@ -317,6 +316,55 @@ sky_tcp_client_write(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usiz
             }
         } while (sky_unlikely(sky_event_none_write(ev)));
     }
+}
+
+sky_isize_t
+sky_tcp_client_write_nowait(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usize_t size) {
+    sky_event_t *ev;
+    sky_isize_t n;
+
+    if (sky_unlikely(client->free || client->ev.fd == -1)) {
+        return -1;
+    }
+
+    ev = &client->ev;
+    if (sky_event_none_reg(ev)) {
+        if ((n = write(ev->fd, data, size)) > 0) {
+            return n;
+        }
+        switch (errno) {
+            case EINTR:
+            case EAGAIN:
+                break;
+            default:
+                close(ev->fd);
+                ev->fd = -1;
+                sky_log_error("write errno: %d", errno);
+                return -1;
+        }
+
+        sky_event_register(ev, client->keep_alive);
+        sky_event_clean_write(ev);
+    } else {
+        if (sky_likely(sky_event_is_write(ev))) {
+            if ((n = write(ev->fd, data, size)) > 0) {
+                return n;
+            }
+            switch (errno) {
+                case EINTR:
+                case EAGAIN:
+                    break;
+                default:
+                    close(ev->fd);
+                    ev->fd = -1;
+                    sky_log_error("write errno: %d", errno);
+                    return -1;
+            }
+            sky_event_clean_write(ev);
+        }
+    }
+
+    return 0;
 }
 
 void
