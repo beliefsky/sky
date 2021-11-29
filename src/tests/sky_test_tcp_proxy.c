@@ -172,7 +172,7 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
             }
         }
         if (sky_event_is_write(&conn->event)) {
-            sky_isize_t n = sky_tcp_client_nowait(client, write_buf, buf_size);
+            sky_isize_t n = sky_tcp_client_read_nowait(client, write_buf, buf_size);
             if (sky_unlikely(n < 0)) {
                 break;
             }
@@ -189,7 +189,6 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
     }
     error:
     sky_tcp_client_destroy(client);
-
 
     return SKY_CORO_FINISHED;
 }
