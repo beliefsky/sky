@@ -93,7 +93,7 @@ server_start(sky_u32_t index) {
     const sky_redis_conf_t redis_conf = {
             .address = (sky_inet_address_t *) &redis_address,
             .address_len = sizeof(struct sockaddr_in),
-            .connection_size = 4
+            .connection_size = 4,
     };
 
     redis_pool = sky_redis_pool_create(loop, &redis_conf);

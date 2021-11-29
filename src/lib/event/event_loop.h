@@ -98,13 +98,13 @@ void sky_event_loop_shutdown(sky_event_loop_t *loop);
  * @param ev 加入的事件
  * @param timeout 设定超时时间(秒)， -1永久
  */
-void sky_event_register(sky_event_t *ev, sky_i32_t timeout);
+sky_bool_t sky_event_register(sky_event_t *ev, sky_i32_t timeout);
 
 /**
  * 移除监听触发，该函数会马上关闭io，并在稍后会触发关闭事件
  * @param ev 已经加入的事件
  */
-void sky_event_unregister(sky_event_t *ev);
+sky_bool_t sky_event_unregister(sky_event_t *ev);
 
 
 void sky_event_reset_timeout_self(sky_event_t *ev, sky_i32_t timeout);

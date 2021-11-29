@@ -25,6 +25,7 @@ set(SOURCES
         core/uuid.c
         core/json.c
         core/timer_wheel.c
+        event/event_loop_common.c
         event/event_loop_epoll.c
         event/event_loop_kqueue.c
         net/inet.c

@@ -170,20 +170,10 @@ sky_event_loop_run(sky_event_loop_t *loop) {
     }
 }
 
-
-void
-sky_event_loop_shutdown(sky_event_loop_t *loop) {
-    close(loop->fd);
-    sky_timer_wheel_destroy(loop->ctx);
-
-    sky_free(loop);
-}
-
-
-void
+sky_bool_t
 sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
     if (sky_unlikely(sky_event_is_reg(ev) || ev->fd == -1)) {
-        return;
+        return false;
     }
 
     sky_event_loop_t *loop = ev->loop;
@@ -202,43 +192,24 @@ sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
     EV_SET(&event[0], ev->fd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
     EV_SET(&event[1], ev->fd, EVFILT_WRITE, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
     kevent(loop->fd, event, 2, null, 0, null);
+
+    return true;
 }
 
 
-void
+sky_bool_t
 sky_event_unregister(sky_event_t *ev) {
-    if (sky_unlikely(sky_event_none_reg(ev) && ev->fd == -1)) {
-        return;
+    if (sky_likely(sky_event_is_reg(ev))) {
+        close(ev->fd);
+        ev->fd = -1;
+        ev->timeout = 0;
+        ev->status &= 0xFFFFFFFE; // reg = false
+        // 此处应添加 应追加需要处理的连接
+        ev->loop->update = true;
+        sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_u64_t) ev->loop->now);
+        return true;
     }
-    close(ev->fd);
-    ev->fd = -1;
-    ev->timeout = 0;
-    ev->status &= 0xFFFFFFFE; // reg = false
-    // 此处应添加 应追加需要处理的连接
-    ev->loop->update = true;
-    sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_u64_t) ev->loop->now);
-}
-
-void
-sky_event_reset_timeout_self(sky_event_t *ev, sky_i32_t timeout) {
-    if (timeout < 0) {
-        sky_timer_wheel_unlink(&ev->timer);
-        return;
-    } else if (ev->timeout < 0) {
-        sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_u64_t) (ev->loop->now + timeout));
-    } else {
-        ev->timeout = timeout;
-    }
-}
-
-void
-sky_event_reset_timeout(sky_event_t *ev, sky_i32_t timeout) {
-    if (timeout < 0) {
-        sky_timer_wheel_unlink(&ev->timer);
-        return;
-    } else {
-        sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_u64_t) (ev->loop->now + timeout));
-    }
+    return false;
 }
 
 static void
