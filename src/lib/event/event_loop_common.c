@@ -1,7 +1,10 @@
 //
 // Created by edz on 2021/11/29.
 //
+#include <unistd.h>
 #include "event_loop.h"
+#include "../core/memory.h"
+
 
 void
 sky_event_loop_shutdown(sky_event_loop_t *loop) {
