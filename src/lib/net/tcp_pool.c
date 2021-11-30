@@ -154,7 +154,7 @@ sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
                 break;
             default:
                 close(ev->fd);
-                ev->fd = -1;
+                sky_event_rebind(ev, -1);
                 sky_log_error("read errno: %d", errno);
                 return 0;
         }
@@ -228,7 +228,7 @@ sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize
                     break;
                 default:
                     close(ev->fd);
-                    ev->fd = -1;
+                    sky_event_rebind(ev, -1);
                     sky_log_error("write errno: %d", errno);
                     return false;
             }
@@ -396,7 +396,7 @@ tcp_connection(sky_tcp_conn_t *conn) {
                 return true;
             default:
                 close(fd);
-                ev->fd = -1;
+                sky_event_rebind(ev, -1);
                 sky_log_error("connect errno: %d", errno);
                 return false;
         }
@@ -438,10 +438,18 @@ tcp_connection_defer(sky_tcp_conn_t *conn) {
     if (!conn->client) {
         return;
     }
-    sky_event_unregister(&conn->client->ev);
 
-    conn->client->current = null;
+    sky_tcp_node_t *client = conn->client;
     conn->client = null;
+    client->current = null;
+
+    if (sky_event_has_callback(&client->ev)) {
+        sky_event_unregister(&client->ev);
+    } else {
+        close(client->ev.fd);
+        sky_event_rebind(&client->ev, -1);
+        tcp_close(client);
+    }
 }
 
 
