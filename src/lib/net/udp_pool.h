@@ -44,7 +44,11 @@ sky_bool_t sky_udp_pool_conn_bind(sky_udp_pool_t *udp_pool, sky_udp_conn_t *conn
 
 sky_usize_t sky_udp_pool_conn_read(sky_udp_conn_t *conn, sky_uchar_t *data, sky_usize_t size);
 
+sky_isize_t sky_udp_pool_conn_read_nowait(sky_udp_conn_t *conn, sky_uchar_t *data, sky_usize_t size);
+
 sky_bool_t sky_udp_pool_conn_write(sky_udp_conn_t *conn, const sky_uchar_t *data, sky_usize_t size);
+
+sky_isize_t sky_udp_pool_conn_write_nowait(sky_udp_conn_t *conn, const sky_uchar_t *data, sky_usize_t size);
 
 void sky_udp_pool_conn_close(sky_udp_conn_t *conn);
 

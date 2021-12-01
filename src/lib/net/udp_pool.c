@@ -196,6 +196,54 @@ sky_udp_pool_conn_read(sky_udp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
     }
 }
 
+sky_isize_t
+sky_udp_pool_conn_read_nowait(sky_udp_conn_t *conn, sky_uchar_t *data, sky_usize_t size) {
+    sky_udp_node_t *client;
+    sky_event_t *ev;
+    sky_isize_t n;
+
+    client = conn->client;
+    if (sky_unlikely(!client || client->ev.fd == -1)) {
+        return -1;
+    }
+
+    ev = &client->ev;
+    if (sky_event_none_reg(ev)) {
+        if ((n = read(ev->fd, data, size)) > 0) {
+            return n;
+        }
+        switch (errno) {
+            case EINTR:
+            case EAGAIN:
+                break;
+            default:
+                close(ev->fd);
+                sky_event_rebind(ev, -1);
+                sky_log_error("read errno: %d", errno);
+                return -1;
+        }
+        sky_event_register(ev, client->conn_pool->keep_alive);
+        sky_event_clean_read(ev);
+    } else {
+        if (sky_likely(sky_event_is_read(ev))) {
+            if ((n = read(ev->fd, data, size)) > 0) {
+                return n;
+            }
+            switch (errno) {
+                case EINTR:
+                case EAGAIN:
+                    break;
+                default:
+                    sky_log_error("read errno: %d", errno);
+                    return -1;
+            }
+            sky_event_clean_read(ev);
+        }
+    }
+
+    return 0;
+}
+
 sky_bool_t
 sky_udp_pool_conn_write(sky_udp_conn_t *conn, const sky_uchar_t *data, sky_usize_t size) {
     sky_udp_node_t *client;
@@ -274,6 +322,56 @@ sky_udp_pool_conn_write(sky_udp_conn_t *conn, const sky_uchar_t *data, sky_usize
             }
         } while (sky_unlikely(sky_event_none_write(ev)));
     }
+}
+
+sky_isize_t
+sky_udp_pool_conn_write_nowait(sky_udp_conn_t *conn, const sky_uchar_t *data, sky_usize_t size) {
+    sky_udp_node_t *client;
+    sky_event_t *ev;
+    sky_isize_t n;
+
+    client = conn->client;
+    if (sky_unlikely(!client || client->ev.fd == -1)) {
+        return -1;
+    }
+
+    ev = &client->ev;
+    if (sky_event_none_reg(ev)) {
+        if ((n = write(ev->fd, data, size)) > 0) {
+            return n;
+        }
+        switch (errno) {
+            case EINTR:
+            case EAGAIN:
+                break;
+            default:
+                close(ev->fd);
+                sky_event_rebind(ev, -1);
+                sky_log_error("write errno: %d", errno);
+                return -1;
+        }
+        sky_event_register(ev, client->conn_pool->keep_alive);
+        sky_event_clean_write(ev);
+    } else {
+        if (sky_likely(sky_event_is_write(ev))) {
+            if ((n = write(ev->fd, data, size)) > 0) {
+                return n;
+            }
+            switch (errno) {
+                case EINTR:
+                case EAGAIN:
+                    break;
+                default:
+                    close(ev->fd);
+                    ev->fd = -1;
+                    sky_log_error("write errno: %d", errno);
+                    return -1;
+            }
+            sky_event_clean_write(ev);
+        }
+    }
+
+    return 0;
 }
 
 sky_inline void
