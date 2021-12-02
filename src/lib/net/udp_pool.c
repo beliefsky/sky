@@ -9,7 +9,7 @@
 #include <unistd.h>
 
 struct sky_udp_pool_s {
-    sky_bool_t shutdown;
+    sky_bool_t free;
     sky_u16_t connection_ptr;
     sky_i32_t keep_alive;
     sky_i32_t timeout;
@@ -31,6 +31,8 @@ struct sky_udp_node_s {
 static sky_bool_t udp_run(sky_udp_node_t *client);
 
 static void udp_close(sky_udp_node_t *client);
+
+static void udp_shutdown(sky_udp_node_t *client);
 
 static sky_bool_t udp_connection(sky_udp_conn_t *conn);
 
@@ -64,7 +66,7 @@ sky_udp_pool_create(sky_event_loop_t *loop, const sky_udp_pool_conf_t *conf) {
     conn_pool->address_len = conf->address_len;
     sky_memcpy(conn_pool->address, conf->address, conn_pool->address_len);
 
-    conn_pool->shutdown = false;
+    conn_pool->free = false;
     conn_pool->keep_alive = conf->keep_alive ?: -1;
     conn_pool->timeout = conf->timeout ?: 5;
 
@@ -82,7 +84,7 @@ sky_udp_pool_create(sky_event_loop_t *loop, const sky_udp_pool_conf_t *conf) {
 
 sky_bool_t
 sky_udp_pool_conn_bind(sky_udp_pool_t *udp_pool, sky_udp_conn_t *conn, sky_event_t *event, sky_coro_t *coro) {
-    if (sky_unlikely(udp_pool->shutdown)) {
+    if (sky_unlikely(udp_pool->free)) {
         return false;
     }
     sky_udp_node_t *client = udp_pool->clients + (event->fd & udp_pool->connection_ptr);
@@ -106,7 +108,7 @@ sky_udp_pool_conn_bind(sky_udp_pool_t *udp_pool, sky_udp_conn_t *conn, sky_event
     client->current = conn;
 
     if (sky_unlikely(client->ev.fd == -1)) {
-        if (sky_likely(udp_pool->shutdown || client->conn_time > client->ev.loop->now)) {
+        if (sky_likely(udp_pool->free || client->conn_time > client->ev.loop->now)) {
             sky_udp_pool_conn_unbind(conn);
             return false;
         }
@@ -400,10 +402,23 @@ sky_udp_pool_conn_unbind(sky_udp_conn_t *conn) {
 
 void
 sky_udp_pool_destroy(sky_udp_pool_t *udp_pool) {
-    if (sky_unlikely(udp_pool->shutdown)) {
+    if (sky_unlikely(udp_pool->free)) {
         return;
     }
-    udp_pool->shutdown = true;
+    udp_pool->free = true;
+
+    sky_udp_node_t *client;
+    sky_u16_t i = udp_pool->connection_ptr + 1;
+    for (client = udp_pool->clients; i; --i, ++client) {
+        if (sky_event_has_callback(&client->ev)) {
+            sky_event_reset(&client->ev, udp_run, udp_shutdown);
+            sky_event_unregister(&client->ev);
+        } else {
+            close(client->ev.fd);
+            sky_event_rebind(&client->ev, -1);
+            udp_shutdown(client);
+        }
+    }
 }
 
 
@@ -446,6 +461,17 @@ udp_run(sky_udp_node_t *client) {
 static void
 udp_close(sky_udp_node_t *client) {
     udp_run(client);
+}
+
+static void
+udp_shutdown(sky_udp_node_t *client) {
+    udp_run(client);
+    sky_udp_pool_t *conn_pool = client->conn_pool;
+    if (conn_pool->connection_ptr > 0) {
+        --conn_pool->connection_ptr;
+    } else {
+        sky_free(conn_pool);
+    }
 }
 
 
