@@ -7,7 +7,7 @@
 
 
 void
-sky_event_loop_shutdown(sky_event_loop_t *loop) {
+sky_event_loop_destroy(sky_event_loop_t *loop) {
     close(loop->fd);
     sky_timer_wheel_destroy(loop->ctx);
 

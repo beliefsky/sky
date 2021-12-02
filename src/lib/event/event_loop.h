@@ -93,7 +93,7 @@ void sky_event_loop_run(sky_event_loop_t *loop);
  * 关闭事件触发服务
  * @param loop 事件触发服务
  */
-void sky_event_loop_shutdown(sky_event_loop_t *loop);
+void sky_event_loop_destroy(sky_event_loop_t *loop);
 
 /**
  * 加入监听需要触发
