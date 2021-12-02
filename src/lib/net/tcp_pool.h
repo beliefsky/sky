@@ -53,7 +53,7 @@ void sky_tcp_pool_conn_close(sky_tcp_conn_t *conn);
 
 void sky_tcp_pool_conn_unbind(sky_tcp_conn_t *conn);
 
-void sky_tcp_pool_shutdown(sky_tcp_pool_t *tcp_pool);
+void sky_tcp_pool_destroy(sky_tcp_pool_t *tcp_pool);
 
 #if defined(__cplusplus)
 } /* extern "C" { */
