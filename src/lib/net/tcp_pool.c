@@ -9,7 +9,7 @@
 #include <unistd.h>
 
 struct sky_tcp_pool_s {
-    sky_bool_t shutdown;
+    sky_bool_t free;
     sky_u16_t connection_ptr;
     sky_i32_t keep_alive;
     sky_i32_t timeout;
@@ -31,6 +31,8 @@ struct sky_tcp_node_s {
 static sky_bool_t tcp_run(sky_tcp_node_t *client);
 
 static void tcp_close(sky_tcp_node_t *client);
+
+static void tcp_shutdown(sky_tcp_node_t *client);
 
 static sky_bool_t tcp_connection(sky_tcp_conn_t *conn);
 
@@ -67,7 +69,7 @@ sky_tcp_pool_create(sky_event_loop_t *loop, const sky_tcp_pool_conf_t *conf) {
     conn_pool->connection_ptr = (sky_u16_t) (i - 1);
     conn_pool->next_func = conf->next_func;
 
-    conn_pool->shutdown = false;
+    conn_pool->free = false;
     conn_pool->keep_alive = conf->keep_alive ?: -1;
     conn_pool->timeout = conf->timeout ?: 5;
 
@@ -85,7 +87,7 @@ sky_tcp_pool_create(sky_event_loop_t *loop, const sky_tcp_pool_conf_t *conf) {
 
 sky_bool_t
 sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event_t *event, sky_coro_t *coro) {
-    if (sky_unlikely(tcp_pool->shutdown)) {
+    if (sky_unlikely(tcp_pool->free)) {
         return false;
     }
 
@@ -110,7 +112,7 @@ sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event
     client->current = conn;
 
     if (sky_unlikely(client->ev.fd == -1)) {
-        if (sky_likely(tcp_pool->shutdown || client->conn_time > client->ev.loop->now)) {
+        if (sky_likely(tcp_pool->free || client->conn_time > client->ev.loop->now)) {
             sky_tcp_pool_conn_unbind(conn);
             return false;
         }
@@ -405,15 +407,22 @@ sky_tcp_pool_conn_unbind(sky_tcp_conn_t *conn) {
 
 void
 sky_tcp_pool_destroy(sky_tcp_pool_t *tcp_pool) {
-    if (sky_unlikely(tcp_pool->shutdown)) {
+    if (sky_unlikely(tcp_pool->free)) {
         return;
     }
-    tcp_pool->shutdown = true;
+    tcp_pool->free = true;
 
     sky_tcp_node_t *client;
-    sky_u32_t i = tcp_pool->connection_ptr + 1;
+    sky_u16_t i = tcp_pool->connection_ptr + 1;
     for (client = tcp_pool->clients; i; --i, ++client) {
-        sky_event_unregister(&client->ev);
+        if (sky_event_has_callback(&client->ev)) {
+            sky_event_reset(&client->ev, tcp_run, tcp_shutdown);
+            sky_event_unregister(&client->ev);
+        } else {
+            close(client->ev.fd);
+            sky_event_rebind(&client->ev, -1);
+            tcp_shutdown(client);
+        }
     }
 }
 
@@ -456,6 +465,17 @@ tcp_run(sky_tcp_node_t *client) {
 static void
 tcp_close(sky_tcp_node_t *client) {
     tcp_run(client);
+}
+
+static void
+tcp_shutdown(sky_tcp_node_t *client) {
+    tcp_run(client);
+    sky_tcp_pool_t *conn_pool = client->conn_pool;
+    if (conn_pool->connection_ptr > 0) {
+        --conn_pool->connection_ptr;
+    } else {
+        sky_free(conn_pool);
+    }
 }
 
 static sky_bool_t
