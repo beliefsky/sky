@@ -158,8 +158,8 @@ sky_pgsql_conn_put(sky_pgsql_conn_t *conn) {
 }
 
 void
-sky_pgsql_pool_shutdown(sky_pgsql_pool_t *conn_pool) {
-    sky_tcp_pool_shutdown(conn_pool->conn_pool);
+sky_pgsql_pool_destroy(sky_pgsql_pool_t *conn_pool) {
+    sky_tcp_pool_destroy(conn_pool->conn_pool);
     sky_free(conn_pool);
 }
 

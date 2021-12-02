@@ -152,8 +152,8 @@ server_start(sky_u32_t index) {
 
     sky_event_loop_run(loop);
 
-    sky_pgsql_pool_shutdown(ps_pool);
-    sky_redis_pool_shutdown(redis_pool);
+    sky_pgsql_pool_destroy(ps_pool);
+    sky_redis_pool_destroy(redis_pool);
 
     sky_event_loop_shutdown(loop);
 }

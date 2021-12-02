@@ -404,7 +404,7 @@ sky_tcp_pool_conn_unbind(sky_tcp_conn_t *conn) {
 
 
 void
-sky_tcp_pool_shutdown(sky_tcp_pool_t *tcp_pool) {
+sky_tcp_pool_destroy(sky_tcp_pool_t *tcp_pool) {
     if (sky_unlikely(tcp_pool->shutdown)) {
         return;
     }

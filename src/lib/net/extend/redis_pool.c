@@ -64,8 +64,8 @@ sky_redis_conn_put(sky_redis_conn_t *rc) {
 }
 
 void
-sky_redis_pool_shutdown(sky_redis_pool_t *conn_pool) {
-    sky_tcp_pool_shutdown(conn_pool);
+sky_redis_pool_destroy(sky_redis_pool_t *conn_pool) {
+    sky_tcp_pool_destroy(conn_pool);
 }
 
 

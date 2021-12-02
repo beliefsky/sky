@@ -147,7 +147,7 @@ sky_pgsql_result_t *sky_pgsql_exec(
 
 void sky_pgsql_conn_put(sky_pgsql_conn_t *ps);
 
-void sky_pgsql_pool_shutdown(sky_pgsql_pool_t *conn_pool);
+void sky_pgsql_pool_destroy(sky_pgsql_pool_t *conn_pool);
 
 static sky_inline void
 sky_pgsql_params_init(sky_pgsql_params_t *params, sky_pool_t *pool, sky_u16_t size) {

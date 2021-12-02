@@ -54,7 +54,7 @@ void sky_udp_pool_conn_close(sky_udp_conn_t *conn);
 
 void sky_udp_pool_conn_unbind(sky_udp_conn_t *conn);
 
-void sky_udp_pool_shutdown(sky_udp_pool_t *udp_pool);
+void sky_udp_pool_destroy(sky_udp_pool_t *udp_pool);
 
 #if defined(__cplusplus)
 } /* extern "C" { */
