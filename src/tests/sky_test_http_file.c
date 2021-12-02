@@ -116,6 +116,6 @@ server_start(sky_u32_t index) {
     }
 
     sky_event_loop_run(loop);
-    sky_event_loop_shutdown(loop);
+    sky_event_loop_destroy(loop);
 }
 
