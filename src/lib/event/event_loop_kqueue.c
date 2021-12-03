@@ -44,7 +44,8 @@ sky_event_loop_create() {
     max_events = setup_open_file_count_limits();
     max_events = sky_min(max_events, 1024);
 
-    loop = sky_malloc(sizeof(sky_event_loop_t) + (sizeof(struct kevent) * (sky_u32_t) max_events) + sizeof(sky_event_t *) * (sky_u32_t) max_events);
+    loop = sky_malloc(sizeof(sky_event_loop_t) + (sizeof(struct kevent) * (sky_u32_t) max_events)
+            + sizeof(sky_event_t *) * (sky_u32_t) max_events);
     loop->fd = kqueue();
     loop->max_events = max_events;
     loop->now = time(null);
