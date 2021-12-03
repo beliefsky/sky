@@ -76,7 +76,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
     max_events = loop->max_events;
     events = (struct kevent *) (loop + 1);
-    run_ev = (sky_event_t *)(events + max_events);
+    run_ev = (sky_event_t **)(events + max_events);
 
     sky_timer_wheel_run(ctx, (sky_u64_t) now);
     next_time = sky_timer_wheel_wake_at(ctx);
