@@ -14,6 +14,7 @@
 
 #include <sys/param.h>
 #include <sys/cpuset.h>
+#include <pthread_np.h>
 #endif
 
 struct sky_platform_s {
