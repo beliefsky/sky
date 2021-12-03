@@ -557,6 +557,10 @@ udp_connection_defer(sky_udp_conn_t *conn) {
     conn->client = null;
     client->current = null;
 
+    if (sky_unlikely(client->conn_pool->free)) {
+        return;
+    }
+
     if (sky_event_has_callback(&client->ev)) {
         sky_event_unregister(&client->ev);
     } else {
