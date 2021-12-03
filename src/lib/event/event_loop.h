@@ -5,7 +5,6 @@
 #ifndef SKY_EVENT_LOOP_H
 #define SKY_EVENT_LOOP_H
 
-#include "../core/palloc.h"
 #include "../core/timer_wheel.h"
 
 #if defined(__cplusplus)
@@ -32,10 +31,9 @@ struct sky_event_s {
 
 struct sky_event_loop_s {
     sky_timer_wheel_t *ctx;
-    sky_pool_t *pool;
     sky_time_t now;
     sky_i32_t fd;
-    sky_i32_t conn_max;
+    sky_i32_t max_events;
     sky_bool_t update: 1;
 };
 
@@ -49,6 +47,9 @@ struct sky_event_loop_s {
 
 #define sky_event_clean_read(_ev)   (_ev)->status &= 0xFFFFFFFD
 #define sky_event_clean_write(_ev)  (_ev)->status &= 0xFFFFFFFB
+
+#define sky_event_has_callback(_ev) (sky_event_is_reg(_ev) || sky_timer_is_link(&(_ev)->timer))
+#define sky_event_none_callback(_ev) (sky_event_none_reg(_ev) && sky_timer_none_link(&(_ev)->timer))
 
 #define sky_event_init(_loop, _ev, _fd, _run, _close) \
     do {                                              \
@@ -80,7 +81,7 @@ struct sky_event_loop_s {
  * @param pool 创建时所需的内存池
  * @return 触发列队服务
  */
-sky_event_loop_t *sky_event_loop_create(sky_pool_t *pool);
+sky_event_loop_t *sky_event_loop_create();
 
 /**
  * 执行事件触发服务，该服务线程阻塞
@@ -92,7 +93,7 @@ void sky_event_loop_run(sky_event_loop_t *loop);
  * 关闭事件触发服务
  * @param loop 事件触发服务
  */
-void sky_event_loop_shutdown(sky_event_loop_t *loop);
+void sky_event_loop_destroy(sky_event_loop_t *loop);
 
 /**
  * 加入监听需要触发
@@ -100,14 +101,18 @@ void sky_event_loop_shutdown(sky_event_loop_t *loop);
  * @param ev 加入的事件
  * @param timeout 设定超时时间(秒)， -1永久
  */
-void sky_event_register(sky_event_t *ev, sky_i32_t timeout);
+sky_bool_t sky_event_register(sky_event_t *ev, sky_i32_t timeout);
 
 /**
  * 移除监听触发，该函数会马上关闭io，并在稍后会触发关闭事件
  * @param ev 已经加入的事件
  */
-void sky_event_unregister(sky_event_t *ev);
+sky_bool_t sky_event_unregister(sky_event_t *ev);
 
+
+void sky_event_reset_timeout_self(sky_event_t *ev, sky_i32_t timeout);
+
+void sky_event_reset_timeout(sky_event_t *ev, sky_i32_t timeout);
 
 /**
  * 向事件中主动加入定时器，自定义处理

@@ -6,7 +6,6 @@
 #define SKY_TIMER_WHEEL_H
 
 #include "types.h"
-#include "palloc.h"
 
 #define TIMER_WHEEL_DEFAULT_NUM 6
 
@@ -22,6 +21,9 @@ struct sky_timer_wheel_entry_s {
     sky_u64_t expire_at;
 };
 
+#define sky_timer_is_link(_entry) ((_entry)->next)
+#define sky_timer_none_link(_entry) (!(_entry)->next)
+
 #define sky_timer_entry_init(_entry, _cb) \
     do {                                  \
         (_entry)->prev = null;            \
@@ -30,7 +32,7 @@ struct sky_timer_wheel_entry_s {
     } while(0)
 
 
-sky_timer_wheel_t *sky_timer_wheel_create(sky_pool_t *pool, sky_u32_t num_wheels, sky_u64_t now);
+sky_timer_wheel_t *sky_timer_wheel_create(sky_u32_t num_wheels, sky_u64_t now);
 
 void sky_timer_wheel_destroy(sky_timer_wheel_t *ctx);
 
@@ -41,7 +43,6 @@ void sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_u64_t now);
 void sky_timer_wheel_link(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky_u64_t at);
 
 void sky_timer_wheel_expired(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky_u64_t at);
-
 
 static sky_inline void
 sky_timer_wheel_unlink(sky_timer_wheel_entry_t *entry) {

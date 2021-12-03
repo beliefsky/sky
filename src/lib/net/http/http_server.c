@@ -107,7 +107,7 @@ sky_http_server_bind(
             .defer_accept = true
     };
 
-    return sky_tcp_server_create(loop, server->pool, &conf);
+    return sky_tcp_server_create(loop, &conf);
 }
 
 sky_str_t *
@@ -153,7 +153,7 @@ http_connection_close(sky_http_connection_t *conn) {
 
 static sky_event_t *
 https_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server_t *server) {
-    sky_coro_t *coro = sky_coro_new(&server->switcher);
+    sky_coro_t *coro = sky_coro_new();
     sky_http_connection_t *conn = sky_coro_malloc(coro, sizeof(sky_http_connection_t));
     conn->coro = coro;
     conn->server = server;

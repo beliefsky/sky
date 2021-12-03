@@ -32,7 +32,8 @@ static void event_timer_callback(sky_event_t *ev);
 static sky_i32_t setup_open_file_count_limits();
 
 sky_event_loop_t*
-sky_event_loop_create(sky_pool_t *pool) {
+sky_event_loop_create() {
+    sky_i32_t max_events;
     sky_event_loop_t *loop;
     struct sigaction sa;
 
@@ -40,12 +41,15 @@ sky_event_loop_create(sky_pool_t *pool) {
     sa.sa_handler = SIG_IGN;
     sigaction(SIGPIPE, &sa, null);
 
-    loop = sky_pcalloc(pool, sizeof(sky_event_loop_t));
-    loop->pool = pool;
+    max_events = setup_open_file_count_limits();
+    max_events = sky_min(max_events, 1024);
+
+    loop = sky_malloc(sizeof(sky_event_loop_t) + (sizeof(struct kevent) * (sky_u32_t) max_events)
+            + sizeof(sky_event_t *) * (sky_u32_t) max_events);
     loop->fd = kqueue();
-    loop->conn_max = setup_open_file_count_limits();
+    loop->max_events = max_events;
     loop->now = time(null);
-    loop->ctx = sky_timer_wheel_create(pool, TIMER_WHEEL_DEFAULT_NUM, (sky_u64_t) loop->now);
+    loop->ctx = sky_timer_wheel_create(TIMER_WHEEL_DEFAULT_NUM, (sky_u64_t) loop->now);
 
     return loop;
 }
@@ -71,9 +75,9 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
     now = loop->now;
 
-    max_events = sky_min(loop->conn_max, 1024);
-    events = sky_pnalloc(loop->pool, sizeof(struct kevent) * (sky_u32_t) max_events);
-    run_ev = sky_pnalloc(loop->pool, sizeof(sky_event_t *) * (sky_u32_t) max_events);
+    max_events = loop->max_events;
+    events = (struct kevent *) (loop + 1);
+    run_ev = (sky_event_t **)(events + max_events);
 
     sky_timer_wheel_run(ctx, (sky_u64_t) now);
     next_time = sky_timer_wheel_wake_at(ctx);
@@ -113,10 +117,12 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 close(ev->fd);
                 ev->fd = -1;
                 if ((ev->status & 0x80000000) != 0) {
-                    ev->status = (index << 16) | (ev->status & 0x0000FFFE); // ev->index = index, ev->reg = false;
+                    // ev->index = index, ev->reg = false, ev->read = false, ev->write = false
+                    ev->status = (index << 16) | (ev->status & 0x0000FFF8);
                     run_ev[index++] = ev;
                 } else {
-                    ev->status &= 0xFFFFFFFE; // ev->reg = false;
+                    // ev->reg = false, ev->read = false, ev->write = false
+                    ev->status &= 0xFFFFFFF8;
                 }
                 continue;
             }
@@ -167,43 +173,37 @@ sky_event_loop_run(sky_event_loop_t *loop) {
     }
 }
 
-
-void
-sky_event_loop_shutdown(sky_event_loop_t *loop) {
-    close(loop->fd);
-    sky_pool_destroy(loop->pool);
-}
-
-
-void
+sky_bool_t
 sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
     if (sky_unlikely(sky_event_is_reg(ev) || ev->fd == -1)) {
-        return;
+        return false;
     }
+    ev->timer.cb = (sky_timer_wheel_pt) event_timer_callback;
+    ev->status |= 0x80000001; // index = none, reg = true
 
     sky_event_loop_t *loop = ev->loop;
     if (timeout < 0) {
-        timeout = -1;
+        timeout = 0;
         sky_timer_wheel_unlink(&ev->timer);
     } else {
         loop->update |= (timeout == 0);
-        ev->timer.cb = (sky_timer_wheel_pt) event_timer_callback;
         sky_timer_wheel_link(loop->ctx, &ev->timer, (sky_u64_t) (loop->now + timeout));
     }
     ev->timeout = timeout;
-    ev->status |= 0x80000001; // index = none, reg = true
 
     struct kevent event[2];
     EV_SET(&event[0], ev->fd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
     EV_SET(&event[1], ev->fd, EVFILT_WRITE, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
     kevent(loop->fd, event, 2, null, 0, null);
+
+    return true;
 }
 
 
-void
+sky_bool_t
 sky_event_unregister(sky_event_t *ev) {
-    if (sky_unlikely(sky_event_none_reg(ev) && ev->fd == -1)) {
-        return;
+    if (sky_likely(sky_event_none_reg(ev))) {
+        return false;
     }
     close(ev->fd);
     ev->fd = -1;
@@ -212,6 +212,8 @@ sky_event_unregister(sky_event_t *ev) {
     // 此处应添加 应追加需要处理的连接
     ev->loop->update = true;
     sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_u64_t) ev->loop->now);
+
+    return true;
 }
 
 static void

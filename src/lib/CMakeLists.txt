@@ -4,6 +4,7 @@ if (CMAKE_CROSSCOMPILING)
 endif ()
 
 set(SOURCES
+        platform.c
         core/palloc.c
         core/array.c
         core/list.c
@@ -24,7 +25,7 @@ set(SOURCES
         core/uuid.c
         core/json.c
         core/timer_wheel.c
-        core/thread.c
+        event/event_loop_common.c
         event/event_loop_epoll.c
         event/event_loop_kqueue.c
         net/inet.c
@@ -119,6 +120,10 @@ install(FILES
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky")
 
 install(FILES
+        platform.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky")
+
+install(FILES
         core/types.h
         core/memory.h
         core/palloc.h
@@ -141,7 +146,6 @@ install(FILES
         core/log.h
         core/json.h
         core/timer_wheel.h
-        core/thread.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/core")
 
 install(FILES

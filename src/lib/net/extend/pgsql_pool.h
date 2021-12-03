@@ -7,6 +7,7 @@
 
 #include "../tcp_pool.h"
 #include "../../core/string.h"
+#include "../../core/palloc.h"
 #include "../../core/log.h"
 
 #if defined(__cplusplus)
@@ -128,7 +129,7 @@ typedef struct {
 } sky_pgsql_result_t;
 
 
-sky_pgsql_pool_t *sky_pgsql_pool_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_pgsql_conf_t *conf);
+sky_pgsql_pool_t *sky_pgsql_pool_create(sky_event_loop_t *loop, const sky_pgsql_conf_t *conf);
 
 sky_pgsql_conn_t *sky_pgsql_conn_get(
         sky_pgsql_pool_t *conn_pool,
@@ -145,6 +146,8 @@ sky_pgsql_result_t *sky_pgsql_exec(
 );
 
 void sky_pgsql_conn_put(sky_pgsql_conn_t *ps);
+
+void sky_pgsql_pool_destroy(sky_pgsql_pool_t *conn_pool);
 
 static sky_inline void
 sky_pgsql_params_init(sky_pgsql_params_t *params, sky_pool_t *pool, sky_u16_t size) {

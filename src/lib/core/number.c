@@ -307,7 +307,7 @@ sky_str_to_f32(const sky_str_t *in, sky_f32_t *out) {
 
 sky_bool_t
 sky_str_len_to_f32(const sky_uchar_t *in, sky_usize_t in_len, sky_f32_t *out) {
-    static const sky_f32_t power_of_ten[] = {1e0, 1e1, 1e2, 1e3, 1e4, 1e5, 1e6, 1e7, 1e8, 1e9, 1e10};
+    static const sky_f32_t power_of_ten[] = {1e0f, 1e1f, 1e2f, 1e3f, 1e4f, 1e5f, 1e6f, 1e7f, 1e8f, 1e9f, 1e10f};
 
     if (sky_unlikely(!in_len)) {
         return false;
