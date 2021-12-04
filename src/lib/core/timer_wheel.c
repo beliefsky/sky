@@ -128,8 +128,7 @@ sky_timer_wheel_wake_at(sky_timer_wheel_t *ctx) {
 void
 sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_u64_t now) {
     sky_usize_t wheel = 0, slot, slot_start;
-    timer_wheel_slot_t *s;
-    sky_timer_wheel_entry_t *e;
+    timer_wheel_slot_t *s, *e;
 
 
     if (sky_unlikely(now < ctx->last_run)) {
@@ -142,13 +141,12 @@ sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_u64_t now) {
         s = &ctx->wheels[wheel][slot];
 
         if (!wheel) {
-            while (s != s->next) {
-                e = (sky_timer_wheel_entry_t *) s->next;
+            while ((e = s->next) != s) {
                 e->next->prev = e->prev;
                 e->prev->next = e->next;
                 e->next = e->prev = null;
 
-                e->cb(e);
+                ((sky_timer_wheel_entry_t *) e)->cb((sky_timer_wheel_entry_t *) e);
             }
 
             if (ctx->last_run == now) {
@@ -157,14 +155,13 @@ sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_u64_t now) {
             ++ctx->last_run;
             continue;
         }
-        if (s != s->next) {
+        if ((e = s->next) != s) {
             do {
-                e = (sky_timer_wheel_entry_t *) s->next;
                 e->next->prev = e->prev;
                 e->prev->next = e->next;
 
-                link_timer(ctx, e);
-            } while (s != s->next);
+                link_timer(ctx, (sky_timer_wheel_entry_t *) e);
+            } while ((e = s->next) != s);
             wheel = 0;
             goto redo;
         }
@@ -220,21 +217,19 @@ static sky_inline sky_bool_t
 cascade_all(sky_timer_wheel_t *ctx, sky_usize_t wheel) {
     sky_bool_t cascaded = false;
     sky_usize_t slot;
-    timer_wheel_slot_t *s;
-    sky_timer_wheel_entry_t *e;
+    timer_wheel_slot_t *s, *e;
 
     for (; wheel < ctx->num_wheels; ++wheel) {
         slot = timer_slot(wheel, ctx->last_run);
         s = &ctx->wheels[wheel][slot];
-        if (s != s->next) {
+        if ((e = s->next) != s) {
             cascaded = true;
             do {
-                e = (sky_timer_wheel_entry_t *) s->next;
                 e->next->prev = e->prev;
                 e->prev->next = e->next;
 
                 link_timer(ctx, (sky_timer_wheel_entry_t *) e);
-            } while (s != s->next);
+            } while ((e = s->next) != s);
         }
         if (slot != 0) {
             break;
