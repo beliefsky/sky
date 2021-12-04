@@ -84,15 +84,17 @@ sky_udp_pool_create(sky_event_loop_t *loop, const sky_udp_pool_conf_t *conf) {
 
 sky_bool_t
 sky_udp_pool_conn_bind(sky_udp_pool_t *udp_pool, sky_udp_conn_t *conn, sky_event_t *event, sky_coro_t *coro) {
+    conn->client = null;
+    conn->ev = event;
+    conn->coro = coro;
     if (sky_unlikely(udp_pool->free)) {
+        conn->next = conn->prev = null;
+        conn->defer = null;
         return false;
     }
     sky_udp_node_t *client = udp_pool->clients + (event->fd & udp_pool->connection_ptr);
     const sky_bool_t empty = client->tasks.next == &client->tasks;
 
-    conn->client = null;
-    conn->ev = event;
-    conn->coro = coro;
     conn->defer = sky_defer_add(coro, (sky_defer_func_t) udp_connection_defer, conn);
     conn->next = client->tasks.next;
     conn->prev = &client->tasks;
@@ -378,12 +380,18 @@ sky_udp_pool_conn_write_nowait(sky_udp_conn_t *conn, const sky_uchar_t *data, sk
 
 sky_inline void
 sky_udp_pool_conn_close(sky_udp_conn_t *conn) {
+    if (sky_unlikely(!conn->defer)) {
+        return;
+    }
     sky_defer_cancel(conn->coro, conn->defer);
     udp_connection_defer(conn);
 }
 
 sky_inline void
 sky_udp_pool_conn_unbind(sky_udp_conn_t *conn) {
+    if (sky_unlikely(!conn->defer)) {
+        return;
+    }
     sky_defer_cancel(conn->coro, conn->defer);
 
     if (conn->next) {

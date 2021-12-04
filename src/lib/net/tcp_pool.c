@@ -87,16 +87,18 @@ sky_tcp_pool_create(sky_event_loop_t *loop, const sky_tcp_pool_conf_t *conf) {
 
 sky_bool_t
 sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event_t *event, sky_coro_t *coro) {
+    conn->client = null;
+    conn->ev = event;
+    conn->coro = coro;
     if (sky_unlikely(tcp_pool->free)) {
+        conn->next = conn->prev = null;
+        conn->defer = null;
         return false;
     }
 
     sky_tcp_node_t *client = tcp_pool->clients + (event->fd & tcp_pool->connection_ptr);
     const sky_bool_t empty = client->tasks.next == &client->tasks;
 
-    conn->client = null;
-    conn->ev = event;
-    conn->coro = coro;
     conn->defer = sky_defer_add(coro, (sky_defer_func_t) tcp_connection_defer, conn);
     conn->next = client->tasks.next;
     conn->prev = &client->tasks;
@@ -383,12 +385,18 @@ sky_tcp_pool_conn_write_nowait(sky_tcp_conn_t *conn, const sky_uchar_t *data, sk
 
 sky_inline void
 sky_tcp_pool_conn_close(sky_tcp_conn_t *conn) {
+    if (sky_unlikely(!conn->defer)) {
+        return;
+    }
     sky_defer_cancel(conn->coro, conn->defer);
     tcp_connection_defer(conn);
 }
 
 sky_inline void
 sky_tcp_pool_conn_unbind(sky_tcp_conn_t *conn) {
+    if (sky_unlikely(!conn->defer)) {
+        return;
+    }
     sky_defer_cancel(conn->coro, conn->defer);
 
     if (conn->next) {
