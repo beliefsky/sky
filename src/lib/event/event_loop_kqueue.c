@@ -90,6 +90,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
     for (;;) {
         n = kevent(fd, null, 0, events, max_events, timeout);
+        sky_log_info("loop :%d -> %ld", n, next_time);
         if (sky_unlikely(n < 0)) {
             switch (errno) {
                 case EBADF:
