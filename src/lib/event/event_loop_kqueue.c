@@ -102,7 +102,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
         }
 
         // 合并事件状态, 防止多个事件造成影响
-        for (index = 0, event = events; n--; ++event) {
+        for (index = 0, event = events; n > 0; ++event, --n) {
             ev = event->udata;
             // 需要处理被移除的请求
             if (sky_event_none_reg(ev)) {
@@ -145,15 +145,15 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 ev->close(ev);
                 continue;
             }
-            if (!ev->run(ev)) {
+            if (ev->run(ev)) {
+                sky_timer_wheel_expired(ctx, &ev->timer, (sky_u64_t) (ev->now + ev->timeout));
+            } else {
                 close(ev->fd);
                 ev->fd = -1;
                 ev->status &= 0xFFFFFFFE; // reg = false
                 sky_timer_wheel_unlink(&ev->timer);
                 ev->close(ev);
-                continue;
             }
-            sky_timer_wheel_expired(ctx, &ev->timer, (sky_u64_t) (ev->now + ev->timeout));
         }
 
         if (!loop->update && now == loop->now) {
@@ -211,7 +211,7 @@ sky_event_unregister(sky_event_t *ev) {
     ev->status &= 0xFFFFFFFE; // reg = false
     // 此处应添加 应追加需要处理的连接
     ev->loop->update = true;
-    sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_u64_t) ev->loop->now);
+    sky_timer_wheel_link(ev->loop->ctx, &ev->timer, 0);
 
     return true;
 }
