@@ -90,7 +90,6 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
     for (;;) {
         n = kevent(fd, null, 0, events, max_events, timeout);
-        sky_log_info("loop :%d -> %ld", n, next_time);
         if (sky_unlikely(n < 0)) {
             switch (errno) {
                 case EBADF:
@@ -119,11 +118,11 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 ev->fd = -1;
                 if ((ev->status & 0x80000000) != 0) {
                     // ev->index = index, ev->reg = false, ev->read = false, ev->write = false
-                    ev->status = (index << 16) | (ev->status & 0x0000FFF8);
+                    ev->status = (index << 16) | (ev->status & 0x0000FFFE);
                     run_ev[index++] = ev;
                 } else {
                     // ev->reg = false, ev->read = false, ev->write = false
-                    ev->status &= 0xFFFFFFF8;
+                    ev->status &= 0xFFFFFFFE;
                 }
                 continue;
             }

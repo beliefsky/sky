@@ -132,11 +132,11 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
 
     sky_tcp_client_t *client = sky_tcp_client_create(&conf);
 
-    sky_uchar_t mq_ip[] = {192, 168, 0, 79};
+    sky_uchar_t mq_ip[] = {192, 168, 31, 10};
     const struct sockaddr_in mqtt_address = {
             .sin_family = AF_INET,
             .sin_addr.s_addr = *(sky_u32_t *) mq_ip,
-            .sin_port = sky_htons(9000)
+            .sin_port = sky_htons(80)
     };
 
     if (sky_unlikely(!sky_tcp_client_connection(client, (const sky_inet_address_t *) &mqtt_address,

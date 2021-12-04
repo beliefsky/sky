@@ -77,6 +77,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
     for (;;) {
         n = epoll_wait(fd, events, max_events, timeout);
+        sky_log_info("loop :%d -> %d", n, timeout);
         if (sky_unlikely(n < 0)) {
             switch (errno) {
                 case EBADF:
@@ -105,7 +106,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             if (sky_unlikely(event->events & (EPOLLRDHUP | EPOLLHUP))) {
                 close(ev->fd);
                 ev->fd = -1;
-                ev->status &= 0xFFFFFFF8; // reg = false ev->read = false, ev->write = false
+                ev->status &= 0xFFFFFFFE; // reg = false ev->read = false, ev->write = false
                 sky_timer_wheel_unlink(&ev->timer);
                 ev->close(ev);
                 continue;
