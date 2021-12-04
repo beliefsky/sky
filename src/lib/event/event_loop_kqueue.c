@@ -146,14 +146,13 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 continue;
             }
             if (ev->run(ev)) {
+                sky_timer_wheel_expired(ctx, &ev->timer, (sky_u64_t) (ev->now + ev->timeout));
+            } else {
                 close(ev->fd);
                 ev->fd = -1;
                 ev->status &= 0xFFFFFFFE; // reg = false
                 sky_timer_wheel_unlink(&ev->timer);
                 ev->close(ev);
-                continue;
-            } else {
-                sky_timer_wheel_expired(ctx, &ev->timer, (sky_u64_t) (ev->now + ev->timeout));
             }
         }
 
