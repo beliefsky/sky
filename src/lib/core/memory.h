@@ -8,10 +8,21 @@
 #include "types.h"
 #include <string.h>
 
+#ifdef HAVE_MALLOC
+#include <malloc.h>
+#else
+
+#include <stdlib.h>
+
+#endif
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
+#define sky_free(_ptr)                  free(_ptr)
+#define sky_malloc(_size)               malloc(_size)
+#define sky_realloc(_ptr, _resize)      realloc(_ptr, _resize)
 #define sky_align_size(_d, _a) \
     (((_d) + ((_a) - 1)) & ~((_a) - 1))
 #define sky_align_ptr(_p, _a) \
@@ -22,12 +33,6 @@ extern "C" {
 #define sky_memzero(_ptr, _size)        memset(_ptr,0,_size)
 #define sky_memcpy(_dest, _src, _n)     memcpy(_dest, _src, _n)
 #define sky_memmove(_dest, _src, _n)    memmove(_dest, _src, _n)
-
-void *sky_malloc(sky_usize_t size);
-
-void sky_free(void *ptr);
-
-void *sky_realloc(void *ptr, sky_usize_t resize);
 
 #define sky_memcpy2(_dist, _src)                            \
     do {                                                    \
