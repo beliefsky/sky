@@ -26,12 +26,6 @@ if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^i[3456]86|x86|amd64|AMD64")
     set(HAVE_LIBUCONTEXT 1)
 endif ()
 
-#
-# Find libraries
-#
-find_package(Threads REQUIRED)
-set(ADDITIONAL_LIBRARIES ${ADDITIONAL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-
 if (USE_NATIVE_MALLOC)
     if (${USE_NATIVE_MALLOC} STREQUAL "mimalloc")
         find_package(mimalloc REQUIRED)
@@ -46,6 +40,12 @@ if (USE_NATIVE_MALLOC)
         message(WARNING "USE_NATIVE_MALLOC VALUES mimalloc, tcmalloc, jemalloc")
     endif()
 endif ()
+
+#
+# Find libraries
+#
+find_package(Threads REQUIRED)
+set(ADDITIONAL_LIBRARIES ${ADDITIONAL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
 
 #check_include_file(openssl/ssl.h HAVE_OPENSSL)
 if (HAVE_OPENSSL)
