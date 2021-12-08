@@ -5,7 +5,6 @@ endif ()
 
 set(SOURCES
         platform.c
-        core/memory.c
         core/palloc.c
         core/array.c
         core/list.c
