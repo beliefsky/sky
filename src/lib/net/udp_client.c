@@ -110,7 +110,7 @@ sky_udp_client_connection(sky_udp_client_t *client, const sky_inet_address_t *ad
             }
             break;
         }
-        ev->timeout = client->keep_alive;
+        sky_event_reset_timeout_self(ev, client->keep_alive);
     }
 
 
