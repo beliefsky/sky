@@ -6,6 +6,7 @@
 #define SKY_TIMER_WHEEL_H
 
 #include "types.h"
+#include "queue.h"
 
 #define TIMER_WHEEL_DEFAULT_NUM 6
 
@@ -15,22 +16,10 @@ typedef struct sky_timer_wheel_entry_s sky_timer_wheel_entry_t;
 typedef void (*sky_timer_wheel_pt)(sky_timer_wheel_entry_t *entry);
 
 struct sky_timer_wheel_entry_s {
-    sky_timer_wheel_entry_t *prev;
-    sky_timer_wheel_entry_t *next;
-    sky_timer_wheel_pt cb;
+    sky_queue_t link;
     sky_u64_t expire_at;
+    sky_timer_wheel_pt cb;
 };
-
-#define sky_timer_is_link(_entry) ((_entry)->next)
-#define sky_timer_none_link(_entry) (!(_entry)->next)
-
-#define sky_timer_entry_init(_entry, _cb) \
-    do {                                  \
-        (_entry)->prev = null;            \
-        (_entry)->next = null;            \
-        (_entry)->cb = (sky_timer_wheel_pt)(_cb); \
-    } while(0)
-
 
 sky_timer_wheel_t *sky_timer_wheel_create(sky_u32_t num_wheels, sky_u64_t now);
 
@@ -45,11 +34,20 @@ void sky_timer_wheel_link(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry
 void sky_timer_wheel_expired(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky_u64_t at);
 
 static sky_inline void
+sky_timer_entry_init(sky_timer_wheel_entry_t *entry, sky_timer_wheel_pt cb) {
+    sky_queue_init_node(&entry->link);
+    entry->cb = cb;
+}
+
+static sky_inline sky_bool_t
+sky_timer_is_link(sky_timer_wheel_entry_t *entry) {
+    return sky_queue_is_linked(&entry->link);
+}
+
+static sky_inline void
 sky_timer_wheel_unlink(sky_timer_wheel_entry_t *entry) {
-    if (sky_likely(entry->next)) {
-        entry->next->prev = entry->prev;
-        entry->prev->next = entry->next;
-        entry->next = entry->prev = null;
+    if (sky_likely(sky_queue_is_linked(&entry->link))) {
+        sky_queue_remove(&entry->link);
     }
 }
 

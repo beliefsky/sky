@@ -17,57 +17,61 @@ struct sky_queue_s {
     sky_queue_t *prev; //前一个
     sky_queue_t *next; //下一个
 };
-//初始化队列
-#define sky_queue_init(q)                                                     \
-    (q)->prev = q;                                                            \
-    (q)->next = q
-//判断队列是否为空
-#define sky_queue_empty(h)                                                    \
-    (h == (h)->prev)
-//在头节点之后插入新节点
-#define sky_queue_insert_next(h, x)                                           \
-    (x)->next = (h)->next;                                                    \
-    (x)->next->prev = x;                                                      \
-    (x)->prev = h;                                                            \
-    (h)->next = x
-//在尾节点之后插入新节点
-#define sky_queue_insert_prev(h, x)                                           \
-    (x)->prev = (h)->prev;                                                    \
-    (x)->prev->next = x;                                                      \
-    (x)->next = h;                                                            \
-    (h)->prev = x
-//下一个节点
-#define sky_queue_next(q)                                                     \
-    (q)->next
-//上一个节点
-#define sky_queue_prev(q)                                                     \
-    (q)->prev
-//删除节点
-#define sky_queue_remove(x)                                                   \
-    (x)->next->prev = (x)->prev;                                              \
-    (x)->prev->next = (x)->next
-//分隔队列
-#define sky_queue_split(h, q, n)                                              \
-    (n)->prev = (h)->prev;                                                    \
-    (n)->prev->next = n;                                                      \
-    (n)->next = q;                                                            \
-    (h)->prev = (q)->prev;                                                    \
-    (h)->prev->next = h;                                                      \
-    (q)->prev = n;
-//链接队列
-#define sky_queue_add(h, n)                                                   \
-    (h)->prev->next = (n)->next;                                              \
-    (n)->next->prev = (h)->prev;                                              \
-    (h)->prev = (n)->prev;                                                    \
-    (h)->prev->next = h;
-//获取队列中节点数据， q是队列中的节点，type队列类型，link是队列类型中sky_queue_t的元素名
-#define sky_queue_data(q, type, link)                                         \
-    (type *) ((sky_uchar_t *) q - sky_offset_of(type, link))
 
-//队列的中间节点
-sky_queue_t *sky_queue_middle(sky_queue_t *queue);
+static sky_inline void
+sky_queue_init(sky_queue_t *queue) {
+    queue->prev = queue;
+    queue->next = queue;
+}
 
-void sky_queue_sort(sky_queue_t *queue, sky_bool_t (*cmp_gt)(const sky_queue_t *, const sky_queue_t *));
+static sky_inline void
+sky_queue_init_node(sky_queue_t *node) {
+    node->prev = null;
+    node->next = null;
+}
+
+static sky_inline sky_bool_t
+sky_queue_is_empty(sky_queue_t *queue) {
+    return queue == queue->next;
+}
+
+static sky_inline sky_bool_t
+sky_queue_is_linked(sky_queue_t *queue) {
+    return queue->next != null;
+}
+
+static sky_inline void
+sky_queue_insert_next(sky_queue_t *queue, sky_queue_t *node) {
+    node->next = queue->next;
+    node->prev = queue;
+    node->next->prev = node;
+    queue->next = node;
+}
+
+static sky_inline void
+sky_queue_insert_prev(sky_queue_t *queue, sky_queue_t *node) {
+    node->prev = queue->prev;
+    node->next = queue;
+    node->prev->next = node;
+    queue->prev = node;
+}
+
+static sky_inline sky_queue_t *
+sky_queue_next(sky_queue_t *queue) {
+    return queue->next;
+}
+
+static sky_inline sky_queue_t *
+sky_queue_prev(sky_queue_t *queue) {
+    return queue->prev;
+}
+
+static sky_inline void
+sky_queue_remove(sky_queue_t *queue) {
+    queue->next->prev = queue->prev;
+    queue->prev->next = queue->next;
+    queue->next = queue->next = null;
+}
 
 #if defined(__cplusplus)
 } /* extern "C" { */
