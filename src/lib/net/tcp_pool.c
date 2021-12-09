@@ -254,7 +254,7 @@ sky_tcp_pool_conn_read_nowait(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize
 }
 
 sky_bool_t
-sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize_t size) {
+sky_tcp_pool_conn_write_all(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize_t size) {
     sky_tcp_node_t *client;
     sky_event_t *ev;
     sky_isize_t n;
