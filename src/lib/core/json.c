@@ -198,18 +198,18 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
 
 sky_json_t *
 sky_json_find(sky_json_t *json, sky_uchar_t *key, sky_u32_t key_len) {
+    sky_queue_iterator_t iterator;
     sky_json_object_t *object;
 
     if (sky_unlikely(json->type != json_object)) {
         return null;
     }
-    object = (sky_json_object_t *) sky_queue_next(&json->object->link);
+    sky_queue_iterator_init(&iterator, &json->object->link);
 
-    while (object != json->object) {
+    while (null != (object = (sky_json_object_t *) sky_queue_iterator_next(&iterator))) {
         if (sky_str_equals2(&object->key, key, key_len)) {
             return &object->value;
         }
-        object = (sky_json_object_t *) sky_queue_next(&object->link);
     }
 
     return null;
