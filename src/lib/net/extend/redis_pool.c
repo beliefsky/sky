@@ -153,7 +153,7 @@ redis_send_exec(sky_redis_conn_t *rc, sky_redis_data_t *params, sky_u16_t param_
     }
 
     const sky_usize_t size = sky_str_buf_size(&buf);
-    const sky_bool_t result = sky_tcp_pool_conn_write(&rc->conn, buf.start, size);
+    const sky_bool_t result = sky_tcp_pool_conn_write_all(&rc->conn, buf.start, size);
     sky_str_buf_destroy(&buf);
 
     return result;
