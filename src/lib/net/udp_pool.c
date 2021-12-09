@@ -21,10 +21,10 @@ struct sky_udp_pool_s {
 
 struct sky_udp_node_s {
     sky_event_t ev;
+    sky_queue_t tasks;
     sky_i64_t conn_time;
     sky_udp_pool_t *conn_pool;
     sky_udp_conn_t *current;
-    sky_udp_conn_t tasks;
     sky_bool_t main; // 是否是当前连接触发的事件
 };
 
@@ -75,8 +75,9 @@ sky_udp_pool_create(sky_event_loop_t *loop, const sky_udp_pool_conf_t *conf) {
         client->conn_time = 0;
         client->conn_pool = conn_pool;
         client->current = null;
-        client->tasks.next = client->tasks.prev = &client->tasks;
         client->main = false;
+
+        sky_queue_init(&client->tasks);
     }
 
     return conn_pool;
@@ -88,17 +89,15 @@ sky_udp_pool_conn_bind(sky_udp_pool_t *udp_pool, sky_udp_conn_t *conn, sky_event
     conn->ev = event;
     conn->coro = coro;
     if (sky_unlikely(udp_pool->free)) {
-        conn->next = conn->prev = null;
         conn->defer = null;
+        sky_queue_init_node(&conn->link);
         return false;
     }
     sky_udp_node_t *client = udp_pool->clients + (event->fd & udp_pool->connection_ptr);
     const sky_bool_t empty = client->tasks.next == &client->tasks;
 
     conn->defer = sky_defer_add(coro, (sky_defer_func_t) udp_connection_defer, conn);
-    conn->next = client->tasks.next;
-    conn->prev = &client->tasks;
-    conn->next->prev = conn->prev->next = conn;
+    sky_queue_insert_prev(&client->tasks, &conn->link);
 
     if (!empty) {
         do {
@@ -543,10 +542,8 @@ sky_udp_pool_conn_unbind(sky_udp_conn_t *conn) {
     }
     sky_defer_cancel(conn->coro, conn->defer);
 
-    if (conn->next) {
-        conn->prev->next = conn->next;
-        conn->next->prev = conn->prev;
-        conn->prev = conn->next = null;
+    if (sky_queue_is_linked(&conn->link)) {
+        sky_queue_remove(&conn->link);
     }
     conn->defer = null;
     if (!conn->client) {
@@ -700,10 +697,8 @@ udp_connection(sky_udp_conn_t *conn) {
 
 static sky_inline void
 udp_connection_defer(sky_udp_conn_t *conn) {
-    if (conn->next) {
-        conn->prev->next = conn->next;
-        conn->next->prev = conn->prev;
-        conn->prev = conn->next = null;
+    if (sky_queue_is_linked(&conn->link)) {
+        sky_queue_remove(&conn->link);
     }
     conn->defer = null;
     if (!conn->client) {
