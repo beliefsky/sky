@@ -156,7 +156,7 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
         if (sky_event_is_read(&conn->event)) {
             sky_isize_t n = read(conn->event.fd, read_buf, buf_size);
             if (n > 0) {
-                if (sky_unlikely(!sky_tcp_client_write(client, read_buf, (sky_usize_t) n))) {
+                if (sky_unlikely(!sky_tcp_client_write_all(client, read_buf, (sky_usize_t) n))) {
                     break;
                 }
             } else {

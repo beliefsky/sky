@@ -24,15 +24,20 @@ typedef struct sky_tcp_client_s sky_tcp_client_t;
 
 sky_tcp_client_t *sky_tcp_client_create(const sky_tcp_client_conf_t *conf);
 
-sky_bool_t sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_address_t *address, sky_u32_t address_len);
+sky_bool_t
+sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_address_t *address, sky_u32_t address_len);
 
 sky_bool_t sky_tcp_client_is_connection(sky_tcp_client_t *client);
 
 sky_usize_t sky_tcp_client_read(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t size);
 
+sky_bool_t sky_tcp_client_read_all(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t size);
+
 sky_isize_t sky_tcp_client_read_nowait(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t size);
 
-sky_bool_t sky_tcp_client_write(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usize_t size);
+sky_usize_t sky_tcp_client_write(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usize_t size);
+
+sky_bool_t sky_tcp_client_write_all(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usize_t size);
 
 sky_isize_t sky_tcp_client_write_nowait(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usize_t size);
 
