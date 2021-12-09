@@ -6,6 +6,7 @@ endif ()
 set(SOURCES
         platform.c
         core/palloc.c
+        core/queue.c
         core/array.c
         core/list.c
         core/hash.c
@@ -144,6 +145,7 @@ install(FILES
         core/memory.h
         core/palloc.h
         core/array.h
+        core/queue.h
         core/hash.h
         core/list.h
         core/rbtree.h

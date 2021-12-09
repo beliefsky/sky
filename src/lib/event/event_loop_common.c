@@ -23,7 +23,7 @@ sky_event_reset_timeout_self(sky_event_t *ev, sky_i32_t timeout) {
     if (timeout < 0) {
         timeout = 0;
         sky_timer_wheel_unlink(&ev->timer);
-    } else if (!ev->timer.next) {
+    } else if (!sky_timer_is_link(&ev->timer)) {
         sky_timer_wheel_link(ev->loop->ctx, &ev->timer, (sky_u64_t) (ev->loop->now + timeout));
     }
 
