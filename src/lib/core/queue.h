@@ -56,6 +56,10 @@ sky_queue_insert_prev(sky_queue_t *queue, sky_queue_t *node) {
     queue->prev = node;
 }
 
+void sky_queue_insert_next_list(sky_queue_t *queue, sky_queue_t *link);
+
+void sky_queue_insert_prev_list(sky_queue_t *queue, sky_queue_t *link);
+
 static sky_inline sky_queue_t *
 sky_queue_next(sky_queue_t *queue) {
     return queue->next;
