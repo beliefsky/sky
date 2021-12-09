@@ -106,7 +106,8 @@ static sky_inline void
 sky_queue_remove(sky_queue_t *queue) {
     queue->next->prev = queue->prev;
     queue->prev->next = queue->next;
-    queue->next = queue->next = null;
+    queue->prev = null;
+    queue->next = null;
 }
 
 static sky_inline void
