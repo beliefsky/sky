@@ -49,8 +49,8 @@ struct sky_json_s {
 
 struct sky_json_object_s {
     sky_queue_t link;
-    sky_json_t value;
     sky_str_t key;
+    sky_json_t value;
 };
 
 struct sky_json_array_s {
