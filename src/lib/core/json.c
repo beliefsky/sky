@@ -111,8 +111,8 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
                     sky_str_buf_append_two_uchar(&buf, '[', ']');
                     break;
                 }
-                current->current = (sky_json_t *) sky_queue_next(&current->array->link);
-                current = current->current;
+                current->current = sky_queue_next(&current->array->link);
+                current = &((sky_json_array_t *)current->current)->value;
                 sky_str_buf_append_uchar(&buf, '[');
                 continue;
             case json_integer:
