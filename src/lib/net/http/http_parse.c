@@ -43,8 +43,10 @@ static sky_bool_t header_handle_run(sky_http_request_t *req, sky_http_header_t *
 
 static sky_bool_t multipart_header_handle_run(sky_http_multipart_t *req, sky_http_header_t *h);
 
+#ifdef __SSE4_2__
 static sky_bool_t find_char_fast(sky_uchar_t **buf, sky_usize_t buf_size,
                                  const sky_uchar_t *ranges, sky_i32_t ranges_size);
+#endif
 
 sky_i8_t
 sky_http_request_line_parse(sky_http_request_t *r, sky_buf_t *b) {
