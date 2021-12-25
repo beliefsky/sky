@@ -7,7 +7,6 @@
 
 #include "types.h"
 #include "string.h"
-#include "queue.h"
 #include "palloc.h"
 
 #if defined(__cplusplus)
@@ -48,14 +47,16 @@ struct sky_json_s {
 
 
 struct sky_json_object_s {
-    sky_queue_t link;
     sky_json_t value;
     sky_str_t key;
+    sky_json_object_t *prev;
+    sky_json_object_t *next;
 };
 
 struct sky_json_array_s {
-    sky_queue_t link;
     sky_json_t value;
+    sky_json_array_t *prev;
+    sky_json_array_t *next;
 };
 
 sky_json_t *sky_json_parse(sky_pool_t *pool, sky_str_t *json);
@@ -97,7 +98,7 @@ sky_json_t *sky_json_add_string(sky_json_t *json, sky_str_t *value);
 
 sky_json_t *sky_json_add_str_len(sky_json_t *json, sky_uchar_t *v, sky_u32_t v_len);
 
-static sky_inline sky_json_t *
+static sky_inline sky_json_t*
 sky_json_object_create(sky_pool_t *pool) {
     sky_json_t *json = sky_palloc(pool, sizeof(sky_json_t) + sizeof(sky_json_object_t));
 
@@ -106,12 +107,12 @@ sky_json_object_create(sky_pool_t *pool) {
     json->parent = null;
 
     json->object = (sky_json_object_t *) (json + 1);
-    sky_queue_init(&json->object->link);
+    json->object->prev = json->object->next = json->object;
 
     return json;
 }
 
-static sky_inline sky_json_t *
+static sky_inline sky_json_t*
 sky_json_array_create(sky_pool_t *pool) {
     sky_json_t *json = sky_palloc(pool, sizeof(sky_json_t) + sizeof(sky_json_array_t));
 
@@ -120,7 +121,7 @@ sky_json_array_create(sky_pool_t *pool) {
     json->parent = null;
 
     json->array = (sky_json_array_t *) (json + 1);
-    sky_queue_init(&json->array->link);
+    json->array->prev = json->array->next = json->array;
 
     return json;
 }

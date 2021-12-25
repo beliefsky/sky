@@ -69,13 +69,13 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
     sky_json_t *current, *tmp;
 
     if (json->type == json_object) {
-        if (sky_queue_is_empty(&json->object->link)) {
+        if (json->object == json->object->prev) {
             sky_str_t *str = sky_palloc(json->pool, sizeof(sky_str_t));
             sky_str_set(str, "{}");
             return str;
         }
     } else if (json->type == json_array) {
-        if (sky_queue_is_empty(&json->array->link)) {
+        if (json->array == json->array->prev) {
             sky_str_t *str = sky_palloc(json->pool, sizeof(sky_str_t));
             sky_str_set(str, "[]");
             return str;
@@ -92,11 +92,11 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
     for (;;) {
         switch (current->type) {
             case json_object:
-                if (sky_queue_is_empty(&current->object->link)) {
+                if (current->object == current->object->prev) {
                     sky_str_buf_append_two_uchar(&buf, '{', '}');
                     break;
                 }
-                obj = (sky_json_object_t *) sky_queue_next(&current->object->link);
+                obj = current->object->next;
                 current->current = obj;
                 current = &obj->value;
 
@@ -107,11 +107,11 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
                 sky_str_buf_append_two_uchar(&buf, '"', ':');
                 continue;
             case json_array:
-                if (sky_queue_is_empty(&current->array->link)) {
+                if (current->array == current->array->prev) {
                     sky_str_buf_append_two_uchar(&buf, '[', ']');
                     break;
                 }
-                current->current = (sky_json_t *) sky_queue_next(&current->array->link);
+                current->current = current->array->next;
                 current = current->current;
                 sky_str_buf_append_uchar(&buf, '[');
                 continue;
@@ -139,10 +139,10 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
         }
         tmp = current->parent;
         if (tmp->type == json_object) {
-            tmp->current = sky_queue_next(&((sky_json_object_t *) tmp->current)->link);
+            tmp->current = ((sky_json_object_t *) tmp->current)->next;
 
             if (tmp->current != tmp->object) {
-                obj = (sky_json_object_t *) sky_queue_next(&obj->link);
+                obj = obj->next;
                 current = &obj->value;
 
                 sky_str_buf_append_two_uchar(&buf, ',', '"');
@@ -152,11 +152,11 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
             }
             sky_str_buf_append_uchar(&buf, '}');
         } else {
-            tmp->current = sky_queue_next(&((sky_json_array_t *) tmp->current)->link);
+            tmp->current = ((sky_json_array_t *) tmp->current)->next;
             if (tmp->current != tmp->array) {
                 sky_str_buf_append_uchar(&buf, ',');
 
-                current = &((sky_json_array_t *) sky_queue_next(&((sky_json_array_t *) current)->link))->value;
+                current = &((sky_json_array_t *) current)->next->value;
                 continue;
             }
             sky_str_buf_append_uchar(&buf, ']');
@@ -169,7 +169,7 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
             tmp = tmp->parent;
 
             if (tmp->type == json_object) {
-                tmp->current = sky_queue_next(&((sky_json_object_t *) tmp->current)->link);
+                tmp->current = ((sky_json_object_t *) tmp->current)->next;
                 if (tmp->current == tmp->object) {
                     sky_str_buf_append_uchar(&buf, '}');
                     continue;
@@ -182,7 +182,7 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
                 json_coding_str(&buf, obj->key.data, obj->key.len);
                 sky_str_buf_append_two_uchar(&buf, '"', ':');
             } else {
-                tmp->current = sky_queue_next(&((sky_json_array_t *) tmp->current)->link);
+                tmp->current = ((sky_json_array_t *) tmp->current)->next;
                 if (tmp->current == tmp->array) {
                     sky_str_buf_append_uchar(&buf, ']');
                     continue;
@@ -198,18 +198,17 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
 
 sky_json_t *
 sky_json_find(sky_json_t *json, sky_uchar_t *key, sky_u32_t key_len) {
-    sky_queue_iterator_t iterator;
     sky_json_object_t *object;
 
     if (sky_unlikely(json->type != json_object)) {
         return null;
     }
-    sky_queue_iterator_init(&iterator, &json->object->link);
-
-    while (null != (object = (sky_json_object_t *) sky_queue_iterator_next(&iterator))) {
+    object = json->object->next;
+    while (object != json->object) {
         if (sky_str_equals2(&object->key, key, key_len)) {
             return &object->value;
         }
+        object = object->next;
     }
 
     return null;
@@ -1159,7 +1158,9 @@ static sky_inline sky_json_object_t *
 json_object_get(sky_json_t *json) {
     sky_json_object_t *object = sky_palloc(json->pool, sizeof(sky_json_object_t));
 
-    sky_queue_insert_prev(&json->object->link, &object->link);
+    object->next = json->object;
+    object->prev = object->next->prev;
+    object->prev->next = object->next->prev = object;
 
     object->value.parent = json;
 
@@ -1171,7 +1172,9 @@ static sky_inline sky_json_t *
 json_array_get(sky_json_t *json) {
     sky_json_array_t *array = sky_palloc(json->pool, sizeof(sky_json_array_t));
 
-    sky_queue_insert_prev(&json->array->link, &array->link);
+    array->next = json->array;
+    array->prev = array->next->prev;
+    array->prev->next = array->next->prev = array;
 
     array->value.parent = json;
 
@@ -1187,7 +1190,7 @@ json_object_init(sky_json_t *json, sky_pool_t *pool) {
     json->object = object;
     json->pool = pool;
 
-    sky_queue_init(&object->link);
+    object->prev = object->next = object;
 }
 
 
@@ -1199,7 +1202,7 @@ json_array_init(sky_json_t *json, sky_pool_t *pool) {
     json->array = array;
     json->pool = pool;
 
-    sky_queue_init(&array->link);
+    array->prev = array->next = array;
 }
 
 static sky_inline void

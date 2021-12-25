@@ -25,6 +25,10 @@ struct sky_queue_iterator_s {
     sky_queue_t *current;
 };
 
+#define sky_queue_data(_q, _type, _link) \
+    (_type *) ((sky_uchar_t *) (_q) - sky_offset_of(_type, _link))
+
+
 static sky_inline void
 sky_queue_init(sky_queue_t *queue) {
     queue->prev = queue;
