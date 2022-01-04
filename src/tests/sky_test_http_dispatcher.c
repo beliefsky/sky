@@ -152,10 +152,13 @@ server_start(sky_event_loop_t *loop, sky_u32_t index) {
 static void
 server_destroy(sky_event_loop_t *loop, void *data) {
     (void) loop;
-    (void) data;
 
     sky_pgsql_pool_destroy(ps_pool);
     sky_redis_pool_destroy(redis_pool);
+
+    sky_pool_t *pool = data;
+
+    sky_pool_destroy(pool);
 }
 
 static void
