@@ -131,24 +131,20 @@ server_start(sky_event_loop_t *loop, sky_u32_t index) {
 
     server = sky_http_server_create(pool, &conf);
 
-    {
-        struct sockaddr_in http_address = {
-                .sin_family = AF_INET,
-                .sin_addr.s_addr = INADDR_ANY,
-                .sin_port = sky_htons(8080)
-        };
-        sky_http_server_bind(server, loop, (sky_inet_address_t *) &http_address, sizeof(struct sockaddr_in));
-    }
+    struct sockaddr_in ipv4_address = {
+            .sin_family = AF_INET,
+            .sin_addr.s_addr = INADDR_ANY,
+            .sin_port = sky_htons(8080)
+    };
+    sky_http_server_bind(server, loop, (sky_inet_address_t *) &ipv4_address, sizeof(struct sockaddr_in));
 
-    {
-        struct sockaddr_in6 http_address = {
-                .sin6_family = AF_INET6,
-                .sin6_addr = in6addr_any,
-                .sin6_port = sky_htons(8080)
-        };
+    struct sockaddr_in6 ipv6_address = {
+            .sin6_family = AF_INET6,
+            .sin6_addr = in6addr_any,
+            .sin6_port = sky_htons(8080)
+    };
 
-        sky_http_server_bind(server, loop, (sky_inet_address_t *) &http_address, sizeof(struct sockaddr_in6));
-    }
+    sky_http_server_bind(server, loop, (sky_inet_address_t *) &ipv6_address, sizeof(struct sockaddr_in6));
 
     return null;
 }
