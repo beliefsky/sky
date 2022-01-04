@@ -12,13 +12,16 @@
 
 static void *server_start(sky_event_loop_t *loop, sky_u32_t index);
 
+static void server_destroy(sky_event_loop_t *loop, void *data);
+
 int
 main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
     const sky_platform_conf_t conf = {
-            .run = server_start
+            .run = server_start,
+            .destroy = server_destroy
     };
 
     sky_platform_t *platform = sky_platform_create(&conf);
@@ -112,6 +115,15 @@ server_start(sky_event_loop_t *loop, sky_u32_t index) {
         sky_http_server_bind(server, loop, (sky_inet_address_t *) &http_address, sizeof(struct sockaddr_in6));
     }
 
-    return null;
+    return pool;
+}
+
+static void
+server_destroy(sky_event_loop_t *loop, void *data) {
+    (void) loop;
+
+    sky_pool_t *pool = data;
+
+    sky_pool_destroy(pool);
 }
 
