@@ -7,7 +7,7 @@
 #include <core/log.h>
 #include <net/tcp_listener.h>
 
-static void server_start(sky_u32_t index);
+static void *server_start(sky_event_loop_t *loop, sky_u32_t index);
 
 int
 main() {
@@ -20,7 +20,7 @@ main() {
     };
 
     sky_platform_t *platform = sky_platform_create(&conf);
-    sky_platform_wait(platform);
+    sky_platform_run(platform);
     sky_platform_destroy(platform);
 
     return 0;
@@ -42,12 +42,9 @@ mqtt_listener(sky_tcp_r_t *reader, void *data) {
     return true;
 }
 
-static void
-server_start(sky_u32_t index) {
+static void *
+server_start(sky_event_loop_t *loop, sky_u32_t index) {
     sky_log_info("thread-%u", index);
-
-    sky_event_loop_t *loop = sky_event_loop_create();
-
 
     sky_uchar_t mq_ip[] = {192, 168, 0, 15};
     struct sockaddr_in mqtt_address = {
@@ -63,6 +60,5 @@ server_start(sky_u32_t index) {
 
     sky_tcp_listener_create(loop, &listener_conf);
 
-    sky_event_loop_run(loop);
-    sky_event_loop_destroy(loop);
+    return null;
 }

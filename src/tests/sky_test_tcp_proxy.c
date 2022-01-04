@@ -16,7 +16,7 @@ typedef struct {
     sky_coro_t *coro;
 } tcp_proxy_conn_t;
 
-static void server_start(sky_u32_t index);
+static void *server_start(sky_event_loop_t *loop, sky_u32_t index);
 
 static sky_event_t *tcp_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, void *data);
 
@@ -41,17 +41,15 @@ main() {
     };
 
     sky_platform_t *platform = sky_platform_create(&conf);
-    sky_platform_wait(platform);
+    sky_platform_run(platform);
     sky_platform_destroy(platform);
 
     return 0;
 }
 
-static void
-server_start(sky_u32_t index) {
+static void *
+server_start(sky_event_loop_t *loop, sky_u32_t index) {
     sky_log_info("thread-%u", index);
-
-    sky_event_loop_t *loop = sky_event_loop_create();
 
     {
         struct sockaddr_in server_address_v4 = {
@@ -87,9 +85,7 @@ server_start(sky_u32_t index) {
         sky_tcp_server_create(loop, &tcp_conf);
     }
 
-
-    sky_event_loop_run(loop);
-    sky_event_loop_destroy(loop);
+    return null;
 }
 
 static sky_event_t *
