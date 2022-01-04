@@ -34,7 +34,7 @@ struct sky_platform_s {
 
 static void *thread_run(void *data);
 
-static void thread_bind_cpu(pthread_t thread, sky_i32_t n);
+static void thread_bind_cpu(pthread_attr_t *attr, sky_i32_t n);
 
 sky_platform_t *
 sky_platform_create(const sky_platform_conf_t *conf) {
@@ -94,11 +94,10 @@ sky_platform_run(sky_platform_t *platform) {
         pthread_attr_init(&attr);
         pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
         pthread_attr_setstacksize(&attr, 32768);
-
-        pthread_create(&item->thread, &attr, thread_run, item);
         if (platform->cpu_bind) {
-            thread_bind_cpu(item->thread, (sky_i32_t) i);
+            thread_bind_cpu(&attr, (sky_i32_t) i);
         }
+        pthread_create(&item->thread, &attr, thread_run, item);
         pthread_attr_destroy(&attr);
     }
 
@@ -137,17 +136,17 @@ thread_run(void *data) {
 
 
 static sky_inline void
-thread_bind_cpu(pthread_t thread, sky_i32_t n) {
+thread_bind_cpu(pthread_attr_t *attr, sky_i32_t n) {
 #if defined(__linux__)
     cpu_set_t set;
     CPU_ZERO(&set);
     CPU_SET(n, &set);
-    pthread_setaffinity_np(thread, sizeof(cpu_set_t), &set);
+    pthread_attr_setaffinity_np(attr, sizeof(cpu_set_t), &set);
 #elif defined(__FreeBSD__)
     cpuset_t set;
 
     CPU_ZERO(&set);
     CPU_SET(n, &set);
-    pthread_setaffinity_np(thread, sizeof(cpuset_t), &set);
+    pthread_attr_setaffinity_np(attr, sizeof(cpuset_t), &set);
 #endif
 }
