@@ -27,7 +27,7 @@ typedef struct {
 
 sky_platform_t *sky_platform_create(const sky_platform_conf_t *conf);
 
-sky_u32_t sky_platform_thread_n(const sky_platform_t platform);
+sky_u32_t sky_platform_thread_n(const sky_platform_t *platform);
 
 void sky_platform_run(sky_platform_t *platform);
 
