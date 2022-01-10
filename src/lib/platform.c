@@ -79,8 +79,8 @@ sky_platform_create(const sky_platform_conf_t *conf) {
 }
 
 sky_u32_t
-sky_platform_thread_n(const sky_platform_t platform) {
-    return platform.thread_n;
+sky_platform_thread_n(const sky_platform_t *platform) {
+    return platform->thread_n;
 }
 
 void
