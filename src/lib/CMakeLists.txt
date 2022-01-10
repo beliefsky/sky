@@ -6,6 +6,7 @@ endif ()
 set(SOURCES
         platform.c
         core/palloc.c
+        core/queue.c
         core/array.c
         core/list.c
         core/hash.c
@@ -86,21 +87,37 @@ if (HAVE_LIBUCONTEXT)
     message(STATUS "Using libucontext/${CMAKE_SYSTEM_PROCESSOR} for coroutine context switching")
 
     include(ExternalProject)
+    if (USE_LIBUCONTEXT_DIR)
+        ExternalProject_Add(libucontext
+                URL ${USE_LIBUCONTEXT_DIR}
+                BUILD_IN_SOURCE ON
 
-    ExternalProject_Add(libucontext
-            GIT_REPOSITORY https://github.com/beliefsky/libucontext
+                CONFIGURE_COMMAND ""
+                BUILD_COMMAND make
+                INSTALL_COMMAND make install DESTDIR=${CMAKE_BINARY_DIR}
 
-            BUILD_IN_SOURCE ON
+                BUILD_BYPRODUCTS ${CMAKE_BINARY_DIR}/lib/libucontext.a
 
-            CONFIGURE_COMMAND ""
-            BUILD_COMMAND make
-            INSTALL_COMMAND make install DESTDIR=${CMAKE_BINARY_DIR}
+                BUILD_ALWAYS OFF
+                UPDATE_DISCONNECTED ON
+                )
+    else ()
+        ExternalProject_Add(libucontext
+                GIT_REPOSITORY https://github.com/beliefsky/libucontext
 
-            BUILD_BYPRODUCTS ${CMAKE_BINARY_DIR}/lib/libucontext.a
+                BUILD_IN_SOURCE ON
 
-            BUILD_ALWAYS OFF
-            UPDATE_DISCONNECTED ON
-            )
+                CONFIGURE_COMMAND ""
+                BUILD_COMMAND make
+                INSTALL_COMMAND make install DESTDIR=${CMAKE_BINARY_DIR}
+
+                BUILD_BYPRODUCTS ${CMAKE_BINARY_DIR}/lib/libucontext.a
+
+                BUILD_ALWAYS OFF
+                UPDATE_DISCONNECTED ON
+                )
+    endif ()
+
     add_dependencies(sky_static libucontext)
 
     set(ADDITIONAL_LIBRARIES ${CMAKE_BINARY_DIR}/lib/libucontext.a ${ADDITIONAL_LIBRARIES} PARENT_SCOPE)
@@ -128,6 +145,7 @@ install(FILES
         core/memory.h
         core/palloc.h
         core/array.h
+        core/queue.h
         core/hash.h
         core/list.h
         core/rbtree.h

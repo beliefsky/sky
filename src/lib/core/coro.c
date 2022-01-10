@@ -3,6 +3,7 @@
 //
 
 #include "coro.h"
+#include "queue.h"
 #include "memory.h"
 
 
@@ -52,19 +53,12 @@ typedef libucontext_ucontext_t sky_coro_context_t;
 #error Unsupported platform.
 #endif
 
-
-typedef struct mem_block_s mem_block_t;
-
-struct mem_block_s {
-    mem_block_t *prev;
-    mem_block_t *next;
-};
-
 typedef struct {
     sky_coro_context_t caller;
 } sky_coro_switcher_t;
 
 struct sky_defer_s {
+    sky_queue_t link;
     union {
         struct {
             sky_defer_func_t func;
@@ -76,8 +70,6 @@ struct sky_defer_s {
             void *data2;
         } two;
     };
-    sky_defer_t *prev;
-    sky_defer_t *next;
 
     sky_bool_t free: 1;
     sky_bool_t one_arg: 1;
@@ -90,9 +82,9 @@ struct sky_coro_s {
 //===================================
     sky_bool_t self;
     sky_u32_t ptr_size;
-    sky_defer_t defers;
-    sky_defer_t free_defers;
-    mem_block_t blocks;
+    sky_queue_t defers;
+    sky_queue_t free_defers;
+    sky_queue_t blocks;
     sky_uchar_t *ptr;
     sky_uchar_t *stack;
 };
@@ -250,9 +242,11 @@ sky_coro_new() {
     sky_coro_t *coro = sky_malloc(CORE_BLOCK_SIZE);
 
     coro->switcher = &switcher;
-    coro->defers.prev = coro->defers.next = &coro->defers;
-    coro->free_defers.prev = coro->free_defers.next = &coro->free_defers;
-    coro->blocks.next = coro->blocks.prev = &coro->blocks;
+
+    sky_queue_init(&coro->defers);
+    sky_queue_init(&coro->free_defers);
+    sky_queue_init(&coro->blocks);
+
     coro->self = false;
     coro->ptr = (sky_uchar_t *) (coro + 1);
     coro->ptr_size = PAGE_SIZE - sizeof(sky_coro_t);
@@ -265,22 +259,22 @@ sky_coro_new() {
 void
 sky_core_reset(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     sky_defer_t *defer;
-    mem_block_t *block;
+    sky_queue_t *block;
 
-    while ((defer = coro->defers.next) != &coro->defers) {
-        defer->prev->next = defer->next;
-        defer->next->prev = defer->prev;
+
+    while (!sky_queue_is_empty(&coro->defers)) {
+        defer = (sky_defer_t *) sky_queue_next(&coro->defers);
+        sky_queue_remove(&defer->link);
         defer->free = true;
 
         defer->one_arg ? defer->one.func(defer->one.data)
                        : defer->two.func(defer->two.data1, defer->two.data2);
     }
-    while ((block = coro->blocks.next) != &coro->blocks) {
-        block->prev->next = block->next;
-        block->next->prev = block->prev;
-
+    while (!sky_queue_is_empty(&coro->blocks)) {
+        block = sky_queue_next(&coro->blocks);
         sky_free(block);
     }
+
     coro->ptr = (sky_uchar_t *) (coro + 1);
     coro->ptr_size = PAGE_SIZE - sizeof(sky_coro_t);
 
@@ -311,31 +305,32 @@ sky_coro_yield(sky_coro_t *coro, sky_isize_t value) {
 void
 sky_coro_destroy(sky_coro_t *coro) {
     sky_defer_t *defer;
-    mem_block_t *block;
+    sky_queue_t *block;
 
-    while ((defer = coro->defers.next) != &coro->defers) {
-        defer->prev->next = defer->next;
-        defer->next->prev = defer->prev;
+    while (!sky_queue_is_empty(&coro->defers)) {
+        defer = (sky_defer_t *) sky_queue_next(&coro->defers);
+        sky_queue_remove(&defer->link);
         defer->free = true;
 
         defer->one_arg ? defer->one.func(defer->one.data)
                        : defer->two.func(defer->two.data1, defer->two.data2);
     }
-    while ((block = coro->blocks.next) != &coro->blocks) {
-        block->prev->next = block->next;
-        block->next->prev = block->prev;
 
+    while (!sky_queue_is_empty(&coro->blocks)) {
+        block = sky_queue_next(&coro->blocks);
+        sky_queue_remove(block);
         sky_free(block);
     }
+
     sky_free(coro);
 }
 
 sky_defer_t *
 sky_defer_add(sky_coro_t *coro, sky_defer_func_t func, void *data) {
     sky_defer_t *defer;
-    if ((defer = coro->free_defers.next) != &coro->free_defers) {
-        defer->prev->next = defer->next;
-        defer->next->prev = defer->prev;
+    if (!sky_queue_is_empty(&coro->free_defers)) {
+        defer = (sky_defer_t *) sky_queue_next(&coro->free_defers);
+        sky_queue_remove(&defer->link);
     } else {
         defer = sky_coro_malloc(coro, sizeof(sky_defer_t));
     }
@@ -343,9 +338,8 @@ sky_defer_add(sky_coro_t *coro, sky_defer_func_t func, void *data) {
     defer->one.data = data;
     defer->one_arg = true;
     defer->free = false;
-    defer->prev = &coro->defers;
-    defer->next = defer->prev->next;
-    defer->next->prev = defer->prev->next = defer;
+
+    sky_queue_insert_next(&coro->defers, &defer->link);
 
     return defer;
 }
@@ -353,9 +347,9 @@ sky_defer_add(sky_coro_t *coro, sky_defer_func_t func, void *data) {
 sky_defer_t *
 sky_defer_add2(sky_coro_t *coro, sky_defer_func2_t func, void *data1, void *data2) {
     sky_defer_t *defer;
-    if ((defer = coro->free_defers.next) != &coro->free_defers) {
-        defer->prev->next = defer->next;
-        defer->next->prev = defer->prev;
+    if (!sky_queue_is_empty(&coro->free_defers)) {
+        defer = (sky_defer_t *) sky_queue_next(&coro->free_defers);
+        sky_queue_remove(&defer->link);
     } else {
         defer = sky_coro_malloc(coro, sizeof(sky_defer_t));
     }
@@ -364,9 +358,8 @@ sky_defer_add2(sky_coro_t *coro, sky_defer_func2_t func, void *data1, void *data
     defer->two.data2 = data2;
     defer->one_arg = false;
     defer->free = false;
-    defer->prev = &coro->defers;
-    defer->next = defer->prev->next;
-    defer->next->prev = defer->prev->next = defer;
+
+    sky_queue_insert_next(&coro->defers, &defer->link);
 
     return defer;
 }
@@ -376,13 +369,9 @@ sky_defer_cancel(sky_coro_t *coro, sky_defer_t *defer) {
     if (sky_unlikely(defer->free)) {
         return;
     }
-    defer->prev->next = defer->next;
-    defer->next->prev = defer->prev;
     defer->free = true;
-
-    defer->prev = &coro->free_defers;
-    defer->next = defer->prev->next;
-    defer->next->prev = defer->prev->next = defer;
+    sky_queue_remove(&defer->link);
+    sky_queue_insert_next(&coro->free_defers, &defer->link);
 }
 
 sky_inline void
@@ -390,13 +379,9 @@ sky_defer_remove(sky_coro_t *coro, sky_defer_t *defer) {
     if (sky_unlikely(defer->free)) {
         return;
     }
-    defer->prev->next = defer->next;
-    defer->next->prev = defer->prev;
     defer->free = true;
-
-    defer->prev = &coro->free_defers;
-    defer->next = defer->prev->next;
-    defer->next->prev = defer->prev->next = defer;
+    sky_queue_remove(&defer->link);
+    sky_queue_insert_next(&coro->free_defers, &defer->link);
 
     defer->one_arg ? defer->one.func(defer->one.data)
                    : defer->two.func(defer->two.data1, defer->two.data2);
@@ -406,17 +391,15 @@ sky_inline void
 sky_defer_run(sky_coro_t *coro) {
     sky_defer_t *defer;
 
-    while ((defer = coro->defers.next) != &coro->defers) {
-        defer->prev->next = defer->next;
-        defer->next->prev = defer->prev;
+    while (!sky_queue_is_empty(&coro->defers)) {
+        defer = (sky_defer_t *) sky_queue_next(&coro->defers);
         defer->free = true;
+        sky_queue_remove(&defer->link);
 
         defer->one_arg ? defer->one.func(defer->one.data)
                        : defer->two.func(defer->two.data1, defer->two.data2);
 
-        defer->prev = &coro->free_defers;
-        defer->next = defer->prev->next;
-        defer->next->prev = defer->prev->next = defer;
+        sky_queue_insert_next(&coro->free_defers, &defer->link);
     }
 }
 
@@ -447,12 +430,9 @@ coro_yield(sky_coro_t *coro, sky_isize_t value) {
 
 static sky_inline void
 mem_block_add(sky_coro_t *coro) {
-    mem_block_t *block = sky_malloc(PAGE_SIZE);
-
-    block->prev = &coro->blocks;
-    block->next = block->prev->next;
-    block->next->prev = block->prev->next = block;
+    sky_queue_t *block = sky_malloc(PAGE_SIZE);
+    sky_queue_insert_next(&coro->blocks, block);
 
     coro->ptr = (sky_uchar_t *) (block + 1);
-    coro->ptr_size = PAGE_SIZE - sizeof(mem_block_t);
+    coro->ptr_size = PAGE_SIZE - sizeof(sky_queue_t);
 }

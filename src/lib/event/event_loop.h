@@ -48,8 +48,6 @@ struct sky_event_loop_s {
 #define sky_event_clean_read(_ev)   (_ev)->status &= 0xFFFFFFFD
 #define sky_event_clean_write(_ev)  (_ev)->status &= 0xFFFFFFFB
 
-#define sky_event_has_callback(_ev) (sky_event_is_reg(_ev) || sky_timer_is_link(&(_ev)->timer))
-#define sky_event_none_callback(_ev) (sky_event_none_reg(_ev) && sky_timer_none_link(&(_ev)->timer))
 
 #define sky_event_init(_loop, _ev, _fd, _run, _close) \
     do {                                              \
@@ -113,6 +111,17 @@ sky_bool_t sky_event_unregister(sky_event_t *ev);
 void sky_event_reset_timeout_self(sky_event_t *ev, sky_i32_t timeout);
 
 void sky_event_reset_timeout(sky_event_t *ev, sky_i32_t timeout);
+
+
+static sky_inline sky_bool_t
+sky_event_has_callback(sky_event_t *ev) {
+    return sky_event_is_reg(ev) || sky_timer_is_link(&ev->timer);
+}
+
+static sky_inline sky_bool_t
+sky_event_none_callback(sky_event_t *ev) {
+    return sky_event_none_reg(ev) && !sky_timer_is_link(&ev->timer);
+}
 
 /**
  * 向事件中主动加入定时器，自定义处理

@@ -10,7 +10,9 @@
 #include <core/log.h>
 #include <platform.h>
 
-static void server_start(sky_u32_t index);
+static void *server_start(sky_event_loop_t *loop, sky_u32_t index);
+
+static void server_destroy(sky_event_loop_t *loop, void *data);
 
 int
 main() {
@@ -18,11 +20,12 @@ main() {
     setvbuf(stderr, null, _IOLBF, 0);
 
     const sky_platform_conf_t conf = {
-            .run = server_start
+            .run = server_start,
+            .destroy = server_destroy
     };
 
     sky_platform_t *platform = sky_platform_create(&conf);
-    sky_platform_wait(platform);
+    sky_platform_run(platform);
     sky_platform_destroy(platform);
 
     return 0;
@@ -48,16 +51,13 @@ http_index_router(sky_http_request_t *req, void *data) {
     return true;
 }
 
-static void
-server_start(sky_u32_t index) {
+static void *
+server_start(sky_event_loop_t *loop, sky_u32_t index) {
     sky_log_info("thread-%u", index);
 
     sky_pool_t *pool;
-    sky_event_loop_t *loop;
     sky_http_server_t *server;
     sky_array_t modules;
-
-    loop = sky_event_loop_create();
 
     pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
 
@@ -115,7 +115,15 @@ server_start(sky_u32_t index) {
         sky_http_server_bind(server, loop, (sky_inet_address_t *) &http_address, sizeof(struct sockaddr_in6));
     }
 
-    sky_event_loop_run(loop);
-    sky_event_loop_destroy(loop);
+    return pool;
+}
+
+static void
+server_destroy(sky_event_loop_t *loop, void *data) {
+    (void) loop;
+
+    sky_pool_t *pool = data;
+
+    sky_pool_destroy(pool);
 }
 

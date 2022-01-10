@@ -172,7 +172,7 @@ pg_auth(sky_pgsql_conn_t *conn) {
     sky_buf_t buf;
 
     const sky_str_t *conn_info = &conn->pg_pool->conn_info;
-    if (sky_unlikely(!sky_tcp_pool_conn_write(&conn->conn, conn_info->data, conn_info->len))) {
+    if (sky_unlikely(!sky_tcp_pool_conn_write_all(&conn->conn, conn_info->data, conn_info->len))) {
         return false;
     }
     sky_buf_init(&buf, conn->pool, 1024);
@@ -345,7 +345,7 @@ pg_send_exec(
         sky_memcpy(buf.last, sql_tmp, 40);
         buf.last += 40;
 
-        const sky_bool_t result = sky_tcp_pool_conn_write(&conn->conn, buf.pos, (sky_u32_t) (buf.last - buf.pos));
+        const sky_bool_t result = sky_tcp_pool_conn_write_all(&conn->conn, buf.pos, (sky_u32_t) (buf.last - buf.pos));
         sky_buf_destroy(&buf);
 
         return result;
@@ -386,7 +386,7 @@ pg_send_exec(
     sky_memcpy(buf.last, sql_tmp + 14, 26);
     buf.last += 26;
 
-    const sky_bool_t result = sky_tcp_pool_conn_write(&conn->conn, buf.pos, (sky_u32_t) (buf.last - buf.pos));
+    const sky_bool_t result = sky_tcp_pool_conn_write_all(&conn->conn, buf.pos, (sky_u32_t) (buf.last - buf.pos));
     sky_buf_destroy(&buf);
 
     return result;
@@ -620,7 +620,7 @@ pg_send_password(sky_pgsql_conn_t *conn,
     ch += 3;
     sky_byte_to_hex(bin, 16, ch);
 
-    return sky_tcp_pool_conn_write(&conn->conn, hex, 41);
+    return sky_tcp_pool_conn_write_all(&conn->conn, hex, 41);
 }
 
 

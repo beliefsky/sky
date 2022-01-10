@@ -6,6 +6,7 @@
 #define SKY_TCP_POOL_H
 
 #include "../event/event_loop.h"
+#include "../core/queue.h"
 #include "../core/coro.h"
 #include "inet.h"
 
@@ -29,12 +30,11 @@ typedef struct {
 } sky_tcp_pool_conf_t;
 
 struct sky_tcp_conn_s {
+    sky_queue_t link;
     sky_event_t *ev;
     sky_coro_t *coro;
     sky_tcp_node_t *client;
     sky_defer_t *defer;
-    sky_tcp_conn_t *prev;
-    sky_tcp_conn_t *next;
 };
 
 sky_tcp_pool_t *sky_tcp_pool_create(sky_event_loop_t *loop, const sky_tcp_pool_conf_t *conf);
@@ -43,9 +43,11 @@ sky_bool_t sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn
 
 sky_usize_t sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size);
 
+sky_bool_t sky_tcp_pool_conn_read_all(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size);
+
 sky_isize_t sky_tcp_pool_conn_read_nowait(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size);
 
-sky_bool_t sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize_t size);
+sky_bool_t sky_tcp_pool_conn_write_all(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize_t size);
 
 sky_isize_t sky_tcp_pool_conn_write_nowait(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize_t size);
 

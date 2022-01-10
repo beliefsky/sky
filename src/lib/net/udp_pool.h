@@ -6,8 +6,8 @@
 #define SKY_UDP_POOL_H
 
 #include "../event/event_loop.h"
+#include "../core/queue.h"
 #include "../core/coro.h"
-#include "../core/palloc.h"
 #include "inet.h"
 
 #if defined(__cplusplus)
@@ -30,12 +30,11 @@ typedef struct {
 } sky_udp_pool_conf_t;
 
 struct sky_udp_conn_s {
+    sky_queue_t link;
     sky_event_t *ev;
     sky_coro_t *coro;
     sky_udp_node_t *client;
     sky_defer_t *defer;
-    sky_udp_conn_t *prev;
-    sky_udp_conn_t *next;
 };
 
 sky_udp_pool_t *sky_udp_pool_create(sky_event_loop_t *loop, const sky_udp_pool_conf_t *conf);
@@ -44,9 +43,13 @@ sky_bool_t sky_udp_pool_conn_bind(sky_udp_pool_t *udp_pool, sky_udp_conn_t *conn
 
 sky_usize_t sky_udp_pool_conn_read(sky_udp_conn_t *conn, sky_uchar_t *data, sky_usize_t size);
 
+sky_bool_t sky_udp_pool_conn_read_all(sky_udp_conn_t *conn, sky_uchar_t *data, sky_usize_t size);
+
 sky_isize_t sky_udp_pool_conn_read_nowait(sky_udp_conn_t *conn, sky_uchar_t *data, sky_usize_t size);
 
-sky_bool_t sky_udp_pool_conn_write(sky_udp_conn_t *conn, const sky_uchar_t *data, sky_usize_t size);
+sky_usize_t sky_udp_pool_conn_write(sky_udp_conn_t *conn, const sky_uchar_t *data, sky_usize_t size);
+
+sky_bool_t sky_udp_pool_conn_write_all(sky_udp_conn_t *conn, const sky_uchar_t *data, sky_usize_t size);
 
 sky_isize_t sky_udp_pool_conn_write_nowait(sky_udp_conn_t *conn, const sky_uchar_t *data, sky_usize_t size);
 
