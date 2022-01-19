@@ -154,13 +154,7 @@ https_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server
     sky_tls_server_init(server->tls_ctx, &conn->tls, fd);
     sky_event_init(loop, &conn->ev, fd, https_handshake, https_connection_close);
 
-    if (!https_handshake(conn)) {
-        https_connection_close(conn);
-        return null;
-    }
-
     return &conn->ev;
-
 }
 
 
