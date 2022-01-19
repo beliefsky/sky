@@ -129,11 +129,6 @@ http_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server_
     sky_core_set(coro, (sky_coro_func_t) sky_http_request_process, conn);
     sky_event_init(loop, &conn->ev, fd, http_connection_run, http_connection_close);
 
-    if (!http_connection_run(conn)) {
-        http_connection_close(conn);
-        return null;
-    }
-
     return &conn->ev;
 
 }

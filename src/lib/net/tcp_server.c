@@ -120,7 +120,12 @@ tcp_listener_accept(sky_event_t *ev) {
 
     while ((fd = accept4(listener, null, null, SOCK_NONBLOCK | SOCK_CLOEXEC)) >= 0) {
         if ((event = l->run(loop, fd, l->data))) {
-            sky_event_register(event, event->timeout ?: l->timeout);
+            if (!event->run(event)) {
+                event->close(event);
+                close(fd);
+            } else {
+                sky_event_register(event, event->timeout ?: l->timeout);
+            }
         } else {
             close(fd);
         }
