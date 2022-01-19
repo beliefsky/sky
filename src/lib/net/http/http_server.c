@@ -130,7 +130,6 @@ http_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server_
     sky_event_init(loop, &conn->ev, fd, http_connection_run, http_connection_close);
 
     return &conn->ev;
-
 }
 
 
