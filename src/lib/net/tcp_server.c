@@ -117,8 +117,15 @@ tcp_listener_accept(sky_event_t *ev) {
     listener = ev->fd;
     loop = ev->loop;
 #ifdef HAVE_ACCEPT4
-
     while ((fd = accept4(listener, null, null, SOCK_NONBLOCK | SOCK_CLOEXEC)) >= 0) {
+#else
+    while ((fd = accept(listener, null, null)) >= 0) {
+        if (sky_unlikely(!set_socket_nonblock(fd))) {
+            close(fd);
+            continue;
+        }
+#endif
+
         if (sky_likely((event = l->run(loop, fd, l->data)))) {
             if (!event->run(event)) {
                 event->close(event);
@@ -130,20 +137,6 @@ tcp_listener_accept(sky_event_t *ev) {
             close(fd);
         }
     }
-#else
-    while ((fd = accept(listener, null, null)) >= 0) {
-        if (sky_unlikely(!set_socket_nonblock(fd))) {
-            close(fd);
-            continue;
-        }
-
-        if ((event = l->run(loop, fd, l->data))) {
-            sky_event_register(event, event->timeout ?: l->timeout);
-        } else {
-            close(fd);
-        }
-    }
-#endif
 
     return true;
 }
