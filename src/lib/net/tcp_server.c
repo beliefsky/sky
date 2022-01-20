@@ -119,7 +119,7 @@ tcp_listener_accept(sky_event_t *ev) {
 #ifdef HAVE_ACCEPT4
 
     while ((fd = accept4(listener, null, null, SOCK_NONBLOCK | SOCK_CLOEXEC)) >= 0) {
-        if ((event = l->run(loop, fd, l->data))) {
+        if (sky_likely((event = l->run(loop, fd, l->data)))) {
             if (!event->run(event)) {
                 event->close(event);
                 close(fd);
