@@ -78,7 +78,7 @@ sky_tcp_pool_create(sky_event_loop_t *loop, const sky_tcp_pool_conf_t *conf) {
     conn_pool->keep_alive = conf->keep_alive ?: -1;
     conn_pool->timeout = conf->timeout ?: 5;
     conn_pool->free = false;
-    conn_pool->nodelay = conf->nodelay;
+    conn_pool->nodelay = conf->address->sa_family != AF_UNIX && conf->nodelay;
 
     for (client = conn_pool->clients; i; --i, ++client) {
         sky_event_init(loop, &client->ev, -1, tcp_run, tcp_close);
