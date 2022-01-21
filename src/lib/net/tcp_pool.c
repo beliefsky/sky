@@ -647,21 +647,15 @@ tcp_connection(sky_tcp_conn_t *conn) {
         return false;
     }
 #else
-    fd = socket(conn_pool->address->sa_family, SOCK_STREAM, 0);
-    if (sky_unlikely(fd < 0)) {
-        return false;
-    }
-    if (sky_unlikely(!set_socket_nonblock(fd))) {
-        close(fd);
-        return false;
-    }
+        fd = socket(conn_pool->address->sa_family, SOCK_STREAM, 0);
+        if (sky_unlikely(fd < 0)) {
+            return false;
+        }
+        if (sky_unlikely(!set_socket_nonblock(fd))) {
+            close(fd);
+            return false;
+        }
 #endif
-
-    const struct linger linger = {
-            .l_onoff = 1,
-            .l_linger = 0
-    };
-    setsockopt(fd, SOL_SOCKET, SO_LINGER, &linger, sizeof(struct linger));
 
     sky_event_rebind(ev, fd);
 
