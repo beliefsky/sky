@@ -69,6 +69,9 @@ sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf)
 #else
     setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_i32_t));
 #endif
+    if (conf->nodelay) {
+        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(sky_i32_t));
+    }
 #ifdef TCP_DEFER_ACCEPT
     if (conf->defer_accept) {
         opt = 1;
@@ -83,9 +86,6 @@ sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf)
     if (sky_unlikely(listen(fd, backlog) != 0)) {
         close(fd);
         return false;
-    }
-    if (conf->nodelay) {
-        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(sky_i32_t));
     }
 
 #ifdef TCP_FASTOPEN
@@ -119,11 +119,11 @@ tcp_listener_accept(sky_event_t *ev) {
 #ifdef HAVE_ACCEPT4
     while ((fd = accept4(listener, null, null, SOCK_NONBLOCK | SOCK_CLOEXEC)) >= 0) {
 #else
-    while ((fd = accept(listener, null, null)) >= 0) {
-        if (sky_unlikely(!set_socket_nonblock(fd))) {
-            close(fd);
-            continue;
-        }
+        while ((fd = accept(listener, null, null)) >= 0) {
+            if (sky_unlikely(!set_socket_nonblock(fd))) {
+                close(fd);
+                continue;
+            }
 #endif
 
         if (sky_likely((event = l->run(loop, fd, l->data)))) {

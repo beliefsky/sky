@@ -9,14 +9,17 @@
 #include <unistd.h>
 
 struct sky_udp_pool_s {
-    sky_bool_t free;
-    sky_u16_t connection_ptr;
-    sky_i32_t keep_alive;
-    sky_i32_t timeout;
-    sky_u32_t address_len;
     sky_inet_address_t *address;;
     sky_udp_node_t *clients;
     sky_udp_pool_conn_next next_func;
+
+    sky_i32_t keep_alive;
+    sky_i32_t timeout;
+    sky_u32_t address_len;
+
+    sky_u16_t connection_ptr;
+
+    sky_bool_t free: 1;
 };
 
 struct sky_udp_node_s {
