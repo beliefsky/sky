@@ -7,16 +7,22 @@
 #include "../core/memory.h"
 #include <errno.h>
 #include <unistd.h>
+#include <netinet/tcp.h>
+#include <netinet/in.h>
 
 struct sky_tcp_pool_s {
-    sky_bool_t free;
-    sky_u16_t connection_ptr;
-    sky_i32_t keep_alive;
-    sky_i32_t timeout;
-    sky_u32_t address_len;
     sky_inet_address_t *address;
     sky_tcp_node_t *clients;
     sky_tcp_pool_conn_next next_func;
+
+    sky_i32_t keep_alive;
+    sky_i32_t timeout;
+    sky_u32_t address_len;
+
+    sky_u16_t connection_ptr;
+
+    sky_bool_t free: 1;
+    sky_bool_t nodelay: 1;
 };
 
 struct sky_tcp_node_s {
@@ -69,9 +75,10 @@ sky_tcp_pool_create(sky_event_loop_t *loop, const sky_tcp_pool_conf_t *conf) {
     conn_pool->connection_ptr = (sky_u16_t) (i - 1);
     conn_pool->next_func = conf->next_func;
 
-    conn_pool->free = false;
     conn_pool->keep_alive = conf->keep_alive ?: -1;
     conn_pool->timeout = conf->timeout ?: 5;
+    conn_pool->free = false;
+    conn_pool->nodelay = conf->nodelay;
 
     for (client = conn_pool->clients; i; --i, ++client) {
         sky_event_init(loop, &client->ev, -1, tcp_run, tcp_close);
@@ -609,7 +616,7 @@ tcp_run(sky_tcp_node_t *client) {
         if (client->tasks.prev == &client->tasks) {
             break;
         }
-        client->current = client->tasks.prev;
+        client->current = (sky_tcp_conn_t *) client->tasks.prev;
     }
 
     client->main = false;
@@ -658,6 +665,10 @@ tcp_connection(sky_tcp_conn_t *conn) {
 #endif
     opt = 1;
     setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_i32_t));
+    if (conn_pool->nodelay) {
+        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(sky_i32_t));
+    }
+
     sky_event_rebind(ev, fd);
 
     if (connect(fd, conn_pool->address, conn_pool->address_len) < 0) {

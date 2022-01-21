@@ -22,7 +22,8 @@ sky_redis_pool_create(sky_event_loop_t *loop, const sky_redis_conf_t *conf) {
             .connection_size = conf->connection_size,
             .timeout = 5,
             .keep_alive = 300,
-            .next_func = null
+            .next_func = null,
+            .nodelay = true
     };
 
     return sky_tcp_pool_create(loop, &c);
