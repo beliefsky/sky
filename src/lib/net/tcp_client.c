@@ -86,7 +86,7 @@ sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_address_t *ad
 #endif
     opt = 1;
     setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_i32_t));
-    if (client->nodelay) {
+    if (address->sa_family != AF_UNIX && client->nodelay) {
         setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(sky_i32_t));
     }
 
