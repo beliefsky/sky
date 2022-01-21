@@ -75,6 +75,13 @@ sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf)
         setsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &opt, sizeof(sky_i32_t));
     }
 #endif
+
+    const struct linger linger = {
+            .l_onoff = 1,
+            .l_linger = 0
+    };
+    setsockopt(fd, SOL_SOCKET, SO_LINGER, &linger, sizeof(struct linger));
+
     if (sky_unlikely(bind(fd, conf->address, conf->address_len) != 0)) {
         close(fd);
         return false;
@@ -119,11 +126,11 @@ tcp_listener_accept(sky_event_t *ev) {
 #ifdef HAVE_ACCEPT4
     while ((fd = accept4(listener, null, null, SOCK_NONBLOCK | SOCK_CLOEXEC)) >= 0) {
 #else
-    while ((fd = accept(listener, null, null)) >= 0) {
-        if (sky_unlikely(!set_socket_nonblock(fd))) {
-            close(fd);
-            continue;
-        }
+        while ((fd = accept(listener, null, null)) >= 0) {
+            if (sky_unlikely(!set_socket_nonblock(fd))) {
+                close(fd);
+                continue;
+            }
 #endif
 
         if (sky_likely((event = l->run(loop, fd, l->data)))) {
