@@ -634,7 +634,7 @@ tcp_shutdown(sky_tcp_node_t *client) {
 
 static sky_bool_t
 tcp_connection(sky_tcp_conn_t *conn) {
-    sky_i32_t fd;
+    sky_i32_t fd, opt;
     sky_tcp_pool_t *conn_pool;
     sky_event_t *ev;
 
@@ -647,16 +647,17 @@ tcp_connection(sky_tcp_conn_t *conn) {
         return false;
     }
 #else
-        fd = socket(conn_pool->address->sa_family, SOCK_STREAM, 0);
-        if (sky_unlikely(fd < 0)) {
-            return false;
-        }
-        if (sky_unlikely(!set_socket_nonblock(fd))) {
-            close(fd);
-            return false;
-        }
+    fd = socket(conn_pool->address->sa_family, SOCK_STREAM, 0);
+    if (sky_unlikely(fd < 0)) {
+        return false;
+    }
+    if (sky_unlikely(!set_socket_nonblock(fd))) {
+        close(fd);
+        return false;
+    }
 #endif
-
+    opt = 1;
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_i32_t));
     sky_event_rebind(ev, fd);
 
     if (connect(fd, conn_pool->address, conn_pool->address_len) < 0) {
