@@ -17,6 +17,8 @@ typedef struct {
 } http_module_dispatcher_t;
 
 
+static void http_run_handler_with_pre(sky_http_request_t *r, http_module_dispatcher_t *data);
+
 static void http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data);
 
 void
@@ -41,17 +43,23 @@ sky_http_module_dispatcher_init(sky_pool_t *pool, const sky_http_dispatcher_conf
     }
 
     conf->module->prefix = conf->prefix;
-    conf->module->run = (sky_module_run_pt) http_run_handler;
+    conf->module->run = (sky_module_run_pt) (data->pre_run ? http_run_handler_with_pre : http_run_handler);
     conf->module->module_data = data;
 }
 
+
 static void
-http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
-    if (data->pre_run) {
-        if (!data->pre_run(r, data->run_data)) {
-            return;
-        }
+http_run_handler_with_pre(sky_http_request_t *r, http_module_dispatcher_t *data) {
+    if (!data->pre_run(r, data->run_data)) {
+        return;
     }
+    http_run_handler(r, data);
+}
+
+
+static sky_inline void
+http_run_handler(sky_http_request_t *r, http_module_dispatcher_t *data) {
+
     sky_http_mapper_pt *handler = (sky_http_mapper_pt *) sky_trie_contains(data->mappers, &r->uri);
     if (!handler) {
         r->state = 404;
