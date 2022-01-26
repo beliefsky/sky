@@ -15,6 +15,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include "http_io_wrappers.h"
+#include "../../core/memory.h"
 
 sky_usize_t
 http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size) {
@@ -84,7 +85,7 @@ void
 http_send_file(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky_usize_t size,
                const sky_uchar_t *header, sky_u32_t header_len) {
 
-    conn->server->http_write(conn, header, header_len);
+    http_write(conn, header, header_len);
 
     const sky_i32_t socket_fd = conn->ev.fd;
     for (;;) {
@@ -346,6 +347,29 @@ https_write(sky_http_connection_t *conn, const sky_uchar_t *data, sky_usize_t si
         }
         break;
     }
+}
+
+void
+https_send_file(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky_usize_t size,
+                const sky_uchar_t *header, sky_u32_t header_len) {
+    https_write(conn, header, header_len);
+    sky_isize_t n;
+    const sky_usize_t buff_size = sky_min(size, SKY_USIZE(16384));
+    sky_uchar_t *buff = sky_malloc(buff_size);
+    sky_defer_t *defer = sky_defer_add(conn->coro, sky_free_handle, buff);
+
+    lseek(fd, offset, SEEK_SET);
+
+    for (; size > 0;) {
+        n = read(fd, buff, sky_min(buff_size, size));
+        if (sky_unlikely(n <= 0)) {
+            break;
+        }
+        size -= (sky_usize_t) n;
+        https_write(conn, buff, (sky_usize_t) n);
+    }
+    sky_defer_cancel(conn->coro, defer);
+    sky_free(buff);
 }
 
 #endif
