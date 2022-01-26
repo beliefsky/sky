@@ -22,7 +22,6 @@
 extern "C" {
 #endif
 
-#define sky_free(_ptr)                  free(_ptr)
 #define sky_malloc(_size)               malloc(_size)
 #define sky_realloc(_ptr, _resize)      realloc(_ptr, _resize)
 #define sky_align_size(_d, _a) \
@@ -53,7 +52,7 @@ extern "C" {
 
 
 static sky_inline void
-sky_free_handle(void *ptr) {
+sky_free(void *ptr) {
     free(ptr);
 }
 
