@@ -81,7 +81,7 @@ void sky_coro_destroy(sky_coro_t *coro);
 #define sky_coro_exit()   __builtin_unreachable()
 
 /**
- * 协程分配内存，销毁时回收（适用于小于1k的内存）
+ * 协程分配内存，销毁时回收
  * @param coro 协程
  * @param size 分配大小
  * @return 回收标记
