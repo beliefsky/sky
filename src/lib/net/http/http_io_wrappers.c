@@ -356,7 +356,7 @@ https_send_file(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky
     sky_isize_t n;
     const sky_usize_t buff_size = sky_min(size, SKY_USIZE(16384));
     sky_uchar_t *buff = sky_malloc(buff_size);
-    sky_defer_t *defer = sky_defer_add(conn->coro, sky_free_handle, buff);
+    sky_defer_t *defer = sky_defer_add(conn->coro, sky_free, buff);
 
     lseek(fd, offset, SEEK_SET);
 
