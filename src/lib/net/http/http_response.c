@@ -12,13 +12,15 @@ static void http_header_build(sky_http_request_t *r, sky_str_buf_t *buf);
 void
 sky_http_response_nobody(sky_http_request_t *r) {
     sky_str_buf_t str_buf;
+    sky_defer_t *defer;
 
     if (sky_unlikely(r->response)) {
         return;
     }
     r->response = true;
 
-    sky_str_buf_init2(&str_buf, r->pool, 2048);
+    sky_str_buf_init(&str_buf, 2048);
+    defer = sky_defer_add(r->conn->coro, (sky_defer_func_t) sky_str_buf_destroy, &str_buf);
     http_header_build(r, &str_buf);
 
     const sky_str_t out = {
@@ -27,6 +29,7 @@ sky_http_response_nobody(sky_http_request_t *r) {
     };
     r->conn->server->http_write(r->conn, out.data, out.len);
 
+    sky_defer_cancel(r->conn->coro, defer);
     sky_str_buf_destroy(&str_buf);
 }
 
@@ -45,6 +48,7 @@ sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_usize_
     sky_str_buf_t str_buf;
     sky_uchar_t *data;
     sky_http_header_t *header;
+    sky_defer_t *defer;
 
     if (sky_unlikely(r->response)) {
         return;
@@ -56,7 +60,9 @@ sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_usize_
 
     if (!buf_len) {
         sky_str_set(&header->val, "0");
-        sky_str_buf_init2(&str_buf, r->pool, 2048);
+
+        sky_str_buf_init(&str_buf, 2048);
+        defer = sky_defer_add(r->conn->coro, (sky_defer_func_t) sky_str_buf_destroy, &str_buf);
         http_header_build(r, &str_buf);
 
         const sky_str_t out = {
@@ -65,6 +71,7 @@ sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_usize_
         };
         r->conn->server->http_write(r->conn, out.data, out.len);
 
+        sky_defer_cancel(r->conn->coro, defer);
         sky_str_buf_destroy(&str_buf);
         return;
     }
@@ -73,8 +80,10 @@ sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_usize_
     header->val.len = sky_u64_to_str(buf_len, data);
 
     if (buf_len < 8192) {
-        sky_str_buf_init2(&str_buf, r->pool, 2048 + buf_len);
+        sky_str_buf_init(&str_buf, 2048 + buf_len);
+        defer = sky_defer_add(r->conn->coro, (sky_defer_func_t) sky_str_buf_destroy, &str_buf);
         http_header_build(r, &str_buf);
+
         sky_str_buf_append_str_len(&str_buf, buf, buf_len);
 
         const sky_str_t out = {
@@ -84,9 +93,11 @@ sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_usize_
 
         r->conn->server->http_write(r->conn, out.data, out.len);
 
+        sky_defer_cancel(r->conn->coro, defer);
         sky_str_buf_destroy(&str_buf);
     } else {
-        sky_str_buf_init2(&str_buf, r->pool, 2048);
+        sky_str_buf_init(&str_buf, 2048);
+        defer = sky_defer_add(r->conn->coro, (sky_defer_func_t) sky_str_buf_destroy, &str_buf);
         http_header_build(r, &str_buf);
 
         const sky_str_t out = {
@@ -97,6 +108,7 @@ sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_usize_
         r->conn->server->http_write(r->conn, out.data, out.len);
         r->conn->server->http_write(r->conn, buf, buf_len);
 
+        sky_defer_cancel(r->conn->coro, defer);
         sky_str_buf_destroy(&str_buf);
     }
 }
@@ -107,6 +119,7 @@ sky_http_sendfile(sky_http_request_t *r, sky_i32_t fd, sky_usize_t offset, sky_u
     sky_str_buf_t str_buf;
     sky_uchar_t *data;
     sky_http_header_t *header;
+    sky_defer_t *defer;
 
     if (sky_unlikely(r->response)) {
         return;
@@ -133,22 +146,22 @@ sky_http_sendfile(sky_http_request_t *r, sky_i32_t fd, sky_usize_t offset, sky_u
         sky_str_buf_build(&str_buf, &header->val);
     }
 
-    sky_str_buf_init2(&str_buf, r->pool, 2048);
+    sky_str_buf_init(&str_buf, 2048);
+    defer = sky_defer_add(r->conn->coro, (sky_defer_func_t) sky_str_buf_destroy, &str_buf);
     http_header_build(r, &str_buf);
 
     const sky_str_t out = {
             .len = sky_str_buf_size(&str_buf),
             .data = str_buf.start
     };
-    sky_str_buf_destroy(&str_buf);
 
     if (size) {
         r->conn->server->http_send_file(r->conn, fd, (sky_i64_t) offset, size, out.data, (sky_u32_t) out.len);
     } else {
         r->conn->server->http_write(r->conn, out.data, (sky_u32_t) out.len);
     }
+    sky_defer_cancel(r->conn->coro, defer);
     sky_str_buf_destroy(&str_buf);
-
 }
 
 
