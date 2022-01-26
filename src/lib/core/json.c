@@ -85,7 +85,7 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
     }
     sky_str_buf_t buf;
 
-    sky_str_buf_init2(&buf, json->pool, 8);
+    sky_str_buf_init2(&buf, json->pool, 32);
 
     current = json;
 
