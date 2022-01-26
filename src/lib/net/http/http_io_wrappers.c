@@ -363,7 +363,8 @@ https_send_file(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky
     for (; size > 0;) {
         n = read(fd, buff, sky_min(buff_size, size));
         if (sky_unlikely(n <= 0)) {
-            break;
+            sky_coro_yield(conn->coro, SKY_CORO_ABORT);
+            sky_coro_exit();
         }
         size -= (sky_usize_t) n;
         https_write(conn, buff, (sky_usize_t) n);
