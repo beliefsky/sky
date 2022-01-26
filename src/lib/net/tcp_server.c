@@ -89,7 +89,7 @@ sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf)
     }
 
 #ifdef TCP_FASTOPEN
-    opt = 32;
+    opt = 5;
     setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &opt, sizeof(sky_i32_t));
 #endif
 
