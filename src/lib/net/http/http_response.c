@@ -18,7 +18,7 @@ sky_http_response_nobody(sky_http_request_t *r) {
     }
     r->response = true;
 
-    sky_str_buf_init(&str_buf, r->pool, 2048);
+    sky_str_buf_init2(&str_buf, r->pool, 2048);
     http_header_build(r, &str_buf);
 
     const sky_str_t out = {
@@ -56,7 +56,7 @@ sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_usize_
 
     if (!buf_len) {
         sky_str_set(&header->val, "0");
-        sky_str_buf_init(&str_buf, r->pool, 2048);
+        sky_str_buf_init2(&str_buf, r->pool, 2048);
         http_header_build(r, &str_buf);
 
         const sky_str_t out = {
@@ -73,7 +73,7 @@ sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_usize_
     header->val.len = sky_u64_to_str(buf_len, data);
 
     if (buf_len < 8192) {
-        sky_str_buf_init(&str_buf, r->pool, 2048 + buf_len);
+        sky_str_buf_init2(&str_buf, r->pool, 2048 + buf_len);
         http_header_build(r, &str_buf);
         sky_str_buf_append_str_len(&str_buf, buf, buf_len);
 
@@ -86,7 +86,7 @@ sky_http_response_static_len(sky_http_request_t *r, sky_uchar_t *buf, sky_usize_
 
         sky_str_buf_destroy(&str_buf);
     } else {
-        sky_str_buf_init(&str_buf, r->pool, 2048);
+        sky_str_buf_init2(&str_buf, r->pool, 2048);
         http_header_build(r, &str_buf);
 
         const sky_str_t out = {
@@ -122,7 +122,7 @@ sky_http_sendfile(sky_http_request_t *r, sky_i32_t fd, sky_usize_t offset, sky_u
         header = sky_list_push(&r->headers_out.headers);
         sky_str_set(&header->key, "Content-Range");
 
-        sky_str_buf_init(&str_buf, r->pool, 64);
+        sky_str_buf_init2(&str_buf, r->pool, 64);
         sky_str_buf_append_str_len(&str_buf, sky_str_line("bytes "));
         sky_str_buf_append_uint64(&str_buf, offset);
         sky_str_buf_append_uchar(&str_buf, '-');
@@ -133,7 +133,7 @@ sky_http_sendfile(sky_http_request_t *r, sky_i32_t fd, sky_usize_t offset, sky_u
         sky_str_buf_build(&str_buf, &header->val);
     }
 
-    sky_str_buf_init(&str_buf, r->pool, 2048);
+    sky_str_buf_init2(&str_buf, r->pool, 2048);
     http_header_build(r, &str_buf);
 
     const sky_str_t out = {

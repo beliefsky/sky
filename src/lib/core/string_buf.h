@@ -20,7 +20,10 @@ typedef struct {
 } sky_str_buf_t;
 
 
-sky_str_buf_t *sky_str_buf_create(sky_pool_t *pool, sky_usize_t n);
+void sky_str_buf_init(sky_str_buf_t *buf, sky_usize_t n);
+
+void sky_str_buf_init2(sky_str_buf_t *buf, sky_pool_t *pool, sky_usize_t n);
+
 
 void sky_str_buf_destroy(sky_str_buf_t *buf);
 
@@ -46,16 +49,7 @@ void sky_str_buf_append_int64(sky_str_buf_t *buf, sky_i64_t num);
 
 void sky_str_buf_append_uint64(sky_str_buf_t *buf, sky_u64_t num);
 
-sky_str_t *sky_str_buf_to_str(sky_str_buf_t *buf);
-
 void sky_str_buf_build(sky_str_buf_t *buf, sky_str_t *out);
-
-static sky_inline void
-sky_str_buf_init(sky_str_buf_t *buf, sky_pool_t *pool, sky_usize_t n) {
-    buf->start = buf->post = sky_pnalloc(pool, n);
-    buf->end = buf->start + n;
-    buf->pool = pool;
-}
 
 static sky_inline sky_usize_t
 sky_str_buf_size(sky_str_buf_t *buf) {
