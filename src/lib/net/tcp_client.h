@@ -18,6 +18,7 @@ typedef struct {
     sky_coro_t *coro;
     sky_i32_t keep_alive;
     sky_i32_t timeout;
+    sky_bool_t nodelay: 1;
 } sky_tcp_client_conf_t;
 
 typedef struct sky_tcp_client_s sky_tcp_client_t;

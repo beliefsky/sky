@@ -79,8 +79,17 @@ sky_platform_create(const sky_platform_conf_t *conf) {
 }
 
 sky_u32_t
-sky_platform_thread_n(const sky_platform_t platform) {
-    return platform.thread_n;
+sky_platform_thread_n(const sky_platform_t *platform) {
+    return platform->thread_n;
+}
+
+sky_event_loop_t *
+sky_platform_event_loop(const sky_platform_t *platform, sky_u32_t index) {
+    if (sky_likely(index < platform->thread_n)) {
+        return platform->items[index].loop;
+    }
+
+    return null;
 }
 
 void

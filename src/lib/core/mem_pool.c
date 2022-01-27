@@ -38,7 +38,7 @@ sky_mem_pool_create(sky_usize_t size, sky_usize_t num) {
     if (num < 16) {
         num = 16;
     }
-    pool = sky_memalign(0x10, sizeof(sky_mem_pool_t) + (sizeof(sky_mem_entry_t) + size) * num);
+    pool = sky_malloc(sizeof(sky_mem_pool_t) + (sizeof(sky_mem_entry_t) + size) * num);
     pool->entry_size = sizeof(sky_mem_entry_t) + size;
     pool->entry_array_size = pool->entry_size * num;
     pool->block_size = sizeof(sky_mem_block_t) + pool->entry_array_size;
@@ -115,7 +115,7 @@ static sky_inline void
 sky_mem_pool_block_create(sky_mem_pool_t *pool) {
     sky_mem_block_t *block;
 
-    block = sky_memalign(0x10, pool->block_size);
+    block = sky_malloc(pool->block_size);
     block->next = &pool->blocks;
     block->prev = block->next->prev;
     block->prev->next = block->next->prev = block;
