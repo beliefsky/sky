@@ -156,19 +156,18 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             }
         }
 
-        if (!loop->update && now == loop->now) {
-            continue;
-        }
-        now = loop->now;
-        loop->update = false;
+        if (loop->update || now != loop->now) {
+            now = loop->now;
+            loop->update = false;
 
-        sky_timer_wheel_run(ctx, (sky_u64_t) now);
-        next_time = sky_timer_wheel_wake_at(ctx);
-        if (next_time == SKY_U64_MAX) {
-            timeout = null;
-        } else {
-            timeout = &timespec;
-            timespec.tv_sec = ((sky_i64_t) (next_time - (sky_u32_t) now));
+            sky_timer_wheel_run(ctx, (sky_u64_t) now);
+            next_time = sky_timer_wheel_wake_at(ctx);
+            if (next_time == SKY_U64_MAX) {
+                timeout = null;
+            } else {
+                timeout = &timespec;
+                timespec.tv_sec = ((sky_i64_t) (next_time - (sky_u32_t) now));
+            }
         }
     }
 }
