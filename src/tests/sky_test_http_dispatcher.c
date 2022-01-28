@@ -28,9 +28,11 @@ static void build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module);
 
 static SKY_HTTP_MAPPER_HANDLER(redis_test);
 
-static SKY_HTTP_MAPPER_HANDLER(hello_world);
+static SKY_HTTP_MAPPER_HANDLER(pgsql_test);
 
 static SKY_HTTP_MAPPER_HANDLER(upload_test);
+
+static SKY_HTTP_MAPPER_HANDLER(hello_world);
 
 int
 main() {
@@ -38,6 +40,7 @@ main() {
     setvbuf(stderr, null, _IOLBF, 0);
 
     const sky_platform_conf_t conf = {
+//            .thread_size = 2,
             .run = server_start,
             .destroy = server_destroy
     };
@@ -166,7 +169,7 @@ build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module) {
     sky_http_mapper_t mappers[] = {
             {
                     .path = sky_string("/pgsql"),
-                    .get_handler = hello_world
+                    .get_handler = pgsql_test
             },
             {
                     .path = sky_string("/redis"),
@@ -175,13 +178,17 @@ build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module) {
             {
                     .path = sky_string("/upload"),
                     .post_handler = upload_test
+            },
+            {
+                    .path = sky_string("/hello"),
+                    .get_handler = hello_world
             }
     };
 
     const sky_http_dispatcher_conf_t conf = {
             .prefix = sky_string("/api"),
             .mappers = mappers,
-            .mapper_len = 3,
+            .mapper_len = 4,
             .module = module
     };
 
@@ -223,7 +230,7 @@ static SKY_HTTP_MAPPER_HANDLER(redis_test) {
     sky_http_response_static_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\"}"));
 }
 
-static SKY_HTTP_MAPPER_HANDLER(hello_world) {
+static SKY_HTTP_MAPPER_HANDLER(pgsql_test) {
 
     sky_i32_t id;
 
@@ -365,5 +372,11 @@ static SKY_HTTP_MAPPER_HANDLER(upload_test) {
     }
     sky_http_response_static_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\"}"));
 }
+
+static SKY_HTTP_MAPPER_HANDLER(hello_world) {
+
+    sky_http_response_static_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\"}"));
+}
+
 
 

@@ -7,6 +7,8 @@
 #include "../core/memory.h"
 #include <errno.h>
 #include <unistd.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
 
 struct sky_tcp_client_s {
     sky_event_t ev;
@@ -16,6 +18,8 @@ struct sky_tcp_client_s {
     sky_i32_t keep_alive;
     sky_i32_t timeout;
     sky_bool_t free: 1;
+    sky_bool_t nodelay: 1;
+    sky_bool_t defer_accept: 1;
 };
 
 static sky_bool_t tcp_run(sky_tcp_client_t *client);
@@ -43,6 +47,7 @@ sky_tcp_client_create(const sky_tcp_client_conf_t *conf) {
     client->keep_alive = conf->keep_alive ?: -1;
     client->timeout = conf->timeout ?: 5;
     client->free = false;
+    client->nodelay = conf->nodelay;
 
     client->defer = sky_defer_add(client->coro, (sky_defer_func_t) tcp_client_defer, client);
 
@@ -51,6 +56,7 @@ sky_tcp_client_create(const sky_tcp_client_conf_t *conf) {
 
 sky_bool_t
 sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_address_t *address, sky_u32_t address_len) {
+    sky_i32_t opt;
     sky_event_t *ev = &client->ev;
 
     if (sky_unlikely(client->free)) {
@@ -69,15 +75,21 @@ sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_address_t *ad
         return false;
     }
 #else
-        sky_i32_t fd = socket(address->sa_family, SOCK_STREAM, 0);
-            if (sky_unlikely(fd < 0)) {
-                return false;
-            }
-            if (sky_unlikely(!set_socket_nonblock(fd))) {
-                close(fd);
-                return false;
-            }
+    sky_i32_t fd = socket(address->sa_family, SOCK_STREAM, 0);
+        if (sky_unlikely(fd < 0)) {
+            return false;
+        }
+        if (sky_unlikely(!set_socket_nonblock(fd))) {
+            close(fd);
+            return false;
+        }
 #endif
+    opt = 1;
+    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_i32_t));
+    if (address->sa_family != AF_UNIX && client->nodelay) {
+        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(sky_i32_t));
+    }
+
     sky_event_rebind(ev, fd);
 
     if (connect(fd, address, address_len) < 0) {

@@ -9,7 +9,9 @@
 #include <string.h>
 
 #ifdef HAVE_MALLOC
+
 #include <malloc.h>
+
 #else
 
 #include <stdlib.h>
@@ -20,7 +22,6 @@
 extern "C" {
 #endif
 
-#define sky_free(_ptr)                  free(_ptr)
 #define sky_malloc(_size)               malloc(_size)
 #define sky_realloc(_ptr, _resize)      realloc(_ptr, _resize)
 #define sky_align_size(_d, _a) \
@@ -49,6 +50,11 @@ extern "C" {
         *(sky_u64_t *)(_dist) = *(((sky_u64_t *)(_src)));   \
     } while(0)                                              \
 
+
+static sky_inline void
+sky_free(void *ptr) {
+    free(ptr);
+}
 
 #if defined(__cplusplus)
 } /* extern "C" { */

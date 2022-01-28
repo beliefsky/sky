@@ -50,14 +50,17 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
         server->tls_ctx = conf->tls_ctx;
         server->http_read = https_read;
         server->http_write = https_write;
+        server->http_send_file = https_send_file;
     } else {
-#endif
+        server->http_read = http_read;
+        server->http_write = http_write;
+        server->http_send_file = http_send_file;
+    }
+#else
     server->http_read = http_read;
     server->http_write = http_write;
-#ifdef HAVE_TLS
-    }
-#endif
     server->http_send_file = http_send_file;
+#endif
     server->rfc_last = 0;
 
     // ====================================================================================
@@ -129,13 +132,7 @@ http_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server_
     sky_core_set(coro, (sky_coro_func_t) sky_http_request_process, conn);
     sky_event_init(loop, &conn->ev, fd, http_connection_run, http_connection_close);
 
-    if (!http_connection_run(conn)) {
-        http_connection_close(conn);
-        return null;
-    }
-
     return &conn->ev;
-
 }
 
 
@@ -160,13 +157,7 @@ https_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server
     sky_tls_server_init(server->tls_ctx, &conn->tls, fd);
     sky_event_init(loop, &conn->ev, fd, https_handshake, https_connection_close);
 
-    if (!https_handshake(conn)) {
-        https_connection_close(conn);
-        return null;
-    }
-
     return &conn->ev;
-
 }
 
 

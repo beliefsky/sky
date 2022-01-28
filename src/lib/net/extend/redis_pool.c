@@ -22,7 +22,8 @@ sky_redis_pool_create(sky_event_loop_t *loop, const sky_redis_conf_t *conf) {
             .connection_size = conf->connection_size,
             .timeout = 5,
             .keep_alive = 300,
-            .next_func = null
+            .next_func = null,
+            .nodelay = true
     };
 
     return sky_tcp_pool_create(loop, &c);
@@ -77,7 +78,7 @@ redis_send_exec(sky_redis_conn_t *rc, sky_redis_data_t *params, sky_u16_t param_
     if (sky_unlikely(!param_len)) {
         return false;
     }
-    sky_str_buf_init(&buf, rc->pool, 1024);
+    sky_str_buf_init2(&buf, rc->pool, 1024);
     sky_str_buf_append_uchar(&buf, '*');
     sky_str_buf_append_uint16(&buf, param_len);
     sky_str_buf_append_two_uchar(&buf, '\r', '\n');

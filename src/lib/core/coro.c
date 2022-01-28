@@ -408,7 +408,9 @@ sky_coro_malloc(sky_coro_t *coro, sky_u32_t size) {
     sky_uchar_t *ptr;
     if (sky_unlikely(coro->ptr_size < size)) {
         if (sky_unlikely(size > 1024)) {
-            return null;
+            sky_queue_t *block = sky_malloc(size + sizeof(sky_queue_t));
+            sky_queue_insert_next(&coro->blocks, block);
+            return (sky_uchar_t *) (block + 1);
         }
         mem_block_add(coro);
     }

@@ -99,10 +99,6 @@ tcp_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, void *data) {
     sky_event_init(loop, &conn->event, fd, tcp_proxy_run, tcp_proxy_close);
 
     sky_core_set(coro, (sky_coro_func_t) tcp_proxy_process, conn);
-    if (!tcp_proxy_run(conn)) {
-        tcp_proxy_close(conn);
-        return null;
-    }
 
     return &conn->event;
 }
