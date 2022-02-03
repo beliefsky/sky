@@ -108,6 +108,25 @@ sky_defer_t *sky_defer_add(sky_coro_t *coro, sky_defer_func_t func, void *data);
 sky_defer_t *sky_defer_add2(sky_coro_t *coro, sky_defer_func2_t func, void *data1, void *data2);
 
 /**
+ * 添加回收器(销毁时才回收)
+ * @param coro 协程
+ * @param func 回收函数
+ * @param data 回收填充参数
+ * @return 回收标记
+ */
+sky_defer_t *sky_defer_global_add(sky_coro_t *coro, sky_defer_func_t func, void *data);
+
+/**
+ * 添加回收器(销毁时才回收)
+ * @param coro  协程
+ * @param func  回收函数
+ * @param data1 回收填充参数1
+ * @param data2 回收填充参数2
+ * @return 回收标记
+ */
+sky_defer_t *sky_global_defer_add2(sky_coro_t *coro, sky_defer_func2_t func, void *data1, void *data2);
+
+/**
  * 取消清除回收器
  * @param coro  协程
  * @param defer  回收标记
