@@ -6,7 +6,7 @@
 /**
  * 4095(SKY_PAGESIZE - 1)
  */
-#define SKY_MAX_ALLOC_FROM_POOL  16383
+#define SKY_MAX_ALLOC_FROM_POOL  4095
 
 static void *sky_palloc_small(sky_pool_t *pool, sky_usize_t size);
 
