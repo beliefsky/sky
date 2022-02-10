@@ -57,8 +57,8 @@ void sky_rbtree_insert_value(sky_rbtree_node_t *root, sky_rbtree_node_t *node, s
 sky_rbtree_node_t *sky_rbtree_next(sky_rbtree_t *tree, sky_rbtree_node_t *node);
 
 
-#define sky_rbt_red(node)               ((node)->color = 0x1)
-#define sky_rbt_black(node)             ((node)->color = 0x0)
+#define sky_rbt_red(node)               ((node)->color = 1)
+#define sky_rbt_black(node)             ((node)->color = 0)
 #define sky_rbt_is_red(node)            ((node)->color)
 #define sky_rbt_is_black(node)          (!sky_rbt_is_red(node))
 #define sky_rbt_copy_color(n1, n2)      ((n1)->color = (n2)->color)
