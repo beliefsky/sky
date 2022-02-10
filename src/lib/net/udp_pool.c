@@ -608,7 +608,7 @@ udp_run(sky_udp_node_t *client) {
         if (client->tasks.prev == &client->tasks) {
             break;
         }
-        client->current = client->tasks.prev;
+        client->current = (sky_udp_conn_t *) client->tasks.prev;
     }
 
     client->main = false;
