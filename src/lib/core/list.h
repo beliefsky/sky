@@ -37,7 +37,7 @@ sky_list_init(sky_list_t *list, sky_pool_t *pool, sky_u32_t n, sky_usize_t size)
     if (sky_unlikely(!list->part.elts)) {
         return false;
     }
-    list->part.nelts = 00;         //刚分配下来，还没使用，所以为0
+    list->part.nelts = 0;         //刚分配下来，还没使用，所以为0
     list->part.next = null;
     list->last = &list->part;       //last开始的时候指向首节点
     list->size = size;
