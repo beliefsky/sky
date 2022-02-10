@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-#define SKY_POOL_DEFAULT_SIZE   32768
+#define SKY_POOL_DEFAULT_SIZE   16384
 
 typedef struct sky_pool_large_s sky_pool_large_t;
 
