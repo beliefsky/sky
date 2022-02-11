@@ -88,7 +88,7 @@ sky_rbtree_delete(sky_rbtree_t *tree, sky_rbtree_node_t *node) {
         node->left = null;
         node->right = null;
         node->parent = null;
-        node->key = 0x0;
+        node->key = 0;
         return;
     }
     red = sky_rbt_is_red(subst);
@@ -126,7 +126,7 @@ sky_rbtree_delete(sky_rbtree_t *tree, sky_rbtree_node_t *node) {
     node->left = null;
     node->right = null;
     node->parent = null;
-    node->key = 0x0;
+    node->key = 0;
     if (red) {
         return;
     }

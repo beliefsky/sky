@@ -83,6 +83,7 @@ struct sky_coro_s {
     sky_bool_t self;
     sky_u32_t ptr_size;
     sky_queue_t defers;
+    sky_queue_t global_defers;
     sky_queue_t free_defers;
     sky_queue_t blocks;
     sky_uchar_t *ptr;
@@ -244,6 +245,7 @@ sky_coro_new() {
     coro->switcher = &switcher;
 
     sky_queue_init(&coro->defers);
+    sky_queue_init(&coro->global_defers);
     sky_queue_init(&coro->free_defers);
     sky_queue_init(&coro->blocks);
 
@@ -316,6 +318,15 @@ sky_coro_destroy(sky_coro_t *coro) {
                        : defer->two.func(defer->two.data1, defer->two.data2);
     }
 
+    while (!sky_queue_is_empty(&coro->global_defers)) {
+        defer = (sky_defer_t *) sky_queue_next(&coro->global_defers);
+        sky_queue_remove(&defer->link);
+        defer->free = true;
+
+        defer->one_arg ? defer->one.func(defer->one.data)
+                       : defer->two.func(defer->two.data1, defer->two.data2);
+    }
+
     while (!sky_queue_is_empty(&coro->blocks)) {
         block = sky_queue_next(&coro->blocks);
         sky_queue_remove(block);
@@ -360,6 +371,46 @@ sky_defer_add2(sky_coro_t *coro, sky_defer_func2_t func, void *data1, void *data
     defer->free = false;
 
     sky_queue_insert_next(&coro->defers, &defer->link);
+
+    return defer;
+}
+
+sky_defer_t *
+sky_defer_global_add(sky_coro_t *coro, sky_defer_func_t func, void *data) {
+    sky_defer_t *defer;
+    if (!sky_queue_is_empty(&coro->free_defers)) {
+        defer = (sky_defer_t *) sky_queue_next(&coro->free_defers);
+        sky_queue_remove(&defer->link);
+    } else {
+        defer = sky_coro_malloc(coro, sizeof(sky_defer_t));
+    }
+    defer->one.func = func;
+    defer->one.data = data;
+    defer->one_arg = true;
+    defer->free = false;
+
+    sky_queue_insert_next(&coro->global_defers, &defer->link);
+
+    return defer;
+}
+
+
+sky_defer_t *
+sky_global_defer_add2(sky_coro_t *coro, sky_defer_func2_t func, void *data1, void *data2) {
+    sky_defer_t *defer;
+    if (!sky_queue_is_empty(&coro->free_defers)) {
+        defer = (sky_defer_t *) sky_queue_next(&coro->free_defers);
+        sky_queue_remove(&defer->link);
+    } else {
+        defer = sky_coro_malloc(coro, sizeof(sky_defer_t));
+    }
+    defer->two.func = func;
+    defer->two.data1 = data1;
+    defer->two.data2 = data2;
+    defer->one_arg = false;
+    defer->free = false;
+
+    sky_queue_insert_next(&coro->global_defers, &defer->link);
 
     return defer;
 }

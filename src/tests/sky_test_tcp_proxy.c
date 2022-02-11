@@ -124,11 +124,11 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
 
     sky_tcp_client_t *client = sky_tcp_client_create(&conf);
 
-    sky_uchar_t mq_ip[] = {192, 168, 31, 10};
+    sky_uchar_t mq_ip[] = {192, 168, 0, 15};
     const struct sockaddr_in mqtt_address = {
             .sin_family = AF_INET,
             .sin_addr.s_addr = *(sky_u32_t *) mq_ip,
-            .sin_port = sky_htons(80)
+            .sin_port = sky_htons(18083)
     };
 
     if (sky_unlikely(!sky_tcp_client_connection(client, (const sky_inet_address_t *) &mqtt_address,
@@ -142,12 +142,15 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
 
     sky_defer_add2(coro, (sky_defer_func2_t) tcp_proxy_buf_free, read_buf, write_buf);
 
+    sky_bool_t read_wait, write_wait;
     for (;;) {
-        sky_bool_t wait = false;
+        read_wait = true;
+        write_wait = true;
 
         if (sky_event_is_read(&conn->event)) {
             sky_isize_t n = read(conn->event.fd, read_buf, buf_size);
             if (n > 0) {
+                read_wait = false;
                 if (sky_unlikely(!sky_tcp_client_write_all(client, read_buf, (sky_usize_t) n))) {
                     break;
                 }
@@ -160,7 +163,6 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
                     default:
                         goto error;
                 }
-                wait = true;
             }
         }
         if (sky_event_is_write(&conn->event)) {
@@ -169,13 +171,12 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
                 break;
             }
             if (n > 0) {
+                write_wait = false;
                 tcp_proxy_write_all(conn, write_buf, (sky_usize_t) n);
-            } else {
-                wait = true;
             }
         }
 
-        if (wait) {
+        if (read_wait && write_wait) {
             sky_coro_yield(coro, SKY_CORO_MAY_RESUME);
         }
     }
