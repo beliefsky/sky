@@ -105,7 +105,7 @@ sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event
     }
 
     sky_tcp_node_t *client = tcp_pool->clients + (event->fd & tcp_pool->connection_ptr);
-    const sky_bool_t empty = client->tasks.next == &client->tasks;
+    const sky_bool_t empty = sky_queue_is_empty(&client->tasks);
 
     conn->defer = sky_defer_add(coro, (sky_defer_func_t) tcp_connection_defer, conn);
     sky_queue_insert_prev(&client->tasks, &conn->link);
@@ -613,10 +613,10 @@ tcp_run(sky_tcp_node_t *client) {
                 sky_event_unregister(event);
             }
         }
-        if (client->tasks.prev == &client->tasks) {
+        if (sky_queue_is_empty(&client->tasks)) {
             break;
         }
-        client->current = (sky_tcp_conn_t *) client->tasks.prev;
+        client->current = (sky_tcp_conn_t *) sky_queue_next(&client->tasks);
     }
 
     client->main = false;
