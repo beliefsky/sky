@@ -152,10 +152,12 @@ mqtt_read_head_pack(sky_mqtt_connect_t *conn, sky_mqtt_head_t *head) {
         if (sky_likely(flag > 0)) {
 
             if (read_size > (sky_usize_t) flag) {
-                buf = conn->head_tmp + flag;
                 read_size -= (sky_usize_t) flag;
                 conn->head_copy = read_size;
-                sky_memmove(conn->head_tmp, buf, read_size);
+
+                sky_u64_t tmp = sky_htonll(*(sky_u64_t *) conn->head_tmp);
+                tmp <<= flag * 8;
+                *((sky_u64_t *) conn->head_tmp) = sky_htonll(tmp);
             } else {
                 conn->head_copy = 0;
             }
