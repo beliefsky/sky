@@ -5,7 +5,7 @@
 #include <event/event_loop.h>
 #include <platform.h>
 #include <core/log.h>
-#include <net/tcp_listener.h>
+#include <net/mqtt/mqtt_server.h>
 
 static void *server_start(sky_event_loop_t *loop, sky_u32_t index);
 
@@ -15,7 +15,7 @@ main() {
     setvbuf(stderr, null, _IOLBF, 0);
 
     const sky_platform_conf_t conf = {
-            .thread_size = 2,
+            .thread_size = 1,
             .run = server_start
     };
 
@@ -26,39 +26,26 @@ main() {
     return 0;
 }
 
-
-static sky_bool_t
-mqtt_listener(sky_tcp_r_t *reader, void *data) {
-    (void) data;
-
-    sky_uchar_t buff[512];
-
-
-    sky_log_info("start read");
-    sky_tcp_listener_read(reader, data, 512);
-
-    sky_log_info("read: %s", buff);
-
-    return true;
-}
-
 static void *
 server_start(sky_event_loop_t *loop, sky_u32_t index) {
     sky_log_info("thread-%u", index);
 
-    sky_uchar_t mq_ip[] = {192, 168, 0, 15};
-    struct sockaddr_in mqtt_address = {
+    sky_mqtt_server_t *server = sky_mqtt_server_create();
+
+    struct sockaddr_in v4_address = {
             .sin_family = AF_INET,
-            .sin_addr.s_addr = *(sky_u32_t *) mq_ip,
+            .sin_addr.s_addr = INADDR_ANY,
             .sin_port = sky_htons(1883)
     };
-    const sky_tcp_listener_conf_t listener_conf = {
-            .listener = mqtt_listener,
-            .address = (sky_inet_address_t *) &mqtt_address,
-            .address_len = sizeof(struct sockaddr_in)
+    sky_mqtt_server_bind(server, loop, (sky_inet_address_t *) &v4_address, sizeof(v4_address));
+
+    struct sockaddr_in6 v6_address = {
+            .sin6_family = AF_INET6,
+            .sin6_addr = in6addr_any,
+            .sin6_port = sky_htons(1883)
     };
 
-    sky_tcp_listener_create(loop, &listener_conf);
+    sky_mqtt_server_bind(server, loop, (sky_inet_address_t *) &v6_address, sizeof(v6_address));
 
     return null;
 }
