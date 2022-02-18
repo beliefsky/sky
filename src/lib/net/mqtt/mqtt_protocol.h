@@ -83,6 +83,8 @@ typedef struct {
 
 #define sky_mqtt_connect_ack_unpack_size() 2
 #define sky_mqtt_publish_ack_unpack_size() 2
+#define sky_mqtt_publish_rec_unpack_size() 2
+#define sky_mqtt_publish_comp_unpack_size() 2
 #define sky_mqtt_sub_ack_unpack_size(_topic_num) ((_topic_num) + 2)
 #define sky_mqtt_unsub_ack_unpack_size() 2
 
@@ -97,6 +99,12 @@ sky_u32_t sky_mqtt_connect_ack_unpack(sky_uchar_t *buf, sky_bool_t session_prese
 sky_bool_t sky_mqtt_publish_pack(sky_mqtt_publish_msg_t *msg, sky_u8_t qos, sky_uchar_t *buf, sky_u32_t size);
 
 sky_u32_t sky_mqtt_publish_ack_unpack(sky_uchar_t *buf, sky_u16_t packet_identifier);
+
+sky_u32_t sky_mqtt_publish_rec_unpack(sky_uchar_t *buf, sky_u16_t packet_identifier);
+
+sky_bool_t sky_mqtt_publish_rel_pack(sky_u16_t *packet_identifier, sky_uchar_t *buf, sky_u32_t size);
+
+sky_u32_t sky_mqtt_publish_comp_unpack(sky_uchar_t *buf, sky_u16_t packet_identifier);
 
 sky_bool_t sky_mqtt_subscribe_pack(sky_mqtt_topic_reader_t *msg, sky_uchar_t *buf, sky_u32_t size);
 
