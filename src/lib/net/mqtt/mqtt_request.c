@@ -184,15 +184,20 @@ mqtt_read_body(sky_mqtt_connect_t *conn, sky_mqtt_head_t *head, sky_uchar_t *buf
     if (read_size) {
         if (sky_unlikely(head->body_size < conn->head_copy)) {
             sky_memcpy(buf, conn->head_tmp, head->body_size);
-            buf += head->body_size;
             conn->head_copy -= head->body_size;
-            sky_memmove(conn->head_tmp, buf, conn->head_copy);
+
+            sky_u64_t tmp = sky_htonll(*(sky_u64_t *) conn->head_tmp);
+            tmp <<= head->body_size << 3;
+            *((sky_u64_t *) conn->head_tmp) = sky_htonll(tmp);
             return;
+
+        } else if (head->body_size >= 8) {
+            sky_memcpy8(buf, conn->head_tmp);
         } else {
             sky_memcpy(buf, conn->head_tmp, conn->head_copy);
-            buf += read_size;
-            conn->head_copy = 0;
         }
+        buf += read_size;
+        conn->head_copy = 0;
     }
     if (read_size >= head->body_size) {
         return;
