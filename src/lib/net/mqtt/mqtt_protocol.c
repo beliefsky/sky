@@ -51,7 +51,8 @@ sky_mqtt_head_pack(sky_mqtt_head_t *head, sky_uchar_t *buf, sky_u32_t size) {
                 size = 2;
                 break;
             } else if (buf[1] < 128) {
-                head->body_size = sky_htons(*(sky_u16_t *) buf);
+                head->body_size = buf[0] & 127U;
+                head->body_size += (buf[1] & 127U) << 7;
                 size = 3;
                 break;
             }
@@ -63,12 +64,14 @@ sky_mqtt_head_pack(sky_mqtt_head_t *head, sky_uchar_t *buf, sky_u32_t size) {
                 size = 2;
                 break;
             } else if (buf[1] < 128) {
-                head->body_size = sky_htons(*(sky_u16_t *) buf);
+                head->body_size = buf[0] & 127U;
+                head->body_size += (buf[1] & 127U) << 7;
                 size = 3;
                 break;
             } else if (buf[2] < 128) {
-                head->body_size = sky_htons(*(sky_u16_t *) buf);
-                head->body_size = (head->body_size << 8) | buf[2];
+                head->body_size = buf[0] & 127U;
+                head->body_size += (buf[1] & 127U) << 7;
+                head->body_size += (buf[2] & 127U) << 14;
                 size = 3;
                 break;
             }
@@ -79,14 +82,19 @@ sky_mqtt_head_pack(sky_mqtt_head_t *head, sky_uchar_t *buf, sky_u32_t size) {
                 head->body_size = *buf;
                 size = 2;
             } else if (buf[1] < 128) {
-                head->body_size = sky_htons(*(sky_u16_t *) buf);
+                head->body_size = buf[0] & 127U;
+                head->body_size += (buf[1] & 127U) << 7;
                 size = 3;
             } else if (buf[2] < 128) {
-                head->body_size = sky_htons(*(sky_u16_t *) buf);
-                head->body_size = (head->body_size << 8) | buf[2];
+                head->body_size = buf[0] & 127U;
+                head->body_size += (buf[1] & 127U) << 7;
+                head->body_size += (buf[2] & 127U) << 14;
                 size = 3;
             } else {
-                head->body_size = sky_htonl(*(sky_u32_t *) buf);
+                head->body_size = buf[0] & 127U;
+                head->body_size += (buf[1] & 127U) << 7;
+                head->body_size += (buf[2] & 127U) << 14;
+                head->body_size += (buf[3] & 127U) << 21;
                 size = 5;
             }
             break;
