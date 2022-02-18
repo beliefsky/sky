@@ -49,6 +49,10 @@ set(SOURCES
         net/http/module/http_module_file.c
         net/http/module/http_module_dispatcher.c
         net/http/module/http_module_websocket.c
+        net/mqtt/mqtt_io_wrappers.c
+        net/mqtt/mqtt_protocol.c
+        net/mqtt/mqtt_request.c
+        net/mqtt/mqtt_server.c
         )
 add_library(sky_static STATIC ${SOURCES})
 
