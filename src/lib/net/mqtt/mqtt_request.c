@@ -17,6 +17,10 @@ static void mqtt_send_ping_resp(sky_mqtt_connect_t *conn);
 
 static void mqtt_send_publish_ack(sky_mqtt_connect_t *conn, sky_u16_t packet_identifier);
 
+static void mqtt_send_publish_rec(sky_mqtt_connect_t *conn, sky_u16_t packet_identifier);
+
+static void mqtt_send_publish_comp(sky_mqtt_connect_t *conn, sky_u16_t packet_identifier);
+
 static void mqtt_send_sub_ack(sky_mqtt_connect_t *conn, sky_u16_t packet_identifier,
                               sky_u8_t *max_qos, sky_u32_t topic_num);
 
@@ -46,16 +50,7 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
 
 
     for (;;) {
-//        sky_log_info("==================");
         read_pack = mqtt_read_head_pack(conn, &head);
-        sky_log_info(
-                "type: %d, dup: %d, qos: %d, retain: %d, body size: %u",
-                head.type,
-                head.dup,
-                head.qos,
-                head.retain,
-                head.body_size
-        );
         if (sky_unlikely(!read_pack)) {
             return SKY_CORO_ABORT;
         }
@@ -69,22 +64,25 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
             body = null;
         }
 
-
         switch (head.type) {
-            case SKY_MQTT_TYPE_PINGREQ:
-                mqtt_send_ping_resp(conn);
-                break;
             case SKY_MQTT_TYPE_PUBLISH: {
                 sky_mqtt_publish_msg_t msg;
 
                 sky_mqtt_publish_pack(&msg, head.qos, body, head.body_size);
 
                 if (head.qos == 1) {
-
                     mqtt_send_publish_ack(conn, msg.packet_identifier);
                 } else if (head.qos == 2) {
-
+                    mqtt_send_publish_rec(conn, msg.packet_identifier);
                 }
+                break;
+            }
+            case SKY_MQTT_TYPE_PUBREL: {
+                sky_u16_t packet_identifier;
+
+                sky_mqtt_publish_rel_pack(&packet_identifier, body, head.body_size);
+
+                mqtt_send_publish_comp(conn, packet_identifier);
                 break;
             }
             case SKY_MQTT_TYPE_SUBSCRIBE: {
@@ -116,15 +114,21 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
 
                 sky_mqtt_unsubscribe_pack(&msg, body, head.body_size);
 
-                sky_mqtt_topic_t topic;
-                while (sky_mqtt_topic_read_next(&msg, &topic)) {
-                    sky_log_info("%s(%lu)", topic.topic.data, topic.topic.len);
-                }
+//                sky_mqtt_topic_t topic;
+//                while (sky_mqtt_topic_read_next(&msg, &topic)) {
+//                    sky_log_info("%s(%lu)", topic.topic.data, topic.topic.len);
+//                }
                 mqtt_send_unsub_ack(conn, msg.packet_identifier);
+                break;
+            }
+            case SKY_MQTT_TYPE_PINGREQ: {
+                mqtt_send_ping_resp(conn);
                 break;
             }
             case SKY_MQTT_TYPE_DISCONNECT:
                 return SKY_CORO_FINISHED;
+            default:
+                return SKY_CORO_ABORT;
         }
         sky_defer_run(conn->coro);
     }
@@ -171,22 +175,34 @@ mqtt_read_body(sky_mqtt_connect_t *conn, sky_mqtt_head_t *head, sky_uchar_t *buf
     sky_usize_t size;
     sky_u32_t read_size;
 
-    if (head->body_size > 0) {
-        read_size = conn->head_copy;
-        if (read_size) {
+    if (head->body_size == 0) {
+        return;
+    }
+    read_size = conn->head_copy;
+    if (read_size) {
+        if (sky_unlikely(head->body_size < conn->head_copy)) {
+            sky_memcpy(buf, conn->head_tmp, head->body_size);
+            buf += head->body_size;
+            conn->head_copy -= head->body_size;
+            sky_memmove(conn->head_tmp, buf, conn->head_copy);
+            return;
+        } else {
             sky_memcpy(buf, conn->head_tmp, conn->head_copy);
             buf += read_size;
             conn->head_copy = 0;
         }
+    }
+    if (read_size >= head->body_size) {
+        return;
+    }
 
-        for (;;) {
-            size = conn->server->mqtt_read(conn, buf, head->body_size - read_size);
-            buf += size;
-            read_size += size;
+    for (;;) {
+        size = conn->server->mqtt_read(conn, buf, head->body_size - read_size);
+        buf += size;
+        read_size += size;
 
-            if (read_size >= head->body_size) {
-                return;
-            }
+        if (read_size >= head->body_size) {
+            return;
         }
     }
 }
@@ -217,6 +233,24 @@ mqtt_send_publish_ack(sky_mqtt_connect_t *conn, sky_u16_t packet_identifier) {
     sky_uchar_t buf[sky_mqtt_unpack_alloc_size(sky_mqtt_publish_ack_unpack_size())];
 
     sky_u32_t pack_size = sky_mqtt_publish_ack_unpack(buf, packet_identifier);
+
+    conn->server->mqtt_write_all(conn, buf, pack_size);
+}
+
+static void
+mqtt_send_publish_rec(sky_mqtt_connect_t *conn, sky_u16_t packet_identifier) {
+    sky_uchar_t buf[sky_mqtt_unpack_alloc_size(sky_mqtt_publish_rec_unpack_size())];
+
+    sky_u32_t pack_size = sky_mqtt_publish_rec_unpack(buf, packet_identifier);
+
+    conn->server->mqtt_write_all(conn, buf, pack_size);
+}
+
+static void
+mqtt_send_publish_comp(sky_mqtt_connect_t *conn, sky_u16_t packet_identifier) {
+    sky_uchar_t buf[sky_mqtt_unpack_alloc_size(sky_mqtt_publish_comp_unpack_size())];
+
+    sky_u32_t pack_size = sky_mqtt_publish_comp_unpack(buf, packet_identifier);
 
     conn->server->mqtt_write_all(conn, buf, pack_size);
 }
