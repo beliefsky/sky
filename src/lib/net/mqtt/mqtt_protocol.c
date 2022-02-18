@@ -31,42 +31,66 @@ sky_i8_t
 sky_mqtt_head_pack(sky_mqtt_head_t *head, sky_uchar_t *buf, sky_u32_t size) {
     sky_uchar_t flags;
 
-    if (sky_unlikely(size < 2)) {
-        return 0;
-    }
-
     flags = *buf;
 
-    if (*(++buf) < 128) {
-        head->body_size = *buf;
-        size = 2;
-    } else if (*(++buf) < 128) {
-        if (sky_unlikely(size < 3)) {
+    switch (size) {
+        case 0:
+        case 1:
+            return 0;
+        case 2: {
+            if (*(++buf) < 128) {
+                head->body_size = *buf;
+                size = 2;
+                break;
+            }
             return 0;
         }
-        --buf;
-        head->body_size = sky_htons(*(sky_u16_t *) buf);
-        size = 3;
-
-    } else if (*(++buf) < 128) {
-        if (sky_unlikely(size < 4)) {
+        case 3: {
+            if (*(++buf) < 128) {
+                head->body_size = *buf;
+                size = 2;
+                break;
+            } else if (buf[1] < 128) {
+                head->body_size = sky_htons(*(sky_u16_t *) buf);
+                size = 3;
+                break;
+            }
             return 0;
         }
-        buf -= 2;
-        head->body_size = sky_htons(*(sky_u16_t *) buf);
-        head->body_size = (head->body_size << 8) | buf[2];
-
-        size = 4;
-    } else if (*(++buf) < 128) {
-        if (sky_unlikely(size < 5)) {
+        case 4: {
+            if (*(++buf) < 128) {
+                head->body_size = *buf;
+                size = 2;
+                break;
+            } else if (buf[1] < 128) {
+                head->body_size = sky_htons(*(sky_u16_t *) buf);
+                size = 3;
+                break;
+            } else if (buf[2] < 128) {
+                head->body_size = sky_htons(*(sky_u16_t *) buf);
+                head->body_size = (head->body_size << 8) | buf[2];
+                size = 3;
+                break;
+            }
             return 0;
         }
-        buf -= 3;
-        head->body_size = sky_htonl(*(sky_u32_t *) buf);
-
-        size = 5;
-    } else {
-        return -1;
+        default: {
+            if (*(++buf) < 128) {
+                head->body_size = *buf;
+                size = 2;
+            } else if (buf[1] < 128) {
+                head->body_size = sky_htons(*(sky_u16_t *) buf);
+                size = 3;
+            } else if (buf[2] < 128) {
+                head->body_size = sky_htons(*(sky_u16_t *) buf);
+                head->body_size = (head->body_size << 8) | buf[2];
+                size = 3;
+            } else {
+                head->body_size = sky_htonl(*(sky_u32_t *) buf);
+                size = 5;
+            }
+            break;
+        }
     }
 
     head->type = (flags >> 4) & 0x0F;
