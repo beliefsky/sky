@@ -15,7 +15,7 @@ main() {
     setvbuf(stderr, null, _IOLBF, 0);
 
     const sky_platform_conf_t conf = {
-            .thread_size = 1,
+//            .thread_size = 1,
             .run = server_start
     };
 
