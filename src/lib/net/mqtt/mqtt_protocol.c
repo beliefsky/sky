@@ -72,7 +72,7 @@ sky_mqtt_head_pack(sky_mqtt_head_t *head, sky_uchar_t *buf, sky_u32_t size) {
                 head->body_size = (buf[0] & 127U)
                                   | ((buf[1] & 127U) << 7)
                                   | ((buf[2] & 127U) << 14);
-                size = 3;
+                size = 4;
                 break;
             }
             return 0;
@@ -89,7 +89,7 @@ sky_mqtt_head_pack(sky_mqtt_head_t *head, sky_uchar_t *buf, sky_u32_t size) {
                 head->body_size = (buf[0] & 127U)
                                   | ((buf[1] & 127U) << 7)
                                   | ((buf[2] & 127U) << 14);
-                size = 3;
+                size = 4;
             } else {
                 head->body_size = (buf[0] & 127U)
                                   | ((buf[1] & 127U) << 7)
