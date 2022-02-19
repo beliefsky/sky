@@ -90,12 +90,14 @@ sky_mqtt_head_pack(sky_mqtt_head_t *head, sky_uchar_t *buf, sky_u32_t size) {
                                   | ((buf[1] & 127U) << 7)
                                   | ((buf[2] & 127U) << 14);
                 size = 4;
-            } else {
+            } else if (sky_likely((buf[3] & 0x80U) == 0)) {
                 head->body_size = (buf[0] & 127U)
                                   | ((buf[1] & 127U) << 7)
                                   | ((buf[2] & 127U) << 14)
                                   | ((buf[3] & 127U) << 21);
                 size = 5;
+            } else {
+                return -1;
             }
             break;
         }
