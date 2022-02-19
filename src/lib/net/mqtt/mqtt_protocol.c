@@ -38,7 +38,7 @@ sky_mqtt_head_pack(sky_mqtt_head_t *head, sky_uchar_t *buf, sky_u32_t size) {
         case 1:
             return 0;
         case 2: {
-            if (*(++buf) < 128) {
+            if ((*(++buf) & 0x80U) != 0) {
                 head->body_size = *buf;
                 size = 2;
                 break;
@@ -46,55 +46,55 @@ sky_mqtt_head_pack(sky_mqtt_head_t *head, sky_uchar_t *buf, sky_u32_t size) {
             return 0;
         }
         case 3: {
-            if (*(++buf) < 128) {
+            if ((*(++buf) & 0x80U) == 0) {
                 head->body_size = *buf;
                 size = 2;
                 break;
-            } else if (buf[1] < 128) {
-                head->body_size = buf[0] & 127U;
-                head->body_size += (buf[1] & 127U) << 7;
+            } else if ((buf[1] & 0x80U) == 0) {
+                head->body_size = (buf[0] & 127U)
+                                  | ((buf[1] & 127U) << 7);
                 size = 3;
                 break;
             }
             return 0;
         }
         case 4: {
-            if (*(++buf) < 128) {
+            if ((*(++buf) & 0x80U) == 0) {
                 head->body_size = *buf;
                 size = 2;
                 break;
-            } else if (buf[1] < 128) {
-                head->body_size = buf[0] & 127U;
-                head->body_size += (buf[1] & 127U) << 7;
+            } else if ((buf[1] & 0x80U) == 0) {
+                head->body_size = (buf[0] & 127U)
+                                  | ((buf[1] & 127U) << 7);
                 size = 3;
                 break;
-            } else if (buf[2] < 128) {
-                head->body_size = buf[0] & 127U;
-                head->body_size += (buf[1] & 127U) << 7;
-                head->body_size += (buf[2] & 127U) << 14;
+            } else if ((buf[2] & 0x80U) == 0) {
+                head->body_size = (buf[0] & 127U)
+                                  | ((buf[1] & 127U) << 7)
+                                  | ((buf[2] & 127U) << 14);
                 size = 3;
                 break;
             }
             return 0;
         }
         default: {
-            if (*(++buf) < 128) {
+            if ((*(++buf) & 0x80U) == 0) {
                 head->body_size = *buf;
                 size = 2;
-            } else if (buf[1] < 128) {
-                head->body_size = buf[0] & 127U;
-                head->body_size += (buf[1] & 127U) << 7;
+            } else if ((buf[1] & 0x80U) == 0) {
+                head->body_size = (buf[0] & 127U)
+                                  | ((buf[1] & 127U) << 7);
                 size = 3;
-            } else if (buf[2] < 128) {
-                head->body_size = buf[0] & 127U;
-                head->body_size += (buf[1] & 127U) << 7;
-                head->body_size += (buf[2] & 127U) << 14;
+            } else if ((buf[2] & 0x80U) == 0) {
+                head->body_size = (buf[0] & 127U)
+                                  | ((buf[1] & 127U) << 7)
+                                  | ((buf[2] & 127U) << 14);
                 size = 3;
             } else {
-                head->body_size = buf[0] & 127U;
-                head->body_size += (buf[1] & 127U) << 7;
-                head->body_size += (buf[2] & 127U) << 14;
-                head->body_size += (buf[3] & 127U) << 21;
+                head->body_size = (buf[0] & 127U)
+                                  | ((buf[1] & 127U) << 7)
+                                  | ((buf[2] & 127U) << 14)
+                                  | ((buf[3] & 127U) << 21);
                 size = 5;
             }
             break;
@@ -123,23 +123,26 @@ sky_mqtt_head_unpack(const sky_mqtt_head_t *head, sky_uchar_t *buf) {
     if (sky_unlikely(head->body_size > SKY_U32(268435455))) {
         return 0;
     } else if (head->body_size < SKY_U32(128)) {
-        *(++buf) = (sky_uchar_t) head->body_size;
+        *(++buf) = head->body_size & 127U;
 
         return 2;
     } else if (head->body_size < SKY_U32(16384)) {
-        tmp = (sky_u16_t) head->body_size;
-        *(sky_u16_t *) (++buf) = sky_htons(tmp);
+        *(++buf) =  (head->body_size & 127U) | 0x80U;
+        *(++buf) =  (head->body_size >> 7) & 127U;
 
         return 3;
     } else if (head->body_size < SKY_U32(2097152)) {
-        tmp = (head->body_size >> 8) & 0xFFFF;
-        *(sky_u16_t *) (++buf) = sky_htons(tmp);
-        buf += 2;
-        *buf = head->body_size & 0xFF;
+        *(++buf) =  (head->body_size & 127U) | 0x80U;
+        *(++buf) =  ((head->body_size >> 7) & 127U) | 0x80U;
+        *(++buf) =  (head->body_size >> 14) & 127U;
+
 
         return 4;
     } else {
-        *(sky_u32_t *) (++buf) = sky_htonl(head->body_size);
+        *(++buf) =  (head->body_size & 127U) | 0x80U;
+        *(++buf) =  ((head->body_size >> 7) & 127U) | 0x80U;
+        *(++buf) =  ((head->body_size >> 14) & 127U) | 0x80U;
+        *(++buf) =  (head->body_size >> 21) & 127U;
 
         return 5;
     }
