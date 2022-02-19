@@ -111,8 +111,6 @@ sky_mqtt_head_pack(sky_mqtt_head_t *head, sky_uchar_t *buf, sky_u32_t size) {
 
 sky_u32_t
 sky_mqtt_head_unpack(const sky_mqtt_head_t *head, sky_uchar_t *buf) {
-    sky_u16_t tmp;
-
     *buf = (sky_uchar_t) (
             (head->type << 4)
             | (head->dup << 3)
