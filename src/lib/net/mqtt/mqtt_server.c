@@ -64,14 +64,7 @@ mqtt_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_mqtt_server_
 
 static sky_bool_t
 mqtt_run(sky_mqtt_connect_t *conn) {
-    if (sky_unlikely(!mqtt_write_packet(conn))) {
-        return false;
-    }
-    if (sky_unlikely(sky_coro_resume(conn->coro) != SKY_CORO_MAY_RESUME)) {
-        return false;
-    }
-
-    return mqtt_write_packet(conn);
+    return sky_coro_resume(conn->coro) == SKY_CORO_MAY_RESUME && mqtt_write_packet(conn);
 }
 
 static void
@@ -91,6 +84,10 @@ mqtt_write_packet(sky_mqtt_connect_t *conn) {
     sky_mqtt_packet_t *packet;
     sky_uchar_t *buf;
     sky_isize_t size;
+
+    if (sky_event_none_write(&conn->ev)) {
+        return true;
+    }
     while (!sky_queue_is_empty(&conn->packet)) {
         packet = (sky_mqtt_packet_t *) sky_queue_next(&conn->packet);
 
