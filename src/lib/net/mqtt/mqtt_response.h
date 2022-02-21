@@ -32,6 +32,8 @@ void sky_mqtt_send_unsub_ack(sky_mqtt_connect_t *conn, sky_u16_t packet_identifi
 
 void sky_mqtt_send_ping_resp(sky_mqtt_connect_t *conn);
 
+sky_bool_t sky_mqtt_write_packet(sky_mqtt_connect_t *conn);
+
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif
