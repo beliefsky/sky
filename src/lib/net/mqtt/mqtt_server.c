@@ -7,14 +7,13 @@
 #include "mqtt_request.h"
 #include "../../core/memory.h"
 #include "../tcp_server.h"
+#include "mqtt_response.h"
 
 static sky_event_t *mqtt_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_mqtt_server_t *server);
 
 static sky_bool_t mqtt_run(sky_mqtt_connect_t *conn);
 
 static void mqtt_close(sky_mqtt_connect_t *conn);
-
-static sky_bool_t mqtt_write_packet(sky_mqtt_connect_t *conn);
 
 sky_mqtt_server_t *
 sky_mqtt_server_create() {
@@ -64,7 +63,7 @@ mqtt_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_mqtt_server_
 
 static sky_bool_t
 mqtt_run(sky_mqtt_connect_t *conn) {
-    return sky_coro_resume(conn->coro) == SKY_CORO_MAY_RESUME && mqtt_write_packet(conn);
+    return sky_coro_resume(conn->coro) == SKY_CORO_MAY_RESUME && sky_mqtt_write_packet(conn);
 }
 
 static void
@@ -77,39 +76,4 @@ mqtt_close(sky_mqtt_connect_t *conn) {
     }
 
     sky_coro_destroy(conn->coro);
-}
-
-static sky_bool_t
-mqtt_write_packet(sky_mqtt_connect_t *conn) {
-    sky_mqtt_packet_t *packet;
-    sky_uchar_t *buf;
-    sky_isize_t size;
-
-    if (sky_event_none_write(&conn->ev)) {
-        return true;
-    }
-    while (!sky_queue_is_empty(&conn->packet)) {
-        packet = (sky_mqtt_packet_t *) sky_queue_next(&conn->packet);
-
-        buf = packet->data + conn->write_size;
-
-        for (;;) {
-            size = conn->server->mqtt_write_nowait(conn, buf, packet->size - conn->write_size);
-            if (sky_unlikely(size == -1)) {
-                return false;
-            } else if (size == 0) {
-                return true;
-            }
-            conn->write_size += size;
-            buf += size;
-            if (conn->write_size >= packet->size) {
-                break;
-            }
-        }
-        conn->write_size = 0;
-        sky_queue_remove(&packet->link);
-        sky_free(packet);
-    }
-
-    return true;
 }
