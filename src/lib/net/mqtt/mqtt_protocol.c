@@ -535,6 +535,14 @@ sky_mqtt_unsub_ack_unpack(sky_uchar_t *buf, sky_u16_t packet_identifier) {
     return (size + head.body_size);
 }
 
+sky_u32_t
+sky_mqtt_ping_resp_unpack(sky_uchar_t *buf) {
+    sky_mqtt_head_t head = {
+            .type = SKY_MQTT_TYPE_PINGRESP
+    };
+    return sky_mqtt_head_unpack(&head, buf);
+}
+
 sky_bool_t
 sky_mqtt_topic_read_next(sky_mqtt_topic_reader_t *msg, sky_mqtt_topic_t *topic) {
     if (sky_unlikely(msg->size < 2)) {
