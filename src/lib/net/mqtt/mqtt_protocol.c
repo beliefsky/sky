@@ -319,7 +319,7 @@ sky_mqtt_publish_pack(sky_mqtt_publish_msg_t *msg, sky_u8_t qos, sky_uchar_t *bu
 
     buf += u16;
 
-    if (qos > 0) {
+    if (qos != 0) {
         if (sky_unlikely(size < 2)) {
             return false;
         }
@@ -355,7 +355,7 @@ sky_u32_t sky_mqtt_publish_unpack(sky_uchar_t *buf, const sky_mqtt_publish_msg_t
     sky_memcpy(buf, msg->topic.data, msg->topic.len);
     buf += msg->topic.len;
 
-    if (qos > 0) {
+    if (qos != 0) {
         *(sky_u16_t *) buf = sky_htons(msg->packet_identifier);
         buf += 2;
     }
