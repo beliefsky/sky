@@ -4,7 +4,6 @@
 
 #include "mqtt_request.h"
 #include "mqtt_response.h"
-#include "../../core/log.h"
 #include "../../core/memory.h"
 
 static sky_bool_t mqtt_read_head_pack(sky_mqtt_connect_t *conn, sky_mqtt_head_t *head);
@@ -30,7 +29,6 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
     if (sky_unlikely(!flag)) {
         return SKY_CORO_ABORT;
     }
-
 
     sky_mqtt_send_connect_ack(conn, false, 0x0);
 
