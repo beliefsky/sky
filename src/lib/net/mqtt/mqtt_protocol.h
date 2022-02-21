@@ -132,7 +132,7 @@ sky_bool_t sky_mqtt_topic_read_next(sky_mqtt_topic_reader_t *msg, sky_mqtt_topic
 
 static sky_inline sky_u32_t
 sky_mqtt_publish_unpack_size(const sky_mqtt_publish_msg_t *msg, sky_u8_t qos) {
-    if (qos > 0) {
+    if (qos != 0) {
         return (sky_u32_t) (msg->topic.len + msg->payload.len + SKY_U32(4));
     } else {
         return (sky_u32_t) (msg->topic.len + msg->payload.len + SKY_U32(2));
