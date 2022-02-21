@@ -6,7 +6,7 @@
 #define SKY_MQTT_PROTOCOL_H
 
 #include "../../core/types.h"
-#include "../../core//string.h"
+#include "../../core/string.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -88,6 +88,8 @@ typedef struct {
 #define sky_mqtt_publish_comp_unpack_size() 2
 #define sky_mqtt_sub_ack_unpack_size(_topic_num) ((_topic_num) + 2)
 #define sky_mqtt_unsub_ack_unpack_size() 2
+#define sky_mqtt_ping_resp_unpack_size() 0
+
 
 sky_i8_t sky_mqtt_head_pack(sky_mqtt_head_t *head, sky_uchar_t *buf, sky_u32_t size);
 
@@ -126,6 +128,8 @@ sky_u32_t sky_mqtt_sub_ack_unpack(sky_uchar_t *buf, sky_u16_t packet_identifier,
 sky_bool_t sky_mqtt_unsubscribe_pack(sky_mqtt_topic_reader_t *msg, sky_uchar_t *buf, sky_u32_t size);
 
 sky_u32_t sky_mqtt_unsub_ack_unpack(sky_uchar_t *buf, sky_u16_t packet_identifier);
+
+sky_u32_t sky_mqtt_ping_resp_unpack(sky_uchar_t *buf);
 
 sky_bool_t sky_mqtt_topic_read_next(sky_mqtt_topic_reader_t *msg, sky_mqtt_topic_t *topic);
 
