@@ -20,6 +20,7 @@ sky_mqtt_server_t *
 sky_mqtt_server_create() {
     sky_mqtt_server_t *server = sky_malloc(sizeof(sky_mqtt_server_t));
     server->mqtt_read = sky_mqtt_read;
+    server->mqtt_read_all = sky_mqtt_read_all;
     server->mqtt_write_nowait = sky_mqtt_write_nowait;
 
     return server;

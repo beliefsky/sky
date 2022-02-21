@@ -20,6 +20,8 @@ typedef struct sky_mqtt_packet_s sky_mqtt_packet_t;
 struct sky_mqtt_server_s {
     sky_usize_t (*mqtt_read)(sky_mqtt_connect_t *conn, sky_uchar_t *data, sky_usize_t size);
 
+    void (*mqtt_read_all)(sky_mqtt_connect_t *conn, sky_uchar_t *data, sky_usize_t size);
+
     sky_isize_t (*mqtt_write_nowait)(sky_mqtt_connect_t *conn, const sky_uchar_t *data, sky_usize_t size);
 };
 
