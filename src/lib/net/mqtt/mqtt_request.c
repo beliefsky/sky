@@ -29,6 +29,8 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
     if (sky_unlikely(!flag)) {
         return SKY_CORO_ABORT;
     }
+    connect_msg.keep_alive <<= 1;
+    sky_event_reset_timeout_self(&conn->ev, sky_max(connect_msg.keep_alive, SKY_U16(30)));
 
     sky_mqtt_send_connect_ack(conn, false, 0x0);
 
