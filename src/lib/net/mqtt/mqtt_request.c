@@ -233,15 +233,7 @@ mqtt_read_body(sky_mqtt_connect_t *conn, sky_mqtt_head_t *head, sky_uchar_t *buf
         return;
     }
 
-    for (;;) {
-        size = conn->server->mqtt_read(conn, buf, head->body_size - read_size);
-        buf += size;
-        read_size += size;
-
-        if (read_size >= head->body_size) {
-            return;
-        }
-    }
+    conn->server->mqtt_read_all(conn, buf, head->body_size - read_size);
 }
 
 static void
