@@ -7,7 +7,6 @@
 #include "mqtt_request.h"
 #include "../../core/memory.h"
 #include "../tcp_server.h"
-#include "../../core/log.h"
 
 static sky_event_t *mqtt_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_mqtt_server_t *server);
 
