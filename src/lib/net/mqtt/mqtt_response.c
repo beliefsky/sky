@@ -130,10 +130,11 @@ sky_mqtt_write_packet(sky_mqtt_connect_t *conn) {
     sky_uchar_t *buf;
     sky_isize_t size;
 
-    if (sky_event_none_write(&conn->ev)) {
+    if (sky_event_none_write(&conn->ev) || sky_queue_is_empty(&conn->packet)) {
         return true;
     }
-    while (!sky_queue_is_empty(&conn->packet)) {
+
+    do {
         packet = (sky_mqtt_packet_t *) sky_queue_next(&conn->packet);
 
         buf = packet->data + conn->write_size;
@@ -143,6 +144,7 @@ sky_mqtt_write_packet(sky_mqtt_connect_t *conn) {
             if (sky_unlikely(size == -1)) {
                 return false;
             } else if (size == 0) {
+                sky_event_timeout_expired(&conn->ev);
                 return true;
             }
             conn->write_size += size;
@@ -154,7 +156,9 @@ sky_mqtt_write_packet(sky_mqtt_connect_t *conn) {
         conn->write_size = 0;
         sky_queue_remove(&packet->link);
         sky_free(packet);
-    }
+    } while (!sky_queue_is_empty(&conn->packet));
+
+    sky_event_timeout_expired(&conn->ev);
 
     return true;
 }
