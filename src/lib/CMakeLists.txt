@@ -9,8 +9,8 @@ set(SOURCES
         core/queue.c
         core/array.c
         core/list.c
-        core/hash.c
         core/rbtree.c
+        core/hashmap.c
         core/trie.c
         core/topic_tree.c
         core/coro.c
@@ -152,7 +152,6 @@ install(FILES
         core/palloc.h
         core/array.h
         core/queue.h
-        core/hash.h
         core/list.h
         core/rbtree.h
         core/trie.h
