@@ -61,7 +61,7 @@ server_start(sky_event_loop_t *loop, sky_u32_t index) {
 
     pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
 
-    sky_array_init(&modules, pool, 8, sizeof(sky_http_module_t));
+    sky_array_init2(&modules, pool, 8, sizeof(sky_http_module_t));
 
     const sky_http_file_conf_t file_config = {
             .prefix = sky_string(""),

@@ -105,7 +105,7 @@ server_start(sky_event_loop_t *loop, sky_u32_t index) {
         return null;
     }
 
-    sky_array_init(&modules, pool, 8, sizeof(sky_http_module_t));
+    sky_array_init2(&modules, pool, 8, sizeof(sky_http_module_t));
 
     build_http_dispatcher(pool, sky_array_push(&modules));
 
