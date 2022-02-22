@@ -33,6 +33,11 @@ sky_mqtt_send_publish(sky_mqtt_connect_t *conn, const sky_mqtt_publish_msg_t *ms
 }
 
 void
+sky_mqtt_send_publish2(sky_mqtt_connect_t *conn, const sky_mqtt_publish_msg_t *msg, const sky_mqtt_head_t *head) {
+    sky_mqtt_send_publish(conn, msg, head->qos, head->retain, head->dup);
+}
+
+void
 sky_mqtt_send_publish_ack(sky_mqtt_connect_t *conn, sky_u16_t packet_identifier) {
     const sky_u32_t alloc_size = sky_mqtt_unpack_alloc_size(sky_mqtt_publish_ack_unpack_size())
                                  + sizeof(sky_mqtt_packet_t);
