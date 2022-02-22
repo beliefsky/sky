@@ -17,6 +17,8 @@ void sky_mqtt_send_connect_ack(sky_mqtt_connect_t *conn, sky_bool_t session_pres
 void sky_mqtt_send_publish(sky_mqtt_connect_t *conn, const sky_mqtt_publish_msg_t *msg,
                            sky_u8_t qos, sky_bool_t retain, sky_bool_t dup);
 
+void sky_mqtt_send_publish2(sky_mqtt_connect_t *conn, const sky_mqtt_publish_msg_t *msg, const sky_mqtt_head_t *head);
+
 void sky_mqtt_send_publish_ack(sky_mqtt_connect_t *conn, sky_u16_t packet_identifier);
 
 void sky_mqtt_send_publish_rec(sky_mqtt_connect_t *conn, sky_u16_t packet_identifier);
