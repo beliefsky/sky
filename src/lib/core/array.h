@@ -24,27 +24,15 @@ typedef struct {
     sky_u32_t nalloc;
 } sky_array_t;
 
+sky_bool_t sky_array_init(sky_array_t *array, sky_u32_t n, sky_usize_t size);
 
-sky_array_t *sky_array_create(sky_pool_t *p, sky_u32_t n, sky_usize_t size);
-
-void sky_array_destroy(sky_array_t *a);
+sky_bool_t sky_array_init2(sky_array_t *array, sky_pool_t *pool, sky_u32_t n, sky_usize_t size);
 
 void *sky_array_push(sky_array_t *a);
 
 void *sky_array_push_n(sky_array_t *a, sky_u32_t n);
 
-static sky_inline sky_bool_t
-sky_array_init(sky_array_t *array, sky_pool_t *pool, sky_u32_t n, sky_usize_t size) {
-    array->nelts = 0;
-    array->size = size;
-    array->nalloc = n;
-    array->pool = pool;
-    array->elts = sky_palloc(pool, n * size);
-    if (sky_unlikely(!array->elts)) {
-        return false;
-    }
-    return true;
-}
+void sky_array_destroy(sky_array_t *a);
 
 #if defined(__cplusplus)
 } /* extern "C" { */
