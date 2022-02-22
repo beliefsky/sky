@@ -12,6 +12,7 @@ set(SOURCES
         core/hash.c
         core/rbtree.c
         core/trie.c
+        core/topic_tree.c
         core/coro.c
         core/string.c
         core/string_buf.c
