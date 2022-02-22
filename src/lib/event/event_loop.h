@@ -112,6 +112,10 @@ void sky_event_reset_timeout_self(sky_event_t *ev, sky_i32_t timeout);
 
 void sky_event_reset_timeout(sky_event_t *ev, sky_i32_t timeout);
 
+static sky_inline void
+sky_event_timeout_expired(sky_event_t *event) {
+    sky_timer_wheel_expired(event->loop->ctx, &event->timer, (sky_u64_t) (event->loop->now + event->timeout));
+}
 
 static sky_inline sky_bool_t
 sky_event_has_callback(sky_event_t *ev) {
