@@ -8,77 +8,230 @@
 
 typedef struct {
     sky_u64_t hash: 48;
-    sky_u64_t dib: 16;
+    sky_u16_t dib: 16;
     void *data;
 } bucket_t;
 
 struct sky_hashmap_s {
-    bucket_t spare;
-    bucket_t e_data;
     sky_hashmap_hash_pt hash;
-    sky_hashmap_cmp_pt cmp;
+    sky_hashmap_equals_pt equals;
     sky_usize_t count;
     sky_usize_t cap;
     sky_usize_t bucket_num;
     sky_usize_t mask;
+    sky_usize_t grow_at;
+    sky_usize_t shrink_at;
     bucket_t *buckets;
 };
 
 #define get_hash(_map, _item) \
     ((_map)->hash(_item) << 16 >> 16)
 
-sky_hashmap_t *
-sky_hashmap_create(sky_hashmap_hash_pt hash, sky_hashmap_cmp_pt cmp) {
-    sky_hashmap_t *map = sky_malloc(sizeof(sky_hashmap_t));
-    map->spare.hash = 0;
-    map->spare.dib = 0;
-    map->spare.data = null;
-    map->e_data.hash = 0;
-    map->e_data.dib = 0;
-    map->e_data.data = null;
-    map->hash = hash;
-    map->cmp = cmp;
-    map->count = 0;
-    map->cap = 16;
-    map->bucket_num = map->cap;
-    map->mask = map->bucket_num - 1;
-    map->buckets = sky_malloc(sizeof(bucket_t) * map->bucket_num);
-    sky_memzero(map->buckets, sizeof(bucket_t) * map->bucket_num);
+static sky_usize_t two_power_next(sky_usize_t n);
 
-    return map;
+static sky_hashmap_t *hashmap_create(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals, sky_usize_t cap);
+
+static void buckets_resize(sky_hashmap_t *map, sky_usize_t bucket_num);
+
+sky_hashmap_t *
+sky_hashmap_create(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals) {
+    return hashmap_create(hash, equals, 16);
+}
+
+sky_hashmap_t *
+sky_hashmap_create_with_cap(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals, sky_usize_t cap) {
+    if (cap < 16) {
+        cap = 16;
+    } else if (!sky_is_2_power(cap)) {
+        cap = two_power_next(cap);
+    }
+    return hashmap_create(hash, equals, cap);
 }
 
 void *
 sky_hashmap_put(sky_hashmap_t *map, void *item) {
-    if (sky_unlikely(map->count == map->bucket_num)) {
-        // resize
+    if (sky_unlikely(map->count == map->grow_at)) {
+        buckets_resize(map, map->bucket_num << 1);
     }
+    sky_u64_t hash = map->hash(item);
+    sky_u16_t dib = 1;
+    sky_usize_t i = hash & map->mask;
 
-    return null;
+    bucket_t *bucket;
+    for (;;) {
+        bucket = map->buckets + i;
+        if (bucket->dib == SKY_U16(0)) {
+            bucket->hash = hash;
+            bucket->dib = dib;
+            bucket->data = item;
+
+            ++map->count;
+            return null;
+        }
+
+        if (hash == bucket->hash && map->equals(item, bucket->data)) {
+            void *data = bucket->data;
+
+            bucket->data = item;
+
+            return data;
+        }
+        if (bucket->dib < dib) {
+            const bucket_t tmp = {
+                    .hash = bucket->hash,
+                    .dib = bucket->dib,
+                    .data = bucket->data
+            };
+
+            bucket->hash = hash;
+            bucket->dib = dib;
+            bucket->data = item;
+
+            hash = tmp.hash;
+            dib = tmp.dib;
+            item = tmp.data;
+
+        }
+        i = (i + 1) & map->mask;
+        ++dib;
+    }
 }
 
 void *
 sky_hashmap_get(sky_hashmap_t *map, void *item) {
-    bucket_t *entry = &map->e_data;
-    entry->hash = get_hash(map, item);
-    entry->dib = 1;
-    entry->data = item;
+    const sky_u64_t hash = get_hash(map, item);
+    sky_usize_t i = hash & map->mask;
 
-    sky_usize_t i = entry->hash & map->mask;
-
-
-
-    return null;
+    bucket_t *bucket;
+    for (;;) {
+        bucket = map->buckets + i;
+        if (!bucket->dib) {
+            return null;
+        }
+        if (bucket->hash == hash && map->equals(item, bucket->data)) {
+            return bucket->data;
+        }
+        i = (i + 1) & map->mask;
+    }
 }
 
 void *
 sky_hashmap_del(sky_hashmap_t *map, void *item) {
+    const sky_u64_t hash = get_hash(map, item);
+    sky_usize_t i = hash & map->mask;
 
-    return null;
+    bucket_t *bucket, *prev;
+    for (;;) {
+        bucket = map->buckets + i;
+        if (!bucket->dib) {
+            return null;
+        }
+
+        if (bucket->hash == hash && map->equals(item, bucket->data)) {
+            void *data = bucket->data;
+            bucket->dib = 0;
+            for (;;) {
+                prev = bucket;
+                i = (i + 1) & map->mask;
+                bucket = map->buckets + i;
+                if (bucket->dib == SKY_U64(1)) {
+                    bucket->dib = 0;
+                    break;
+                }
+                prev->hash = bucket->hash;
+                prev->dib = bucket->dib;
+                prev->data = bucket->data;
+
+                --(prev->dib);
+            }
+            --map->count;
+            if (map->bucket_num > map->cap && map->count <= map->shrink_at) {
+                buckets_resize(map, map->bucket_num >> 1);
+            }
+            return data;
+        }
+        i = (i + 1) & map->mask;
+    }
 }
 
 void
 sky_hashmap_destroy(sky_hashmap_t *map) {
     sky_free(map->buckets);
     sky_free(map);
+}
+
+static sky_usize_t
+two_power_next(sky_usize_t n) {
+#if SKY_USIZE_MAX == SKY_U64_MAX
+    sky_i32_t l = 64 - __builtin_clzll(n);
+#else
+    sky_i32_t l = 32 - __builtin_clz(n);
+#endif
+    return SKY_U64(1) << l;
+}
+
+static sky_inline sky_hashmap_t *
+hashmap_create(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals, sky_usize_t cap) {
+    sky_hashmap_t *map = sky_malloc(sizeof(sky_hashmap_t));
+    map->hash = hash;
+    map->equals = equals;
+    map->count = 0;
+    map->cap = cap;
+    map->bucket_num = cap;
+    map->mask = map->bucket_num - 1;
+    map->grow_at = (map->bucket_num * 3) >> 2;
+    map->shrink_at = map->bucket_num >> 3;
+    map->buckets = sky_malloc(sizeof(bucket_t) * map->bucket_num);
+    sky_memzero(map->buckets, sizeof(bucket_t) * map->bucket_num);
+
+    return map;
+}
+
+static void
+buckets_resize(sky_hashmap_t *map, sky_usize_t bucket_num) {
+    bucket_t *new_buckets = sky_malloc(sizeof(bucket_t) * bucket_num);
+    sky_memzero(new_buckets, sizeof(bucket_t) * bucket_num);
+    sky_u64_t mask = bucket_num - 1;
+
+    bucket_t *entry = map->buckets;
+    for (sky_usize_t i = map->bucket_num; i > 0; --i, ++entry) {
+        if (!entry->dib) {
+            continue;
+        }
+        entry->dib = SKY_U16(1);
+        sky_usize_t j = entry->hash & mask;
+        for (;;) {
+            bucket_t *bucket = new_buckets + j;
+            if (bucket->dib == SKY_U16(0)) {
+                bucket->hash = entry->hash;
+                bucket->dib = entry->dib;
+                bucket->data = entry->data;
+                break;
+            }
+            if (bucket->dib < entry->dib) {
+                const bucket_t tmp = {
+                        .hash = bucket->hash,
+                        .dib = bucket->dib,
+                        .data = bucket->data
+                };
+
+                bucket->hash = entry->hash;
+                bucket->dib = entry->dib;
+                bucket->data = entry->data;
+
+                entry->hash = tmp.hash;
+                entry->dib = tmp.dib;
+                entry->data = tmp.data;
+            }
+            j = (j + 1) & mask;
+            ++entry->dib;
+        }
+    }
+    sky_free(map->buckets);
+    map->buckets = new_buckets;
+
+    map->bucket_num = bucket_num;
+    map->mask = mask;
+    map->grow_at = (bucket_num * 3) >> 2;
+    map->shrink_at = bucket_num >> 3;
 }
