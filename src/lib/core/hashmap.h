@@ -19,6 +19,8 @@ sky_hashmap_t *sky_hashmap_create(sky_hashmap_hash_pt hash, sky_hashmap_equals_p
 
 sky_hashmap_t *sky_hashmap_create_with_cap(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals, sky_usize_t cap);
 
+sky_usize_t sky_hashmap_count(sky_hashmap_t *map);
+
 void *sky_hashmap_put(sky_hashmap_t *map, void *item);
 
 void *sky_hashmap_get(sky_hashmap_t *map, void *item);

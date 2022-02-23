@@ -38,6 +38,11 @@ sky_hashmap_create(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals) {
     return hashmap_create(hash, equals, 16);
 }
 
+sky_usize_t
+sky_hashmap_count(sky_hashmap_t *map) {
+    return map->count;
+}
+
 sky_hashmap_t *
 sky_hashmap_create_with_cap(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals, sky_usize_t cap) {
     if (cap < 16) {
@@ -134,8 +139,8 @@ sky_hashmap_del(sky_hashmap_t *map, void *item) {
                 prev = bucket;
                 i = (i + 1) & map->mask;
                 bucket = map->buckets + i;
-                if (bucket->dib == SKY_U64(1)) {
-                    bucket->dib = 0;
+                if (bucket->dib <= SKY_U64(1)) {
+                    prev->dib = 0;
                     break;
                 }
                 prev->hash = bucket->hash;
@@ -160,7 +165,7 @@ sky_hashmap_destroy(sky_hashmap_t *map) {
     sky_free(map);
 }
 
-static sky_usize_t
+static sky_inline sky_usize_t
 two_power_next(sky_usize_t n) {
 #if SKY_USIZE_MAX == SKY_U64_MAX
     sky_i32_t l = 64 - __builtin_clzll(n);
@@ -187,11 +192,14 @@ hashmap_create(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals, sky_usize
     return map;
 }
 
+#include "log.h"
 static void
 buckets_resize(sky_hashmap_t *map, sky_usize_t bucket_num) {
     bucket_t *new_buckets = sky_malloc(sizeof(bucket_t) * bucket_num);
     sky_memzero(new_buckets, sizeof(bucket_t) * bucket_num);
     sky_u64_t mask = bucket_num - 1;
+
+    sky_log_info("resize: %lu -> %lu, count: %lu", bucket_num, map->bucket_num, map->count);
 
     bucket_t *entry = map->buckets;
     for (sky_usize_t i = map->bucket_num; i > 0; --i, ++entry) {
@@ -227,6 +235,8 @@ buckets_resize(sky_hashmap_t *map, sky_usize_t bucket_num) {
             ++entry->dib;
         }
     }
+    sky_log_info("success: %lu", bucket_num);
+
     sky_free(map->buckets);
     map->buckets = new_buckets;
 
