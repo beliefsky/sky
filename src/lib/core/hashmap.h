@@ -12,10 +12,12 @@ extern "C" {
 #endif
 
 typedef struct sky_hashmap_s sky_hashmap_t;
-typedef sky_u64_t (*sky_hashmap_hash_pt)(void *item);
-typedef sky_i32_t (*sky_hashmap_cmp_pt)(void *a, void *b);
+typedef sky_u64_t (*sky_hashmap_hash_pt)(const void *item);
+typedef sky_bool_t (*sky_hashmap_equals_pt)(const void *a, const void *b);
 
-sky_hashmap_t *sky_hashmap_create(sky_hashmap_hash_pt hash, sky_hashmap_cmp_pt cmp);
+sky_hashmap_t *sky_hashmap_create(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals);
+
+sky_hashmap_t *sky_hashmap_create_with_cap(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals, sky_usize_t cap);
 
 void *sky_hashmap_put(sky_hashmap_t *map, void *item);
 
