@@ -253,15 +253,11 @@ hashmap_create(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals, sky_usize
     return map;
 }
 
-#include "log.h"
-
 static void
 buckets_resize(sky_hashmap_t *map, sky_usize_t bucket_num) {
     bucket_t *new_buckets = sky_malloc(sizeof(bucket_t) * bucket_num);
     sky_memzero(new_buckets, sizeof(bucket_t) * bucket_num);
     sky_u64_t mask = bucket_num - 1;
-
-    sky_log_info("resize: %lu -> %lu, count: %lu", bucket_num, map->bucket_num, map->count);
 
     bucket_t *entry = map->buckets;
     for (sky_usize_t i = map->bucket_num; i > 0; --i, ++entry) {
@@ -297,7 +293,6 @@ buckets_resize(sky_hashmap_t *map, sky_usize_t bucket_num) {
             ++entry->dib;
         }
     }
-    sky_log_info("success: %lu", bucket_num);
 
     sky_free(map->buckets);
     map->buckets = new_buckets;
