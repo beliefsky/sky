@@ -82,20 +82,12 @@ sky_hashmap_put(sky_hashmap_t *map, void *item) {
             return data;
         }
         if (bucket->dib < dib) {
-            const bucket_t tmp = {
-                    .hash = bucket->hash,
-                    .dib = bucket->dib,
-                    .data = bucket->data
-            };
+            void *tmp = bucket->data;
 
-            bucket->hash = hash;
-            bucket->dib = dib;
+            sky_swap(hash, bucket->hash);
+            sky_swap(dib, bucket->dib);
             bucket->data = item;
-
-            hash = tmp.hash;
-            dib = tmp.dib;
-            item = tmp.data;
-
+            item = tmp;
         }
         i = (i + 1) & map->mask;
         ++dib;
