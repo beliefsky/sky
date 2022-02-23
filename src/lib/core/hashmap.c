@@ -223,6 +223,7 @@ void sky_hashmap_destroy(sky_hashmap_t *map, sky_hashmap_free_pt free) {
         }
     }
     sky_free(map->buckets);
+    map->buckets = null;
     sky_free(map);
 }
 
