@@ -17,8 +17,6 @@ typedef sky_u64_t (*sky_hashmap_hash_pt)(const void *item);
 
 typedef sky_bool_t (*sky_hashmap_equals_pt)(const void *a, const void *b);
 
-typedef sky_bool_t (*sky_hashmap_equals_pt)(const void *a, const void *b);
-
 typedef sky_bool_t (*sky_hashmap_iter_pt)(void *item, void *user_data);
 
 typedef void (*sky_hashmap_free_pt)(void *item);
