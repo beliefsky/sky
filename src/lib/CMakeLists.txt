@@ -154,6 +154,7 @@ install(FILES
         core/queue.h
         core/list.h
         core/rbtree.h
+        core/hashmap.h
         core/trie.h
         core/coro.h
         core/string.h
