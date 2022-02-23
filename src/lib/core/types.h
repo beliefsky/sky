@@ -86,7 +86,7 @@ typedef double sky_f64_t;
 /**
  * 是否是2的冪数
  */
-#define sky_is_2_power(_v) ((_v) && ((_v) & ((_v) -1)))
+#define sky_is_2_power(_v) (((_v) && ((_v) & ((_v) -1))) == 0)
 
 /**
  * 可以计算查找4个字节是否有\0, 需要提前把 v 转成 uint32

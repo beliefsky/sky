@@ -58,7 +58,7 @@ sky_udp_pool_create(sky_event_loop_t *loop, const sky_udp_pool_conf_t *conf) {
 
     if (!(i = conf->connection_size)) {
         i = 2;
-    } else if (sky_unlikely(sky_is_2_power(i))) {
+    } else if (sky_unlikely(!sky_is_2_power(i))) {
         sky_log_error("连接数必须为2的整数幂");
         return null;
     }
