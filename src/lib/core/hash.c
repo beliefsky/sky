@@ -119,8 +119,8 @@ sky_wy_hash(const sky_uchar_t *data, sky_usize_t len, sky_u64_t seed, const sky_
 
 static sky_inline sky_u64_t
 wy_rand(sky_u64_t *seed) {
-    *seed += 0xa0761d6478bd642full;
-    return wy_mix(*seed, *seed ^ 0xe7037ed1a0b428dbull);
+    *seed += SKY_U64(0xa0761d6478bd642f);
+    return wy_mix(*seed, *seed ^ SKY_U64(0xe7037ed1a0b428db));
 }
 
 static sky_inline sky_u64_t
