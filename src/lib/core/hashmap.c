@@ -167,7 +167,7 @@ two_power_next(sky_usize_t n) {
 #else
     sky_i32_t l = 32 - __builtin_clz(n);
 #endif
-    return SKY_U64(1) << l;
+    return SKY_USIZE(1) << l;
 }
 
 static sky_inline sky_hashmap_t *
