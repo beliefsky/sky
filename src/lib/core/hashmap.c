@@ -142,7 +142,7 @@ sky_hashmap_del(sky_hashmap_t *map, const void *item) {
                 --(prev->dib);
             }
             --map->count;
-            if (map->bucket_num > map->cap && map->count <= map->shrink_at) {
+            if (map->count <= map->shrink_at && map->bucket_num > map->cap) {
                 buckets_resize(map, map->bucket_num >> 1);
             }
             return data;
