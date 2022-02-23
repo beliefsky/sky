@@ -19,7 +19,7 @@ struct sky_topic_tree_s {
     sky_hashmap_t *map;
 };
 
-static sky_u64_t topic_hash(const void *a);
+static sky_u64_t topic_hash(const void *a, void *secret);
 
 static sky_bool_t topic_equals(const void *a, const void *b);
 
@@ -29,7 +29,7 @@ static topic_node_t *upsert_topic_node(sky_hashmap_t *map, sky_uchar_t *key, sky
 sky_topic_tree_t *
 sky_topic_tree_create() {
     sky_topic_tree_t *tree = sky_malloc(sizeof(sky_topic_tree_t));
-    tree->map = sky_hashmap_create(topic_hash, topic_equals);
+    tree->map = sky_hashmap_create(topic_hash, topic_equals, null);
 
     return tree;
 }
@@ -58,7 +58,8 @@ sky_topic_tree_sub(sky_topic_tree_t *tree, const sky_str_t *topic, void *client)
 
 
 static sky_u64_t
-topic_hash(const void *a) {
+topic_hash(const void *a, void *secret) {
+    (void) secret;
     const topic_node_t *node = a;
 
     sky_u32_t crc = sky_crc32_init();
@@ -87,7 +88,7 @@ upsert_topic_node(sky_hashmap_t *map, sky_uchar_t *key, sky_usize_t len) {
         node->key.data = (sky_uchar_t *) (node + 1);
         node->key.len = len;
         sky_memcpy(node->key.data, key, len);
-        node->map = sky_hashmap_create(topic_hash, topic_equals);
+        node->map = sky_hashmap_create(topic_hash, topic_equals, null);
 
         sky_hashmap_put(map, node);
     }

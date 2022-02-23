@@ -21,21 +21,33 @@ struct sky_hashmap_s {
     sky_usize_t mask;
     sky_usize_t grow_at;
     sky_usize_t shrink_at;
+    void *hash_secret;
     bucket_t *buckets;
 };
 
 #define get_hash(_map, _item) \
-    ((_map)->hash(_item) << 16 >> 16)
+    ((_map)->hash(_item, (_map)->hash_secret) << 16 >> 16)
 
 static sky_usize_t two_power_next(sky_usize_t n);
 
-static sky_hashmap_t *hashmap_create(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals, sky_usize_t cap);
+static sky_hashmap_t *hashmap_create(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals,
+                                     void *hash_secret, sky_usize_t cap);
 
 static void buckets_resize(sky_hashmap_t *map, sky_usize_t bucket_num);
 
 sky_hashmap_t *
-sky_hashmap_create(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals) {
-    return hashmap_create(hash, equals, 16);
+sky_hashmap_create(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals, void *hash_secret) {
+    return hashmap_create(hash, equals, hash_secret, 16);
+}
+
+sky_hashmap_t *
+sky_hashmap_create_with_cap(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals, void *hash_secret, sky_usize_t cap) {
+    if (cap < 16) {
+        cap = 16;
+    } else if (!sky_is_2_power(cap)) {
+        cap = two_power_next(cap);
+    }
+    return hashmap_create(hash, equals, hash_secret, cap);
 }
 
 sky_usize_t
@@ -43,22 +55,12 @@ sky_hashmap_count(const sky_hashmap_t *map) {
     return map->count;
 }
 
-sky_hashmap_t *
-sky_hashmap_create_with_cap(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals, sky_usize_t cap) {
-    if (cap < 16) {
-        cap = 16;
-    } else if (!sky_is_2_power(cap)) {
-        cap = two_power_next(cap);
-    }
-    return hashmap_create(hash, equals, cap);
-}
-
 void *
 sky_hashmap_put(sky_hashmap_t *map, void *item) {
     if (sky_unlikely(map->count == map->grow_at)) {
         buckets_resize(map, map->bucket_num << 1);
     }
-    sky_u64_t hash = map->hash(item);
+    sky_u64_t hash = get_hash(map, item);
     sky_u16_t dib = 1;
     sky_usize_t i = hash & map->mask;
 
@@ -230,7 +232,7 @@ two_power_next(sky_usize_t n) {
 }
 
 static sky_inline sky_hashmap_t *
-hashmap_create(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals, sky_usize_t cap) {
+hashmap_create(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals, void *hash_secret, sky_usize_t cap) {
     sky_hashmap_t *map = sky_malloc(sizeof(sky_hashmap_t));
     map->hash = hash;
     map->equals = equals;
@@ -240,6 +242,7 @@ hashmap_create(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals, sky_usize
     map->mask = map->bucket_num - 1;
     map->grow_at = (map->bucket_num * 3) >> 2;
     map->shrink_at = map->bucket_num >> 3;
+    map->hash_secret = hash_secret;
     map->buckets = sky_malloc(sizeof(bucket_t) * map->bucket_num);
     sky_memzero(map->buckets, sizeof(bucket_t) * map->bucket_num);
 
