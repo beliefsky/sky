@@ -39,7 +39,7 @@ static topic_node_t *topic_node_get(sky_hashmap_t *map, sky_uchar_t *key, sky_us
 
 static void topic_node_clean(topic_node_t *node, void *user_data);
 
-static void topic_node_destroy(topic_node_t *node, void *user_data);
+static void topic_node_destroy(topic_node_t *node);
 
 
 sky_topic_tree_t *
@@ -122,7 +122,7 @@ sky_topic_tree_scan(sky_topic_tree_t *tree, const sky_str_t *topic,
 
 void
 sky_topic_tree_destroy(sky_topic_tree_t *tree) {
-    sky_hashmap_destroy(tree->node.map, (sky_hashmap_free_pt) topic_node_destroy, null);
+    sky_hashmap_destroy(tree->node.map, (sky_hashmap_free_pt) topic_node_destroy);
     tree->node.map = null;
     sky_free(tree);
 }
@@ -242,7 +242,7 @@ topic_node_clean(topic_node_t *node, void *user_data) {
             tree->destroy(node->client);
         }
     }
-    sky_hashmap_destroy(node->map, null, null);
+    sky_hashmap_destroy(node->map, null);
     node->map = null;
 
     sky_hashmap_del(parent->map, node);
@@ -264,8 +264,8 @@ topic_node_clean(topic_node_t *node, void *user_data) {
 }
 
 static void
-topic_node_destroy(topic_node_t *node, void *user_data) {
-    sky_hashmap_destroy(node->map, (sky_hashmap_free_pt) topic_node_destroy, user_data);
+topic_node_destroy(topic_node_t *node) {
+    sky_hashmap_destroy(node->map, (sky_hashmap_free_pt) topic_node_destroy);
     node->map = null;
 
     const sky_topic_tree_destroy_pt destroy = node->tree->destroy;
