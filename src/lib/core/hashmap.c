@@ -98,7 +98,7 @@ sky_hashmap_put(sky_hashmap_t *map, void *item) {
 }
 
 void *
-sky_hashmap_get(sky_hashmap_t *map, const void *item) {
+sky_hashmap_get(const sky_hashmap_t *map, const void *item) {
     const sky_u64_t hash = get_hash(map, item);
     sky_usize_t i = hash & map->mask;
 
@@ -210,7 +210,8 @@ sky_hashmap_clean(sky_hashmap_t *map, sky_hashmap_free_pt free, sky_bool_t recap
     map->count = 0;
 }
 
-void sky_hashmap_destroy(sky_hashmap_t *map, sky_hashmap_free_pt free) {
+void
+sky_hashmap_destroy(sky_hashmap_t *map, sky_hashmap_free_pt free) {
     if (free && map->count != 0) {
         bucket_t *bucket = map->buckets;
         for (sky_usize_t i = map->bucket_num; i > 0; --i, ++bucket) {
