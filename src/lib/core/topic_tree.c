@@ -35,13 +35,15 @@ static void topic_tree_scan(sky_hashmap_t *map, sky_uchar_t *key, sky_usize_t le
 
 static topic_node_t *topic_node_sub(topic_node_t *parent, sky_uchar_t *key, sky_usize_t len);
 
-static topic_node_t *topic_node_unsub(topic_node_t *parent, sky_uchar_t *key, sky_usize_t len, void *user_data);
-
 static topic_node_t *topic_node_get(sky_hashmap_t *map, sky_uchar_t *key, sky_usize_t len);
+
+static void topic_node_del(sky_hashmap_t *map, sky_uchar_t *key, sky_usize_t len);
 
 static void topic_node_clean(topic_node_t *node, void *user_data);
 
 static void topic_node_destroy(topic_node_t *node, void *user_data);
+
+static void topic_node_free(topic_node_t *node, void *user_data);
 
 
 sky_topic_tree_t *
@@ -101,16 +103,13 @@ sky_topic_tree_unsub(sky_topic_tree_t *tree, const sky_str_t *topic, void *user_
     for (;;) {
         index = sky_str_len_index_char(p, len, '/');
         if (index == -1) {
-            node = topic_node_unsub(node, p, len, user_data);
+            node = topic_node_get(node->map, p, len);
             if (null != node) {
-                if (sky_likely(null != tree->unsub)) {
-                    tree->unsub(&node->client, user_data);
-                }
-                --node->client_n;
+                topic_node_clean(node, user_data);
             }
             return;
         }
-        node = topic_node_unsub(node, p, (sky_usize_t) index, user_data);
+        node = topic_node_get(node->map, p, (sky_usize_t) index);
         if (!node) {
             return;
         }
@@ -213,24 +212,6 @@ topic_node_sub(topic_node_t *parent, sky_uchar_t *key, sky_usize_t len) {
     return node;
 }
 
-static sky_inline topic_node_t *
-topic_node_unsub(topic_node_t *parent, sky_uchar_t *key, sky_usize_t len, void *user_data) {
-    const topic_node_t tmp = {
-            .key.data = key,
-            .key.len = len
-    };
-    topic_node_t *node = sky_hashmap_get(parent->map, &tmp);
-    if (!node) {
-        return null;
-    }
-    if (!(--node->num)) {
-        sky_hashmap_del(parent->map, &tmp);
-        topic_node_clean(node, user_data);
-        return null;
-    }
-
-    return node;
-}
 
 static sky_inline topic_node_t *
 topic_node_get(sky_hashmap_t *map, sky_uchar_t *key, sky_usize_t len) {
@@ -242,13 +223,31 @@ topic_node_get(sky_hashmap_t *map, sky_uchar_t *key, sky_usize_t len) {
 }
 
 static void
+topic_node_del(sky_hashmap_t *map, sky_uchar_t *key, sky_usize_t len) {
+    const topic_node_t tmp = {
+            .key.data = key,
+            .key.len = len
+    };
+    sky_hashmap_del(map, &tmp);
+}
+
+
+static void
 topic_node_clean(topic_node_t *node, void *user_data) {
-    sky_hashmap_destroy(node->map, (sky_hashmap_free_pt) topic_node_clean, user_data);
-    node->map = null;
+    sky_topic_tree_t *tree = node->tree;
+    topic_node_t *parent = node->parent;
 
-    if (0 != node->client_n) {
-        const sky_topic_tree_t *tree = node->tree;
-
+    --node->num;
+    if (0 != node->num) {
+        if (node->client_n > 0) {
+            --node->client_n;
+            if (sky_likely(null != tree->unsub)) {
+                tree->unsub(&node->client, user_data);
+            }
+        }
+        return;
+    }
+    if (node->client_n > 0) {
         if (sky_likely(null != tree->unsub)) {
             tree->unsub(&node->client, user_data);
         }
@@ -256,8 +255,25 @@ topic_node_clean(topic_node_t *node, void *user_data) {
             tree->destroy(node->client);
         }
     }
+    sky_hashmap_destroy(node->map, null, null);
+    node->map = null;
 
+    sky_hashmap_del(parent->map, node);
     sky_free(node);
+
+    do {
+        node = parent;
+        if (0 != (--node->num)) {
+            break;
+        }
+        parent = node->parent;
+        sky_hashmap_del(parent->map, node);
+        sky_free(node);
+    } while (null != parent);
+
+    while (null != (node = node->parent)) {
+        --node->num;
+    }
 }
 
 static void
@@ -269,6 +285,13 @@ topic_node_destroy(topic_node_t *node, void *user_data) {
     if (sky_likely(0 != node->client_n && null != destroy)) {
         destroy(node->client);
     }
+
+    sky_free(node);
+}
+
+static void
+topic_node_free(topic_node_t *node, void *user_data) {
+    (void) user_data;
 
     sky_free(node);
 }
