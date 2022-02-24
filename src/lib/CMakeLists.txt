@@ -53,6 +53,7 @@ set(SOURCES
         net/http/module/http_module_websocket.c
         net/mqtt/mqtt_io_wrappers.c
         net/mqtt/mqtt_protocol.c
+        net/mqtt/mqtt_subs.c
         net/mqtt/mqtt_request.c
         net/mqtt/mqtt_response.c
         net/mqtt/mqtt_server.c
