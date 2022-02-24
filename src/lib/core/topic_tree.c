@@ -151,7 +151,7 @@ static void
 topic_tree_scan(sky_hashmap_t *map, sky_uchar_t *key, sky_usize_t len,
                 sky_topic_tree_iter_pt iter, void *user_data) {
     topic_node_t *node1 = topic_node_get(map, sky_str_line("#"));
-    if (null != node1 && node1->client_n != 0) {
+    if (null != node1 && 0 != node1->client_n) {
         iter(node1->client, user_data);
     }
     topic_node_t *node2 = topic_node_get(map, sky_str_line("+"));
