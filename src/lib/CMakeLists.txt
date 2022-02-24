@@ -158,6 +158,7 @@ install(FILES
         core/hash.h
         core/hashmap.h
         core/trie.h
+        core/topic_tree.h
         core/coro.h
         core/string.h
         core/string_buf.h
