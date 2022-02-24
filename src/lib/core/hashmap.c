@@ -172,8 +172,7 @@ sky_hashmap_scan(sky_hashmap_t *map, sky_hashmap_iter_pt iter, void *user_data) 
 
 void
 sky_hashmap_clean(sky_hashmap_t *map, sky_hashmap_free_pt free, sky_bool_t recap) {
-    map->count = 0;
-    if (free) {
+    if (free && map->count != 0) {
         bucket_t *bucket = map->buckets;
         for (sky_usize_t i = map->bucket_num; i > 0; --i, ++bucket) {
             if (bucket->dib) {
@@ -208,11 +207,11 @@ sky_hashmap_clean(sky_hashmap_t *map, sky_hashmap_free_pt free, sky_bool_t recap
             map->shrink_at = map->bucket_num >> 3;
         }
     }
-
+    map->count = 0;
 }
 
 void sky_hashmap_destroy(sky_hashmap_t *map, sky_hashmap_free_pt free) {
-    if (free || map->count == 0) {
+    if (free && map->count != 0) {
         bucket_t *bucket = map->buckets;
         for (sky_usize_t i = map->bucket_num; i > 0; --i, ++bucket) {
             if (bucket->dib) {
