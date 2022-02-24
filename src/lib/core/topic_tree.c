@@ -37,13 +37,9 @@ static topic_node_t *topic_node_sub(topic_node_t *parent, sky_uchar_t *key, sky_
 
 static topic_node_t *topic_node_get(sky_hashmap_t *map, sky_uchar_t *key, sky_usize_t len);
 
-static void topic_node_del(sky_hashmap_t *map, sky_uchar_t *key, sky_usize_t len);
-
 static void topic_node_clean(topic_node_t *node, void *user_data);
 
 static void topic_node_destroy(topic_node_t *node, void *user_data);
-
-static void topic_node_free(topic_node_t *node, void *user_data);
 
 
 sky_topic_tree_t *
@@ -222,15 +218,6 @@ topic_node_get(sky_hashmap_t *map, sky_uchar_t *key, sky_usize_t len) {
     return sky_hashmap_get(map, &tmp);
 }
 
-static void
-topic_node_del(sky_hashmap_t *map, sky_uchar_t *key, sky_usize_t len) {
-    const topic_node_t tmp = {
-            .key.data = key,
-            .key.len = len
-    };
-    sky_hashmap_del(map, &tmp);
-}
-
 
 static void
 topic_node_clean(topic_node_t *node, void *user_data) {
@@ -285,13 +272,6 @@ topic_node_destroy(topic_node_t *node, void *user_data) {
     if (sky_likely(0 != node->client_n && null != destroy)) {
         destroy(node->client);
     }
-
-    sky_free(node);
-}
-
-static void
-topic_node_free(topic_node_t *node, void *user_data) {
-    (void) user_data;
 
     sky_free(node);
 }
