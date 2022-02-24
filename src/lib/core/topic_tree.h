@@ -13,13 +13,27 @@ extern "C" {
 
 typedef struct sky_topic_tree_s sky_topic_tree_t;
 
-sky_topic_tree_t *sky_topic_tree_create();
+typedef sky_bool_t (*sky_topic_tree_sub_pt)(void **client, void *user_data);
 
-void sky_topic_tree_sub(sky_topic_tree_t *tree, const sky_str_t *topic, void *client);
+typedef void (*sky_topic_tree_unsub_pt)(void **client, void *user_data);
 
-void sky_topic_tree_unsub(sky_topic_tree_t *tree, const sky_str_t *topic, void *client);
+typedef void (*sky_topic_tree_iter_pt)(void *client, void *user_data);
 
-void *sky_topic_tree_scan(sky_topic_tree_t *tree, const sky_str_t *topic);
+typedef void (*sky_topic_tree_destroy_pt)(void *client);
+
+
+sky_topic_tree_t *sky_topic_tree_create(
+        sky_topic_tree_sub_pt sub,
+        sky_topic_tree_unsub_pt unsub,
+        sky_topic_tree_destroy_pt destroy
+);
+
+void sky_topic_tree_sub(sky_topic_tree_t *tree, const sky_str_t *topic, void *user_data);
+
+void sky_topic_tree_unsub(sky_topic_tree_t *tree, const sky_str_t *topic, void *user_data);
+
+void sky_topic_tree_scan(sky_topic_tree_t *tree, const sky_str_t *topic,
+                         sky_topic_tree_iter_pt iter, void *user_data);
 
 void sky_topic_tree_destroy(sky_topic_tree_t *tree);
 

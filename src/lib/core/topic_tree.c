@@ -6,54 +6,130 @@
 #include "memory.h"
 #include "hashmap.h"
 #include "crc32.h"
-#include "log.h"
 
-typedef struct {
+typedef struct topic_node_s topic_node_t;
+
+struct topic_node_s {
     sky_str_t key;
-    sky_hashmap_t *map;
     sky_usize_t num;
+    sky_usize_t client_n;
+    sky_topic_tree_t *tree;
+    topic_node_t *parent;
+    sky_hashmap_t *map;
     void *client;
-} topic_node_t;
+};
 
 struct sky_topic_tree_s {
-    sky_hashmap_t *map;
+    topic_node_t node;
+    sky_topic_tree_sub_pt sub;
+    sky_topic_tree_unsub_pt unsub;
+    sky_topic_tree_destroy_pt destroy;
 };
 
 static sky_u64_t topic_hash(const void *a, void *secret);
 
 static sky_bool_t topic_equals(const void *a, const void *b);
 
-static topic_node_t *upsert_topic_node(sky_hashmap_t *map, sky_uchar_t *key, sky_usize_t len);
+static void topic_tree_scan(sky_hashmap_t *map, sky_uchar_t *key, sky_usize_t len,
+                            sky_topic_tree_iter_pt iter, void *user_data);
+
+static topic_node_t *topic_node_sub(topic_node_t *parent, sky_uchar_t *key, sky_usize_t len);
+
+static topic_node_t *topic_node_unsub(topic_node_t *parent, sky_uchar_t *key, sky_usize_t len, void *user_data);
+
+static topic_node_t *topic_node_get(sky_hashmap_t *map, sky_uchar_t *key, sky_usize_t len);
+
+static void topic_node_clean(topic_node_t *node, void *user_data);
+
+static void topic_node_destroy(topic_node_t *node, void *user_data);
 
 
 sky_topic_tree_t *
-sky_topic_tree_create() {
+sky_topic_tree_create(sky_topic_tree_sub_pt sub,
+                      sky_topic_tree_unsub_pt unsub,
+                      sky_topic_tree_destroy_pt destroy
+) {
     sky_topic_tree_t *tree = sky_malloc(sizeof(sky_topic_tree_t));
-    tree->map = sky_hashmap_create(topic_hash, topic_equals, null);
+    tree->node.map = sky_hashmap_create(topic_hash, topic_equals, null);
+    tree->node.tree = tree;
+    tree->node.parent = null;
+    tree->sub = sub;
+    tree->unsub = unsub;
+    tree->destroy = destroy;
 
     return tree;
 }
 
 void
-sky_topic_tree_sub(sky_topic_tree_t *tree, const sky_str_t *topic, void *client) {
+sky_topic_tree_sub(sky_topic_tree_t *tree, const sky_str_t *topic, void *user_data) {
     sky_uchar_t *p = topic->data;
     sky_usize_t len = topic->len;
-    sky_hashmap_t *map = tree->map;
 
-    topic_node_t *node;
+    topic_node_t *node = &tree->node;
     sky_isize_t index;
     for (;;) {
         index = sky_str_len_index_char(p, len, '/');
         if (index == -1) {
-            break;
+            node = topic_node_sub(node, p, len);
+            if (sky_likely(null != tree->sub)) {
+                // 如果执行返回为 false, 将不增加计数
+                if (sky_unlikely(!tree->sub(&node->client, user_data))) {
+                    do {
+                        --node->num;
+                        node = node->parent;
+                    } while (null != node);
+                    return;
+                }
+            }
+            ++node->client_n;
+
+            return;
         }
-        node = upsert_topic_node(map, p, (sky_usize_t) index);
-        map = node->map;
+        node = topic_node_sub(node, p, (sky_usize_t) index);
         len -= (sky_usize_t) ++index;
         p += index;
     }
+}
 
-    node = upsert_topic_node(map, p, len);
+void
+sky_topic_tree_unsub(sky_topic_tree_t *tree, const sky_str_t *topic, void *user_data) {
+    sky_uchar_t *p = topic->data;
+    sky_usize_t len = topic->len;
+
+    topic_node_t *node = &tree->node;
+    sky_isize_t index;
+    for (;;) {
+        index = sky_str_len_index_char(p, len, '/');
+        if (index == -1) {
+            node = topic_node_unsub(node, p, len, user_data);
+            if (null != node) {
+                if (sky_likely(null != tree->unsub)) {
+                    tree->unsub(&node->client, user_data);
+                }
+                --node->client_n;
+            }
+            return;
+        }
+        node = topic_node_unsub(node, p, (sky_usize_t) index, user_data);
+        if (!node) {
+            return;
+        }
+        len -= (sky_usize_t) ++index;
+        p += index;
+    }
+}
+
+void
+sky_topic_tree_scan(sky_topic_tree_t *tree, const sky_str_t *topic,
+                    sky_topic_tree_iter_pt iter, void *user_data) {
+    topic_tree_scan(tree->node.map, topic->data, topic->len, iter, user_data);
+}
+
+void
+sky_topic_tree_destroy(sky_topic_tree_t *tree) {
+    sky_hashmap_destroy(tree->node.map, (sky_hashmap_free_pt) topic_node_destroy, null);
+    tree->node.map = null;
+    sky_free(tree);
 }
 
 
@@ -76,23 +152,123 @@ topic_equals(const void *a, const void *b) {
     return sky_str_equals(&na->key, &nb->key);
 }
 
-static topic_node_t *
-upsert_topic_node(sky_hashmap_t *map, sky_uchar_t *key, sky_usize_t len) {
+static void
+topic_tree_scan(sky_hashmap_t *map, sky_uchar_t *key, sky_usize_t len,
+                sky_topic_tree_iter_pt iter, void *user_data) {
+    topic_node_t *node1 = topic_node_get(map, sky_str_line("#"));
+    if (null != node1 && node1->client_n != 0) {
+        iter(node1->client, user_data);
+    }
+    topic_node_t *node2 = topic_node_get(map, sky_str_line("+"));
+
+    sky_isize_t index = sky_str_len_index_char(key, len, '/');
+    if (index == -1) {
+        if (null != node2 && 0 != node2->client_n) {
+            // 执行 node 2
+            iter(node2->client, user_data);
+        }
+        topic_node_t *node3 = topic_node_get(map, key, len);
+        if (null != node3 && 0 != node3->client_n) {
+            // 执行 node 3
+            iter(node3->client, user_data);
+        }
+    } else {
+        topic_node_t *node3 = topic_node_get(map, key, (sky_usize_t) index);
+        len -= (sky_usize_t) ++index;
+        key += index;
+
+        if (null != node2) {
+            topic_tree_scan(node2->map, key, len, iter, user_data);
+        }
+        if (null != node3) {
+            topic_tree_scan(node3->map, key, len, iter, user_data);
+        }
+    }
+
+}
+
+static sky_inline topic_node_t *
+topic_node_sub(topic_node_t *parent, sky_uchar_t *key, sky_usize_t len) {
     const topic_node_t tmp = {
             .key.data = key,
             .key.len = len
     };
-    topic_node_t *node = sky_hashmap_get(map, &tmp);
+    topic_node_t *node = sky_hashmap_get(parent->map, &tmp);
     if (!node) {
         node = sky_malloc(sizeof(topic_node_t) + len);
         node->key.data = (sky_uchar_t *) (node + 1);
         node->key.len = len;
         sky_memcpy(node->key.data, key, len);
+        node->num = 0;
+        node->client_n = 0;
+        node->tree = parent->tree;
+        node->parent = parent;
         node->map = sky_hashmap_create(topic_hash, topic_equals, null);
+        node->client = null;
 
-        sky_hashmap_put(map, node);
+        sky_hashmap_put(parent->map, node);
     }
     ++node->num;
 
     return node;
+}
+
+static sky_inline topic_node_t *
+topic_node_unsub(topic_node_t *parent, sky_uchar_t *key, sky_usize_t len, void *user_data) {
+    const topic_node_t tmp = {
+            .key.data = key,
+            .key.len = len
+    };
+    topic_node_t *node = sky_hashmap_get(parent->map, &tmp);
+    if (!node) {
+        return null;
+    }
+    if (!(--node->num)) {
+        sky_hashmap_del(parent->map, &tmp);
+        topic_node_clean(node, user_data);
+        return null;
+    }
+
+    return node;
+}
+
+static sky_inline topic_node_t *
+topic_node_get(sky_hashmap_t *map, sky_uchar_t *key, sky_usize_t len) {
+    const topic_node_t tmp = {
+            .key.data = key,
+            .key.len = len
+    };
+    return sky_hashmap_get(map, &tmp);
+}
+
+static void
+topic_node_clean(topic_node_t *node, void *user_data) {
+    sky_hashmap_destroy(node->map, (sky_hashmap_free_pt) topic_node_clean, user_data);
+    node->map = null;
+
+    if (0 != node->client_n) {
+        const sky_topic_tree_t *tree = node->tree;
+
+        if (sky_likely(null != tree->unsub)) {
+            tree->unsub(&node->client, user_data);
+        }
+        if (sky_likely(null != tree->destroy)) {
+            tree->destroy(node->client);
+        }
+    }
+
+    sky_free(node);
+}
+
+static void
+topic_node_destroy(topic_node_t *node, void *user_data) {
+    sky_hashmap_destroy(node->map, (sky_hashmap_free_pt) topic_node_destroy, user_data);
+    node->map = null;
+
+    const sky_topic_tree_destroy_pt destroy = node->tree->destroy;
+    if (sky_likely(0 != node->client_n && null != destroy)) {
+        destroy(node->client);
+    }
+
+    sky_free(node);
 }
