@@ -41,7 +41,8 @@ sky_hashmap_create(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals, void 
 }
 
 sky_hashmap_t *
-sky_hashmap_create_with_cap(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals, void *hash_secret, sky_usize_t cap) {
+sky_hashmap_create_with_cap(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals, void *hash_secret,
+                            sky_usize_t cap) {
     if (cap < 16) {
         cap = 16;
     } else if (!sky_is_2_power(cap)) {
@@ -155,6 +156,9 @@ sky_hashmap_del(sky_hashmap_t *map, const void *item) {
 
 sky_bool_t
 sky_hashmap_scan(sky_hashmap_t *map, sky_hashmap_iter_pt iter, void *user_data) {
+    if (map->count == 0) {
+        return true;
+    }
     bucket_t *bucket = map->buckets;
     for (sky_usize_t i = map->bucket_num; i > 0; --i, ++bucket) {
         if (bucket->dib) {
@@ -208,7 +212,7 @@ sky_hashmap_clean(sky_hashmap_t *map, sky_hashmap_free_pt free, sky_bool_t recap
 }
 
 void sky_hashmap_destroy(sky_hashmap_t *map, sky_hashmap_free_pt free) {
-    if (free) {
+    if (free || map->count == 0) {
         bucket_t *bucket = map->buckets;
         for (sky_usize_t i = map->bucket_num; i > 0; --i, ++bucket) {
             if (bucket->dib) {
