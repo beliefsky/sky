@@ -7,6 +7,8 @@
 
 #include "../inet.h"
 #include "../../core/coro.h"
+#include "../../core/string.h"
+#include "../../core/hashmap.h"
 #include "../../event/event_loop.h"
 
 #if defined(__cplusplus)
@@ -14,6 +16,7 @@ extern "C" {
 #endif
 
 typedef struct sky_mqtt_server_s sky_mqtt_server_t;
+typedef struct sky_mqtt_session_s sky_mqtt_session_t;
 typedef struct sky_mqtt_connect_s sky_mqtt_connect_t;
 typedef struct sky_mqtt_packet_s sky_mqtt_packet_t;
 
@@ -23,6 +26,15 @@ struct sky_mqtt_server_s {
     void (*mqtt_read_all)(sky_mqtt_connect_t *conn, sky_uchar_t *data, sky_usize_t size);
 
     sky_isize_t (*mqtt_write_nowait)(sky_mqtt_connect_t *conn, const sky_uchar_t *data, sky_usize_t size);
+
+    sky_hashmap_t *session_manager;
+};
+
+struct sky_mqtt_session_s {
+    sky_str_t client_id;
+    sky_mqtt_connect_t *conn;
+    sky_defer_t *defer;
+    sky_u8_t version;
 };
 
 struct sky_mqtt_connect_s {
@@ -35,6 +47,7 @@ struct sky_mqtt_connect_s {
     sky_u32_t write_size;
     sky_u32_t head_copy: 3;
 };
+
 
 struct sky_mqtt_packet_s {
     sky_queue_t link;

@@ -8,6 +8,7 @@
 #include "../../core/memory.h"
 #include "../tcp_server.h"
 #include "mqtt_response.h"
+#include "../../core/crc32.h"
 
 static sky_event_t *mqtt_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_mqtt_server_t *server);
 
@@ -15,12 +16,17 @@ static sky_bool_t mqtt_run(sky_mqtt_connect_t *conn);
 
 static void mqtt_close(sky_mqtt_connect_t *conn);
 
+static sky_u64_t session_hash(const void *item, void *secret);
+
+static sky_bool_t session_equals(const void *a, const void *b);
+
 sky_mqtt_server_t *
 sky_mqtt_server_create() {
     sky_mqtt_server_t *server = sky_malloc(sizeof(sky_mqtt_server_t));
     server->mqtt_read = sky_mqtt_read;
     server->mqtt_read_all = sky_mqtt_read_all;
     server->mqtt_write_nowait = sky_mqtt_write_nowait;
+    server->session_manager = sky_hashmap_create_with_cap(session_hash, session_equals, null, 128);
 
     return server;
 }
@@ -76,4 +82,24 @@ mqtt_close(sky_mqtt_connect_t *conn) {
     }
 
     sky_coro_destroy(conn->coro);
+}
+
+
+static sky_u64_t
+session_hash(const void *item, void *secret) {
+    (void) secret;
+    const sky_mqtt_session_t *session = item;
+
+    sky_u32_t crc = sky_crc32_init();
+    crc = sky_crc32c_update(crc, session->client_id.data, session->client_id.len);
+
+    return sky_crc32_final(crc);
+}
+
+static sky_bool_t
+session_equals(const void *a, const void *b) {
+    const sky_mqtt_session_t *ua = a;
+    const sky_mqtt_session_t *ub = b;
+
+    return sky_str_equals(&ua->client_id, &ub->client_id);
 }

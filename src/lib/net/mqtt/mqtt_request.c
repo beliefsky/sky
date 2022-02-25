@@ -10,6 +10,10 @@ static sky_bool_t mqtt_read_head_pack(sky_mqtt_connect_t *conn, sky_mqtt_head_t 
 
 static void mqtt_read_body(sky_mqtt_connect_t *conn, sky_mqtt_head_t *head, sky_uchar_t *buf);
 
+static sky_mqtt_session_t *session_get(sky_mqtt_connect_msg_t *msg, sky_mqtt_connect_t *conn);
+
+static void session_put(sky_mqtt_session_t *session);
+
 sky_isize_t
 sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
     sky_mqtt_head_t head;
@@ -34,6 +38,7 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
 
     sky_mqtt_send_connect_ack(conn, false, 0x0);
 
+    sky_mqtt_session_t *session = session_get(&connect_msg, conn);
 
     for (;;) {
         read_pack = mqtt_read_head_pack(conn, &head);
@@ -204,4 +209,50 @@ mqtt_read_body(sky_mqtt_connect_t *conn, sky_mqtt_head_t *head, sky_uchar_t *buf
     }
 
     conn->server->mqtt_read_all(conn, buf, head->body_size - read_size);
+}
+
+
+static sky_mqtt_session_t *
+session_get(sky_mqtt_connect_msg_t *msg, sky_mqtt_connect_t *conn) {
+    sky_hashmap_t *session_manager = conn->server->session_manager;
+
+    const sky_mqtt_session_t tmp = {
+            .client_id = msg->client_id
+    };
+
+    sky_mqtt_session_t *session = sky_hashmap_get(session_manager, &tmp);
+    if (null != session) {
+        if (null != session->conn) {
+            sky_defer_cancel(session->conn->coro, session->defer);
+            sky_event_unregister(&session->conn->ev);
+        }
+    } else {
+        session = sky_malloc(sizeof(sky_mqtt_session_t) + msg->client_id.len);
+        session->client_id.data = (sky_uchar_t *) (session + 1);
+        session->client_id.len = msg->client_id.len;
+        sky_memcpy(session->client_id.data, msg->client_id.data, msg->client_id.len);
+
+
+        sky_hashmap_put(session_manager, session);
+    }
+    session->defer = sky_defer_global_add(conn->coro, (sky_defer_func_t) session_put, session);
+    session->conn = conn;
+    session->version = msg->version;
+
+    return session;
+}
+
+static void
+session_put(sky_mqtt_session_t *session) {
+    sky_hashmap_t *session_manager = session->conn->server->session_manager;
+    sky_mqtt_session_t *old = sky_hashmap_get(session_manager, session);
+    if (sky_unlikely(old != session)) {
+        sky_free(session);
+        return;
+    }
+    if (sky_likely(session->conn == old->conn)) {
+        session->conn = null;
+        sky_hashmap_del(session_manager, session);
+        sky_free(session);
+    }
 }
