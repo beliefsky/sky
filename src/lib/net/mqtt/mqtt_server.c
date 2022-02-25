@@ -9,6 +9,7 @@
 #include "../tcp_server.h"
 #include "mqtt_response.h"
 #include "../../core/crc32.h"
+#include "mqtt_subs.h"
 
 static sky_event_t *mqtt_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_mqtt_server_t *server);
 
@@ -27,6 +28,7 @@ sky_mqtt_server_create() {
     server->mqtt_read_all = sky_mqtt_read_all;
     server->mqtt_write_nowait = sky_mqtt_write_nowait;
     server->session_manager = sky_hashmap_create_with_cap(session_hash, session_equals, null, 128);
+    server->sub_tree = sky_mqtt_subs_create();
 
     return server;
 }

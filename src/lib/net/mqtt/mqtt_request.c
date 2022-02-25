@@ -5,6 +5,9 @@
 #include "mqtt_request.h"
 #include "mqtt_response.h"
 #include "../../core/memory.h"
+#include "mqtt_subs.h"
+#include "../../core/array.h"
+#include "../../core/log.h"
 
 static sky_bool_t mqtt_read_head_pack(sky_mqtt_connect_t *conn, sky_mqtt_head_t *head);
 
@@ -16,6 +19,8 @@ static void session_defer(sky_mqtt_session_t *session);
 
 sky_isize_t
 sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
+    (void) coro;
+
     sky_mqtt_head_t head;
 
     sky_bool_t read_pack = mqtt_read_head_pack(conn, &head);
@@ -39,7 +44,7 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
     sky_mqtt_send_connect_ack(conn, false, 0x0);
 
     sky_mqtt_session_t *session = session_get(&connect_msg, conn);
-
+    sky_topic_tree_t *sub_tree = conn->server->sub_tree;
     for (;;) {
         read_pack = mqtt_read_head_pack(conn, &head);
         if (sky_unlikely(!read_pack)) {
@@ -68,6 +73,8 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
                 } else if (head.qos == 2) {
                     sky_mqtt_send_publish_rec(conn, msg.packet_identifier);
                 }
+                sky_mqtt_subs_publish(sub_tree, &head, &msg);
+
                 break;
             }
             case SKY_MQTT_TYPE_PUBACK: {
@@ -101,22 +108,25 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
 
                 sky_mqtt_subscribe_pack(&msg, body, head.body_size);
 
-                sky_mqtt_topic_t topic;
-                sky_u32_t alloc_num = 8, topic_num = 0;
-                sky_uchar_t *max_qos = sky_malloc(alloc_num);
-                while (sky_mqtt_topic_read_next(&msg, &topic)) {
-                    if (alloc_num == topic_num) {
-                        alloc_num <<= 1;
-                        max_qos = sky_realloc(max_qos, alloc_num);
-                    }
-                    max_qos[topic_num] = topic.qos;
-                    ++topic_num;
-                }
-                sky_defer_t *defer = sky_defer_add(conn->coro, sky_free, max_qos);
-                sky_mqtt_send_sub_ack(conn, msg.packet_identifier, max_qos, topic_num);
+                sky_array_t qos, topics;
+                sky_array_init(&qos, 8, sizeof(sky_u8_t));
+                sky_array_init(&topics, 8, sizeof(sky_str_t));
 
-                sky_defer_cancel(conn->coro, defer);
-                sky_free(max_qos);
+                sky_mqtt_topic_t topic;
+                while (sky_mqtt_topic_read_next(&msg, &topic)) {
+                    sky_u8_t *q = sky_array_push(&qos);
+                    *q = topic.qos;
+                    sky_str_t *t = sky_array_push(&topics);
+                    *t = topic.topic;
+                }
+                sky_mqtt_send_sub_ack(conn, msg.packet_identifier, qos.elts, qos.nelts);
+
+                sky_u8_t *q = qos.elts;
+                sky_array_foreach(&topics, sky_str_t, item, {
+                    sky_mqtt_subs_sub(sub_tree, item, session, *(q++));
+                });
+                sky_array_destroy(&qos);
+                sky_array_destroy(&topics);
                 break;
             }
             case SKY_MQTT_TYPE_UNSUBSCRIBE: {
@@ -125,6 +135,11 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
                 sky_mqtt_unsubscribe_pack(&msg, body, head.body_size);
 
                 sky_mqtt_send_unsub_ack(conn, msg.packet_identifier);
+
+                sky_mqtt_topic_t topic;
+                while (sky_mqtt_topic_read_next(&msg, &topic)) {
+                    sky_mqtt_subs_unsub(sub_tree, &topic.topic, session);
+                }
                 break;
             }
             case SKY_MQTT_TYPE_PINGREQ: {
