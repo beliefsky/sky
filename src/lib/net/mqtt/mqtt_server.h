@@ -7,8 +7,8 @@
 
 #include "../inet.h"
 #include "../../core/coro.h"
-#include "../../core/string.h"
 #include "../../core/hashmap.h"
+#include "../../core/topic_tree.h"
 #include "../../event/event_loop.h"
 
 #if defined(__cplusplus)
@@ -28,6 +28,7 @@ struct sky_mqtt_server_s {
     sky_isize_t (*mqtt_write_nowait)(sky_mqtt_connect_t *conn, const sky_uchar_t *data, sky_usize_t size);
 
     sky_hashmap_t *session_manager;
+    sky_topic_tree_t *sub_tree;
 };
 
 struct sky_mqtt_session_s {
