@@ -312,7 +312,7 @@ topic_node_get_s2(sky_hashmap_t *map, sky_u64_t s2_hash) {
 static sky_inline sky_u64_t
 topic_node_get_s2_hash(sky_hashmap_t *map) {
     const topic_node_t tmp = {
-            .key = sky_string("*")
+            .key = sky_string("+")
     };
     return sky_hashmap_get_hash(map, &tmp);
 }
