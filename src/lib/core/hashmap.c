@@ -58,10 +58,16 @@ sky_hashmap_count(const sky_hashmap_t *map) {
 
 void *
 sky_hashmap_put(sky_hashmap_t *map, void *item) {
+    const sky_u64_t hash = get_hash(map, item);
+
+    return sky_hashmap_put_with_hash(map, hash, item);
+}
+
+void *
+sky_hashmap_put_with_hash(sky_hashmap_t *map, sky_u64_t hash, void *item) {
     if (sky_unlikely(map->count == map->grow_at)) {
         buckets_resize(map, map->bucket_num << 1);
     }
-    sky_u64_t hash = get_hash(map, item);
     sky_u16_t dib = 1;
     sky_usize_t i = hash & map->mask;
 
@@ -100,6 +106,12 @@ sky_hashmap_put(sky_hashmap_t *map, void *item) {
 void *
 sky_hashmap_get(const sky_hashmap_t *map, const void *item) {
     const sky_u64_t hash = get_hash(map, item);
+
+    return sky_hashmap_get_with_hash(map, hash, item);
+}
+
+void *
+sky_hashmap_get_with_hash(const sky_hashmap_t *map, sky_u64_t hash, const void *item) {
     sky_usize_t i = hash & map->mask;
 
     bucket_t *bucket;
@@ -118,6 +130,12 @@ sky_hashmap_get(const sky_hashmap_t *map, const void *item) {
 void *
 sky_hashmap_del(sky_hashmap_t *map, const void *item) {
     const sky_u64_t hash = get_hash(map, item);
+
+    return sky_hashmap_del_with_hash(map, hash, item);
+}
+
+void *
+sky_hashmap_del_with_hash(sky_hashmap_t *map, sky_u64_t hash, const void *item) {
     sky_usize_t i = hash & map->mask;
 
     bucket_t *bucket, *prev;

@@ -240,7 +240,9 @@ topic_node_sub(topic_node_t *parent, sky_uchar_t *key, sky_usize_t len) {
             .key.data = key,
             .key.len = len
     };
-    topic_node_t *node = sky_hashmap_get(parent->map, &tmp);
+
+    const sky_u64_t hash = topic_hash(&tmp, null);
+    topic_node_t *node = sky_hashmap_get_with_hash(parent->map, hash, &tmp);
     if (!node) {
         node = sky_malloc(sizeof(topic_node_t) + len);
         node->key.data = (sky_uchar_t *) (node + 1);
@@ -253,7 +255,7 @@ topic_node_sub(topic_node_t *parent, sky_uchar_t *key, sky_usize_t len) {
         node->map = sky_hashmap_create(topic_hash, topic_equals, null);
         node->client = null;
 
-        sky_hashmap_put(parent->map, node);
+        sky_hashmap_put_with_hash(parent->map, hash, node);
     }
     ++node->num;
 
