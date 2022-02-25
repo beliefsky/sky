@@ -98,7 +98,7 @@ sky_hashmap_put(sky_hashmap_t *map, void *item) {
 }
 
 void *
-sky_hashmap_get(sky_hashmap_t *map, const void *item) {
+sky_hashmap_get(const sky_hashmap_t *map, const void *item) {
     const sky_u64_t hash = get_hash(map, item);
     sky_usize_t i = hash & map->mask;
 
@@ -171,13 +171,13 @@ sky_hashmap_scan(sky_hashmap_t *map, sky_hashmap_iter_pt iter, void *user_data) 
 }
 
 void
-sky_hashmap_clean(sky_hashmap_t *map, sky_hashmap_free_pt free, void *user_data, sky_bool_t recap) {
+sky_hashmap_clean(sky_hashmap_t *map, sky_hashmap_free_pt free, sky_bool_t recap) {
     if (free && map->count != 0) {
         bucket_t *bucket = map->buckets;
         for (sky_usize_t i = map->bucket_num; i > 0; --i, ++bucket) {
             if (bucket->dib) {
                 bucket->dib = 0;
-                free(bucket->data, user_data);
+                free(bucket->data);
             }
         }
         if (recap) {
@@ -210,12 +210,13 @@ sky_hashmap_clean(sky_hashmap_t *map, sky_hashmap_free_pt free, void *user_data,
     map->count = 0;
 }
 
-void sky_hashmap_destroy(sky_hashmap_t *map, sky_hashmap_free_pt free, void *user_data) {
+void
+sky_hashmap_destroy(sky_hashmap_t *map, sky_hashmap_free_pt free) {
     if (free && map->count != 0) {
         bucket_t *bucket = map->buckets;
         for (sky_usize_t i = map->bucket_num; i > 0; --i, ++bucket) {
             if (bucket->dib) {
-                free(bucket->data, user_data);
+                free(bucket->data);
             }
         }
     }
