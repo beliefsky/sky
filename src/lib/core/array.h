@@ -34,6 +34,14 @@ void *sky_array_push_n(sky_array_t *a, sky_u32_t n);
 
 void sky_array_destroy(sky_array_t *a);
 
+#define sky_array_foreach(_a, _type, _item, _code) \
+    do {                                           \
+        typeof(_type) *(_item) = (_a)->elts;       \
+        for(sky_u32_t _i = (_a)->nelts; _i > 0; ++_i, ++(_item)) { \
+            _code                                  \
+        }                                          \
+    } while(0)
+
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif

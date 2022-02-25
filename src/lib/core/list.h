@@ -75,7 +75,7 @@ void *sky_list_push(sky_list_t *list);
     do {                                             \
         sky_list_part_t *_part = &((_list)->part);   \
         sky_u32_t _i;                                \
-        _type* (_item) = null, *_data = _part->elts; \
+        typeof(_type) *(_item) = null, *_data = _part->elts; \
         for(_i = 0; ; ++_i) {                        \
             if (_i >= _part->nelts) {                \
                 if (!(_part->next)) {                \
