@@ -8,6 +8,7 @@
 #include "mqtt_subs.h"
 #include "../../core/array.h"
 #include "../../core/log.h"
+#include "../../core/crc32.h"
 
 static sky_bool_t mqtt_read_head_pack(sky_mqtt_connect_t *conn, sky_mqtt_head_t *head);
 
@@ -239,6 +240,9 @@ session_get(sky_mqtt_connect_msg_t *msg, sky_mqtt_connect_t *conn) {
     if (null != session) {
         if (null != session->conn) {
             sky_defer_cancel(session->conn->coro, session->defer);
+
+            sky_mqtt_topics_clean(session->topics);
+
             sky_event_unregister(&session->conn->ev);
         }
     } else {
@@ -246,7 +250,7 @@ session_get(sky_mqtt_connect_msg_t *msg, sky_mqtt_connect_t *conn) {
         session->client_id.data = (sky_uchar_t *) (session + 1);
         session->client_id.len = msg->client_id.len;
         sky_memcpy(session->client_id.data, msg->client_id.data, msg->client_id.len);
-
+        session->topics = sky_mqtt_topics_create();
 
         sky_hashmap_put(session_manager, session);
     }
@@ -266,8 +270,10 @@ session_defer(sky_mqtt_session_t *session) {
         return;
     }
     if (sky_likely(session->conn == old->conn)) {
-        session->conn = null;
+        sky_mqtt_topics_destroy(session->topics);
         sky_hashmap_del(session_manager, session);
+        session->conn = null;
+
         sky_free(session);
     }
 }
