@@ -103,6 +103,11 @@ sky_hashmap_put_with_hash(sky_hashmap_t *map, sky_u64_t hash, void *item) {
     }
 }
 
+sky_u64_t
+sky_hashmap_get_hash(const sky_hashmap_t *map, const void *item) {
+    return get_hash(map, item);
+}
+
 void *
 sky_hashmap_get(const sky_hashmap_t *map, const void *item) {
     const sky_u64_t hash = get_hash(map, item);

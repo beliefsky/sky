@@ -241,7 +241,7 @@ topic_node_sub(topic_node_t *parent, sky_uchar_t *key, sky_usize_t len) {
             .key.len = len
     };
 
-    const sky_u64_t hash = topic_hash(&tmp, null);
+    const sky_u64_t hash = sky_hashmap_get_hash(parent->map, &tmp);
     topic_node_t *node = sky_hashmap_get_with_hash(parent->map, hash, &tmp);
     if (!node) {
         node = sky_malloc(sizeof(topic_node_t) + len);
