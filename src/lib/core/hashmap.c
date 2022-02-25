@@ -134,7 +134,7 @@ sky_hashmap_del(sky_hashmap_t *map, const void *item) {
                 prev = bucket;
                 i = (i + 1) & map->mask;
                 bucket = map->buckets + i;
-                if (bucket->dib <= SKY_U64(1)) {
+                if (bucket->dib <= SKY_U16(1)) {
                     prev->dib = 0;
                     break;
                 }
