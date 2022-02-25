@@ -23,6 +23,12 @@ void sky_mqtt_subs_publish(sky_topic_tree_t *subs, const sky_mqtt_head_t *head, 
 
 void sky_mqtt_subs_destroy(sky_topic_tree_t *subs);
 
+sky_hashmap_t *sky_mqtt_topics_create();
+
+void sky_mqtt_topics_clean(sky_hashmap_t *topics);
+
+void sky_mqtt_topics_destroy(sky_hashmap_t *topics);
+
 
 #if defined(__cplusplus)
 } /* extern "C" { */

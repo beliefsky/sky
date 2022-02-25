@@ -35,6 +35,8 @@ struct sky_mqtt_session_s {
     sky_str_t client_id;
     sky_mqtt_connect_t *conn;
     sky_defer_t *defer;
+    sky_hashmap_t *topics;
+    sky_u16_t packet_identifier;
     sky_u8_t version;
 };
 
