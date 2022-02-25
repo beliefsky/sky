@@ -7,8 +7,6 @@
 #include "../../core/memory.h"
 #include "mqtt_subs.h"
 #include "../../core/array.h"
-#include "../../core/log.h"
-#include "../../core/crc32.h"
 
 static sky_bool_t mqtt_read_head_pack(sky_mqtt_connect_t *conn, sky_mqtt_head_t *head);
 
