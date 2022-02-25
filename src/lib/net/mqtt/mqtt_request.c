@@ -236,7 +236,8 @@ session_get(sky_mqtt_connect_msg_t *msg, sky_mqtt_connect_t *conn) {
             .client_id = msg->client_id
     };
 
-    sky_mqtt_session_t *session = sky_hashmap_get(session_manager, &tmp);
+    const sky_u64_t hash = sky_hashmap_get_hash(session_manager, &tmp);
+    sky_mqtt_session_t *session = sky_hashmap_get_with_hash(session_manager, hash, &tmp);
     if (null != session) {
         if (null != session->conn) {
             sky_defer_cancel(session->conn->coro, session->defer);
@@ -252,7 +253,7 @@ session_get(sky_mqtt_connect_msg_t *msg, sky_mqtt_connect_t *conn) {
         sky_memcpy(session->client_id.data, msg->client_id.data, msg->client_id.len);
         session->topics = sky_mqtt_topics_create();
 
-        sky_hashmap_put(session_manager, session);
+        sky_hashmap_put_with_hash(session_manager, hash, session);
     }
     session->defer = sky_defer_global_add(conn->coro, (sky_defer_func_t) session_defer, session);
     session->conn = conn;
