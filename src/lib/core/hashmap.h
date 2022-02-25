@@ -31,9 +31,15 @@ sky_usize_t sky_hashmap_count(const sky_hashmap_t *map);
 
 void *sky_hashmap_put(sky_hashmap_t *map, void *item);
 
+void *sky_hashmap_put_with_hash(sky_hashmap_t *map, sky_u64_t hash, void *item);
+
 void *sky_hashmap_get(const sky_hashmap_t *map, const void *item);
 
+void *sky_hashmap_get_with_hash(const sky_hashmap_t *map, sky_u64_t hash, const void *item);
+
 void *sky_hashmap_del(sky_hashmap_t *map, const void *item);
+
+void *sky_hashmap_del_with_hash(sky_hashmap_t *map, sky_u64_t hash, const void *item);
 
 sky_bool_t sky_hashmap_scan(sky_hashmap_t *map, sky_hashmap_iter_pt iter, void *user_data);
 
