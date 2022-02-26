@@ -210,3 +210,11 @@ install(FILES
         net/http/extend/http_extend_pgsql_pool.h
         net/http/extend/http_extend_redis_pool.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/http/extend")
+install(FILES
+        net/mqtt/mqtt_io_wrappers.h
+        net/mqtt/mqtt_protocol.h
+        net/mqtt/mqtt_request.h
+        net/mqtt/mqtt_response.h
+        net/mqtt/mqtt_subs.h
+        net/mqtt/mqtt_server.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/mqtt")
