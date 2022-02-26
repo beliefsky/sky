@@ -58,7 +58,7 @@ sky_udp_pool_create(sky_event_loop_t *loop, const sky_udp_pool_conf_t *conf) {
 
     if (!(i = conf->connection_size)) {
         i = 2;
-    } else if (sky_unlikely(sky_is_2_power(i))) {
+    } else if (sky_unlikely(!sky_is_2_power(i))) {
         sky_log_error("连接数必须为2的整数幂");
         return null;
     }
@@ -97,7 +97,7 @@ sky_udp_pool_conn_bind(sky_udp_pool_t *udp_pool, sky_udp_conn_t *conn, sky_event
         return false;
     }
     sky_udp_node_t *client = udp_pool->clients + (event->fd & udp_pool->connection_ptr);
-    const sky_bool_t empty = client->tasks.next == &client->tasks;
+    const sky_bool_t empty = sky_queue_is_empty(&client->tasks);
 
     conn->defer = sky_defer_add(coro, (sky_defer_func_t) udp_connection_defer, conn);
     sky_queue_insert_prev(&client->tasks, &conn->link);
@@ -605,10 +605,11 @@ udp_run(sky_udp_node_t *client) {
                 sky_event_unregister(event);
             }
         }
-        if (client->tasks.prev == &client->tasks) {
+        if (sky_queue_is_empty(&client->tasks)) {
             break;
         }
-        client->current = (sky_udp_conn_t *) client->tasks.prev;
+
+        client->current = (sky_udp_conn_t *) sky_queue_next(&client->tasks);
     }
 
     client->main = false;

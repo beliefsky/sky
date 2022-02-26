@@ -1,141 +1,176 @@
 //
-// Created by weijing on 17-11-24.
+// Created by beliefsky on 2022/2/23.
 //
 
 #include "hash.h"
-#include "crc32.h"
-#include "log.h"
+#include "memory.h"
 
-typedef struct hash_entry_s hash_entry_t;
+static sky_u64_t wy_rand(sky_u64_t *seed);
 
-typedef void *(*put_pt)(sky_hash_t *hash, sky_uchar_t *key, sky_usize_t key_len, void *data);
+static sky_u64_t wy_mix(sky_u64_t a, sky_u64_t b);
 
-typedef void *(*get_pt)(const sky_hash_t *hash, const sky_uchar_t *key, sky_usize_t key_len);
+static void wy_mum(sky_u64_t *a, sky_u64_t *b);
 
-struct hash_entry_s {
-    sky_u32_t hash;
-    sky_str_t key;
-    void *data;
-    hash_entry_t *next;
-};
+static sky_u64_t wy_r3(const sky_uchar_t *p, sky_usize_t k);
 
-struct sky_hash_s {
-    sky_pool_t *pool;
-    put_pt put;
-    get_pt get;
-    union {
-        struct {
-            hash_entry_t **entry;
-            sky_u32_t mask;
-        } buckets;
+static sky_u64_t wy_r4(const sky_uchar_t *p);
+
+static sky_u64_t wy_r8(const sky_u64_t *p);
+
+void
+sky_wy_hash_make_secret(sky_u64_t seed, sky_u64_t secret[4]) {
+    static const sky_uchar_t table[] = {
+            15, 23, 27, 29, 30, 39, 43, 45, 46,
+            51, 53, 54, 57, 58, 60, 71, 75,
+            77, 78, 83, 85, 86, 89, 90, 92,
+            99, 101, 102, 105, 106, 108, 113, 114,
+            116, 120, 135, 139, 141, 142, 147, 149,
+            150, 153, 154, 156, 163, 165, 166, 169,
+            170, 172, 177, 178, 180, 184, 195, 197,
+            198, 201, 202, 204, 209, 210, 212, 216,
+            225, 226, 228, 232, 240
     };
-};
-
-static void *map_buckets_put(sky_hash_t *hash, sky_uchar_t *key, sky_usize_t key_len, void *data);
-
-void *map_buckets_get(const sky_hash_t *hash, const sky_uchar_t *key, sky_usize_t key_len);
-
-sky_hash_t *
-sky_hash_bucket(sky_pool_t *pool, sky_u32_t bucket_size) {
-    if (sky_unlikely(!bucket_size)) {
-        sky_log_error("bucket_size 必须大于0");
-        return null;
+    for (sky_usize_t i = 0; i < 4; i++) {
+        sky_bool_t ok;
+        do {
+            ok = true;
+            secret[i] = 0;
+            for (sky_usize_t j = 0; j < 64; j += 8) {
+                secret[i] |= ((sky_u64_t) table[wy_rand(&seed) % sizeof(table)]) << j;
+            }
+            if ((secret[i] & 1) == 0) {
+                ok = false;
+                continue;
+            }
+            for (sky_usize_t j = 0; j < i; j++) {
+#if defined(__GNUC__) || defined(__INTEL_COMPILER) || defined(__clang__)
+                if (__builtin_popcountll(secret[j] ^ secret[i]) != 32) {
+                    ok = false;
+                    break;
+                }
+#else
+                //manual popcount
+                sky_u64_t x = secret[j] ^ secret[i];
+                x -= (x >> 1) & 0x5555555555555555;
+                x = (x & 0x3333333333333333) + ((x >> 2) & 0x3333333333333333);
+                x = (x + (x >> 4)) & 0x0f0f0f0f0f0f0f0f;
+                x = (x * 0x0101010101010101) >> 56;
+                if (x != 32) {
+                    ok = false;
+                    break;
+                }
+#endif
+            }
+        } while (!ok);
     }
-    if (sky_unlikely(sky_is_2_power(bucket_size))) {
-        sky_log_error("bucket_size 必须为2的整数幂");
-        return null;
-    }
-
-    sky_hash_t *hash = sky_palloc(pool, sizeof(sky_hash_t));
-    hash->pool = pool;
-    hash->put = map_buckets_put;
-    hash->get = map_buckets_get;
-    hash->buckets.entry = sky_pcalloc(pool, sizeof(hash_entry_t *) * bucket_size);
-    hash->buckets.mask = bucket_size - 1;
-
-    return hash;
 }
 
-void *
-sky_hash_put(sky_hash_t *hash, sky_uchar_t *key, sky_usize_t key_len, void *data) {
-    return hash->put(hash, key, key_len, data);
-}
+sky_u64_t
+sky_wy_hash(const sky_uchar_t *data, sky_usize_t len, sky_u64_t seed, const sky_u64_t *secret) {
+    seed ^= *secret;
+    sky_u64_t a, b;
 
-void *
-sky_hash_get(const sky_hash_t *hash, const sky_uchar_t *key, sky_usize_t key_len) {
-    return hash->get(hash, key, key_len);
-}
-
-static void *
-map_buckets_put(sky_hash_t *hash, sky_uchar_t *key, sky_usize_t key_len, void *data) {
-    sky_u32_t h;
-    hash_entry_t *entry, **ptr;
-
-
-    if (!key_len) {
-        h = 0;
+    if (sky_likely(len <= 16)) {
+        if (sky_likely(len >= 4)) {
+            a = (wy_r4(data) << 32) | wy_r4(data + ((len >> 3) << 2));
+            b = (wy_r4(data + len - 4) << 32) | wy_r4(data + len - 4 - ((len >> 3) << 2));
+        } else if (sky_likely(len > 0)) {
+            a = wy_r3(data, len);
+            b = 0;
+        } else {
+            a = b = 0;
+        }
     } else {
-        h = sky_crc32_init();
-        h = sky_crc32c_update(h, key, key_len);
-        h = sky_crc32_final(h);
-    }
-    ptr = hash->buckets.entry + (h & hash->buckets.mask);
-    entry = *ptr;
-    if (!entry) {
-        *ptr = entry = sky_palloc(hash->pool, sizeof(hash_entry_t));
-        entry->hash = h;
-        entry->key.data = key;
-        entry->key.len = key_len;
-        entry->data = data;
-        entry->next = null;
-
-        return null;
-    }
-
-    for (;;) {
-        if (entry->hash == h && sky_str_equals2(&entry->key, key, key_len)) {
-            void *old_data = entry->data;
-            entry->data = data;
-            return old_data;
+        sky_usize_t i = len;
+        if (sky_unlikely(i > 48)) {
+            sky_u64_t see1 = seed, see2 = seed;
+            do {
+                seed = wy_mix(
+                        wy_r8((const sky_u64_t *) data) ^ secret[1],
+                        wy_r8((const sky_u64_t *) (data + 8)) ^ seed
+                );
+                see1 = wy_mix(
+                        wy_r8((const sky_u64_t *) (data + 16)) ^ secret[2],
+                        wy_r8((const sky_u64_t *) (data + 24)) ^ see1
+                );
+                see2 = wy_mix(
+                        wy_r8((const sky_u64_t *) (data + 32)) ^ secret[3],
+                        wy_r8((const sky_u64_t *) (data + 40)) ^ see2
+                );
+                data += 48;
+                i -= 48;
+            } while (sky_likely(i > 48));
+            seed ^= see1 ^ see2;
         }
-        if (entry->next != null) {
-            entry = entry->next;
-            continue;
+        while (sky_unlikely(i > 16)) {
+            seed = wy_mix(
+                    wy_r8((const sky_u64_t *) data) ^ secret[1],
+                    wy_r8((const sky_u64_t *) (data + 8)) ^ seed
+            );
+            i -= 16;
+            data += 16;
         }
-        entry = entry->next = sky_palloc(hash->pool, sizeof(hash_entry_t));
-        entry->hash = h;
-        entry->key.data = key;
-        entry->key.len = key_len;
-        entry->data = data;
-        entry->next = null;
-
-        return null;
+        a = wy_r8((const sky_u64_t *) (data + i - 16));
+        b = wy_r8((const sky_u64_t *) (data + i - 8));
     }
+    return wy_mix(secret[1] ^ len, wy_mix(a ^ secret[1], b ^ seed));
 }
 
-void *
-map_buckets_get(const sky_hash_t *hash, const sky_uchar_t *key, sky_usize_t key_len) {
-    sky_u32_t h;
-    hash_entry_t *entry, **ptr;
 
-    if (!key_len) {
-        h = 0;
-    } else {
-        h = sky_crc32_init();
-        h = sky_crc32c_update(h, key, key_len);
-        h = sky_crc32_final(h);
-    }
-    ptr = hash->buckets.entry + (h & hash->buckets.mask);
-    entry = *ptr;
-    if (!entry) {
-        return null;
-    }
+static sky_inline sky_u64_t
+wy_rand(sky_u64_t *seed) {
+    *seed += SKY_U64(0xa0761d6478bd642f);
+    return wy_mix(*seed, *seed ^ SKY_U64(0xe7037ed1a0b428db));
+}
 
-    do {
-        if (entry->hash == h && sky_str_equals2(&entry->key, key, key_len)) {
-            return entry->data;
-        }
-    } while ((entry = entry->next) != null);
+static sky_inline sky_u64_t
+wy_mix(sky_u64_t a, sky_u64_t b) {
+    wy_mum(&a, &b);
+    return (a ^ b);
+}
 
-    return null;
+static sky_inline
+void wy_mum(sky_u64_t *a, sky_u64_t *b) {
+
+#if defined(__SIZEOF_INT128__)
+    __uint128_t r = *a;
+    r *= *b;
+    *a = (sky_u64_t) r;
+    *b = (sky_u64_t) (r >> 64);
+#else
+    sky_u64_t ha = *a >> 32, hb = *b >> 32, la = (sky_u32_t) *a, lb = (sky_u32_t) *b, hi, lo;
+    sky_u64_t rh = ha * hb, rm0 = ha * lb, rm1 = hb * la, rl = la * lb, t = rl + (rm0 << 32), c = t < rl;
+    lo = t + (rm1 << 32);
+    c += lo < t;
+    hi = rh + (rm0 >> 32) + (rm1 >> 32) + c;
+    *a = lo;
+    *b = hi;
+#endif
+}
+
+static sky_inline sky_u64_t
+wy_r8(const sky_u64_t *p) {
+    sky_u64_t v;
+    sky_memcpy8(&v, p);
+#if __BYTE_ORDER != __LITTLE_ENDIAN
+    v = sky_swap_u64(v);
+#endif
+
+    return v;
+}
+
+static sky_inline sky_u64_t
+wy_r4(const sky_uchar_t *p) {
+    sky_u32_t v;
+    sky_memcpy4(&v, p);
+#if __BYTE_ORDER != __LITTLE_ENDIAN
+    v = sky_swap_u32(v);
+#endif
+
+    return v;
+}
+
+static sky_inline sky_u64_t
+wy_r3(const sky_uchar_t *p, sky_usize_t k) {
+    return (((sky_u64_t) p[0]) << 16) | (((sky_u64_t) p[k >> 1]) << 8) | p[k - 1];
 }

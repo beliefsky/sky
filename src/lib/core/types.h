@@ -57,6 +57,30 @@ extern "C" {
 #define SKY_ISIZE(_c)  INTMAX_C(_c)
 #define SKY_USIZE(_c)  UINTMAX_C(_c)
 
+#ifdef HAVE_BUILTIN_BSWAP
+#define sky_swap_u16(_ll) __builtin_bswap16(_ll)
+#define sky_swap_u32(_ll) __builtin_bswap32(_ll)
+#define sky_swap_u64(_ll) __builtin_bswap64(_ll)
+
+#else
+#define sky_swap_u16(_s)    (sky_u16_t)(((_s) & 0x00FF) << 8 | ((_s) & 0xFF00) >> 8)
+#define sky_swap_u32(_l)    (sky_u32_t)  \
+    (((_l) & 0x000000FF) << 24 |            \
+    ((_l) & 0x0000FF00) << 8  |             \
+    ((_l) & 0x00FF0000) >> 8  |             \
+    ((_l) & 0xFF000000) >> 24)
+
+#define sky_swap_u64(_ll)   (sky_u64_t)  \
+    (((_ll) & 0x00000000000000FF) << 56 |   \
+    ((_ll) & 0x000000000000FF00) << 40 |    \
+    ((_ll) & 0x0000000000FF0000) << 24 |    \
+    ((_ll) & 0x00000000FF000000) << 8  |    \
+    ((_ll) & 0x000000FF00000000) >> 8  |    \
+    ((_ll) & 0x0000FF0000000000) >> 24 |    \
+    ((_ll) & 0x00FF000000000000) >> 40 |    \
+    ((_ll) & 0xFF00000000000000) >> 56)
+#endif
+
 
 typedef _Bool sky_bool_t;
 typedef char sky_char_t;             /*-128 ~ +127*/
@@ -86,7 +110,7 @@ typedef double sky_f64_t;
 /**
  * 是否是2的冪数
  */
-#define sky_is_2_power(_v) ((_v) && ((_v) & ((_v) -1)))
+#define sky_is_2_power(_v) (((_v) && ((_v) & ((_v) -1))) == 0)
 
 /**
  * 可以计算查找4个字节是否有\0, 需要提前把 v 转成 uint32

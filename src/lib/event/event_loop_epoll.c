@@ -93,6 +93,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
         for (event = events; n > 0; ++event, --n) {
             ev = event->data.ptr;
+            ev->now = loop->now;
 
             // 需要处理被移除的请求
             if (sky_event_none_reg(ev)) {
@@ -100,8 +101,8 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 ev->close(ev);
                 continue;
             }
-            // 是否可读
-            ev->now = loop->now;
+
+            // 是否出现异常
             if (sky_unlikely(event->events & (EPOLLRDHUP | EPOLLHUP))) {
                 close(ev->fd);
                 ev->fd = -1;
@@ -111,10 +112,10 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 continue;
             }
 
+            // 是否可读可写
             ev->status |= ((sky_u32_t) ((event->events & EPOLLOUT) != 0) << 2)
                           | ((sky_u32_t) ((event->events & EPOLLIN) != 0) << 1);
 
-            // 是否出现异常
             if (ev->run(ev)) {
                 sky_timer_wheel_expired(ctx, &ev->timer, (sky_u64_t) (ev->now + ev->timeout));
             } else {

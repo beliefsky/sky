@@ -9,9 +9,11 @@ set(SOURCES
         core/queue.c
         core/array.c
         core/list.c
-        core/hash.c
         core/rbtree.c
+        core/hash.c
+        core/hashmap.c
         core/trie.c
+        core/topic_tree.c
         core/coro.c
         core/string.c
         core/string_buf.c
@@ -49,6 +51,12 @@ set(SOURCES
         net/http/module/http_module_file.c
         net/http/module/http_module_dispatcher.c
         net/http/module/http_module_websocket.c
+        net/mqtt/mqtt_io_wrappers.c
+        net/mqtt/mqtt_protocol.c
+        net/mqtt/mqtt_subs.c
+        net/mqtt/mqtt_request.c
+        net/mqtt/mqtt_response.c
+        net/mqtt/mqtt_server.c
         )
 add_library(sky_static STATIC ${SOURCES})
 
@@ -146,10 +154,12 @@ install(FILES
         core/palloc.h
         core/array.h
         core/queue.h
-        core/hash.h
         core/list.h
         core/rbtree.h
+        core/hash.h
+        core/hashmap.h
         core/trie.h
+        core/topic_tree.h
         core/coro.h
         core/string.h
         core/string_buf.h
