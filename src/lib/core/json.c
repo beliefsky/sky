@@ -7,7 +7,6 @@
 #include "memory.h"
 #include "string_buf.h"
 
-
 #if defined(__AVX2__)
 
 #include <immintrin.h>
@@ -1023,7 +1022,7 @@ parse_string(sky_str_t *str, sky_uchar_t **ptr, sky_uchar_t *end) {
                         loop = true;
                         break;
                     }
-                    _mm_storeu_si128((__m128i_u *) post, data);
+                    _mm_storeu_si128((__m128i *) post, data);
                     p += 16;
                     post += 16;
                     left -= 16;

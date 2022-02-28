@@ -98,7 +98,7 @@ sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf)
     l->data = conf->data;
     l->timeout = conf->timeout;
     sky_event_init(loop, &l->ev, fd, tcp_listener_accept, tcp_listener_error);
-    sky_event_register(&l->ev, -1);
+    sky_event_register_only_read(&l->ev, -1);
 
     return true;
 }
@@ -110,9 +110,6 @@ tcp_listener_accept(sky_event_t *ev) {
     sky_event_loop_t *loop;
     sky_event_t *event;
 
-    if (sky_event_none_read(ev)) {
-        return true;
-    }
     l = (listener_t *) ev;
     listener = ev->fd;
     loop = ev->loop;
