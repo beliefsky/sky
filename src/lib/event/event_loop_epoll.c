@@ -27,6 +27,8 @@
 #endif
 #endif
 
+static sky_bool_t event_register_with_flags(sky_event_t *ev, sky_u32_t flags, sky_i32_t timeout);
+
 static void event_timer_callback(sky_event_t *ev);
 
 static sky_i32_t setup_open_file_count_limits();
@@ -141,6 +143,51 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
 sky_bool_t
 sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
+    return event_register_with_flags(
+            ev,
+            EPOLLIN | EPOLLOUT | EPOLLPRI | EPOLLRDHUP | EPOLLERR | EPOLLET,
+            timeout
+    );
+}
+
+sky_bool_t
+sky_event_register_only_read(sky_event_t *ev, sky_i32_t timeout) {
+    return event_register_with_flags(
+            ev,
+            EPOLLIN | EPOLLPRI | EPOLLRDHUP | EPOLLERR | EPOLLET,
+            timeout
+    );
+}
+
+sky_bool_t
+sky_event_register_only_write(sky_event_t *ev, sky_i32_t timeout) {
+    return event_register_with_flags(
+            ev,
+            EPOLLOUT | EPOLLPRI | EPOLLRDHUP | EPOLLERR | EPOLLET,
+            timeout
+    );
+}
+
+
+sky_bool_t
+sky_event_unregister(sky_event_t *ev) {
+    if (sky_unlikely(sky_event_none_reg(ev))) {
+        return false;
+    }
+
+    close(ev->fd);
+    ev->fd = -1;
+    ev->timeout = 0;
+    ev->status &= 0xFFFFFFFE; // reg = false
+    // 此处应添加 应追加需要处理的连接
+    ev->loop->update = true;
+    sky_timer_wheel_link(ev->loop->ctx, &ev->timer, 0);
+
+    return true;
+}
+
+static sky_inline sky_bool_t
+event_register_with_flags(sky_event_t *ev, sky_u32_t flags, sky_i32_t timeout) {
     if (sky_unlikely(sky_event_is_reg(ev) || ev->fd == -1)) {
         return false;
     }
@@ -158,29 +205,11 @@ sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
     ev->timeout = timeout;
 
     struct epoll_event event = {
-            .events = EPOLLIN | EPOLLOUT | EPOLLPRI | EPOLLRDHUP | EPOLLERR | EPOLLET,
+            .events = flags,
             .data.ptr = ev
     };
 
     (void) epoll_ctl(loop->fd, EPOLL_CTL_ADD, ev->fd, &event);
-
-    return true;
-}
-
-
-sky_bool_t
-sky_event_unregister(sky_event_t *ev) {
-    if (sky_unlikely(sky_event_none_reg(ev))) {
-        return false;
-    }
-
-    close(ev->fd);
-    ev->fd = -1;
-    ev->timeout = 0;
-    ev->status &= 0xFFFFFFFE; // reg = false
-    // 此处应添加 应追加需要处理的连接
-    ev->loop->update = true;
-    sky_timer_wheel_link(ev->loop->ctx, &ev->timer, 0);
 
     return true;
 }
