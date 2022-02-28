@@ -94,12 +94,28 @@ void sky_event_loop_run(sky_event_loop_t *loop);
 void sky_event_loop_destroy(sky_event_loop_t *loop);
 
 /**
- * 加入监听需要触发
+ * 加入事件触发
  * @param loop 事件触发服务
  * @param ev 加入的事件
  * @param timeout 设定超时时间(秒)， -1永久
  */
 sky_bool_t sky_event_register(sky_event_t *ev, sky_i32_t timeout);
+
+/**
+ * 加入事件触发
+ * @param loop 事件触发服务
+ * @param ev 加入的事件
+ * @param timeout 设定超时时间(秒)， -1永久
+ */
+sky_bool_t sky_event_register_only_read(sky_event_t *ev, sky_i32_t timeout);
+
+/**
+ * 加入事件触发
+ * @param loop 事件触发服务
+ * @param ev 加入的事件
+ * @param timeout 设定超时时间(秒)， -1永久
+ */
+sky_bool_t sky_event_register_only_write(sky_event_t *ev, sky_i32_t timeout);
 
 /**
  * 移除监听触发，该函数会马上关闭io，并在稍后会触发关闭事件

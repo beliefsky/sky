@@ -198,6 +198,56 @@ sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
     return true;
 }
 
+sky_bool_t
+sky_event_register_only_read(sky_event_t *ev, sky_i32_t timeout) {
+    if (sky_unlikely(sky_event_is_reg(ev) || ev->fd == -1)) {
+        return false;
+    }
+    ev->timer.cb = (sky_timer_wheel_pt) event_timer_callback;
+    ev->status |= 0x80000001; // index = none, reg = true
+
+    sky_event_loop_t *loop = ev->loop;
+    if (timeout < 0) {
+        timeout = 0;
+        sky_timer_wheel_unlink(&ev->timer);
+    } else {
+        loop->update |= (timeout == 0);
+        sky_timer_wheel_link(loop->ctx, &ev->timer, (sky_u64_t) (loop->now + timeout));
+    }
+    ev->timeout = timeout;
+
+    struct kevent event;
+    EV_SET(&event, ev->fd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
+    kevent(loop->fd, &event, 1, null, 0, null);
+
+    return true;
+}
+
+sky_bool_t
+sky_event_register_only_write(sky_event_t *ev, sky_i32_t timeout) {
+    if (sky_unlikely(sky_event_is_reg(ev) || ev->fd == -1)) {
+        return false;
+    }
+    ev->timer.cb = (sky_timer_wheel_pt) event_timer_callback;
+    ev->status |= 0x80000001; // index = none, reg = true
+
+    sky_event_loop_t *loop = ev->loop;
+    if (timeout < 0) {
+        timeout = 0;
+        sky_timer_wheel_unlink(&ev->timer);
+    } else {
+        loop->update |= (timeout == 0);
+        sky_timer_wheel_link(loop->ctx, &ev->timer, (sky_u64_t) (loop->now + timeout));
+    }
+    ev->timeout = timeout;
+
+    struct kevent event;
+    EV_SET(&event, ev->fd, EVFILT_WRITE, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
+    kevent(loop->fd, &event, 1, null, 0, null);
+
+    return true;
+}
+
 
 sky_bool_t
 sky_event_unregister(sky_event_t *ev) {
