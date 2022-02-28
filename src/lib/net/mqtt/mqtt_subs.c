@@ -106,7 +106,8 @@ mqtt_sub(void **client, void *user_data) {
             .topic = *tmp->topic
     };
 
-    mqtt_subs_node_t *node = sky_hashmap_get(tmp->session->topics, &search);
+    const sky_u64_t hash = sky_hashmap_get_hash(tmp->session->topics, &search);
+    mqtt_subs_node_t *node = sky_hashmap_get_with_hash(tmp->session->topics, hash, &search);
     if (null != node) {
         node->qos = tmp->qos;
         return false;
@@ -126,7 +127,7 @@ mqtt_sub(void **client, void *user_data) {
     node->session = tmp->session;
     node->qos = tmp->qos;
 
-    sky_hashmap_put(tmp->session->topics, node);
+    sky_hashmap_put_with_hash(tmp->session->topics, hash, node);
 
     sky_queue_insert_prev(queue, &node->link);
 
