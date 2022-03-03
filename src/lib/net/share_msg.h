@@ -31,6 +31,8 @@ sky_bool_t sky_share_msg_bind(
 
 void sky_share_msg_destroy(sky_share_msg_t *share_msg);
 
+sky_bool_t sky_share_msg_num(sky_share_msg_t *share_msg);
+
 sky_bool_t sky_share_msg_scan(sky_share_msg_t *share_msg, sky_share_msg_iter_pt iter, void *user_data);
 
 sky_bool_t sky_share_msg_send_index(sky_share_msg_t *share_msg, sky_u32_t index, sky_u64_t msg);
