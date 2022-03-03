@@ -27,7 +27,7 @@ sky_mqtt_server_create() {
     server->mqtt_read = sky_mqtt_read;
     server->mqtt_read_all = sky_mqtt_read_all;
     server->mqtt_write_nowait = sky_mqtt_write_nowait;
-    server->session_manager = sky_hashmap_create_with_cap(session_hash, session_equals, null, 128);
+    sky_hashmap_init_with_cap(&server->session_manager, session_hash, session_equals, null, 128);
     server->sub_tree = sky_mqtt_subs_create();
 
     return server;
