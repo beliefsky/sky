@@ -82,9 +82,9 @@ sky_mqtt_subs_destroy(sky_topic_tree_t *subs) {
     sky_topic_tree_destroy(subs);
 }
 
-sky_hashmap_t *
-sky_mqtt_topics_create() {
-    return sky_hashmap_create(topic_hash, topic_equals, null);
+sky_bool_t
+sky_mqtt_topics_init(sky_hashmap_t *topics) {
+    sky_hashmap_init(topics, topic_hash, topic_equals, null);
 }
 
 void
@@ -106,8 +106,8 @@ mqtt_sub(void **client, void *user_data) {
             .topic = *tmp->topic
     };
 
-    const sky_u64_t hash = sky_hashmap_get_hash(tmp->session->topics, &search);
-    mqtt_subs_node_t *node = sky_hashmap_get_with_hash(tmp->session->topics, hash, &search);
+    const sky_u64_t hash = sky_hashmap_get_hash(&tmp->session->topics, &search);
+    mqtt_subs_node_t *node = sky_hashmap_get_with_hash(&tmp->session->topics, hash, &search);
     if (null != node) {
         node->qos = tmp->qos;
         return false;
@@ -127,7 +127,7 @@ mqtt_sub(void **client, void *user_data) {
     node->session = tmp->session;
     node->qos = tmp->qos;
 
-    sky_hashmap_put_with_hash(tmp->session->topics, hash, node);
+    sky_hashmap_put_with_hash(&tmp->session->topics, hash, node);
 
     sky_queue_insert_prev(queue, &node->link);
 
@@ -145,7 +145,7 @@ mqtt_unsub(void **client, void *user_data) {
             .topic = *tmp->topic
     };
 
-    mqtt_subs_node_t *node = sky_hashmap_del(tmp->session->topics, &search);
+    mqtt_subs_node_t *node = sky_hashmap_del(&tmp->session->topics, &search);
     if (null != node) {
         sky_queue_remove(&node->link);
         sky_free(node);
