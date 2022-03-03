@@ -44,6 +44,10 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
 
     sky_mqtt_session_t *session = session_get(&connect_msg, conn);
     sky_topic_tree_t *sub_tree = conn->server->sub_tree;
+
+    sky_pool_t *pool = sky_pool_create(4096);
+    sky_defer_global_add(conn->coro, (sky_defer_func_t) sky_pool_destroy, pool);
+
     for (;;) {
         read_pack = mqtt_read_head_pack(conn, &head);
         if (sky_unlikely(!read_pack)) {
@@ -53,9 +57,7 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
 //        sky_log_info("type: %u, body: %u", head.type, head.body_size);
 
         if (head.body_size) {
-            body = sky_malloc(head.body_size);
-            sky_defer_add(conn->coro, sky_free, body);
-
+            body = sky_palloc(pool, head.body_size);
             mqtt_read_body(conn, &head, body);
         } else {
             body = null;
@@ -108,8 +110,8 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
                 sky_mqtt_subscribe_pack(&msg, body, head.body_size);
 
                 sky_array_t qos, topics;
-                sky_array_init(&qos, 8, sizeof(sky_u8_t));
-                sky_array_init(&topics, 8, sizeof(sky_str_t));
+                sky_array_init2(&qos, pool, 8, sizeof(sky_u8_t));
+                sky_array_init2(&topics, pool, 8, sizeof(sky_str_t));
 
                 sky_mqtt_topic_t topic;
                 while (sky_mqtt_topic_read_next(&msg, &topic)) {
@@ -124,8 +126,8 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
                 sky_array_foreach(&topics, sky_str_t, item, {
                     sky_mqtt_subs_sub(sub_tree, item, session, *(q++));
                 });
-                sky_array_destroy(&qos);
                 sky_array_destroy(&topics);
+                sky_array_destroy(&qos);
                 break;
             }
             case SKY_MQTT_TYPE_UNSUBSCRIBE: {
@@ -150,7 +152,7 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
             default:
                 return SKY_CORO_ABORT;
         }
-        sky_defer_run(conn->coro);
+        sky_pool_reset(pool);
     }
 }
 
