@@ -139,7 +139,8 @@ tcp_listener_accept(sky_event_t *ev) {
 }
 
 
-static void tcp_listener_error(sky_event_t *ev) {
+static void
+tcp_listener_error(sky_event_t *ev) {
     sky_log_info("%d: tcp listener error", ev->fd);
     sky_free(ev);
 }
