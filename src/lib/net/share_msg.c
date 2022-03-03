@@ -38,6 +38,15 @@ sky_share_msg_create(sky_u32_t num) {
 }
 
 sky_bool_t
+sky_share_msg_num(sky_share_msg_t *share_msg) {
+    return share_msg->num;
+}
+
+void sky_share_msg_destroy(sky_share_msg_t *share_msg) {
+    sky_free(share_msg);
+}
+
+sky_bool_t
 sky_share_msg_bind(
         sky_share_msg_t *share_msg,
         sky_event_loop_t *loop,
