@@ -75,7 +75,7 @@ sky_topic_tree_create(sky_topic_tree_sub_pt sub,
     return tree;
 }
 
-void
+sky_bool_t
 sky_topic_tree_sub(sky_topic_tree_t *tree, const sky_str_t *topic, void *user_data) {
     sky_uchar_t *p = topic->data;
     sky_usize_t len = topic->len;
@@ -93,12 +93,12 @@ sky_topic_tree_sub(sky_topic_tree_t *tree, const sky_str_t *topic, void *user_da
                         --node->num;
                         node = node->parent;
                     } while (null != node);
-                    return;
+                    return false;
                 }
             }
             ++node->client_n;
 
-            return;
+            return true;
         }
         node = topic_node_sub(node, p, (sky_usize_t) index);
         len -= (sky_usize_t) ++index;
@@ -106,7 +106,7 @@ sky_topic_tree_sub(sky_topic_tree_t *tree, const sky_str_t *topic, void *user_da
     }
 }
 
-void
+sky_bool_t
 sky_topic_tree_unsub(sky_topic_tree_t *tree, const sky_str_t *topic, void *user_data) {
     sky_uchar_t *p = topic->data;
     sky_usize_t len = topic->len;
@@ -117,14 +117,15 @@ sky_topic_tree_unsub(sky_topic_tree_t *tree, const sky_str_t *topic, void *user_
         index = sky_str_len_index_char(p, len, '/');
         if (index == -1) {
             node = topic_node_get(&node->map, p, len);
-            if (null != node) {
-                topic_node_clean(node, user_data);
+            if (!node) {
+                return false;
             }
-            return;
+            topic_node_clean(node, user_data);
+            return true;
         }
         node = topic_node_get(&node->map, p, (sky_usize_t) index);
         if (!node) {
-            return;
+            return false;
         }
         len -= (sky_usize_t) ++index;
         p += index;
