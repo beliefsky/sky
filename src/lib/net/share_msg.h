@@ -31,16 +31,13 @@ sky_bool_t sky_share_msg_bind(
 
 void sky_share_msg_destroy(sky_share_msg_t *share_msg);
 
-sky_bool_t sky_share_msg_num(sky_share_msg_t *share_msg);
+sky_u32_t sky_share_msg_num(sky_share_msg_t *share_msg);
 
 sky_bool_t sky_share_msg_scan(sky_share_msg_t *share_msg, sky_share_msg_iter_pt iter, void *user_data);
 
 sky_bool_t sky_share_msg_send_index(sky_share_msg_t *share_msg, sky_u32_t index, sky_u64_t msg);
 
 sky_bool_t sky_share_msg_send(sky_share_msg_connect_t *conn, sky_u64_t msg);
-
-// 1 -> n 发送, n 读取
-// 1 -> 指定发送, 对应读取
 
 #if defined(__cplusplus)
 } /* extern "C" { */

@@ -37,7 +37,7 @@ sky_share_msg_create(sky_u32_t num) {
     return share_msg;
 }
 
-sky_bool_t
+sky_u32_t
 sky_share_msg_num(sky_share_msg_t *share_msg) {
     return share_msg->num;
 }
