@@ -9,6 +9,9 @@
 
 static void *server_start(sky_event_loop_t *loop, sky_u32_t index);
 
+
+static sky_share_msg_t *mqtt_share_msg;
+
 int
 main() {
     setvbuf(stdout, null, _IOLBF, 0);
@@ -20,6 +23,8 @@ main() {
     };
 
     sky_platform_t *platform = sky_platform_create(&conf);
+
+    mqtt_share_msg = sky_share_msg_create(sky_platform_thread_n(platform));
     sky_platform_run(platform);
     sky_platform_destroy(platform);
 
@@ -30,14 +35,14 @@ static void *
 server_start(sky_event_loop_t *loop, sky_u32_t index) {
     sky_log_info("thread-%u", index);
 
-    sky_mqtt_server_t *server = sky_mqtt_server_create();
+    sky_mqtt_server_t *server = sky_mqtt_server_create(loop, mqtt_share_msg, index);
 
     struct sockaddr_in v4_address = {
             .sin_family = AF_INET,
             .sin_addr.s_addr = INADDR_ANY,
             .sin_port = sky_htons(2883)
     };
-    sky_mqtt_server_bind(server, loop, (sky_inet_address_t *) &v4_address, sizeof(v4_address));
+    sky_mqtt_server_bind(server, (sky_inet_address_t *) &v4_address, sizeof(v4_address));
 
     struct sockaddr_in6 v6_address = {
             .sin6_family = AF_INET6,
@@ -45,7 +50,7 @@ server_start(sky_event_loop_t *loop, sky_u32_t index) {
             .sin6_port = sky_htons(2883)
     };
 
-    sky_mqtt_server_bind(server, loop, (sky_inet_address_t *) &v6_address, sizeof(v6_address));
+    sky_mqtt_server_bind(server, (sky_inet_address_t *) &v6_address, sizeof(v6_address));
 
     return null;
 }

@@ -138,10 +138,10 @@ sky_topic_tree_scan(sky_topic_tree_t *tree, const sky_str_t *topic,
     topic_tree_scan(&tree->node, topic->data, topic->len, iter, user_data);
 }
 
-void
+sky_bool_t
 sky_topic_tree_scan_one(sky_topic_tree_t *tree, const sky_str_t *topic,
                         sky_topic_tree_iter_pt iter, void *user_data) {
-    topic_tree_scan_one(&tree->node, topic->data, topic->len, iter, user_data);
+    return topic_tree_scan_one(&tree->node, topic->data, topic->len, iter, user_data);
 }
 
 void

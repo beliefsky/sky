@@ -13,15 +13,16 @@
 extern "C" {
 #endif
 
-sky_topic_tree_t *sky_mqtt_subs_create();
+void sky_mqtt_subs_init(sky_mqtt_server_t *server, sky_event_loop_t *loop,
+                        sky_share_msg_t *share_msg, sky_u32_t index);
 
-void sky_mqtt_subs_sub(sky_topic_tree_t *subs, sky_str_t *topic, sky_mqtt_session_t *session, sky_u8_t qos);
+sky_bool_t sky_mqtt_subs_sub(sky_mqtt_server_t *server, sky_str_t *topic, sky_mqtt_session_t *session, sky_u8_t qos);
 
-void sky_mqtt_subs_unsub(sky_topic_tree_t *subs, sky_str_t *topic, sky_mqtt_session_t *session);
+sky_bool_t sky_mqtt_subs_unsub(sky_mqtt_server_t *server, sky_str_t *topic, sky_mqtt_session_t *session);
 
-void sky_mqtt_subs_publish(sky_topic_tree_t *subs, const sky_mqtt_head_t *head, const sky_mqtt_publish_msg_t *msg);
+void sky_mqtt_subs_publish(sky_mqtt_server_t *server, const sky_mqtt_head_t *head, const sky_mqtt_publish_msg_t *msg);
 
-void sky_mqtt_subs_destroy(sky_topic_tree_t *subs);
+void sky_mqtt_subs_destroy(sky_mqtt_server_t *server);
 
 sky_bool_t sky_mqtt_topics_init(sky_hashmap_t *topics);
 
