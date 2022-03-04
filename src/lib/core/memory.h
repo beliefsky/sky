@@ -23,6 +23,7 @@ extern "C" {
 #endif
 
 #define sky_malloc(_size)               malloc(_size)
+#define sky_calloc(_n, _size)           calloc(_n, _size)
 #define sky_realloc(_ptr, _resize)      realloc(_ptr, _resize)
 #define sky_align_size(_d, _a) \
     (((_d) + ((_a) - 1)) & ~((_a) - 1))

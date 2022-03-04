@@ -20,9 +20,6 @@ static sky_usize_t two_power_next(sky_usize_t n);
 static sky_bool_t hashmap_init(sky_hashmap_t *map, sky_hashmap_hash_pt hash,
                                sky_hashmap_equals_pt equals, void *hash_secret, sky_usize_t cap);
 
-static sky_hashmap_t *hashmap_create(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals,
-                                     void *hash_secret, sky_usize_t cap);
-
 static void buckets_resize(sky_hashmap_t *map, sky_usize_t bucket_num);
 
 sky_bool_t
@@ -244,24 +241,6 @@ two_power_next(sky_usize_t n) {
     return SKY_USIZE(1) << l;
 }
 
-static sky_inline sky_hashmap_t *
-hashmap_create(sky_hashmap_hash_pt hash, sky_hashmap_equals_pt equals, void *hash_secret, sky_usize_t cap) {
-    sky_hashmap_t *map = sky_malloc(sizeof(sky_hashmap_t));
-    map->hash = hash;
-    map->equals = equals;
-    map->count = 0;
-    map->cap = cap;
-    map->bucket_num = cap;
-    map->mask = map->bucket_num - 1;
-    map->grow_at = (map->bucket_num * 3) >> 2;
-    map->shrink_at = map->bucket_num >> 3;
-    map->hash_secret = hash_secret;
-    map->buckets = sky_malloc(sizeof(sky_hashmap_bucket_t) * map->bucket_num);
-    sky_memzero(map->buckets, sizeof(sky_hashmap_bucket_t) * map->bucket_num);
-
-    return map;
-}
-
 static sky_inline sky_bool_t
 hashmap_init(sky_hashmap_t *map, sky_hashmap_hash_pt hash,
              sky_hashmap_equals_pt equals, void *hash_secret, sky_usize_t cap) {
@@ -274,19 +253,17 @@ hashmap_init(sky_hashmap_t *map, sky_hashmap_hash_pt hash,
     map->grow_at = (map->bucket_num * 3) >> 2;
     map->shrink_at = map->bucket_num >> 3;
     map->hash_secret = hash_secret;
-    map->buckets = sky_malloc(sizeof(sky_hashmap_bucket_t) * map->bucket_num);
+    map->buckets = sky_calloc(map->bucket_num, sizeof(sky_hashmap_bucket_t));
     if (sky_unlikely(null == map->buckets)) {
         return false;
     }
-    sky_memzero(map->buckets, sizeof(sky_hashmap_bucket_t) * map->bucket_num);
 
     return true;
 }
 
 static void
 buckets_resize(sky_hashmap_t *map, sky_usize_t bucket_num) {
-    sky_hashmap_bucket_t *new_buckets = sky_malloc(sizeof(sky_hashmap_bucket_t) * bucket_num);
-    sky_memzero(new_buckets, sizeof(sky_hashmap_bucket_t) * bucket_num);
+    sky_hashmap_bucket_t *new_buckets = sky_calloc(bucket_num, sizeof(sky_hashmap_bucket_t));
     sky_u64_t mask = bucket_num - 1;
 
     sky_hashmap_bucket_t *entry = map->buckets;
