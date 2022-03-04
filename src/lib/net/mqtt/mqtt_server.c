@@ -17,29 +17,28 @@ static sky_bool_t mqtt_run(sky_mqtt_connect_t *conn);
 
 static void mqtt_close(sky_mqtt_connect_t *conn);
 
+static void mqtt_share_msg(sky_u64_t msg, void *data);
+
 static sky_u64_t session_hash(const void *item, void *secret);
 
 static sky_bool_t session_equals(const void *a, const void *b);
 
 sky_mqtt_server_t *
-sky_mqtt_server_create() {
+sky_mqtt_server_create(sky_event_loop_t *loop, sky_share_msg_t *share_msg, sky_u32_t index) {
     sky_mqtt_server_t *server = sky_malloc(sizeof(sky_mqtt_server_t));
     server->mqtt_read = sky_mqtt_read;
     server->mqtt_read_all = sky_mqtt_read_all;
     server->mqtt_write_nowait = sky_mqtt_write_nowait;
     sky_hashmap_init_with_cap(&server->session_manager, session_hash, session_equals, null, 128);
-    server->sub_tree = sky_mqtt_subs_create();
+    server->event_loop = loop;
+
+    sky_mqtt_subs_init(server, loop, share_msg, index);
 
     return server;
 }
 
 sky_bool_t
-sky_mqtt_server_bind(
-        sky_mqtt_server_t *server,
-        sky_event_loop_t *loop,
-        sky_inet_address_t *address,
-        sky_u32_t address_len
-) {
+sky_mqtt_server_bind(sky_mqtt_server_t *server, sky_inet_address_t *address, sky_u32_t address_len) {
     sky_tcp_server_conf_t conf = {
             .address = address,
             .address_len = address_len,
@@ -50,7 +49,7 @@ sky_mqtt_server_bind(
             .defer_accept = true
     };
 
-    return sky_tcp_server_create(loop, &conf);
+    return sky_tcp_server_create(server->event_loop, &conf);
 }
 
 static sky_event_t *
@@ -84,6 +83,14 @@ mqtt_close(sky_mqtt_connect_t *conn) {
     }
 
     sky_coro_destroy(conn->coro);
+}
+
+static void
+mqtt_share_msg(sky_u64_t msg, void *data) {
+    sky_mqtt_server_t *server = data;
+    sky_mqtt_share_msg_t *share_msg = (sky_mqtt_share_msg_t *) msg;
+
+    sky_mqtt_share_node_process(server, share_msg);
 }
 
 
