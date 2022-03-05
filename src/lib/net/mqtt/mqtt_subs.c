@@ -446,8 +446,6 @@ static void
 mqtt_share_node_publish_send(void *client, void *user_data) {
     (void) client;
     mqtt_share_msg_tmp_t *tmp = user_data;
-
-//    share_message_free(tmp->msg);
     if (sky_unlikely(sky_share_msg_send(tmp->conn, tmp->msg))) {
         share_message_free(tmp->msg);
     }
