@@ -34,42 +34,99 @@ typedef _Atomic sky_isize_t sky_atomic_isize_t;
 typedef _Atomic sky_usize_t sky_atomic_usize_t;
 
 
-#define sky_atomic_get_add_order(_ptr, _val, _order) __atomic_fetch_add(_ptr, _val, _order)
-#define sky_atomic_get_add(_ptr, _val) sky_atomic_get_add_order(_ptr, _val, SKY_ATOMIC_SEQ_CST)
+#define sky_atomic_get_add_explicit(_ptr, _val, _order) __atomic_fetch_add(_ptr, _val, _order)
+#define sky_atomic_get_add(_ptr, _val) sky_atomic_get_add_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
 
-#define sky_atomic_get_sub_order(_ptr, _val, _order) __atomic_fetch_sub(_ptr, _val, _order)
-#define sky_atomic_get_sub(_ptr, _val) sky_atomic_get_sub_order(_ptr, _val, SKY_ATOMIC_SEQ_CST)
+#define sky_atomic_get_sub_explicit(_ptr, _val, _order) __atomic_fetch_sub(_ptr, _val, _order)
+#define sky_atomic_get_sub(_ptr, _val) sky_atomic_get_sub_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
 
-#define sky_atomic_get_or_order(_ptr, _val, _order) __atomic_fetch_or(_ptr, _val, _order)
-#define sky_atomic_get_or(_ptr, _val) sky_atomic_get_or_order(_ptr, _val, SKY_ATOMIC_SEQ_CST)
+#define sky_atomic_get_or_explicit(_ptr, _val, _order) __atomic_fetch_or(_ptr, _val, _order)
+#define sky_atomic_get_or(_ptr, _val) sky_atomic_get_or_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
 
-#define sky_atomic_get_and_order(_ptr, _val, _order) __atomic_fetch_and(_ptr, _val, _order)
-#define sky_atomic_get_and(_ptr, _val) sky_atomic_get_and_order(_ptr, _val, SKY_ATOMIC_SEQ_CST)
+#define sky_atomic_get_and_explicit(_ptr, _val, _order) __atomic_fetch_and(_ptr, _val, _order)
+#define sky_atomic_get_and(_ptr, _val) sky_atomic_get_and_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
 
-#define sky_atomic_get_xor_order(_ptr, _val, _order) __atomic_fetch_xor(_ptr, _val, _order)
-#define sky_atomic_get_xor(_ptr, _val) sky_atomic_get_xor_order(_ptr, _val, SKY_ATOMIC_SEQ_CST)
+#define sky_atomic_get_xor_explicit(_ptr, _val, _order) __atomic_fetch_xor(_ptr, _val, _order)
+#define sky_atomic_get_xor(_ptr, _val) sky_atomic_get_xor_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
 
-#define sky_atomic_get_nand_order(_ptr, _val, _order) __atomic_fetch_nand(_ptr, _val, _order)
-#define sky_atomic_get_nand(_ptr, _val) sky_atomic_get_nand_order(_ptr, _val, SKY_ATOMIC_SEQ_CST)
+#define sky_atomic_get_nand_explicit(_ptr, _val, _order) __atomic_fetch_nand(_ptr, _val, _order)
+#define sky_atomic_get_nand(_ptr, _val) sky_atomic_get_nand_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
 
-#define sky_atomic_add_get_order(_ptr, _val, _order) __atomic_sub_fetch(_ptr, _val, _order)
-#define sky_atomic_add_get(_ptr, _val) sky_atomic_add_get_order(_ptr, _val, SKY_ATOMIC_SEQ_CST)
+#define sky_atomic_add_get_explicit(_ptr, _val, _order) __atomic_sub_fetch(_ptr, _val, _order)
+#define sky_atomic_add_get(_ptr, _val) sky_atomic_add_get_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
 
-#define sky_atomic_sub_get_order(_ptr, _val, _order) __atomic_sub_fetch(_ptr, _val, _order)
-#define sky_atomic_sub_get(_ptr, _val) sky_atomic_sub_get_order(_ptr, _val, SKY_ATOMIC_SEQ_CST)
+#define sky_atomic_sub_get_explicit(_ptr, _val, _order) __atomic_sub_fetch(_ptr, _val, _order)
+#define sky_atomic_sub_get(_ptr, _val) sky_atomic_sub_get_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
 
-#define sky_atomic_or_get_order(_ptr, _val, _order) __atomic_or_fetch(_ptr, _val, _order)
-#define sky_atomic_or_get(_ptr, _val) sky_atomic_or_get_order(_ptr, _val, SKY_ATOMIC_SEQ_CST)
+#define sky_atomic_or_get_explicit(_ptr, _val, _order) __atomic_or_fetch(_ptr, _val, _order)
+#define sky_atomic_or_get(_ptr, _val) sky_atomic_or_get_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
 
-#define sky_atomic_and_get_order(_ptr, _val, _order) __atomic_and_fetch(_ptr, _val, _order)
-#define sky_atomic_and_get(_ptr, _val) sky_atomic_and_get_order(_ptr, _val, SKY_ATOMIC_SEQ_CST)
+#define sky_atomic_and_get_explicit(_ptr, _val, _order) __atomic_and_fetch(_ptr, _val, _order)
+#define sky_atomic_and_get(_ptr, _val) sky_atomic_and_get_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
 
-#define sky_atomic_xor_get_order(_ptr, _val, _order) __atomic_xor_fetch(_ptr, _val, _order)
-#define sky_atomic_xor_get(_ptr, _val) sky_atomic_xor_get_order(_ptr, _val, SKY_ATOMIC_SEQ_CST)
+#define sky_atomic_xor_get_explicit(_ptr, _val, _order) __atomic_xor_fetch(_ptr, _val, _order)
+#define sky_atomic_xor_get(_ptr, _val) sky_atomic_xor_get_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
 
-#define sky_atomic_nand_get_order(_ptr, _val, _order) __atomic_nand_fetch(_ptr, _val, _order)
-#define sky_atomic_nand_get(_ptr, _val) sky_atomic_nand_get_order(_ptr, _val, SKY_ATOMIC_SEQ_CST)
+#define sky_atomic_nand_get_explicit(_ptr, _val, _order) __atomic_nand_fetch(_ptr, _val, _order)
+#define sky_atomic_nand_get(_ptr, _val) sky_atomic_nand_get_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
 
+#define sky_atomic_load_explicit(_ptr, _order) \
+  __extension__                             \
+  ({                                        \
+    __auto_type __atomic_load_ptr = (_ptr); \
+    __typeof__ (*__atomic_load_ptr) __atomic_load_tmp; \
+    __atomic_load (__atomic_load_ptr, &__atomic_load_tmp, (_order)); \
+    __atomic_load_tmp;                      \
+  })
+#define sky_atomic_load(_ptr, _order) sky_atomic_load_explicit(_ptr, SKY_ATOMIC_SEQ_CST)
+
+#define sky_atomic_store_explicit(_pre, _val, _order) \
+  __extension__                                    \
+  ({                                               \
+    __auto_type __atomic_store_ptr = (_pre);       \
+    __typeof__ (*__atomic_store_ptr) __atomic_store_tmp = (_val); \
+    __atomic_store (__atomic_store_ptr, &__atomic_store_tmp, (_order)); \
+  })
+#define sky_atomic_store(_pre, _val) sky_atomic_store_explicit(_pre, _val, SKY_ATOMIC_SEQ_CST)
+
+#define sky_atomic_exchange_explicit(_ptr, _val, _order) \
+  __extension__                                       \
+  ({                                                  \
+    __auto_type __atomic_exchange_ptr = (_ptr);       \
+    __typeof__ (*__atomic_exchange_ptr) __atomic_exchange_val = (_val); \
+    __typeof__ (*__atomic_exchange_ptr) __atomic_exchange_tmp;          \
+    __atomic_exchange (__atomic_exchange_ptr, &__atomic_exchange_val,   \
+               &__atomic_exchange_tmp, (_order));       \
+    __atomic_exchange_tmp;                        \
+  })
+
+#define sky_atomic_exchange(_ptr, _val, _order) sky_atomic_exchange_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
+
+#define sky_atomic_compare_exchange_strong_explicit(_pre, _val, _des, _suc, _fail) \
+  __extension__                                                                    \
+  ({                                                                               \
+    __auto_type __atomic_compare_exchange_ptr = (_pre);                            \
+    __typeof__ (*__atomic_compare_exchange_ptr) __atomic_compare_exchange_tmp = (_des); \
+    __atomic_compare_exchange (__atomic_compare_exchange_ptr, (_val),              \
+                   &__atomic_compare_exchange_tmp, 0,                                       \
+                   (_suc), (_fail));                                                        \
+  })
+
+#define sky_atomic_compare_exchange_strong(_pre, _val, _des, _suc, _fail) \
+    sky_atomic_compare_exchange_strong_explicit(_pre, _val, _des, SKY_ATOMIC_SEQ_CST, SKY_ATOMIC_SEQ_CST)
+
+#define sky_atomic_compare_exchange_weak_explicit(_ptr, _val, _des, _suc, _fail) \
+  __extension__                                                                  \
+  ({                                                                             \
+    __auto_type __atomic_compare_exchange_ptr = (_ptr);                          \
+    __typeof__ (*__atomic_compare_exchange_ptr) __atomic_compare_exchange_tmp = (_des); \
+    __atomic_compare_exchange (__atomic_compare_exchange_ptr, (_val),            \
+                   &__atomic_compare_exchange_tmp, 1,                                     \
+                   (_suc), (_fail));                                                      \
+  })
+
+#define sky_atomic_compare_exchange_weak(_ptr, _val, _des, _suc, _fail) \
+    sky_atomic_compare_exchange_weak_explicit(_ptr, _val, _des, SKY_ATOMIC_SEQ_CST, SKY_ATOMIC_SEQ_CST)
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif
