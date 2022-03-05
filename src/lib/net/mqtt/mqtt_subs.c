@@ -410,10 +410,10 @@ static sky_bool_t
 mqtt_share_node_subs(sky_share_msg_connect_t *conn, sky_u32_t index, void *user_data) {
     mqtt_node_msg_tmp_t *tmp = user_data;
     if (tmp->node->current_index != index) {
-        sky_log_info("=======================");
-        sky_log_info("%lu", (sky_u64_t) tmp->msg);
+//        sky_log_info("=======================");
+//        sky_log_info("%lu", (sky_u64_t) tmp->msg);
         if (sky_unlikely(!sky_share_msg_send(conn, tmp->msg))) {
-            sky_log_error("+++++++++++++++++");
+//            sky_log_error("+++++++++++++++++");
             share_message_free(tmp->msg);
         }
     }
@@ -455,9 +455,6 @@ mqtt_share_node_publish_send(void *client, void *user_data) {
 static sky_inline void
 share_message_free(mqtt_share_msg_t *msg) {
     const sky_u32_t result = sky_atomic_sub_get(&msg->ref, SKY_U32(1));
-    if (result > 8) {
-        sky_log_info("======== %u", result);
-    }
     if (result == 0) {
         sky_free(msg);
     }
