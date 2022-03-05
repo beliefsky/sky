@@ -14,7 +14,7 @@ typedef struct {
     sky_bool_t dup: 1;
     sky_u8_t qos: 2;
     sky_bool_t retain: 1;
-    sky_u32_t ref;
+    sky_atomic_u32_t ref;
 
     sky_str_t topic;
 
@@ -457,7 +457,7 @@ mqtt_share_node_publish_send(void *client, void *user_data) {
 
 static sky_inline void
 share_message_free(mqtt_share_msg_t *msg) {
-    const sky_u32_t result = sky_atomic_sub_and_get(&msg->ref, SKY_U32(1));
+    const sky_u32_t result = sky_atomic_sub_get(&msg->ref, SKY_U32(1));
     if (result > 8) {
         sky_log_info("======== %u", result);
     }
