@@ -12,8 +12,11 @@ struct sky_mpmc_queue_cell_s {
 
 sky_bool_t
 sky_mpmc_queue_init(sky_mpmc_queue_t *queue, sky_u32_t capacity) {
-    if ((capacity < 2) || !sky_is_2_power(capacity))
-        return false;
+    if (capacity < 2) {
+        capacity = 2;
+    } else if (!sky_is_2_power(capacity)) {
+        capacity = SKY_U32(1) << (32 - sky_clz_u32(capacity));
+    }
 
     queue->buffer_mask = capacity - 1;
     queue->buffer = sky_calloc(capacity, sizeof(sky_mpmc_queue_cell_t));
@@ -25,8 +28,8 @@ sky_mpmc_queue_init(sky_mpmc_queue_t *queue, sky_u32_t capacity) {
         sky_atomic_store_explicit(&queue->buffer[i].sequence, i, SKY_ATOMIC_RELAXED);
     }
 
-    sky_atomic_store_explicit(&queue->tail, 0, SKY_ATOMIC_RELAXED);
-    sky_atomic_store_explicit(&queue->head, 0, SKY_ATOMIC_RELAXED);
+    sky_atomic_init(&queue->tail, 0);
+    sky_atomic_init(&queue->head, 0);
 
     return true;
 }

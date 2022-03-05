@@ -9,9 +9,11 @@ static sky_u32_t sky_spsc_queue_free_slot(sky_spsc_queue_t *queue);
 
 sky_bool_t
 sky_spsc_queue_init(sky_spsc_queue_t *queue, sky_u32_t capacity) {
-
-    if ((capacity < 2) || ((capacity & (capacity - 1)) != 0))
-        return false;
+    if (capacity < 2) {
+        capacity = 2;
+    } else if (!sky_is_2_power(capacity)) {
+        capacity = SKY_U32(1) << (32 - sky_clz_u32(capacity));
+    }
 
     queue->buffer = sky_calloc(capacity, sizeof(void *));
     if (sky_unlikely(null == queue->buffer)) {
