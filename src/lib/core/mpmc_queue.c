@@ -6,22 +6,22 @@
 #include "memory.h"
 
 struct sky_mpmc_queue_cell_s {
-    sky_atomic_usize_t sequence;
+    sky_atomic_u32_t sequence;
     void *data;
 };
 
 sky_bool_t
-sky_mpmc_queue_init(sky_mpmc_queue_t *queue, sky_usize_t size) {
-    if ((size < 2) || !sky_is_2_power(size))
+sky_mpmc_queue_init(sky_mpmc_queue_t *queue, sky_u32_t capacity) {
+    if ((capacity < 2) || !sky_is_2_power(capacity))
         return false;
 
-    queue->buffer_mask = size - 1;
-    queue->buffer = sky_calloc(size, sizeof(sky_mpmc_queue_cell_t));
+    queue->buffer_mask = capacity - 1;
+    queue->buffer = sky_calloc(capacity, sizeof(sky_mpmc_queue_cell_t));
     if (sky_unlikely(null == queue->buffer)) {
         return false;
     }
 
-    for (sky_usize_t i = 0; i != size; i += 1) {
+    for (sky_u32_t i = 0; i != capacity; i += 1) {
         sky_atomic_store_explicit(&queue->buffer[i].sequence, i, SKY_ATOMIC_RELAXED);
     }
 
@@ -51,14 +51,14 @@ sky_mpmc_queue_is_empty(sky_mpmc_queue_t *queue) {
 sky_bool_t
 sky_mpmc_queue_push(sky_mpmc_queue_t *queue, void *data) {
     sky_mpmc_queue_cell_t *cell;
-    sky_usize_t pos, seq;
-    sky_isize_t diff;
+    sky_u32_t pos, seq;
+    sky_i32_t diff;
 
     pos = sky_atomic_load_explicit(&queue->tail, SKY_ATOMIC_RELAXED);
     for (;;) {
         cell = &queue->buffer[pos & queue->buffer_mask];
         seq = sky_atomic_load_explicit(&cell->sequence, SKY_ATOMIC_ACQUIRE);
-        diff = (intptr_t) seq - (intptr_t) pos;
+        diff = (sky_i32_t) seq - (sky_i32_t) pos;
 
         if (diff == 0) {
             if (sky_atomic_compare_exchange_weak_explicit(&queue->tail, &pos, pos + 1, SKY_ATOMIC_RELAXED,
@@ -81,15 +81,15 @@ sky_mpmc_queue_push(sky_mpmc_queue_t *queue, void *data) {
 sky_inline sky_bool_t
 sky_mpmc_queue_pull(sky_mpmc_queue_t *queue, void **data_ptr) {
     sky_mpmc_queue_cell_t *cell;
-    sky_usize_t pos, seq;
-    sky_isize_t diff;
+    sky_u32_t pos, seq;
+    sky_i32_t diff;
 
     pos = sky_atomic_load_explicit(&queue->head, SKY_ATOMIC_RELAXED);
     for (;;) {
         cell = &queue->buffer[pos & queue->buffer_mask];
 
         seq = sky_atomic_load_explicit(&cell->sequence, SKY_ATOMIC_ACQUIRE);
-        diff = (intptr_t) seq - (intptr_t) (pos + 1);
+        diff = (sky_i32_t) seq - (sky_i32_t) (pos + 1);
 
         if (diff == 0) {
             if (sky_atomic_compare_exchange_weak_explicit(&queue->head, &pos, pos + 1, SKY_ATOMIC_RELAXED,
