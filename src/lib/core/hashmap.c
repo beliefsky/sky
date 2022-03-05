@@ -234,9 +234,9 @@ sky_hashmap_destroy(sky_hashmap_t *map, sky_hashmap_free_pt free) {
 static sky_inline sky_usize_t
 two_power_next(sky_usize_t n) {
 #if SKY_USIZE_MAX == SKY_U64_MAX
-    sky_i32_t l = 64 - __builtin_clzll(n);
+    sky_i32_t l = 64 - sky_clz_u64(n);
 #else
-    sky_i32_t l = 32 - __builtin_clz(n);
+    sky_i32_t l = 32 - sky_clz_u32(n);
 #endif
     return SKY_USIZE(1) << l;
 }
