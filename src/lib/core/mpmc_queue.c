@@ -37,7 +37,7 @@ sky_mpmc_queue_destroy(sky_mpmc_queue_t *queue) {
     queue->buffer = null;
 }
 
-sky_inline sky_usize_t
+sky_inline sky_u32_t
 sky_mpmc_queue_size(sky_mpmc_queue_t *queue) {
     return sky_atomic_load_explicit(&queue->tail, SKY_ATOMIC_RELAXED) -
            sky_atomic_load_explicit(&queue->head, SKY_ATOMIC_RELAXED);

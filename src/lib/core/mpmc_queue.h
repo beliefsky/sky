@@ -23,9 +23,9 @@ struct sky_mpmc_queue_s {
     sky_u32_t buffer_mask;
     sky_mpmc_queue_cell_t *buffer;
     sky_uchar_t _pad1[SKY_CACHE_LINE_SIZE];
-    sky_atomic_usize_t tail;
+    sky_atomic_u32_t tail;
     sky_uchar_t _pad2[SKY_CACHE_LINE_SIZE];
-    sky_atomic_usize_t head;
+    sky_atomic_u32_t head;
     sky_uchar_t _pad3[SKY_CACHE_LINE_SIZE];
 };
 
