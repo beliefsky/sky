@@ -62,7 +62,7 @@ sky_spsc_queue_get_many(sky_spsc_queue_t *queue, void **data_ptr, sky_u32_t n) {
 
 sky_inline sky_bool_t
 sky_spsc_queue_push(sky_spsc_queue_t *queue, void *data) {
-    return sky_spsc_queue_pull_many(queue, &data, 1) != 0;
+    return sky_spsc_queue_push_many(queue, &data, 1) != 0;
 }
 
 void *
