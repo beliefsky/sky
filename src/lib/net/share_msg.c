@@ -5,6 +5,7 @@
 #include "share_msg.h"
 #include "../core/memory.h"
 #include "../core/log.h"
+#include "../core/mpmc_queue.h"
 #include<sys/eventfd.h>
 
 struct sky_share_msg_s {
@@ -14,6 +15,7 @@ struct sky_share_msg_s {
 
 struct sky_share_msg_connect_s {
     sky_event_t event;
+    sky_mpmc_queue_t data_queue;
     sky_share_msg_t *share_msg;
     sky_share_msg_handle_pt handle;
     void *data;
@@ -58,12 +60,13 @@ sky_share_msg_bind(
         return false;
     }
     sky_share_msg_connect_t *conn = share_msg->conn + index;
+    sky_mpmc_queue_init(&conn->data_queue, 65536);
     conn->share_msg = share_msg;
     conn->handle = handle;
     conn->data = data;
     conn->index = index;
 
-    const sky_i32_t fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+    const sky_i32_t fd = eventfd(0, EFD_NONBLOCK | EFD_SEMAPHORE | EFD_CLOEXEC);
     sky_event_init(loop, &conn->event, fd, event_conn_run, event_conn_error);
 
     sky_event_register_only_read(&conn->event, -1);
@@ -84,26 +87,37 @@ sky_share_msg_scan(sky_share_msg_t *share_msg, sky_share_msg_iter_pt iter, void 
 }
 
 sky_bool_t
-sky_share_msg_send_index(sky_share_msg_t *share_msg, sky_u32_t index, sky_u64_t msg) {
+sky_share_msg_send_index(sky_share_msg_t *share_msg, sky_u32_t index, void *data) {
     if (sky_unlikely(index >= share_msg->num)) {
         return false;
     }
     sky_share_msg_connect_t *conn = share_msg->conn + index;
 
-    return sky_share_msg_send(conn, msg);
+    return sky_share_msg_send(conn, data);
 }
 
 sky_inline sky_bool_t
-sky_share_msg_send(sky_share_msg_connect_t *conn, sky_u64_t msg) {
-    return (msg != 0 && msg != SKY_U64_MAX && eventfd_write(conn->event.fd, msg) >= 0);
+sky_share_msg_send(sky_share_msg_connect_t *conn, void *data) {
+    if (sky_unlikely(!sky_mpmc_queue_push(&conn->data_queue, data))) {
+        return false;
+    }
+    eventfd_write(conn->event.fd, 1);
+
+    return true;
 }
 
 static sky_bool_t
 event_conn_run(sky_event_t *ev) {
     sky_share_msg_connect_t *conn = (sky_share_msg_connect_t *) ev;
     sky_u64_t value;
-    while (eventfd_read(ev->fd, &value) >= 0) {
-        conn->handle(value, conn->data);
+    for (;;) {
+        if (eventfd_read(ev->fd, &value) != 0) {
+            break;
+        }
+    }
+    void *data;
+    while ((data = sky_mpmc_queue_pop(&conn->data_queue)) != null) {
+        conn->handle(data, conn->data);
     }
 
     return true;
