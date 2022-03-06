@@ -114,7 +114,7 @@ sky_mqtt_subs_sub(sky_mqtt_server_t *server, sky_str_t *topic, sky_mqtt_session_
                     + topic->len
             );
             share_msg->type = SKY_MQTT_TYPE_SUBSCRIBE;
-            share_msg->ref = server->share_node.node_num - 1;
+            share_msg->ref = SKY_ATOMIC_VAR_INIT(server->share_node.node_num - 1);
             share_msg->topic_index = server->share_node.current_index;
             share_msg->topic.data = (sky_uchar_t *) (share_msg + 1);
             share_msg->topic.len = topic->len;
@@ -146,7 +146,7 @@ sky_mqtt_subs_unsub(sky_mqtt_server_t *server, sky_str_t *topic, sky_mqtt_sessio
                     + topic->len
             );
             share_msg->type = SKY_MQTT_TYPE_UNSUBSCRIBE;
-            share_msg->ref = server->share_node.node_num - 1;
+            share_msg->ref = SKY_ATOMIC_VAR_INIT(server->share_node.node_num - 1);
             share_msg->topic_index = server->share_node.current_index;
             share_msg->topic.data = (sky_uchar_t *) (share_msg + 1);
             share_msg->topic.len = topic->len;
@@ -185,7 +185,7 @@ sky_mqtt_subs_publish(sky_mqtt_server_t *server, const sky_mqtt_head_t *head, co
     share_msg->dup = head->dup;
     share_msg->qos = head->qos;
     share_msg->retain = head->retain;
-    share_msg->ref = server->share_node.node_num - 1;
+    share_msg->ref = SKY_ATOMIC_VAR_INIT(server->share_node.node_num - 1);
     share_msg->topic_index = server->share_node.current_index;
     share_msg->topic.data = (sky_uchar_t *) (share_msg + 1);
     share_msg->topic.len = msg->topic.len;

@@ -34,6 +34,7 @@ typedef _Atomic sky_isize_t sky_atomic_isize_t;
 typedef _Atomic sky_usize_t sky_atomic_usize_t;
 
 
+#define SKY_ATOMIC_VAR_INIT(_val) (_val)
 #define sky_atomic_init(_ptr, _val) sky_atomic_store_explicit(_ptr, _val, SKY_ATOMIC_RELAXED)
 
 #define sky_atomic_get_add_explicit(_ptr, _val, _order) __atomic_fetch_add(_ptr, _val, _order)
