@@ -105,7 +105,7 @@ typedef _Atomic sky_usize_t sky_atomic_usize_t;
 
 #define sky_atomic_get_set(_ptr, _val) sky_atomic_get_set_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
 
-#define sky_atomic_eq_get_set_explicit(_pre, _val, _des, _suc, _fail) \
+#define sky_atomic_eq_set_explicit(_pre, _val, _des, _suc, _fail) \
   __extension__                                                                    \
   ({                                                                               \
     __auto_type __atomic_compare_exchange_ptr = (_pre);                            \
@@ -115,21 +115,21 @@ typedef _Atomic sky_usize_t sky_atomic_usize_t;
                    (_suc), (_fail));                                                        \
   })
 
-#define sky_atomic_eq_get_set(_pre, _val, _des) \
-    sky_atomic_eq_get_set_explicit(_pre, _val, _des, SKY_ATOMIC_SEQ_CST, SKY_ATOMIC_SEQ_CST)
+#define sky_atomic_eq_set(_pre, _val, _des) \
+    sky_atomic_eq_set_explicit(_pre, _val, _des, SKY_ATOMIC_SEQ_CST, SKY_ATOMIC_SEQ_CST)
 
-#define sky_atomic_eq_get_set_weak_explicit(_ptr, _val, _des, _suc, _fail) \
+#define sky_atomic_eq_set_weak_explicit(_pre, _val, _des, _suc, _fail) \
   __extension__                                                                  \
   ({                                                                             \
-    __auto_type __atomic_compare_exchange_ptr = (_ptr);                          \
+    __auto_type __atomic_compare_exchange_ptr = (_pre);                          \
     __typeof__ (*__atomic_compare_exchange_ptr) __atomic_compare_exchange_tmp = (_des); \
     __atomic_compare_exchange (__atomic_compare_exchange_ptr, (_val),            \
                    &__atomic_compare_exchange_tmp, 1,                                     \
                    (_suc), (_fail));                                                      \
   })
 
-#define sky_atomic_eq_get_set_weak(_ptr, _val, _des) \
-    sky_atomic_eq_get_set_weak_explicit(_ptr, _val, _des, SKY_ATOMIC_SEQ_CST, SKY_ATOMIC_SEQ_CST)
+#define sky_atomic_eq_set_weak(_pre, _val, _des) \
+    sky_atomic_eq_set_weak_explicit(_pre, _val, _des, SKY_ATOMIC_SEQ_CST, SKY_ATOMIC_SEQ_CST)
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif
