@@ -5,7 +5,7 @@
 #include "share_msg.h"
 #include "../core/memory.h"
 #include "../core/log.h"
-#include "../safe/mpmc_queue.h"
+#include "../safe/mpsc_queue.h"
 #include<sys/eventfd.h>
 
 struct sky_share_msg_s {
@@ -15,7 +15,7 @@ struct sky_share_msg_s {
 
 struct sky_share_msg_connect_s {
     sky_event_t event;
-    sky_mpmc_queue_t data_queue;
+    sky_mpsc_queue_t data_queue;
     sky_share_msg_t *share_msg;
     sky_share_msg_handle_pt handle;
     void *data;
@@ -60,7 +60,7 @@ sky_share_msg_bind(
         return false;
     }
     sky_share_msg_connect_t *conn = share_msg->conn + index;
-    sky_mpmc_queue_init(&conn->data_queue, 65536);
+    sky_mpsc_queue_init(&conn->data_queue, 1 << 16);
     conn->share_msg = share_msg;
     conn->handle = handle;
     conn->data = data;
@@ -98,7 +98,7 @@ sky_share_msg_send_index(sky_share_msg_t *share_msg, sky_u32_t index, void *data
 
 sky_inline sky_bool_t
 sky_share_msg_send(sky_share_msg_connect_t *conn, void *data) {
-    if (sky_unlikely(!sky_mpmc_queue_push(&conn->data_queue, data))) {
+    if (sky_unlikely(!sky_mpsc_queue_push(&conn->data_queue, data))) {
         return false;
     }
     eventfd_write(conn->event.fd, 1);
@@ -116,7 +116,7 @@ event_conn_run(sky_event_t *ev) {
         }
     }
     void *data;
-    while ((data = sky_mpmc_queue_pop(&conn->data_queue)) != null) {
+    while ((data = sky_mpsc_queue_pop(&conn->data_queue)) != null) {
         conn->handle(data, conn->data);
     }
 
