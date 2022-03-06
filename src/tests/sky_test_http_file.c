@@ -3,30 +3,24 @@
 //
 #include <netinet/in.h>
 
-#include <event/event_loop.h>
+#include <event/event_manager.h>
 #include <net/http/http_server.h>
 #include <net/http/module/http_module_file.h>
 #include <net/http/http_request.h>
 #include <core/log.h>
-#include <platform.h>
 
-static void *server_start(sky_event_loop_t *loop, sky_u32_t index);
-
-static void server_destroy(sky_event_loop_t *loop, void *data);
+static sky_bool_t server_start(sky_event_loop_t *loop, void *data, sky_u32_t index);
 
 int
 main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
-    const sky_platform_conf_t conf = {
-            .run = server_start,
-            .destroy = server_destroy
-    };
+    sky_event_manager_t *manager = sky_event_manager_create();
 
-    sky_platform_t *platform = sky_platform_create(&conf);
-    sky_platform_run(platform);
-    sky_platform_destroy(platform);
+    sky_event_manager_scan(manager, server_start, null);
+    sky_event_manager_run(manager);
+    sky_event_manager_destroy(manager);
 
     return 0;
 }
@@ -51,8 +45,10 @@ http_index_router(sky_http_request_t *req, void *data) {
     return true;
 }
 
-static void *
-server_start(sky_event_loop_t *loop, sky_u32_t index) {
+static sky_bool_t
+server_start(sky_event_loop_t *loop, void *data, sky_u32_t index) {
+    (void )data;
+
     sky_log_info("thread-%u", index);
 
     sky_pool_t *pool;
@@ -115,15 +111,6 @@ server_start(sky_event_loop_t *loop, sky_u32_t index) {
         sky_http_server_bind(server, loop, (sky_inet_address_t *) &http_address, sizeof(struct sockaddr_in6));
     }
 
-    return pool;
-}
-
-static void
-server_destroy(sky_event_loop_t *loop, void *data) {
-    (void) loop;
-
-    sky_pool_t *pool = data;
-
-    sky_pool_destroy(pool);
+    return true;
 }
 

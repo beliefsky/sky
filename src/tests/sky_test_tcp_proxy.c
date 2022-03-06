@@ -2,8 +2,7 @@
 // Created by edz on 2021/11/26.
 //
 #include <netinet/in.h>
-#include <event/event_loop.h>
-#include <platform.h>
+#include <event/event_manager.h>
 #include <core/log.h>
 #include <net/tcp_server.h>
 #include <net/tcp_client.h>
@@ -16,7 +15,7 @@ typedef struct {
     sky_coro_t *coro;
 } tcp_proxy_conn_t;
 
-static void *server_start(sky_event_loop_t *loop, sky_u32_t index);
+static sky_bool_t server_start(sky_event_loop_t *loop, void *data, sky_u32_t index);
 
 static sky_event_t *tcp_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, void *data);
 
@@ -35,20 +34,18 @@ main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
-    const sky_platform_conf_t conf = {
-            .thread_size = 1,
-            .run = server_start
-    };
+    sky_event_manager_t *manager = sky_event_manager_create();
 
-    sky_platform_t *platform = sky_platform_create(&conf);
-    sky_platform_run(platform);
-    sky_platform_destroy(platform);
-
+    sky_event_manager_scan(manager, server_start, null);
+    sky_event_manager_run(manager);
+    sky_event_manager_destroy(manager);
     return 0;
 }
 
-static void *
-server_start(sky_event_loop_t *loop, sky_u32_t index) {
+static sky_bool_t
+server_start(sky_event_loop_t *loop, void *data, sky_u32_t index) {
+    (void) data;
+
     sky_log_info("thread-%u", index);
 
     {
@@ -85,7 +82,7 @@ server_start(sky_event_loop_t *loop, sky_u32_t index) {
         sky_tcp_server_create(loop, &tcp_conf);
     }
 
-    return null;
+    return true;
 }
 
 static sky_event_t *
