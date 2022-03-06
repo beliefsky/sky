@@ -47,8 +47,8 @@ sky_mpsc_queue_push(sky_mpsc_queue_t *queue, void *data) {
     /* increment the head, which gives us 'exclusive' access to that element */
     sky_u32_t head = sky_atomic_get_add_explicit(&queue->head, 1, SKY_ATOMIC_ACQUIRE);
 
-    void *rv = sky_atomic_get_set_explicit(&queue->buffer[head & (queue->max - 1)], data, SKY_ATOMIC_RELEASE);
-    if (sky_unlikely(null == rv)) {
+    void *rv = sky_atomic_get_set_explicit(&queue->buffer[head % queue->max], data, SKY_ATOMIC_RELEASE);
+    if (sky_unlikely(null != rv)) {
         sky_log_info("mpsc queue push 异常");
     }
 
@@ -73,7 +73,7 @@ sky_mpsc_queue_pop(sky_mpsc_queue_t *queue) {
         queue->tail = 0;
     }
     sky_u32_t r = sky_atomic_get_sub_explicit(&queue->count, 1, SKY_ATOMIC_RELEASE);
-    if (sky_unlikely(r > 0)) {
+    if (sky_unlikely(r == 0)) {
         sky_log_info("mpsc queue pop 异常");
     }
 
