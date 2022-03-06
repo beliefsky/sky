@@ -28,6 +28,7 @@ set(SOURCES
         core/json.c
         core/timer_wheel.c
         safe/spsc_queue.c
+        safe/mpsc_queue.c
         safe/mpmc_queue.c
         event/event_manager.c
         event/event_loop_common.c
@@ -177,6 +178,7 @@ install(FILES
 install(FILES
         safe/atomic.h
         safe/mpmc_queue.h
+        safe/mpsc_queue.h
         safe/spsc_queue.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/safe")
 install(FILES

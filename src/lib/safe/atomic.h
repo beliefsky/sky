@@ -21,22 +21,24 @@ extern "C" {
 #define SKY_ATOMIC_RELEASE __ATOMIC_RELEASE
 #define SKY_ATOMIC_ACQ_REL __ATOMIC_ACQ_REL
 #define SKY_ATOMIC_SEQ_CST __ATOMIC_SEQ_CST
-
+#define sky_atomic _Atomic
 
 typedef sky_uchar_t sky_cache_line_t[SKY_CACHE_LINE_SIZE];
-typedef _Atomic sky_bool_t sky_atomic_bool_t;
-typedef _Atomic sky_char_t sky_atomic_char_t;
-typedef _Atomic sky_uchar_t sky_atomic_uchar_t;
-typedef _Atomic sky_i8_t sky_atomic_i8_t;
-typedef _Atomic sky_u8_t sky_atomic_u8_t;
-typedef _Atomic sky_i16_t sky_atomic_i16_t;
-typedef _Atomic sky_u16_t sky_atomic_u16_t;
-typedef _Atomic sky_i32_t sky_atomic_i32_t;
-typedef _Atomic sky_u32_t sky_atomic_u32_t;
-typedef _Atomic sky_i64_t sky_atomic_i64_t;
-typedef _Atomic sky_u64_t sky_atomic_u64_t;
-typedef _Atomic sky_isize_t sky_atomic_isize_t;
-typedef _Atomic sky_usize_t sky_atomic_usize_t;
+typedef sky_atomic sky_bool_t sky_atomic_bool_t;
+typedef sky_atomic sky_char_t sky_atomic_char_t;
+typedef sky_atomic sky_uchar_t sky_atomic_uchar_t;
+typedef sky_atomic sky_i8_t sky_atomic_i8_t;
+typedef sky_atomic sky_u8_t sky_atomic_u8_t;
+typedef sky_atomic sky_i16_t sky_atomic_i16_t;
+typedef sky_atomic sky_u16_t sky_atomic_u16_t;
+typedef sky_atomic sky_i32_t sky_atomic_i32_t;
+typedef sky_atomic sky_u32_t sky_atomic_u32_t;
+typedef sky_atomic sky_i64_t sky_atomic_i64_t;
+typedef sky_atomic sky_u64_t sky_atomic_u64_t;
+typedef sky_atomic sky_isize_t sky_atomic_isize_t;
+typedef sky_atomic sky_usize_t sky_atomic_usize_t;
+
+#define sky_atomic_thread_fence(_order)    __atomic_thread_fence (_order)
 
 
 #define SKY_ATOMIC_VAR_INIT(_val) (_val)
