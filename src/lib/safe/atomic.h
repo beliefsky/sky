@@ -81,7 +81,7 @@ typedef _Atomic sky_usize_t sky_atomic_usize_t;
     __atomic_load (__atomic_load_ptr, &__atomic_load_tmp, (_order)); \
     __atomic_load_tmp;                      \
   })
-#define sky_atomic_get(_ptr, _order) sky_atomic_get_explicit(_ptr, SKY_ATOMIC_SEQ_CST)
+#define sky_atomic_get(_ptr) sky_atomic_get_explicit(_ptr, SKY_ATOMIC_SEQ_CST)
 
 #define sky_atomic_set_explicit(_pre, _val, _order) \
   __extension__                                    \
@@ -103,7 +103,7 @@ typedef _Atomic sky_usize_t sky_atomic_usize_t;
     __atomic_exchange_tmp;                        \
   })
 
-#define sky_atomic_get_set(_ptr, _val, _order) sky_atomic_get_set_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
+#define sky_atomic_get_set(_ptr, _val) sky_atomic_get_set_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
 
 #define sky_atomic_eq_get_set_explicit(_pre, _val, _des, _suc, _fail) \
   __extension__                                                                    \
@@ -115,7 +115,7 @@ typedef _Atomic sky_usize_t sky_atomic_usize_t;
                    (_suc), (_fail));                                                        \
   })
 
-#define sky_atomic_eq_get_set(_pre, _val, _des, _suc, _fail) \
+#define sky_atomic_eq_get_set(_pre, _val, _des) \
     sky_atomic_eq_get_set_explicit(_pre, _val, _des, SKY_ATOMIC_SEQ_CST, SKY_ATOMIC_SEQ_CST)
 
 #define sky_atomic_eq_get_set_weak_explicit(_ptr, _val, _des, _suc, _fail) \
