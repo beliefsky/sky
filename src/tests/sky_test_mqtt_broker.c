@@ -46,5 +46,5 @@ server_start(sky_event_loop_t *loop, void *data, sky_u32_t index) {
 
     sky_mqtt_server_bind(server, (sky_inet_address_t *) &v6_address, sizeof(v6_address));
 
-    return null;
+    return true;
 }
