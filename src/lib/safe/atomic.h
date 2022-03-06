@@ -128,6 +128,11 @@ typedef _Atomic sky_usize_t sky_atomic_usize_t;
                    (_suc), (_fail));                                                      \
   })
 
+/**
+ * _pre与 _val 为指针, _des 为值
+ *  *pre == *val -> *pre = _des
+ *  *pre != *val -> *val = *pre
+ */
 #define sky_atomic_eq_set_weak(_pre, _val, _des) \
     sky_atomic_eq_set_weak_explicit(_pre, _val, _des, SKY_ATOMIC_SEQ_CST, SKY_ATOMIC_SEQ_CST)
 #if defined(__cplusplus)
