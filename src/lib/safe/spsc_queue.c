@@ -87,7 +87,7 @@ sky_spsc_queue_push_many(sky_spsc_queue_t *queue, void **data_ptr, sky_u32_t n) 
 
     for (sky_u32_t i = 0; i < n; i++) {
         queue->buffer[queue->tail] = *data_ptr++;
-        sky_atomic_store_explicit(&queue->tail, (queue->tail + 1) & queue->buffer_mask, SKY_ATOMIC_RELEASE);
+        sky_atomic_set_explicit(&queue->tail, (queue->tail + 1) & queue->buffer_mask, SKY_ATOMIC_RELEASE);
     }
 
     return n;
@@ -108,7 +108,7 @@ sky_spsc_queue_pull_many(sky_spsc_queue_t *queue, void **data_ptr, sky_u32_t n) 
 
     for (sky_u32_t i = 0; i < n; i++) {
         *data_ptr++ = queue->buffer[queue->head];
-        sky_atomic_store_explicit(&queue->head, (queue->head + 1) & queue->buffer_mask, SKY_ATOMIC_RELEASE);
+        sky_atomic_set_explicit(&queue->head, (queue->head + 1) & queue->buffer_mask, SKY_ATOMIC_RELEASE);
     }
 
     return n;
@@ -116,8 +116,8 @@ sky_spsc_queue_pull_many(sky_spsc_queue_t *queue, void **data_ptr, sky_u32_t n) 
 
 static sky_inline sky_u32_t
 sky_spsc_queue_free_slot(sky_spsc_queue_t *queue) {
-    if (sky_atomic_load_explicit(&queue->tail, SKY_ATOMIC_ACQUIRE) <
-        sky_atomic_load_explicit(&queue->head, SKY_ATOMIC_ACQUIRE)) {
+    if (sky_atomic_get_explicit(&queue->tail, SKY_ATOMIC_ACQUIRE) <
+        sky_atomic_get_explicit(&queue->head, SKY_ATOMIC_ACQUIRE)) {
         return queue->head - queue->tail - 1;
     } else {
         return queue->head + (queue->buffer_mask - queue->tail);
