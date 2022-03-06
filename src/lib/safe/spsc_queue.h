@@ -11,17 +11,13 @@
 extern "C" {
 #endif
 
-#ifndef SKY_CACHE_LINE_SIZE
-#define SKY_CACHE_LINE_SIZE 64
-#endif
-
 typedef struct sky_spsc_queue_s sky_spsc_queue_t;
 
 struct sky_spsc_queue_s {
-    sky_uchar_t _pad0[SKY_CACHE_LINE_SIZE];
+    sky_cache_line_t _pad0;
     sky_u32_t buffer_mask;
     sky_atomic_u32_t tail;
-    sky_uchar_t _pad1[SKY_CACHE_LINE_SIZE];
+    sky_cache_line_t _pad1;
     /* Producer part */
     sky_atomic_u32_t head;
 
