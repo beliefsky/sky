@@ -78,7 +78,7 @@ server_start(sky_event_loop_t *loop, void *data, sky_u32_t index) {
     ps_pool = sky_pgsql_pool_create(loop, &pg_conf);
     if (!ps_pool) {
         sky_log_error("create postgresql connection pool error");
-        return null;
+        return false;
     }
 
     sky_uchar_t redis_ip[] = {192, 168, 0, 77};
@@ -97,7 +97,7 @@ server_start(sky_event_loop_t *loop, void *data, sky_u32_t index) {
     redis_pool = sky_redis_pool_create(loop, &redis_conf);
     if (!redis_pool) {
         sky_log_error("create redis connection pool error");
-        return null;
+        return false;
     }
 
     sky_array_init2(&modules, pool, 8, sizeof(sky_http_module_t));
