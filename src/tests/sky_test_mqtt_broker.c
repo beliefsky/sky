@@ -2,38 +2,32 @@
 // Created by weijing on 18-2-8.
 //
 #include <netinet/in.h>
-#include <event/event_loop.h>
-#include <platform.h>
+#include <event/event_manager.h>
 #include <core/log.h>
 #include <net/mqtt/mqtt_server.h>
 
-static void *server_start(sky_event_loop_t *loop, sky_u32_t index);
+static sky_bool_t server_start(sky_event_loop_t *loop, void *data, sky_u32_t index);
 
-
-static sky_share_msg_t *mqtt_share_msg;
 
 int
 main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
-    const sky_platform_conf_t conf = {
-            .thread_size = 1,
-            .run = server_start
-    };
+    sky_event_manager_t *manager = sky_event_manager_create();
 
-    sky_platform_t *platform = sky_platform_create(&conf);
-
-    mqtt_share_msg = sky_share_msg_create(sky_platform_thread_n(platform));
-    sky_platform_run(platform);
-    sky_platform_destroy(platform);
+    sky_event_manager_scan(manager, server_start, manager);
+    sky_event_manager_run(manager);
+    sky_event_manager_destroy(manager);
 
     return 0;
 }
 
-static void *
-server_start(sky_event_loop_t *loop, sky_u32_t index) {
+static sky_bool_t
+server_start(sky_event_loop_t *loop, void *data, sky_u32_t index) {
     sky_log_info("thread-%u", index);
+
+    sky_share_msg_t *mqtt_share_msg = data;
 
     sky_mqtt_server_t *server = sky_mqtt_server_create(loop, mqtt_share_msg, index);
 

@@ -61,7 +61,7 @@ sky_bool_t
 sky_event_manager_scan(sky_event_manager_t *manager, sky_event_iter_pt iter, void *u_data) {
     event_thread_t *item = manager->event_threads;
     for (sky_u32_t i = 0; i < manager->thread_n; ++i, ++item) {
-        if (!iter(item->loop, u_data)) {
+        if (!iter(item->loop, u_data, i)) {
             return false;
         }
     }

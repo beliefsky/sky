@@ -13,7 +13,7 @@ extern "C" {
 
 typedef struct sky_event_manager_s sky_event_manager_t;
 
-typedef sky_bool_t (*sky_event_iter_pt)(sky_event_loop_t *loop, void *u_data);
+typedef sky_bool_t (*sky_event_iter_pt)(sky_event_loop_t *loop, void *u_data, sky_u32_t index);
 
 sky_event_manager_t *sky_event_manager_create();
 

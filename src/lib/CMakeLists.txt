@@ -4,7 +4,6 @@ if (CMAKE_CROSSCOMPILING)
 endif ()
 
 set(SOURCES
-        platform.c
         core/palloc.c
         core/queue.c
         core/array.c
@@ -146,10 +145,6 @@ set(CMAKE_INSTALL_FULL_INCLUDEDIR "/usr/local/include")
 
 install(FILES
         sky_build_config.h
-        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky")
-
-install(FILES
-        platform.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky")
 
 install(FILES

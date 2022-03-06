@@ -7,7 +7,7 @@
 //
 #include <netinet/in.h>
 
-#include <event/event_loop.h>
+#include <event/event_manager.h>
 #include <net/http/http_server.h>
 #include <net/http/module/http_module_dispatcher.h>
 #include <net/http/http_request.h>
@@ -18,11 +18,8 @@
 #include <core/json.h>
 #include <core/date.h>
 #include <core/memory.h>
-#include <platform.h>
 
-static void *server_start(sky_event_loop_t *loop, sky_u32_t index);
-
-static void server_destroy(sky_event_loop_t *loop, void *data);
+static sky_bool_t server_start(sky_event_loop_t *loop, void *data, sky_u32_t index);
 
 static void build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module);
 
@@ -39,15 +36,11 @@ main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
-    const sky_platform_conf_t conf = {
-//            .thread_size = 2,
-            .run = server_start,
-            .destroy = server_destroy
-    };
+    sky_event_manager_t *manager = sky_event_manager_create();
 
-    sky_platform_t *platform = sky_platform_create(&conf);
-    sky_platform_run(platform);
-    sky_platform_destroy(platform);
+    sky_event_manager_scan(manager, server_start, null);
+    sky_event_manager_run(manager);
+    sky_event_manager_destroy(manager);
 
     return 0;
 }
@@ -55,8 +48,10 @@ main() {
 sky_thread sky_pgsql_pool_t *ps_pool;
 sky_thread sky_redis_pool_t *redis_pool;
 
-static void *
-server_start(sky_event_loop_t *loop, sky_u32_t index) {
+static sky_bool_t
+server_start(sky_event_loop_t *loop, void *data, sky_u32_t index) {
+    (void )data;
+
     sky_log_info("thread-%u", index);
 
     sky_pool_t *pool;
@@ -149,19 +144,7 @@ server_start(sky_event_loop_t *loop, sky_u32_t index) {
 
     sky_http_server_bind(server, loop, (sky_inet_address_t *) &ipv6_address, sizeof(struct sockaddr_in6));
 
-    return null;
-}
-
-static void
-server_destroy(sky_event_loop_t *loop, void *data) {
-    (void) loop;
-
-    sky_pgsql_pool_destroy(ps_pool);
-    sky_redis_pool_destroy(redis_pool);
-
-    sky_pool_t *pool = data;
-
-    sky_pool_destroy(pool);
+    return true;
 }
 
 static void
