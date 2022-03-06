@@ -35,7 +35,7 @@ typedef _Atomic sky_usize_t sky_atomic_usize_t;
 
 
 #define SKY_ATOMIC_VAR_INIT(_val) (_val)
-#define sky_atomic_init(_ptr, _val) sky_atomic_store_explicit(_ptr, _val, SKY_ATOMIC_RELAXED)
+#define sky_atomic_init(_ptr, _val) sky_atomic_set_explicit(_ptr, _val, SKY_ATOMIC_RELAXED)
 
 #define sky_atomic_get_add_explicit(_ptr, _val, _order) __atomic_fetch_add(_ptr, _val, _order)
 #define sky_atomic_get_add(_ptr, _val) sky_atomic_get_add_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
@@ -73,7 +73,7 @@ typedef _Atomic sky_usize_t sky_atomic_usize_t;
 #define sky_atomic_nand_get_explicit(_ptr, _val, _order) __atomic_nand_fetch(_ptr, _val, _order)
 #define sky_atomic_nand_get(_ptr, _val) sky_atomic_nand_get_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
 
-#define sky_atomic_load_explicit(_ptr, _order) \
+#define sky_atomic_get_explicit(_ptr, _order) \
   __extension__                             \
   ({                                        \
     __auto_type __atomic_load_ptr = (_ptr); \
@@ -81,18 +81,18 @@ typedef _Atomic sky_usize_t sky_atomic_usize_t;
     __atomic_load (__atomic_load_ptr, &__atomic_load_tmp, (_order)); \
     __atomic_load_tmp;                      \
   })
-#define sky_atomic_load(_ptr, _order) sky_atomic_load_explicit(_ptr, SKY_ATOMIC_SEQ_CST)
+#define sky_atomic_get(_ptr, _order) sky_atomic_get_explicit(_ptr, SKY_ATOMIC_SEQ_CST)
 
-#define sky_atomic_store_explicit(_pre, _val, _order) \
+#define sky_atomic_set_explicit(_pre, _val, _order) \
   __extension__                                    \
   ({                                               \
     __auto_type __atomic_store_ptr = (_pre);       \
     __typeof__ (*__atomic_store_ptr) __atomic_store_tmp = (_val); \
     __atomic_store (__atomic_store_ptr, &__atomic_store_tmp, (_order)); \
   })
-#define sky_atomic_store(_pre, _val) sky_atomic_store_explicit(_pre, _val, SKY_ATOMIC_SEQ_CST)
+#define sky_atomic_set(_pre, _val) sky_atomic_set_explicit(_pre, _val, SKY_ATOMIC_SEQ_CST)
 
-#define sky_atomic_exchange_explicit(_ptr, _val, _order) \
+#define sky_atomic_get_set_explicit(_ptr, _val, _order) \
   __extension__                                       \
   ({                                                  \
     __auto_type __atomic_exchange_ptr = (_ptr);       \
@@ -103,9 +103,9 @@ typedef _Atomic sky_usize_t sky_atomic_usize_t;
     __atomic_exchange_tmp;                        \
   })
 
-#define sky_atomic_exchange(_ptr, _val, _order) sky_atomic_exchange_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
+#define sky_atomic_get_set(_ptr, _val, _order) sky_atomic_get_set_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
 
-#define sky_atomic_compare_exchange_strong_explicit(_pre, _val, _des, _suc, _fail) \
+#define sky_atomic_compare_get_set_strong_explicit(_pre, _val, _des, _suc, _fail) \
   __extension__                                                                    \
   ({                                                                               \
     __auto_type __atomic_compare_exchange_ptr = (_pre);                            \
@@ -115,10 +115,10 @@ typedef _Atomic sky_usize_t sky_atomic_usize_t;
                    (_suc), (_fail));                                                        \
   })
 
-#define sky_atomic_compare_exchange_strong(_pre, _val, _des, _suc, _fail) \
-    sky_atomic_compare_exchange_strong_explicit(_pre, _val, _des, SKY_ATOMIC_SEQ_CST, SKY_ATOMIC_SEQ_CST)
+#define sky_atomic_compare_get_set_strong(_pre, _val, _des, _suc, _fail) \
+    sky_atomic_compare_get_set_strong_explicit(_pre, _val, _des, SKY_ATOMIC_SEQ_CST, SKY_ATOMIC_SEQ_CST)
 
-#define sky_atomic_compare_exchange_weak_explicit(_ptr, _val, _des, _suc, _fail) \
+#define sky_atomic_compare_get_set_weak_explicit(_ptr, _val, _des, _suc, _fail) \
   __extension__                                                                  \
   ({                                                                             \
     __auto_type __atomic_compare_exchange_ptr = (_ptr);                          \
@@ -128,8 +128,8 @@ typedef _Atomic sky_usize_t sky_atomic_usize_t;
                    (_suc), (_fail));                                                      \
   })
 
-#define sky_atomic_compare_exchange_weak(_ptr, _val, _des, _suc, _fail) \
-    sky_atomic_compare_exchange_weak_explicit(_ptr, _val, _des, SKY_ATOMIC_SEQ_CST, SKY_ATOMIC_SEQ_CST)
+#define sky_atomic_compare_get_set_weak(_ptr, _val, _des, _suc, _fail) \
+    sky_atomic_compare_get_set_weak_explicit(_ptr, _val, _des, SKY_ATOMIC_SEQ_CST, SKY_ATOMIC_SEQ_CST)
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif

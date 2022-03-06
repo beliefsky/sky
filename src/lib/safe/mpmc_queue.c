@@ -25,7 +25,7 @@ sky_mpmc_queue_init(sky_mpmc_queue_t *queue, sky_u32_t capacity) {
     }
 
     for (sky_u32_t i = 0; i != capacity; i += 1) {
-        sky_atomic_store_explicit(&queue->buffer[i].sequence, i, SKY_ATOMIC_RELAXED);
+        sky_atomic_set_explicit(&queue->buffer[i].sequence, i, SKY_ATOMIC_RELAXED);
     }
 
     sky_atomic_init(&queue->tail, 0);
@@ -42,8 +42,8 @@ sky_mpmc_queue_destroy(sky_mpmc_queue_t *queue) {
 
 sky_inline sky_u32_t
 sky_mpmc_queue_size(sky_mpmc_queue_t *queue) {
-    return sky_atomic_load_explicit(&queue->tail, SKY_ATOMIC_RELAXED) -
-           sky_atomic_load_explicit(&queue->head, SKY_ATOMIC_RELAXED);
+    return sky_atomic_get_explicit(&queue->tail, SKY_ATOMIC_RELAXED) -
+           sky_atomic_get_explicit(&queue->head, SKY_ATOMIC_RELAXED);
 }
 
 sky_bool_t
@@ -57,26 +57,26 @@ sky_mpmc_queue_push(sky_mpmc_queue_t *queue, void *data) {
     sky_u32_t pos, seq;
     sky_i32_t diff;
 
-    pos = sky_atomic_load_explicit(&queue->tail, SKY_ATOMIC_RELAXED);
+    pos = sky_atomic_get_explicit(&queue->tail, SKY_ATOMIC_RELAXED);
     for (;;) {
         cell = &queue->buffer[pos & queue->buffer_mask];
-        seq = sky_atomic_load_explicit(&cell->sequence, SKY_ATOMIC_ACQUIRE);
+        seq = sky_atomic_get_explicit(&cell->sequence, SKY_ATOMIC_ACQUIRE);
         diff = (sky_i32_t) seq - (sky_i32_t) pos;
 
         if (diff == 0) {
-            if (sky_atomic_compare_exchange_weak_explicit(&queue->tail, &pos, pos + 1, SKY_ATOMIC_RELAXED,
+            if (sky_atomic_compare_get_set_weak_explicit(&queue->tail, &pos, pos + 1, SKY_ATOMIC_RELAXED,
                                                           SKY_ATOMIC_ACQ_REL)) {
                 break;
             }
         } else if (diff < 0) {
             return false;
         } else {
-            pos = sky_atomic_load_explicit(&queue->tail, SKY_ATOMIC_RELAXED);
+            pos = sky_atomic_get_explicit(&queue->tail, SKY_ATOMIC_RELAXED);
         }
     }
 
     cell->data = data;
-    sky_atomic_store_explicit(&cell->sequence, pos + 1, SKY_ATOMIC_RELEASE);
+    sky_atomic_set_explicit(&cell->sequence, pos + 1, SKY_ATOMIC_RELEASE);
 
     return true;
 }
@@ -87,27 +87,27 @@ sky_mpmc_queue_pull(sky_mpmc_queue_t *queue, void **data_ptr) {
     sky_u32_t pos, seq;
     sky_i32_t diff;
 
-    pos = sky_atomic_load_explicit(&queue->head, SKY_ATOMIC_RELAXED);
+    pos = sky_atomic_get_explicit(&queue->head, SKY_ATOMIC_RELAXED);
     for (;;) {
         cell = &queue->buffer[pos & queue->buffer_mask];
 
-        seq = sky_atomic_load_explicit(&cell->sequence, SKY_ATOMIC_ACQUIRE);
+        seq = sky_atomic_get_explicit(&cell->sequence, SKY_ATOMIC_ACQUIRE);
         diff = (sky_i32_t) seq - (sky_i32_t) (pos + 1);
 
         if (diff == 0) {
-            if (sky_atomic_compare_exchange_weak_explicit(&queue->head, &pos, pos + 1, SKY_ATOMIC_RELAXED,
+            if (sky_atomic_compare_get_set_weak_explicit(&queue->head, &pos, pos + 1, SKY_ATOMIC_RELAXED,
                                                           SKY_ATOMIC_ACQ_REL)) {
                 break;
             }
         } else if (diff < 0) {
             return false;
         } else {
-            pos = sky_atomic_load_explicit(&queue->head, SKY_ATOMIC_RELAXED);
+            pos = sky_atomic_get_explicit(&queue->head, SKY_ATOMIC_RELAXED);
         }
     }
 
     *data_ptr = cell->data;
-    sky_atomic_store_explicit(&cell->sequence, pos + queue->buffer_mask + 1, SKY_ATOMIC_RELEASE);
+    sky_atomic_set_explicit(&cell->sequence, pos + queue->buffer_mask + 1, SKY_ATOMIC_RELEASE);
 
     return true;
 }
