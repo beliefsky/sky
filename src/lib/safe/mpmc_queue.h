@@ -11,22 +11,18 @@
 extern "C" {
 #endif
 
-#ifndef SKY_CACHE_LINE_SIZE
-#define SKY_CACHE_LINE_SIZE 64
-#endif
-
 typedef struct sky_mpmc_queue_cell_s sky_mpmc_queue_cell_t;
 typedef struct sky_mpmc_queue_s sky_mpmc_queue_t;
 
 struct sky_mpmc_queue_s {
-    sky_uchar_t _pad0[SKY_CACHE_LINE_SIZE];
+    sky_cache_line_t _pad0;
     sky_u32_t buffer_mask;
     sky_mpmc_queue_cell_t *buffer;
-    sky_uchar_t _pad1[SKY_CACHE_LINE_SIZE];
+    sky_cache_line_t _pad1;
     sky_atomic_u32_t tail;
-    sky_uchar_t _pad2[SKY_CACHE_LINE_SIZE];
+    sky_cache_line_t _pad2;
     sky_atomic_u32_t head;
-    sky_uchar_t _pad3[SKY_CACHE_LINE_SIZE];
+    sky_cache_line_t _pad3;
 };
 
 sky_bool_t sky_mpmc_queue_init(sky_mpmc_queue_t *queue, sky_u32_t capacity);
