@@ -128,7 +128,7 @@ typedef _Atomic sky_usize_t sky_atomic_usize_t;
                    (_suc), (_fail));                                                      \
   })
 
-#define sky_atomic_eq_get_set_weak(_ptr, _val, _des, _suc, _fail) \
+#define sky_atomic_eq_get_set_weak(_ptr, _val, _des) \
     sky_atomic_eq_get_set_weak_explicit(_ptr, _val, _des, SKY_ATOMIC_SEQ_CST, SKY_ATOMIC_SEQ_CST)
 #if defined(__cplusplus)
 } /* extern "C" { */
