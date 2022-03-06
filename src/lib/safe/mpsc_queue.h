@@ -5,34 +5,44 @@
 #ifndef SKY_MPSC_QUEUE_H
 #define SKY_MPSC_QUEUE_H
 
-#include "atomic.h"
+#include "mpmc_queue.h"
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-typedef struct sky_mpsc_queue_s sky_mpsc_queue_t;
-
-struct sky_mpsc_queue_s {
-    sky_atomic_u32_t count;
-    sky_atomic_u32_t head;
-    sky_u32_t tail;
-    sky_u32_t max;
-    void *sky_atomic *buffer;
-};
+typedef sky_mpmc_queue_t sky_mpsc_queue_t;
 
 
-sky_bool_t sky_mpsc_queue_init(sky_mpsc_queue_t *queue, sky_u32_t capacity);
+static sky_inline sky_bool_t
+sky_mpsc_queue_init(sky_mpsc_queue_t *queue, sky_u32_t capacity) {
+    return sky_mpmc_queue_init(queue, capacity);
+}
 
-void sky_mpsc_queue_destroy(sky_mpsc_queue_t *queue);
+static sky_inline void
+sky_mpsc_queue_destroy(sky_mpsc_queue_t *queue) {
+    sky_mpmc_queue_destroy(queue);
+}
 
-sky_u32_t sky_mpsc_queue_size(sky_mpsc_queue_t *queue);
+static sky_inline sky_u32_t
+sky_mpsc_queue_size(sky_mpsc_queue_t *queue) {
+    return sky_mpmc_queue_size(queue);
+}
 
-sky_bool_t sky_mpsc_queue_push(sky_mpsc_queue_t *queue, void *data);
+static sky_inline sky_bool_t
+sky_mpsc_queue_push(sky_mpsc_queue_t *queue, void *data) {
+    return sky_mpmc_queue_push(queue, data);
+}
 
-sky_bool_t sky_mpsc_queue_pull(sky_mpsc_queue_t *queue, void **data_ptr);
+static sky_inline sky_bool_t
+sky_mpsc_queue_pull(sky_mpsc_queue_t *queue, void **data_ptr) {
+    return sky_mpmc_queue_pull(queue, data_ptr);
+}
 
-void *sky_mpsc_queue_pop(sky_mpsc_queue_t *queue);
+static sky_inline void *
+sky_mpsc_queue_pop(sky_mpsc_queue_t *queue) {
+    return sky_mpmc_queue_pop(queue);
+}
 
 #if defined(__cplusplus)
 } /* extern "C" { */
