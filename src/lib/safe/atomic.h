@@ -5,7 +5,7 @@
 #ifndef SKY_ATOMIC_H
 #define SKY_ATOMIC_H
 
-#include "types.h"
+#include "../core/types.h"
 
 #if defined(__cplusplus)
 extern "C" {

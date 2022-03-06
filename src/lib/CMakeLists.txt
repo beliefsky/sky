@@ -7,8 +7,6 @@ set(SOURCES
         platform.c
         core/palloc.c
         core/queue.c
-        core/spsc_queue.c
-        core/mpmc_queue.c
         core/array.c
         core/list.c
         core/rbtree.c
@@ -30,6 +28,8 @@ set(SOURCES
         core/uuid.c
         core/json.c
         core/timer_wheel.c
+        safe/spsc_queue.c
+        safe/mpmc_queue.c
         event/event_loop_common.c
         event/event_loop_epoll.c
         event/event_loop_kqueue.c
@@ -157,8 +157,6 @@ install(FILES
         core/palloc.h
         core/array.h
         core/queue.h
-        core/mpmc_queue.h
-        core/spsc_queue.h
         core/list.h
         core/rbtree.h
         core/hash.h
@@ -180,7 +178,11 @@ install(FILES
         core/json.h
         core/timer_wheel.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/core")
-
+install(FILES
+        safe/atomic.h
+        safe/mpmc_queue.h
+        safe/spsc_queue.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/safe")
 install(FILES
         event/event_loop.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/event")

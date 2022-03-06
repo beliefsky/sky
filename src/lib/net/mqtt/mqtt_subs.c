@@ -6,7 +6,7 @@
 #include "../../core/memory.h"
 #include "../../core/log.h"
 #include "../../core/crc32.h"
-#include "../../core/atomic.h"
+#include "../../safe/atomic.h"
 #include "mqtt_response.h"
 
 typedef struct {
