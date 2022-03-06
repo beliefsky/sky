@@ -30,6 +30,7 @@ set(SOURCES
         core/timer_wheel.c
         safe/spsc_queue.c
         safe/mpmc_queue.c
+        event/event_manager.c
         event/event_loop_common.c
         event/event_loop_epoll.c
         event/event_loop_kqueue.c
@@ -185,6 +186,7 @@ install(FILES
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/safe")
 install(FILES
         event/event_loop.h
+        event/event_manager.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/event")
 install(FILES
         net/inet.h
