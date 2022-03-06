@@ -64,7 +64,7 @@ sky_mpmc_queue_push(sky_mpmc_queue_t *queue, void *data) {
         diff = (sky_i32_t) seq - (sky_i32_t) pos;
 
         if (diff == 0) {
-            if (sky_atomic_compare_get_set_weak_explicit(&queue->tail, &pos, pos + 1, SKY_ATOMIC_RELAXED,
+            if (sky_atomic_eq_get_set_weak_explicit(&queue->tail, &pos, pos + 1, SKY_ATOMIC_RELAXED,
                                                           SKY_ATOMIC_ACQ_REL)) {
                 break;
             }
@@ -95,7 +95,7 @@ sky_mpmc_queue_pull(sky_mpmc_queue_t *queue, void **data_ptr) {
         diff = (sky_i32_t) seq - (sky_i32_t) (pos + 1);
 
         if (diff == 0) {
-            if (sky_atomic_compare_get_set_weak_explicit(&queue->head, &pos, pos + 1, SKY_ATOMIC_RELAXED,
+            if (sky_atomic_eq_get_set_weak_explicit(&queue->head, &pos, pos + 1, SKY_ATOMIC_RELAXED,
                                                           SKY_ATOMIC_ACQ_REL)) {
                 break;
             }
