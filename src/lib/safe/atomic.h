@@ -15,8 +15,6 @@ extern "C" {
 #define SKY_CACHE_LINE_SIZE 64
 #endif
 
-typedef sky_uchar_t sky_cache_line_t[SKY_CACHE_LINE_SIZE];
-
 #define SKY_ATOMIC_RELAXED __ATOMIC_RELAXED
 #define SKY_ATOMIC_CONSUME __ATOMIC_CONSUME
 #define SKY_ATOMIC_ACQUIRE __ATOMIC_ACQUIRE
@@ -25,6 +23,7 @@ typedef sky_uchar_t sky_cache_line_t[SKY_CACHE_LINE_SIZE];
 #define SKY_ATOMIC_SEQ_CST __ATOMIC_SEQ_CST
 
 
+typedef sky_uchar_t sky_cache_line_t[SKY_CACHE_LINE_SIZE];
 typedef _Atomic sky_bool_t sky_atomic_bool_t;
 typedef _Atomic sky_char_t sky_atomic_char_t;
 typedef _Atomic sky_uchar_t sky_atomic_uchar_t;
