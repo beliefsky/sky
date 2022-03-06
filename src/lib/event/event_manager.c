@@ -30,7 +30,7 @@ struct sky_event_manager_s {
 
 static void *thread_run(void *data);
 
-static void thread_bind_cpu(pthread_attr_t *attr, sky_i32_t n);
+static void thread_bind_cpu(pthread_attr_t *attr, sky_u32_t n);
 
 sky_event_manager_t *
 sky_event_manager_create() {
@@ -78,7 +78,7 @@ sky_event_manager_run(sky_event_manager_t *manager) {
     for (i = 0; i < manager->thread_n; ++i, ++item) {
         pthread_attr_init(&thread);
         pthread_attr_setscope(&thread, PTHREAD_SCOPE_SYSTEM);
-        thread_bind_cpu(&thread, (sky_i32_t) i);
+        thread_bind_cpu(&thread, i);
         pthread_create(&item->thread, &thread, thread_run, item);
         pthread_attr_destroy(&thread);
     }
@@ -104,7 +104,7 @@ thread_run(void *data) {
 }
 
 static sky_inline void
-thread_bind_cpu(pthread_attr_t *attr, sky_i32_t n) {
+thread_bind_cpu(pthread_attr_t *attr, sky_u32_t n) {
 #if defined(__linux__)
     cpu_set_t set;
     CPU_ZERO(&set);
