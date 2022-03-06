@@ -3,7 +3,7 @@
 //
 
 #include "mpmc_queue.h"
-#include "memory.h"
+#include "../core/memory.h"
 
 struct sky_mpmc_queue_cell_s {
     sky_atomic_u32_t sequence;

@@ -5,7 +5,7 @@
 #include "share_msg.h"
 #include "../core/memory.h"
 #include "../core/log.h"
-#include "../core/mpmc_queue.h"
+#include "../safe/mpmc_queue.h"
 #include<sys/eventfd.h>
 
 struct sky_share_msg_s {

@@ -3,7 +3,7 @@
 //
 
 #include "spsc_queue.h"
-#include "memory.h"
+#include "../core/memory.h"
 
 static sky_u32_t sky_spsc_queue_free_slot(sky_spsc_queue_t *queue);
 
