@@ -42,6 +42,7 @@ check_include_file(sys/epoll.h HAVE_EPOLL)
 check_include_file(sys/event.h HAVE_KQUEUE)
 #check_include_file(sys/eventfd.h HAVE_EVENT_FD)
 check_include_file(malloc.h HAVE_MALLOC)
+check_include_file(stdatomic.h HAVE_ATOMIC)
 check_function_exists(accept4 HAVE_ACCEPT4)
 
 if (NOT HAS_CLOCK_GETTIME AND ${CMAKE_SYSTEM_NAME} MATCHES "Linux")
