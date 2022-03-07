@@ -57,27 +57,6 @@ typedef sky_atomic (sky_usize_t) sky_atomic_usize_t;
 #define sky_atomic_get_xor_explicit(_ptr, _val, _order) __c11_atomic_fetch_xor(_ptr, _val, _order)
 #define sky_atomic_get_xor(_ptr, _val) sky_atomic_get_xor_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
 
-#define sky_atomic_get_nand_explicit(_ptr, _val, _order) __c11_atomic_fetch_nand(_ptr, _val, _order)
-#define sky_atomic_get_nand(_ptr, _val) sky_atomic_get_nand_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
-
-#define sky_atomic_add_get_explicit(_ptr, _val, _order) __atomic_sub_fetch(_ptr, _val, _order)
-#define sky_atomic_add_get(_ptr, _val) sky_atomic_add_get_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
-
-#define sky_atomic_sub_get_explicit(_ptr, _val, _order) __atomic_sub_fetch(_ptr, _val, _order)
-#define sky_atomic_sub_get(_ptr, _val) sky_atomic_sub_get_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
-
-#define sky_atomic_or_get_explicit(_ptr, _val, _order) __atomic_or_fetch(_ptr, _val, _order)
-#define sky_atomic_or_get(_ptr, _val) sky_atomic_or_get_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
-
-#define sky_atomic_and_get_explicit(_ptr, _val, _order) __atomic_and_fetch(_ptr, _val, _order)
-#define sky_atomic_and_get(_ptr, _val) sky_atomic_and_get_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
-
-#define sky_atomic_xor_get_explicit(_ptr, _val, _order) __atomic_xor_fetch(_ptr, _val, _order)
-#define sky_atomic_xor_get(_ptr, _val) sky_atomic_xor_get_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
-
-#define sky_atomic_nand_get_explicit(_ptr, _val, _order) __atomic_nand_fetch(_ptr, _val, _order)
-#define sky_atomic_nand_get(_ptr, _val) sky_atomic_nand_get_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
-
 #define sky_atomic_get_explicit(_ptr, _order) __c11_atomic_load(_ptr, _order)
 #define sky_atomic_get(_ptr) sky_atomic_get_explicit(_ptr, SKY_ATOMIC_SEQ_CST)
 
@@ -125,24 +104,6 @@ typedef sky_atomic (sky_usize_t) sky_atomic_usize_t;
 
 #define sky_atomic_get_nand_explicit(_ptr, _val, _order) __atomic_fetch_nand(_ptr, _val, _order)
 #define sky_atomic_get_nand(_ptr, _val) sky_atomic_get_nand_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
-
-#define sky_atomic_add_get_explicit(_ptr, _val, _order) __atomic_sub_fetch(_ptr, _val, _order)
-#define sky_atomic_add_get(_ptr, _val) sky_atomic_add_get_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
-
-#define sky_atomic_sub_get_explicit(_ptr, _val, _order) __atomic_sub_fetch(_ptr, _val, _order)
-#define sky_atomic_sub_get(_ptr, _val) sky_atomic_sub_get_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
-
-#define sky_atomic_or_get_explicit(_ptr, _val, _order) __atomic_or_fetch(_ptr, _val, _order)
-#define sky_atomic_or_get(_ptr, _val) sky_atomic_or_get_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
-
-#define sky_atomic_and_get_explicit(_ptr, _val, _order) __atomic_and_fetch(_ptr, _val, _order)
-#define sky_atomic_and_get(_ptr, _val) sky_atomic_and_get_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
-
-#define sky_atomic_xor_get_explicit(_ptr, _val, _order) __atomic_xor_fetch(_ptr, _val, _order)
-#define sky_atomic_xor_get(_ptr, _val) sky_atomic_xor_get_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
-
-#define sky_atomic_nand_get_explicit(_ptr, _val, _order) __atomic_nand_fetch(_ptr, _val, _order)
-#define sky_atomic_nand_get(_ptr, _val) sky_atomic_nand_get_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
 
 #define sky_atomic_get_explicit(_ptr, _order) \
   __extension__                             \
