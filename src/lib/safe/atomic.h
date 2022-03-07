@@ -7,6 +7,7 @@
 
 #include "../core/types.h"
 
+#undef HAVE_ATOMIC
 #ifdef HAVE_ATOMIC
 
 #include <stdatomic.h>
@@ -119,11 +120,21 @@ typedef sky_atomic (sky_usize_t) sky_atomic_usize_t;
 
 #define sky_atomic_set_explicit(_ptr, _val, _order) \
     do {                                            \
-        __sync_lock_test_and_set(_ptr, _val);       \
+        typeof(_ptr) _old_val;                      \
+        do {                                        \
+            _old_val = *(_ptr);                     \
+        } while (__sync_val_compare_and_swap(_ptr, _old_val, _val) != _old_val); \
     } while(0)
 #define sky_atomic_set(_ptr, _val) sky_atomic_set_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
 
-#define sky_atomic_get_set_explicit(_ptr, _val, _order) __sync_lock_test_and_set(_ptr, _val)
+#define sky_atomic_get_set_explicit(_ptr, _val, _order) \
+    ({                                                  \
+        typeof(_ptr) _old_val;                          \
+        do {                                            \
+            _old_val = *(_ptr);                         \
+        } while (__sync_val_compare_and_swap(_ptr, _old_val, _val) != _old_val); \
+        __old_val;                                      \
+    })
 #define sky_atomic_get_set(_ptr, _val) sky_atomic_get_set_explicit(_ptr, _val, SKY_ATOMIC_SEQ_CST)
 
 #define sky_atomic_eq_set_explicit(_pre, _val, _des, _suc, _fail) \
@@ -132,7 +143,7 @@ typedef sky_atomic (sky_usize_t) sky_atomic_usize_t;
         typeof(_pre) __result =                                   \
         __sync_val_compare_and_swap( _pre, _old_value, _des);     \
         _old_value == __result ? true : ({                        \
-        __sync_lock_test_and_set(_val, __result); false;});       \
+        sky_atomic_set_explicit(_val, __result, _fail); false;}); \
     })
 #define sky_atomic_eq_set(_pre, _val, _des) \
     sky_atomic_eq_set_explicit(_pre, _val, _des, SKY_ATOMIC_SEQ_CST, SKY_ATOMIC_SEQ_CST)
