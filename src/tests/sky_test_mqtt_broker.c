@@ -16,9 +16,9 @@ main() {
 
     sky_event_manager_t *manager = sky_event_manager_create();
 
-    sky_share_msg_t *share_msg = sky_share_msg_create(sky_event_manager_thread_n(manager));
+//    sky_share_msg_t *share_msg = sky_share_msg_create(sky_event_manager_thread_n(manager));
 
-    sky_event_manager_scan(manager, server_start, share_msg);
+    sky_event_manager_scan(manager, server_start, null);
     sky_event_manager_run(manager);
     sky_event_manager_destroy(manager);
 
@@ -48,5 +48,5 @@ server_start(sky_event_loop_t *loop, void *data, sky_u32_t index) {
 
     sky_mqtt_server_bind(server, (sky_inet_address_t *) &v6_address, sizeof(v6_address));
 
-    return true;
+    return false;
 }
