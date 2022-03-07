@@ -7,6 +7,7 @@
 
 #include "../core/types.h"
 
+#undef HAVE_ATOMIC
 
 #ifdef HAVE_ATOMIC
 
@@ -129,9 +130,8 @@ typedef sky_atomic (sky_usize_t) sky_atomic_usize_t;
 
 #define sky_atomic_eq_set_explicit(_pre, _val, _des, _suc, _fail) \
     ({                                                            \
-        __auto_type __type = (_pre);                              \
-        __typeof__ (__type) _old_value = sky_atomic_get(_val);    \
-        __typeof__ (__type) __result =                            \
+        typeof(_pre) _old_value = sky_atomic_get(_val);           \
+        typeof(_pre) __result =                                   \
         __sync_val_compare_and_swap( _pre, _old_value, _des);     \
         _old_value == __result ? true : ({                        \
         __sync_lock_test_and_set(_val, __result); false;});       \
