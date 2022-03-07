@@ -88,7 +88,7 @@ sky_share_msg_bind(
     const sky_i32_t fd = eventfd(0, EFD_NONBLOCK | EFD_SEMAPHORE | EFD_CLOEXEC);
     sky_event_init(loop, &conn->event, fd, event_conn_run, event_conn_error);
 #else
-#ifdef HAVE_ACCEPT4
+#ifndef HAVE_ACCEPT4
     return false;
 #else
     sky_i32_t fd[2];
