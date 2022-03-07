@@ -16,7 +16,9 @@ main() {
 
     sky_event_manager_t *manager = sky_event_manager_create();
 
-    sky_event_manager_scan(manager, server_start, manager);
+    sky_share_msg_t *share_msg = sky_share_msg_create(sky_event_manager_thread_n(manager));
+
+    sky_event_manager_scan(manager, server_start, share_msg);
     sky_event_manager_run(manager);
     sky_event_manager_destroy(manager);
 
