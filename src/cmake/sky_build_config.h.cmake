@@ -9,6 +9,7 @@
 #cmakedefine HAVE_EPOLL
 #cmakedefine HAVE_KQUEUE
 #cmakedefine HAVE_MALLOC
+#cmakedefine HAVE_ATOMIC
 
 #cmakedefine HAVE_EVENT_FD
 
