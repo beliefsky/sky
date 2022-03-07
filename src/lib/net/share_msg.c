@@ -1,12 +1,25 @@
 //
 // Created by edz on 2022/3/2.
 //
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 
 #include "share_msg.h"
 #include "../core/memory.h"
 #include "../core/log.h"
 #include "../safe/mpsc_queue.h"
-#include<sys/eventfd.h>
+
+#ifdef HAVE_EVENT_FD
+
+#include <sys/eventfd.h>
+
+#else
+
+#include <unistd.h>
+#include <fcntl.h>
+
+#endif
 
 struct sky_share_msg_s {
     sky_share_msg_connect_t *conn;
@@ -19,7 +32,11 @@ struct sky_share_msg_connect_s {
     sky_share_msg_t *share_msg;
     sky_share_msg_handle_pt handle;
     void *data;
+#ifndef HAVE_EVENT_FD
+    sky_i32_t write_fd;
+#endif
     sky_u32_t index;
+    sky_atomic_bool_t flags;
 };
 
 static sky_bool_t event_conn_run(sky_event_t *ev);
@@ -65,9 +82,17 @@ sky_share_msg_bind(
     conn->handle = handle;
     conn->data = data;
     conn->index = index;
+    conn->flags = SKY_ATOMIC_VAR_INIT(false);
 
+#ifdef HAVE_EVENT_FD
     const sky_i32_t fd = eventfd(0, EFD_NONBLOCK | EFD_SEMAPHORE | EFD_CLOEXEC);
     sky_event_init(loop, &conn->event, fd, event_conn_run, event_conn_error);
+#else
+    sky_i32_t fd[2];
+    pipe2(fd, O_NONBLOCK | O_CLOEXEC);
+    sky_event_init(loop, &conn->event, fd[0], event_conn_run, event_conn_error);
+    conn->write_fd = fd[1];
+#endif
 
     sky_event_register_only_read(&conn->event, -1);
 
@@ -101,7 +126,12 @@ sky_share_msg_send(sky_share_msg_connect_t *conn, void *data) {
     if (sky_unlikely(!sky_mpsc_queue_push(&conn->data_queue, data))) {
         return false;
     }
-    eventfd_write(conn->event.fd, 1);
+#ifdef HAVE_EVENT_FD
+        eventfd_write(conn->event.fd, 1);
+#else
+        sky_u8_t value = 1;
+        write(conn->write_fd, &value, sizeof(sky_u8_t));
+#endif
 
     return true;
 }
@@ -109,12 +139,22 @@ sky_share_msg_send(sky_share_msg_connect_t *conn, void *data) {
 static sky_bool_t
 event_conn_run(sky_event_t *ev) {
     sky_share_msg_connect_t *conn = (sky_share_msg_connect_t *) ev;
+#ifdef HAVE_EVENT_FD
     sky_u64_t value;
     for (;;) {
         if (eventfd_read(ev->fd, &value) != 0) {
             break;
         }
     }
+#else
+    sky_u64_t value[16];
+    for (;;) {
+        if (read(ev->fd, value, sizeof(value)) <= 0) {
+            break;
+        }
+    }
+#endif
+
     void *data;
     while ((data = sky_mpsc_queue_pop(&conn->data_queue)) != null) {
         conn->handle(data, conn->data);
