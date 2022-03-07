@@ -10,6 +10,8 @@
 #cmakedefine HAVE_KQUEUE
 #cmakedefine HAVE_MALLOC
 
+#cmakedefine HAVE_EVENT_FD
+
 /* Compiler builtins for specific CPU instruction support */
 #cmakedefine HAVE_BUILTIN_IA32_CRC32
 #cmakedefine HAVE_BUILTIN_MUL_OVERFLOW
