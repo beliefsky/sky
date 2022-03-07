@@ -454,8 +454,8 @@ mqtt_share_node_publish_send(void *client, void *user_data) {
 
 static sky_inline void
 share_message_free(mqtt_share_msg_t *msg) {
-    const sky_u32_t result = sky_atomic_sub_get(&msg->ref, SKY_U32(1));
-    if (result == 0) {
+    const sky_u32_t result = sky_atomic_get_sub(&msg->ref, SKY_U32(1));
+    if (result <= 1) {
         sky_free(msg);
     }
 }
