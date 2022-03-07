@@ -19,6 +19,4 @@ typedef struct sky_mqtt_share_msg_s sky_mqtt_share_msg_t;
 
 sky_isize_t sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn);
 
-void sky_mqtt_share_node_process(sky_mqtt_server_t *server, sky_mqtt_share_msg_t *msg);
-
 #endif //SKY_MQTT_REQUEST_H

@@ -17,8 +17,6 @@ static sky_bool_t mqtt_run(sky_mqtt_connect_t *conn);
 
 static void mqtt_close(sky_mqtt_connect_t *conn);
 
-static void mqtt_share_msg(sky_u64_t msg, void *data);
-
 static sky_u64_t session_hash(const void *item, void *secret);
 
 static sky_bool_t session_equals(const void *a, const void *b);
@@ -83,14 +81,6 @@ mqtt_close(sky_mqtt_connect_t *conn) {
     }
 
     sky_coro_destroy(conn->coro);
-}
-
-static void
-mqtt_share_msg(sky_u64_t msg, void *data) {
-    sky_mqtt_server_t *server = data;
-    sky_mqtt_share_msg_t *share_msg = (sky_mqtt_share_msg_t *) msg;
-
-    sky_mqtt_share_node_process(server, share_msg);
 }
 
 
