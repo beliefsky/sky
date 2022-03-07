@@ -17,7 +17,7 @@
 extern "C" {
 #endif
 
-#ifdef HAVE_ATOMICC
+#ifdef HAVE_ATOMIC
 #define sky_atomic _Atomic
 #else
 #define sky_atomic(_type) volatile _type
