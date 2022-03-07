@@ -7,7 +7,6 @@
 
 #include "../core/types.h"
 
-#undef HAVE_ATOMIC
 #ifdef HAVE_ATOMIC
 
 #include <stdatomic.h>
