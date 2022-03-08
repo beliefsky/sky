@@ -64,6 +64,24 @@ sky_event_manager_thread_idx(sky_event_manager_t *manager) {
     return event_manager_idx;
 }
 
+sky_event_loop_t *
+sky_event_manager_thread_event_loop(sky_event_manager_t *manager) {
+    if (sky_unlikely(event_manager_idx == SKY_U32_MAX)) {
+        return null;
+    } else {
+        return manager->event_threads[event_manager_idx].loop;
+    }
+}
+
+sky_event_loop_t *
+sky_event_manager_idx_event_loop(sky_event_manager_t *manager, sky_u32_t idx) {
+    if (sky_likely(idx < manager->thread_n)) {
+        return manager->event_threads[idx].loop;
+    } else {
+        return null;
+    }
+}
+
 sky_bool_t
 sky_event_manager_scan(sky_event_manager_t *manager, sky_event_iter_pt iter, void *u_data) {
     event_thread_t *item = manager->event_threads;
