@@ -105,9 +105,9 @@ sky_event_manager_run(sky_event_manager_t *manager) {
     if (sky_unlikely(event_manager_idx != 0)) {
         return;
     }
-    item = manager->event_threads;
-
     main_bind_cpu();
+
+    item = manager->event_threads + 1;
     for (i = 1; i < manager->thread_n; ++i, ++item) {
         pthread_attr_init(&thread);
         pthread_attr_setscope(&thread, PTHREAD_SCOPE_SYSTEM);
