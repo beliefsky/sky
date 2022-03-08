@@ -32,6 +32,8 @@ static void *thread_run(void *data);
 
 static void thread_bind_cpu(pthread_attr_t *attr, sky_u32_t n);
 
+sky_thread sky_u32_t event_manager_idx = SKY_U32_MAX;
+
 sky_event_manager_t *
 sky_event_manager_create() {
     sky_isize_t size = (sky_isize_t) sysconf(_SC_NPROCESSORS_CONF);
@@ -55,6 +57,11 @@ sky_event_manager_create() {
 sky_u32_t
 sky_event_manager_thread_n(sky_event_manager_t *manager) {
     return manager->thread_n;
+}
+
+sky_u32_t
+sky_event_manager_thread_idx(sky_event_manager_t *manager) {
+    return event_manager_idx;
 }
 
 sky_bool_t
@@ -97,6 +104,8 @@ sky_event_manager_destroy(sky_event_manager_t *manager) {
 static void *
 thread_run(void *data) {
     event_thread_t *item = data;
+    event_manager_idx = item->index;
+
     sky_event_loop_run(item->loop);
     sky_event_loop_destroy(item->loop);
 
