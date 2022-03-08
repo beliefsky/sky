@@ -32,6 +32,8 @@ static void *thread_run(void *data);
 
 static void thread_bind_cpu(pthread_attr_t *attr, sky_u32_t n);
 
+static void main_bind_cpu();
+
 sky_thread sky_u32_t event_manager_idx = SKY_U32_MAX;
 
 sky_event_manager_t *
@@ -40,6 +42,7 @@ sky_event_manager_create() {
     if (size <= 0) {
         size = 1;
     }
+    event_manager_idx = 0;
     const sky_u32_t thread_n = (sky_u32_t) size;
 
     sky_event_manager_t *manager = sky_malloc(sizeof(sky_event_manager_t) + sizeof(event_thread_t) * thread_n);
@@ -99,17 +102,22 @@ sky_event_manager_run(sky_event_manager_t *manager) {
     pthread_attr_t thread;
     event_thread_t *item;
 
+    if (sky_unlikely(event_manager_idx != 0)) {
+        return;
+    }
     item = manager->event_threads;
-    for (i = 0; i < manager->thread_n; ++i, ++item) {
+
+    main_bind_cpu();
+    for (i = 1; i < manager->thread_n; ++i, ++item) {
         pthread_attr_init(&thread);
         pthread_attr_setscope(&thread, PTHREAD_SCOPE_SYSTEM);
         thread_bind_cpu(&thread, i);
         pthread_create(&item->thread, &thread, thread_run, item);
         pthread_attr_destroy(&thread);
     }
-
     item = manager->event_threads;
-    for (i = 0; i < manager->thread_n; ++i, ++item) {
+    thread_run(item++);
+    for (i = 1; i < manager->thread_n; ++i, ++item) {
         pthread_join(item->thread, null);
     }
 }
@@ -143,5 +151,21 @@ thread_bind_cpu(pthread_attr_t *attr, sky_u32_t n) {
     CPU_ZERO(&set);
     CPU_SET(n, &set);
     pthread_attr_setaffinity_np(attr, sizeof(cpuset_t), &set);
+#endif
+}
+
+static sky_inline void
+main_bind_cpu() {
+#if defined(__linux__)
+    cpu_set_t set;
+    CPU_ZERO(&set);
+    CPU_SET(0, &set);
+    sched_setaffinity(0, sizeof(cpu_set_t), &set);
+#elif defined(__FreeBSD__)
+    cpuset_t set;
+
+    CPU_ZERO(&set);
+    CPU_SET(n, &set);
+    cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1, sizeof(cpuset_t), &set);
 #endif
 }
