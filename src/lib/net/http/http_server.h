@@ -5,7 +5,7 @@
 #ifndef SKY_HTTP_SERVER_H
 #define SKY_HTTP_SERVER_H
 
-#include "../../event/event_loop.h"
+#include "../../event/event_manager.h"
 #include "../../core/coro.h"
 #include "../../core/buf.h"
 #include "../../core/trie.h"
@@ -82,7 +82,7 @@ sky_http_server_t *sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *con
 
 sky_bool_t sky_http_server_bind(
         sky_http_server_t *server,
-        sky_event_loop_t *loop,
+        sky_event_manager_t *manager,
         sky_inet_address_t *address,
         sky_u32_t address_len
 );

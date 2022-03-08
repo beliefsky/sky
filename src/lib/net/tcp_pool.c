@@ -11,15 +11,17 @@
 #include <netinet/in.h>
 
 struct sky_tcp_pool_s {
-    sky_inet_address_t *address;
     sky_tcp_node_t *clients;
+    sky_inet_address_t *address;
+    sky_event_manager_t *manager;
     sky_tcp_pool_conn_next next_func;
 
     sky_i32_t keep_alive;
     sky_i32_t timeout;
     sky_u32_t address_len;
 
-    sky_u16_t connection_ptr;
+    sky_u32_t thread_conn_n;
+    sky_u32_t thread_conn_mask;
 
     sky_bool_t free: 1;
     sky_bool_t nodelay: 1;
@@ -38,8 +40,6 @@ static sky_bool_t tcp_run(sky_tcp_node_t *client);
 
 static void tcp_close(sky_tcp_node_t *client);
 
-static void tcp_shutdown(sky_tcp_node_t *client);
-
 static sky_bool_t tcp_connection(sky_tcp_conn_t *conn);
 
 static void tcp_connection_defer(sky_tcp_conn_t *conn);
@@ -54,25 +54,30 @@ static sky_bool_t set_socket_nonblock(sky_i32_t fd);
 
 
 sky_tcp_pool_t *
-sky_tcp_pool_create(sky_event_loop_t *loop, const sky_tcp_pool_conf_t *conf) {
-    sky_u16_t i;
-    sky_tcp_pool_t *conn_pool;
-    sky_tcp_node_t *client;
-
-    if (!(i = conf->connection_size)) {
-        i = 2;
-    } else if (sky_unlikely(!sky_is_2_power(i))) {
-        sky_log_error("连接数必须为2的整数幂");
-        return null;
+sky_tcp_pool_create(sky_event_manager_t *manager, const sky_tcp_pool_conf_t *conf) {
+    sky_u32_t thread_n = sky_event_manager_thread_n(manager);
+    sky_u32_t thread_conn_n, conn_n;
+    if (conf->connection_size < thread_n) {
+        thread_conn_n = 1;
+        conn_n = thread_n;
+    } else {
+        thread_conn_n = 2;
+        conn_n = thread_n * thread_conn_n;
     }
-    conn_pool = sky_malloc(sizeof(sky_tcp_pool_t) + (sizeof(sky_tcp_node_t) * i) + conf->address_len);
+    sky_tcp_pool_t *conn_pool = sky_malloc(
+            sizeof(sky_tcp_pool_t)
+            + (sizeof(sky_tcp_node_t) * conn_n)
+            + conf->address_len
+    );
     conn_pool->clients = (sky_tcp_node_t *) (conn_pool + 1);
 
-    conn_pool->address = (sky_inet_address_t *) (conn_pool->clients + i);
+    conn_pool->address = (sky_inet_address_t *) (conn_pool->clients + conn_n);
     conn_pool->address_len = conf->address_len;
     sky_memcpy(conn_pool->address, conf->address, conn_pool->address_len);
 
-    conn_pool->connection_ptr = (sky_u16_t) (i - 1);
+    conn_pool->manager = manager;
+    conn_pool->thread_conn_n = thread_conn_n;
+    conn_pool->thread_conn_mask = thread_conn_n - 1;
     conn_pool->next_func = conf->next_func;
 
     conn_pool->keep_alive = conf->keep_alive ?: -1;
@@ -80,14 +85,19 @@ sky_tcp_pool_create(sky_event_loop_t *loop, const sky_tcp_pool_conf_t *conf) {
     conn_pool->free = false;
     conn_pool->nodelay = conf->address->sa_family != AF_UNIX && conf->nodelay;
 
-    for (client = conn_pool->clients; i; --i, ++client) {
-        sky_event_init(loop, &client->ev, -1, tcp_run, tcp_close);
-        client->conn_time = 0;
-        client->conn_pool = conn_pool;
-        client->current = null;
-        client->main = false;
 
-        sky_queue_init(&client->tasks);
+    sky_tcp_node_t *client = conn_pool->clients;
+    for (sky_u32_t i = 0; i < thread_n; ++i) {
+        sky_event_loop_t *loop = sky_event_manager_idx_event_loop(manager, i);
+        for (sky_u32_t j = 0; j < thread_conn_n; ++j, ++client) {
+            sky_event_init(loop, &client->ev, -1, tcp_run, tcp_close);
+            client->conn_time = 0;
+            client->conn_pool = conn_pool;
+            client->current = null;
+            client->main = false;
+
+            sky_queue_init(&client->tasks);
+        }
     }
 
     return conn_pool;
@@ -98,13 +108,18 @@ sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event
     conn->client = null;
     conn->ev = event;
     conn->coro = coro;
-    if (sky_unlikely(tcp_pool->free)) {
+
+    sky_u32_t idx = sky_event_manager_thread_idx(tcp_pool->manager);
+    if (sky_unlikely(idx == SKY_U32_MAX || tcp_pool->free)) {
         conn->defer = null;
         sky_queue_init_node(&conn->link);
         return false;
     }
 
-    sky_tcp_node_t *client = tcp_pool->clients + (event->fd & tcp_pool->connection_ptr);
+    sky_tcp_node_t *client = tcp_pool->clients
+                             + (idx * tcp_pool->thread_conn_n)
+                             + ((sky_u32_t) event->fd & tcp_pool->thread_conn_mask);
+
     const sky_bool_t empty = sky_queue_is_empty(&client->tasks);
 
     conn->defer = sky_defer_add(coro, (sky_defer_func_t) tcp_connection_defer, conn);
@@ -572,19 +587,8 @@ sky_tcp_pool_destroy(sky_tcp_pool_t *tcp_pool) {
         return;
     }
     tcp_pool->free = true;
-
-    sky_tcp_node_t *client;
-    sky_u16_t i = tcp_pool->connection_ptr + 1;
-    for (client = tcp_pool->clients; i; --i, ++client) {
-        if (sky_event_has_callback(&client->ev)) {
-            sky_event_reset(&client->ev, tcp_run, tcp_shutdown);
-            sky_event_unregister(&client->ev);
-        } else {
-            close(client->ev.fd);
-            sky_event_rebind(&client->ev, -1);
-            tcp_shutdown(client);
-        }
-    }
+    // 后续会处理
+    sky_free(tcp_pool);
 }
 
 static sky_bool_t
@@ -626,17 +630,6 @@ tcp_run(sky_tcp_node_t *client) {
 static void
 tcp_close(sky_tcp_node_t *client) {
     tcp_run(client);
-}
-
-static void
-tcp_shutdown(sky_tcp_node_t *client) {
-    tcp_run(client);
-    sky_tcp_pool_t *conn_pool = client->conn_pool;
-    if (conn_pool->connection_ptr > 0) {
-        --conn_pool->connection_ptr;
-    } else {
-        sky_free(conn_pool);
-    }
 }
 
 static sky_bool_t
