@@ -165,7 +165,7 @@ main_bind_cpu() {
     cpuset_t set;
 
     CPU_ZERO(&set);
-    CPU_SET(n, &set);
+    CPU_SET(0, &set);
     cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_PID, -1, sizeof(cpuset_t), &set);
 #endif
 }
