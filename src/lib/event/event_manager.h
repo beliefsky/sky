@@ -19,6 +19,8 @@ sky_event_manager_t *sky_event_manager_create();
 
 sky_u32_t sky_event_manager_thread_n(sky_event_manager_t *manager);
 
+sky_u32_t sky_event_manager_thread_idx(sky_event_manager_t *manager);
+
 sky_bool_t sky_event_manager_scan(sky_event_manager_t *manager, sky_event_iter_pt iter, void *u_data);
 
 void sky_event_manager_run(sky_event_manager_t *manager);
