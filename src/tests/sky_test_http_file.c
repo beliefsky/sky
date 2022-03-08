@@ -9,7 +9,7 @@
 #include <net/http/http_request.h>
 #include <core/log.h>
 
-static sky_bool_t server_start(sky_event_loop_t *loop, void *data, sky_u32_t index);
+static void create_server(sky_event_manager_t *manager);
 
 int
 main() {
@@ -18,7 +18,8 @@ main() {
 
     sky_event_manager_t *manager = sky_event_manager_create();
 
-    sky_event_manager_scan(manager, server_start, null);
+    create_server(manager);
+
     sky_event_manager_run(manager);
     sky_event_manager_destroy(manager);
 
@@ -45,18 +46,11 @@ http_index_router(sky_http_request_t *req, void *data) {
     return true;
 }
 
-static sky_bool_t
-server_start(sky_event_loop_t *loop, void *data, sky_u32_t index) {
-    (void )data;
+static void
+create_server(sky_event_manager_t *manager) {
 
-    sky_log_info("thread-%u", index);
-
-    sky_pool_t *pool;
-    sky_http_server_t *server;
+    sky_pool_t *pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);;
     sky_array_t modules;
-
-    pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
-
     sky_array_init2(&modules, pool, 8, sizeof(sky_http_module_t));
 
     const sky_http_file_conf_t file_config = {
@@ -90,7 +84,7 @@ server_start(sky_event_loop_t *loop, void *data, sky_u32_t index) {
 #endif
     };
 
-    server = sky_http_server_create(pool, &conf);
+    sky_http_server_t *server = sky_http_server_create(pool, &conf);
 
     {
         struct sockaddr_in http_address = {
@@ -98,7 +92,7 @@ server_start(sky_event_loop_t *loop, void *data, sky_u32_t index) {
                 .sin_addr.s_addr = INADDR_ANY,
                 .sin_port = sky_htons(8080)
         };
-        sky_http_server_bind(server, loop, (sky_inet_address_t *) &http_address, sizeof(struct sockaddr_in));
+        sky_http_server_bind(server, manager, (sky_inet_address_t *) &http_address, sizeof(struct sockaddr_in));
     }
 
     {
@@ -108,9 +102,7 @@ server_start(sky_event_loop_t *loop, void *data, sky_u32_t index) {
                 .sin6_port = sky_htons(8080)
         };
 
-        sky_http_server_bind(server, loop, (sky_inet_address_t *) &http_address, sizeof(struct sockaddr_in6));
+        sky_http_server_bind(server, manager, (sky_inet_address_t *) &http_address, sizeof(struct sockaddr_in6));
     }
-
-    return true;
 }
 
