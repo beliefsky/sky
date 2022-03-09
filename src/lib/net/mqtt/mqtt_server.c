@@ -22,15 +22,24 @@ static sky_u64_t session_hash(const void *item, void *secret);
 static sky_bool_t session_equals(const void *a, const void *b);
 
 sky_mqtt_server_t *
-sky_mqtt_server_create(sky_event_loop_t *loop, sky_share_msg_t *share_msg, sky_u32_t index) {
-    sky_mqtt_server_t *server = sky_malloc(sizeof(sky_mqtt_server_t));
+sky_mqtt_server_create(sky_event_manager_t *manager) {
+    sky_u32_t thread_n = sky_event_manager_thread_n(manager);
+
+    sky_mqtt_server_t *server = sky_malloc(sizeof(sky_mqtt_server_t) + sizeof(sky_mqtt_thread_node_t) * thread_n);
+    sky_mqtt_thread_node_t *node = (sky_mqtt_thread_node_t *) (server + 1);
+
     server->mqtt_read = sky_mqtt_read;
     server->mqtt_read_all = sky_mqtt_read_all;
     server->mqtt_write_nowait = sky_mqtt_write_nowait;
-    sky_hashmap_init_with_cap(&server->session_manager, session_hash, session_equals, null, 128);
-    server->event_loop = loop;
+    server->manager = manager;
+    server->thread_node = node;
+    server->thread_node_n = thread_n;
 
-    sky_mqtt_subs_init(server, loop, share_msg, index);
+    for (sky_u32_t i = 0; i < thread_n; ++i, ++node) {
+        sky_hashmap_init_with_cap(&node->session_manager, session_hash, session_equals, null, 128);
+    }
+
+    sky_mqtt_subs_init(server);
 
     return server;
 }
@@ -46,8 +55,14 @@ sky_mqtt_server_bind(sky_mqtt_server_t *server, sky_inet_address_t *address, sky
 //            .nodelay = true,
             .defer_accept = true
     };
-
-    return sky_tcp_server_create(server->event_loop, &conf);
+    sky_event_loop_t *loop;
+    for (sky_u32_t i = 0; i < server->thread_node_n; ++i) {
+        loop = sky_event_manager_idx_event_loop(server->manager, i);
+        if (sky_unlikely(null == loop || !sky_tcp_server_create(loop, &conf))) {
+            return false;
+        }
+    }
+    return true;
 }
 
 static sky_event_t *

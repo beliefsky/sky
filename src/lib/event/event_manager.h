@@ -16,7 +16,7 @@ typedef struct sky_event_msg_s sky_event_msg_t;
 
 typedef sky_bool_t (*sky_event_iter_pt)(sky_event_loop_t *loop, void *u_data, sky_u32_t index);
 
-typedef sky_bool_t (*sky_event_msg_pt)(sky_event_msg_t *msg);
+typedef void (*sky_event_msg_pt)(sky_event_msg_t *msg);
 
 struct sky_event_msg_s {
     sky_event_msg_pt handle;

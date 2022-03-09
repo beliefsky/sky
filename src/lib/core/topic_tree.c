@@ -35,9 +35,7 @@ static sky_bool_t topic_equals(const void *a, const void *b);
 static void topic_tree_scan(topic_node_t *node, sky_uchar_t *key, sky_usize_t len,
                             sky_topic_tree_iter_pt iter, void *user_data);
 
-static sky_bool_t
-topic_tree_scan_one(topic_node_t *node, sky_uchar_t *key, sky_usize_t len,
-                    sky_topic_tree_iter_pt iter, void *user_data);
+static sky_bool_t topic_tree_filter(topic_node_t *node, sky_uchar_t *key, sky_usize_t len);
 
 static topic_node_t *topic_node_sub(topic_node_t *parent, sky_uchar_t *key, sky_usize_t len);
 
@@ -139,9 +137,8 @@ sky_topic_tree_scan(sky_topic_tree_t *tree, const sky_str_t *topic,
 }
 
 sky_bool_t
-sky_topic_tree_scan_one(sky_topic_tree_t *tree, const sky_str_t *topic,
-                        sky_topic_tree_iter_pt iter, void *user_data) {
-    return topic_tree_scan_one(&tree->node, topic->data, topic->len, iter, user_data);
+sky_topic_tree_filter(sky_topic_tree_t *tree, const sky_str_t *topic) {
+    return topic_tree_filter(&tree->node, topic->data, topic->len);
 }
 
 void
@@ -206,11 +203,9 @@ topic_tree_scan(topic_node_t *node, sky_uchar_t *key, sky_usize_t len,
 }
 
 static sky_bool_t
-topic_tree_scan_one(topic_node_t *node, sky_uchar_t *key, sky_usize_t len,
-                    sky_topic_tree_iter_pt iter, void *user_data) {
+topic_tree_filter(topic_node_t *node, sky_uchar_t *key, sky_usize_t len) {
     topic_node_t *node1 = topic_node_get_s1(&node->map, node->tree->s1_hash);
     if (null != node1 && 0 != node1->client_n) {
-        iter(node1->client, user_data);
         return true;
     }
     topic_node_t *node2 = topic_node_get_s2(&node->map, node->tree->s2_hash);
@@ -218,14 +213,10 @@ topic_tree_scan_one(topic_node_t *node, sky_uchar_t *key, sky_usize_t len,
     sky_isize_t index = sky_str_len_index_char(key, len, '/');
     if (index == -1) {
         if (null != node2 && 0 != node2->client_n) {
-            // 执行 node 2
-            iter(node2->client, user_data);
             return true;
         }
         topic_node_t *node3 = topic_node_get(&node->map, key, len);
         if (null != node3 && 0 != node3->client_n) {
-            // 执行 node 3
-            iter(node3->client, user_data);
             return true;
         }
     } else {
@@ -234,12 +225,12 @@ topic_tree_scan_one(topic_node_t *node, sky_uchar_t *key, sky_usize_t len,
         key += index;
 
         if (null != node2) {
-            if (topic_tree_scan_one(node2, key, len, iter, user_data)) {
+            if (topic_tree_filter(node2, key, len)) {
                 return true;
             }
         }
         if (null != node3) {
-            if (topic_tree_scan_one(node3, key, len, iter, user_data)) {
+            if (topic_tree_filter(node3, key, len)) {
                 return true;
             }
         }
