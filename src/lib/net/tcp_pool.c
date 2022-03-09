@@ -61,7 +61,14 @@ sky_tcp_pool_create(sky_event_manager_t *manager, const sky_tcp_pool_conf_t *con
         thread_conn_n = 1;
         conn_n = thread_n;
     } else {
-        thread_conn_n = 2;
+        if ((conf->connection_size % thread_n) == 0) {
+            thread_conn_n = conf->connection_size / thread_n;
+        } else {
+            thread_conn_n = (conf->connection_size / thread_n) + 1;
+        }
+        if (!sky_is_2_power(thread_conn_n)) {
+            thread_conn_n = SKY_U32(1) << (32 - sky_clz_u32(thread_conn_n));
+        }
         conn_n = thread_n * thread_conn_n;
     }
     sky_tcp_pool_t *conn_pool = sky_malloc(
