@@ -40,14 +40,6 @@ static sky_bool_t udp_connection(sky_udp_conn_t *conn);
 
 static void udp_connection_defer(sky_udp_conn_t *conn);
 
-#ifndef HAVE_ACCEPT4
-
-#include <fcntl.h>
-
-static sky_bool_t set_socket_nonblock(sky_i32_t fd);
-
-#endif
-
 
 sky_udp_pool_t *
 sky_udp_pool_create(sky_event_manager_t *manager, const sky_udp_pool_conf_t *conf) {
@@ -650,7 +642,7 @@ udp_connection(sky_udp_conn_t *conn) {
         if (sky_unlikely(fd < 0)) {
             return false;
         }
-        if (sky_unlikely(!set_socket_nonblock(fd))) {
+        if (sky_unlikely(!sky_set_socket_nonblock(fd))) {
             close(fd);
             return false;
         }
@@ -724,35 +716,3 @@ udp_connection_defer(sky_udp_conn_t *conn) {
         udp_close(client);
     }
 }
-
-
-#ifndef HAVE_ACCEPT4
-
-static sky_inline sky_bool_t
-set_socket_nonblock(sky_i32_t fd) {
-    sky_i32_t flags;
-
-    flags = fcntl(fd, F_GETFD);
-
-    if (sky_unlikely(flags < 0)) {
-        return false;
-    }
-
-    if (sky_unlikely(fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0)) {
-        return false;
-    }
-
-    flags = fcntl(fd, F_GETFD);
-
-    if (sky_unlikely(flags < 0)) {
-        return false;
-    }
-
-    if (sky_unlikely(fcntl(fd, F_SETFD, flags | O_NONBLOCK) < 0)) {
-        return false;
-    }
-
-    return true;
-}
-
-#endif

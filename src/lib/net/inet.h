@@ -31,6 +31,8 @@ extern "C" {
 typedef struct sockaddr sky_inet_address_t;
 
 
+sky_bool_t sky_set_socket_nonblock(sky_i32_t fd);
+
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif
