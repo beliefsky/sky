@@ -35,5 +35,4 @@ add_executable(sky_test_mqtt_broker sky_test_mqtt_broker.c)
 target_link_libraries(sky_test_mqtt_broker
         ${SKY_COMMON_LIBS}
         ${ADDITIONAL_LIBRARIES}
-        mimalloc
         )
