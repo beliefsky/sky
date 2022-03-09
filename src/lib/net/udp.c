@@ -25,11 +25,6 @@ static void udp_listener_error(sky_event_t *ev);
 
 static sky_bool_t udp_client_connection(sky_event_t *ev);
 
-#ifndef SOCK_NONBLOCK
-#include <fcntl.h>
-static sky_bool_t set_socket_nonblock(sky_i32_t fd);
-#endif
-
 
 sky_bool_t
 sky_udp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_udp_conf_t *conf) {
@@ -42,7 +37,7 @@ sky_udp_listener_create(sky_event_loop_t *loop, sky_pool_t *pool, const sky_udp_
         if (sky_unlikely(fd == -1)) {
             return false;
         }
-        if (sky_unlikely(!set_socket_nonblock(fd))) {
+        if (sky_unlikely(!sky_set_socket_nonblock(fd))) {
             close(fd);
             return false;
         }
@@ -179,33 +174,3 @@ udp_client_connection(sky_event_t *ev) {
 
     return l->run(conn, l->data);
 }
-
-#ifndef SOCK_NONBLOCK
-
-static sky_inline sky_bool_t
-set_socket_nonblock(sky_i32_t fd) {
-    sky_i32_t flags;
-
-    flags = fcntl(fd, F_GETFD);
-
-    if (sky_unlikely(flags < 0)) {
-        return false;
-    }
-
-    if (sky_unlikely(fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0)) {
-        return false;
-    }
-
-    flags = fcntl(fd, F_GETFD);
-
-    if (sky_unlikely(flags < 0)) {
-        return false;
-    }
-
-    if (sky_unlikely(fcntl(fd, F_SETFD, flags | O_NONBLOCK) < 0)) {
-        return false;
-    }
-
-    return true;
-}
-#endif

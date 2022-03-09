@@ -28,12 +28,6 @@ static sky_bool_t tcp_listener_accept(sky_event_t *ev);
 
 static void tcp_listener_error(sky_event_t *ev);
 
-#ifndef HAVE_ACCEPT4
-
-static sky_bool_t set_socket_nonblock(sky_i32_t fd);
-
-#endif
-
 static sky_i32_t get_backlog_size();
 
 
@@ -117,7 +111,7 @@ tcp_listener_accept(sky_event_t *ev) {
     while ((fd = accept4(listener, null, null, SOCK_NONBLOCK | SOCK_CLOEXEC)) >= 0) {
 #else
         while ((fd = accept(listener, null, null)) >= 0) {
-            if (sky_unlikely(!set_socket_nonblock(fd))) {
+            if (sky_unlikely(!sky_set_socket_nonblock(fd))) {
                 close(fd);
                 continue;
             }
@@ -144,37 +138,6 @@ tcp_listener_error(sky_event_t *ev) {
     sky_log_info("%d: tcp listener error", ev->fd);
     sky_free(ev);
 }
-
-#ifndef HAVE_ACCEPT4
-
-static sky_inline sky_bool_t
-set_socket_nonblock(sky_i32_t fd) {
-    sky_i32_t flags;
-
-    flags = fcntl(fd, F_GETFD);
-
-    if (sky_unlikely(flags < 0)) {
-        return false;
-    }
-
-    if (sky_unlikely(fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0)) {
-        return false;
-    }
-
-    flags = fcntl(fd, F_GETFD);
-
-    if (sky_unlikely(flags < 0)) {
-        return false;
-    }
-
-    if (sky_unlikely(fcntl(fd, F_SETFD, flags | O_NONBLOCK) < 0)) {
-        return false;
-    }
-
-    return true;
-}
-
-#endif
 
 static sky_i32_t
 get_backlog_size() {
