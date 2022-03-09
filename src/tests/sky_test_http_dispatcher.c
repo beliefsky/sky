@@ -21,8 +21,6 @@
 
 static sky_bool_t create_server(sky_event_manager_t *manager);
 
-static sky_bool_t server_start(sky_event_loop_t *loop, void *data, sky_u32_t index);
-
 static void build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module);
 
 static SKY_HTTP_MAPPER_HANDLER(redis_test);
