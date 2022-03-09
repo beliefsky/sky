@@ -78,7 +78,7 @@ sky_event_manager_create() {
         thread->loop = sky_event_loop_create();
         thread->index = i;
 #if defined(HAVE_EVENT_FD)
-        const sky_i32_t fd = eventfd(0, EFD_NONBLOCK | EFD_SEMAPHORE | EFD_CLOEXEC);
+        const sky_i32_t fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
         sky_event_init(thread->loop, &thread->msg_event, fd, event_msg_run, event_msg_error);
 #elif defined(HAVE_ACCEPT4)
         sky_i32_t fd[2];
