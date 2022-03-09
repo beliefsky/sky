@@ -13,7 +13,6 @@
 struct sky_tcp_pool_s {
     sky_tcp_node_t *clients;
     sky_inet_address_t *address;
-    sky_event_manager_t *manager;
     sky_tcp_pool_conn_next next_func;
 
     sky_i32_t keep_alive;
@@ -82,7 +81,6 @@ sky_tcp_pool_create(sky_event_manager_t *manager, const sky_tcp_pool_conf_t *con
     conn_pool->address_len = conf->address_len;
     sky_memcpy(conn_pool->address, conf->address, conn_pool->address_len);
 
-    conn_pool->manager = manager;
     conn_pool->thread_conn_n = thread_conn_n;
     conn_pool->thread_conn_mask = thread_conn_n - 1;
     conn_pool->next_func = conf->next_func;
@@ -116,7 +114,7 @@ sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event
     conn->ev = event;
     conn->coro = coro;
 
-    sky_u32_t idx = sky_event_manager_thread_idx(tcp_pool->manager);
+    sky_u32_t idx = sky_event_manager_thread_idx();
     if (sky_unlikely(idx == SKY_U32_MAX || tcp_pool->free)) {
         conn->defer = null;
         sky_queue_init_node(&conn->link);

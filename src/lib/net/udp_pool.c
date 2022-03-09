@@ -11,7 +11,6 @@
 struct sky_udp_pool_s {
     sky_udp_node_t *clients;
     sky_inet_address_t *address;
-    sky_event_manager_t *manager;
     sky_udp_pool_conn_next next_func;
 
     sky_i32_t keep_alive;
@@ -79,7 +78,6 @@ sky_udp_pool_create(sky_event_manager_t *manager, const sky_udp_pool_conf_t *con
     conn_pool->address_len = conf->address_len;
     sky_memcpy(conn_pool->address, conf->address, conn_pool->address_len);
 
-    conn_pool->manager = manager;
     conn_pool->thread_conn_n = thread_conn_n;
     conn_pool->thread_conn_mask = thread_conn_n - 1;
     conn_pool->next_func = conf->next_func;
@@ -111,7 +109,7 @@ sky_udp_pool_conn_bind(sky_udp_pool_t *udp_pool, sky_udp_conn_t *conn, sky_event
     conn->client = null;
     conn->ev = event;
     conn->coro = coro;
-    sky_u32_t idx = sky_event_manager_thread_idx(udp_pool->manager);
+    sky_u32_t idx = sky_event_manager_thread_idx();
     if (sky_unlikely(idx == SKY_U32_MAX || udp_pool->free)) {
         conn->defer = null;
         sky_queue_init_node(&conn->link);
