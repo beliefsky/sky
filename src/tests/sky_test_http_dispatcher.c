@@ -66,7 +66,7 @@ create_server(sky_event_manager_t *manager) {
             .database = sky_string("beliefsky"),
             .username = sky_string("postgres"),
             .password = sky_string("123456"),
-            .connection_size = 8
+            .connection_size = 16
     };
     ps_pool = sky_pgsql_pool_create(manager, &pg_conf);
     if (!ps_pool) {
@@ -84,7 +84,7 @@ create_server(sky_event_manager_t *manager) {
     const sky_redis_conf_t redis_conf = {
             .address = (sky_inet_address_t *) &redis_address,
             .address_len = sizeof(struct sockaddr_in),
-            .connection_size = 4,
+            .connection_size = 16,
     };
 
     redis_pool = sky_redis_pool_create(manager, &redis_conf);

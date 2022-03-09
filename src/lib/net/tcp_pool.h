@@ -28,7 +28,7 @@ typedef struct {
     sky_i32_t timeout;
     sky_u32_t address_len;
 
-    sky_u16_t connection_size;
+    sky_u32_t connection_size;
 
     sky_bool_t nodelay: 1;
 } sky_tcp_pool_conf_t;
