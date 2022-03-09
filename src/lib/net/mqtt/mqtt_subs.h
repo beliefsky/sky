@@ -13,8 +13,7 @@
 extern "C" {
 #endif
 
-void sky_mqtt_subs_init(sky_mqtt_server_t *server, sky_event_loop_t *loop,
-                        sky_share_msg_t *share_msg, sky_u32_t index);
+void sky_mqtt_subs_init(sky_mqtt_server_t *server);
 
 sky_bool_t sky_mqtt_subs_sub(sky_mqtt_server_t *server, sky_str_t *topic, sky_mqtt_session_t *session, sky_u8_t qos);
 

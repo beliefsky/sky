@@ -8,16 +8,6 @@
 #include "mqtt_subs.h"
 #include "../../core/array.h"
 
-typedef struct {
-    sky_mqtt_share_node_t *node;
-    sky_mqtt_share_msg_t *msg;
-} mqtt_node_msg_tmp_t;
-
-typedef struct {
-    sky_share_msg_connect_t *conn;
-    sky_mqtt_share_msg_t *msg;
-} mqtt_share_msg_tmp_t;
-
 static sky_bool_t mqtt_read_head_pack(sky_mqtt_connect_t *conn, sky_mqtt_head_t *head);
 
 static void mqtt_read_body(sky_mqtt_connect_t *conn, sky_mqtt_head_t *head, sky_uchar_t *buf);
@@ -25,8 +15,6 @@ static void mqtt_read_body(sky_mqtt_connect_t *conn, sky_mqtt_head_t *head, sky_
 static sky_mqtt_session_t *session_get(sky_mqtt_connect_msg_t *msg, sky_mqtt_connect_t *conn);
 
 static void session_defer(sky_mqtt_session_t *session);
-
-static void mqtt_share_node_publish_send(void *client, void *user_data);
 
 sky_isize_t
 sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
@@ -239,7 +227,8 @@ mqtt_read_body(sky_mqtt_connect_t *conn, sky_mqtt_head_t *head, sky_uchar_t *buf
 
 static sky_mqtt_session_t *
 session_get(sky_mqtt_connect_msg_t *msg, sky_mqtt_connect_t *conn) {
-    sky_hashmap_t *session_manager = &conn->server->session_manager;
+    sky_u32_t idx = sky_event_manager_thread_idx();
+    sky_hashmap_t *session_manager = &conn->server->thread_node[idx].session_manager;
 
     const sky_mqtt_session_t tmp = {
             .client_id = msg->client_id
@@ -274,7 +263,8 @@ session_get(sky_mqtt_connect_msg_t *msg, sky_mqtt_connect_t *conn) {
 
 static void
 session_defer(sky_mqtt_session_t *session) {
-    sky_hashmap_t *session_manager = &session->server->session_manager;
+    sky_u32_t idx = sky_event_manager_thread_idx();
+    sky_hashmap_t *session_manager = &session->server->thread_node[idx].session_manager;
     sky_mqtt_session_t *old = sky_hashmap_get(session_manager, session);
     if (sky_unlikely(old != session)) {
         sky_free(session);
