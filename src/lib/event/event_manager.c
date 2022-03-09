@@ -7,6 +7,7 @@
 
 #include "event_manager.h"
 #include "../core/memory.h"
+#include "../safe/mpsc_queue.h"
 #include <pthread.h>
 #include <unistd.h>
 
@@ -18,9 +19,10 @@
 #endif
 
 typedef struct {
-    sky_u32_t index;
-    pthread_t thread;
+    sky_mpsc_queue_t queue;
     sky_event_loop_t *loop;
+    pthread_t thread;
+    sky_u32_t index;
 } event_thread_t;
 
 struct sky_event_manager_s {
@@ -50,8 +52,9 @@ sky_event_manager_create() {
 
     event_thread_t *thread = manager->event_threads;
     for (sky_u32_t i = 0; i < thread_n; ++i, ++thread) {
-        thread->index = i;
+        sky_mpsc_queue_init(&thread->queue, 1 << 16);
         thread->loop = sky_event_loop_create();
+        thread->index = i;
     }
 
     return manager;
@@ -63,7 +66,7 @@ sky_event_manager_thread_n(sky_event_manager_t *manager) {
 }
 
 sky_u32_t
-sky_event_manager_thread_idx(sky_event_manager_t *manager) {
+sky_event_manager_thread_idx() {
     return event_manager_idx;
 }
 
@@ -82,6 +85,20 @@ sky_event_manager_idx_event_loop(sky_event_manager_t *manager, sky_u32_t idx) {
         return manager->event_threads[idx].loop;
     } else {
         return null;
+    }
+}
+
+sky_bool_t
+sky_event_manager_idx_msg(sky_event_manager_t *manager, sky_event_msg_t *msg, sky_u32_t idx) {
+    if (sky_likely(idx < manager->thread_n)) {
+        if (idx == event_manager_idx) {
+            msg->handle(msg);
+        } else {
+
+        }
+        return true;
+    } else {
+        return false;
     }
 }
 
