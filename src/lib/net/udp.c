@@ -93,7 +93,7 @@ udp_listener_run(sky_event_t *ev) {
         l->connect_err(conn);
         return true;
     }
-    if (sky_unlikely(!set_socket_nonblock(fd))) {
+    if (sky_unlikely(!sky_set_socket_nonblock(fd))) {
         l->connect_err(conn);
         return true;
     }
