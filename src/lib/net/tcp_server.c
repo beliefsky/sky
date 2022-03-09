@@ -49,7 +49,7 @@ sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf)
         if (sky_unlikely(fd == -1)) {
             return false;
         }
-        if (sky_unlikely(!set_socket_nonblock(fd))) {
+        if (sky_unlikely(!sky_set_socket_nonblock(fd))) {
             close(fd);
             return false;
         }
