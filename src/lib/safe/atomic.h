@@ -27,9 +27,31 @@ extern "C" {
 #define SKY_CACHE_LINE_SIZE 64
 #endif
 
+/**
+ * 只保证当前操作的原子性，不考虑线程间的同步，其他线程可能读到新值，也可能读到旧值;
+ * 比如 C++ shared_ptr 里的引用计数，我们只关心当前的应用数量，而不关心谁在引用谁在解引用。
+ */
 #define SKY_ATOMIC_RELAXED __ATOMIC_RELAXED
+/**
+ * 对当前要读取的内存施加 release 语义（store），在代码中这条语句后面所有与这块内存有关的读写操作都无法被重排到这个操作之前
+ * 在这个原子变量上施加 release 语义的操作发生之后，consume 可以保证读到所有在 release 前发生的并且与这块内存有关的写入
+ */
 #define SKY_ATOMIC_CONSUME __ATOMIC_CONSUME
+
+/**
+ * 可以理解为 mutex 的 lock 操作
+ * 对读取施加 acquire 语义（load），在代码中这条语句后面所有读写操作都无法重排到这个操作之前，
+ * 即 load-store 不能重排为 store-load, load-load 也无法重排为 load-load
+ * 在这个原子变量上施加 release 语义的操作发生之后，acquire 可以保证读到所有在 release 前发生的写入
+ */
 #define SKY_ATOMIC_ACQUIRE __ATOMIC_ACQUIRE
+/**
+ * 可以理解为 mutex 的 unlock 操作
+ * 对写入施加 release 语义（store），在代码中这条语句前面的所有读写操作都无法被重排到这个操作之后，
+ * 即 store-store 不能重排为 store-store, load-store 也无法重排为 store-load
+ * 当前线程内的所有写操作，对于其他对这个原子变量进行 acquire 的线程可见
+ * 当前线程内的与这块内存有关的所有写操作，对于其他对这个原子变量进行 consume 的线程可见
+ */
 #define SKY_ATOMIC_RELEASE __ATOMIC_RELEASE
 #define SKY_ATOMIC_ACQ_REL __ATOMIC_ACQ_REL
 #define SKY_ATOMIC_SEQ_CST __ATOMIC_SEQ_CST
