@@ -562,7 +562,7 @@ sky_u32_check_str_count(sky_u32_t x) {
             42949672960, 42949672960
     };
 
-    const sky_u32_t log2 = (sky_u32_t) (31 - __builtin_clz(x | 1));
+    const sky_u32_t log2 = (sky_u32_t) (31 - sky_clz_u32(x | 1));
 
     return (sky_u8_t) ((x + table[log2]) >> 32);
 }

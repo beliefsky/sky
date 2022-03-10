@@ -43,19 +43,18 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
     sky_mqtt_send_connect_ack(conn, false, 0x0);
 
     sky_mqtt_session_t *session = session_get(&connect_msg, conn);
-    sky_topic_tree_t *sub_tree = conn->server->sub_tree;
+
+    sky_pool_t *pool = sky_pool_create(4096);
+    sky_defer_global_add(conn->coro, (sky_defer_func_t) sky_pool_destroy, pool);
+
     for (;;) {
         read_pack = mqtt_read_head_pack(conn, &head);
         if (sky_unlikely(!read_pack)) {
             return SKY_CORO_ABORT;
         }
 
-//        sky_log_info("type: %u, body: %u", head.type, head.body_size);
-
         if (head.body_size) {
-            body = sky_malloc(head.body_size);
-            sky_defer_add(conn->coro, sky_free, body);
-
+            body = sky_palloc(pool, head.body_size);
             mqtt_read_body(conn, &head, body);
         } else {
             body = null;
@@ -72,8 +71,7 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
                 } else if (head.qos == 2) {
                     sky_mqtt_send_publish_rec(conn, msg.packet_identifier);
                 }
-                sky_mqtt_subs_publish(sub_tree, &head, &msg);
-
+                sky_mqtt_subs_publish(conn->server, &head, &msg);
                 break;
             }
             case SKY_MQTT_TYPE_PUBACK: {
@@ -108,8 +106,8 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
                 sky_mqtt_subscribe_pack(&msg, body, head.body_size);
 
                 sky_array_t qos, topics;
-                sky_array_init(&qos, 8, sizeof(sky_u8_t));
-                sky_array_init(&topics, 8, sizeof(sky_str_t));
+                sky_array_init2(&qos, pool, 8, sizeof(sky_u8_t));
+                sky_array_init2(&topics, pool, 8, sizeof(sky_str_t));
 
                 sky_mqtt_topic_t topic;
                 while (sky_mqtt_topic_read_next(&msg, &topic)) {
@@ -121,11 +119,12 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
                 sky_mqtt_send_sub_ack(conn, msg.packet_identifier, qos.elts, qos.nelts);
 
                 sky_u8_t *q = qos.elts;
-                sky_array_foreach(&topics, sky_str_t, item, {
-                    sky_mqtt_subs_sub(sub_tree, item, session, *(q++));
-                });
-                sky_array_destroy(&qos);
+
+                sky_array_foreach(&topics, sky_str_t, item) {
+                    sky_mqtt_subs_sub(conn->server, item, session, *(q++));
+                }
                 sky_array_destroy(&topics);
+                sky_array_destroy(&qos);
                 break;
             }
             case SKY_MQTT_TYPE_UNSUBSCRIBE: {
@@ -137,7 +136,7 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
 
                 sky_mqtt_topic_t topic;
                 while (sky_mqtt_topic_read_next(&msg, &topic)) {
-                    sky_mqtt_subs_unsub(sub_tree, &topic.topic, session);
+                    sky_mqtt_subs_unsub(conn->server, &topic.topic, session);
                 }
                 break;
             }
@@ -150,7 +149,7 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
             default:
                 return SKY_CORO_ABORT;
         }
-        sky_defer_run(conn->coro);
+        sky_pool_reset(pool);
     }
 }
 
@@ -228,7 +227,8 @@ mqtt_read_body(sky_mqtt_connect_t *conn, sky_mqtt_head_t *head, sky_uchar_t *buf
 
 static sky_mqtt_session_t *
 session_get(sky_mqtt_connect_msg_t *msg, sky_mqtt_connect_t *conn) {
-    sky_hashmap_t *session_manager = conn->server->session_manager;
+    sky_u32_t idx = sky_event_manager_thread_idx();
+    sky_hashmap_t *session_manager = &conn->server->thread_node[idx].session_manager;
 
     const sky_mqtt_session_t tmp = {
             .client_id = msg->client_id
@@ -240,7 +240,7 @@ session_get(sky_mqtt_connect_msg_t *msg, sky_mqtt_connect_t *conn) {
         if (null != session->conn) {
             sky_defer_cancel(session->conn->coro, session->defer);
 
-            sky_mqtt_topics_clean(session->topics);
+            sky_mqtt_topics_clean(&session->topics);
 
             sky_event_unregister(&session->conn->ev);
         }
@@ -249,7 +249,8 @@ session_get(sky_mqtt_connect_msg_t *msg, sky_mqtt_connect_t *conn) {
         session->client_id.data = (sky_uchar_t *) (session + 1);
         session->client_id.len = msg->client_id.len;
         sky_memcpy(session->client_id.data, msg->client_id.data, msg->client_id.len);
-        session->topics = sky_mqtt_topics_create();
+        session->server = conn->server;
+        sky_mqtt_topics_init(&session->topics);
 
         sky_hashmap_put_with_hash(session_manager, hash, session);
     }
@@ -262,14 +263,15 @@ session_get(sky_mqtt_connect_msg_t *msg, sky_mqtt_connect_t *conn) {
 
 static void
 session_defer(sky_mqtt_session_t *session) {
-    sky_hashmap_t *session_manager = session->conn->server->session_manager;
+    sky_u32_t idx = sky_event_manager_thread_idx();
+    sky_hashmap_t *session_manager = &session->server->thread_node[idx].session_manager;
     sky_mqtt_session_t *old = sky_hashmap_get(session_manager, session);
     if (sky_unlikely(old != session)) {
         sky_free(session);
         return;
     }
     if (sky_likely(session->conn == old->conn)) {
-        sky_mqtt_topics_destroy(session->topics);
+        sky_mqtt_topics_destroy(&session->topics);
         sky_hashmap_del(session_manager, session);
         session->conn = null;
 

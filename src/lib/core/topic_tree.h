@@ -28,15 +28,14 @@ sky_topic_tree_t *sky_topic_tree_create(
         sky_topic_tree_destroy_pt destroy
 );
 
-void sky_topic_tree_sub(sky_topic_tree_t *tree, const sky_str_t *topic, void *user_data);
+sky_bool_t sky_topic_tree_sub(sky_topic_tree_t *tree, const sky_str_t *topic, void *user_data);
 
-void sky_topic_tree_unsub(sky_topic_tree_t *tree, const sky_str_t *topic, void *user_data);
+sky_bool_t sky_topic_tree_unsub(sky_topic_tree_t *tree, const sky_str_t *topic, void *user_data);
 
 void sky_topic_tree_scan(sky_topic_tree_t *tree, const sky_str_t *topic,
                          sky_topic_tree_iter_pt iter, void *user_data);
 
-void sky_topic_tree_scan_one(sky_topic_tree_t *tree, const sky_str_t *topic,
-                             sky_topic_tree_iter_pt iter, void *user_data);
+sky_bool_t sky_topic_tree_filter(sky_topic_tree_t *tree, const sky_str_t *topic);
 
 void sky_topic_tree_destroy(sky_topic_tree_t *tree);
 

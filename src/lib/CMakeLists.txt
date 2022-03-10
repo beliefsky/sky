@@ -4,7 +4,6 @@ if (CMAKE_CROSSCOMPILING)
 endif ()
 
 set(SOURCES
-        platform.c
         core/palloc.c
         core/queue.c
         core/array.c
@@ -28,6 +27,10 @@ set(SOURCES
         core/uuid.c
         core/json.c
         core/timer_wheel.c
+        safe/spsc_queue.c
+        safe/mpsc_queue.c
+        safe/mpmc_queue.c
+        event/event_manager.c
         event/event_loop_common.c
         event/event_loop_epoll.c
         event/event_loop_kqueue.c
@@ -111,7 +114,7 @@ if (HAVE_LIBUCONTEXT)
                 )
     else ()
         ExternalProject_Add(libucontext
-                GIT_REPOSITORY https://github.com/beliefsky/libucontext
+                GIT_REPOSITORY https://gitee.com/beliefsky/libucontext.git
 
                 BUILD_IN_SOURCE ON
 
@@ -145,10 +148,6 @@ install(FILES
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky")
 
 install(FILES
-        platform.h
-        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky")
-
-install(FILES
         core/types.h
         core/memory.h
         core/palloc.h
@@ -175,9 +174,15 @@ install(FILES
         core/json.h
         core/timer_wheel.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/core")
-
+install(FILES
+        safe/atomic.h
+        safe/mpmc_queue.h
+        safe/mpsc_queue.h
+        safe/spsc_queue.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/safe")
 install(FILES
         event/event_loop.h
+        event/event_manager.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/event")
 install(FILES
         net/inet.h

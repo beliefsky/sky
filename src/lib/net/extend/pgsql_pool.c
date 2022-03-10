@@ -64,7 +64,7 @@ static sky_uchar_t *array_serialize(const sky_pgsql_array_t *array, sky_uchar_t 
 static sky_pgsql_array_t *array_deserialize(sky_pool_t *pool, sky_uchar_t *p, sky_pgsql_type_t type);
 
 sky_pgsql_pool_t *
-sky_pgsql_pool_create(sky_event_loop_t *loop, const sky_pgsql_conf_t *conf) {
+sky_pgsql_pool_create(sky_event_manager_t *manager, const sky_pgsql_conf_t *conf) {
     sky_pgsql_pool_t *pg_pool;
     sky_uchar_t *p;
     sky_u32_t buf_size;
@@ -104,7 +104,7 @@ sky_pgsql_pool_create(sky_event_loop_t *loop, const sky_pgsql_conf_t *conf) {
             .nodelay = true
     };
 
-    pg_pool->conn_pool  = sky_tcp_pool_create(loop, &c);
+    pg_pool->conn_pool  = sky_tcp_pool_create(manager, &c);
     if (sky_unlikely(!pg_pool->conn_pool)) {
         return null;
     }

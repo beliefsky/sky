@@ -22,24 +22,30 @@ static sky_u64_t session_hash(const void *item, void *secret);
 static sky_bool_t session_equals(const void *a, const void *b);
 
 sky_mqtt_server_t *
-sky_mqtt_server_create() {
-    sky_mqtt_server_t *server = sky_malloc(sizeof(sky_mqtt_server_t));
+sky_mqtt_server_create(sky_event_manager_t *manager) {
+    sky_u32_t thread_n = sky_event_manager_thread_n(manager);
+
+    sky_mqtt_server_t *server = sky_malloc(sizeof(sky_mqtt_server_t) + sizeof(sky_mqtt_thread_node_t) * thread_n);
+    sky_mqtt_thread_node_t *node = (sky_mqtt_thread_node_t *) (server + 1);
+
     server->mqtt_read = sky_mqtt_read;
     server->mqtt_read_all = sky_mqtt_read_all;
     server->mqtt_write_nowait = sky_mqtt_write_nowait;
-    server->session_manager = sky_hashmap_create_with_cap(session_hash, session_equals, null, 128);
-    server->sub_tree = sky_mqtt_subs_create();
+    server->manager = manager;
+    server->thread_node = node;
+    server->thread_node_n = thread_n;
+
+    for (sky_u32_t i = 0; i < thread_n; ++i, ++node) {
+        sky_hashmap_init_with_cap(&node->session_manager, session_hash, session_equals, null, 128);
+    }
+
+    sky_mqtt_subs_init(server);
 
     return server;
 }
 
 sky_bool_t
-sky_mqtt_server_bind(
-        sky_mqtt_server_t *server,
-        sky_event_loop_t *loop,
-        sky_inet_address_t *address,
-        sky_u32_t address_len
-) {
+sky_mqtt_server_bind(sky_mqtt_server_t *server, sky_inet_address_t *address, sky_u32_t address_len) {
     sky_tcp_server_conf_t conf = {
             .address = address,
             .address_len = address_len,
@@ -49,8 +55,14 @@ sky_mqtt_server_bind(
 //            .nodelay = true,
             .defer_accept = true
     };
-
-    return sky_tcp_server_create(loop, &conf);
+    sky_event_loop_t *loop;
+    for (sky_u32_t i = 0; i < server->thread_node_n; ++i) {
+        loop = sky_event_manager_idx_event_loop(server->manager, i);
+        if (sky_unlikely(null == loop || !sky_tcp_server_create(loop, &conf))) {
+            return false;
+        }
+    }
+    return true;
 }
 
 static sky_event_t *
@@ -76,12 +88,7 @@ mqtt_run(sky_mqtt_connect_t *conn) {
 
 static void
 mqtt_close(sky_mqtt_connect_t *conn) {
-    sky_mqtt_packet_t *packet;
-    while (!sky_queue_is_empty(&conn->packet)) {
-        packet = (sky_mqtt_packet_t *) sky_queue_next(&conn->packet);
-        sky_queue_remove(&packet->link);
-        sky_free(packet);
-    }
+    sky_mqtt_clean_packet(conn);
 
     sky_coro_destroy(conn->coro);
 }

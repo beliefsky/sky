@@ -5,7 +5,7 @@
 #ifndef SKY_TCP_POOL_H
 #define SKY_TCP_POOL_H
 
-#include "../event/event_loop.h"
+#include "../event/event_manager.h"
 #include "../core/queue.h"
 #include "../core/coro.h"
 #include "inet.h"
@@ -28,7 +28,7 @@ typedef struct {
     sky_i32_t timeout;
     sky_u32_t address_len;
 
-    sky_u16_t connection_size;
+    sky_u32_t connection_size;
 
     sky_bool_t nodelay: 1;
 } sky_tcp_pool_conf_t;
@@ -41,7 +41,7 @@ struct sky_tcp_conn_s {
     sky_defer_t *defer;
 };
 
-sky_tcp_pool_t *sky_tcp_pool_create(sky_event_loop_t *loop, const sky_tcp_pool_conf_t *conf);
+sky_tcp_pool_t *sky_tcp_pool_create(sky_event_manager_t *manager, const sky_tcp_pool_conf_t *conf);
 
 sky_bool_t sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event_t *event, sky_coro_t *coro);
 

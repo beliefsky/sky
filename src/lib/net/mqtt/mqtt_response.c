@@ -21,6 +21,7 @@ sky_mqtt_send_connect_ack(sky_mqtt_connect_t *conn, sky_bool_t session_preset, s
 void
 sky_mqtt_send_publish(sky_mqtt_connect_t *conn, const sky_mqtt_publish_msg_t *msg,
                       sky_u8_t qos, sky_bool_t retain, sky_bool_t dup) {
+
     const sky_u32_t alloc_size = sky_mqtt_unpack_alloc_size(sky_mqtt_publish_unpack_size(msg, qos))
                                  + sizeof(sky_mqtt_packet_t);
 
@@ -166,4 +167,14 @@ sky_mqtt_write_packet(sky_mqtt_connect_t *conn) {
     sky_event_timeout_expired(&conn->ev);
 
     return true;
+}
+
+void
+sky_mqtt_clean_packet(sky_mqtt_connect_t *conn) {
+    sky_mqtt_packet_t *packet;
+    while (!sky_queue_is_empty(&conn->packet)) {
+        packet = (sky_mqtt_packet_t *) sky_queue_next(&conn->packet);
+        sky_queue_remove(&packet->link);
+        sky_free(packet);
+    }
 }

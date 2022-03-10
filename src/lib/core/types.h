@@ -57,30 +57,6 @@ extern "C" {
 #define SKY_ISIZE(_c)  INTMAX_C(_c)
 #define SKY_USIZE(_c)  UINTMAX_C(_c)
 
-#ifdef HAVE_BUILTIN_BSWAP
-#define sky_swap_u16(_ll) __builtin_bswap16(_ll)
-#define sky_swap_u32(_ll) __builtin_bswap32(_ll)
-#define sky_swap_u64(_ll) __builtin_bswap64(_ll)
-
-#else
-#define sky_swap_u16(_s)    (sky_u16_t)(((_s) & 0x00FF) << 8 | ((_s) & 0xFF00) >> 8)
-#define sky_swap_u32(_l)    (sky_u32_t)  \
-    (((_l) & 0x000000FF) << 24 |            \
-    ((_l) & 0x0000FF00) << 8  |             \
-    ((_l) & 0x00FF0000) >> 8  |             \
-    ((_l) & 0xFF000000) >> 24)
-
-#define sky_swap_u64(_ll)   (sky_u64_t)  \
-    (((_ll) & 0x00000000000000FF) << 56 |   \
-    ((_ll) & 0x000000000000FF00) << 40 |    \
-    ((_ll) & 0x0000000000FF0000) << 24 |    \
-    ((_ll) & 0x00000000FF000000) << 8  |    \
-    ((_ll) & 0x000000FF00000000) >> 8  |    \
-    ((_ll) & 0x0000FF0000000000) >> 24 |    \
-    ((_ll) & 0x00FF000000000000) >> 40 |    \
-    ((_ll) & 0xFF00000000000000) >> 56)
-#endif
-
 
 typedef _Bool sky_bool_t;
 typedef char sky_char_t;             /*-128 ~ +127*/
@@ -100,6 +76,63 @@ typedef time_t sky_time_t;
 typedef float sky_f32_t;
 typedef double sky_f64_t;
 
+#ifdef HAVE_BUILTIN_BSWAP
+#define sky_swap_u16(_ll) __builtin_bswap16(_ll)
+#define sky_swap_u32(_ll) __builtin_bswap32(_ll)
+#define sky_swap_u64(_ll) __builtin_bswap64(_ll)
+
+#define sky_clz_u32(_val) __builtin_clz(_val)
+#define sky_clz_usize(_val) __builtin_clzl(_val)
+#define sky_clz_u64(_val) __builtin_clzll(_val)
+
+#else
+#define sky_swap_u16(_s)    (sky_u16_t)(((_s) & 0x00FF) << 8 | ((_s) & 0xFF00) >> 8)
+#define sky_swap_u32(_l)    (sky_u32_t)  \
+    (((_l) & 0x000000FF) << 24 |            \
+    ((_l) & 0x0000FF00) << 8  |             \
+    ((_l) & 0x00FF0000) >> 8  |             \
+    ((_l) & 0xFF000000) >> 24)
+
+#define sky_swap_u64(_ll)   (sky_u64_t)  \
+    (((_ll) & 0x00000000000000FF) << 56 |   \
+    ((_ll) & 0x000000000000FF00) << 40 |    \
+    ((_ll) & 0x0000000000FF0000) << 24 |    \
+    ((_ll) & 0x00000000FF000000) << 8  |    \
+    ((_ll) & 0x000000FF00000000) >> 8  |    \
+    ((_ll) & 0x0000FF0000000000) >> 24 |    \
+    ((_ll) & 0x00FF000000000000) >> 40 |    \
+    ((_ll) & 0xFF00000000000000) >> 56)
+
+
+#define sky_clz_u32(_val) \
+    ({                    \
+        sky_u32_t _u32_tmp = (_val) - 1; \
+        _u32_tmp |= _u32_tmp >> 1;       \
+        _u32_tmp |= _u32_tmp >> 2;       \
+        _u32_tmp |= _u32_tmp >> 4;       \
+        _u32_tmp |= _u32_tmp >> 8;       \
+        _u32_tmp |= _u32_tmp >> 16;      \
+        _u32_tmp          \
+    })
+#if SKY_USIZE_MAX == SKSKY_U64_MAX
+#define sky_clz_usize(_val) sky_clz_u64(_val)
+#else
+#define sky_clz_usize(_val) sky_clz_u32(_val)
+#endif
+
+#define sky_clz_u64(_val) \
+    ({                    \
+        sky_u64_t _u64_tmp = (_val) - 1; \
+        _u64_tmp |= _u64_tmp >> 1;       \
+        _u64_tmp |= _u64_tmp >> 2;       \
+        _u64_tmp |= _u64_tmp >> 4;       \
+        _u64_tmp |= _u64_tmp >> 8;       \
+        _u64_tmp |= _u64_tmp >> 16;      \
+        _u64_tmp |= _u64_tmp >> 32;      \
+        _u32_tmp          \
+    })
+#endif
+
 #define sky_abs(_v)         (((_v) < 0) ? -(_v) : v)
 
 #define sky_max(_v1, _v2)   ((_v1) ^ (((_v1) ^ (_v2)) & -((_v1) < (_v2))))
@@ -117,6 +150,9 @@ typedef double sky_f64_t;
  */
 #define sky_uchar_four_has_zero(_v)  \
     (((_v) - 0x01010101UL) & ~(_v) & 0x80808080UL)
+
+#define sky_type_convert(_ptr, _type, _param) \
+    (_type *) ((sky_uchar_t *) (_ptr) - sky_offset_of(_type, _param))
 
 #if defined(__cplusplus)
 } /* extern "C" { */

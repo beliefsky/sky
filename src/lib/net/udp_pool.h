@@ -5,7 +5,7 @@
 #ifndef SKY_UDP_POOL_H
 #define SKY_UDP_POOL_H
 
-#include "../event/event_loop.h"
+#include "../event/event_manager.h"
 #include "../core/queue.h"
 #include "../core/coro.h"
 #include "inet.h"
@@ -28,7 +28,7 @@ typedef struct {
     sky_i32_t timeout;
     sky_u32_t address_len;
 
-    sky_u16_t connection_size;
+    sky_u32_t connection_size;
 } sky_udp_pool_conf_t;
 
 struct sky_udp_conn_s {
@@ -39,7 +39,7 @@ struct sky_udp_conn_s {
     sky_defer_t *defer;
 };
 
-sky_udp_pool_t *sky_udp_pool_create(sky_event_loop_t *loop, const sky_udp_pool_conf_t *conf);
+sky_udp_pool_t *sky_udp_pool_create(sky_event_manager_t *manager, const sky_udp_pool_conf_t *conf);
 
 sky_bool_t sky_udp_pool_conn_bind(sky_udp_pool_t *udp_pool, sky_udp_conn_t *conn, sky_event_t *event, sky_coro_t *coro);
 

@@ -9,16 +9,30 @@
 #include "../../core/coro.h"
 #include "../../core/hashmap.h"
 #include "../../core/topic_tree.h"
-#include "../../event/event_loop.h"
+#include "../../event/event_manager.h"
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
+typedef struct sky_mqtt_share_node_s sky_mqtt_share_node_t;
 typedef struct sky_mqtt_server_s sky_mqtt_server_t;
+typedef struct sky_mqtt_thread_node_s sky_mqtt_thread_node_t;
 typedef struct sky_mqtt_session_s sky_mqtt_session_t;
 typedef struct sky_mqtt_connect_s sky_mqtt_connect_t;
 typedef struct sky_mqtt_packet_s sky_mqtt_packet_t;
+
+struct sky_mqtt_share_node_s {
+    sky_topic_tree_t **topic_tree;
+    sky_u32_t node_num;
+    sky_u32_t current_index;
+};
+
+struct sky_mqtt_thread_node_s {
+    sky_hashmap_t session_manager;
+    sky_topic_tree_t *sub_tree;
+    sky_topic_tree_t **topic_tree;
+};
 
 struct sky_mqtt_server_s {
     sky_usize_t (*mqtt_read)(sky_mqtt_connect_t *conn, sky_uchar_t *data, sky_usize_t size);
@@ -27,15 +41,17 @@ struct sky_mqtt_server_s {
 
     sky_isize_t (*mqtt_write_nowait)(sky_mqtt_connect_t *conn, const sky_uchar_t *data, sky_usize_t size);
 
-    sky_hashmap_t *session_manager;
-    sky_topic_tree_t *sub_tree;
+    sky_event_manager_t *manager;
+    sky_mqtt_thread_node_t *thread_node;
+    sky_u32_t thread_node_n;
 };
 
 struct sky_mqtt_session_s {
     sky_str_t client_id;
+    sky_mqtt_server_t *server;
     sky_mqtt_connect_t *conn;
     sky_defer_t *defer;
-    sky_hashmap_t *topics;
+    sky_hashmap_t topics;
     sky_u16_t packet_identifier;
     sky_u8_t version;
 };
@@ -58,14 +74,9 @@ struct sky_mqtt_packet_s {
     sky_u32_t size;
 };
 
-sky_mqtt_server_t *sky_mqtt_server_create();
+sky_mqtt_server_t *sky_mqtt_server_create(sky_event_manager_t *manager);
 
-sky_bool_t sky_mqtt_server_bind(
-        sky_mqtt_server_t *server,
-        sky_event_loop_t *loop,
-        sky_inet_address_t *address,
-        sky_u32_t address_len
-);
+sky_bool_t sky_mqtt_server_bind(sky_mqtt_server_t *server, sky_inet_address_t *address, sky_u32_t address_len);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

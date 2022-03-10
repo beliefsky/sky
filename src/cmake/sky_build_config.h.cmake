@@ -9,6 +9,9 @@
 #cmakedefine HAVE_EPOLL
 #cmakedefine HAVE_KQUEUE
 #cmakedefine HAVE_MALLOC
+#cmakedefine HAVE_ATOMIC
+
+#cmakedefine HAVE_EVENT_FD
 
 /* Compiler builtins for specific CPU instruction support */
 #cmakedefine HAVE_BUILTIN_IA32_CRC32
