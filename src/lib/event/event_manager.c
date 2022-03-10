@@ -24,6 +24,7 @@
 #else
 
 #include <fcntl.h>
+#include "../net/inet.h"
 
 #endif
 
