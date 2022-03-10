@@ -158,12 +158,11 @@ sky_event_manager_idx_msg(sky_event_manager_t *manager, sky_event_msg_t *msg, sk
     } else {
         thread->msg_n = 0;
         sky_timer_wheel_unlink(&thread->timer);
-
 #ifdef HAVE_EVENT_FD
         eventfd_write(thread->msg_event.fd, SKY_U64(1));
 #else
         sky_usize_t tmp = SKY_USIZE(1);
-    write(thread->write_fd, &tmp, sizeof(sky_usize_t));
+        write(thread->write_fd, &tmp, sizeof(sky_usize_t));
 #endif
     }
     return true;
