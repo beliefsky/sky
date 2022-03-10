@@ -20,13 +20,11 @@
 #include <pthread_np.h>
 #endif
 
+#undef HAVE_EVENT_FD
 #ifdef HAVE_EVENT_FD
-
 #include <sys/eventfd.h>
-
 #else
 
-#include <unistd.h>
 #include <fcntl.h>
 
 #endif
@@ -234,9 +232,9 @@ event_msg_run(event_thread_t *thread) {
         }
     }
 #else
-    sky_uchar_t tmp[128];
+    sky_uchar_t tmp[sizeof(sky_u8_t) << 6];
     for (;;) {
-        if (read(thread->msg_event.fd, tmp, 128) <= 0) {
+        if (read(thread->msg_event.fd, tmp, (sizeof(sky_u8_t) << 6)) < (sky_isize_t)(sizeof(sky_u8_t) << 6)) {
             break;
         }
     }
@@ -267,8 +265,8 @@ event_thread_msg_send(event_thread_t *thread) {
 #ifdef HAVE_EVENT_FD
     eventfd_write(thread->msg_event.fd, SKY_U64(1));
 #else
-    sky_usize_t tmp = SKY_USIZE(1);
-    write(thread->write_fd, &tmp, sizeof(sky_usize_t));
+    sky_u8_t tmp = SKY_U8(1);
+    write(thread->write_fd, &tmp, sizeof(sky_u8_t));
 #endif
 }
 
