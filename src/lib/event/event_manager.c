@@ -153,21 +153,19 @@ sky_event_manager_idx_msg(sky_event_manager_t *manager, sky_event_msg_t *msg, sk
     if (thread->msg_n == 0) {
         ++thread->msg_n;
         sky_event_timer_register(thread->loop, &thread->timer, 1);
-        return true;
     } else if (thread->msg_n < 8192) {
         ++thread->msg_n;
-        return true;
     } else {
         thread->msg_n = 0;
         sky_timer_wheel_unlink(&thread->timer);
-    }
 
 #ifdef HAVE_EVENT_FD
-    eventfd_write(thread->msg_event.fd, SKY_U64(1));
+        eventfd_write(thread->msg_event.fd, SKY_U64(1));
 #else
-    sky_usize_t tmp = SKY_USIZE(1);
+        sky_usize_t tmp = SKY_USIZE(1);
     write(thread->write_fd, &tmp, sizeof(sky_usize_t));
 #endif
+    }
     return true;
 }
 
