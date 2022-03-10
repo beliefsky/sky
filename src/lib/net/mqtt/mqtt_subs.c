@@ -196,12 +196,8 @@ sky_mqtt_subs_publish(sky_mqtt_server_t *server, const sky_mqtt_head_t *head, co
 
     for (sky_u32_t i = 0; i < server->thread_node_n; ++i) {
         if (i != idx) {
-
-            if (sky_topic_tree_filter(node->topic_tree[i], &msg->topic)) {
-                if (!sky_event_manager_idx_msg(server->manager, &share_msg->msg, i)) {
-                    share_message_free(share_msg);
-                }
-            } else {
+            if (!sky_topic_tree_filter(node->topic_tree[i], &msg->topic)
+                || !sky_event_manager_idx_msg(server->manager, &share_msg->msg, i)) {
                 share_message_free(share_msg);
             }
         }
@@ -373,7 +369,7 @@ mqtt_thread_node_sub(sky_event_msg_t *msg) {
     sky_mqtt_thread_node_t *node = share_msg->server->thread_node + sky_event_manager_thread_idx();
     sky_topic_tree_t *sub_tree = node->topic_tree[share_msg->topic_index];
     sky_topic_tree_sub(sub_tree, &share_msg->topic, null);
-//
+
     share_message_free(share_msg);
 }
 
@@ -414,8 +410,8 @@ mqtt_thread_node_publish(sky_event_msg_t *msg) {
 
 static sky_inline void
 share_message_free(mqtt_share_msg_t *msg) {
-    const sky_u32_t result = sky_atomic_get_sub(&msg->ref, SKY_U32(1));
-    if (result <= 1) {
+    const sky_u32_t result = sky_atomic_get_sub_explicit(&msg->ref, SKY_U32(1), SKY_ATOMIC_RELAXED);
+    if (result == 1) {
         sky_free(msg);
     }
 }

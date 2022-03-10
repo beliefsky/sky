@@ -88,12 +88,7 @@ mqtt_run(sky_mqtt_connect_t *conn) {
 
 static void
 mqtt_close(sky_mqtt_connect_t *conn) {
-    sky_mqtt_packet_t *packet;
-    while (!sky_queue_is_empty(&conn->packet)) {
-        packet = (sky_mqtt_packet_t *) sky_queue_next(&conn->packet);
-        sky_queue_remove(&packet->link);
-        sky_free(packet);
-    }
+    sky_mqtt_clean_packet(conn);
 
     sky_coro_destroy(conn->coro);
 }

@@ -57,6 +57,8 @@ static void event_msg_error(event_thread_t *thread);
 
 static void event_timer_cb(sky_timer_wheel_entry_t *entry);
 
+static void event_thread_msg_send(event_thread_t *thread);
+
 static void thread_bind_cpu(pthread_attr_t *attr, sky_u32_t n);
 
 static void main_bind_cpu();
@@ -158,12 +160,7 @@ sky_event_manager_idx_msg(sky_event_manager_t *manager, sky_event_msg_t *msg, sk
     } else {
         thread->msg_n = 0;
         sky_timer_wheel_unlink(&thread->timer);
-#ifdef HAVE_EVENT_FD
-        eventfd_write(thread->msg_event.fd, SKY_U64(1));
-#else
-        sky_usize_t tmp = SKY_USIZE(1);
-        write(thread->write_fd, &tmp, sizeof(sky_usize_t));
-#endif
+        event_thread_msg_send(thread);
     }
     return true;
 }
@@ -262,6 +259,11 @@ static void
 event_timer_cb(sky_timer_wheel_entry_t *entry) {
     event_thread_t *thread = sky_type_convert(entry, event_thread_t, timer);
     thread->msg_n = 0;
+    event_thread_msg_send(thread);
+}
+
+static sky_inline void
+event_thread_msg_send(event_thread_t *thread) {
 #ifdef HAVE_EVENT_FD
     eventfd_write(thread->msg_event.fd, SKY_U64(1));
 #else
