@@ -9,7 +9,6 @@
 #include "../core/memory.h"
 #include "../safe/mpsc_queue.h"
 #include "../core/log.h"
-#include "../net/inet.h"
 #include <pthread.h>
 #include <unistd.h>
 
