@@ -43,7 +43,6 @@ set(SOURCES
         net/udp_client.c
         net/tcp_listener.c
         net/udp_listener.c
-        net/share_msg.c
         net/tls/tls.c
         net/extend/pgsql_pool.c
         net/extend/redis_pool.c
