@@ -151,6 +151,9 @@ typedef double sky_f64_t;
 #define sky_uchar_four_has_zero(_v)  \
     (((_v) - 0x01010101UL) & ~(_v) & 0x80808080UL)
 
+#define sky_type_convert(_ptr, _type, _param) \
+    (_type *) ((sky_uchar_t *) (_ptr) - sky_offset_of(_type, _param))
+
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif
