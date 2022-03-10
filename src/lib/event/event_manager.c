@@ -20,7 +20,6 @@
 #include <pthread_np.h>
 #endif
 
-#undef HAVE_EVENT_FD
 #ifdef HAVE_EVENT_FD
 #include <sys/eventfd.h>
 #else
