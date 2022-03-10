@@ -114,7 +114,7 @@ if (HAVE_LIBUCONTEXT)
                 )
     else ()
         ExternalProject_Add(libucontext
-                GIT_REPOSITORY https://github.com/beliefsky/libucontext
+                GIT_REPOSITORY https://gitee.com/beliefsky/libucontext.git
 
                 BUILD_IN_SOURCE ON
 
