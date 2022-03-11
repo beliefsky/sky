@@ -40,7 +40,10 @@ main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
-    sky_event_manager_t *manager = sky_event_manager_create();
+    const sky_event_manager_conf_t conf = {
+            .enable_share = false,
+    };
+    sky_event_manager_t *manager = sky_event_manager_create_with_conf(&conf);
 
     if (create_server(manager)) {
         sky_event_manager_run(manager);
