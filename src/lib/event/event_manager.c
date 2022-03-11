@@ -44,7 +44,6 @@ typedef struct {
 } event_thread_t;
 
 struct sky_event_manager_s {
-    sky_bool_t enable_msg;
     sky_u32_t thread_n;
     sky_u32_t msg_limit_n;
     sky_u32_t msd_limit_sec;
@@ -71,7 +70,6 @@ static sky_thread sky_u32_t event_manager_idx = SKY_U32_MAX;
 sky_event_manager_t *
 sky_event_manager_create() {
     const sky_event_manager_conf_t conf = {
-            .enable_share = true,
             .msg_cap = 1 << 16,
             .msg_limit_n = 8192,
             .msg_limit_sec = 1
@@ -90,28 +88,26 @@ sky_event_manager_create_with_conf(const sky_event_manager_conf_t *conf) {
     const sky_u32_t thread_n = (sky_u32_t) size;
 
     sky_event_manager_t *manager = sky_malloc(sizeof(sky_event_manager_t) + sizeof(event_thread_t) * thread_n);
-    manager->enable_msg = conf->enable_share;
     manager->thread_n = thread_n;
     manager->msg_limit_n = sky_max(conf->msg_limit_n, SKY_U32(16));
     manager->msd_limit_sec = conf->msg_limit_sec;
 
     event_thread_t *thread = manager->event_threads;
 
-    if (conf->enable_share) {
-        sky_u32_t msg_size = manager->msg_limit_n << 1;
-        msg_size = sky_max(msg_size, conf->msg_cap);
+    sky_u32_t msg_size = manager->msg_limit_n << 1;
+    msg_size = sky_max(msg_size, conf->msg_cap);
 
-        for (sky_u32_t i = 0; i < thread_n; ++i, ++thread) {
-            sky_mpsc_queue_init(&thread->queue, msg_size);
-            sky_timer_entry_init(&thread->timer, event_timer_cb);
-            thread->loop = sky_event_loop_create();
-            thread->msg_n = 0;
-            thread->thread_idx = i;
+    for (sky_u32_t i = 0; i < thread_n; ++i, ++thread) {
+        sky_mpsc_queue_init(&thread->queue, msg_size);
+        sky_timer_entry_init(&thread->timer, event_timer_cb);
+        thread->loop = sky_event_loop_create();
+        thread->msg_n = 0;
+        thread->thread_idx = i;
 #if defined(HAVE_EVENT_FD)
-            const sky_i32_t fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-            sky_event_init(thread->loop, &thread->msg_event, fd, event_msg_run, event_msg_error);
+        const sky_i32_t fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+        sky_event_init(thread->loop, &thread->msg_event, fd, event_msg_run, event_msg_error);
 #elif defined(HAVE_ACCEPT4)
-            sky_i32_t fd[2];
+        sky_i32_t fd[2];
             pipe2(fd, O_NONBLOCK | O_CLOEXEC);
             sky_event_init(thread->loop, &thread->msg_event, fd[0], event_msg_run, event_msg_error);
             thread->write_fd = fd[1];
@@ -122,15 +118,8 @@ sky_event_manager_create_with_conf(const sky_event_manager_conf_t *conf) {
             sky_event_init(thread->loop, &thread->msg_event, fd[0], event_msg_run, event_msg_error);
             thread->write_fd = fd[1];
 #endif
-            sky_event_register_only_read(&thread->msg_event, -1);
+        sky_event_register_only_read(&thread->msg_event, -1);
 
-        }
-    } else {
-        for (sky_u32_t i = 0; i < thread_n; ++i, ++thread) {
-            thread->loop = sky_event_loop_create();
-            thread->msg_n = 0;
-            thread->thread_idx = i;
-        }
     }
 
 
@@ -167,7 +156,7 @@ sky_event_manager_idx_event_loop(sky_event_manager_t *manager, sky_u32_t idx) {
 
 sky_bool_t
 sky_event_manager_idx_msg(sky_event_manager_t *manager, sky_event_msg_t *msg, sky_u32_t idx) {
-    if (sky_unlikely(null == msg || idx >= manager->thread_n || !manager->enable_msg)) {
+    if (sky_unlikely(null == msg || idx >= manager->thread_n)) {
         return false;
     }
     event_thread_t *thread = manager->event_threads + idx;

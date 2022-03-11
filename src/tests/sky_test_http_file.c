@@ -17,7 +17,9 @@ main() {
     setvbuf(stderr, null, _IOLBF, 0);
 
     const sky_event_manager_conf_t conf = {
-            .enable_share = false,
+            .msg_cap = 32,
+            .msg_limit_n = 8,
+            .msg_limit_sec = 1
     };
     sky_event_manager_t *manager = sky_event_manager_create_with_conf(&conf);
 
