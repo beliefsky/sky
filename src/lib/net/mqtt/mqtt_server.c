@@ -52,8 +52,8 @@ sky_mqtt_server_bind(sky_mqtt_server_t *server, sky_inet_address_t *address, sky
             .run = (sky_tcp_accept_cb_pt) mqtt_connection_accept_cb,
             .data = server,
             .timeout = 300,
-//            .nodelay = true,
-            .defer_accept = true
+            .nodelay = true,
+//            .defer_accept = true
     };
     sky_event_loop_t *loop;
     for (sky_u32_t i = 0; i < server->thread_node_n; ++i) {
