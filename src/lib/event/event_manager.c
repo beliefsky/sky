@@ -40,6 +40,7 @@ typedef struct {
 #ifndef HAVE_EVENT_FD
     sky_i32_t write_fd;
 #endif
+    sky_u32_t thread_idx;
 } event_thread_t;
 
 struct sky_event_manager_s {
@@ -105,6 +106,7 @@ sky_event_manager_create_with_conf(const sky_event_manager_conf_t *conf) {
             sky_timer_entry_init(&thread->timer, event_timer_cb);
             thread->loop = sky_event_loop_create();
             thread->msg_n = 0;
+            thread->thread_idx = i;
 #if defined(HAVE_EVENT_FD)
             const sky_i32_t fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
             sky_event_init(thread->loop, &thread->msg_event, fd, event_msg_run, event_msg_error);
@@ -127,6 +129,7 @@ sky_event_manager_create_with_conf(const sky_event_manager_conf_t *conf) {
         for (sky_u32_t i = 0; i < thread_n; ++i, ++thread) {
             thread->loop = sky_event_loop_create();
             thread->msg_n = 0;
+            thread->thread_idx = i;
         }
     }
 
@@ -237,6 +240,7 @@ sky_event_manager_destroy(sky_event_manager_t *manager) {
 static void *
 thread_run(void *data) {
     event_thread_t *item = data;
+    event_manager_idx = item->thread_idx;
 
     sky_event_loop_run(item->loop);
     sky_event_loop_destroy(item->loop);
