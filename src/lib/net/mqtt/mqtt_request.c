@@ -7,10 +7,11 @@
 #include "../../core/memory.h"
 #include "mqtt_subs.h"
 #include "../../core/array.h"
+#include "../../core/log.h"
 
 static sky_bool_t mqtt_read_head_pack(sky_mqtt_connect_t *conn, sky_mqtt_head_t *head);
 
-static void mqtt_read_body(sky_mqtt_connect_t *conn, sky_mqtt_head_t *head, sky_uchar_t *buf);
+static void mqtt_read_body(sky_mqtt_connect_t *conn, const sky_mqtt_head_t *head, sky_uchar_t *buf);
 
 static sky_mqtt_session_t *session_get(sky_mqtt_connect_msg_t *msg, sky_mqtt_connect_t *conn);
 
@@ -35,6 +36,7 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
     sky_mqtt_connect_msg_t connect_msg;
     sky_bool_t flag = sky_mqtt_connect_pack(&connect_msg, body, head.body_size);
     if (sky_unlikely(!flag)) {
+        sky_log_info("conn error");
         return SKY_CORO_ABORT;
     }
     connect_msg.keep_alive <<= 1;
@@ -50,6 +52,7 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
     for (;;) {
         read_pack = mqtt_read_head_pack(conn, &head);
         if (sky_unlikely(!read_pack)) {
+            sky_log_info("head error");
             return SKY_CORO_ABORT;
         }
 
@@ -147,6 +150,7 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
             case SKY_MQTT_TYPE_DISCONNECT:
                 return SKY_CORO_FINISHED;
             default:
+                sky_log_info(" error");
                 return SKY_CORO_ABORT;
         }
         sky_pool_reset(pool);
@@ -160,8 +164,8 @@ mqtt_read_head_pack(sky_mqtt_connect_t *conn, sky_mqtt_head_t *head) {
     sky_u32_t read_size;
     sky_i8_t flag;
 
-    buf = conn->head_tmp;
     read_size = conn->head_copy;
+    buf = conn->head_tmp + read_size;
     for (;;) {
         size = conn->server->mqtt_read(conn, buf, 8 - read_size);
         buf += size;
@@ -192,7 +196,7 @@ mqtt_read_head_pack(sky_mqtt_connect_t *conn, sky_mqtt_head_t *head) {
 }
 
 static void
-mqtt_read_body(sky_mqtt_connect_t *conn, sky_mqtt_head_t *head, sky_uchar_t *buf) {
+mqtt_read_body(sky_mqtt_connect_t *conn, const sky_mqtt_head_t *head, sky_uchar_t *buf) {
     sky_u32_t read_size;
 
     if (head->body_size == 0) {
