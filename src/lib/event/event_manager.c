@@ -106,11 +106,11 @@ sky_event_manager_create_with_conf(const sky_event_manager_conf_t *conf) {
 
     manager->event_threads = thread;
     manager->thread_n = thread_n;
-    manager->msg_limit_n = sky_max(conf->msg_limit_n, SKY_U32(16));
+    manager->msg_limit_n = conf->msg_limit_n / thread_n;
+    manager->msg_limit_n = sky_max(manager->msg_limit_n, SKY_U32(8));
     manager->msg_limit_sec = conf->msg_limit_sec;
 
-
-    sky_usize_t msg_size = manager->msg_limit_n << 1;
+    sky_usize_t msg_size = (manager->msg_limit_n * thread_n) << 1;
     msg_size = sky_max(msg_size, conf->msg_cap);
 
     for (sky_u32_t i = 0; i < thread_n; ++i, ++thread) {
@@ -182,32 +182,29 @@ sky_event_manager_idx_msg(sky_event_manager_t *manager, sky_event_msg_t *msg, sk
     }
     event_thread_t *thread = manager->event_threads + idx;
 
-    sky_bool_t result = sky_mpsc_queue_push(&thread->queue, msg);
-    if (sky_unlikely(!result)) {
-        return false;
-    }
     if (idx == event_manager_idx) {
         while (null != (msg = sky_mpsc_queue_pop(&thread->queue))) {
             msg->handle(msg);
         }
+        msg->handle(msg);
         return true;
     }
     event_thread_t *current = manager->event_threads + event_manager_idx;
-
     event_msg_timer_t *timer = current->timers + idx;
-    if (timer->msg_n == 0) {
-        ++timer->msg_n;
-        sky_event_timer_register(current->loop, &timer->timer, manager->msg_limit_sec);
-    } else if (timer->msg_n < manager->msg_limit_n) {
-        ++timer->msg_n;
-    } else {
+
+    sky_bool_t result = sky_mpsc_queue_push(&thread->queue, msg);
+    if (!result || timer->msg_n > manager->msg_limit_n) {
         timer->msg_n = 0;
         sky_timer_wheel_unlink(&timer->timer);
         event_thread_msg_send(thread);
+    } else if (timer->msg_n == 0) {
+        ++timer->msg_n;
+        sky_event_timer_register(current->loop, &timer->timer, manager->msg_limit_sec);
+    } else {
+        ++timer->msg_n;
     }
 
-
-    return true;
+    return result;
 }
 
 sky_bool_t
