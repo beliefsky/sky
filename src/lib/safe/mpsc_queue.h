@@ -15,7 +15,7 @@ typedef sky_mpmc_queue_t sky_mpsc_queue_t;
 
 
 static sky_inline sky_bool_t
-sky_mpsc_queue_init(sky_mpsc_queue_t *queue, sky_u32_t capacity) {
+sky_mpsc_queue_init(sky_mpsc_queue_t *queue, sky_usize_t capacity) {
     return sky_mpmc_queue_init(queue, capacity);
 }
 
@@ -24,7 +24,7 @@ sky_mpsc_queue_destroy(sky_mpsc_queue_t *queue) {
     sky_mpmc_queue_destroy(queue);
 }
 
-static sky_inline sky_u32_t
+static sky_inline sky_usize_t
 sky_mpsc_queue_size(sky_mpsc_queue_t *queue) {
     return sky_mpmc_queue_size(queue);
 }

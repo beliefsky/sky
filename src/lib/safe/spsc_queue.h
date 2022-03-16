@@ -15,34 +15,34 @@ typedef struct sky_spsc_queue_s sky_spsc_queue_t;
 
 struct sky_spsc_queue_s {
     sky_cache_line_t _pad0;
-    sky_u32_t buffer_mask;
-    sky_atomic_u32_t tail;
+    sky_usize_t buffer_mask;
+    sky_atomic_usize_t tail;
     sky_cache_line_t _pad1;
     /* Producer part */
-    sky_atomic_u32_t head;
+    sky_atomic_usize_t head;
 
     void **buffer;
 };
 
-sky_bool_t sky_spsc_queue_init(sky_spsc_queue_t *queue, sky_u32_t capacity);
+sky_bool_t sky_spsc_queue_init(sky_spsc_queue_t *queue, sky_usize_t capacity);
 
 void sky_spsc_queue_destroy(sky_spsc_queue_t *queue);
 
-sky_u32_t sky_spsc_queue_size(sky_spsc_queue_t *queue);
+sky_usize_t sky_spsc_queue_size(sky_spsc_queue_t *queue);
 
 sky_bool_t sky_spsc_queue_is_empty(sky_spsc_queue_t *queue);
 
-sky_u32_t sky_spsc_queue_get_many(sky_spsc_queue_t *queue, void **data_ptr, sky_u32_t n);
+sky_usize_t sky_spsc_queue_get_many(sky_spsc_queue_t *queue, void **data_ptr, sky_usize_t n);
 
 sky_bool_t sky_spsc_queue_push(sky_spsc_queue_t *queue, void *data);
 
 void *sky_spsc_queue_pop(sky_spsc_queue_t *queue);
 
-sky_u32_t sky_spsc_queue_push_many(sky_spsc_queue_t *queue, void **data_ptr, sky_u32_t n);
+sky_usize_t sky_spsc_queue_push_many(sky_spsc_queue_t *queue, void **data_ptr, sky_usize_t n);
 
 sky_bool_t sky_spsc_queue_pull(sky_spsc_queue_t *queue, void *data_ptr);
 
-sky_u32_t sky_spsc_queue_pull_many(sky_spsc_queue_t *queue, void **data_ptr, sky_u32_t n);
+sky_usize_t sky_spsc_queue_pull_many(sky_spsc_queue_t *queue, void **data_ptr, sky_usize_t n);
 
 
 #if defined(__cplusplus)
