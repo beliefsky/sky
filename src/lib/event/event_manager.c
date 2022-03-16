@@ -79,7 +79,7 @@ sky_event_manager_t *
 sky_event_manager_create() {
     const sky_event_manager_conf_t conf = {
             .msg_cap = 65536,
-            .msg_limit_n = 100,
+            .msg_limit_n = 4096,
             .msg_limit_sec = 1
     };
 
