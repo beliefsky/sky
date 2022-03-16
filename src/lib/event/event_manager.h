@@ -23,8 +23,8 @@ struct sky_event_msg_s {
 };
 
 typedef struct {
-    sky_u32_t msg_cap; // 线程消息分配数量，也是消息累计上线，默认65536条
-    sky_u32_t msg_limit_n; // 线程消息累计数，达到该限制马上推送，默认8192条
+    sky_usize_t msg_cap; // 线程消息分配数量，也是消息累计上线，默认65536条
+    sky_usize_t msg_limit_n; // 线程消息累计数，达到该限制马上推送，默认8192条
     sky_u32_t msg_limit_sec; // 线程消息最多延迟的时间，默认1秒
 } sky_event_manager_conf_t;
 
