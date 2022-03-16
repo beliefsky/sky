@@ -5,14 +5,18 @@
 #include "spsc_queue.h"
 #include "../core/memory.h"
 
-static sky_u32_t sky_spsc_queue_free_slot(sky_spsc_queue_t *queue);
+static sky_usize_t sky_spsc_queue_free_slot(sky_spsc_queue_t *queue);
 
 sky_bool_t
-sky_spsc_queue_init(sky_spsc_queue_t *queue, sky_u32_t capacity) {
+sky_spsc_queue_init(sky_spsc_queue_t *queue, sky_usize_t capacity) {
     if (capacity < 2) {
         capacity = 2;
     } else if (!sky_is_2_power(capacity)) {
-        capacity = SKY_U32(1) << (32 - sky_clz_u32(capacity));
+#if SKY_USIZE_MAX == SKY_U64_MAX
+        capacity = SKY_USIZE(1) << (64 - sky_clz_usize(capacity));
+#else
+        capacity = SKY_USIZE(1) << (32 - sky_clz_usize(capacity));
+#endif
     }
 
     queue->buffer = sky_calloc(capacity, sizeof(void *));
@@ -33,7 +37,7 @@ sky_spsc_queue_destroy(sky_spsc_queue_t *queue) {
     queue->buffer = null;
 }
 
-sky_u32_t
+sky_usize_t
 sky_spsc_queue_size(sky_spsc_queue_t *queue) {
     if (queue->buffer_mask <= sky_spsc_queue_free_slot(queue)) {
         return 0;
@@ -47,15 +51,15 @@ sky_spsc_queue_is_empty(sky_spsc_queue_t *queue) {
     return queue->buffer_mask <= sky_spsc_queue_free_slot(queue);
 }
 
-sky_inline sky_u32_t
-sky_spsc_queue_get_many(sky_spsc_queue_t *queue, void **data_ptr, sky_u32_t n) {
+sky_inline sky_usize_t
+sky_spsc_queue_get_many(sky_spsc_queue_t *queue, void **data_ptr, sky_usize_t n) {
     if (queue->buffer_mask <= sky_spsc_queue_free_slot(queue)) {
         n = 0;
     } else if (n > queue->buffer_mask - sky_spsc_queue_free_slot(queue)) {
         n = queue->buffer_mask - sky_spsc_queue_free_slot(queue);
     }
 
-    for (sky_u32_t i = 0; i < n; i++) {
+    for (sky_usize_t i = 0; i < n; i++) {
         *data_ptr++ = &(queue->buffer[queue->head & queue->buffer_mask]);
     }
 
@@ -76,16 +80,16 @@ sky_spsc_queue_pop(sky_spsc_queue_t *queue) {
 }
 
 
-sky_inline sky_u32_t
-sky_spsc_queue_push_many(sky_spsc_queue_t *queue, void **data_ptr, sky_u32_t n) {
+sky_inline sky_usize_t
+sky_spsc_queue_push_many(sky_spsc_queue_t *queue, void **data_ptr, sky_usize_t n) {
     //int free_slots = q->_tail < q->_head ? q->_head - q->_tail - 1 : q->_head + (q->capacity - q->_tail);
-    sky_u32_t free_slots = sky_spsc_queue_free_slot(queue);
+    sky_usize_t free_slots = sky_spsc_queue_free_slot(queue);
 
     if (n > free_slots) {
         n = free_slots;
     }
 
-    for (sky_u32_t i = 0; i < n; i++) {
+    for (sky_usize_t i = 0; i < n; i++) {
         queue->buffer[queue->tail] = *data_ptr++;
         sky_atomic_set_explicit(&queue->tail, (queue->tail + 1) & queue->buffer_mask, SKY_ATOMIC_RELEASE);
     }
@@ -98,15 +102,15 @@ sky_spsc_queue_pull(sky_spsc_queue_t *queue, void *data_ptr) {
     return sky_spsc_queue_pull_many(queue, data_ptr, 1) != 0;
 }
 
-sky_u32_t
-sky_spsc_queue_pull_many(sky_spsc_queue_t *queue, void **data_ptr, sky_u32_t n) {
+sky_usize_t
+sky_spsc_queue_pull_many(sky_spsc_queue_t *queue, void **data_ptr, sky_usize_t n) {
     if (queue->buffer_mask <= sky_spsc_queue_free_slot(queue)) {
         n = 0;
     } else if (n > queue->buffer_mask - sky_spsc_queue_free_slot(queue)) {
         n = queue->buffer_mask - sky_spsc_queue_free_slot(queue);
     }
 
-    for (sky_u32_t i = 0; i < n; i++) {
+    for (sky_usize_t i = 0; i < n; i++) {
         *data_ptr++ = queue->buffer[queue->head];
         sky_atomic_set_explicit(&queue->head, (queue->head + 1) & queue->buffer_mask, SKY_ATOMIC_RELEASE);
     }
@@ -114,7 +118,7 @@ sky_spsc_queue_pull_many(sky_spsc_queue_t *queue, void **data_ptr, sky_u32_t n) 
     return n;
 }
 
-static sky_inline sky_u32_t
+static sky_inline sky_usize_t
 sky_spsc_queue_free_slot(sky_spsc_queue_t *queue) {
     if (sky_atomic_get_explicit(&queue->tail, SKY_ATOMIC_ACQUIRE) <
         sky_atomic_get_explicit(&queue->head, SKY_ATOMIC_ACQUIRE)) {

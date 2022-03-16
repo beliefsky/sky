@@ -16,20 +16,20 @@ typedef struct sky_mpmc_queue_s sky_mpmc_queue_t;
 
 struct sky_mpmc_queue_s {
     sky_cache_line_t _pad0;
-    sky_u32_t buffer_mask;
+    sky_usize_t buffer_mask;
     sky_mpmc_queue_cell_t *buffer;
     sky_cache_line_t _pad1;
-    sky_atomic_u32_t tail;
+    sky_atomic_usize_t tail;
     sky_cache_line_t _pad2;
-    sky_atomic_u32_t head;
+    sky_atomic_usize_t head;
     sky_cache_line_t _pad3;
 };
 
-sky_bool_t sky_mpmc_queue_init(sky_mpmc_queue_t *queue, sky_u32_t capacity);
+sky_bool_t sky_mpmc_queue_init(sky_mpmc_queue_t *queue, sky_usize_t capacity);
 
 void sky_mpmc_queue_destroy(sky_mpmc_queue_t *queue);
 
-sky_u32_t sky_mpmc_queue_size(sky_mpmc_queue_t *queue);
+sky_usize_t sky_mpmc_queue_size(sky_mpmc_queue_t *queue);
 
 sky_bool_t sky_mpmc_queue_is_empty(sky_mpmc_queue_t *queue);
 

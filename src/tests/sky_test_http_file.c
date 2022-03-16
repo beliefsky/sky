@@ -16,7 +16,12 @@ main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
-    sky_event_manager_t *manager = sky_event_manager_create();
+    const sky_event_manager_conf_t conf = {
+            .msg_cap = 32,
+            .msg_limit_n = 8,
+            .msg_limit_sec = 1
+    };
+    sky_event_manager_t *manager = sky_event_manager_create_with_conf(&conf);
 
     create_server(manager);
 
