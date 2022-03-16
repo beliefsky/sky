@@ -32,7 +32,6 @@
 
 typedef struct {
     sky_event_t msg_event;
-    sky_timer_wheel_entry_t timer;
     sky_mpsc_queue_t queue;
     sky_event_loop_t *loop;
     pthread_t thread;
@@ -56,8 +55,6 @@ static sky_bool_t event_msg_run(event_thread_t *thread);
 
 static void event_msg_error(event_thread_t *thread);
 
-static void event_timer_cb(sky_timer_wheel_entry_t *entry);
-
 static void event_thread_msg_send(event_thread_t *thread);
 
 static void thread_bind_cpu(pthread_attr_t *attr, sky_u32_t n);
@@ -72,7 +69,7 @@ sky_event_manager_create() {
     const sky_event_manager_conf_t conf = {
             .msg_cap = 1 << 16,
             .msg_limit_n = 8192,
-            .msg_limit_sec = 1
+            .msg_limit_sec = 0
     };
 
     return sky_event_manager_create_with_conf(&conf);
@@ -99,7 +96,6 @@ sky_event_manager_create_with_conf(const sky_event_manager_conf_t *conf) {
 
     for (sky_u32_t i = 0; i < thread_n; ++i, ++thread) {
         sky_mpsc_queue_init(&thread->queue, msg_size);
-        sky_timer_entry_init(&thread->timer, event_timer_cb);
         thread->loop = sky_event_loop_create();
         thread->msg_n = 0;
         thread->thread_idx = i;
@@ -171,16 +167,10 @@ sky_event_manager_idx_msg(sky_event_manager_t *manager, sky_event_msg_t *msg, sk
         }
         return true;
     }
-    if (thread->msg_n == 0) {
-        ++thread->msg_n;
-        sky_event_timer_register(thread->loop, &thread->timer, manager->msd_limit_sec);
-    } else if (thread->msg_n < manager->msg_limit_n) {
-        ++thread->msg_n;
-    } else {
-        thread->msg_n = 0;
-        sky_timer_wheel_unlink(&thread->timer);
-        event_thread_msg_send(thread);
-    }
+
+    event_thread_msg_send(thread);
+
+
     return true;
 }
 
@@ -272,13 +262,6 @@ static void
 event_msg_error(event_thread_t *thread) {
     (void) thread;
     sky_log_info("event_msg conn error");
-}
-
-static void
-event_timer_cb(sky_timer_wheel_entry_t *entry) {
-    event_thread_t *thread = sky_type_convert(entry, event_thread_t, timer);
-    thread->msg_n = 0;
-    event_thread_msg_send(thread);
 }
 
 static sky_inline void
