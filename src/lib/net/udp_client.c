@@ -51,7 +51,7 @@ sky_udp_client_connection(sky_udp_client_t *client, const sky_inet_address_t *ad
     if (sky_unlikely(ev->fd != -1)) {
         sky_event_unregister(ev);
     }
-#ifdef HAVE_ACCEPT4
+#ifdef SKY_HAVE_ACCEPT4
     sky_i32_t fd = socket(address->sa_family, SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
     if (sky_unlikely(fd < 0)) {
         return false;

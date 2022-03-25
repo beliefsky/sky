@@ -40,7 +40,7 @@ typedef sky_usize_t sky_coro_context_t[10];
 #include <assert.h>
 typedef sky_usize_t sky_coro_context_t[7];
 
-#elif defined(HAVE_LIBUCONTEXT)
+#elif defined(SKY_HAVE_LIBUCONTEXT)
 
 #include <libucontext/libucontext.h>
 
@@ -158,7 +158,7 @@ ASM_ROUTINE(coro_swapcontext)
 "movl   0xc(%eax),%ebp\n\t"  /* EBP */
 "movl   0x1c(%eax),%ecx\n\t" /* ECX */
 "ret\n\t");
-#elif defined(HAVE_LIBUCONTEXT)
+#elif defined(SKY_HAVE_LIBUCONTEXT)
 #define coro_swapcontext(cur, oth) sky_swapcontext(cur, oth)
 #else
 #error Unsupported platform.
@@ -213,7 +213,7 @@ sky_core_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     coro->context[STACK_PTR /* ESP */] = (sky_usize_t) stack;
 }
 
-#elif defined(HAVE_LIBUCONTEXT)
+#elif defined(SKY_HAVE_LIBUCONTEXT)
 
 sky_inline void
 sky_core_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {

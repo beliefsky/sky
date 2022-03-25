@@ -91,7 +91,7 @@ static sky_i8_t
 tcp_connection(sky_tcp_listener_t *listener) {
     sky_i32_t fd = listener->ev.fd;
     if (fd == -1) {
-#ifdef HAVE_ACCEPT4
+#ifdef SKY_HAVE_ACCEPT4
         fd = socket(listener->address->sa_family, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
         if (sky_unlikely(fd < 0)) {
             return -1;

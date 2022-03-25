@@ -76,7 +76,7 @@ typedef time_t sky_time_t;
 typedef float sky_f32_t;
 typedef double sky_f64_t;
 
-#ifdef HAVE_BUILTIN_BSWAP
+#ifdef SKY_HAVE_BUILTIN_BSWAP
 #define sky_swap_u16(_ll) __builtin_bswap16(_ll)
 #define sky_swap_u32(_ll) __builtin_bswap32(_ll)
 #define sky_swap_u64(_ll) __builtin_bswap64(_ll)

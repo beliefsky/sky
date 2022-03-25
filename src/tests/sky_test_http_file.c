@@ -73,7 +73,7 @@ create_server(sky_event_manager_t *manager) {
                     .modules_n = (sky_u16_t) modules.nelts
             }
     };
-#ifdef HAVE_TLS
+#ifdef SKY_HAVE_TLS
     sky_tls_init();
     sky_tls_ctx_t *ssl = sky_tls_ctx_create(pool);
 #endif
@@ -81,7 +81,7 @@ create_server(sky_event_manager_t *manager) {
             .header_buf_size = 2048,
             .header_buf_n = 4,
             .modules_host = hosts,
-#ifdef HAVE_TLS
+#ifdef SKY_HAVE_TLS
             .modules_n = 1,
             .tls_ctx = ssl
 #else

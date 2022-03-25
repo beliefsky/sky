@@ -89,12 +89,12 @@ set_target_properties(sky_shared PROPERTIES
 
 include_directories(${CMAKE_BINARY_DIR})
 
-if (NOT HAVE_BUILTIN_FPCLASSIFY)
+if (NOT SKY_HAVE_BUILTIN_FPCLASSIFY)
     set(ADDITIONAL_LIBRARIES ${ADDITIONAL_LIBRARIES} PARENT_SCOPE)
 endif ()
 
 
-if (HAVE_LIBUCONTEXT)
+if (SKY_HAVE_LIBUCONTEXT)
     message(STATUS "Using libucontext/${CMAKE_SYSTEM_PROCESSOR} for coroutine context switching")
 
     include(ExternalProject)

@@ -8,7 +8,7 @@
 #include "types.h"
 #include <string.h>
 
-#ifdef HAVE_MALLOC
+#ifdef SKY_HAVE_MALLOC
 
 #include <malloc.h>
 
