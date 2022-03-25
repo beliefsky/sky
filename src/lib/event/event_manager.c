@@ -19,7 +19,7 @@
 #include <pthread_np.h>
 #endif
 
-#ifdef HAVE_EVENT_FD
+#ifdef SKY_HAVE_EVENT_FD
 
 #include <sys/eventfd.h>
 
@@ -39,7 +39,7 @@ struct event_thread_s {
     sky_event_loop_t *loop;
     event_msg_timer_t *timers;
     pthread_t thread;
-#ifndef HAVE_EVENT_FD
+#ifndef SKY_HAVE_EVENT_FD
     sky_i32_t write_fd;
 #endif
     sky_u32_t thread_idx;
@@ -117,10 +117,10 @@ sky_event_manager_create_with_conf(const sky_event_manager_conf_t *conf) {
         sky_mpsc_queue_init(&thread->queue, msg_size);
         thread->loop = sky_event_loop_create();
         thread->thread_idx = i;
-#if defined(HAVE_EVENT_FD)
+#if defined(SKY_HAVE_EVENT_FD)
         const sky_i32_t fd = eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
         sky_event_init(thread->loop, &thread->msg_event, fd, event_msg_run, event_msg_error);
-#elif defined(HAVE_ACCEPT4)
+#elif defined(SKY_HAVE_ACCEPT4)
         sky_i32_t fd[2];
             pipe2(fd, O_NONBLOCK | O_CLOEXEC);
             sky_event_init(thread->loop, &thread->msg_event, fd[0], event_msg_run, event_msg_error);
@@ -268,7 +268,7 @@ event_msg_run(event_thread_t *thread) {
     while (null != (msg = sky_mpsc_queue_pop(&thread->queue))) {
         msg->handle(msg);
     }
-#ifdef HAVE_EVENT_FD
+#ifdef SKY_HAVE_EVENT_FD
     sky_u64_t tmp;
     for (;;) {
         if (eventfd_read(thread->msg_event.fd, &tmp) == -1) {
@@ -306,7 +306,7 @@ event_timer_cb(sky_timer_wheel_entry_t *entry) {
 
 static sky_inline void
 event_thread_msg_send(event_thread_t *thread) {
-#ifdef HAVE_EVENT_FD
+#ifdef SKY_HAVE_EVENT_FD
     eventfd_write(thread->msg_event.fd, SKY_U64(1));
 #else
     sky_u8_t tmp = SKY_U8(1);

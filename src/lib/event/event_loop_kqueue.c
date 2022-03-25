@@ -3,7 +3,7 @@
 //
 #include "event_loop.h"
 
-#if defined(HAVE_KQUEUE) && !defined(HAVE_EPOLL)
+#if defined(SKY_HAVE_KQUEUE) && !defined(SKY_HAVE_EPOLL)
 
 #include <sys/resource.h>
 #include <unistd.h>

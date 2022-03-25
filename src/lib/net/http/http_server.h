@@ -32,7 +32,7 @@ typedef struct {
 
 typedef struct {
     sky_http_module_host_t *modules_host;
-#ifdef HAVE_TLS
+#ifdef SKY_HAVE_TLS
     sky_tls_ctx_t *tls_ctx;
 #endif
     sky_u16_t modules_n;
@@ -42,7 +42,7 @@ typedef struct {
 
 struct sky_http_server_s {
     sky_pool_t *pool;
-#ifdef HAVE_TLS
+#ifdef SKY_HAVE_TLS
     sky_tls_ctx_t *tls_ctx;
 #endif
     sky_str_t *status_map;
@@ -73,7 +73,7 @@ struct sky_http_connection_s {
     sky_event_t ev;
     sky_coro_t *coro;
     sky_http_server_t *server;
-#ifdef HAVE_TLS
+#ifdef SKY_HAVE_TLS
     sky_tls_t tls;
 #endif
 };

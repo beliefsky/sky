@@ -7,7 +7,7 @@
 
 #include "../core/types.h"
 
-#ifdef HAVE_ATOMIC
+#ifdef SKY_HAVE_ATOMIC
 
 #include <stdatomic.h>
 
@@ -17,7 +17,7 @@
 extern "C" {
 #endif
 
-#ifdef HAVE_ATOMIC
+#ifdef SKY_HAVE_ATOMIC
 #define sky_atomic _Atomic
 #else
 #define sky_atomic(_type) volatile _type
@@ -71,7 +71,7 @@ typedef sky_atomic (sky_u64_t) sky_atomic_u64_t;
 typedef sky_atomic (sky_isize_t) sky_atomic_isize_t;
 typedef sky_atomic (sky_usize_t) sky_atomic_usize_t;
 
-#ifdef HAVE_ATOMIC
+#ifdef SKY_HAVE_ATOMIC
 #define SKY_ATOMIC_VAR_INIT(_val) ATOMIC_VAR_INIT(_val)
 #define sky_atomic_init(_ptr, _val) atomic_init(_ptr, _val)
 
