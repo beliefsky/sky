@@ -38,12 +38,11 @@ sky_str_buf_destroy(sky_str_buf_t *buf) {
     }
 }
 
-sky_uchar_t *
+void
 sky_str_buf_need_size(sky_str_buf_t *buf, sky_usize_t size) {
     if (sky_unlikely((buf->post + size) > buf->end)) {
         str_buf_append(buf, size);
     }
-    return buf->post;
 }
 
 sky_uchar_t *
