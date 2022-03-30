@@ -27,7 +27,7 @@ void sky_str_buf_init2(sky_str_buf_t *buf, sky_pool_t *pool, sky_usize_t n);
 
 void sky_str_buf_destroy(sky_str_buf_t *buf);
 
-sky_uchar_t *sky_str_buf_need_size(sky_str_buf_t *buf, sky_usize_t size);
+void sky_str_buf_need_size(sky_str_buf_t *buf, sky_usize_t size);
 
 sky_uchar_t *sky_str_buf_put(sky_str_buf_t *buf, sky_usize_t size);
 
@@ -54,7 +54,7 @@ void sky_str_buf_append_uint64(sky_str_buf_t *buf, sky_u64_t num);
 void sky_str_buf_build(sky_str_buf_t *buf, sky_str_t *out);
 
 static sky_inline sky_usize_t
-sky_str_buf_size(sky_str_buf_t *buf) {
+sky_str_buf_size(const sky_str_buf_t *buf) {
     return (sky_usize_t) (buf->post - buf->start);
 }
 
