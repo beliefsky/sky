@@ -30,6 +30,8 @@ static sky_bool_t str_len_to_uint64_nocheck(const sky_uchar_t *in, sky_usize_t i
 
 static sky_u32_t u32_power_ten(sky_usize_t n);
 
+static sky_f32_t f32_power_ten(sky_isize_t n);
+
 static sky_f64_t f64_power_ten(sky_isize_t n);
 
 sky_bool_t
@@ -312,8 +314,6 @@ sky_str_to_f32(const sky_str_t *in, sky_f32_t *out) {
 
 sky_bool_t
 sky_str_len_to_f32(const sky_uchar_t *in, sky_usize_t in_len, sky_f32_t *out) {
-    static const sky_f32_t power_of_ten[] = {1e0f, 1e1f, 1e2f, 1e3f, 1e4f, 1e5f, 1e6f, 1e7f, 1e8f, 1e9f, 1e10f};
-
     if (sky_unlikely(!in_len)) {
         return false;
     }
@@ -323,35 +323,111 @@ sky_str_len_to_f32(const sky_uchar_t *in, sky_usize_t in_len, sky_f32_t *out) {
     if (sky_unlikely(!in_len)) {
         return false;
     }
-    const sky_uchar_t *p = in;
-    for (; in_len != 0; --in_len) {
-        if (*p < '0' || *p > '9') {
+
+    sky_u32_t i = 0;
+    sky_u64_t mask;
+    for (;;) {
+        if (in_len < 8) {
+            mask = fast_str_parse_mask_small(in, in_len);
+            if (!fast_str_check_number(mask)) {
+                break;
+            }
+            i = i * u32_power_ten(in_len) + fast_str_parse_uint32(mask);
+
+            *out = negative ? -((sky_f32_t) i) : (sky_f32_t) i;
+            return true;
+        }
+        mask = fast_str_parse_mask8(in);
+        if (!fast_str_check_number(mask)) {
             break;
         }
-        ++p;
+        i = i * u32_power_ten(8) + fast_str_parse_uint32(mask);
+        in_len -= 8;
+        in += 8;
+        if (!in_len) {
+            *out = negative ? -((sky_f32_t) i) : (sky_f32_t) i;
+            return true;
+        }
     }
-    sky_u32_t i;
-    if (sky_unlikely(!str_len_to_uint32_nocheck(in, (sky_usize_t) (p - in), &i))) {
-        return false;
+    if (*in >= '0' && *in <= '9') {
+        const sky_uchar_t *p = in;
+        do {
+            ++p;
+        } while (*p >= '0' && *p <= '9');
+
+        const sky_usize_t n = (sky_usize_t) (p - in);
+        mask = fast_str_parse_mask_small(in, n);
+        i = i * u32_power_ten(n) + fast_str_parse_uint32(mask);
+
+        in = p;
+        in_len -= n;
     }
 
-    if (sky_unlikely(!in_len)) {
-        *out = negative ? -((sky_f32_t) i) : (sky_f32_t) i;
-        return true;
+    sky_isize_t power_ten = 0;
+    if (*in == '.') {
+        ++in;
+        --in_len;
+        if (sky_unlikely(!in_len || *in < '0' || *in > '9')) {
+            return false;
+        }
+        for (;;) {
+            if (in_len < 8) {
+                mask = fast_str_parse_mask_small(in, in_len);
+                if (!fast_str_check_number(mask)) {
+                    break;
+                }
+                i = i * u32_power_ten(in_len) + fast_str_parse_uint32(mask);
+                power_ten -= (sky_isize_t) in_len;
+
+                *out = negative ? -((sky_f32_t) i) : (sky_f32_t) i;
+                *out *= f32_power_ten(power_ten);
+                return true;
+            }
+            mask = fast_str_parse_mask8(in);
+            if (!fast_str_check_number(mask)) {
+                break;
+            }
+            i = i * u32_power_ten(8) + fast_str_parse_uint32(mask);
+            in_len -= 8;
+            in += 8;
+            power_ten -= 8;
+            if (!in_len) {
+                *out = negative ? -((sky_f32_t) i) : (sky_f32_t) i;
+                *out *= f32_power_ten(power_ten);
+                return true;
+            }
+        }
+
+        if (*in >= '0' && *in <= '9') {
+            const sky_uchar_t *p = in;
+            do {
+                ++p;
+            } while (*p >= '0' && *p <= '9');
+
+            const sky_usize_t n = (sky_usize_t) (p - in);
+            mask = fast_str_parse_mask_small(in, n);
+            i = i * u32_power_ten(n) + fast_str_parse_uint32(mask);
+
+            in = p;
+            in_len -= n;
+            power_ten -= (sky_isize_t) n;
+        }
     }
-    if (sky_unlikely(*p != '.' || in_len < 2)) {
+    if (*in != 'e' && *in != 'E') {
         return false;
     }
-    ++p;
+    ++in;
     --in_len;
 
-    sky_u32_t j;
-    if (sky_unlikely(!sky_str_len_to_u32(p, in_len, &j))) {
+    sky_i16_t i16;
+    if (sky_unlikely(!sky_str_len_to_i16(in, in_len, &i16))) {
         return false;
     }
-    *out = (sky_f32_t) i;
-    *out += (sky_f32_t) j / power_of_ten[in_len];
-    *out = negative ? -(*out) : *out;
+    power_ten += i16;
+
+    *out = negative ? -((sky_f32_t) i) : (sky_f32_t) i;
+    *out *= f32_power_ten(power_ten);
+
 
     return true;
 }
@@ -426,7 +502,7 @@ sky_str_len_to_f64(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *out) {
                     break;
                 }
                 i = i * u32_power_ten(in_len) + fast_str_parse_uint32(mask);
-                power_ten -= (sky_isize_t)in_len;
+                power_ten -= (sky_isize_t) in_len;
 
                 *out = negative ? -((sky_f64_t) i) : (sky_f64_t) i;
                 *out *= f64_power_ten(power_ten);
@@ -459,7 +535,7 @@ sky_str_len_to_f64(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *out) {
 
             in = p;
             in_len -= n;
-            power_ten -= (sky_isize_t)n;
+            power_ten -= (sky_isize_t) n;
         }
     }
     if (*in != 'e' && *in != 'E') {
@@ -899,6 +975,28 @@ u32_power_ten(sky_usize_t n) {
     return table[n];
 }
 
+static sky_inline sky_f32_t
+f32_power_ten(sky_isize_t n) {
+    if (n >= 0) {
+        static const sky_f32_t power_of_ten[] = {
+                1e0f, 1e1f, 1e2f, 1e3f, 1e4f, 1e5f,
+                1e6f, 1e7f, 1e8f, 1e9f, 1e10f
+        };
+
+
+        return power_of_ten[sky_min(n, SKY_ISIZE(10))];
+    } else {
+        static const sky_f32_t power_of_ten[] = {
+                1e0f, 1e-1f, 1e-2f, 1e-3f, 1e-4f, 1e-5f,
+                1e-6f, 1e-7f, 1e-8f, 1e-9f, 1e-10f
+        };
+
+        n = (~n + 1);
+
+        return power_of_ten[sky_min(n, SKY_ISIZE(10))];
+    }
+}
+
 static sky_inline sky_f64_t
 f64_power_ten(sky_isize_t n) {
     if (n >= 0) {
@@ -919,3 +1017,4 @@ f64_power_ten(sky_isize_t n) {
         return power_of_ten[sky_min(n, SKY_ISIZE(22))];
     }
 }
+
