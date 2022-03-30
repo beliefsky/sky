@@ -27,7 +27,9 @@ void sky_str_buf_init2(sky_str_buf_t *buf, sky_pool_t *pool, sky_usize_t n);
 
 void sky_str_buf_destroy(sky_str_buf_t *buf);
 
-void sky_str_buf_need_size(sky_str_buf_t *buf, sky_usize_t size);
+sky_uchar_t *sky_str_buf_need_size(sky_str_buf_t *buf, sky_usize_t size);
+
+sky_uchar_t *sky_str_buf_put(sky_str_buf_t *buf, sky_usize_t size);
 
 void sky_str_buf_append_str(sky_str_buf_t *buf, const sky_str_t *str);
 
