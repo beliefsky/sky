@@ -907,7 +907,7 @@ f64_power_ten(sky_isize_t n) {
                 1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19, 1e20, 1e21, 1e22
         };
 
-        return power_of_ten[n];
+        return power_of_ten[sky_min(n, SKY_ISIZE(22))];
     } else {
         static const sky_f64_t power_of_ten[] = {
                 1e0, 1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6, 1e-7, 1e-8, 1e-9, 1e-10, 1e-11,
@@ -916,6 +916,6 @@ f64_power_ten(sky_isize_t n) {
 
         n = (~n + 1);
 
-        return power_of_ten[n];
+        return power_of_ten[sky_min(n, SKY_ISIZE(22))];
     }
 }
