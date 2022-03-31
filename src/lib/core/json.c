@@ -90,7 +90,7 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
 
     for (;;) {
         switch (current->type) {
-            case json_object:
+            case json_object: {
                 if (current->object == current->object->prev) {
                     sky_str_buf_append_two_uchar(&buf, '{', '}');
                     break;
@@ -105,7 +105,8 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
 
                 sky_str_buf_append_two_uchar(&buf, '"', ':');
                 continue;
-            case json_array:
+            }
+            case json_array: {
                 if (current->array == current->array->prev) {
                     sky_str_buf_append_two_uchar(&buf, '[', ']');
                     break;
@@ -114,27 +115,33 @@ sky_str_t *sky_json_tostring(sky_json_t *json) {
                 current = current->current;
                 sky_str_buf_append_uchar(&buf, '[');
                 continue;
-            case json_integer:
+            }
+            case json_integer: {
                 sky_str_buf_append_int64(&buf, current->integer);
                 break;
-            case json_float:
+            }
+            case json_float: {
                 break;
-            case json_string:
+            }
+            case json_string: {
                 sky_str_buf_append_uchar(&buf, '"');
                 json_coding_str(&buf, current->string.data, current->string.len);
                 sky_str_buf_append_uchar(&buf, '"');
                 break;
+            }
             case json_boolean: {
                 const sky_bool_t index = current->boolean != false;
                 sky_str_buf_append_str(&buf, &BOOLEAN_TABLE[index]);
             }
                 break;
-            case json_null:
+            case json_null: {
                 sky_str_buf_append_str_len(&buf, sky_str_line("null"));
                 break;
-            default:
+            }
+            default: {
                 sky_str_buf_destroy(&buf);
                 return null;
+            }
         }
         tmp = current->parent;
         if (tmp->type == json_object) {
@@ -494,7 +501,7 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
     for (;;) {
         parse_whitespace(&data);
         switch (*data) {
-            case '{':
+            case '{': {
                 if (sky_unlikely(!(next & NEXT_OBJECT_START))) {
                     return null;
                 }
@@ -506,7 +513,8 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                 next = NEXT_OBJECT_END | NEXT_KEY;
 
                 break;
-            case '[':
+            }
+            case '[': {
                 if (sky_unlikely(!(next & NEXT_ARRAY_START))) {
                     return null;
                 }
@@ -518,7 +526,8 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                 next = NEXT_ARRAY_END | NEXT_ARRAY_VALUE | NEXT_OBJECT_START | NEXT_ARRAY_START;
 
                 break;
-            case '}':
+            }
+            case '}': {
                 if (sky_unlikely(!(next & NEXT_OBJECT_END))) {
                     return null;
                 }
@@ -530,7 +539,8 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                                                                        : (NEXT_NODE | NEXT_ARRAY_END))
                                        : NEXT_NONE;
                 break;
-            case ']':
+            }
+            case ']': {
                 if (sky_unlikely(!(next & NEXT_ARRAY_END))) {
                     return null;
                 }
@@ -541,7 +551,8 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                                                                        : (NEXT_NODE | NEXT_ARRAY_END))
                                        : NEXT_NONE;
                 break;
-            case ':':
+            }
+            case ':': {
                 if (sky_unlikely(!(next & NEXT_KEY_VALUE))) {
                     return null;
                 }
@@ -549,7 +560,8 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                 ++data;
                 next = NEXT_OBJECT_VALUE | NEXT_OBJECT_START | NEXT_ARRAY_START;
                 break;
-            case ',':
+            }
+            case ',': {
                 if (sky_unlikely(!(next & NEXT_NODE))) {
                     return null;
                 }
@@ -559,7 +571,8 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                        (NEXT_ARRAY_VALUE | NEXT_OBJECT_START | NEXT_ARRAY_START);
 
                 break;
-            case '"':
+            }
+            case '"': {
                 if (sky_unlikely(!(next & (NEXT_KEY | NEXT_ARRAY_VALUE | NEXT_OBJECT_VALUE)))) {
                     return null;
                 }
@@ -590,6 +603,7 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                     next = NEXT_NODE | NEXT_ARRAY_END;
                 }
                 break;
+            }
             case '0':
             case '1':
             case '2':
@@ -600,7 +614,7 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
             case '7':
             case '8':
             case '9':
-            case '-':
+            case '-': {
                 if (sky_unlikely(!(next & (NEXT_OBJECT_VALUE | NEXT_ARRAY_VALUE)))) {
                     return null;
                 }
@@ -617,7 +631,8 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                 }
 
                 break;
-            case 't':
+            }
+            case 't': {
                 if (sky_unlikely(!(next & (NEXT_OBJECT_VALUE | NEXT_ARRAY_VALUE))
                                  || (end - data) < 4
                                  || !sky_str4_cmp(data, 't', 'r', 'u', 'e'))) {
@@ -636,7 +651,8 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                 tmp->boolean = true;
 
                 break;
-            case 'f':
+            }
+            case 'f': {
                 if (sky_unlikely(!(next & (NEXT_OBJECT_VALUE | NEXT_ARRAY_VALUE)))) {
                     return null;
                 }
@@ -657,7 +673,8 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                 tmp->type = json_boolean;
                 tmp->boolean = false;
                 break;
-            case 'n':
+            }
+            case 'n': {
                 if (sky_unlikely(!(next & (NEXT_OBJECT_VALUE | NEXT_ARRAY_VALUE))
                                  || (end - data) < 4
                                  || !sky_str4_cmp(data, 'n', 'u', 'l', 'l'))) {
@@ -674,11 +691,13 @@ parse_loop(sky_pool_t *pool, sky_uchar_t *data, sky_uchar_t *end) {
                 }
                 tmp->type = json_null;
                 break;
-            case '\0':
+            }
+            case '\0': {
                 if (sky_unlikely(next != NEXT_NONE)) {
                     return null;
                 }
                 return root;
+            }
             default:
                 return null;
         }
