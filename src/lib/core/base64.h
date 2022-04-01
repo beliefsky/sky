@@ -19,8 +19,8 @@ extern "C" {
 */
 
 //base64 编码／解码函数和宏
-#define sky_base64_encoded_length(len)  (((len + 2) / 3) << 2)
-#define sky_base64_decoded_length(len)  (((len + 3) >> 2) * 3)
+#define sky_base64_encoded_length(_len)  ((((_len) + 2) / 3) << 2)
+#define sky_base64_decoded_length(_len)  ((((_len) + 3) >> 2) * 3)
 
 //标准base64的编解码
 sky_usize_t sky_base64_encode(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t len);

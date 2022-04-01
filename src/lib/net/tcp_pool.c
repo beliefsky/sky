@@ -638,7 +638,7 @@ tcp_connection(sky_tcp_conn_t *conn) {
     conn_pool = conn->client->conn_pool;
     ev = &conn->client->ev;
 
-#ifdef HAVE_ACCEPT4
+#ifdef SKY_HAVE_ACCEPT4
     fd = socket(conn_pool->address->sa_family, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
     if (sky_unlikely(fd < 0)) {
         return false;

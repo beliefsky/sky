@@ -38,7 +38,7 @@ sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf)
     sky_i32_t backlog;
     listener_t *l;
 
-#ifdef HAVE_ACCEPT4
+#ifdef SKY_HAVE_ACCEPT4
     fd = socket(conf->address->sa_family, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
 
     if (sky_unlikely(fd == -1)) {
@@ -107,7 +107,7 @@ tcp_listener_accept(sky_event_t *ev) {
     l = (listener_t *) ev;
     listener = ev->fd;
     loop = ev->loop;
-#ifdef HAVE_ACCEPT4
+#ifdef SKY_HAVE_ACCEPT4
     while ((fd = accept4(listener, null, null, SOCK_NONBLOCK | SOCK_CLOEXEC)) >= 0) {
 #else
         while ((fd = accept(listener, null, null)) >= 0) {

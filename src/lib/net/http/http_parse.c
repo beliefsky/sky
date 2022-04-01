@@ -967,7 +967,7 @@ header_handle_run(sky_http_request_t *req, sky_http_header_t *h) {
             break;
         }
         case 10: {
-            if (sky_str_len_equals_unsafe(p, sky_str_line("connection"))) { // Connection
+            if (sky_str_len_equals_uncheck(p, sky_str_line("connection"))) { // Connection
                 req->headers_in.connection = &h->val;
 
                 if (sky_unlikely(h->val.len == 5)) {
@@ -985,19 +985,19 @@ header_handle_run(sky_http_request_t *req, sky_http_header_t *h) {
             break;
         }
         case 12: {
-            if (sky_str_len_equals_unsafe(p, sky_str_line("content-type"))) { // Content-Type
+            if (sky_str_len_equals_uncheck(p, sky_str_line("content-type"))) { // Content-Type
                 req->headers_in.content_type = &h->val;
             }
             break;
         }
         case 13: {
-            if (sky_str_len_equals_unsafe(p, sky_str_line("authorization"))) { // Authorization
+            if (sky_str_len_equals_uncheck(p, sky_str_line("authorization"))) { // Authorization
                 req->headers_in.authorization = &h->val;
             }
             break;
         }
         case 14: {
-            if (sky_str_len_equals_unsafe(p, sky_str_line("content-length"))) { // Content-Length
+            if (sky_str_len_equals_uncheck(p, sky_str_line("content-length"))) { // Content-Length
                 if (sky_likely(!req->headers_in.content_length)) {
                     req->headers_in.content_length = &h->val;
 
@@ -1007,7 +1007,7 @@ header_handle_run(sky_http_request_t *req, sky_http_header_t *h) {
             break;
         }
         case 17: {
-            if (sky_str_len_equals_unsafe(p, sky_str_line("if-modified-since"))) { // If-Modified-Since
+            if (sky_str_len_equals_uncheck(p, sky_str_line("if-modified-since"))) { // If-Modified-Since
                 req->headers_in.if_modified_since = &h->val;
             }
         }
@@ -1024,13 +1024,13 @@ multipart_header_handle_run(sky_http_multipart_t *r, sky_http_header_t *h) {
 
     switch (h->key.len) {
         case 12: {
-            if (sky_str_len_equals_unsafe(p, sky_str_line("content-type"))) { // Content-Type
+            if (sky_str_len_equals_uncheck(p, sky_str_line("content-type"))) { // Content-Type
                 r->content_type = &h->val;
             }
             break;
         }
         case 19: {
-            if (sky_str_len_equals_unsafe(p, sky_str_line("content-disposition"))) { // If-Modified-Since
+            if (sky_str_len_equals_uncheck(p, sky_str_line("content-disposition"))) { // If-Modified-Since
                 r->content_disposition = &h->val;
             }
         }

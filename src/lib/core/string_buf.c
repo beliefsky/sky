@@ -45,6 +45,17 @@ sky_str_buf_need_size(sky_str_buf_t *buf, sky_usize_t size) {
     }
 }
 
+sky_uchar_t *
+sky_str_buf_put(sky_str_buf_t *buf, sky_usize_t size) {
+    if (sky_unlikely((buf->post + size) > buf->end)) {
+        str_buf_append(buf, size);
+    }
+    sky_uchar_t *old = buf->post;
+    buf->post += size;
+
+    return old;
+}
+
 void
 sky_str_buf_append_str(sky_str_buf_t *buf, const sky_str_t *str) {
     if (sky_unlikely(!str || !str->len)) {

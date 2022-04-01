@@ -215,7 +215,7 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
             func = mem_equals10;
             break;
         default:
-            func = sky_str_len_equals_unsafe;
+            func = sky_str_len_equals_uncheck;
             break;
     }
 
@@ -293,7 +293,7 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
             func = mem_equals10;
             break;
         default:
-            func = sky_str_len_equals_unsafe;
+            func = sky_str_len_equals_uncheck;
             break;
     }
 
@@ -372,7 +372,7 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
             func = mem_equals10;
             break;
         default:
-            func = sky_str_len_equals_unsafe;
+            func = sky_str_len_equals_uncheck;
             break;
     }
 
@@ -455,7 +455,7 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
             func = mem_equals10;
             break;
         default:
-            func = sky_str_len_equals_unsafe;
+            func = sky_str_len_equals_uncheck;
             break;
     }
 

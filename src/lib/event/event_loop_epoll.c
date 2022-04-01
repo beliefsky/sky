@@ -4,7 +4,7 @@
 
 #include "event_loop.h"
 
-#ifdef HAVE_EPOLL
+#ifdef SKY_HAVE_EPOLL
 
 #include <sys/resource.h>
 #include <unistd.h>

@@ -7,13 +7,13 @@
 
 #include "../../core/palloc.h"
 
-#if defined(HAVE_OPENSSL)
+#if defined(SKY_HAVE_OPENSSL)
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/conf.h>
 
-#define HAVE_TLS
+#define SKY_HAVE_TLS
 #define SKY_TLS_WANT_READ SSL_ERROR_WANT_READ
 #define SKY_TLS_WANT_WRITE SSL_ERROR_WANT_WRITE
 #define sky_tls_get_error(_tls, _ret) SSL_get_error((_tls)->ssl, _ret)
@@ -24,7 +24,7 @@
 extern "C" {
 #endif
 
-#if defined(HAVE_OPENSSL)
+#if defined(SKY_HAVE_OPENSSL)
 
 typedef struct sky_tls_ctx_s sky_tls_ctx_t;
 typedef struct sky_tls_s sky_tls_t;
