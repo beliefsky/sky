@@ -82,7 +82,6 @@ typedef double sky_f64_t;
 #define sky_swap_u64(_ll) __builtin_bswap64(_ll)
 
 #define sky_clz_u32(_val) __builtin_clz(_val)
-#define sky_clz_usize(_val) __builtin_clzl(_val)
 #define sky_clz_u64(_val) __builtin_clzll(_val)
 
 #else
@@ -102,35 +101,12 @@ typedef double sky_f64_t;
     ((_ll) & 0x0000FF0000000000) >> 24 |    \
     ((_ll) & 0x00FF000000000000) >> 40 |    \
     ((_ll) & 0xFF00000000000000) >> 56)
+#endif
 
-
-#define sky_clz_u32(_val) \
-    ({                    \
-        sky_u32_t _u32_tmp = (_val) - 1; \
-        _u32_tmp |= _u32_tmp >> 1;       \
-        _u32_tmp |= _u32_tmp >> 2;       \
-        _u32_tmp |= _u32_tmp >> 4;       \
-        _u32_tmp |= _u32_tmp >> 8;       \
-        _u32_tmp |= _u32_tmp >> 16;      \
-        _u32_tmp          \
-    })
 #if SKY_USIZE_MAX == SKSKY_U64_MAX
 #define sky_clz_usize(_val) sky_clz_u64(_val)
 #else
 #define sky_clz_usize(_val) sky_clz_u32(_val)
-#endif
-
-#define sky_clz_u64(_val) \
-    ({                    \
-        sky_u64_t _u64_tmp = (_val) - 1; \
-        _u64_tmp |= _u64_tmp >> 1;       \
-        _u64_tmp |= _u64_tmp >> 2;       \
-        _u64_tmp |= _u64_tmp >> 4;       \
-        _u64_tmp |= _u64_tmp >> 8;       \
-        _u64_tmp |= _u64_tmp >> 16;      \
-        _u64_tmp |= _u64_tmp >> 32;      \
-        _u32_tmp          \
-    })
 #endif
 
 #define sky_abs(_v)         (((_v) < 0) ? -(_v) : v)
@@ -138,7 +114,7 @@ typedef double sky_f64_t;
 #define sky_max(_v1, _v2)   ((_v1) ^ (((_v1) ^ (_v2)) & -((_v1) < (_v2))))
 #define sky_min(_v1, _v2)   ((_v2) ^ (((_v1) ^ (_v2)) & -((_v1) < (_v2))))
 #define sky_swap(_a, _b)    (((_a) ^ (_b)) && ((_b) ^= (_a) ^= (_b), (_a) ^= (_b)))
-#define sky_two_avg(_a, _b) (_a & _b) + ((_a ^ _b) >> 1)
+#define sky_two_avg(_a, _b) ((_a) & (_b)) + (((_a) ^ (_b)) >> 1)
 
 /**
  * 是否是2的冪数
