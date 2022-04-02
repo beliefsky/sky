@@ -27,10 +27,6 @@ static sky_u64_t num_3_4_str_pre(sky_u64_t x);
 
 static sky_u64_t num_5_8_str_pre(sky_u64_t x);
 
-static sky_bool_t str_len_to_uint32_nocheck(const sky_uchar_t *in, sky_usize_t in_len, sky_u32_t *out);
-
-static sky_bool_t str_len_to_uint64_nocheck(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out);
-
 static sky_u32_t u32_power_ten(sky_usize_t n);
 
 static sky_bool_t compute_float_64(sky_u64_t i, sky_isize_t power, sky_bool_t negative, sky_f64_t *out);
@@ -786,61 +782,6 @@ num_5_8_str_pre(sky_u64_t x) {
 
     return ll;
 }
-
-static sky_inline sky_bool_t
-str_len_to_uint32_nocheck(const sky_uchar_t *in, sky_usize_t in_len, sky_u32_t *out) {
-    sky_u64_t mask;
-
-    if (sky_unlikely(!in_len || in_len > 10)) {
-        return false;
-    }
-
-    mask = fast_str_parse_mask(in, in_len);
-    if (in_len < 9) {
-        *out = fast_str_parse_uint32(mask);
-        return true;
-    }
-    *out = fast_str_parse_uint32(mask);
-    in_len -= 8;
-
-    mask = fast_str_parse_mask(in + 8, in_len);
-
-    *out = in_len == 1 ? ((*out) * 10 + (in[8] - '0'))
-                       : ((*out) * 100 + fast_str_parse_uint32(mask));
-
-    return true;
-}
-
-static sky_inline sky_bool_t
-str_len_to_uint64_nocheck(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out) {
-    sky_u64_t mask;
-
-    if (sky_unlikely(!in_len || in_len > 20)) {
-        return false;
-    }
-    mask = fast_str_parse_mask(in, in_len);
-    if (in_len < 9) {
-        *out = fast_str_parse_uint32(mask);
-        return true;
-    }
-    *out = fast_str_parse_uint32(mask);
-    in_len -= 8;
-
-    mask = fast_str_parse_mask(in + 8, in_len);
-    if (in_len < 9) {
-        *out = (*out) * u32_power_ten(in_len) + fast_str_parse_uint32(mask);
-
-        return true;
-    }
-    *out = (*out) * u32_power_ten(8) + fast_str_parse_uint32(mask);
-    in_len -= 8;
-
-    mask = fast_str_parse_mask(in + 16, in_len);
-    *out = (*out) * u32_power_ten(in_len) + fast_str_parse_uint32(mask);
-
-    return true;
-}
-
 
 static sky_inline sky_u32_t
 u32_power_ten(sky_usize_t n) {
