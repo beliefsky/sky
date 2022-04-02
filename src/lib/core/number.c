@@ -6,7 +6,7 @@
 #include "memory.h"
 
 #define F64_SMALLEST_POWER (-342)
-#define F64_LARGEST_POWER = 308
+#define F64_LARGEST_POWER  308
 
 #define fast_str_check_number(_mask)                                    \
     ((((_mask) & 0xF0F0F0F0F0F0F0F0) |                                  \
@@ -1472,9 +1472,14 @@ compute_float_64(sky_u64_t i, sky_isize_t power, sky_bool_t negative, sky_f64_t 
         *out = 0.0;
         return true;
     }
+    if (sky_unlikely(power < F64_SMALLEST_POWER || power > F64_LARGEST_POWER)) {
+        return false;
+    }
+
     sky_i64_t exponent = (((152170 + 65536) * power) >> 16) + 1024 + 63;
     sky_i32_t lz = sky_clz_u64(i);
     i <<= lz;
+
 
     const sky_u32_t index = (sky_u32_t) (power - F64_SMALLEST_POWER) << 1;
     const __uint128_t r = (__uint128_t) i * power_of_five_128[index];
