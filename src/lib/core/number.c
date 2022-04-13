@@ -547,16 +547,9 @@ sky_f64_to_str(sky_f64_t data, sky_uchar_t *src) {
 
 
     if (sky_unlikely(exp_raw == (1 << 11) -1)) {
-        if (sig_raw == 0) {
-            *src = '-';
-            src += sign;
-            sky_memcpy4(src, "inf");
-
-            return sign + 3;
-        } else {
-            sky_memcpy4(src, "nan");
-            return 3;
-        }
+        sky_memcpy4(src, "null");
+        src[4] = '\0';
+        return 4;
     }
 
     *src = '-';
