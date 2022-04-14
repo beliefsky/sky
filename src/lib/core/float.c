@@ -11,8 +11,6 @@
 
 static sky_bool_t compute_float_64(sky_u64_t i, sky_isize_t power, sky_bool_t negative, sky_f64_t *out);
 
-static void pow10_table_get_sig(sky_i32_t exp10, sky_u64_t *hi, sky_u64_t *lo);
-
 static sky_u64_t round_to_odd(sky_u64_t hi, sky_u64_t lo, sky_u64_t cp);
 
 static void f64_bin_to_dec(sky_u64_t sig_raw, sky_u32_t exp_raw,
@@ -158,12 +156,41 @@ sky_str_len_to_f64(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *out) {
 
 
 sky_u8_t
-sky_f32_to_str(sky_f32_t data, sky_uchar_t *src) {
-    return sky_f64_to_str((sky_f64_t) data, src);
+sky_f32_to_str(sky_f32_t data, sky_uchar_t *out) {
+
+    return sky_f64_to_str(data, out);
+//    const sky_u32_t raw = *((sky_u32_t *) &data);
+//    const sky_u32_t sig_raw = raw & SKY_U32(0x007FFFFF);
+//    const sky_u32_t exp_raw = (raw & SKY_U32(0x7F800000)) >> 23;
+//    const sky_bool_t sign = raw >> 31;
+//
+//    if (sky_unlikely(exp_raw == (1 << 8) - 1)) {
+//        sky_memcpy4(out, "null");
+//        out[4] = '\0';
+//        return 4;
+//    }
+//    *out = '-';
+//    out += sign;
+//    if ((raw << 1) == 0) {
+//        sky_memcpy2(out, "0");
+//
+//        return (sky_u8_t) (sig_raw + 3);
+//    }
+//
+//    if (sky_likely(exp_raw != 0)) {
+//        const sky_u32_t sig_bin = sig_raw | (SKY_U32(1) << 23);
+//        const sky_i32_t exp_bin = (sky_i32_t) exp_raw - 127 - 23;
+//
+//    }
+//
+//
+//    sky_memcpy4(out, "nnnn");
+//
+//    return 0;
 }
 
 sky_u8_t
-sky_f64_to_str(sky_f64_t data, sky_uchar_t *src) {
+sky_f64_to_str(sky_f64_t data, sky_uchar_t *out) {
     const sky_u64_t raw = *((sky_u64_t *) &data);
     const sky_u64_t sig_raw = raw & SKY_U64(0x000FFFFFFFFFFFFF);
     const sky_u32_t exp_raw = (raw & SKY_U64(0x7FF0000000000000)) >> 52;
@@ -171,30 +198,22 @@ sky_f64_to_str(sky_f64_t data, sky_uchar_t *src) {
 
 
     if (sky_unlikely(exp_raw == (1 << 11) - 1)) {
-        sky_memcpy4(src, "null");
-        src[4] = '\0';
+        sky_memcpy4(out, "null");
+        out[4] = '\0';
         return 4;
     }
 
-    *src = '-';
-    src += sign;
-    if ((raw << 1) == 0) {
-        sky_memcpy2(src, "0");
+    *out = '-';
+    out += sign;
+    if (raw == 0) {
+        sky_memcpy2(out, "0");
 
         return (sky_u8_t) (sig_raw + 3);
     }
     if (sky_likely(exp_raw != 0)) {
         const sky_u64_t sig_bin = sig_raw | (SKY_U64(1) << 52);
         const sky_i32_t exp_bin = (sky_i32_t) exp_raw - 1023 - 52;
-        if (-52 <= exp_bin && exp_bin <= 0) {
-            if (sky_clz_u64(sig_bin) >= -exp_bin) {
-                const sky_u64_t sig_dec = sig_bin >> -exp_bin;
-                sky_u8_t i = sky_u64_to_str(sig_dec, src);
-                i += sign;
 
-                return i;
-            }
-        }
         sky_u64_t sig_dec;
         sky_i32_t exp_dec;
         f64_bin_to_dec(sig_raw, exp_raw, sig_bin, exp_bin, &sig_dec, &exp_dec);
@@ -207,51 +226,51 @@ sky_f64_to_str(sky_f64_t data, sky_uchar_t *src) {
 
         if (-6 < dot_pos && dot_pos <= 17) {
             if (dot_pos <= 0) {
-                sky_memcpy8(src, "0.000000");
+                sky_memcpy8(out, "0.000000");
                 const sky_u8_t offset = (sky_u8_t) (2 - dot_pos);
-                src += offset;
+                out += offset;
 
-                i = sky_u64_to_str(sig_dec, src);
-                i = f64_encode_trim(src, i);
-                src[i] = '\0';
+                i = sky_u64_to_str(sig_dec, out);
+                i = f64_encode_trim(out, i);
+                out[i] = '\0';
 
                 return i + offset;
             }
-            i = sky_u64_to_str(sig_dec, src);
+            i = sky_u64_to_str(sig_dec, out);
             if (exp_dec == 1) {
-                src += 16;
-                sky_memcpy2(src, "0");
+                out += 16;
+                sky_memcpy2(out, "0");
                 return 17;
             }
-            i = f64_encode_trim(src, i);
-            src += dot_pos;
+            i = f64_encode_trim(out, i);
+            out += dot_pos;
             if (dot_pos >= i) {
-                *src = '\0';
+                *out = '\0';
                 return (sky_u8_t) dot_pos + sign;
             }
             const sky_u8_t j = (sky_u8_t) (i - dot_pos);
-            sky_memmove(src + 1, src, j);
-            *src = '.';
-            src[j + 1] = '\0';
+            sky_memmove(out + 1, out, j);
+            *out = '.';
+            out[j + 1] = '\0';
 
             return i + sign + 1;
         }
 
-        ++src;
-        i = sky_u64_to_str(sig_dec, src);
-        i = f64_encode_trim(src, i);
+        ++out;
+        i = sky_u64_to_str(sig_dec, out);
+        i = f64_encode_trim(out, i);
 
-        *(src - 1) = *src;
+        *(out - 1) = *out;
         if (i > 1) {
-            *src = '.';
-            src += i;
+            *out = '.';
+            out += i;
             i += 2;
         } else {
             ++i;
         }
-        *src++ = 'e';
+        *out++ = 'e';
 
-        i += sky_i32_to_str(dot_pos - 1, src);
+        i += sky_i32_to_str(dot_pos - 1, out);
 
         return i + sign;
     }
@@ -263,22 +282,22 @@ sky_f64_to_str(sky_f64_t data, sky_uchar_t *src) {
     sky_i32_t exp_dec;
     f64_bin_to_dec(sig_raw, exp_raw, sig_bin, exp_bin, &sig_dec, &exp_dec);
 
-    ++src;
-    sky_u8_t i = sky_u64_to_str(sig_dec, src);
+    ++out;
+    sky_u8_t i = sky_u64_to_str(sig_dec, out);
     exp_dec += i - 1;
-    i = f64_encode_trim(src, i);
+    i = f64_encode_trim(out, i);
 
-    *(src - 1) = *src;
+    *(out - 1) = *out;
     if (i > 1) {
-        *src = '.';
-        src += i;
+        *out = '.';
+        out += i;
         i += 2;
     } else {
         ++i;
     }
-    *src++ = 'e';
+    *out++ = 'e';
 
-    i += sky_i32_to_str(exp_dec, src);
+    i += sky_i32_to_str(exp_dec, out);
 
     return i + sign;
 }
@@ -1033,8 +1052,23 @@ compute_float_64(sky_u64_t i, sky_isize_t power, sky_bool_t negative, sky_f64_t 
     return true;
 }
 
-static sky_inline void
-pow10_table_get_sig(sky_i32_t exp10, sky_u64_t *hi, sky_u64_t *lo) {
+static sky_inline sky_u64_t
+round_to_odd(sky_u64_t hi, sky_u64_t lo, sky_u64_t cp) {
+    const __uint128_t x = (__uint128_t) cp * lo;
+    const sky_u64_t x_hi = x >> 64;
+
+    const __uint128_t y = (__uint128_t) cp * hi + x_hi;
+    const sky_u64_t y_hi = y >> 64;
+    const sky_u64_t y_lo = (sky_u64_t) y;
+
+    return y_hi | (y_lo > 1);
+}
+
+static void
+f64_bin_to_dec(sky_u64_t sig_raw, sky_u32_t exp_raw,
+               sky_u64_t sig_bin, sky_i32_t exp_bin,
+               sky_u64_t *sig_dec, sky_i32_t *exp_dec) {
+
     static const sky_u64_t pow10_sig_table[] = {
             SKY_U64(0xBF29DCABA82FDEAE), SKY_U64(0x7432EE873880FC33), /* ~= 10^-343 */
             SKY_U64(0xEEF453D6923BD65A), SKY_U64(0x113FAA2906A13B3F), /* ~= 10^-342 */
@@ -1706,28 +1740,6 @@ pow10_table_get_sig(sky_i32_t exp10, sky_u64_t *hi, sky_u64_t *lo) {
             SKY_U64(0x9E19DB92B4E31BA9), SKY_U64(0x6C07A2C26A8346D1)  /* ~= 10^324 */
     };
 
-    sky_i32_t idx = exp10 + 343;
-    *hi = pow10_sig_table[idx * 2];
-    *lo = pow10_sig_table[idx * 2 + 1];
-}
-
-static sky_inline sky_u64_t
-round_to_odd(sky_u64_t hi, sky_u64_t lo, sky_u64_t cp) {
-    const __uint128_t x = (__uint128_t) cp * lo;
-    const sky_u64_t x_hi = x >> 64;
-
-    const __uint128_t y = (__uint128_t) cp * hi + x_hi;
-    const sky_u64_t y_hi = y >> 64;
-    const sky_u64_t y_lo = (sky_u64_t) y;
-
-    return y_hi | (y_lo > 1);
-}
-
-static void
-f64_bin_to_dec(sky_u64_t sig_raw, sky_u32_t exp_raw,
-               sky_u64_t sig_bin, sky_i32_t exp_bin,
-               sky_u64_t *sig_dec, sky_i32_t *exp_dec) {
-
     sky_bool_t is_even, lower_bound_closer, u_inside, w_inside, round_up;
     sky_u64_t s, sp, cb, cbl, cbr, vb, vbl, vbr, pow10hi, pow10lo, upper, lower, mid;
     sky_i32_t k, h, exp10;
@@ -1752,7 +1764,10 @@ f64_bin_to_dec(sky_u64_t sig_raw, sky_u32_t exp_raw,
     exp10 = -k;
     h = exp_bin + ((exp10 * 217707) >> 16) + 1;
 
-    pow10_table_get_sig(exp10, &pow10hi, &pow10lo);
+    const sky_i32_t idx = exp10 + 343;
+    pow10hi = pow10_sig_table[idx << 1];
+    pow10lo = pow10_sig_table[(idx << 1) + 1];
+
     pow10lo += (exp10 < 0 ||
                 exp10 > 55);
     vbl = round_to_odd(pow10hi, pow10lo, cbl << h);
