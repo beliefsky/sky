@@ -17,6 +17,7 @@ set(SOURCES
         core/string.c
         core/string_buf.c
         core/number.c
+        core/float.c
         core/date.c
         core/buf.c
         core/crc32.c
@@ -163,6 +164,7 @@ install(FILES
         core/string.h
         core/string_buf.h
         core/number.h
+        core/float.h
         core/date.h
         core/buf.h
         core/crc32.h
