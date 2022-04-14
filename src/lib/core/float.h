@@ -19,8 +19,8 @@ sky_bool_t sky_str_to_f64(const sky_str_t *in, sky_f64_t *out);
 
 sky_bool_t sky_str_len_to_f64(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *out);
 
-sky_u8_t sky_f32_to_str(sky_f32_t data, sky_uchar_t *src);
+sky_u8_t sky_f32_to_str(sky_f32_t data, sky_uchar_t *out);
 
-sky_u8_t sky_f64_to_str(sky_f64_t data, sky_uchar_t *src);
+sky_u8_t sky_f64_to_str(sky_f64_t data, sky_uchar_t *out);
 
 #endif //SKY_FLOAT_H
