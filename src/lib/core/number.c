@@ -287,83 +287,83 @@ sky_str_len_to_u64(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out) {
 
 
 sky_u8_t
-sky_i8_to_str(sky_i8_t data, sky_uchar_t *src) {
-    return sky_i32_to_str(data, src);
+sky_i8_to_str(sky_i8_t data, sky_uchar_t *out) {
+    return sky_i32_to_str(data, out);
 }
 
 sky_u8_t
-sky_u8_to_str(sky_u8_t data, sky_uchar_t *src) {
-    return sky_u32_to_str(data, src);
+sky_u8_to_str(sky_u8_t data, sky_uchar_t *out) {
+    return sky_u32_to_str(data, out);
 }
 
 sky_u8_t
-sky_i16_to_str(sky_i16_t data, sky_uchar_t *src) {
-    return sky_i32_to_str(data, src);
+sky_i16_to_str(sky_i16_t data, sky_uchar_t *out) {
+    return sky_i32_to_str(data, out);
 }
 
 sky_u8_t
-sky_u16_to_str(sky_u16_t data, sky_uchar_t *src) {
-    return sky_u32_to_str(data, src);
+sky_u16_to_str(sky_u16_t data, sky_uchar_t *out) {
+    return sky_u32_to_str(data, out);
 }
 
 sky_u8_t
-sky_i32_to_str(sky_i32_t data, sky_uchar_t *src) {
+sky_i32_to_str(sky_i32_t data, sky_uchar_t *out) {
     if (data < 0) {
-        *(src++) = '-';
+        *(out++) = '-';
         const sky_u32_t tmp = (sky_u32_t) (~data + 1);
-        const sky_u8_t len = sky_u32_to_str(tmp, src);
+        const sky_u8_t len = sky_u32_to_str(tmp, out);
         return (sky_u8_t) (len + 1);
     }
-    return sky_u32_to_str((sky_u32_t) data, src);
+    return sky_u32_to_str((sky_u32_t) data, out);
 }
 
 sky_inline sky_u8_t
-sky_u32_to_str(sky_u32_t data, sky_uchar_t *src) {
+sky_u32_to_str(sky_u32_t data, sky_uchar_t *out) {
     const sky_u8_t len = sky_u32_check_str_count(data);
-    fast_number_to_str(data, len, src);
-    *(src + len) = '\0';
+    fast_number_to_str(data, len, out);
+    *(out + len) = '\0';
 
     return len;
 }
 
 sky_u8_t
-sky_i64_to_str(sky_i64_t data, sky_uchar_t *src) {
+sky_i64_to_str(sky_i64_t data, sky_uchar_t *out) {
     if (data < 0) {
-        *(src++) = '-';
-        return (sky_u8_t) (sky_u64_to_str((sky_u64_t) (~data + 1), src) + 1);
+        *(out++) = '-';
+        return (sky_u8_t) (sky_u64_to_str((sky_u64_t) (~data + 1), out) + 1);
     }
-    return sky_u64_to_str((sky_u64_t) data, src);
+    return sky_u64_to_str((sky_u64_t) data, out);
 }
 
 sky_inline sky_u8_t
-sky_u64_to_str(sky_u64_t data, sky_uchar_t *src) {
+sky_u64_to_str(sky_u64_t data, sky_uchar_t *out) {
     if (data < SKY_U32_MAX) {
         const sky_u8_t len = sky_u32_check_str_count((sky_u32_t) data);
-        fast_number_to_str(data, len, src);
-        *(src + len) = '\0';
+        fast_number_to_str(data, len, out);
+        *(out + len) = '\0';
         return len;
     }
     if (data < 10000000000) {
         if (sky_likely(data < 9999999999)) {
-            fast_number_to_str(data, 10, src);
-            *(src + 10) = '\0';
+            fast_number_to_str(data, 10, out);
+            *(out + 10) = '\0';
         } else {
-            sky_memcpy(src, "9999999999", 11);
+            sky_memcpy(out, "9999999999", 11);
         }
         return 10;
     }
 
     const sky_u64_t pre_num = data / 10000000000;
     const sky_u8_t len = sky_u32_check_str_count((sky_u32_t) pre_num);
-    fast_number_to_str(pre_num, len, src);
-    src += len;
+    fast_number_to_str(pre_num, len, out);
+    out += len;
 
     data %= 10000000000;
     if (sky_likely(data < 9999999999)) {
-        fast_number_to_str(data, 10, src);
-        *(src + 10) = '\0';
+        fast_number_to_str(data, 10, out);
+        *(out + 10) = '\0';
     } else {
-        sky_memcpy(src, "9999999999", 11);
+        sky_memcpy(out, "9999999999", 11);
     }
 
 
@@ -372,7 +372,7 @@ sky_u64_to_str(sky_u64_t data, sky_uchar_t *src) {
 }
 
 sky_u32_t
-sky_u32_to_hex_str(sky_u32_t data, sky_uchar_t *src, sky_bool_t lower_alpha) {
+sky_u32_to_hex_str(sky_u32_t data, sky_uchar_t *out, sky_bool_t lower_alpha) {
     sky_u64_t x = data;
 
     x = ((x & 0xFFFF) << 32) | ((x & 0xFFFF0000) >> 16);
@@ -389,7 +389,7 @@ sky_u32_to_hex_str(sky_u32_t data, sky_uchar_t *src, sky_bool_t lower_alpha) {
     };
 
     x += table[lower_alpha] * mask;
-    *(sky_u64_t *) src = x;
+    *(sky_u64_t *) out = x;
 
 
     return 8;

@@ -52,21 +52,21 @@ sky_bool_t sky_str_to_u64(const sky_str_t *in, sky_u64_t *out);
 
 sky_bool_t sky_str_len_to_u64(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out);
 
-sky_u8_t sky_i8_to_str(sky_i8_t data, sky_uchar_t *src);
+sky_u8_t sky_i8_to_str(sky_i8_t data, sky_uchar_t *out);
 
-sky_u8_t sky_u8_to_str(sky_u8_t data, sky_uchar_t *src);
+sky_u8_t sky_u8_to_str(sky_u8_t data, sky_uchar_t *out);
 
-sky_u8_t sky_i16_to_str(sky_i16_t data, sky_uchar_t *src);
+sky_u8_t sky_i16_to_str(sky_i16_t data, sky_uchar_t *out);
 
-sky_u8_t sky_u16_to_str(sky_u16_t data, sky_uchar_t *src);
+sky_u8_t sky_u16_to_str(sky_u16_t data, sky_uchar_t *out);
 
-sky_u8_t sky_i32_to_str(sky_i32_t data, sky_uchar_t *src);
+sky_u8_t sky_i32_to_str(sky_i32_t data, sky_uchar_t *out);
 
-sky_u8_t sky_u32_to_str(sky_u32_t data, sky_uchar_t *src);
+sky_u8_t sky_u32_to_str(sky_u32_t data, sky_uchar_t *out);
 
-sky_u8_t sky_i64_to_str(sky_i64_t data, sky_uchar_t *src);
+sky_u8_t sky_i64_to_str(sky_i64_t data, sky_uchar_t *out);
 
-sky_u8_t sky_u64_to_str(sky_u64_t data, sky_uchar_t *src);
+sky_u8_t sky_u64_to_str(sky_u64_t data, sky_uchar_t *out);
 
 sky_u32_t sky_u32_to_hex_str(sky_u32_t data, sky_uchar_t *src, sky_bool_t lower_alpha);
 
