@@ -158,7 +158,7 @@ sky_str_len_to_f64(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *out) {
 sky_u8_t
 sky_f32_to_str(sky_f32_t data, sky_uchar_t *out) {
 
-    return sky_f64_to_str(data, out);
+    return sky_f64_to_str((sky_f64_t)data, out);
 //    const sky_u32_t raw = *((sky_u32_t *) &data);
 //    const sky_u32_t sig_raw = raw & SKY_U32(0x007FFFFF);
 //    const sky_u32_t exp_raw = (raw & SKY_U32(0x7F800000)) >> 23;
