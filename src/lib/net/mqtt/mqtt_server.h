@@ -50,6 +50,7 @@ struct sky_mqtt_connect_s {
     sky_event_t ev;
     sky_coro_t *coro;
     sky_mqtt_server_t *server;
+    sky_mqtt_packet_t *current_packet;
     sky_queue_t packet;
 
     sky_uchar_t head_tmp[8];
