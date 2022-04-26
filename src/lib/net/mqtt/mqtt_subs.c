@@ -6,25 +6,7 @@
 #include "../../core/memory.h"
 #include "../../core/log.h"
 #include "../../core/crc32.h"
-#include "../../safe/atomic.h"
 #include "mqtt_response.h"
-
-typedef struct {
-    sky_event_msg_t msg;
-    sky_mqtt_server_t *server;
-    sky_str_t topic;
-
-    union {
-        sky_u32_t topic_index;
-        sky_str_t payload;
-    };
-    sky_atomic_u32_t ref;
-
-    sky_bool_t dup: 1;
-    sky_u8_t qos: 2;
-    sky_bool_t retain: 1;
-
-} mqtt_share_msg_t;
 
 static sky_bool_t mqtt_sub(void **client, void *user_data);
 
@@ -39,14 +21,6 @@ static sky_u64_t topic_hash(const void *item, void *secret);
 static sky_bool_t topic_equals(const void *a, const void *b);
 
 static void topic_destroy(void *item);
-
-static void mqtt_thread_node_sub(sky_event_msg_t *msg);
-
-static void mqtt_thread_node_unsub(sky_event_msg_t *msg);
-
-static void mqtt_thread_node_publish(sky_event_msg_t *msg);
-
-static void share_message_free(mqtt_share_msg_t *msg);
 
 
 typedef struct {
@@ -70,144 +44,44 @@ typedef struct {
 
 void
 sky_mqtt_subs_init(sky_mqtt_server_t *server) {
-    sky_mqtt_thread_node_t *node = server->thread_node;
-    for (sky_u32_t i = 0; i < server->thread_node_n; ++i, ++node) {
-        node->sub_tree = sky_topic_tree_create(mqtt_sub, mqtt_unsub, mqtt_node_destroy);
-        node->topic_tree = sky_malloc(sizeof(sky_topic_tree_t *) * server->thread_node_n);
-        for (sky_u32_t j = 0; j < server->thread_node_n; ++j) {
-            if (i == j) {
-                node->topic_tree[j] = null;
-            } else {
-                node->topic_tree[j] = sky_topic_tree_create(null, null, null);
-            }
-        }
-    }
+    server->sub_tree = sky_topic_tree_create(mqtt_sub, mqtt_unsub, mqtt_node_destroy);
 }
 
 sky_bool_t
 sky_mqtt_subs_sub(sky_mqtt_server_t *server, sky_str_t *topic, sky_mqtt_session_t *session, sky_u8_t qos) {
-    const sky_u32_t idx = sky_event_manager_thread_idx();
-    sky_mqtt_thread_node_t *node = server->thread_node + idx;
-
     subs_topic_tmp_t sub = {
             .topic = topic,
             .session = session,
             .qos = qos
     };
 
-    if (sky_topic_tree_sub(node->sub_tree, topic, &sub)) {
-        if (server->thread_node_n > 1) {
-            mqtt_share_msg_t *share_msg = sky_malloc(
-                    sizeof(mqtt_share_msg_t)
-                    + topic->len
-            );
-            share_msg->msg.handle = mqtt_thread_node_sub;
-            share_msg->server = server;
-            share_msg->ref = SKY_ATOMIC_VAR_INIT(server->thread_node_n - 1);
-            share_msg->topic_index = idx;
-            share_msg->topic.data = (sky_uchar_t *) (share_msg + 1);
-            share_msg->topic.len = topic->len;
-            sky_memcpy(share_msg->topic.data, topic->data, topic->len);
-
-            for (sky_u32_t i = 0; i < server->thread_node_n; ++i) {
-                if (i != idx) {
-                    if (!sky_event_manager_idx_msg(server->manager, &share_msg->msg, i)) {
-                        share_message_free(share_msg);
-                    }
-                }
-            }
-        }
-        return true;
-    }
-
-    return false;
+    return sky_topic_tree_sub(server->sub_tree, topic, &sub);
 }
 
 sky_bool_t
 sky_mqtt_subs_unsub(sky_mqtt_server_t *server, sky_str_t *topic, sky_mqtt_session_t *session) {
-    const sky_u32_t idx = sky_event_manager_thread_idx();
-    sky_mqtt_thread_node_t *node = server->thread_node + idx;
-
     subs_topic_tmp_t unsub = {
             .topic = topic,
             .session = session
     };
-    if (sky_topic_tree_unsub(node->sub_tree, topic, &unsub)) {
-        if (server->thread_node_n > 1) {
-            mqtt_share_msg_t *share_msg = sky_malloc(
-                    sizeof(mqtt_share_msg_t)
-                    + topic->len
-            );
-            share_msg->msg.handle = mqtt_thread_node_unsub;
-            share_msg->server = server;
-            share_msg->ref = SKY_ATOMIC_VAR_INIT(server->thread_node_n - 1);
-            share_msg->topic_index = idx;
-            share_msg->topic.data = (sky_uchar_t *) (share_msg + 1);
-            share_msg->topic.len = topic->len;
-            sky_memcpy(share_msg->topic.data, topic->data, topic->len);
 
-            for (sky_u32_t i = 0; i < server->thread_node_n; ++i) {
-                if (i != idx) {
-                    if (!sky_event_manager_idx_msg(server->manager, &share_msg->msg, i)) {
-                        share_message_free(share_msg);
-                    }
-                }
-            }
-        }
-        return true;
-    }
-
-    return false;
+    return sky_topic_tree_unsub(server->sub_tree, topic, &unsub);
 }
 
 void
 sky_mqtt_subs_publish(sky_mqtt_server_t *server, const sky_mqtt_head_t *head, const sky_mqtt_publish_msg_t *msg) {
-    const sky_u32_t idx = sky_event_manager_thread_idx();
-    sky_mqtt_thread_node_t *node = server->thread_node + idx;
-
     subs_publish_tmp_t publish = {
             .head = head,
             .msg = msg
     };
 
-    sky_topic_tree_scan(node->sub_tree, &msg->topic, mqtt_publish, &publish);
-    if (server->thread_node_n < 2) {
-        return;
-    }
-    mqtt_share_msg_t *share_msg = sky_malloc(
-            sizeof(mqtt_share_msg_t)
-            + msg->topic.len
-            + msg->payload.len
-    );
-    share_msg->msg.handle = mqtt_thread_node_publish;
-    share_msg->server = server;
-    share_msg->dup = head->dup;
-    share_msg->qos = head->qos;
-    share_msg->retain = head->retain;
-    share_msg->ref = SKY_ATOMIC_VAR_INIT(server->thread_node_n - 1);
-    share_msg->topic_index = idx;
-    share_msg->topic.data = (sky_uchar_t *) (share_msg + 1);
-    share_msg->topic.len = msg->topic.len;
-    share_msg->payload.data = share_msg->topic.data + share_msg->topic.len;
-    share_msg->payload.len = msg->payload.len;
-    sky_memcpy(share_msg->topic.data, msg->topic.data, msg->topic.len);
-    sky_memcpy(share_msg->payload.data, msg->payload.data, msg->payload.len);
-
-
-    for (sky_u32_t i = 0; i < server->thread_node_n; ++i) {
-        if (i != idx) {
-            if (!sky_topic_tree_filter(node->topic_tree[i], &msg->topic)
-                || !sky_event_manager_idx_msg(server->manager, &share_msg->msg, i)) {
-                share_message_free(share_msg);
-            }
-        }
-    }
+    sky_topic_tree_scan(server->sub_tree, &msg->topic, mqtt_publish, &publish);
 }
 
 void
 sky_mqtt_subs_destroy(sky_mqtt_server_t *server) {
-//    sky_topic_tree_destroy(server->sub_tree);
-//    server->sub_tree = null;
+    sky_topic_tree_destroy(server->sub_tree);
+    server->sub_tree = null;
 }
 
 sky_bool_t
@@ -361,57 +235,4 @@ topic_destroy(void *item) {
     sky_mqtt_subs_unsub(node->session->server, &node->topic, null);
 
     sky_free(node);
-}
-
-static void
-mqtt_thread_node_sub(sky_event_msg_t *msg) {
-    mqtt_share_msg_t *share_msg = (mqtt_share_msg_t *) msg;
-    sky_mqtt_thread_node_t *node = share_msg->server->thread_node + sky_event_manager_thread_idx();
-    sky_topic_tree_t *sub_tree = node->topic_tree[share_msg->topic_index];
-    sky_topic_tree_sub(sub_tree, &share_msg->topic, null);
-
-    share_message_free(share_msg);
-}
-
-static void
-mqtt_thread_node_unsub(sky_event_msg_t *msg) {
-    mqtt_share_msg_t *share_msg = (mqtt_share_msg_t *) msg;
-    sky_mqtt_thread_node_t *node = share_msg->server->thread_node + sky_event_manager_thread_idx();
-
-    sky_topic_tree_t *sub_tree = node->topic_tree[share_msg->topic_index];
-    sky_topic_tree_unsub(sub_tree, &share_msg->topic, null);
-
-    share_message_free(share_msg);
-}
-
-static void
-mqtt_thread_node_publish(sky_event_msg_t *msg) {
-    mqtt_share_msg_t *share_msg = (mqtt_share_msg_t *) msg;
-    sky_mqtt_thread_node_t *node = share_msg->server->thread_node + sky_event_manager_thread_idx();
-
-    const sky_mqtt_head_t mqtt_head = {
-            .dup = share_msg->dup,
-            .qos = share_msg->qos,
-            .retain = share_msg->retain
-    };
-    const sky_mqtt_publish_msg_t mqtt_msg = {
-            .topic = share_msg->topic,
-            .payload = share_msg->payload
-    };
-    subs_publish_tmp_t publish = {
-            .head = &mqtt_head,
-            .msg = &mqtt_msg
-    };
-    sky_topic_tree_scan(node->sub_tree, &share_msg->topic, mqtt_publish, &publish);
-
-    share_message_free(share_msg);
-}
-
-
-static sky_inline void
-share_message_free(mqtt_share_msg_t *msg) {
-    const sky_u32_t result = sky_atomic_get_sub_explicit(&msg->ref, SKY_U32(1), SKY_ATOMIC_RELAXED);
-    if (result == 1) {
-        sky_free(msg);
-    }
 }

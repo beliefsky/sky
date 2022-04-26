@@ -15,26 +15,15 @@
 extern "C" {
 #endif
 
-typedef struct sky_mqtt_share_node_s sky_mqtt_share_node_t;
 typedef struct sky_mqtt_server_s sky_mqtt_server_t;
-typedef struct sky_mqtt_thread_node_s sky_mqtt_thread_node_t;
 typedef struct sky_mqtt_session_s sky_mqtt_session_t;
 typedef struct sky_mqtt_connect_s sky_mqtt_connect_t;
 typedef struct sky_mqtt_packet_s sky_mqtt_packet_t;
 
-struct sky_mqtt_share_node_s {
-    sky_topic_tree_t **topic_tree;
-    sky_u32_t node_num;
-    sky_u32_t current_index;
-};
-
-struct sky_mqtt_thread_node_s {
-    sky_hashmap_t session_manager;
-    sky_topic_tree_t *sub_tree;
-    sky_topic_tree_t **topic_tree;
-};
 
 struct sky_mqtt_server_s {
+    sky_hashmap_t session_manager;
+
     sky_usize_t (*mqtt_read)(sky_mqtt_connect_t *conn, sky_uchar_t *data, sky_usize_t size);
 
     void (*mqtt_read_all)(sky_mqtt_connect_t *conn, sky_uchar_t *data, sky_usize_t size);
@@ -42,8 +31,9 @@ struct sky_mqtt_server_s {
     sky_isize_t (*mqtt_write_nowait)(sky_mqtt_connect_t *conn, const sky_uchar_t *data, sky_usize_t size);
 
     sky_event_manager_t *manager;
-    sky_mqtt_thread_node_t *thread_node;
-    sky_u32_t thread_node_n;
+
+    sky_topic_tree_t *sub_tree;
+    sky_u32_t thread_index;
 };
 
 struct sky_mqtt_session_s {
