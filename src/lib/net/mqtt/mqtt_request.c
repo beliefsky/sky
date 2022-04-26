@@ -231,8 +231,7 @@ mqtt_read_body(sky_mqtt_connect_t *conn, const sky_mqtt_head_t *head, sky_uchar_
 
 static sky_mqtt_session_t *
 session_get(sky_mqtt_connect_msg_t *msg, sky_mqtt_connect_t *conn) {
-    sky_u32_t idx = sky_event_manager_thread_idx();
-    sky_hashmap_t *session_manager = &conn->server->thread_node[idx].session_manager;
+    sky_hashmap_t *session_manager = &conn->server->session_manager;
 
     const sky_mqtt_session_t tmp = {
             .client_id = msg->client_id
@@ -267,8 +266,7 @@ session_get(sky_mqtt_connect_msg_t *msg, sky_mqtt_connect_t *conn) {
 
 static void
 session_defer(sky_mqtt_session_t *session) {
-    sky_u32_t idx = sky_event_manager_thread_idx();
-    sky_hashmap_t *session_manager = &session->server->thread_node[idx].session_manager;
+    sky_hashmap_t *session_manager = &session->server->session_manager;
     sky_mqtt_session_t *old = sky_hashmap_get(session_manager, session);
     if (sky_unlikely(old != session)) {
         sky_free(session);

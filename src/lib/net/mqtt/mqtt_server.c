@@ -25,19 +25,14 @@ sky_mqtt_server_t *
 sky_mqtt_server_create(sky_event_manager_t *manager) {
     sky_u32_t thread_n = sky_event_manager_thread_n(manager);
 
-    sky_mqtt_server_t *server = sky_malloc(sizeof(sky_mqtt_server_t) + sizeof(sky_mqtt_thread_node_t) * thread_n);
-    sky_mqtt_thread_node_t *node = (sky_mqtt_thread_node_t *) (server + 1);
-
+    sky_mqtt_server_t *server = sky_malloc(sizeof(sky_mqtt_server_t));
     server->mqtt_read = sky_mqtt_read;
     server->mqtt_read_all = sky_mqtt_read_all;
     server->mqtt_write_nowait = sky_mqtt_write_nowait;
     server->manager = manager;
-    server->thread_node = node;
-    server->thread_node_n = thread_n;
+    server->thread_index = thread_n - 1;
 
-    for (sky_u32_t i = 0; i < thread_n; ++i, ++node) {
-        sky_hashmap_init_with_cap(&node->session_manager, session_hash, session_equals, null, 128);
-    }
+    sky_hashmap_init_with_cap(&server->session_manager, session_hash, session_equals, null, 128);
 
     sky_mqtt_subs_init(server);
 
@@ -55,12 +50,9 @@ sky_mqtt_server_bind(sky_mqtt_server_t *server, sky_inet_address_t *address, sky
             .nodelay = true,
             .defer_accept = true
     };
-    sky_event_loop_t *loop;
-    for (sky_u32_t i = 0; i < server->thread_node_n; ++i) {
-        loop = sky_event_manager_idx_event_loop(server->manager, i);
-        if (sky_unlikely(null == loop || !sky_tcp_server_create(loop, &conf))) {
-            return false;
-        }
+    sky_event_loop_t *loop = sky_event_manager_idx_event_loop(server->manager, server->thread_index);
+    if (sky_unlikely(null == loop || !sky_tcp_server_create(loop, &conf))) {
+        return false;
     }
     return true;
 }
