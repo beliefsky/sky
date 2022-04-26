@@ -51,10 +51,8 @@ sky_mqtt_server_bind(sky_mqtt_server_t *server, sky_inet_address_t *address, sky
             .defer_accept = true
     };
     sky_event_loop_t *loop = sky_event_manager_idx_event_loop(server->manager, server->thread_index);
-    if (sky_unlikely(null == loop || !sky_tcp_server_create(loop, &conf))) {
-        return false;
-    }
-    return true;
+
+    return null != loop && sky_tcp_server_create(loop, &conf);
 }
 
 static sky_event_t *
