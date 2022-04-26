@@ -63,6 +63,7 @@ mqtt_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_mqtt_server_
     sky_mqtt_connect_t *conn = sky_coro_malloc(coro, sizeof(sky_mqtt_connect_t));
     conn->coro = coro;
     conn->server = server;
+    conn->current_packet = null;
     sky_queue_init(&conn->packet);
     conn->write_size = 0;
     conn->head_copy = 0;
