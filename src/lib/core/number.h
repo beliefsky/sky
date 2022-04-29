@@ -6,12 +6,19 @@
 #define SKY_NUMBER_H
 
 #include "string.h"
+#include "memory.h"
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
 #define sky_num_to_uchar(_n)    ((sky_uchar_t)((_n) | 0x30))
+
+
+#define sky_fast_str_check_number(_mask) \
+    ((((_mask) & 0xF0F0F0F0F0F0F0F0) |   \
+    ((((_mask) + 0x0606060606060606) & 0xF0F0F0F0F0F0F0F0) >> 4)) == \
+    0x3333333333333333)
 
 sky_bool_t sky_str_to_i8(const sky_str_t *in, sky_i8_t *out);
 
@@ -45,33 +52,21 @@ sky_bool_t sky_str_to_u64(const sky_str_t *in, sky_u64_t *out);
 
 sky_bool_t sky_str_len_to_u64(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out);
 
-sky_bool_t sky_str_to_f32(const sky_str_t *in, sky_f32_t *out);
+sky_u8_t sky_i8_to_str(sky_i8_t data, sky_uchar_t *out);
 
-sky_bool_t sky_str_len_to_f32(const sky_uchar_t *in, sky_usize_t in_len, sky_f32_t *out);
+sky_u8_t sky_u8_to_str(sky_u8_t data, sky_uchar_t *out);
 
-sky_bool_t sky_str_to_f64(const sky_str_t *in, sky_f64_t *out);
+sky_u8_t sky_i16_to_str(sky_i16_t data, sky_uchar_t *out);
 
-sky_bool_t sky_str_len_to_f64(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *out);
+sky_u8_t sky_u16_to_str(sky_u16_t data, sky_uchar_t *out);
 
-sky_u8_t sky_i8_to_str(sky_i8_t data, sky_uchar_t *src);
+sky_u8_t sky_i32_to_str(sky_i32_t data, sky_uchar_t *out);
 
-sky_u8_t sky_u8_to_str(sky_u8_t data, sky_uchar_t *src);
+sky_u8_t sky_u32_to_str(sky_u32_t data, sky_uchar_t *out);
 
-sky_u8_t sky_i16_to_str(sky_i16_t data, sky_uchar_t *src);
+sky_u8_t sky_i64_to_str(sky_i64_t data, sky_uchar_t *out);
 
-sky_u8_t sky_u16_to_str(sky_u16_t data, sky_uchar_t *src);
-
-sky_u8_t sky_i32_to_str(sky_i32_t data, sky_uchar_t *src);
-
-sky_u8_t sky_u32_to_str(sky_u32_t data, sky_uchar_t *src);
-
-sky_u8_t sky_i64_to_str(sky_i64_t data, sky_uchar_t *src);
-
-sky_u8_t sky_u64_to_str(sky_u64_t data, sky_uchar_t *src);
-
-sky_u8_t sky_f32_to_str(sky_f32_t data, sky_uchar_t *src);
-
-sky_u8_t sky_f64_to_str(sky_f64_t data, sky_uchar_t *src);
+sky_u8_t sky_u64_to_str(sky_u64_t data, sky_uchar_t *out);
 
 sky_u32_t sky_u32_to_hex_str(sky_u32_t data, sky_uchar_t *src, sky_bool_t lower_alpha);
 
@@ -81,6 +76,51 @@ sky_u32_t sky_u32_to_hex_str(sky_u32_t data, sky_uchar_t *src, sky_bool_t lower_
  * @return 占用的字符长度
  */
 sky_u8_t sky_u32_check_str_count(sky_u32_t x);
+
+
+static sky_inline sky_u64_t
+sky_fast_str_parse_mask8(const sky_uchar_t *chars) {
+    return *(sky_u64_t *) chars;
+}
+
+static sky_inline sky_u64_t
+sky_fast_str_parse_mask_small(const sky_uchar_t *chars, sky_usize_t len) {
+    sky_u64_t val = 0x3030303030303030UL;
+    sky_memcpy(((sky_uchar_t *) (&val) + (8 - len)), chars, len);
+
+    return val;
+}
+
+
+/**
+ * 将8个字节及以内字符串转成int
+ * @param chars 待转换的字符
+ * @return 转换的int
+ */
+static sky_inline sky_u32_t
+sky_fast_str_parse_uint32(sky_u64_t mask) {
+    mask = (mask & 0x0F0F0F0F0F0F0F0F) * 2561 >> 8;
+    mask = (mask & 0x00FF00FF00FF00FF) * 6553601 >> 16;
+    return (sky_u32_t) ((mask & 0x0000FFFF0000FFFF) * 42949672960001 >> 32);
+}
+
+static sky_inline sky_u32_t
+sky_u32_power_ten(sky_usize_t n) {
+    static const sky_u32_t table[] = {
+            SKY_U32(1),
+            SKY_U32(10),
+            SKY_U32(100),
+            SKY_U32(1000),
+            SKY_U32(10000),
+            SKY_U32(100000),
+            SKY_U32(1000000),
+            SKY_U32(10000000),
+            SKY_U32(100000000),
+            SKY_U32(1000000000)
+    };
+
+    return table[n];
+}
 
 #if defined(__cplusplus)
 } /* extern "C" { */
