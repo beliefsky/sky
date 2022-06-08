@@ -5,7 +5,7 @@
 #include "inet.h"
 
 sky_bool_t
-sky_set_socket_nonblock(sky_i32_t fd) {
+sky_set_socket_nonblock(sky_socket_t fd) {
     sky_i32_t flags;
 
     flags = fcntl(fd, F_GETFD);

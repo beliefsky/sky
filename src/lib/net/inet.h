@@ -28,10 +28,11 @@
 extern "C" {
 #endif
 
+typedef sky_i32_t sky_socket_t;
 typedef struct sockaddr sky_inet_address_t;
 
 
-sky_bool_t sky_set_socket_nonblock(sky_i32_t fd);
+sky_bool_t sky_set_socket_nonblock(sky_socket_t fd);
 
 #if defined(__cplusplus)
 } /* extern "C" { */
