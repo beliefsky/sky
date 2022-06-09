@@ -263,7 +263,7 @@ sky_mqtt_connect_pack(sky_mqtt_connect_msg_t *msg, sky_uchar_t *buf, sky_u32_t s
     return true;
 }
 
-sky_u32_t sky_mqtt_connect_unpack(sky_uchar_t *buf, sky_mqtt_connect_msg_t *msg) {
+sky_u32_t sky_mqtt_connect_unpack(sky_uchar_t *buf, const sky_mqtt_connect_msg_t *msg) {
     const sky_mqtt_head_t head = {
             .type = SKY_MQTT_TYPE_CONNECT,
             .body_size = sky_mqtt_connect_unpack_size(msg)
@@ -624,7 +624,7 @@ sky_mqtt_topic_read_next(sky_mqtt_topic_reader_t *msg, sky_mqtt_topic_t *topic) 
 }
 
 sky_u32_t
-sky_mqtt_connect_unpack_size(sky_mqtt_connect_msg_t *msg) {
+sky_mqtt_connect_unpack_size(const sky_mqtt_connect_msg_t *msg) {
     sky_u32_t size = 8;
 
     size += msg->protocol_name.len;
