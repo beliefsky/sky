@@ -97,6 +97,10 @@ sky_u32_t sky_mqtt_head_unpack(const sky_mqtt_head_t *head, sky_uchar_t *buf);
 
 sky_bool_t sky_mqtt_connect_pack(sky_mqtt_connect_msg_t *msg, sky_uchar_t *buf, sky_u32_t size);
 
+sky_u32_t sky_mqtt_connect_unpack(sky_uchar_t *buf, sky_mqtt_connect_msg_t *msg);
+
+sky_bool_t sky_mqtt_connect_ack_pack(sky_bool_t *session_preset, sky_u8_t *status, sky_uchar_t *buf, sky_u32_t size);
+
 sky_u32_t sky_mqtt_connect_ack_unpack(sky_uchar_t *buf, sky_bool_t session_preset, sky_u8_t status);
 
 sky_bool_t sky_mqtt_publish_pack(sky_mqtt_publish_msg_t *msg, sky_u8_t qos, sky_uchar_t *buf, sky_u32_t size);
@@ -133,6 +137,8 @@ sky_u32_t sky_mqtt_ping_resp_unpack(sky_uchar_t *buf);
 
 sky_bool_t sky_mqtt_topic_read_next(sky_mqtt_topic_reader_t *msg, sky_mqtt_topic_t *topic);
 
+
+sky_u32_t sky_mqtt_connect_unpack_size(sky_mqtt_connect_msg_t *msg);
 
 static sky_inline sky_u32_t
 sky_mqtt_publish_unpack_size(const sky_mqtt_publish_msg_t *msg, sky_u8_t qos) {
