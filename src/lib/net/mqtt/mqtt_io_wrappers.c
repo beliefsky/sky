@@ -66,12 +66,11 @@ sky_mqtt_read_all(sky_mqtt_connect_t *conn, sky_uchar_t *data, sky_usize_t size)
 
 sky_isize_t
 sky_mqtt_write_nowait(sky_mqtt_connect_t *conn, const sky_uchar_t *data, sky_usize_t size) {
-    sky_isize_t n;
-
     const sky_i32_t fd = conn->ev.fd;
 
     if (sky_likely(sky_event_is_write(&conn->ev))) {
-        if ((n = write(fd, data, size)) > 0) {
+        const sky_isize_t n = write(fd, data, size);
+        if (n > 0) {
             return n;
         }
         switch (errno) {
