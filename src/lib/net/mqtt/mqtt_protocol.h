@@ -133,8 +133,9 @@ sky_u32_t sky_mqtt_subscribe_unpack(
         sky_u32_t topic_n
 );
 
-sky_u32_t sky_mqtt_sub_ack_unpack(sky_uchar_t *buf, sky_u16_t packet_identifier,
-                                  const sky_u8_t *max_qos, sky_u32_t topic_num);
+sky_bool_t sky_mqtt_sub_ack_pack(sky_u16_t *packet_identifier, sky_str_t *result, sky_uchar_t *buf, sky_u32_t size);
+
+sky_u32_t sky_mqtt_sub_ack_unpack(sky_uchar_t *buf, sky_u16_t packet_identifier, const sky_str_t *result);
 
 sky_bool_t sky_mqtt_unsubscribe_pack(sky_mqtt_topic_reader_t *msg, sky_uchar_t *buf, sky_u32_t size);
 
@@ -145,7 +146,11 @@ sky_u32_t sky_mqtt_unsubscribe_unpack(
         sky_u32_t topic_n
 );
 
+sky_bool_t sky_mqtt_unsub_ack_pack(sky_u16_t *packet_identifier, sky_uchar_t *buf, sky_u32_t size);
+
 sky_u32_t sky_mqtt_unsub_ack_unpack(sky_uchar_t *buf, sky_u16_t packet_identifier);
+
+sky_u32_t sky_mqtt_ping_req_unpack(sky_uchar_t *buf);
 
 sky_u32_t sky_mqtt_ping_resp_unpack(sky_uchar_t *buf);
 

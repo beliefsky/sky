@@ -556,11 +556,26 @@ sky_mqtt_subscribe_unpack(
     return (size + head.body_size);
 }
 
+sky_bool_t
+sky_mqtt_sub_ack_pack(sky_u16_t *packet_identifier, sky_str_t *result, sky_uchar_t *buf, sky_u32_t size) {
+    if (sky_unlikely(size < 2)) {
+        return false;
+    }
+    *packet_identifier = sky_htons(*(sky_u16_t *) buf);
+    buf += 2;
+    size -= 2;
+
+    result->data = buf;
+    result->len = size;
+
+    return true;
+}
+
 sky_u32_t
-sky_mqtt_sub_ack_unpack(sky_uchar_t *buf, sky_u16_t packet_identifier, const sky_u8_t *max_qos, sky_u32_t topic_num) {
+sky_mqtt_sub_ack_unpack(sky_uchar_t *buf, sky_u16_t packet_identifier, const sky_str_t *result) {
     const sky_mqtt_head_t head = {
             .type = SKY_MQTT_TYPE_SUBACK,
-            .body_size = sky_mqtt_sub_ack_unpack_size(topic_num)
+            .body_size = sky_mqtt_sub_ack_unpack_size((sky_u32_t) result->len)
     };
 
     const sky_u32_t size = sky_mqtt_head_unpack(&head, buf);
@@ -569,7 +584,7 @@ sky_mqtt_sub_ack_unpack(sky_uchar_t *buf, sky_u16_t packet_identifier, const sky
     *((sky_u16_t *) buf) = sky_htons(packet_identifier);
     buf += 2;
 
-    sky_memcpy(buf, max_qos, topic_num);
+    sky_memcpy(buf, result->data, result->len);
 
     return (size + head.body_size);
 }
@@ -617,6 +632,16 @@ sky_mqtt_unsubscribe_unpack(
     return (size + head.body_size);
 }
 
+sky_bool_t
+sky_mqtt_unsub_ack_pack(sky_u16_t *packet_identifier, sky_uchar_t *buf, sky_u32_t size) {
+    if (sky_unlikely(size < 2)) {
+        return false;
+    }
+    *packet_identifier = sky_htons(*(sky_u16_t *) buf);
+
+    return true;
+}
+
 sky_u32_t
 sky_mqtt_unsub_ack_unpack(sky_uchar_t *buf, sky_u16_t packet_identifier) {
     const sky_mqtt_head_t head = {
@@ -630,6 +655,14 @@ sky_mqtt_unsub_ack_unpack(sky_uchar_t *buf, sky_u16_t packet_identifier) {
     *((sky_u16_t *) buf) = sky_htons(packet_identifier);
 
     return (size + head.body_size);
+}
+
+sky_u32_t
+sky_mqtt_ping_req_unpack(sky_uchar_t *buf) {
+    sky_mqtt_head_t head = {
+            .type = SKY_MQTT_TYPE_PINGREQ
+    };
+    return sky_mqtt_head_unpack(&head, buf);
 }
 
 sky_u32_t
