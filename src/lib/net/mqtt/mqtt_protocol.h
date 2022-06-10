@@ -126,10 +126,24 @@ sky_u32_t sky_mqtt_publish_comp_unpack(sky_uchar_t *buf, sky_u16_t packet_identi
 
 sky_bool_t sky_mqtt_subscribe_pack(sky_mqtt_topic_reader_t *msg, sky_uchar_t *buf, sky_u32_t size);
 
+sky_u32_t sky_mqtt_subscribe_unpack(
+        sky_uchar_t *buf,
+        sky_u16_t packet_identifier,
+        const sky_mqtt_topic_t *topic,
+        sky_u32_t topic_n
+);
+
 sky_u32_t sky_mqtt_sub_ack_unpack(sky_uchar_t *buf, sky_u16_t packet_identifier,
                                   const sky_u8_t *max_qos, sky_u32_t topic_num);
 
 sky_bool_t sky_mqtt_unsubscribe_pack(sky_mqtt_topic_reader_t *msg, sky_uchar_t *buf, sky_u32_t size);
+
+sky_u32_t sky_mqtt_unsubscribe_unpack(
+        sky_uchar_t *buf,
+        sky_u16_t packet_identifier,
+        const sky_mqtt_topic_t *topic,
+        sky_u32_t topic_n
+);
 
 sky_u32_t sky_mqtt_unsub_ack_unpack(sky_uchar_t *buf, sky_u16_t packet_identifier);
 
@@ -139,6 +153,10 @@ sky_bool_t sky_mqtt_topic_read_next(sky_mqtt_topic_reader_t *msg, sky_mqtt_topic
 
 
 sky_u32_t sky_mqtt_connect_unpack_size(const sky_mqtt_connect_msg_t *msg);
+
+sky_u32_t sky_mqtt_subscribe_unpack_size(const sky_mqtt_topic_t *topic, sky_u32_t topic_n);
+
+sky_u32_t sky_mqtt_unsubscribe_unpack_size(const sky_mqtt_topic_t *topic, sky_u32_t topic_n);
 
 static sky_inline sky_u32_t
 sky_mqtt_publish_unpack_size(const sky_mqtt_publish_msg_t *msg, sky_u8_t qos) {

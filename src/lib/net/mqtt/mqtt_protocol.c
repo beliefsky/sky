@@ -530,6 +530,33 @@ sky_mqtt_subscribe_pack(sky_mqtt_topic_reader_t *msg, sky_uchar_t *buf, sky_u32_
 }
 
 sky_u32_t
+sky_mqtt_subscribe_unpack(
+        sky_uchar_t *buf,
+        sky_u16_t packet_identifier,
+        const sky_mqtt_topic_t *topic,
+        sky_u32_t topic_n
+) {
+    const sky_mqtt_head_t head = {
+            .type = SKY_MQTT_TYPE_SUBSCRIBE,
+            .body_size = sky_mqtt_subscribe_unpack_size(topic, topic_n)
+    };
+    const sky_u32_t size = sky_mqtt_head_unpack(&head, buf);
+    buf += size;
+
+    *((sky_u16_t *) buf) = sky_htons(packet_identifier);
+    buf += 2;
+
+    for (; topic_n > 0; ++topic, --topic_n) {
+        *((sky_u16_t *) buf) = sky_htons((sky_u16_t) topic->topic.len);
+        buf += 2;
+        sky_memcpy(buf, topic->topic.data, topic->topic.len);
+        buf += topic->topic.len;
+        *(buf++) = topic->qos;
+    }
+    return (size + head.body_size);
+}
+
+sky_u32_t
 sky_mqtt_sub_ack_unpack(sky_uchar_t *buf, sky_u16_t packet_identifier, const sky_u8_t *max_qos, sky_u32_t topic_num) {
     const sky_mqtt_head_t head = {
             .type = SKY_MQTT_TYPE_SUBACK,
@@ -562,6 +589,32 @@ sky_mqtt_unsubscribe_pack(sky_mqtt_topic_reader_t *msg, sky_uchar_t *buf, sky_u3
     msg->has_qos = false;
 
     return true;
+}
+
+sky_u32_t
+sky_mqtt_unsubscribe_unpack(
+        sky_uchar_t *buf,
+        sky_u16_t packet_identifier,
+        const sky_mqtt_topic_t *topic,
+        sky_u32_t topic_n
+) {
+    const sky_mqtt_head_t head = {
+            .type = SKY_MQTT_TYPE_UNSUBSCRIBE,
+            .body_size = sky_mqtt_unsubscribe_unpack_size(topic, topic_n)
+    };
+    const sky_u32_t size = sky_mqtt_head_unpack(&head, buf);
+    buf += size;
+
+    *((sky_u16_t *) buf) = sky_htons(packet_identifier);
+    buf += 2;
+
+    for (; topic_n > 0; ++topic, --topic_n) {
+        *((sky_u16_t *) buf) = sky_htons((sky_u16_t) topic->topic.len);
+        buf += 2;
+        sky_memcpy(buf, topic->topic.data, topic->topic.len);
+        buf += topic->topic.len;
+    }
+    return (size + head.body_size);
 }
 
 sky_u32_t
@@ -642,6 +695,30 @@ sky_mqtt_connect_unpack_size(const sky_mqtt_connect_msg_t *msg) {
     if (msg->password_flag) {
         size += 2;
         size += msg->password.len;
+    }
+
+    return size;
+}
+
+sky_u32_t
+sky_mqtt_subscribe_unpack_size(const sky_mqtt_topic_t *topic, sky_u32_t topic_n) {
+    sky_u32_t size = 2;
+    size += topic_n * 3;
+
+    for (; topic_n > 0; --topic_n) {
+        size += topic->topic.len;
+    }
+
+    return size;
+}
+
+sky_u32_t
+sky_mqtt_unsubscribe_unpack_size(const sky_mqtt_topic_t *topic, sky_u32_t topic_n) {
+    sky_u32_t size = 2;
+    size += topic_n << 1;
+
+    for (; topic_n > 0; --topic_n) {
+        size += topic->topic.len;
     }
 
     return size;
