@@ -88,6 +88,7 @@ typedef struct {
 #define sky_mqtt_publish_comp_unpack_size() 2
 #define sky_mqtt_sub_ack_unpack_size(_topic_num) ((_topic_num) + 2)
 #define sky_mqtt_unsub_ack_unpack_size() 2
+#define sky_mqtt_ping_req_unpack_size() 0
 #define sky_mqtt_ping_resp_unpack_size() 0
 
 
