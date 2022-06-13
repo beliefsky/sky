@@ -260,26 +260,7 @@ sky_coro_new() {
 
 void
 sky_coro_reset(sky_coro_t *coro, sky_coro_func_t func, void *data) {
-    sky_defer_t *defer;
-    sky_queue_t *block;
-
-
-    while (!sky_queue_is_empty(&coro->defers)) {
-        defer = (sky_defer_t *) sky_queue_next(&coro->defers);
-        sky_queue_remove(&defer->link);
-        defer->free = true;
-
-        defer->one_arg ? defer->one.func(defer->one.data)
-                       : defer->two.func(defer->two.data1, defer->two.data2);
-    }
-    while (!sky_queue_is_empty(&coro->blocks)) {
-        block = sky_queue_next(&coro->blocks);
-        sky_free(block);
-    }
-
-    coro->ptr = (sky_uchar_t *) (coro + 1);
-    coro->ptr_size = PAGE_SIZE - sizeof(sky_coro_t);
-
+    sky_defer_run(coro);
     sky_coro_set(coro, func, data);
 }
 
