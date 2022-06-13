@@ -225,4 +225,5 @@ install(FILES
         net/mqtt/mqtt_response.h
         net/mqtt/mqtt_subs.h
         net/mqtt/mqtt_server.h
+        net/mqtt/mqtt_client.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/mqtt")

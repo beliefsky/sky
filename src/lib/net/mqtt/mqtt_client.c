@@ -5,6 +5,7 @@
 #include "mqtt_client.h"
 #include "../tcp_listener.h"
 #include "../../core/memory.h"
+#include "../../core/log.h"
 
 
 struct sky_mqtt_client_s {
@@ -91,7 +92,7 @@ mqtt_connected_cb(sky_tcp_listener_t *listener, void *data) {
             .version = SKY_MQTT_PROTOCOL_V311,
             .clean_session = false,
     };
-    const sky_usize_t size = sky_mqtt_unpack_alloc_size(sky_mqtt_connect_unpack_size(&msg));
+    const sky_u32_t size = sky_mqtt_unpack_alloc_size(sky_mqtt_connect_unpack_size(&msg));
 
     sky_tcp_listener_stream_t *stream = sky_tcp_listener_get_stream(listener, size);
     sky_uchar_t *buff = stream->data + stream->size;
@@ -107,7 +108,9 @@ static sky_isize_t
 mqtt_handle(sky_coro_t *coro, sky_mqtt_client_t *client) {
     sky_uchar_t ch[255];
 
+    sky_tcp_listener_read(client->listener, ch, 255);
 
+    sky_log_info("%d %d %d %d", ch[0], ch[1], ch[2], ch[3]);
 
     return SKY_CORO_FINISHED;
 }
