@@ -24,21 +24,26 @@ typedef struct {
 
 struct sky_tcp_listener_s {
     sky_event_t ev;
+    sky_timer_wheel_entry_t reconnect_timer;
     sky_queue_t packet;
     sky_coro_t *coro;
     sky_inet_address_t *address;
     sky_tcp_listener_stream_t *current_packet;
     void *data;
+    sky_coro_func_t run;
     tcp_status_t status;
     sky_u32_t address_len;
     sky_i32_t keep_alive;
     sky_i32_t timeout;
     sky_u32_t write_size;
+    sky_bool_t reconnect;
 };
 
 static sky_bool_t tcp_run(sky_tcp_listener_t *listener);
 
 static void tcp_close(sky_tcp_listener_t *listener);
+
+static void tcp_reconnect_timer_cb(sky_timer_wheel_entry_t *timer);
 
 static void tcp_clean_packet(sky_tcp_listener_t *listener);
 
@@ -54,20 +59,28 @@ sky_tcp_listener_create(sky_event_loop_t *loop, const sky_tcp_listener_conf_t *c
 
     sky_tcp_listener_t *listener = sky_coro_malloc(coro, sizeof(sky_tcp_listener_t) + conf->address_len);
     sky_event_init(loop, &listener->ev, -1, tcp_run, tcp_close);
+
+    sky_timer_entry_init(&listener->reconnect_timer, tcp_reconnect_timer_cb);
+
     listener->coro = coro;
     listener->address = (sky_inet_address_t *) (listener + 1);
     listener->address_len = conf->address_len;
     listener->keep_alive = conf->keep_alive ?: -1;
     listener->timeout = conf->timeout ?: 5;
     listener->data = conf->data;
+    listener->run = conf->run;
     listener->current_packet = null;
     sky_queue_init(&listener->packet);
     listener->write_size = 0;
+    listener->reconnect = conf->reconnect;
 
     sky_memcpy(listener->address, conf->address, conf->address_len);
 
     listener->status = tcp_create_connection(listener);
     if (listener->status == CLOSE) {
+        if (listener->reconnect) {
+            sky_event_timer_register(loop, &listener->reconnect_timer, 5);
+        }
         sky_log_error("tcp listener connection error");
     }
 
@@ -243,9 +256,24 @@ tcp_run(sky_tcp_listener_t *listener) {
 
 static void
 tcp_close(sky_tcp_listener_t *listener) {
-    // re connection
+    listener->status = CLOSE;
     tcp_clean_packet(listener);
-    sky_log_error("tcp close");
+    if (listener->reconnect) {
+        sky_coro_reset(listener->coro, listener->run, listener->data);
+        sky_event_timer_register(listener->ev.loop, &listener->reconnect_timer, 5);
+    }
+    sky_log_error("tcp listener close");
+}
+
+static void
+tcp_reconnect_timer_cb(sky_timer_wheel_entry_t *timer) {
+    sky_tcp_listener_t *listener = sky_type_convert(timer, sky_tcp_listener_t, reconnect_timer);
+
+    listener->status = tcp_create_connection(listener);
+    if (listener->status == CLOSE) {
+        sky_event_timer_register(listener->ev.loop, &listener->reconnect_timer, 5);
+        sky_log_error("tcp listener connection error");
+    }
 }
 
 static void

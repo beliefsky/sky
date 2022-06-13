@@ -18,13 +18,13 @@ typedef struct sky_tcp_listener_conf_s sky_tcp_listener_conf_t;
 typedef struct sky_tcp_listener_stream_s sky_tcp_listener_stream_t;
 
 struct sky_tcp_listener_conf_s {
+    sky_inet_address_t *address;
+    void *data;
+    sky_coro_func_t run;
+    sky_u32_t address_len;
     sky_i32_t keep_alive;
     sky_i32_t timeout;
-    sky_u32_t address_len;
-    sky_inet_address_t *address;
-    sky_coro_func_t run;
-
-    void *data;
+    sky_bool_t reconnect;
 };
 
 struct sky_tcp_listener_stream_s {

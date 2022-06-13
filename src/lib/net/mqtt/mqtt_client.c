@@ -51,10 +51,12 @@ sky_mqtt_client_create(sky_event_loop_t *loop, const sky_mqtt_client_conf_t *con
     client->msg_handle = conf->msg_handle;
     client->pool = sky_pool_create(4096);
     const sky_tcp_listener_conf_t listener_conf = {
+            .keep_alive = conf->keep_alive,
             .address_len = conf->address_len,
             .address = conf->address,
             .run = (sky_coro_func_t) mqtt_handle,
-            .data = client
+            .data = client,
+            .reconnect = true
     };
     client->listener = sky_tcp_listener_create(loop, &listener_conf);
 
@@ -148,7 +150,7 @@ mqtt_connected(sky_mqtt_client_t *client) {
 
     sky_tcp_listener_write_packet(client->listener);
 
-    sky_event_timer_register(client->loop, &client->ping_timer, (sky_u32_t) (client->keep_alive << 1));
+    sky_event_timer_register(client->loop, &client->ping_timer, (sky_u32_t) (client->keep_alive >> 1));
 }
 
 static void
@@ -162,7 +164,7 @@ mqtt_ping(sky_mqtt_client_t *client) {
     sky_tcp_listener_write_packet(client->listener);
 
 
-    sky_event_timer_register(client->loop, &client->ping_timer, (sky_u32_t) (client->keep_alive << 1));
+    sky_event_timer_register(client->loop, &client->ping_timer, (sky_u32_t) (client->keep_alive >> 1));
 }
 
 static sky_isize_t
@@ -193,6 +195,7 @@ mqtt_handle(sky_coro_t *coro, sky_mqtt_client_t *client) {
     for (;;) {
         read_pack = mqtt_read_head_pack(client, &head);
         if (sky_unlikely(!read_pack)) {
+            sky_log_error("=============");
             return SKY_CORO_ABORT;
         }
 
@@ -238,6 +241,27 @@ mqtt_handle(sky_coro_t *coro, sky_mqtt_client_t *client) {
             case SKY_MQTT_TYPE_PUBLISH: {
                 sky_mqtt_publish_msg_t msg;
                 sky_mqtt_publish_pack(&msg, head.qos, body, head.body_size);
+                switch (head.qos) {
+                    case 1: {
+                        const sky_u32_t size = sky_mqtt_unpack_alloc_size(sky_mqtt_publish_ack_unpack_size());
+                        sky_tcp_listener_stream_t *stream = sky_tcp_listener_get_stream(client->listener, size);
+                        sky_uchar_t *buff = stream->data + stream->size;
+                        stream->size += sky_mqtt_publish_ack_unpack(buff, msg.packet_identifier);
+                        sky_tcp_listener_write_packet(client->listener);
+                        break;
+                    }
+                    case 2: {
+                        const sky_u32_t size = sky_mqtt_unpack_alloc_size(sky_mqtt_publish_rec_unpack_size());
+                        sky_tcp_listener_stream_t *stream = sky_tcp_listener_get_stream(client->listener, size);
+                        sky_uchar_t *buff = stream->data + stream->size;
+                        stream->size += sky_mqtt_publish_rec_unpack(buff, msg.packet_identifier);
+                        sky_tcp_listener_write_packet(client->listener);
+                        break;
+                    }
+                    default:
+                        break;
+                }
+
                 if (client->msg_handle) {
                     client->msg_handle(client, &head, &msg);
                 }
