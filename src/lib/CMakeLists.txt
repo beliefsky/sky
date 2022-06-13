@@ -61,6 +61,7 @@ set(SOURCES
         net/mqtt/mqtt_request.c
         net/mqtt/mqtt_response.c
         net/mqtt/mqtt_server.c
+        net/mqtt/mqtt_client.c
         )
 add_library(sky_static STATIC ${SOURCES})
 

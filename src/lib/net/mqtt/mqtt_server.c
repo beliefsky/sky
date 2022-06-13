@@ -66,7 +66,7 @@ mqtt_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_mqtt_server_
     conn->write_size = 0;
     conn->head_copy = 0;
 
-    sky_core_set(coro, (sky_coro_func_t) sky_mqtt_process, conn);
+    sky_coro_set(coro, (sky_coro_func_t) sky_mqtt_process, conn);
     sky_event_init(loop, &conn->ev, fd, mqtt_run, mqtt_close);
 
     return &conn->ev;
