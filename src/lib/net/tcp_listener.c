@@ -25,18 +25,15 @@ typedef struct {
 struct sky_tcp_listener_s {
     sky_event_t ev;
     sky_queue_t packet;
-    sky_uchar_t head_tmp[8];
     sky_coro_t *coro;
     sky_inet_address_t *address;
     sky_tcp_listener_stream_t *current_packet;
     void *data;
-    sky_tcp_listener_connected_pt connected;
     tcp_status_t status;
     sky_u32_t address_len;
     sky_i32_t keep_alive;
     sky_i32_t timeout;
     sky_u32_t write_size;
-    sky_u32_t head_copy: 3;
 };
 
 static sky_bool_t tcp_run(sky_tcp_listener_t *listener);
@@ -62,12 +59,10 @@ sky_tcp_listener_create(sky_event_loop_t *loop, const sky_tcp_listener_conf_t *c
     listener->address_len = conf->address_len;
     listener->keep_alive = conf->keep_alive ?: -1;
     listener->timeout = conf->timeout ?: 5;
-    listener->connected = conf->connected;
     listener->data = conf->data;
     listener->current_packet = null;
     sky_queue_init(&listener->packet);
     listener->write_size = 0;
-    listener->head_copy = 0;
 
     sky_memcpy(listener->address, conf->address, conf->address_len);
 
@@ -232,11 +227,6 @@ tcp_run(sky_tcp_listener_t *listener) {
                 case CONNECTING:
                     return true;
                 case READY:
-                    if (listener->connected) {
-                        if (!listener->connected(listener, listener->data)) {
-                            return false;
-                        }
-                    }
                     break;
                 default:
                     return false;
@@ -310,14 +300,6 @@ tcp_create_connection(sky_tcp_listener_t *listener) {
         }
     }
     sky_event_rebind(&listener->ev, fd);
-
-    if (listener->connected) {
-        if (!listener->connected(listener, listener->data)) {
-            sky_event_rebind(&listener->ev, -1);
-            close(fd);
-            return CLOSE;
-        }
-    }
     sky_event_register(&listener->ev, listener->keep_alive);
 
     return READY;
