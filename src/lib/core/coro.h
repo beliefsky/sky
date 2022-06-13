@@ -46,7 +46,7 @@ sky_coro_t *sky_coro_new();
  * @param func 异步函数
  * @param data 异步函数参数
  */
-void sky_core_set(sky_coro_t *coro, sky_coro_func_t func, void *data);
+void sky_coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data);
 
 /**
  * 重置协程
@@ -54,7 +54,7 @@ void sky_core_set(sky_coro_t *coro, sky_coro_func_t func, void *data);
  * @param func 异步函数
  * @param data 异步函数参数
  */
-void sky_core_reset(sky_coro_t *coro, sky_coro_func_t func, void *data);
+void sky_coro_reset(sky_coro_t *coro, sky_coro_func_t func, void *data);
 
 /**
  * 执行协程

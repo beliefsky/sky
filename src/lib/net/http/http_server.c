@@ -150,7 +150,7 @@ http_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server_
     sky_http_connection_t *conn = sky_coro_malloc(coro, sizeof(sky_http_connection_t));
     conn->coro = coro;
     conn->server = server;
-    sky_core_set(coro, (sky_coro_func_t) sky_http_request_process, conn);
+    sky_coro_set(coro, (sky_coro_func_t) sky_http_request_process, conn);
     sky_event_init(loop, &conn->ev, fd, http_connection_run, http_connection_close);
 
     return &conn->ev;
@@ -189,7 +189,7 @@ https_handshake(sky_http_connection_t *conn) {
         case 0:
             return true;
         case 1:
-            sky_core_set(conn->coro, (sky_coro_func_t) sky_http_request_process, conn);
+            sky_coro_set(conn->coro, (sky_coro_func_t) sky_http_request_process, conn);
             sky_event_reset(&conn->ev, http_connection_run, https_connection_close);
             return http_connection_run(conn);
         default:

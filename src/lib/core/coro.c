@@ -186,7 +186,7 @@ asm(".text\n\t"
 #if defined(__x86_64__)
 
 sky_inline void
-sky_core_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
+sky_coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     coro->context[5 /* R15 */] = (sky_usize_t) data;
     coro->context[6 /* RDI */] = (sky_usize_t) coro;
     coro->context[7 /* RSI */] = (sky_usize_t) func;
@@ -198,7 +198,7 @@ sky_core_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
 #elif defined(__i386__)
 
 sky_inline void
-sky_core_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
+sky_coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     sky_uchar_t *stack = (sky_uchar_t *) (sky_usize_t) (coro->stack + CORO_STACK_MIN);
     stack = (sky_uchar_t *) ((sky_usize_t) (stack - (3 * sizeof(sky_usize_t))) & (sky_usize_t) ~0x3);
 
@@ -216,7 +216,7 @@ sky_core_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
 #elif defined(SKY_HAVE_LIBUCONTEXT)
 
 sky_inline void
-sky_core_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
+sky_coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     sky_getcontext(&coro->context);
     coro->context.uc_stack.ss_sp = coro->stack;
     coro->context.uc_stack.ss_size = CORO_STACK_MIN;
@@ -233,7 +233,7 @@ sky_coro_t *
 sky_coro_create(sky_coro_func_t func, void *data) {
     sky_coro_t *coro = sky_coro_new();
 
-    sky_core_set(coro, func, data);
+    sky_coro_set(coro, func, data);
 
     return coro;
 }
@@ -259,7 +259,7 @@ sky_coro_new() {
 
 
 void
-sky_core_reset(sky_coro_t *coro, sky_coro_func_t func, void *data) {
+sky_coro_reset(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     sky_defer_t *defer;
     sky_queue_t *block;
 
@@ -280,7 +280,7 @@ sky_core_reset(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     coro->ptr = (sky_uchar_t *) (coro + 1);
     coro->ptr_size = PAGE_SIZE - sizeof(sky_coro_t);
 
-    sky_core_set(coro, func, data);
+    sky_coro_set(coro, func, data);
 }
 
 
