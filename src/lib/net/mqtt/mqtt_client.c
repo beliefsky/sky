@@ -25,11 +25,13 @@ struct sky_mqtt_client_s {
     sky_u32_t head_copy: 3;
 };
 
+static sky_isize_t mqtt_handle(sky_coro_t *coro, sky_mqtt_client_t *client);
+
 static void mqtt_connected(sky_mqtt_client_t *client);
 
-static void mqtt_ping(sky_mqtt_client_t *client);
+static void mqtt_closed_cb(sky_tcp_listener_t *listener, void *data);
 
-static sky_isize_t mqtt_handle(sky_coro_t *coro, sky_mqtt_client_t *client);
+static void mqtt_ping(sky_mqtt_client_t *client);
 
 static sky_u16_t mqtt_packet_identifier(sky_mqtt_client_t *client);
 
@@ -55,6 +57,7 @@ sky_mqtt_client_create(sky_event_loop_t *loop, const sky_mqtt_client_conf_t *con
             .address_len = conf->address_len,
             .address = conf->address,
             .run = (sky_coro_func_t) mqtt_handle,
+            .close = mqtt_closed_cb,
             .data = client,
             .reconnect = true
     };
@@ -133,47 +136,6 @@ sky_mqtt_client_destroy(sky_mqtt_client_t *client) {
     client->listener = null;
     client->coro = null;
     sky_pool_destroy(client->pool);
-}
-
-static void
-mqtt_connected(sky_mqtt_client_t *client) {
-    client->head_copy = 0;
-
-    const sky_mqtt_connect_msg_t msg = {
-            .keep_alive = client->keep_alive,
-            .client_id = client->client_id,
-            .protocol_name = sky_string("MQTT"),
-            .version = SKY_MQTT_PROTOCOL_V311,
-            .username = client->username,
-            .password = client->password,
-            .clean_session = true,
-            .username_flag = null != client->username.data,
-            .password_flag = null != client->password.data
-    };
-    const sky_u32_t size = sky_mqtt_unpack_alloc_size(sky_mqtt_connect_unpack_size(&msg));
-
-    sky_tcp_listener_stream_t *stream = sky_tcp_listener_get_stream(client->listener, size);
-    sky_uchar_t *buff = stream->data + stream->size;
-
-    stream->size += sky_mqtt_connect_unpack(buff, &msg);
-
-    sky_tcp_listener_write_packet(client->listener);
-
-    sky_event_timer_register(client->loop, &client->ping_timer, (sky_u32_t) (client->keep_alive >> 1));
-}
-
-static void
-mqtt_ping(sky_mqtt_client_t *client) {
-    const sky_u32_t size = sky_mqtt_unpack_alloc_size(sky_mqtt_ping_req_unpack_size());
-
-    sky_tcp_listener_stream_t *stream = sky_tcp_listener_get_stream(client->listener, size);
-    sky_uchar_t *buff = stream->data + stream->size;
-    stream->size += sky_mqtt_ping_req_unpack(buff);
-
-    sky_tcp_listener_write_packet(client->listener);
-
-
-    sky_event_timer_register(client->loop, &client->ping_timer, (sky_u32_t) (client->keep_alive >> 1));
 }
 
 static sky_isize_t
@@ -285,6 +247,53 @@ mqtt_handle(sky_coro_t *coro, sky_mqtt_client_t *client) {
         sky_pool_reset(client->pool);
         sky_defer_run(coro);
     }
+}
+
+static void
+mqtt_connected(sky_mqtt_client_t *client) {
+    client->head_copy = 0;
+
+    const sky_mqtt_connect_msg_t msg = {
+            .keep_alive = client->keep_alive,
+            .client_id = client->client_id,
+            .protocol_name = sky_string("MQTT"),
+            .version = SKY_MQTT_PROTOCOL_V311,
+            .username = client->username,
+            .password = client->password,
+            .clean_session = true,
+            .username_flag = null != client->username.data,
+            .password_flag = null != client->password.data
+    };
+    const sky_u32_t size = sky_mqtt_unpack_alloc_size(sky_mqtt_connect_unpack_size(&msg));
+
+    sky_tcp_listener_stream_t *stream = sky_tcp_listener_get_stream(client->listener, size);
+    sky_uchar_t *buff = stream->data + stream->size;
+
+    stream->size += sky_mqtt_connect_unpack(buff, &msg);
+
+    sky_tcp_listener_write_packet(client->listener);
+
+    sky_event_timer_register(client->loop, &client->ping_timer, (sky_u32_t) (client->keep_alive >> 1));
+}
+
+static void
+mqtt_closed_cb(sky_tcp_listener_t *listener, void *data) {
+    sky_mqtt_client_t *client = data;
+    client->coro = null;
+}
+
+static void
+mqtt_ping(sky_mqtt_client_t *client) {
+    const sky_u32_t size = sky_mqtt_unpack_alloc_size(sky_mqtt_ping_req_unpack_size());
+
+    sky_tcp_listener_stream_t *stream = sky_tcp_listener_get_stream(client->listener, size);
+    sky_uchar_t *buff = stream->data + stream->size;
+    stream->size += sky_mqtt_ping_req_unpack(buff);
+
+    sky_tcp_listener_write_packet(client->listener);
+
+
+    sky_event_timer_register(client->loop, &client->ping_timer, (sky_u32_t) (client->keep_alive >> 1));
 }
 
 static sky_inline sky_u16_t
