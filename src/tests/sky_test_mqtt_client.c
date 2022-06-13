@@ -24,6 +24,7 @@ timer_cb(sky_timer_wheel_entry_t *timer) {
 
 static void
 mqtt_msg_cb(sky_mqtt_client_t *client, sky_mqtt_head_t *head, sky_mqtt_publish_msg_t *msg) {
+    msg->payload.data[msg->payload.len] = '\0';
     sky_log_info("%s", msg->payload.data);
 }
 
