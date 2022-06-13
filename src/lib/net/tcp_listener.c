@@ -160,9 +160,63 @@ sky_tcp_listener_write_packet(sky_tcp_listener_t *listener) {
     return true;
 }
 
-sky_usize_t sky_tcp_listener_read(sky_tcp_listener_t *listener, sky_uchar_t *data, sky_usize_t size);
+sky_usize_t
+sky_tcp_listener_read(sky_tcp_listener_t *listener, sky_uchar_t *data, sky_usize_t size) {
+    sky_isize_t n;
 
-void sky_tcp_listener_read_all(sky_tcp_listener_t *listener, sky_uchar_t *data, sky_usize_t size);
+    const sky_i32_t fd = listener->ev.fd;
+    for (;;) {
+        if (sky_unlikely(sky_event_none_read(&listener->ev))) {
+            sky_coro_yield(listener->coro, SKY_CORO_MAY_RESUME);
+            continue;
+        }
+
+        if ((n = read(fd, data, size)) < 1) {
+            switch (errno) {
+                case EINTR:
+                case EAGAIN:
+                    sky_event_clean_read(&listener->ev);
+                    sky_coro_yield(listener->coro, SKY_CORO_MAY_RESUME);
+                    continue;
+                default:
+                    sky_coro_yield(listener->coro, SKY_CORO_ABORT);
+                    sky_coro_exit();
+            }
+        }
+        return (sky_usize_t) n;
+    }
+}
+
+void
+sky_tcp_listener_read_all(sky_tcp_listener_t *listener, sky_uchar_t *data, sky_usize_t size) {
+    sky_isize_t n;
+
+    const sky_i32_t fd = listener->ev.fd;
+
+    for (;;) {
+        if ((n = read(fd, data, size)) > 0) {
+            if ((sky_usize_t) n < size) {
+                data += n;
+                size -= (sky_usize_t) n;
+            } else {
+                return;
+            }
+        } else {
+            switch (errno) {
+                case EINTR:
+                case EAGAIN:
+                    break;
+                default:
+                    sky_coro_yield(listener->coro, SKY_CORO_ABORT);
+                    sky_coro_exit();
+            }
+        }
+        sky_event_clean_read(&listener->ev);
+        do {
+            sky_coro_yield(listener->coro, SKY_CORO_MAY_RESUME);
+        } while (sky_unlikely(sky_event_none_read(&listener->ev)));
+    }
+}
 
 void
 sky_tcp_listener_destroy(sky_tcp_listener_t *listener) {
