@@ -43,6 +43,8 @@ sky_bool_t sky_mqtt_client_sub(sky_mqtt_client_t *client, sky_mqtt_topic_t *topi
 
 sky_bool_t sky_mqtt_client_unsub(sky_mqtt_client_t *client, sky_mqtt_topic_t *topic, sky_u32_t topic_n);
 
+void sky_mqtt_client_destroy(sky_mqtt_client_t *client);
+
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif

@@ -37,6 +37,7 @@ struct sky_tcp_listener_s {
     sky_i32_t timeout;
     sky_u32_t write_size;
     sky_bool_t reconnect;
+    sky_bool_t free;
 };
 
 static sky_bool_t tcp_run(sky_tcp_listener_t *listener);
@@ -73,6 +74,7 @@ sky_tcp_listener_create(sky_event_loop_t *loop, const sky_tcp_listener_conf_t *c
     sky_queue_init(&listener->packet);
     listener->write_size = 0;
     listener->reconnect = conf->reconnect;
+    listener->free = false;
 
     sky_memcpy(listener->address, conf->address, conf->address_len);
 
@@ -89,8 +91,10 @@ sky_tcp_listener_create(sky_event_loop_t *loop, const sky_tcp_listener_conf_t *c
 
 sky_tcp_listener_stream_t *
 sky_tcp_listener_get_stream(sky_tcp_listener_t *listener, sky_u32_t need_size) {
+    if (sky_unlikely(listener->free)) {
+        return null;
+    }
     sky_tcp_listener_stream_t *packet = listener->current_packet;
-
     if (!packet) {
         if (need_size > PACKET_BUFF_SIZE) {
             packet = sky_malloc(need_size + sizeof(sky_tcp_listener_stream_t));
@@ -131,6 +135,9 @@ sky_tcp_listener_write_packet(sky_tcp_listener_t *listener) {
     sky_uchar_t *buf;
     sky_isize_t size;
 
+    if (sky_unlikely(listener->free)) {
+        return false;
+    }
     if (sky_event_none_write(&listener->ev) || sky_queue_is_empty(&listener->packet)) {
         return true;
     }
@@ -172,6 +179,9 @@ sky_usize_t
 sky_tcp_listener_read(sky_tcp_listener_t *listener, sky_uchar_t *data, sky_usize_t size) {
     sky_isize_t n;
 
+    if (sky_unlikely(listener->free)) {
+        return 0;
+    }
     const sky_i32_t fd = listener->ev.fd;
     for (;;) {
         if (sky_unlikely(sky_event_none_read(&listener->ev))) {
@@ -199,8 +209,10 @@ void
 sky_tcp_listener_read_all(sky_tcp_listener_t *listener, sky_uchar_t *data, sky_usize_t size) {
     sky_isize_t n;
 
+    if (sky_unlikely(listener->free)) {
+        return;
+    }
     const sky_i32_t fd = listener->ev.fd;
-
     for (;;) {
         if ((n = read(fd, data, size)) > 0) {
             if ((sky_usize_t) n < size) {
@@ -228,7 +240,16 @@ sky_tcp_listener_read_all(sky_tcp_listener_t *listener, sky_uchar_t *data, sky_u
 
 void
 sky_tcp_listener_destroy(sky_tcp_listener_t *listener) {
-    sky_coro_destroy(listener->coro);
+    if (sky_unlikely(listener->free)) {
+        return;
+    }
+    sky_timer_wheel_unlink(&listener->reconnect_timer);
+    if (sky_event_has_callback(&listener->ev)) {
+        listener->free = true;
+        sky_event_unregister(&listener->ev);
+    } else {
+        sky_coro_destroy(listener->coro);
+    }
 }
 
 static sky_bool_t
@@ -258,6 +279,10 @@ static void
 tcp_close(sky_tcp_listener_t *listener) {
     listener->status = CLOSE;
     tcp_clean_packet(listener);
+    if (listener->free) {
+        sky_coro_destroy(listener->coro);
+        return;
+    }
     if (listener->reconnect) {
         sky_coro_reset(listener->coro, listener->run, listener->data);
         sky_event_timer_register(listener->ev.loop, &listener->reconnect_timer, 5);

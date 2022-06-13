@@ -126,6 +126,15 @@ sky_mqtt_client_unsub(sky_mqtt_client_t *client, sky_mqtt_topic_t *topic, sky_u3
     return true;
 }
 
+void
+sky_mqtt_client_destroy(sky_mqtt_client_t *client) {
+    sky_timer_wheel_unlink(&client->ping_timer);
+    sky_tcp_listener_destroy(client->listener);
+    client->listener = null;
+    client->coro = null;
+    sky_pool_destroy(client->pool);
+}
+
 static void
 mqtt_connected(sky_mqtt_client_t *client) {
     client->head_copy = 0;
