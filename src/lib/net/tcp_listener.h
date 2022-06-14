@@ -16,6 +16,7 @@ extern "C" {
 typedef struct sky_tcp_listener_s sky_tcp_listener_t;
 typedef struct sky_tcp_listener_conf_s sky_tcp_listener_conf_t;
 typedef struct sky_tcp_listener_stream_s sky_tcp_listener_stream_t;
+
 typedef void (*sky_tcp_listener_close_pt)(sky_tcp_listener_t *listener, void *data);
 
 struct sky_tcp_listener_conf_s {
@@ -50,6 +51,16 @@ sky_usize_t sky_tcp_listener_read(sky_tcp_listener_t *listener, sky_uchar_t *dat
 void sky_tcp_listener_read_all(sky_tcp_listener_t *listener, sky_uchar_t *data, sky_usize_t size);
 
 void sky_tcp_listener_destroy(sky_tcp_listener_t *listener);
+
+static sky_inline sky_uchar_t *
+sky_tcp_listener_stream_buff(sky_tcp_listener_stream_t *stream) {
+    return stream->data + stream->size;
+}
+
+static sky_inline void
+sky_tcp_listener_stream_set_n(sky_tcp_listener_stream_t *stream, sky_u32_t n) {
+    stream->size += n;
+}
 
 
 #if defined(__cplusplus)
