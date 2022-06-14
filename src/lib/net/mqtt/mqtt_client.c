@@ -18,7 +18,9 @@ struct sky_mqtt_client_s {
     sky_tcp_listener_t *listener;
     sky_coro_t *coro;
     sky_pool_t *pool;
-    sky_mqtt_msg_pt *msg_handle;
+    sky_mqtt_status_pt connected;
+    sky_mqtt_status_pt closed;
+    sky_mqtt_msg_pt msg_handle;
     sky_uchar_t head_tmp[8];
     sky_u16_t packet_identifier;
     sky_u16_t keep_alive;
@@ -50,8 +52,11 @@ sky_mqtt_client_create(sky_event_loop_t *loop, const sky_mqtt_client_conf_t *con
     client->password = conf->password;
     client->keep_alive = conf->keep_alive ? conf->keep_alive : 60;
     client->loop = loop;
+    client->connected = conf->connected;
+    client->closed = conf->closed;
     client->msg_handle = conf->msg_handle;
     client->pool = sky_pool_create(4096);
+
     const sky_tcp_listener_conf_t listener_conf = {
             .keep_alive = conf->keep_alive,
             .address_len = conf->address_len,
@@ -165,6 +170,10 @@ mqtt_handle(sky_coro_t *coro, sky_mqtt_client_t *client) {
         }
 
         sky_pool_reset(client->pool);
+    }
+
+    if (client->connected) {
+        client->connected(client);
     }
 
     for (;;) {
@@ -284,6 +293,9 @@ static void
 mqtt_closed_cb(sky_tcp_listener_t *listener, void *data) {
     sky_mqtt_client_t *client = data;
     client->coro = null;
+    if (client->closed) {
+        client->closed(client);
+    }
 }
 
 static void
