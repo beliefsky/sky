@@ -7,6 +7,7 @@
 
 #include "../inet.h"
 #include "../../event/event_loop.h"
+#include "../../core/coro.h"
 #include "mqtt_protocol.h"
 
 #if defined(__cplusplus)
@@ -29,6 +30,7 @@ typedef struct {
 
 sky_mqtt_client_t *sky_mqtt_client_create(sky_event_loop_t *loop, const sky_mqtt_client_conf_t *conf);
 
+sky_coro_t * sky_mqtt_client_coro(sky_mqtt_client_t *client);
 
 sky_bool_t sky_mqtt_client_pub(
         sky_mqtt_client_t *client,
