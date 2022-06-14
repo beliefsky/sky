@@ -85,9 +85,10 @@ sky_tcp_listener_create(sky_event_loop_t *loop, const sky_tcp_listener_conf_t *c
         if (listener->reconnect) {
             sky_event_timer_register(loop, &listener->reconnect_timer, 5);
         }
-        sky_log_error("tcp listener connection error");
         if (listener->close) {
             listener->close(listener, listener->data);
+        } else {
+            sky_log_error("tcp listener connection error");
         }
     }
 
@@ -292,9 +293,11 @@ tcp_close(sky_tcp_listener_t *listener) {
         sky_coro_reset(listener->coro, listener->run, listener->data);
         sky_event_timer_register(listener->ev.loop, &listener->reconnect_timer, 5);
     }
-    sky_log_error("tcp listener close");
+
     if (listener->close) {
         listener->close(listener, listener->data);
+    } else {
+        sky_log_error("tcp listener close");
     }
 }
 
@@ -305,9 +308,11 @@ tcp_reconnect_timer_cb(sky_timer_wheel_entry_t *timer) {
     listener->status = tcp_create_connection(listener);
     if (listener->status == CLOSE) {
         sky_event_timer_register(listener->ev.loop, &listener->reconnect_timer, 5);
-        sky_log_error("tcp listener connection error");
+
         if (listener->close) {
             listener->close(listener, listener->data);
+        } else{
+            sky_log_error("tcp listener connection error");
         }
     }
 }
@@ -372,7 +377,6 @@ tcp_create_connection(sky_tcp_listener_t *listener) {
 static tcp_status_t
 tcp_connection(sky_tcp_listener_t *listener) {
     sky_i32_t fd = listener->ev.fd;
-
     if (connect(fd, listener->address, listener->address_len) < 0) {
         switch (errno) {
             case EALREADY:
