@@ -3,8 +3,6 @@
 //
 #include "event_loop.h"
 
-#if defined(SKY_HAVE_KQUEUE) && !defined(SKY_HAVE_EPOLL)
-
 #include <sys/resource.h>
 #include <unistd.h>
 #include <errno.h>
@@ -31,7 +29,7 @@ static void event_timer_callback(sky_event_t *ev);
 
 static sky_i32_t setup_open_file_count_limits();
 
-sky_event_loop_t*
+sky_event_loop_t *
 sky_event_loop_create() {
     sky_i32_t max_events;
     sky_event_loop_t *loop;
@@ -45,7 +43,7 @@ sky_event_loop_create() {
     max_events = sky_min(max_events, 1024);
 
     loop = sky_malloc(sizeof(sky_event_loop_t) + (sizeof(struct kevent) * (sky_u32_t) max_events)
-            + sizeof(sky_event_t *) * (sky_u32_t) max_events);
+                      + sizeof(sky_event_t *) * (sky_u32_t) max_events);
     loop->fd = kqueue();
     loop->max_events = max_events;
     loop->now = time(null);
@@ -77,7 +75,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
     max_events = loop->max_events;
     events = (struct kevent *) (loop + 1);
-    run_ev = (sky_event_t **)(events + max_events);
+    run_ev = (sky_event_t **) (events + max_events);
 
     sky_timer_wheel_run(ctx, (sky_u64_t) now);
     next_time = sky_timer_wheel_wake_at(ctx);
@@ -129,7 +127,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             // 是否可读
             // 是否可写
             ev->now = loop->now;
-            ev->status |= 1 << ((sky_u32_t)(event->filter == EVFILT_WRITE) + 1);
+            ev->status |= 1 << ((sky_u32_t) (event->filter == EVFILT_WRITE) + 1);
             if ((ev->status & 0x80000000) != 0) {
                 ev->status = (index << 16) | (ev->status & 0x0000FFFF); // ev->index = index;
                 run_ev[index++] = ev;
@@ -306,5 +304,3 @@ setup_open_file_count_limits() {
     out:
     return (sky_i32_t) r.rlim_cur;
 }
-
-#endif

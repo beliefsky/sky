@@ -33,8 +33,6 @@ set(SOURCES
         safe/mpmc_queue.c
         event/event_manager.c
         event/event_loop_common.c
-        event/event_loop_epoll.c
-        event/event_loop_kqueue.c
         net/inet.c
         net/tcp_server.c
         net/udp.c
@@ -63,6 +61,15 @@ set(SOURCES
         net/mqtt/mqtt_server.c
         net/mqtt/mqtt_client.c
         )
+
+if(SKY_HAVE_EPOLL)
+    set(SOURCES ${SOURCES} event/event_loop_epoll.c)
+elseif(SKY_HAVE_KQUEUE)
+    set(SOURCES ${SOURCES} event/event_loop_kqueue.c)
+endif()
+
+
+
 add_library(sky_static STATIC ${SOURCES})
 
 target_link_libraries(sky_static)
