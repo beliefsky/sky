@@ -31,6 +31,7 @@ set(SOURCES
         safe/spsc_queue.c
         safe/mpsc_queue.c
         safe/mpmc_queue.c
+        safe/mpsc_ring_buf.c
         event/event_manager.c
         event/event_loop_common.c
         net/inet.c
@@ -189,6 +190,7 @@ install(FILES
         safe/mpmc_queue.h
         safe/mpsc_queue.h
         safe/spsc_queue.h
+        safe/mpsc_ring_buf.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/safe")
 install(FILES
         event/event_loop.h
