@@ -6,6 +6,7 @@
 #include "coro.h"
 #include "queue.h"
 #include "memory.h"
+#include "log.h"
 
 
 #if !defined(SIGSTKSZ) || SIGSTKSZ < 4096
@@ -214,7 +215,8 @@ sky_coro_new() {
 
 void sky_coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     if (sky_unlikely(coro->self)) {
-        exit(1);
+        sky_log_error("sky_coro_set shouldn't into coro");
+        exit(EXIT_FAILURE);
     }
     coro_set(coro, func, data);
 }
@@ -230,7 +232,8 @@ sky_coro_reset(sky_coro_t *coro, sky_coro_func_t func, void *data) {
 sky_inline sky_isize_t
 sky_coro_resume(sky_coro_t *coro) {
     if (sky_unlikely(coro->self)) {
-        exit(1);
+        sky_log_error("sky_coro_resume shouldn't into coro");
+        exit(EXIT_FAILURE);
     }
     coro->self = true;
     coro_swapcontext(&coro->switcher->caller, &coro->context);
@@ -243,7 +246,8 @@ sky_coro_yield(sky_coro_t *coro, sky_isize_t value) {
     if (sky_likely(coro->self)) {
         return coro_yield(coro, value);
     } else {
-        exit(1);
+        sky_log_error("sky_coro_yield shouldn't out of coro");
+        exit(EXIT_FAILURE);
     }
 }
 
