@@ -2,6 +2,7 @@
 // Created by weijing on 18-3-12.
 //
 
+#include <stdlib.h>
 #include "coro.h"
 #include "queue.h"
 #include "memory.h"
@@ -213,7 +214,7 @@ sky_coro_new() {
 
 void sky_coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     if (sky_unlikely(coro->self)) {
-        sky_coro_exit();
+        exit(1);
     }
     coro_set(coro, func, data);
 }
@@ -229,7 +230,7 @@ sky_coro_reset(sky_coro_t *coro, sky_coro_func_t func, void *data) {
 sky_inline sky_isize_t
 sky_coro_resume(sky_coro_t *coro) {
     if (sky_unlikely(coro->self)) {
-        sky_coro_exit();
+        exit(1);
     }
     coro->self = true;
     coro_swapcontext(&coro->switcher->caller, &coro->context);
@@ -242,7 +243,7 @@ sky_coro_yield(sky_coro_t *coro, sky_isize_t value) {
     if (sky_likely(coro->self)) {
         return coro_yield(coro, value);
     } else {
-        sky_coro_exit();
+        exit(1);
     }
 }
 
