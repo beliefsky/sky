@@ -61,10 +61,8 @@ server_start(sky_event_loop_t *loop, void *data, sky_u32_t index) {
         };
         const sky_tcp_server_conf_t tcp_conf = {
                 .nodelay = true,
-                .bind_cpu = index,
                 .run = tcp_accept_cb,
                 .timeout = -1,
-                .cpu = index,
                 .address = (sky_inet_address_t *) &server_address_v4,
                 .address_len = sizeof(struct sockaddr_in),
         };
