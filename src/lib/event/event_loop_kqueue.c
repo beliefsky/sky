@@ -295,7 +295,7 @@ setup_open_file_count_limits() {
         }
 
         if (setrlimit(RLIMIT_NOFILE, &r) < 0) {
-            sky_log_error("Could not raise maximum number of file descriptors to %lu. Leaving at %lu", r.rlim_max,
+            sky_log_error("Could not raise maximum number of file descriptors to %ld. Leaving at %ld", r.rlim_max,
                           current);
             r.rlim_cur = current;
         }
