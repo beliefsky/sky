@@ -64,12 +64,6 @@ sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf)
     setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_i32_t));
 #endif
 
-#ifdef SO_INCOMING_CPU
-    if (conf->bind_cpu) {
-        setsockopt(fd, SOL_SOCKET, SO_INCOMING_CPU, &conf->cpu, sizeof(sky_u32_t));
-    }
-#endif
-
     if (conf->address->sa_family != AF_UNIX && conf->nodelay) {
         setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(sky_i32_t));
     }
