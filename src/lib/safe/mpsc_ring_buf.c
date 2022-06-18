@@ -29,13 +29,13 @@
     } while (0)
 
 struct sky_mpsc_ring_buf_worker_s {
-    volatile sky_u64_t seen_off;
+    sky_atomic_u64_t seen_off;
     sky_i32_t registered;
 };
 
 struct sky_mpsc_ring_buf_s {
     sky_usize_t space;
-    volatile sky_u64_t next;
+    sky_atomic_u64_t next;
     sky_u64_t end;
     sky_u64_t written;
     sky_u32_t workers_n;
