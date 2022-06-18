@@ -135,9 +135,11 @@ http_event_create(sky_event_loop_t *loop, void *data, sky_u32_t index) {
             .run = (sky_tcp_accept_cb_pt) http_connection_accept_cb,
 #endif
             .data = tmp->server,
+            .cpu = index,
             .timeout = 60,
             .nodelay = true,
             .defer_accept = true,
+            .bind_cpu = true
     };
 
     return sky_tcp_server_create(loop, &conf);
