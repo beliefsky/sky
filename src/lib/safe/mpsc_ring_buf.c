@@ -30,14 +30,14 @@
 
 struct sky_mpsc_ring_buf_worker_s {
     sky_atomic_u64_t seen_off;
-    sky_i32_t registered;
+    sky_atomic_i32_t registered;
 };
 
 struct sky_mpsc_ring_buf_s {
     sky_usize_t space;
     sky_atomic_u64_t next;
     sky_u64_t end;
-    sky_u64_t written;
+    sky_atomic_u64_t written;
     sky_u32_t workers_n;
     sky_mpsc_ring_buf_worker_t workers[];
 };
