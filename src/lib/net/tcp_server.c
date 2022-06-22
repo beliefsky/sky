@@ -66,7 +66,7 @@ sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf)
 
 #ifdef SO_INCOMING_CPU
     if (conf->bind_cpu) {
-        setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &conf->cpu, sizeof(sky_u32_t));
+        setsockopt(fd, SOL_SOCKET, SO_INCOMING_CPU, &conf->cpu, sizeof(sky_u32_t));
     }
 #endif
 
