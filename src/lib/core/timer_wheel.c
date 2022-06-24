@@ -114,7 +114,7 @@ sky_timer_wheel_wake_at(sky_timer_wheel_t *ctx) {
 }
 
 void
-sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_u64_t now) {
+sky_timer_wheel_get_expired(sky_timer_wheel_t *ctx, sky_queue_t *link, sky_u64_t now) {
     sky_usize_t wheel = 0, slot, slot_start;
     sky_queue_t *queue;
     sky_timer_wheel_entry_t *entry;
@@ -130,12 +130,7 @@ sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_u64_t now) {
         queue = &ctx->wheels[wheel][slot];
 
         if (!wheel) {
-            while (!sky_queue_is_empty(queue)) {
-                entry = (sky_timer_wheel_entry_t *) sky_queue_next(queue);
-                sky_queue_remove(&entry->link);
-                entry->cb(entry);
-            }
-
+            sky_queue_insert_next_list(link, queue);
             if (ctx->last_run == now) {
                 return;
             }
@@ -167,6 +162,21 @@ sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_u64_t now) {
         goto redo;
     }
     ctx->last_run = sky_max(ctx->last_run, now);
+}
+
+void
+sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_u64_t now) {
+    sky_timer_wheel_entry_t *entry;
+
+    sky_queue_t queue;
+    sky_queue_init(&queue);
+    sky_timer_wheel_get_expired(ctx, &queue, now);
+
+    while (!sky_queue_is_empty(&queue)) {
+        entry = (sky_timer_wheel_entry_t *) sky_queue_next(&queue);
+        sky_queue_remove(&entry->link);
+        entry->cb(entry);
+    }
 }
 
 void
