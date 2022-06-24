@@ -154,7 +154,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             }
         }
 
-        if (now != loop->now || loop->update) {
+        if (loop->update || now != loop->now) {
             now = loop->now;
             loop->update = false;
 
