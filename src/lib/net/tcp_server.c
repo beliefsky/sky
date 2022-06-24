@@ -126,8 +126,8 @@ tcp_listener_accept(sky_event_t *ev) {
 
         if (sky_likely((event = l->run(loop, fd, l->data)))) {
             if (!event->run(event)) {
-                event->close(event);
                 close(fd);
+                event->close(event);
             } else {
                 sky_event_register(event, event->timeout ?: l->timeout);
             }
