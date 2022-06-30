@@ -168,7 +168,7 @@ sky_event_manager_idx_msg(sky_event_manager_t *manager, sky_event_msg_t *msg, sk
     }
 
     sky_bool_t result = sky_mpsc_queue_push(&thread->queue, msg);
-    if (sky_unlikely(!result || sky_atomic_get_set_explicit(&thread->ready, false, SKY_ATOMIC_ACQUIRE))) {
+    if (sky_unlikely(!result || sky_atomic_get_set_explicit(&thread->ready, false, SKY_ATOMIC_ACQ_REL))) {
         event_thread_msg_send(thread);
     }
 
