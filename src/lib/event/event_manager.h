@@ -30,7 +30,7 @@ typedef struct {
 
 sky_event_manager_t *sky_event_manager_create();
 
-sky_event_manager_t *sky_event_manager_create_with_conf(const sky_event_manager_conf_t *conf);
+sky_event_manager_t *sky_event_manager_create_with_capacity(sky_usize_t share_msg_capacity);
 
 sky_u32_t sky_event_manager_thread_n(sky_event_manager_t *manager);
 
