@@ -46,7 +46,6 @@ struct event_thread_s {
 
 struct sky_event_manager_s {
     event_thread_t *event_threads;
-    sky_usize_t msg_limit_n;
     sky_u32_t thread_n;
 };
 
@@ -67,17 +66,11 @@ static sky_thread sky_u32_t event_manager_idx = SKY_U32_MAX;
 
 sky_event_manager_t *
 sky_event_manager_create() {
-    const sky_event_manager_conf_t conf = {
-            .msg_cap = 65536,
-            .msg_limit_n = 4096,
-            .msg_limit_sec = 1
-    };
-
-    return sky_event_manager_create_with_conf(&conf);
+    return sky_event_manager_create_with_capacity(65536);
 }
 
 sky_event_manager_t *
-sky_event_manager_create_with_conf(const sky_event_manager_conf_t *conf) {
+sky_event_manager_create_with_capacity(sky_usize_t share_msg_capacity) {
     sky_isize_t size = (sky_isize_t) sysconf(_SC_NPROCESSORS_CONF);
     if (size <= 0) {
         size = 1;
@@ -91,14 +84,9 @@ sky_event_manager_create_with_conf(const sky_event_manager_conf_t *conf) {
 
     manager->event_threads = thread;
     manager->thread_n = thread_n;
-    manager->msg_limit_n = conf->msg_limit_n / thread_n;
-    manager->msg_limit_n = sky_max(manager->msg_limit_n, SKY_U32(8));
-
-    sky_usize_t msg_size = (manager->msg_limit_n * thread_n) << 1;
-    msg_size = sky_max(msg_size, conf->msg_cap);
 
     for (sky_u32_t i = 0; i < thread_n; ++i, ++thread) {
-        sky_mpsc_queue_init(&thread->queue, msg_size);
+        sky_mpsc_queue_init(&thread->queue, share_msg_capacity);
         thread->loop = sky_event_loop_create();
         thread->thread_idx = i;
         thread->ready = SKY_ATOMIC_VAR_INIT(true);
