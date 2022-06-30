@@ -30,6 +30,11 @@ sky_mpsc_queue_size(sky_mpsc_queue_t *queue) {
 }
 
 static sky_inline sky_bool_t
+sky_mpsc_queue_is_empty(sky_mpsc_queue_t *queue) {
+    return sky_mpmc_queue_is_empty(queue);
+}
+
+static sky_inline sky_bool_t
 sky_mpsc_queue_push(sky_mpsc_queue_t *queue, void *data) {
     return sky_mpmc_queue_push(queue, data);
 }
