@@ -27,16 +27,10 @@ typedef void (*sky_defer_func2_t)(void *data1, void *data2);
 
 
 /**
- * 创建协程切换器
- * @return 协程切换器
+ * 协程切换器内存占用（可以此申请内存）
+ * @return 内存占用字节数
  */
-sky_coro_switcher_t *sky_coro_switcher_create();
-
-/**
- * 销毁协程切换器
- * @param switcher 协程切换器
- */
-void sky_coro_switcher_destroy(sky_coro_switcher_t *switcher);
+sky_usize_t sky_coro_switcher_size();
 
 /**
  * @param func      异步函数
