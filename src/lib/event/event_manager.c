@@ -146,16 +146,7 @@ sky_event_manager_idx_msg(sky_event_manager_t *manager, sky_event_msg_t *msg, sk
         return false;
     }
     event_thread_t *thread = manager->event_threads + idx;
-
-    if (idx == event_manager_idx) {
-        while (null != (msg = sky_mpsc_queue_pop(&thread->queue))) {
-            msg->handle(msg);
-        }
-        msg->handle(msg);
-        return true;
-    }
-
-    sky_bool_t result = sky_mpsc_queue_push(&thread->queue, msg);
+    const sky_bool_t result = sky_mpsc_queue_push(&thread->queue, msg);
     if (sky_unlikely(!result)) {
         event_thread_msg_send(thread);
     } else if (sky_atomic_get_explicit(&thread->ready, SKY_ATOMIC_ACQUIRE)) {
