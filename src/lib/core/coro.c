@@ -52,9 +52,9 @@ typedef libucontext_ucontext_t sky_coro_context_t;
 #error Unsupported platform.
 #endif
 
-typedef struct {
+struct sky_coro_switcher_s {
     sky_coro_context_t caller;
-} sky_coro_switcher_t;
+};
 
 struct sky_defer_s {
     sky_queue_t link;
@@ -96,7 +96,7 @@ static sky_isize_t coro_yield(sky_coro_t *coro, sky_isize_t value);
 static void mem_block_add(sky_coro_t *coro);
 
 
-static sky_thread sky_coro_switcher_t switcher;
+static sky_thread sky_coro_switcher_t thread_switcher;
 
 #if defined(__x86_64__)
 
@@ -185,20 +185,41 @@ asm(".text\n\t"
 #endif
 
 
+sky_coro_switcher_t *
+sky_coro_switcher_create() {
+    return sky_malloc(sizeof(sky_coro_switcher_t));
+}
+
+void
+sky_coro_switcher_destroy(sky_coro_switcher_t *switcher) {
+    sky_free(switcher);
+}
+
 sky_coro_t *
 sky_coro_create(sky_coro_func_t func, void *data) {
-    sky_coro_t *coro = sky_coro_new();
+    return sky_coro_create_with_switcher(&thread_switcher, func, data);
+}
+
+
+sky_inline sky_coro_t *
+sky_coro_create_with_switcher(sky_coro_switcher_t *switcher, sky_coro_func_t func, void *data) {
+    sky_coro_t *coro = sky_coro_new_with_switcher(switcher);
 
     coro_set(coro, func, data);
 
     return coro;
 }
 
-sky_inline sky_coro_t *
+sky_coro_t *
 sky_coro_new() {
+    return sky_coro_new_with_switcher(&thread_switcher);
+}
+
+sky_inline sky_coro_t *
+sky_coro_new_with_switcher(sky_coro_switcher_t *switcher) {
     sky_coro_t *coro = sky_malloc(CORE_BLOCK_SIZE);
 
-    coro->switcher = &switcher;
+    coro->switcher = switcher;
 
     sky_queue_init(&coro->defers);
     sky_queue_init(&coro->global_defers);

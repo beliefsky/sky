@@ -15,6 +15,7 @@
 #define SKY_CORO_MAY_RESUME 0
 #define SKY_CORO_FINISHED   1
 
+typedef struct sky_coro_switcher_s sky_coro_switcher_t;
 typedef struct sky_coro_s sky_coro_t;
 typedef struct sky_defer_s sky_defer_t;
 
@@ -26,7 +27,18 @@ typedef void (*sky_defer_func2_t)(void *data1, void *data2);
 
 
 /**
- * 创建协程
+ * 创建协程切换器
+ * @return 协程切换器
+ */
+sky_coro_switcher_t *sky_coro_switcher_create();
+
+/**
+ * 销毁协程切换器
+ * @param switcher 协程切换器
+ */
+void sky_coro_switcher_destroy(sky_coro_switcher_t *switcher);
+
+/**
  * @param func      异步函数
  * @param data      异步函数参数
  * @return 协程
@@ -34,11 +46,27 @@ typedef void (*sky_defer_func2_t)(void *data1, void *data2);
 sky_coro_t *sky_coro_create(sky_coro_func_t func, void *data);
 
 /**
+ * 创建协程
+ * @param switcher  协程切换器
+ * @param func      异步函数
+ * @param data      异步函数参数
+ * @return 协程
+ */
+sky_coro_t *sky_coro_create_with_switcher(sky_coro_switcher_t *switcher, sky_coro_func_t func, void *data);
+
+
+/**
+ * 创建一个未指定函数的协程
+ * @return 协程
+ */
+sky_coro_t *sky_coro_new();
+
+/**
  * 创建一个未指定函数的协程
  * @param switcher  协程切换器
  * @return 协程
  */
-sky_coro_t *sky_coro_new();
+sky_coro_t *sky_coro_new_with_switcher(sky_coro_switcher_t *switcher);
 
 /**
  * 协程配置函数
