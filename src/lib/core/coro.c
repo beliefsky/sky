@@ -185,14 +185,9 @@ asm(".text\n\t"
 #endif
 
 
-sky_coro_switcher_t *
-sky_coro_switcher_create() {
-    return sky_malloc(sizeof(sky_coro_switcher_t));
-}
-
-void
-sky_coro_switcher_destroy(sky_coro_switcher_t *switcher) {
-    sky_free(switcher);
+sky_inline sky_usize_t
+sky_coro_switcher_size() {
+    return sizeof(sky_coro_switcher_t);
 }
 
 sky_coro_t *
