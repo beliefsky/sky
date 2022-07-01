@@ -28,7 +28,7 @@ http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size) {
             continue;
         }
 
-        if ((n = read(fd, data, size)) < 1) {
+        if ((n = recv(fd, data, size, 0)) < 1) {
             switch (errno) {
                 case EINTR:
                 case EAGAIN:
@@ -55,7 +55,7 @@ http_write(sky_http_connection_t *conn, const sky_uchar_t *data, sky_usize_t siz
             continue;
         }
 
-        if ((n = write(fd, data, size)) < 1) {
+        if ((n = send(fd, data, size, 0)) < 1) {
             switch (errno) {
                 case EINTR:
                 case EAGAIN:
