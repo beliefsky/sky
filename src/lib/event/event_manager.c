@@ -223,7 +223,7 @@ event_msg_run(event_thread_t *thread) {
     }
 #ifdef SKY_HAVE_EVENT_FD
     sky_u64_t tmp;
-    read(thread->msg_event.fd, &tmp, sizeof(sky_u64_t));
+    eventfd_read(thread->msg_event.fd, &tmp);
 #else
     sky_uchar_t tmp[sizeof(sky_u8_t) << 6];
     for (;;) {
@@ -252,7 +252,7 @@ static sky_inline void
 event_thread_msg_send(event_thread_t *thread) {
 #ifdef SKY_HAVE_EVENT_FD
     sky_u64_t tmp = SKY_U64(1);
-    write(thread->msg_event.fd, &tmp, sizeof(sky_u64_t));
+    eventfd_write(thread->msg_event.fd, tmp);
 #else
     sky_u8_t tmp = SKY_U8(1);
     write(thread->write_fd, &tmp, sizeof(sky_u8_t));

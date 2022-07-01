@@ -167,7 +167,7 @@ sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
 
     ev = &client->ev;
     if (sky_event_none_reg(ev)) {
-        if ((n = read(ev->fd, data, size)) > 0) {
+        if ((n = recv(ev->fd, data, size, 0)) > 0) {
             return (sky_usize_t) n;
         }
         switch (errno) {
@@ -201,7 +201,7 @@ sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
 
     for (;;) {
 
-        if ((n = read(ev->fd, data, size)) > 0) {
+        if ((n = recv(ev->fd, data, size, 0)) > 0) {
             sky_event_reset_timeout_self(ev, client->conn_pool->keep_alive);
             return (sky_usize_t) n;
         }
@@ -236,7 +236,7 @@ sky_tcp_pool_conn_read_all(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t 
 
     ev = &client->ev;
     if (sky_event_none_reg(ev)) {
-        if ((n = read(ev->fd, data, size)) > 0) {
+        if ((n = recv(ev->fd, data, size, 0)) > 0) {
             if ((sky_usize_t) n < size) {
                 data += n;
                 size -= (sky_usize_t) n;
@@ -275,7 +275,7 @@ sky_tcp_pool_conn_read_all(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t 
     }
 
     for (;;) {
-        if ((n = read(ev->fd, data, size)) > 0) {
+        if ((n = recv(ev->fd, data, size, 0)) > 0) {
             if ((sky_usize_t) n < size) {
                 data += n;
                 size -= (sky_usize_t) n;
@@ -316,7 +316,7 @@ sky_tcp_pool_conn_read_nowait(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize
 
     ev = &client->ev;
     if (sky_event_none_reg(ev)) {
-        if ((n = read(ev->fd, data, size)) > 0) {
+        if ((n = recv(ev->fd, data, size, 0)) > 0) {
             return n;
         }
         switch (errno) {
@@ -333,7 +333,7 @@ sky_tcp_pool_conn_read_nowait(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize
         sky_event_clean_read(ev);
     } else {
         if (sky_likely(sky_event_is_read(ev))) {
-            if ((n = read(ev->fd, data, size)) > 0) {
+            if ((n = recv(ev->fd, data, size, 0)) > 0) {
                 return n;
             }
             switch (errno) {
@@ -364,7 +364,7 @@ sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize
 
     ev = &client->ev;
     if (sky_event_none_reg(ev)) {
-        if ((n = write(ev->fd, data, size)) > 0) {
+        if ((n = send(ev->fd, data, size, 0)) > 0) {
             return (sky_usize_t) n;
         }
         switch (errno) {
@@ -397,7 +397,7 @@ sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize
     }
 
     for (;;) {
-        if ((n = write(ev->fd, data, size)) > 0) {
+        if ((n = send(ev->fd, data, size, 0)) > 0) {
             sky_event_reset_timeout_self(ev, client->conn_pool->keep_alive);
 
             return (sky_usize_t) n;
@@ -433,7 +433,7 @@ sky_tcp_pool_conn_write_all(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_u
 
     ev = &client->ev;
     if (sky_event_none_reg(ev)) {
-        if ((n = write(ev->fd, data, size)) > 0) {
+        if ((n = send(ev->fd, data, size, 0)) > 0) {
             if ((sky_usize_t) n < size) {
                 data += n;
                 size -= (sky_usize_t) n;
@@ -472,7 +472,7 @@ sky_tcp_pool_conn_write_all(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_u
     }
 
     for (;;) {
-        if ((n = write(ev->fd, data, size)) > 0) {
+        if ((n = send(ev->fd, data, size, 0)) > 0) {
             if ((sky_usize_t) n < size) {
                 data += n;
                 size -= (sky_usize_t) n;
@@ -513,7 +513,7 @@ sky_tcp_pool_conn_write_nowait(sky_tcp_conn_t *conn, const sky_uchar_t *data, sk
 
     ev = &client->ev;
     if (sky_event_none_reg(ev)) {
-        if ((n = write(ev->fd, data, size)) > 0) {
+        if ((n = send(ev->fd, data, size, 0)) > 0) {
             return n;
         }
         switch (errno) {
@@ -530,7 +530,7 @@ sky_tcp_pool_conn_write_nowait(sky_tcp_conn_t *conn, const sky_uchar_t *data, sk
         sky_event_clean_write(ev);
     } else {
         if (sky_likely(sky_event_is_write(ev))) {
-            if ((n = write(ev->fd, data, size)) > 0) {
+            if ((n = send(ev->fd, data, size, 0)) > 0) {
                 return n;
             }
             switch (errno) {
