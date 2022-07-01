@@ -197,7 +197,7 @@ sky_tcp_listener_read(sky_tcp_listener_t *listener, sky_uchar_t *data, sky_usize
             continue;
         }
 
-        if ((n = read(fd, data, size)) < 1) {
+        if ((n = recv(fd, data, size, 0)) < 1) {
             switch (errno) {
                 case EINTR:
                 case EAGAIN:
@@ -222,7 +222,7 @@ sky_tcp_listener_read_all(sky_tcp_listener_t *listener, sky_uchar_t *data, sky_u
     }
     const sky_i32_t fd = listener->ev.fd;
     for (;;) {
-        if ((n = read(fd, data, size)) > 0) {
+        if ((n = recv(fd, data, size, 0)) > 0) {
             if ((sky_usize_t) n < size) {
                 data += n;
                 size -= (sky_usize_t) n;
@@ -399,7 +399,7 @@ write_nowait(sky_tcp_listener_t *listener, const sky_uchar_t *data, sky_usize_t 
     const sky_socket_t fd = listener->ev.fd;
 
     if (sky_likely(sky_event_is_write(&listener->ev))) {
-        const sky_isize_t n = write(fd, data, size);
+        const sky_isize_t n = send(fd, data, size, 0);
         if (n > 0) {
             return n;
         }
