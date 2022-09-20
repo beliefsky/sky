@@ -48,6 +48,7 @@ sky_event_loop_create() {
     loop->max_events = max_events;
     loop->now = time(null);
     loop->ctx = sky_timer_wheel_create(TIMER_WHEEL_DEFAULT_NUM, (sky_u64_t) loop->now);
+    loop->current_ev = null;
 
     return loop;
 }
@@ -138,6 +139,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
         for (i = 0; i < index; ++i) {
             ev = run_ev[i];
             ev->status |= 0x80000000; // index = none
+            loop->current_ev = ev;
             if (sky_event_none_reg(ev)) {
                 sky_timer_wheel_unlink(&ev->timer);
                 ev->close(ev);
@@ -265,6 +267,7 @@ sky_event_unregister(sky_event_t *ev) {
 
 static void
 event_timer_callback(sky_event_t *ev) {
+    ev->loop->current_ev = ev;
     if (sky_event_is_reg(ev)) {
         close(ev->fd);
         ev->fd = -1;
