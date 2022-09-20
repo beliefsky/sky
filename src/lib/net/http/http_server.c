@@ -56,18 +56,18 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
 #ifdef SKY_HAVE_TLS
     if (conf->tls_ctx) {
         server->tls_ctx = conf->tls_ctx;
-        server->http_read = https_read;
-        server->http_write = https_write;
-        server->http_send_file = https_send_file;
+        server->http_read = sky_https_read;
+        server->http_write = sky_https_write;
+        server->http_send_file = sky_https_send_file;
     } else {
-        server->http_read = http_read;
-        server->http_write = http_write;
-        server->http_send_file = http_send_file;
+        server->http_read = sky_http_read;
+        server->http_write = sky_http_write;
+        server->http_send_file = sky_http_send_file;
     }
 #else
-    server->http_read = http_read;
-    server->http_write = http_write;
-    server->http_send_file = http_send_file;
+    server->http_read = sky_http_read;
+    server->http_write = sky_http_write;
+    server->http_send_file = sky_http_send_file;
 #endif
     server->rfc_last = 0;
 
