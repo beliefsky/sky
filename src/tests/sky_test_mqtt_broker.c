@@ -2,30 +2,28 @@
 // Created by weijing on 18-2-8.
 //
 #include <netinet/in.h>
-#include <event/event_manager.h>
+#include <event/event_loop.h>
 #include <core/log.h>
 #include <net/mqtt/mqtt_server.h>
 
-static void create_server(sky_event_manager_t *manager);
+static void create_server(sky_event_loop_t *ev_loop);
 
 int
 main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
-    sky_event_manager_t *manager = sky_event_manager_create();
-
-    create_server(manager);
-
-    sky_event_manager_run(manager);
-    sky_event_manager_destroy(manager);
+    sky_event_loop_t *ev_loop = sky_event_loop_create();
+    create_server(ev_loop);
+    sky_event_loop_run(ev_loop);
+    sky_event_loop_destroy(ev_loop);
 
     return 0;
 }
 
 static void
-create_server(sky_event_manager_t *manager) {
-    sky_mqtt_server_t *server = sky_mqtt_server_create(manager);
+create_server(sky_event_loop_t *ev_loop) {
+    sky_mqtt_server_t *server = sky_mqtt_server_create(ev_loop);
 
     struct sockaddr_in v4_address = {
             .sin_family = AF_INET,

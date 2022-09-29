@@ -42,7 +42,7 @@ main() {
             .msg_handle = mqtt_msg_cb
     };
 
-    sky_mqtt_client_t *mqtt_client = sky_mqtt_client_create(ev_loop, &mqtt_conf);
+    sky_mqtt_client_create(ev_loop, &mqtt_conf);
 
     sky_event_loop_run(ev_loop);
     sky_event_loop_destroy(ev_loop);

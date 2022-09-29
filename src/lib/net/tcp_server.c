@@ -9,7 +9,6 @@
 #include "tcp_server.h"
 #include "../core/log.h"
 #include "../core/number.h"
-#include "../core/memory.h"
 #include <unistd.h>
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -54,21 +53,19 @@ sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf)
             return false;
         }
 #endif
-
-
     opt = 1;
     setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_i32_t));
-#ifdef SO_REUSEPORT_LB
-    setsockopt(fd, SOL_SOCKET, SO_REUSEPORT_LB, &opt, sizeof(sky_i32_t));
-#else
-    setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_i32_t));
-#endif
 
-#ifdef SO_INCOMING_CPU
-    if (conf->bind_cpu) {
-        setsockopt(fd, SOL_SOCKET, SO_INCOMING_CPU, &conf->cpu, sizeof(sky_u32_t));
-    }
+    if (conf->reuse_port) {
+#ifdef SO_REUSEPORT_LB
+        setsockopt(fd, SOL_SOCKET, SO_REUSEPORT_LB, &opt, sizeof(sky_i32_t));
+#elifdef SO_REUSEPORT
+        setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_i32_t));
+#else
+        close(fd);
+        return false;
 #endif
+    }
 
     if (conf->address->sa_family != AF_UNIX && conf->nodelay) {
         setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(sky_i32_t));

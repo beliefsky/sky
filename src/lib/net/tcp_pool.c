@@ -19,8 +19,8 @@ struct sky_tcp_pool_s {
     sky_i32_t timeout;
     sky_u32_t address_len;
 
-    sky_u32_t thread_conn_n;
-    sky_u32_t thread_conn_mask;
+    sky_u32_t conn_n;
+    sky_u32_t conn_mask;
 
     sky_bool_t free: 1;
     sky_bool_t nodelay: 1;
@@ -45,56 +45,46 @@ static void tcp_connection_defer(sky_tcp_conn_t *conn);
 
 
 sky_tcp_pool_t *
-sky_tcp_pool_create(sky_event_manager_t *manager, const sky_tcp_pool_conf_t *conf) {
-    sky_u32_t thread_n = sky_event_manager_thread_n(manager);
-    sky_u32_t thread_conn_n, conn_n;
-    if (conf->connection_size < thread_n) {
-        thread_conn_n = 1;
-        conn_n = thread_n;
+sky_tcp_pool_create(sky_event_loop_t *ev_loop, const sky_tcp_pool_conf_t *conf) {
+    sky_u32_t conn_n;
+
+    if (0 == conf->connection_size) {
+        conn_n = 1;
+    } else if (!sky_is_2_power(conf->connection_size)) {
+        conn_n = SKY_U32(1) << (32 - sky_clz_u32(conf->connection_size));
     } else {
-        if ((conf->connection_size % thread_n) == 0) {
-            thread_conn_n = conf->connection_size / thread_n;
-        } else {
-            thread_conn_n = (conf->connection_size / thread_n) + 1;
-        }
-        if (!sky_is_2_power(thread_conn_n)) {
-            thread_conn_n = SKY_U32(1) << (32 - sky_clz_u32(thread_conn_n));
-        }
-        conn_n = thread_n * thread_conn_n;
+        conn_n = conf->connection_size;
     }
+
     sky_tcp_pool_t *conn_pool = sky_malloc(
             sizeof(sky_tcp_pool_t)
             + (sizeof(sky_tcp_node_t) * conn_n)
             + conf->address_len
     );
-    conn_pool->clients = (sky_tcp_node_t *) (conn_pool + 1);
 
+    conn_pool->clients = (sky_tcp_node_t *) (conn_pool + 1);
     conn_pool->address = (sky_inet_address_t *) (conn_pool->clients + conn_n);
     conn_pool->address_len = conf->address_len;
     sky_memcpy(conn_pool->address, conf->address, conn_pool->address_len);
 
-    conn_pool->thread_conn_n = thread_conn_n;
-    conn_pool->thread_conn_mask = thread_conn_n - 1;
+    conn_pool->conn_n = conn_n;
+    conn_pool->conn_mask = conn_n - 1;
     conn_pool->next_func = conf->next_func;
-
     conn_pool->keep_alive = conf->keep_alive ?: -1;
     conn_pool->timeout = conf->timeout ?: 5;
     conn_pool->free = false;
     conn_pool->nodelay = conf->address->sa_family != AF_UNIX && conf->nodelay;
 
-
     sky_tcp_node_t *client = conn_pool->clients;
-    for (sky_u32_t i = 0; i < thread_n; ++i) {
-        sky_event_loop_t *loop = sky_event_manager_idx_event_loop(manager, i);
-        for (sky_u32_t j = 0; j < thread_conn_n; ++j, ++client) {
-            sky_event_init(loop, &client->ev, -1, tcp_run, tcp_close);
-            client->conn_time = 0;
-            client->conn_pool = conn_pool;
-            client->current = null;
-            client->main = false;
 
-            sky_queue_init(&client->tasks);
-        }
+    for (sky_u32_t j = 0; j < conn_n; ++j, ++client) {
+        sky_event_init(ev_loop, &client->ev, -1, tcp_run, tcp_close);
+        client->conn_time = 0;
+        client->conn_pool = conn_pool;
+        client->current = null;
+        client->main = false;
+
+        sky_queue_init(&client->tasks);
     }
 
     return conn_pool;
@@ -106,16 +96,12 @@ sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event
     conn->ev = event;
     conn->coro = coro;
 
-    sky_u32_t idx = sky_event_manager_thread_idx();
-    if (sky_unlikely(idx == SKY_U32_MAX || tcp_pool->free)) {
+    if (sky_unlikely(tcp_pool->free)) {
         conn->defer = null;
         sky_queue_init_node(&conn->link);
         return false;
     }
-
-    sky_tcp_node_t *client = tcp_pool->clients
-                             + (idx * tcp_pool->thread_conn_n)
-                             + ((sky_u32_t) event->fd & tcp_pool->thread_conn_mask);
+    sky_tcp_node_t *client = tcp_pool->clients + ((sky_u32_t) event->fd & tcp_pool->conn_mask);
 
     const sky_bool_t empty = sky_queue_is_empty(&client->tasks);
 

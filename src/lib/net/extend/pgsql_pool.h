@@ -129,7 +129,7 @@ typedef struct {
 } sky_pgsql_result_t;
 
 
-sky_pgsql_pool_t *sky_pgsql_pool_create(sky_event_manager_t *manager, const sky_pgsql_conf_t *conf);
+sky_pgsql_pool_t *sky_pgsql_pool_create(sky_event_loop_t *ev_loop, const sky_pgsql_conf_t *conf);
 
 sky_pgsql_conn_t *sky_pgsql_conn_get(
         sky_pgsql_pool_t *conn_pool,
