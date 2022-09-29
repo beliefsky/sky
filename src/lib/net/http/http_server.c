@@ -7,13 +7,6 @@
 #include "http_request.h"
 #include "http_io_wrappers.h"
 
-typedef struct {
-    sky_http_server_t *server;
-    sky_inet_address_t *address;
-    sky_u32_t address_len;
-} http_event_tmp_t;
-
-static sky_bool_t http_event_create(sky_event_loop_t *loop, void *data, sky_u32_t index);
 
 static sky_event_t *http_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server_t *server);
 
@@ -34,7 +27,7 @@ static void https_connection_close(sky_http_connection_t *conn);
 static void http_status_build(sky_http_server_t *server);
 
 sky_http_server_t *
-sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
+sky_http_server_create(sky_pool_t *pool, sky_event_loop_t *ev_loop, sky_http_conf_t *conf) {
     sky_http_server_t *server;
     sky_http_module_host_t *host;
     sky_http_module_t *module;
@@ -42,6 +35,7 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
 
     server = sky_palloc(pool, sizeof(sky_http_server_t));
     server->pool = pool;
+    server->ev_loop = ev_loop;
 
     if (!conf->header_buf_n) {
         conf->header_buf_n = 4; // 4 buff
@@ -98,20 +92,23 @@ sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf) {
 
 
 sky_bool_t
-sky_http_server_bind(
-        sky_http_server_t *server,
-        sky_event_manager_t *manager,
-        sky_inet_address_t *address,
-        sky_u32_t address_len
-) {
+sky_http_server_bind(sky_http_server_t *server, sky_inet_address_t *address, sky_u32_t address_len) {
 
-    http_event_tmp_t tmp = {
-            .server = server,
+    sky_tcp_server_conf_t conf = {
             .address = address,
-            .address_len = address_len
+            .address_len = address_len,
+#ifdef SKY_HAVE_TLS
+            .run = (sky_tcp_accept_cb_pt) (server->tls_ctx ? https_connection_accept_cb : http_connection_accept_cb),
+#else
+            .run = (sky_tcp_accept_cb_pt) http_connection_accept_cb,
+#endif
+            .data = server,
+            .timeout = 60,
+            .nodelay = true,
+            .defer_accept = true
     };
 
-    return sky_event_manager_scan(manager, http_event_create, &tmp);
+    return sky_tcp_server_create(server->ev_loop, &conf);
 }
 
 sky_str_t *
@@ -120,29 +117,6 @@ sky_http_status_find(sky_http_server_t *server, sky_u32_t status) {
         return null;
     }
     return server->status_map + (status - 100);
-}
-
-static sky_bool_t
-http_event_create(sky_event_loop_t *loop, void *data, sky_u32_t index) {
-    http_event_tmp_t *tmp = data;
-
-    sky_tcp_server_conf_t conf = {
-            .address = tmp->address,
-            .address_len = tmp->address_len,
-#ifdef SKY_HAVE_TLS
-            .run = (sky_tcp_accept_cb_pt) (server->tls_ctx ? https_connection_accept_cb : http_connection_accept_cb),
-#else
-            .run = (sky_tcp_accept_cb_pt) http_connection_accept_cb,
-#endif
-            .data = tmp->server,
-            .cpu = index,
-            .timeout = 60,
-            .nodelay = true,
-            .defer_accept = true,
-            .bind_cpu = true
-    };
-
-    return sky_tcp_server_create(loop, &conf);
 }
 
 static sky_event_t *

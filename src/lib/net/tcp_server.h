@@ -19,11 +19,10 @@ typedef struct {
     void *data;
     sky_inet_address_t *address;
     sky_u32_t address_len;
-    sky_u32_t cpu;
     sky_i32_t timeout;
+    sky_bool_t reuse_port: 1;
     sky_bool_t nodelay: 1;
     sky_bool_t defer_accept: 1;
-    sky_bool_t bind_cpu:1;
 } sky_tcp_server_conf_t;
 
 sky_bool_t sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf);

@@ -5,7 +5,7 @@
 #ifndef SKY_HTTP_SERVER_H
 #define SKY_HTTP_SERVER_H
 
-#include "../../event/event_manager.h"
+#include "../../event/event_loop.h"
 #include "../../core/coro.h"
 #include "../../core/buf.h"
 #include "../../core/trie.h"
@@ -42,6 +42,7 @@ typedef struct {
 
 struct sky_http_server_s {
     sky_pool_t *pool;
+    sky_event_loop_t *ev_loop;
 #ifdef SKY_HAVE_TLS
     sky_tls_ctx_t *tls_ctx;
 #endif
@@ -78,14 +79,9 @@ struct sky_http_connection_s {
 #endif
 };
 
-sky_http_server_t *sky_http_server_create(sky_pool_t *pool, sky_http_conf_t *conf);
+sky_http_server_t *sky_http_server_create(sky_pool_t *pool, sky_event_loop_t *ev_loop, sky_http_conf_t *conf);
 
-sky_bool_t sky_http_server_bind(
-        sky_http_server_t *server,
-        sky_event_manager_t *manager,
-        sky_inet_address_t *address,
-        sky_u32_t address_len
-);
+sky_bool_t sky_http_server_bind(sky_http_server_t *server, sky_inet_address_t *address, sky_u32_t address_len);
 
 sky_str_t *sky_http_status_find(sky_http_server_t *server, sky_u32_t status);
 
