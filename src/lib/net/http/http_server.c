@@ -104,6 +104,7 @@ sky_http_server_bind(sky_http_server_t *server, sky_inet_address_t *address, sky
 #endif
             .data = server,
             .timeout = 60,
+            .reuse_port = true,
             .nodelay = true,
             .defer_accept = true
     };
