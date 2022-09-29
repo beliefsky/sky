@@ -56,12 +56,11 @@ server_start(sky_event_loop_t *loop, void *data, sky_u32_t index) {
         };
         const sky_tcp_server_conf_t tcp_conf = {
                 .nodelay = true,
+                .reuse_port = true,
                 .run = tcp_accept_cb,
                 .timeout = -1,
                 .address = (sky_inet_address_t *) &server_address_v4,
-                .address_len = sizeof(struct sockaddr_in),
-                .cpu = index,
-                .bind_cpu = true
+                .address_len = sizeof(struct sockaddr_in)
         };
 
         sky_tcp_server_create(loop, &tcp_conf);
@@ -75,12 +74,11 @@ server_start(sky_event_loop_t *loop, void *data, sky_u32_t index) {
         };
         const sky_tcp_server_conf_t tcp_conf = {
                 .nodelay = true,
+                .reuse_port = true,
                 .run = tcp_accept_cb,
                 .timeout = -1,
                 .address = (sky_inet_address_t *) &server_address_v6,
                 .address_len = sizeof(struct sockaddr_in6),
-                .cpu = index,
-                .bind_cpu = true
         };
 
         sky_tcp_server_create(loop, &tcp_conf);
