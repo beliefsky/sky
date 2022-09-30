@@ -6,16 +6,15 @@
 #endif
 
 #include "process.h"
-#include "log.h"
 #include <unistd.h>
 #include <signal.h>
 #include <sys/wait.h>
-#include <sys/prctl.h>
 
 
 #if defined(__linux__)
 
 #include <sched.h>
+#include <sys/prctl.h>
 
 typedef cpu_set_t sky_cpu_set_t;
 
@@ -91,9 +90,12 @@ sky_process_fork() {
         init = true;
     }
     const pid_t pid = fork();
+
+#if defined(__linux__)
     if (pid == 0) {
-        prctl(PR_SET_PDEATHSIG,SIGKILL);
+        prctl(PR_SET_PDEATHSIG, SIGKILL);
     }
+#endif
 
     return pid;
 }
@@ -118,6 +120,5 @@ sky_i32_t sky_process_bind_cpu(sky_i32_t cpu) {
 static void
 fork_handler(int sig) {
     int state;
-    sky_log_info("11111111111111");
     waitpid(-1, &state, WNOHANG);
 }
