@@ -49,7 +49,7 @@ main() {
                 sky_process_bind_cpu(i);
 
                 sky_event_loop_t *ev_loop = sky_event_loop_create();
-                create_server(ev_loop);
+                server_start(ev_loop);
                 sky_event_loop_run(ev_loop);
                 sky_event_loop_destroy(ev_loop);
                 return 0;
@@ -61,7 +61,7 @@ main() {
     sky_process_bind_cpu(0);
 
     sky_event_loop_t *ev_loop = sky_event_loop_create();
-    create_server(ev_loop);
+    server_start(ev_loop);
     sky_event_loop_run(ev_loop);
     sky_event_loop_destroy(ev_loop);
 
