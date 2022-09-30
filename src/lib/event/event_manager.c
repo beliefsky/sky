@@ -202,7 +202,7 @@ sky_event_manager_destroy(sky_event_manager_t *manager) {
 static void *
 thread_run(void *data) {
     pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, null);
-    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS,null);
+    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, null);
 
     event_thread_t *item = data;
     event_manager_idx = item->thread_idx;
