@@ -57,9 +57,9 @@ sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf)
     setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_i32_t));
 
     if (conf->reuse_port) {
-#ifdef SO_REUSEPORT_LB
+#if defined(SO_REUSEPORT_LB)
         setsockopt(fd, SOL_SOCKET, SO_REUSEPORT_LB, &opt, sizeof(sky_i32_t));
-#elifdef SO_REUSEPORT
+#elif defined(SO_REUSEPORT)
         setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_i32_t));
 #else
         close(fd);
