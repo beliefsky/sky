@@ -66,8 +66,6 @@ main() {
     sky_event_loop_destroy(ev_loop);
 
     return 0;
-
-    return 0;
 }
 
 static void
