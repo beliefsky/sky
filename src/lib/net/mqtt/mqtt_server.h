@@ -9,7 +9,7 @@
 #include "../../core/coro.h"
 #include "../../core/hashmap.h"
 #include "../../core/topic_tree.h"
-#include "../../event/event_manager.h"
+#include "../../event/event_loop.h"
 
 #if defined(__cplusplus)
 extern "C" {

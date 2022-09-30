@@ -2,7 +2,7 @@
 // Created by edz on 2021/11/26.
 //
 #include <netinet/in.h>
-#include <event/event_manager.h>
+#include <event/event_loop.h>
 #include <core/log.h>
 #include <net/tcp_server.h>
 #include <net/tcp_client.h>
@@ -15,7 +15,7 @@ typedef struct {
     sky_coro_t *coro;
 } tcp_proxy_conn_t;
 
-static sky_bool_t server_start(sky_event_loop_t *loop, void *data, sky_u32_t index);
+static void server_start(sky_event_loop_t *loop);
 
 static sky_event_t *tcp_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, void *data);
 
@@ -34,20 +34,16 @@ main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
-    sky_event_manager_t *manager = sky_event_manager_create_with_capacity(32);
+    sky_event_loop_t *ev_loop = sky_event_loop_create();
+    server_start(ev_loop);
+    sky_event_loop_run(ev_loop);
+    sky_event_loop_destroy(ev_loop);
 
-    sky_event_manager_scan(manager, server_start, null);
-    sky_event_manager_run(manager);
-    sky_event_manager_destroy(manager);
     return 0;
 }
 
-static sky_bool_t
-server_start(sky_event_loop_t *loop, void *data, sky_u32_t index) {
-    (void) data;
-
-    sky_log_info("thread-%u", index);
-
+static void
+server_start(sky_event_loop_t *loop) {
     {
         struct sockaddr_in server_address_v4 = {
                 .sin_family = AF_INET,
@@ -83,8 +79,6 @@ server_start(sky_event_loop_t *loop, void *data, sky_u32_t index) {
 
         sky_tcp_server_create(loop, &tcp_conf);
     }
-
-    return true;
 }
 
 static sky_event_t *
