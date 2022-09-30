@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <core/memory.h>
 #include <errno.h>
+#include <core/process.h>
 
 typedef struct {
     sky_event_t event;
@@ -34,10 +35,37 @@ main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
+    sky_i32_t cpu_num = (sky_i32_t) sysconf(_SC_NPROCESSORS_ONLN);
+    if (cpu_num < 1) {
+        cpu_num = 1;
+    }
+
+    for (int i = 1; i < cpu_num; ++i) {
+        const int32_t pid = sky_process_fork();
+        switch (pid) {
+            case -1:
+                return -1;
+            case 0: {
+                sky_process_bind_cpu(i);
+
+                sky_event_loop_t *ev_loop = sky_event_loop_create();
+                create_server(ev_loop);
+                sky_event_loop_run(ev_loop);
+                sky_event_loop_destroy(ev_loop);
+                return 0;
+            }
+            default:
+                break;
+        }
+    }
+    sky_process_bind_cpu(0);
+
     sky_event_loop_t *ev_loop = sky_event_loop_create();
-    server_start(ev_loop);
+    create_server(ev_loop);
     sky_event_loop_run(ev_loop);
     sky_event_loop_destroy(ev_loop);
+
+    return 0;
 
     return 0;
 }

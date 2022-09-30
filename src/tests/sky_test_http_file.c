@@ -8,21 +8,37 @@
 #include <net/http/module/http_module_file.h>
 #include <net/http/http_request.h>
 #include <core/log.h>
+#include <unistd.h>
+#include <core/process.h>
 
-static void create_server(sky_event_loop_t *ev_loop);
+static void create_server();
 
 int
 main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
-    sky_event_loop_t *ev_loop = sky_event_loop_create();
+    sky_i32_t cpu_num = (sky_i32_t) sysconf(_SC_NPROCESSORS_ONLN);
+    if (cpu_num < 1) {
+        cpu_num = 1;
+    }
 
-    create_server(ev_loop);
-
-    sky_event_loop_run(ev_loop);
-    sky_event_loop_destroy(ev_loop);
-
+    for (int i = 1; i < cpu_num; ++i) {
+        const int32_t pid = sky_process_fork();
+        switch (pid) {
+            case -1:
+                return -1;
+            case 0: {
+                sky_process_bind_cpu(i);
+                create_server();
+                return 0;
+            }
+            default:
+                break;
+        }
+    }
+    sky_process_bind_cpu(0);
+    create_server();
 
     return 0;
 }
@@ -48,7 +64,9 @@ http_index_router(sky_http_request_t *req, void *data) {
 }
 
 static void
-create_server(sky_event_loop_t *ev_loop) {
+create_server() {
+
+    sky_event_loop_t *ev_loop = sky_event_loop_create();
 
     sky_pool_t *pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);;
     sky_array_t modules;
@@ -105,5 +123,8 @@ create_server(sky_event_loop_t *ev_loop) {
 
         sky_http_server_bind(server, (sky_inet_address_t *) &http_address, sizeof(struct sockaddr_in6));
     }
+
+    sky_event_loop_run(ev_loop);
+    sky_event_loop_destroy(ev_loop);
 }
 

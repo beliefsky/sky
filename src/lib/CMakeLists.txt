@@ -28,11 +28,11 @@ set(SOURCES
         core/uuid.c
         core/json.c
         core/timer_wheel.c
+        core/process.c
         safe/spsc_queue.c
         safe/mpsc_queue.c
         safe/mpmc_queue.c
         safe/mpsc_ring_buf.c
-        event/event_manager.c
         event/event_loop_common.c
         net/inet.c
         net/tcp_server.c
@@ -59,12 +59,11 @@ set(SOURCES
         net/mqtt/mqtt_client.c
         )
 
-if(SKY_HAVE_EPOLL)
+if (SKY_HAVE_EPOLL)
     set(SOURCES ${SOURCES} event/event_loop_epoll.c)
-elseif(SKY_HAVE_KQUEUE)
+elseif (SKY_HAVE_KQUEUE)
     set(SOURCES ${SOURCES} event/event_loop_kqueue.c)
-endif()
-
+endif ()
 
 
 add_library(sky_static STATIC ${SOURCES})
@@ -156,6 +155,7 @@ install(FILES
 install(FILES
         core/types.h
         core/memory.h
+        core/process.h
         core/palloc.h
         core/array.h
         core/queue.h
@@ -182,6 +182,7 @@ install(FILES
         core/timer_wheel.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/core")
 install(FILES
+        core/process.c
         safe/atomic.h
         safe/mpmc_queue.h
         safe/mpsc_queue.h
@@ -190,7 +191,6 @@ install(FILES
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/safe")
 install(FILES
         event/event_loop.h
-        event/event_manager.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/event")
 install(FILES
         net/inet.h
