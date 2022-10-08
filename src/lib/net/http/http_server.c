@@ -27,15 +27,18 @@ static void https_connection_close(sky_http_connection_t *conn);
 static void http_status_build(sky_http_server_t *server);
 
 sky_http_server_t *
-sky_http_server_create(sky_pool_t *pool, sky_event_loop_t *ev_loop, sky_http_conf_t *conf) {
+sky_http_server_create(sky_event_loop_t *ev_loop, sky_coro_switcher_t *switcher, sky_http_conf_t *conf) {
+    sky_pool_t *pool;
     sky_http_server_t *server;
     sky_http_module_host_t *host;
     sky_http_module_t *module;
     sky_trie_t *trie;
 
+    pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
     server = sky_palloc(pool, sizeof(sky_http_server_t));
     server->pool = pool;
     server->ev_loop = ev_loop;
+    server->switcher = switcher;
 
     if (!conf->header_buf_n) {
         conf->header_buf_n = 4; // 4 buff
@@ -123,7 +126,7 @@ sky_http_status_find(sky_http_server_t *server, sky_u32_t status) {
 static sky_event_t *
 http_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server_t *server) {
 
-    sky_coro_t *coro = sky_coro_new();
+    sky_coro_t *coro = sky_coro_new(server->switcher);
     sky_http_connection_t *conn = sky_coro_malloc(coro, sizeof(sky_http_connection_t));
     conn->coro = coro;
     conn->server = server;

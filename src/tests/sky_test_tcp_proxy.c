@@ -16,7 +16,7 @@ typedef struct {
     sky_coro_t *coro;
 } tcp_proxy_conn_t;
 
-static void server_start(sky_event_loop_t *loop);
+static void server_start(sky_event_loop_t *loop, sky_coro_switcher_t *switcher);
 
 static sky_event_t *tcp_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, void *data);
 
@@ -48,10 +48,14 @@ main() {
             case 0: {
                 sky_process_bind_cpu(i);
 
+                sky_coro_switcher_t *switcher = sky_malloc(sky_coro_switcher_size());
+
                 sky_event_loop_t *ev_loop = sky_event_loop_create();
-                server_start(ev_loop);
+                server_start(ev_loop, switcher);
                 sky_event_loop_run(ev_loop);
                 sky_event_loop_destroy(ev_loop);
+
+                sky_free(switcher);
                 return 0;
             }
             default:
@@ -60,16 +64,20 @@ main() {
     }
     sky_process_bind_cpu(0);
 
+    sky_coro_switcher_t *switcher = sky_malloc(sky_coro_switcher_size());
+
     sky_event_loop_t *ev_loop = sky_event_loop_create();
-    server_start(ev_loop);
+    server_start(ev_loop, switcher);
     sky_event_loop_run(ev_loop);
     sky_event_loop_destroy(ev_loop);
+
+    sky_free(switcher);
 
     return 0;
 }
 
 static void
-server_start(sky_event_loop_t *loop) {
+server_start(sky_event_loop_t *loop, sky_coro_switcher_t *switcher) {
     {
         struct sockaddr_in server_address_v4 = {
                 .sin_family = AF_INET,
@@ -80,6 +88,7 @@ server_start(sky_event_loop_t *loop) {
                 .nodelay = true,
                 .reuse_port = true,
                 .run = tcp_accept_cb,
+                .data = switcher,
                 .timeout = -1,
                 .address = (sky_inet_address_t *) &server_address_v4,
                 .address_len = sizeof(struct sockaddr_in)
@@ -109,9 +118,9 @@ server_start(sky_event_loop_t *loop) {
 
 static sky_event_t *
 tcp_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, void *data) {
-    (void) data;
+    sky_coro_switcher_t *switcher = data;
 
-    sky_coro_t *coro = sky_coro_new();
+    sky_coro_t *coro = sky_coro_new(switcher);
 
     tcp_proxy_conn_t *conn = sky_coro_malloc(coro, sizeof(tcp_proxy_conn_t));
     conn->coro = coro;

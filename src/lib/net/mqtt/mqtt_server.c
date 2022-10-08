@@ -22,13 +22,14 @@ static sky_u64_t session_hash(const void *item, void *secret);
 static sky_bool_t session_equals(const void *a, const void *b);
 
 sky_mqtt_server_t *
-sky_mqtt_server_create(sky_event_loop_t *ev_loop) {
+sky_mqtt_server_create(sky_event_loop_t *ev_loop, sky_coro_switcher_t *switcher) {
 
     sky_mqtt_server_t *server = sky_malloc(sizeof(sky_mqtt_server_t));
     server->mqtt_read = sky_mqtt_read;
     server->mqtt_read_all = sky_mqtt_read_all;
     server->mqtt_write_nowait = sky_mqtt_write_nowait;
     server->ev_loop = ev_loop;
+    server->switcher = switcher;
 
     sky_hashmap_init_with_cap(&server->session_manager, session_hash, session_equals, null, 128);
 
@@ -55,7 +56,7 @@ sky_mqtt_server_bind(sky_mqtt_server_t *server, sky_inet_address_t *address, sky
 
 static sky_event_t *
 mqtt_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_mqtt_server_t *server) {
-    sky_coro_t *coro = sky_coro_new();
+    sky_coro_t *coro = sky_coro_new(server->switcher);
     sky_mqtt_connect_t *conn = sky_coro_malloc(coro, sizeof(sky_mqtt_connect_t));
     conn->coro = coro;
     conn->server = server;

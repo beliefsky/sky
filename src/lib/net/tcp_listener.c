@@ -58,8 +58,8 @@ static tcp_status_t tcp_connection(sky_tcp_listener_t *listener);
 static sky_isize_t write_nowait(sky_tcp_listener_t *listener, const sky_uchar_t *data, sky_usize_t size);
 
 sky_tcp_listener_t *
-sky_tcp_listener_create(sky_event_loop_t *loop, const sky_tcp_listener_conf_t *conf) {
-    sky_coro_t *coro = sky_coro_create(conf->run, conf->data);
+sky_tcp_listener_create(sky_event_loop_t *loop, sky_coro_switcher_t *switcher, const sky_tcp_listener_conf_t *conf) {
+    sky_coro_t *coro = sky_coro_create(switcher, conf->run, conf->data);
 
     sky_tcp_listener_t *listener = sky_coro_malloc(coro, sizeof(sky_tcp_listener_t) + conf->address_len);
     sky_event_init(loop, &listener->ev, -1, tcp_run_connection, tcp_close);

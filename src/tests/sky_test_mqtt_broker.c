@@ -7,8 +7,9 @@
 #include <net/mqtt/mqtt_server.h>
 #include <unistd.h>
 #include <core/process.h>
+#include <core/memory.h>
 
-static void create_server(sky_event_loop_t *ev_loop);
+static void create_server(sky_event_loop_t *ev_loop, sky_coro_switcher_t *switcher);
 
 int
 main() {
@@ -29,9 +30,12 @@ main() {
                 sky_process_bind_cpu(i);
 
                 sky_event_loop_t *ev_loop = sky_event_loop_create();
-                create_server(ev_loop);
+                sky_coro_switcher_t *switcher = sky_malloc(sky_coro_switcher_size());
+                create_server(ev_loop, switcher);
                 sky_event_loop_run(ev_loop);
                 sky_event_loop_destroy(ev_loop);
+
+                sky_free(switcher);
                 return 0;
             }
             default:
@@ -41,16 +45,19 @@ main() {
     sky_process_bind_cpu(0);
 
     sky_event_loop_t *ev_loop = sky_event_loop_create();
-    create_server(ev_loop);
+    sky_coro_switcher_t *switcher = sky_malloc(sky_coro_switcher_size());
+    create_server(ev_loop, switcher);
     sky_event_loop_run(ev_loop);
     sky_event_loop_destroy(ev_loop);
+
+    sky_free(switcher);
 
     return 0;
 }
 
 static void
-create_server(sky_event_loop_t *ev_loop) {
-    sky_mqtt_server_t *server = sky_mqtt_server_create(ev_loop);
+create_server(sky_event_loop_t *ev_loop, sky_coro_switcher_t *switcher) {
+    sky_mqtt_server_t *server = sky_mqtt_server_create(ev_loop, switcher);
 
     struct sockaddr_in v4_address = {
             .sin_family = AF_INET,

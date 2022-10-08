@@ -33,34 +33,20 @@ typedef void (*sky_defer_func2_t)(void *data1, void *data2);
 sky_usize_t sky_coro_switcher_size();
 
 /**
- * @param func      异步函数
- * @param data      异步函数参数
- * @return 协程
- */
-sky_coro_t *sky_coro_create(sky_coro_func_t func, void *data);
-
-/**
  * 创建协程
  * @param switcher  协程切换器
  * @param func      异步函数
  * @param data      异步函数参数
  * @return 协程
  */
-sky_coro_t *sky_coro_create_with_switcher(sky_coro_switcher_t *switcher, sky_coro_func_t func, void *data);
-
-
-/**
- * 创建一个未指定函数的协程
- * @return 协程
- */
-sky_coro_t *sky_coro_new();
+sky_coro_t *sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func, void *data);
 
 /**
  * 创建一个未指定函数的协程
  * @param switcher  协程切换器
  * @return 协程
  */
-sky_coro_t *sky_coro_new_with_switcher(sky_coro_switcher_t *switcher);
+sky_coro_t *sky_coro_new(sky_coro_switcher_t *switcher);
 
 /**
  * 协程配置函数

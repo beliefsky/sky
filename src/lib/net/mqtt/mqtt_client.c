@@ -43,7 +43,7 @@ static void mqtt_read_body(sky_mqtt_client_t *client, const sky_mqtt_head_t *hea
 
 
 sky_mqtt_client_t *
-sky_mqtt_client_create(sky_event_loop_t *loop, const sky_mqtt_client_conf_t *conf) {
+sky_mqtt_client_create(sky_event_loop_t *loop, sky_coro_switcher_t *switcher, const sky_mqtt_client_conf_t *conf) {
 
     sky_mqtt_client_t *client = sky_malloc(sizeof(sky_mqtt_client_t));
     sky_timer_entry_init(&client->ping_timer, (sky_timer_wheel_pt) mqtt_ping);
@@ -66,7 +66,7 @@ sky_mqtt_client_create(sky_event_loop_t *loop, const sky_mqtt_client_conf_t *con
             .data = client,
             .reconnect = true
     };
-    client->listener = sky_tcp_listener_create(loop, &listener_conf);
+    client->listener = sky_tcp_listener_create(loop, switcher, &listener_conf);
 
     return client;
 }
