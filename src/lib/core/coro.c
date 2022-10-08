@@ -95,9 +95,6 @@ static sky_isize_t coro_yield(sky_coro_t *coro, sky_isize_t value);
 
 static void mem_block_add(sky_coro_t *coro);
 
-
-static sky_thread sky_coro_switcher_t thread_switcher;
-
 #if defined(__x86_64__)
 
 void __attribute__((noinline, visibility("internal")))
@@ -190,28 +187,18 @@ sky_coro_switcher_size() {
     return sizeof(sky_coro_switcher_t);
 }
 
-sky_coro_t *
-sky_coro_create(sky_coro_func_t func, void *data) {
-    return sky_coro_create_with_switcher(&thread_switcher, func, data);
-}
-
 
 sky_inline sky_coro_t *
-sky_coro_create_with_switcher(sky_coro_switcher_t *switcher, sky_coro_func_t func, void *data) {
-    sky_coro_t *coro = sky_coro_new_with_switcher(switcher);
+sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func, void *data) {
+    sky_coro_t *coro = sky_coro_new(switcher);
 
     coro_set(coro, func, data);
 
     return coro;
 }
 
-sky_coro_t *
-sky_coro_new() {
-    return sky_coro_new_with_switcher(&thread_switcher);
-}
-
 sky_inline sky_coro_t *
-sky_coro_new_with_switcher(sky_coro_switcher_t *switcher) {
+sky_coro_new(sky_coro_switcher_t *switcher) {
     sky_coro_t *coro = sky_malloc(CORE_BLOCK_SIZE);
 
     coro->switcher = switcher;

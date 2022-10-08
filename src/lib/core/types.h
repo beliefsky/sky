@@ -33,8 +33,6 @@ extern "C" {
 
 #define null    (void *)0
 
-#define sky_thread __thread
-
 #define SKY_I8_MAX INT8_MAX
 #define SKY_U8_MAX UINT8_MAX
 #define SKY_I16_MAX INT16_MAX

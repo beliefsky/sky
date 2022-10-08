@@ -125,10 +125,10 @@ module_run_next(sky_websocket_session_t *session) {
     conn = session->request->conn;
     conn->ev.timeout = 3600;
 
-    session->read_work = read_work = sky_coro_create((sky_coro_func_t) read_message, session);
-    (void) sky_defer_add(conn->coro, (sky_defer_func_t) sky_coro_destroy, read_work);
-    session->write_work = write_work = sky_coro_create((sky_coro_func_t) write_message, session);
-    (void) sky_defer_add(conn->coro, (sky_defer_func_t) sky_coro_destroy, write_work);
+//    session->read_work = read_work = sky_coro_create((sky_coro_func_t) read_message, session);
+//    (void) sky_defer_add(conn->coro, (sky_defer_func_t) sky_coro_destroy, read_work);
+//    session->write_work = write_work = sky_coro_create((sky_coro_func_t) write_message, session);
+//    (void) sky_defer_add(conn->coro, (sky_defer_func_t) sky_coro_destroy, write_work);
     for (;;) {
         if (sky_event_is_read(&conn->ev)) {
             result = sky_coro_resume(read_work);

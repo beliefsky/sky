@@ -17,6 +17,8 @@
 extern "C" {
 #endif
 
+#define sky_thread __thread
+
 #ifdef SKY_HAVE_ATOMIC
 #define sky_atomic _Atomic
 #else

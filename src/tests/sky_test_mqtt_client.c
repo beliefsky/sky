@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <netinet/in.h>
 #include <core/log.h>
+#include <core/memory.h>
 
 static void
 mqtt_connected_cb(sky_mqtt_client_t *client) {
@@ -42,10 +43,14 @@ main() {
             .msg_handle = mqtt_msg_cb
     };
 
-    sky_mqtt_client_create(ev_loop, &mqtt_conf);
+    sky_coro_switcher_t *switcher = sky_malloc(sky_coro_switcher_size());
+
+    sky_mqtt_client_create(ev_loop, switcher, &mqtt_conf);
 
     sky_event_loop_run(ev_loop);
     sky_event_loop_destroy(ev_loop);
+
+    sky_free(switcher);
 
     return 0;
 }
