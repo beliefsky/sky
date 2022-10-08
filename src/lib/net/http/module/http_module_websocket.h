@@ -17,6 +17,7 @@ typedef struct sky_websocket_message_s sky_websocket_message_t;
 struct sky_websocket_session_s {
     sky_http_request_t *request;
     sky_event_t *event;
+    sky_coro_switcher_t *switcher;
     sky_coro_t *read_work;
     sky_coro_t *write_work;
     sky_bool_t test;
