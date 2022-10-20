@@ -29,9 +29,6 @@ endif ()
 #
 # Find libraries
 #
-find_package(Threads REQUIRED)
-set(ADDITIONAL_LIBRARIES ${ADDITIONAL_LIBRARIES} ${CMAKE_THREAD_LIBS_INIT})
-
 #check_include_file(openssl/ssl.h SKY_HAVE_OPENSSL)
 if (SKY_HAVE_OPENSSL)
     find_package(OpenSSL QUIET)
@@ -118,14 +115,12 @@ if (${CMAKE_BUILD_TYPE} MATCHES "Rel")
     enable_c_flag_if_avail(-mcrc32 C_FLAGS_REL HAVE_BUILTIN_IA32_CRC32)
 endif ()
 if (${CMAKE_BUILD_TYPE} MATCHES "Deb")
-    option(SANITIZER "Use sanitizer (undefined, address, thread, none)" "none")
+    option(SANITIZER "Use sanitizer (undefined, address, none)" "none")
 
     if (${SANITIZER} MATCHES "(undefined|ub|ubsan)")
         try_sanitizer("undefined")
     elseif (${SANITIZER} MATCHES "(address|memory)")
         try_sanitizer("address")
-    elseif (${SANITIZER} MATCHES "(thread|race)")
-        try_sanitizer("thread")
     else ()
         message(STATUS "Building without a sanitizer")
     endif ()
