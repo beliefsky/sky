@@ -79,10 +79,16 @@ sky_mqtt_send_publish_comp(sky_mqtt_connect_t *conn, sky_u16_t packet_identifier
 void
 sky_mqtt_send_sub_ack(sky_mqtt_connect_t *conn, sky_u16_t packet_identifier,
                       const sky_u8_t *max_qos, sky_u32_t topic_num) {
+
+    const sky_str_t result = {
+            .data = (sky_u8_t *) max_qos,
+            .len = topic_num
+    };
+
     const sky_u32_t alloc_size = sky_mqtt_unpack_alloc_size(sky_mqtt_sub_ack_unpack_size(topic_num));
 
     sky_mqtt_packet_t *packet = sky_mqtt_get_packet(conn, alloc_size);
-    packet->size += sky_mqtt_sub_ack_unpack(packet->data + packet->size, packet_identifier, max_qos, topic_num);
+    packet->size += sky_mqtt_sub_ack_unpack(packet->data + packet->size, packet_identifier, &result);
 
     sky_mqtt_write_packet(conn);
 }

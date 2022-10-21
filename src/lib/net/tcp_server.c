@@ -9,7 +9,6 @@
 #include "tcp_server.h"
 #include "../core/log.h"
 #include "../core/number.h"
-#include "../core/memory.h"
 #include <unistd.h>
 #include <fcntl.h>
 #include <netinet/in.h>
@@ -54,15 +53,20 @@ sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf)
             return false;
         }
 #endif
-
-
     opt = 1;
     setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_i32_t));
-#ifdef SO_REUSEPORT_LB
-    setsockopt(fd, SOL_SOCKET, SO_REUSEPORT_LB, &opt, sizeof(sky_i32_t));
+
+    if (conf->reuse_port) {
+#if defined(SO_REUSEPORT_LB)
+        setsockopt(fd, SOL_SOCKET, SO_REUSEPORT_LB, &opt, sizeof(sky_i32_t));
+#elif defined(SO_REUSEPORT)
+        setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_i32_t));
 #else
-    setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_i32_t));
+        close(fd);
+        return false;
 #endif
+    }
+
     if (conf->address->sa_family != AF_UNIX && conf->nodelay) {
         setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(sky_i32_t));
     }
@@ -119,8 +123,8 @@ tcp_listener_accept(sky_event_t *ev) {
 
         if (sky_likely((event = l->run(loop, fd, l->data)))) {
             if (!event->run(event)) {
-                event->close(event);
                 close(fd);
+                event->close(event);
             } else {
                 sky_event_register(event, event->timeout ?: l->timeout);
             }

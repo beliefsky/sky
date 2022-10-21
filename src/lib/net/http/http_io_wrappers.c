@@ -18,7 +18,7 @@
 #include "../../core/memory.h"
 
 sky_usize_t
-http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size) {
+sky_http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size) {
     sky_isize_t n;
 
     const sky_i32_t fd = conn->ev.fd;
@@ -28,7 +28,7 @@ http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size) {
             continue;
         }
 
-        if ((n = read(fd, data, size)) < 1) {
+        if ((n = recv(fd, data, size, 0)) < 1) {
             switch (errno) {
                 case EINTR:
                 case EAGAIN:
@@ -45,7 +45,7 @@ http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size) {
 }
 
 void
-http_write(sky_http_connection_t *conn, const sky_uchar_t *data, sky_usize_t size) {
+sky_http_write(sky_http_connection_t *conn, const sky_uchar_t *data, sky_usize_t size) {
     sky_isize_t n;
 
     const sky_i32_t fd = conn->ev.fd;
@@ -55,7 +55,7 @@ http_write(sky_http_connection_t *conn, const sky_uchar_t *data, sky_usize_t siz
             continue;
         }
 
-        if ((n = write(fd, data, size)) < 1) {
+        if ((n = send(fd, data, size, 0)) < 1) {
             switch (errno) {
                 case EINTR:
                 case EAGAIN:
@@ -82,10 +82,16 @@ http_write(sky_http_connection_t *conn, const sky_uchar_t *data, sky_usize_t siz
 #if defined(__linux__)
 
 void
-http_send_file(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky_usize_t size,
-               const sky_uchar_t *header, sky_u32_t header_len) {
+sky_http_send_file(
+        sky_http_connection_t *conn,
+        sky_i32_t fd,
+        sky_i64_t offset,
+        sky_usize_t size,
+        const sky_uchar_t *header,
+        sky_u32_t header_len
+) {
 
-    http_write(conn, header, header_len);
+    sky_http_write(conn, header, header_len);
 
     const sky_i32_t socket_fd = conn->ev.fd;
     for (;;) {
@@ -122,8 +128,14 @@ http_send_file(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky_
 #elif defined(__FreeBSD__)
 
 void
-http_send_file(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky_usize_t size,
-               const sky_uchar_t *header, sky_u32_t header_len) {
+sky_http_send_file(
+        sky_http_connection_t *conn,
+        sky_i32_t fd,
+        sky_i64_t offset,
+        sky_usize_t size,
+        const sky_uchar_t *header,
+        sky_u32_t header_len
+) {
     sky_i64_t sbytes;
     sky_i32_t r;
 
@@ -205,8 +217,14 @@ http_send_file(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky_
 #elif defined(__APPLE__)
 
 void
-http_send_file(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky_usize_t size,
-               const sky_uchar_t *header, sky_u32_t header_len) {
+sky_http_send_file(
+        sky_http_connection_t *conn,
+        sky_i32_t fd,
+        sky_i64_t offset,
+        sky_usize_t size,
+        const sky_uchar_t *header,
+        sky_u32_t header_len
+) {
     sky_i64_t sbytes;
     sky_i32_t r;
 
@@ -293,7 +311,7 @@ http_send_file(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky_
 #ifdef SKY_HAVE_TLS
 
 sky_usize_t
-https_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size) {
+sky_https_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size) {
     sky_i32_t n;
 
     for (;;) {
@@ -318,7 +336,7 @@ https_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size) {
 }
 
 void
-https_write(sky_http_connection_t *conn, const sky_uchar_t *data, sky_usize_t size) {
+sky_https_write(sky_http_connection_t *conn, const sky_uchar_t *data, sky_usize_t size) {
     sky_i32_t n;
 
     for (;;) {
@@ -350,9 +368,15 @@ https_write(sky_http_connection_t *conn, const sky_uchar_t *data, sky_usize_t si
 }
 
 void
-https_send_file(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky_usize_t size,
-                const sky_uchar_t *header, sky_u32_t header_len) {
-    https_write(conn, header, header_len);
+sky_https_send_file(
+        sky_http_connection_t *conn,
+        sky_i32_t fd,
+        sky_i64_t offset,
+        sky_usize_t size,
+        const sky_uchar_t *header,
+        sky_u32_t header_len
+) {
+    sky_https_write(conn, header, header_len);
     sky_isize_t n;
     const sky_usize_t buff_size = sky_min(size, SKY_USIZE(16384));
     sky_uchar_t *buff = sky_malloc(buff_size);

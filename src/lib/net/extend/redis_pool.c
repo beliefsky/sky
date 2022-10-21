@@ -15,7 +15,7 @@ static sky_redis_result_t *redis_exec_read(sky_redis_conn_t *rc);
 
 
 sky_redis_pool_t *
-sky_redis_pool_create(sky_event_manager_t *manager, const sky_redis_conf_t *conf) {
+sky_redis_pool_create(sky_event_loop_t *ev_loop, const sky_redis_conf_t *conf) {
     const sky_tcp_pool_conf_t c = {
             .address = conf->address,
             .address_len = conf->address_len,
@@ -26,7 +26,7 @@ sky_redis_pool_create(sky_event_manager_t *manager, const sky_redis_conf_t *conf
             .nodelay = true
     };
 
-    return sky_tcp_pool_create(manager, &c);
+    return sky_tcp_pool_create(ev_loop, &c);
 }
 
 sky_redis_conn_t *

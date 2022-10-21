@@ -20,6 +20,7 @@ typedef struct {
     sky_inet_address_t *address;
     sky_u32_t address_len;
     sky_i32_t timeout;
+    sky_bool_t reuse_port: 1;
     sky_bool_t nodelay: 1;
     sky_bool_t defer_accept: 1;
 } sky_tcp_server_conf_t;

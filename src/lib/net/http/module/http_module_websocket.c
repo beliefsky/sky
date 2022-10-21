@@ -9,7 +9,6 @@
 #include "../../../core/log.h"
 #include "../../../core/base64.h"
 #include "../../../core/sha1.h"
-#include "../../inet.h"
 #include "../http_response.h"
 #include "../../../core/memory.h"
 
@@ -113,6 +112,7 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
 
     sky_http_response_nobody(r);
 
+    session->switcher = sky_palloc(r->pool, sky_coro_switcher_size());
     module_run_next(session);
 }
 
@@ -120,14 +120,14 @@ static void
 module_run_next(sky_websocket_session_t *session) {
     sky_http_connection_t *conn;
     sky_coro_t *read_work, *write_work;
-    sky_i32_t result;
+    sky_isize_t result;
 
     conn = session->request->conn;
     conn->ev.timeout = 3600;
 
-    session->read_work = read_work = sky_coro_create((sky_coro_func_t) read_message, session);
+    session->read_work = read_work = sky_coro_create(session->switcher, (sky_coro_func_t) read_message, session);
     (void) sky_defer_add(conn->coro, (sky_defer_func_t) sky_coro_destroy, read_work);
-    session->write_work = write_work = sky_coro_create((sky_coro_func_t) write_message, session);
+    session->write_work = write_work = sky_coro_create(session->switcher, (sky_coro_func_t) write_message, session);
     (void) sky_defer_add(conn->coro, (sky_defer_func_t) sky_coro_destroy, write_work);
     for (;;) {
         if (sky_event_is_read(&conn->ev)) {

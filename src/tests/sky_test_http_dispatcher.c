@@ -7,7 +7,6 @@
 //
 #include <netinet/in.h>
 
-#include <event/event_manager.h>
 #include <net/http/http_server.h>
 #include <net/http/module/http_module_dispatcher.h>
 #include <net/http/http_request.h>
@@ -17,9 +16,10 @@
 #include <net/http/http_response.h>
 #include <core/json.h>
 #include <core/date.h>
-#include <core/memory.h>
+#include <unistd.h>
+#include <core/process.h>
 
-static sky_bool_t create_server(sky_event_manager_t *manager);
+static sky_bool_t create_server(sky_event_loop_t *ev_loop);
 
 static void build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module);
 
@@ -40,23 +40,41 @@ main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
-    const sky_event_manager_conf_t conf = {
-            .msg_cap = 32,
-            .msg_limit_n = 8,
-            .msg_limit_sec = 1
-    };
-    sky_event_manager_t *manager = sky_event_manager_create_with_conf(&conf);
-
-    if (create_server(manager)) {
-        sky_event_manager_run(manager);
+    sky_i32_t cpu_num = (sky_i32_t) sysconf(_SC_NPROCESSORS_ONLN);
+    if (cpu_num < 1) {
+        cpu_num = 1;
     }
-    sky_event_manager_destroy(manager);
+
+    for (int i = 1; i < cpu_num; ++i) {
+        const int32_t pid = sky_process_fork();
+        switch (pid) {
+            case -1:
+                return -1;
+            case 0: {
+                sky_process_bind_cpu(i);
+
+                sky_event_loop_t *ev_loop = sky_event_loop_create();
+                create_server(ev_loop);
+                sky_event_loop_run(ev_loop);
+                sky_event_loop_destroy(ev_loop);
+                return 0;
+            }
+            default:
+                break;
+        }
+    }
+    sky_process_bind_cpu(0);
+
+    sky_event_loop_t *ev_loop = sky_event_loop_create();
+    create_server(ev_loop);
+    sky_event_loop_run(ev_loop);
+    sky_event_loop_destroy(ev_loop);
 
     return 0;
 }
 
 static sky_bool_t
-create_server(sky_event_manager_t *manager) {
+create_server(sky_event_loop_t *ev_loop) {
     struct sockaddr_in pg_address = {
             .sin_family = AF_INET,
             .sin_addr.s_addr = INADDR_ANY,
@@ -71,7 +89,7 @@ create_server(sky_event_manager_t *manager) {
             .password = sky_string("123456"),
             .connection_size = 16
     };
-    ps_pool = sky_pgsql_pool_create(manager, &pg_conf);
+    ps_pool = sky_pgsql_pool_create(ev_loop, &pg_conf);
     if (!ps_pool) {
         sky_log_error("create postgresql connection pool error");
         return false;
@@ -90,7 +108,7 @@ create_server(sky_event_manager_t *manager) {
             .connection_size = 16,
     };
 
-    redis_pool = sky_redis_pool_create(manager, &redis_conf);
+    redis_pool = sky_redis_pool_create(ev_loop, &redis_conf);
     if (!redis_pool) {
         sky_log_error("create redis connection pool error");
         sky_pgsql_pool_destroy(ps_pool);
@@ -99,6 +117,7 @@ create_server(sky_event_manager_t *manager) {
 
 
     sky_pool_t *pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
+    sky_coro_switcher_t *switcher = sky_palloc(pool, sky_coro_switcher_size());
 
     sky_array_t modules;
     sky_array_init2(&modules, pool, 8, sizeof(sky_http_module_t));
@@ -128,14 +147,14 @@ create_server(sky_event_manager_t *manager) {
 #endif
     };
 
-    sky_http_server_t *server = sky_http_server_create(pool, &conf);
+    sky_http_server_t *server = sky_http_server_create(ev_loop, switcher, &conf);
 
     struct sockaddr_in ipv4_address = {
             .sin_family = AF_INET,
             .sin_addr.s_addr = INADDR_ANY,
             .sin_port = sky_htons(8080)
     };
-    sky_http_server_bind(server, manager, (sky_inet_address_t *) &ipv4_address, sizeof(struct sockaddr_in));
+    sky_http_server_bind(server, (sky_inet_address_t *) &ipv4_address, sizeof(struct sockaddr_in));
 
     struct sockaddr_in6 ipv6_address = {
             .sin6_family = AF_INET6,
@@ -143,7 +162,7 @@ create_server(sky_event_manager_t *manager) {
             .sin6_port = sky_htons(8080)
     };
 
-    sky_http_server_bind(server, manager, (sky_inet_address_t *) &ipv6_address, sizeof(struct sockaddr_in6));
+    sky_http_server_bind(server, (sky_inet_address_t *) &ipv6_address, sizeof(struct sockaddr_in6));
 
     return true;
 }

@@ -3,30 +3,42 @@
 //
 #include <netinet/in.h>
 
-#include <event/event_manager.h>
+#include <event/event_loop.h>
 #include <net/http/http_server.h>
 #include <net/http/module/http_module_file.h>
 #include <net/http/http_request.h>
 #include <core/log.h>
+#include <unistd.h>
+#include <core/process.h>
 
-static void create_server(sky_event_manager_t *manager);
+static void create_server();
 
 int
 main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
-    const sky_event_manager_conf_t conf = {
-            .msg_cap = 32,
-            .msg_limit_n = 8,
-            .msg_limit_sec = 1
-    };
-    sky_event_manager_t *manager = sky_event_manager_create_with_conf(&conf);
+    sky_i32_t cpu_num = (sky_i32_t) sysconf(_SC_NPROCESSORS_ONLN);
+    if (cpu_num < 1) {
+        cpu_num = 1;
+    }
 
-    create_server(manager);
-
-    sky_event_manager_run(manager);
-    sky_event_manager_destroy(manager);
+    for (int i = 1; i < cpu_num; ++i) {
+        const int32_t pid = sky_process_fork();
+        switch (pid) {
+            case -1:
+                return -1;
+            case 0: {
+                sky_process_bind_cpu(i);
+                create_server();
+                return 0;
+            }
+            default:
+                break;
+        }
+    }
+    sky_process_bind_cpu(0);
+    create_server();
 
     return 0;
 }
@@ -52,9 +64,13 @@ http_index_router(sky_http_request_t *req, void *data) {
 }
 
 static void
-create_server(sky_event_manager_t *manager) {
+create_server() {
+
+    sky_event_loop_t *ev_loop = sky_event_loop_create();
 
     sky_pool_t *pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);;
+    sky_coro_switcher_t *switcher = sky_palloc(pool, sky_coro_switcher_size());
+
     sky_array_t modules;
     sky_array_init2(&modules, pool, 8, sizeof(sky_http_module_t));
 
@@ -89,7 +105,7 @@ create_server(sky_event_manager_t *manager) {
 #endif
     };
 
-    sky_http_server_t *server = sky_http_server_create(pool, &conf);
+    sky_http_server_t *server = sky_http_server_create(ev_loop, switcher, &conf);
 
     {
         struct sockaddr_in http_address = {
@@ -97,7 +113,7 @@ create_server(sky_event_manager_t *manager) {
                 .sin_addr.s_addr = INADDR_ANY,
                 .sin_port = sky_htons(8080)
         };
-        sky_http_server_bind(server, manager, (sky_inet_address_t *) &http_address, sizeof(struct sockaddr_in));
+        sky_http_server_bind(server, (sky_inet_address_t *) &http_address, sizeof(struct sockaddr_in));
     }
 
     {
@@ -107,7 +123,10 @@ create_server(sky_event_manager_t *manager) {
                 .sin6_port = sky_htons(8080)
         };
 
-        sky_http_server_bind(server, manager, (sky_inet_address_t *) &http_address, sizeof(struct sockaddr_in6));
+        sky_http_server_bind(server, (sky_inet_address_t *) &http_address, sizeof(struct sockaddr_in6));
     }
+
+    sky_event_loop_run(ev_loop);
+    sky_event_loop_destroy(ev_loop);
 }
 

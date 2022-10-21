@@ -2,20 +2,21 @@
 // Created by edz on 2021/11/26.
 //
 #include <netinet/in.h>
-#include <event/event_manager.h>
+#include <event/event_loop.h>
 #include <core/log.h>
 #include <net/tcp_server.h>
 #include <net/tcp_client.h>
 #include <unistd.h>
 #include <core/memory.h>
 #include <errno.h>
+#include <core/process.h>
 
 typedef struct {
     sky_event_t event;
     sky_coro_t *coro;
 } tcp_proxy_conn_t;
 
-static sky_bool_t server_start(sky_event_loop_t *loop, void *data, sky_u32_t index);
+static void server_start(sky_event_loop_t *loop, sky_coro_switcher_t *switcher);
 
 static sky_event_t *tcp_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, void *data);
 
@@ -34,25 +35,49 @@ main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
-    const sky_event_manager_conf_t conf = {
-            .msg_cap = 32,
-            .msg_limit_n = 8,
-            .msg_limit_sec = 1
-    };
-    sky_event_manager_t *manager = sky_event_manager_create_with_conf(&conf);
+    sky_i32_t cpu_num = (sky_i32_t) sysconf(_SC_NPROCESSORS_ONLN);
+    if (cpu_num < 1) {
+        cpu_num = 1;
+    }
 
-    sky_event_manager_scan(manager, server_start, null);
-    sky_event_manager_run(manager);
-    sky_event_manager_destroy(manager);
+    for (int i = 1; i < cpu_num; ++i) {
+        const int32_t pid = sky_process_fork();
+        switch (pid) {
+            case -1:
+                return -1;
+            case 0: {
+                sky_process_bind_cpu(i);
+
+                sky_coro_switcher_t *switcher = sky_malloc(sky_coro_switcher_size());
+
+                sky_event_loop_t *ev_loop = sky_event_loop_create();
+                server_start(ev_loop, switcher);
+                sky_event_loop_run(ev_loop);
+                sky_event_loop_destroy(ev_loop);
+
+                sky_free(switcher);
+                return 0;
+            }
+            default:
+                break;
+        }
+    }
+    sky_process_bind_cpu(0);
+
+    sky_coro_switcher_t *switcher = sky_malloc(sky_coro_switcher_size());
+
+    sky_event_loop_t *ev_loop = sky_event_loop_create();
+    server_start(ev_loop, switcher);
+    sky_event_loop_run(ev_loop);
+    sky_event_loop_destroy(ev_loop);
+
+    sky_free(switcher);
+
     return 0;
 }
 
-static sky_bool_t
-server_start(sky_event_loop_t *loop, void *data, sky_u32_t index) {
-    (void) data;
-
-    sky_log_info("thread-%u", index);
-
+static void
+server_start(sky_event_loop_t *loop, sky_coro_switcher_t *switcher) {
     {
         struct sockaddr_in server_address_v4 = {
                 .sin_family = AF_INET,
@@ -61,7 +86,9 @@ server_start(sky_event_loop_t *loop, void *data, sky_u32_t index) {
         };
         const sky_tcp_server_conf_t tcp_conf = {
                 .nodelay = true,
+                .reuse_port = true,
                 .run = tcp_accept_cb,
+                .data = switcher,
                 .timeout = -1,
                 .address = (sky_inet_address_t *) &server_address_v4,
                 .address_len = sizeof(struct sockaddr_in)
@@ -78,29 +105,28 @@ server_start(sky_event_loop_t *loop, void *data, sky_u32_t index) {
         };
         const sky_tcp_server_conf_t tcp_conf = {
                 .nodelay = true,
+                .reuse_port = true,
                 .run = tcp_accept_cb,
                 .timeout = -1,
                 .address = (sky_inet_address_t *) &server_address_v6,
-                .address_len = sizeof(struct sockaddr_in6)
+                .address_len = sizeof(struct sockaddr_in6),
         };
 
         sky_tcp_server_create(loop, &tcp_conf);
     }
-
-    return true;
 }
 
 static sky_event_t *
 tcp_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, void *data) {
-    (void) data;
+    sky_coro_switcher_t *switcher = data;
 
-    sky_coro_t *coro = sky_coro_new();
+    sky_coro_t *coro = sky_coro_new(switcher);
 
     tcp_proxy_conn_t *conn = sky_coro_malloc(coro, sizeof(tcp_proxy_conn_t));
     conn->coro = coro;
     sky_event_init(loop, &conn->event, fd, tcp_proxy_run, tcp_proxy_close);
 
-    sky_core_set(coro, (sky_coro_func_t) tcp_proxy_process, conn);
+    sky_coro_set(coro, (sky_coro_func_t) tcp_proxy_process, conn);
 
     return &conn->event;
 }

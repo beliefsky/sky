@@ -8,25 +8,6 @@
 #include "../../core/memory.h"
 
 
-static void
-print_buf(sky_uchar_t *buf, sky_u32_t size) {
-    for (sky_u32_t i = 0; i < size; ++i) {
-        printf("%d\t", buf[i]);
-    }
-    printf("\n");
-
-    for (sky_u32_t i = 0; i < size; ++i) {
-        if (buf[i] == '\r') {
-            printf("\\r\t");
-        } else if (buf[i] == '\n') {
-            printf("\\n\t");
-        } else {
-            printf("%c\t", buf[i]);
-        }
-    }
-    printf("\n");
-}
-
 sky_i8_t
 sky_mqtt_head_pack(sky_mqtt_head_t *head, sky_uchar_t *buf, sky_u32_t size) {
     sky_uchar_t flags;
@@ -282,6 +263,69 @@ sky_mqtt_connect_pack(sky_mqtt_connect_msg_t *msg, sky_uchar_t *buf, sky_u32_t s
     return true;
 }
 
+sky_u32_t sky_mqtt_connect_unpack(sky_uchar_t *buf, const sky_mqtt_connect_msg_t *msg) {
+    const sky_mqtt_head_t head = {
+            .type = SKY_MQTT_TYPE_CONNECT,
+            .body_size = sky_mqtt_connect_unpack_size(msg)
+    };
+    sky_u32_t size = sky_mqtt_head_unpack(&head, buf);
+    buf += size;
+
+    *(sky_u16_t *) buf = sky_htons((sky_u16_t) msg->protocol_name.len);
+    buf += 2;
+    sky_memcpy(buf, msg->protocol_name.data, msg->protocol_name.len);
+    buf += msg->protocol_name.len;
+    *buf++ = msg->version;
+    *buf++ = (sky_u8_t) ((msg->username_flag << 7)
+                         | (msg->password_flag << 6)
+                         | (msg->will_retain << 5)
+                         | (msg->will_qos << 3)
+                         | (msg->will_flag << 2)
+                         | (msg->clean_session << 1)
+                         | msg->reserved);
+    *(sky_u16_t *) buf = sky_htons(msg->keep_alive);
+    buf += 2;
+    *(sky_u16_t *) buf = sky_htons((sky_u16_t) msg->client_id.len);
+    buf += 2;
+    sky_memcpy(buf, msg->client_id.data, msg->client_id.len);
+    buf += msg->client_id.len;
+    if (msg->will_flag) {
+        *(sky_u16_t *) buf = sky_htons((sky_u16_t) msg->will_topic.len);
+        buf += 2;
+        sky_memcpy(buf, msg->will_topic.data, msg->will_topic.len);
+        buf += msg->will_topic.len;
+
+        *(sky_u16_t *) buf = sky_htons((sky_u16_t) msg->will_payload.len);
+        buf += 2;
+        sky_memcpy(buf, msg->will_payload.data, msg->will_payload.len);
+        buf += msg->will_payload.len;
+    }
+    if (msg->username_flag) {
+        *(sky_u16_t *) buf = sky_htons((sky_u16_t) msg->username.len);
+        buf += 2;
+        sky_memcpy(buf, msg->username.data, msg->username.len);
+        buf += msg->username.len;
+    }
+    if (msg->password_flag) {
+        *(sky_u16_t *) buf = sky_htons((sky_u16_t) msg->password.len);
+        buf += 2;
+        sky_memcpy(buf, msg->password.data, msg->password.len);
+    }
+
+    return (size + head.body_size);
+}
+
+sky_bool_t
+sky_mqtt_connect_ack_pack(sky_bool_t *session_preset, sky_u8_t *status, sky_uchar_t *buf, sky_u32_t size) {
+    if (sky_unlikely(size < 2)) {
+        return false;
+    }
+    *session_preset = buf;
+    *status = *(++buf);
+
+    return true;
+}
+
 sky_u32_t
 sky_mqtt_connect_ack_unpack(sky_uchar_t *buf, sky_bool_t session_preset, sky_u8_t status) {
 
@@ -486,10 +530,52 @@ sky_mqtt_subscribe_pack(sky_mqtt_topic_reader_t *msg, sky_uchar_t *buf, sky_u32_
 }
 
 sky_u32_t
-sky_mqtt_sub_ack_unpack(sky_uchar_t *buf, sky_u16_t packet_identifier, const sky_u8_t *max_qos, sky_u32_t topic_num) {
+sky_mqtt_subscribe_unpack(
+        sky_uchar_t *buf,
+        sky_u16_t packet_identifier,
+        const sky_mqtt_topic_t *topic,
+        sky_u32_t topic_n
+) {
+    const sky_mqtt_head_t head = {
+            .type = SKY_MQTT_TYPE_SUBSCRIBE,
+            .body_size = sky_mqtt_subscribe_unpack_size(topic, topic_n)
+    };
+    const sky_u32_t size = sky_mqtt_head_unpack(&head, buf);
+    buf += size;
+
+    *((sky_u16_t *) buf) = sky_htons(packet_identifier);
+    buf += 2;
+
+    for (; topic_n > 0; ++topic, --topic_n) {
+        *((sky_u16_t *) buf) = sky_htons((sky_u16_t) topic->topic.len);
+        buf += 2;
+        sky_memcpy(buf, topic->topic.data, topic->topic.len);
+        buf += topic->topic.len;
+        *(buf++) = topic->qos;
+    }
+    return (size + head.body_size);
+}
+
+sky_bool_t
+sky_mqtt_sub_ack_pack(sky_u16_t *packet_identifier, sky_str_t *result, sky_uchar_t *buf, sky_u32_t size) {
+    if (sky_unlikely(size < 2)) {
+        return false;
+    }
+    *packet_identifier = sky_htons(*(sky_u16_t *) buf);
+    buf += 2;
+    size -= 2;
+
+    result->data = buf;
+    result->len = size;
+
+    return true;
+}
+
+sky_u32_t
+sky_mqtt_sub_ack_unpack(sky_uchar_t *buf, sky_u16_t packet_identifier, const sky_str_t *result) {
     const sky_mqtt_head_t head = {
             .type = SKY_MQTT_TYPE_SUBACK,
-            .body_size = sky_mqtt_sub_ack_unpack_size(topic_num)
+            .body_size = sky_mqtt_sub_ack_unpack_size((sky_u32_t) result->len)
     };
 
     const sky_u32_t size = sky_mqtt_head_unpack(&head, buf);
@@ -498,7 +584,7 @@ sky_mqtt_sub_ack_unpack(sky_uchar_t *buf, sky_u16_t packet_identifier, const sky
     *((sky_u16_t *) buf) = sky_htons(packet_identifier);
     buf += 2;
 
-    sky_memcpy(buf, max_qos, topic_num);
+    sky_memcpy(buf, result->data, result->len);
 
     return (size + head.body_size);
 }
@@ -521,6 +607,42 @@ sky_mqtt_unsubscribe_pack(sky_mqtt_topic_reader_t *msg, sky_uchar_t *buf, sky_u3
 }
 
 sky_u32_t
+sky_mqtt_unsubscribe_unpack(
+        sky_uchar_t *buf,
+        sky_u16_t packet_identifier,
+        const sky_mqtt_topic_t *topic,
+        sky_u32_t topic_n
+) {
+    const sky_mqtt_head_t head = {
+            .type = SKY_MQTT_TYPE_UNSUBSCRIBE,
+            .body_size = sky_mqtt_unsubscribe_unpack_size(topic, topic_n)
+    };
+    const sky_u32_t size = sky_mqtt_head_unpack(&head, buf);
+    buf += size;
+
+    *((sky_u16_t *) buf) = sky_htons(packet_identifier);
+    buf += 2;
+
+    for (; topic_n > 0; ++topic, --topic_n) {
+        *((sky_u16_t *) buf) = sky_htons((sky_u16_t) topic->topic.len);
+        buf += 2;
+        sky_memcpy(buf, topic->topic.data, topic->topic.len);
+        buf += topic->topic.len;
+    }
+    return (size + head.body_size);
+}
+
+sky_bool_t
+sky_mqtt_unsub_ack_pack(sky_u16_t *packet_identifier, sky_uchar_t *buf, sky_u32_t size) {
+    if (sky_unlikely(size < 2)) {
+        return false;
+    }
+    *packet_identifier = sky_htons(*(sky_u16_t *) buf);
+
+    return true;
+}
+
+sky_u32_t
 sky_mqtt_unsub_ack_unpack(sky_uchar_t *buf, sky_u16_t packet_identifier) {
     const sky_mqtt_head_t head = {
             .type = SKY_MQTT_TYPE_UNSUBACK,
@@ -533,6 +655,14 @@ sky_mqtt_unsub_ack_unpack(sky_uchar_t *buf, sky_u16_t packet_identifier) {
     *((sky_u16_t *) buf) = sky_htons(packet_identifier);
 
     return (size + head.body_size);
+}
+
+sky_u32_t
+sky_mqtt_ping_req_unpack(sky_uchar_t *buf) {
+    sky_mqtt_head_t head = {
+            .type = SKY_MQTT_TYPE_PINGREQ
+    };
+    return sky_mqtt_head_unpack(&head, buf);
 }
 
 sky_u32_t
@@ -577,4 +707,52 @@ sky_mqtt_topic_read_next(sky_mqtt_topic_reader_t *msg, sky_mqtt_topic_t *topic) 
     }
 
     return true;
+}
+
+sky_u32_t
+sky_mqtt_connect_unpack_size(const sky_mqtt_connect_msg_t *msg) {
+    sky_u32_t size = 8;
+
+    size += msg->protocol_name.len;
+    size += msg->client_id.len;
+
+    if (msg->will_flag) {
+        size += 4;
+        size += msg->will_topic.len;
+        size += msg->will_payload.len;
+    }
+    if (msg->username_flag) {
+        size += 2;
+        size += msg->username.len;
+    }
+    if (msg->password_flag) {
+        size += 2;
+        size += msg->password.len;
+    }
+
+    return size;
+}
+
+sky_u32_t
+sky_mqtt_subscribe_unpack_size(const sky_mqtt_topic_t *topic, sky_u32_t topic_n) {
+    sky_u32_t size = 2;
+    size += topic_n * 3;
+
+    for (; topic_n > 0; --topic_n) {
+        size += topic->topic.len;
+    }
+
+    return size;
+}
+
+sky_u32_t
+sky_mqtt_unsubscribe_unpack_size(const sky_mqtt_topic_t *topic, sky_u32_t topic_n) {
+    sky_u32_t size = 2;
+    size += topic_n << 1;
+
+    for (; topic_n > 0; --topic_n) {
+        size += topic->topic.len;
+    }
+
+    return size;
 }

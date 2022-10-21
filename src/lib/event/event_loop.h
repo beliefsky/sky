@@ -31,6 +31,7 @@ struct sky_event_s {
 
 struct sky_event_loop_s {
     sky_timer_wheel_t *ctx;
+    sky_event_t *current_ev;
     sky_time_t now;
     sky_i32_t fd;
     sky_i32_t max_events;
@@ -124,9 +125,29 @@ sky_bool_t sky_event_register_only_write(sky_event_t *ev, sky_i32_t timeout);
 sky_bool_t sky_event_unregister(sky_event_t *ev);
 
 
+/**
+ * 重置当前事件超时时间
+ * @param ev  事件
+ * @param timeout 超时时间
+ */
 void sky_event_reset_timeout_self(sky_event_t *ev, sky_i32_t timeout);
 
+/**
+ * 重置指定事件超时时间
+ * @param ev 事件
+ * @param timeout 超时
+ */
 void sky_event_reset_timeout(sky_event_t *ev, sky_i32_t timeout);
+
+/**
+ * 获取当前正在处理的事件
+ * @param loop 事件触发服务
+ * @return 事件
+ */
+static sky_inline sky_event_t *
+sky_event_loop_current(sky_event_loop_t *loop) {
+    return loop->current_ev;
+}
 
 static sky_inline void
 sky_event_timeout_expired(sky_event_t *event) {

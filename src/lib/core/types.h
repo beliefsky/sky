@@ -33,8 +33,6 @@ extern "C" {
 
 #define null    (void *)0
 
-#define sky_thread __thread
-
 #define SKY_I8_MAX INT8_MAX
 #define SKY_U8_MAX UINT8_MAX
 #define SKY_I16_MAX INT16_MAX
@@ -103,7 +101,7 @@ typedef double sky_f64_t;
     ((_ll) & 0xFF00000000000000) >> 56)
 #endif
 
-#if SKY_USIZE_MAX == SKSKY_U64_MAX
+#if SKY_USIZE_MAX == SKY_U64_MAX
 #define sky_clz_usize(_val) sky_clz_u64(_val)
 #else
 #define sky_clz_usize(_val) sky_clz_u32(_val)

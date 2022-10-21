@@ -154,6 +154,7 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
                 return SKY_CORO_ABORT;
         }
         sky_pool_reset(pool);
+        sky_defer_run(coro);
     }
 }
 

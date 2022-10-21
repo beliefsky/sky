@@ -22,15 +22,14 @@ static sky_u64_t session_hash(const void *item, void *secret);
 static sky_bool_t session_equals(const void *a, const void *b);
 
 sky_mqtt_server_t *
-sky_mqtt_server_create(sky_event_manager_t *manager) {
-    sky_u32_t thread_n = sky_event_manager_thread_n(manager);
+sky_mqtt_server_create(sky_event_loop_t *ev_loop, sky_coro_switcher_t *switcher) {
 
     sky_mqtt_server_t *server = sky_malloc(sizeof(sky_mqtt_server_t));
     server->mqtt_read = sky_mqtt_read;
     server->mqtt_read_all = sky_mqtt_read_all;
     server->mqtt_write_nowait = sky_mqtt_write_nowait;
-    server->manager = manager;
-    server->thread_index = thread_n - 1;
+    server->ev_loop = ev_loop;
+    server->switcher = switcher;
 
     sky_hashmap_init_with_cap(&server->session_manager, session_hash, session_equals, null, 128);
 
@@ -47,17 +46,17 @@ sky_mqtt_server_bind(sky_mqtt_server_t *server, sky_inet_address_t *address, sky
             .run = (sky_tcp_accept_cb_pt) mqtt_connection_accept_cb,
             .data = server,
             .timeout = 300,
+            .reuse_port = true,
             .nodelay = true,
             .defer_accept = true
     };
-    sky_event_loop_t *loop = sky_event_manager_idx_event_loop(server->manager, server->thread_index);
 
-    return null != loop && sky_tcp_server_create(loop, &conf);
+    return sky_tcp_server_create(server->ev_loop, &conf);
 }
 
 static sky_event_t *
 mqtt_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_mqtt_server_t *server) {
-    sky_coro_t *coro = sky_coro_new();
+    sky_coro_t *coro = sky_coro_new(server->switcher);
     sky_mqtt_connect_t *conn = sky_coro_malloc(coro, sizeof(sky_mqtt_connect_t));
     conn->coro = coro;
     conn->server = server;
@@ -66,7 +65,7 @@ mqtt_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_mqtt_server_
     conn->write_size = 0;
     conn->head_copy = 0;
 
-    sky_core_set(coro, (sky_coro_func_t) sky_mqtt_process, conn);
+    sky_coro_set(coro, (sky_coro_func_t) sky_mqtt_process, conn);
     sky_event_init(loop, &conn->ev, fd, mqtt_run, mqtt_close);
 
     return &conn->ev;

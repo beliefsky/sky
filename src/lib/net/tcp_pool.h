@@ -5,7 +5,7 @@
 #ifndef SKY_TCP_POOL_H
 #define SKY_TCP_POOL_H
 
-#include "../event/event_manager.h"
+#include "../event/event_loop.h"
 #include "../core/queue.h"
 #include "../core/coro.h"
 #include "inet.h"
@@ -41,7 +41,7 @@ struct sky_tcp_conn_s {
     sky_defer_t *defer;
 };
 
-sky_tcp_pool_t *sky_tcp_pool_create(sky_event_manager_t *manager, const sky_tcp_pool_conf_t *conf);
+sky_tcp_pool_t *sky_tcp_pool_create(sky_event_loop_t *ev_loop, const sky_tcp_pool_conf_t *conf);
 
 sky_bool_t sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event_t *event, sky_coro_t *coro);
 
