@@ -13,6 +13,46 @@
 extern "C" {
 #endif
 
+typedef struct sky_json_doc_s sky_json_doc_t;
+typedef struct sky_json_val_s sky_json_val_t;
+
+struct sky_json_doc_s {
+    sky_json_val_t *root;
+    sky_usize_t read_n;
+    sky_usize_t val_read_n;
+};
+
+struct sky_json_val_s {
+    sky_u64_t tag;
+    union {
+        sky_u64_t u64;
+        sky_i64_t i64;
+        void *ptr;
+        sky_f64_t f64;
+        sky_str_t str;
+    };
+};
+
+
+sky_json_doc_t *sky_json_read(sky_str_t *str);
+
+sky_json_val_t *sky_json_doc_get_root(sky_json_doc_t *doc);
+
+sky_json_val_t *sky_json_obj_get(sky_json_val_t *obj, sky_uchar_t *key, sky_u32_t key_len);
+
+
+
+
+
+
+
+
+// ================================ old version =======================================
+
+
+
+
+
 typedef struct sky_json_s sky_json_t;
 typedef struct sky_json_object_s sky_json_object_t;
 typedef struct sky_json_array_s sky_json_array_t;
@@ -98,7 +138,7 @@ sky_json_t *sky_json_add_string(sky_json_t *json, sky_str_t *value);
 
 sky_json_t *sky_json_add_str_len(sky_json_t *json, sky_uchar_t *v, sky_u32_t v_len);
 
-static sky_inline sky_json_t*
+static sky_inline sky_json_t *
 sky_json_object_create(sky_pool_t *pool) {
     sky_json_t *json = sky_palloc(pool, sizeof(sky_json_t) + sizeof(sky_json_object_t));
 
@@ -112,7 +152,7 @@ sky_json_object_create(sky_pool_t *pool) {
     return json;
 }
 
-static sky_inline sky_json_t*
+static sky_inline sky_json_t *
 sky_json_array_create(sky_pool_t *pool) {
     sky_json_t *json = sky_palloc(pool, sizeof(sky_json_t) + sizeof(sky_json_array_t));
 
