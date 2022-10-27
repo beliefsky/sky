@@ -93,6 +93,25 @@ extern "C" {
 typedef struct sky_json_doc_s sky_json_doc_t;
 typedef struct sky_json_val_s sky_json_val_t;
 
+struct sky_json_doc_s {
+    sky_json_val_t *root;
+    sky_usize_t read_n;
+    sky_usize_t val_read_n;
+    sky_uchar_t *str_pool;
+};
+
+struct sky_json_val_s {
+    sky_u64_t tag;
+    union {
+        sky_u64_t u64;
+        sky_i64_t i64;
+        sky_usize_t ofs;
+        sky_f64_t f64;
+        sky_uchar_t *str;
+        void *ptr;
+    };
+};
+
 
 sky_json_doc_t *sky_json_read_opts(const sky_str_t *str, sky_u32_t opts);
 
@@ -102,6 +121,27 @@ sky_json_val_t *sky_json_obj_get(sky_json_val_t *obj, const sky_uchar_t *key, sk
 
 void sky_json_doc_free(sky_json_doc_t *doc);
 
+
+static sky_inline sky_u8_t
+sky_json_unsafe_get_type(const sky_json_val_t *val) {
+    return (sky_u8_t) val->tag & SKY_JSON_TYPE_MASK;
+}
+
+
+static sky_inline sky_u8_t
+sky_json_unsafe_get_tag(const sky_json_val_t *val) {
+    return (sky_u8_t) val->tag & SKY_JSON_TAG_MASK;
+}
+
+
+static sky_inline sky_bool_t
+sky_json_unsafe_is_ctn(const sky_json_val_t *val) {
+    const sky_u8_t mask = SKY_JSON_TYPE_ARR & SKY_JSON_TYPE_OBJ;
+
+    return (sky_json_unsafe_get_tag(val) & mask) == mask;
+};
+
+
 static sky_inline sky_json_doc_t *
 sky_json_read(const sky_str_t *str, sky_u32_t opts) {
     opts &= ~SKY_JSON_READ_IN_SITU; /* const string cannot be modified */
@@ -109,11 +149,15 @@ sky_json_read(const sky_str_t *str, sky_u32_t opts) {
     return sky_json_read_opts(str, opts);
 }
 
+static sky_inline sky_u8_t
+sky_json_get_type(const sky_json_val_t *val) {
+    return sky_likely(val) ? sky_json_unsafe_get_type(val) : SKY_JSON_TYPE_NONE;
+}
 
-
-
-
-
+static sky_inline sky_bool_t
+sky_json_is_obj(const sky_json_val_t *val) {
+    return val && sky_json_unsafe_get_type(val) == SKY_JSON_TYPE_OBJ;
+}
 
 
 // ================================ old version =======================================

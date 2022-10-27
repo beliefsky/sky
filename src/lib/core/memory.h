@@ -51,11 +51,11 @@ extern "C" {
         *(sky_u64_t *)(_dist) = *(((sky_u64_t *)(_src)));   \
     } while(0)                                              \
 
-#define skt_memmove2(_dist, _src) sky_memcpy2(_dist, _src)
+#define sky_memmove2(_dist, _src) sky_memcpy2(_dist, _src)
 
-#define skt_memmove4(_dist, _src) sky_memcpy4(_dist, _src)
+#define sky_memmove4(_dist, _src) sky_memcpy4(_dist, _src)
 
-#define skt_memmove8(_dist, _src) sky_memcpy8(_dist, _src)
+#define sky_memmove8(_dist, _src) sky_memcpy8(_dist, _src)
 
 static sky_inline void
 sky_free(void *ptr) {

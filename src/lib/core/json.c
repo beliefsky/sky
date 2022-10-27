@@ -55,31 +55,18 @@
 #define WRITER_ESTIMATED_PRETTY_RATIO 32
 #define WRITER_ESTIMATED_MINIFY_RATIO 18
 
-#define repeat16(x) { x x x x x x x x x x x x x x x x }
-
-
 #define F64_RAW_INF SKY_U64(0x7FF0000000000000)
 #define F64_RAW_NAN SKY_U64(0x7FF8000000000000)
 
+#define repeat16(x) { x x x x x x x x x x x x x x x x }
+#define repeat16_incr(x) { x(0) x(1) x(2) x(3) x(4) x(5) x(6) x(7) \
+                           x(8) x(9) x(10) x(11) x(12) x(13) x(14) x(15) }
 
-struct sky_json_doc_s {
-    sky_json_val_t *root;
-    sky_usize_t read_n;
-    sky_usize_t val_read_n;
-    sky_uchar_t *str_pool;
-};
+static sky_usize_t json_get_len(const sky_json_val_t *val);
 
-struct sky_json_val_s {
-    sky_u64_t tag;
-    union {
-        sky_u64_t u64;
-        sky_i64_t i64;
-        sky_usize_t ofs;
-        void *ptr;
-        sky_f64_t f64;
-        sky_str_t str;
-    };
-};
+static sky_json_val_t *json_get_first(sky_json_val_t *ctn);
+
+static sky_json_val_t *json_get_next(const sky_json_val_t *val);
 
 static sky_bool_t char_is_type(sky_uchar_t c, sky_u8_t type);
 
@@ -118,6 +105,8 @@ static sky_bool_t read_inf(sky_uchar_t **ptr, sky_uchar_t **pre, sky_json_val_t 
 static sky_bool_t read_nan(sky_uchar_t **ptr, sky_uchar_t **pre, sky_json_val_t *val, sky_bool_t sign);
 
 static sky_bool_t read_inf_or_nan(sky_uchar_t **ptr, sky_uchar_t **pre, sky_json_val_t *val, sky_bool_t sign);
+
+static sky_bool_t read_hex_u16(const sky_uchar_t *cur, sky_u16_t *val);
 
 sky_json_doc_t *
 sky_json_read_opts(const sky_str_t *str, sky_u32_t opts) {
@@ -207,7 +196,19 @@ sky_json_doc_get_root(sky_json_doc_t *doc) {
 
 sky_json_val_t *
 sky_json_obj_get(sky_json_val_t *obj, const sky_uchar_t *key, sky_u32_t key_len) {
+    const sky_u64_t tag = (((sky_u64_t) key_len) << SKY_JSON_TAG_BIT) | SKY_JSON_TYPE_STR;
+    if (sky_likely(sky_json_is_obj(obj) && key_len)) {
+        sky_usize_t len = json_get_len(obj);
 
+        sky_json_val_t *item = json_get_first(obj);
+        while (len-- > 0) {
+            if (item->tag == tag && sky_str_len_unsafe_equals(item->ptr, key, key_len)) {
+                return item + 1;
+            }
+            item = json_get_next(item + 1);
+        }
+    }
+    return null;
 }
 
 void
@@ -219,6 +220,24 @@ sky_json_doc_free(sky_json_doc_t *doc) {
         }
         sky_free(doc);
     }
+}
+
+static sky_inline sky_usize_t
+json_get_len(const sky_json_val_t *val) {
+    return (sky_usize_t) (val->tag >> SKY_JSON_TAG_BIT);
+}
+
+static sky_inline sky_json_val_t *
+json_get_first(sky_json_val_t *ctn) {
+    return ctn + 1;
+}
+
+static sky_inline sky_json_val_t *
+json_get_next(const sky_json_val_t *val) {
+    const sky_bool_t is_ctn = sky_json_unsafe_is_ctn(val);
+    const sky_usize_t ctn_ofs = val->ofs;
+    const sky_usize_t ofs = (is_ctn ? ctn_ofs : sizeof(sky_json_val_t));
+    return (sky_json_val_t *) ((uint8_t *) val + ofs);
 }
 
 
@@ -1474,13 +1493,13 @@ read_number(sky_uchar_t **ptr, sky_uchar_t **pre, sky_json_val_t *val, sky_bool_
 /**
  Read a JSON string.
  @param ptr The head pointer of string before '"' prefix (inout).
- @param end JSON last position.
+ @param lst JSON last position.
  @param val The string value to be written.
  @param inv Allow invalid unicode.
  @return Whether success.
  */
 static sky_bool_t
-read_string(sky_uchar_t **ptr, sky_uchar_t *end, sky_json_val_t *val, sky_bool_t inv) {
+read_string(sky_uchar_t **ptr, sky_uchar_t *lst, sky_json_val_t *val, sky_bool_t inv) {
     /*
  Each unicode code point is encoded as 1 to 4 bytes in UTF-8 encoding,
  we use 4-byte mask and pattern value to validate UTF-8 byte sequence,
@@ -1526,39 +1545,432 @@ read_string(sky_uchar_t **ptr, sky_uchar_t *end, sky_json_val_t *val, sky_bool_t
  */
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-    const sky_u32_t b1_mask = SKY_U32(0x00000080);
-    const sky_u32_t b1_patt = SKY_U32(0x00000000);
-    const sky_u32_t b2_mask = SKY_U32(0x0000C0E0);
-    const sky_u32_t b2_patt = SKY_U32(0x000080C0);
-    const sky_u32_t b2_requ = SKY_U32(0x0000001E);
-    const sky_u32_t b3_mask = SKY_U32(0x00C0C0F0);
-    const sky_u32_t b3_patt = SKY_U32(0x008080E0);
-    const sky_u32_t b3_requ = SKY_U32(0x0000200F);
-    const sky_u32_t b3_erro = SKY_U32(0x0000200D);
-    const sky_u32_t b4_mask = SKY_U32(0xC0C0C0F8);
-    const sky_u32_t b4_patt = SKY_U32(0x808080F0);
-    const sky_u32_t b4_requ = SKY_U32(0x00003007);
-    const sky_u32_t b4_err0 = SKY_U32(0x00000004);
-    const sky_u32_t b4_err1 = SKY_U32(0x00003003);
+#define b1_mask SKY_U32(0x00000080)
+#define b1_patt SKY_U32(0x00000000)
+#define b2_mask SKY_U32(0x0000C0E0)
+#define b2_patt SKY_U32(0x000080C0)
+#define b2_requ SKY_U32(0x0000001E)
+#define b3_mask SKY_U32(0x00C0C0F0)
+#define b3_patt SKY_U32(0x008080E0)
+#define b3_requ SKY_U32(0x0000200F)
+#define b3_erro SKY_U32(0x0000200D)
+#define b4_mask SKY_U32(0xC0C0C0F8)
+#define b4_patt SKY_U32(0x808080F0)
+#define b4_requ SKY_U32(0x00003007)
+#define b4_err0 SKY_U32(0x00000004)
+#define b4_err1 SKY_U32(0x00003003)
 #else
-    const sky_u32_t b1_mask = SKY_U32(0x80000000);
-    const sky_u32_t b1_patt = SKY_U32(0x00000000);
-    const sky_u32_t b2_mask = SKY_U32(0xE0C00000);
-    const sky_u32_t b2_patt = SKY_U32(0xC0800000);
-    const sky_u32_t b2_requ = SKY_U32(0x1E000000);
-    const sky_u32_t b3_mask = SKY_U32(0xF0C0C000);
-    const sky_u32_t b3_patt = SKY_U32(0xE0808000);
-    const sky_u32_t b3_requ = SKY_U32(0x0F200000);
-    const sky_u32_t b3_erro = SKY_U32(0x0D200000);
-    const sky_u32_t b4_mask = SKY_U32(0xF8C0C0C0);
-    const sky_u32_t b4_patt = SKY_U32(0xF0808080);
-    const sky_u32_t b4_requ = SKY_U32(0x07300000);
-    const sky_u32_t b4_err0 = SKY_U32(0x04000000);
-    const sky_u32_t b4_err1 = SKY_U32(0x03300000);
+#define b1_mask SKY_U32(0x80000000)
+#define b1_patt SKY_U32(0x00000000)
+#define b2_mask SKY_U32(0xE0C00000)
+#define b2_patt SKY_U32(0xC0800000)
+#define b2_requ SKY_U32(0x1E000000)
+#define b3_mask SKY_U32(0xF0C0C000)
+#define b3_patt SKY_U32(0xE0808000)
+#define b3_requ SKY_U32(0x0F200000)
+#define b3_erro SKY_U32(0x0D200000)
+#define b4_mask SKY_U32(0xF8C0C0C0)
+#define b4_patt SKY_U32(0xF0808080)
+#define b4_requ SKY_U32(0x07300000)
+#define b4_err0 SKY_U32(0x04000000)
+#define b4_err1 SKY_U32(0x03300000)
 #endif
 
+#define is_valid_seq_1(_uni) (((_uni) & b1_mask) == b1_patt)
 
-    return false;
+#define is_valid_seq_2(_uni) ( \
+    (((_uni) & b2_mask) == b2_patt) && \
+    (((_uni) & b2_requ)) \
+)
+
+#define is_valid_seq_3(_uni) ( \
+    (((_uni) & b3_mask) == b3_patt) && \
+    ((tmp = ((_uni) & b3_requ))) && \
+    ((tmp != b3_erro)) \
+)
+
+#define is_valid_seq_4(_uni) ( \
+    (((_uni) & b4_mask) == b4_patt) && \
+    ((tmp = ((_uni) & b4_requ))) &&    \
+    ((tmp & b4_err0) == 0 || (tmp & b4_err1) == 0) \
+)
+
+#define return_err(_end, _msg) do { \
+    *end = _end; \
+    return false; \
+} while (false)
+
+    sky_uchar_t *cur = *ptr;
+    sky_uchar_t **end = ptr;
+    sky_uchar_t *src = ++cur;
+
+    sky_uchar_t *dst, *pos;
+    sky_u16_t hi, lo;
+    sky_u32_t uni, tmp;
+
+    skip_ascii:
+    /* Most strings have no escaped characters, so we can jump them quickly. */
+
+    skip_ascii_begin:
+    /*
+     We want to make loop unrolling, as shown in the following code. Some
+     compiler may not generate instructions as expected, so we rewrite it with
+     explicit goto statements. We hope the compiler can generate instructions
+     like this: https://godbolt.org/z/8vjsYq
+
+         while (true) repeat16({
+            if (likely(!(char_is_ascii_stop(*src)))) src++;
+            else break;
+         });
+     */
+#define expr_jump(i) \
+    if (sky_unlikely(char_is_ascii_stop(src[i]))) { \
+        goto skip_ascii_stop##i; \
+    }
+
+#define expr_stop(i) \
+    skip_ascii_stop##i: \
+    src += (i);      \
+    goto skip_ascii_end;
+
+
+    repeat16_incr(expr_jump);
+    src += 16;
+    goto skip_ascii_begin;
+    repeat16_incr(expr_stop);
+
+    skip_ascii_end:
+
+    if (sky_likely(*src == '"')) {
+        val->tag = ((sky_u64_t) (src - cur) << SKY_JSON_TAG_BIT) | SKY_JSON_TYPE_STR;
+        val->str = cur;
+        *src = '\0';
+        *end = src + 1;
+        return true;
+    }
+
+#undef expr_jump
+#undef expr_stop
+
+    skip_utf8:
+    if (*src & 0x80) { /* non-ASCII character */
+        /*
+         Non-ASCII character appears here, which means that the text is likely
+         to be written in non-English or emoticons. According to some common
+         data set statistics, byte sequences of the same length may appear
+         consecutively. We process the byte sequences of the same length in each
+         loop, which is more friendly to branch prediction.
+         */
+        pos = src;
+        uni = *(sky_u32_t *) src;
+        while (is_valid_seq_3(uni)) {
+            src += 3;
+            uni = *(sky_u32_t *) src;
+        }
+        if (is_valid_seq_1(uni)) {
+            goto skip_ascii;
+        }
+        while (is_valid_seq_2(uni)) {
+            src += 2;
+            uni = *(sky_u32_t *) src;
+        }
+        while (is_valid_seq_4(uni)) {
+            src += 4;
+            uni = *(sky_u32_t *) src;
+        }
+        if (sky_unlikely(pos == src)) {
+            if (!inv) {
+                return_err(src, "invalid UTF-8 encoding in string");
+            }
+            ++src;
+        }
+        goto skip_ascii;
+    }
+
+    /* The escape character appears, we need to copy it. */
+    dst = src;
+
+    copy_escape:
+    if (sky_likely(*src == '\\')) {
+        switch (*++src) {
+            case '"':
+                *dst++ = '"';
+                ++src;
+                break;
+            case '\\':
+                *dst++ = '\\';
+                ++src;
+                break;
+            case '/':
+                *dst++ = '/';
+                ++src;
+                break;
+            case 'b':
+                *dst++ = '\b';
+                ++src;
+                break;
+            case 'f':
+                *dst++ = '\f';
+                ++src;
+                break;
+            case 'n':
+                *dst++ = '\n';
+                ++src;
+                break;
+            case 'r':
+                *dst++ = '\r';
+                ++src;
+                break;
+            case 't':
+                *dst++ = '\t';
+                ++src;
+                break;
+            case 'u':
+                if (sky_unlikely(!read_hex_u16(++src, &hi))) {
+                    return_err(src - 2, "invalid escaped unicode in string");
+                }
+                src += 4;
+                if (sky_unlikely((hi & 0xF800) != 0xD800)) {
+                    /* a BMP character */
+                    if (hi >= 0x800) {
+                        *dst++ = (sky_uchar_t) (0xE0 | (hi >> 12));
+                        *dst++ = (sky_uchar_t) (0x80 | ((hi >> 6) & 0x3F));
+                        *dst++ = (sky_uchar_t) (0x80 | (hi & 0x3F));
+                    } else if (hi >= 0x80) {
+                        *dst++ = (sky_uchar_t) (0xC0 | (hi >> 6));
+                        *dst++ = (sky_uchar_t) (0x80 | (hi & 0x3F));
+                    } else {
+                        *dst++ = (sky_uchar_t) hi;
+                    }
+                } else {
+                    /* a non-BMP character, represented as a surrogate pair */
+                    if (sky_unlikely((hi & 0xFC00) != 0xD800)) {
+                        return_err(src - 6, "invalid high surrogate in string");
+                    }
+                    if (sky_unlikely(!sky_str2_cmp(src, '\\', 'u')) ||
+                        sky_unlikely(!read_hex_u16(src + 2, &lo))) {
+                        return_err(src, "no matched low surrogate in string");
+                    }
+                    if (sky_unlikely((lo & 0xFC00) != 0xDC00)) {
+                        return_err(src, "invalid low surrogate in string");
+                    }
+                    uni = ((((sky_u32_t) hi - 0xD800) << 10) | ((sky_u32_t) lo - 0xDC00)) + 0x10000;
+                    *dst++ = (sky_uchar_t) (0xF0 | (uni >> 18));
+                    *dst++ = (sky_uchar_t) (0x80 | ((uni >> 12) & 0x3F));
+                    *dst++ = (sky_uchar_t) (0x80 | ((uni >> 6) & 0x3F));
+                    *dst++ = (sky_uchar_t) (0x80 | (uni & 0x3F));
+                    src += 6;
+                }
+                break;
+            default:
+                return_err(src, "invalid escaped character in string");
+        }
+    } else if (sky_likely(*src == '"')) {
+        val->tag = ((sky_u64_t) (dst - cur) << SKY_JSON_TAG_BIT) | SKY_JSON_TYPE_STR;
+        val->str = cur;
+        *dst = '\0';
+        *end = src + 1;
+        return true;
+    } else {
+        if (!inv) return_err(src, "unexpected control character in string");
+        if (src >= lst) return_err(src, "unclosed string");
+        *dst++ = *src++;
+    }
+
+    copy_ascii:
+    /*
+     Copy continuous ASCII, loop unrolling, same as the following code:
+
+         while (true) repeat16({
+            if (unlikely(char_is_ascii_stop(*src))) break;
+            *dst++ = *src++;
+         });
+     */
+#define expr_jump(i) \
+    if (sky_unlikely(char_is_ascii_stop(src[i]))) { \
+        goto copy_ascii_stop_##i; \
+    }
+    repeat16_incr(expr_jump);
+#undef expr_jump
+
+    sky_memmove(dst, src, 16);
+    src += 16;
+    dst += 16;
+    goto copy_ascii;
+
+    copy_ascii_stop_0:
+
+    goto copy_utf8;
+
+    copy_ascii_stop_1:
+
+    sky_memmove2(dst, src);
+    src += 1;
+    dst += 1;
+    goto copy_utf8;
+
+    copy_ascii_stop_2:
+    sky_memmove2(dst, src);
+    src += 2;
+    dst += 2;
+    goto copy_utf8;
+
+    copy_ascii_stop_3:
+
+    sky_memmove4(dst, src);
+    src += 3;
+    dst += 3;
+    goto copy_utf8;
+
+    copy_ascii_stop_4:
+
+    sky_memmove4(dst, src);
+    src += 4;
+    dst += 4;
+    goto copy_utf8;
+
+    copy_ascii_stop_5:
+
+    sky_memmove4(dst, src);
+    sky_memmove2(dst + 4, src + 4);
+    src += 5;
+    dst += 5;
+    goto copy_utf8;
+
+    copy_ascii_stop_6:
+
+    sky_memmove4(dst, src);
+    sky_memmove2(dst + 4, src + 4);
+    src += 6;
+    dst += 6;
+    goto copy_utf8;
+
+    copy_ascii_stop_7:
+
+    sky_memmove8(dst, src);
+    src += 7;
+    dst += 7;
+    goto copy_utf8;
+
+    copy_ascii_stop_8:
+
+    sky_memmove8(dst, src);
+    src += 8;
+    dst += 8;
+    goto copy_utf8;
+
+    copy_ascii_stop_9:
+
+    sky_memmove8(dst, src);
+    sky_memmove2(dst + 8, src + 8);
+    src += 9;
+    dst += 9;
+    goto copy_utf8;
+
+    copy_ascii_stop_10:
+
+    sky_memmove8(dst, src);
+    sky_memmove2(dst + 8, src + 8);
+    src += 10;
+    dst += 10;
+    goto copy_utf8;
+
+    copy_ascii_stop_11:
+
+    sky_memmove8(dst, src);
+    sky_memmove4(dst + 8, src + 8);
+    src += 11;
+    dst += 11;
+    goto copy_utf8;
+
+    copy_ascii_stop_12:
+
+    sky_memmove8(dst, src);
+    sky_memmove4(dst + 8, src + 8);
+    src += 12;
+    dst += 12;
+    goto copy_utf8;
+
+    copy_ascii_stop_13:
+
+    sky_memmove8(dst, src);
+    sky_memmove4(dst + 8, src + 8);
+    sky_memmove2(dst + 12, src + 12);
+    src += 13;
+    dst += 13;
+    goto copy_utf8;
+
+    copy_ascii_stop_14:
+
+    sky_memmove8(dst, src);
+    sky_memmove4(dst + 8, src + 8);
+    sky_memmove2(dst + 12, src + 12);
+    src += 14;
+    dst += 14;
+    goto copy_utf8;
+
+    copy_ascii_stop_15:
+
+    sky_memmove(dst, src, 16);
+    src += 15;
+    dst += 15;
+    goto copy_utf8;
+
+    copy_utf8:
+
+    if (*src & 0x80) { /* non-ASCII character */
+        pos = src;
+        uni = *(sky_u32_t *) src;
+        while (is_valid_seq_3(uni)) {
+            sky_memmove4(dst, &uni);
+            dst += 3;
+            src += 3;
+            uni = *(sky_u32_t *) src;
+        }
+        if (is_valid_seq_1(uni)) {
+            goto copy_ascii;
+        }
+        while (is_valid_seq_2(uni)) {
+            sky_memmove2(dst, &uni);
+            dst += 2;
+            src += 2;
+            uni = *(sky_u32_t *) src;
+        }
+        while (is_valid_seq_4(uni)) {
+            sky_memmove2(dst, &uni);
+            dst += 4;
+            src += 4;
+            uni = *(sky_u32_t *) src;
+        }
+        if (sky_unlikely(pos == src)) {
+            if (!inv) {
+                return_err(src, "invalid UTF-8 encoding in string");
+            }
+            goto copy_ascii_stop_1;
+        }
+        goto copy_ascii;
+    }
+    goto copy_escape;
+
+#undef b1_mask
+#undef b1_patt
+#undef b2_mask
+#undef b2_patt
+#undef b2_requ
+#undef b3_mask
+#undef b3_patt
+#undef b3_requ
+#undef b3_erro
+#undef b4_mask
+#undef b4_patt
+#undef b4_requ
+#undef b4_err0
+#undef b4_err1
+
+#undef return_err
+#undef is_valid_seq_4
+#undef is_valid_seq_3
+#undef is_valid_seq_2
 }
 
 static sky_inline sky_bool_t
@@ -1625,8 +2037,7 @@ read_inf(sky_uchar_t **ptr, sky_uchar_t **pre, sky_json_val_t *val, sky_bool_t s
             }
             *pre = cur;
             val->tag = ((sky_u64_t) (cur - hdr) << SKY_JSON_TAG_BIT) | SKY_JSON_TYPE_RAW;
-            val->str.data = hdr;
-            val->str.len = (sky_usize_t) (cur - hdr);
+            val->str = hdr;
         } else {
             val->tag = SKY_JSON_TYPE_NUM | SKY_JSON_SUBTYPE_REAL;
             val->u64 = f64_raw_get_inf(sign);
@@ -1652,8 +2063,7 @@ read_nan(sky_uchar_t **ptr, sky_uchar_t **pre, sky_json_val_t *val, sky_bool_t s
             if (*pre) **pre = '\0';
             *pre = cur;
             val->tag = ((sky_u64_t) (cur - hdr) << SKY_JSON_TAG_BIT) | SKY_JSON_TYPE_RAW;
-            val->str.data = hdr;
-            val->str.len = (sky_usize_t) (cur - hdr);
+            val->str = hdr;
         } else {
             val->tag = SKY_JSON_TYPE_NUM | SKY_JSON_SUBTYPE_REAL;
             val->u64 = f64_raw_get_nan(sign);
@@ -1672,6 +2082,69 @@ read_inf_or_nan(sky_uchar_t **ptr, sky_uchar_t **pre, sky_json_val_t *val, sky_b
         return true;
     }
     return false;
+}
+
+/**
+ *  Scans an escaped character sequence as a UTF-16 code unit (branchless).
+    e.g. "\\u005C" should pass "005C" as `cur`.
+
+    This requires the string has 4-byte zero padding.
+ * @param cur  str_ptr
+ * @param val val
+ * @return suceess
+ */
+static sky_inline sky_bool_t
+read_hex_u16(const sky_uchar_t *cur, sky_u16_t *val) {
+    /**
+        This table is used to convert 4 hex character sequence to a number.
+        A valid hex character [0-9A-Fa-f] will mapped to it's raw number [0x00, 0x0F],
+        an invalid hex character will mapped to [0xF0].
+        (generate with misc/make_tables.c)
+ */
+    static const sky_uchar_t hex_conv_table[256] = {
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x08, 0x09, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0,
+            0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0, 0xF0
+    };
+
+    const sky_u16_t c0 = hex_conv_table[cur[0]];
+    const sky_u16_t c1 = hex_conv_table[cur[1]];
+    const sky_u16_t c2 = hex_conv_table[cur[2]];
+    const sky_u16_t c3 = hex_conv_table[cur[3]];
+    const sky_u16_t t0 = (sky_u16_t) ((c0 << 8) | c2);
+    const sky_u16_t t1 = (sky_u16_t) ((c1 << 8) | c3);
+
+    *val = (sky_u16_t) ((t0 << 4) | t1);
+    return ((t0 | t1) & (sky_u16_t) 0xF0F0) == 0;
 }
 
 // ================================ old version =======================================
