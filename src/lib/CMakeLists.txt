@@ -5,6 +5,7 @@ endif ()
 
 set(SOURCES
         core/palloc.c
+        core/mem_pool.c
         core/queue.c
         core/array.c
         core/list.c
@@ -157,6 +158,7 @@ install(FILES
         core/memory.h
         core/process.h
         core/palloc.h
+        core/mem_pool.h
         core/array.h
         core/queue.h
         core/list.h
