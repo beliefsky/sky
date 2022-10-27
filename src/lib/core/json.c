@@ -379,6 +379,31 @@ sky_json_doc_free(sky_json_doc_t *doc) {
     }
 }
 
+sky_json_mut_doc_t *
+sky_json_mut_doc_create() {
+    sky_json_mut_doc_t *doc = sky_malloc(sizeof(sky_json_mut_doc_t));
+    if (sky_unlikely(!doc)) {
+        return null;
+    }
+    doc->root = null;
+    doc->str_pool = null;
+    doc->val_pool = sky_mem_pool_create(sizeof(sky_json_mut_val_t), 16);
+    if (sky_unlikely(!doc->val_pool)) {
+        sky_free(doc);
+        return null;
+    }
+
+    return doc;
+}
+
+void
+sky_json_mut_doc_free(sky_json_mut_doc_t *doc) {
+    if (sky_unlikely(!doc)) {
+        return;
+    }
+    sky_free(doc);
+}
+
 
 static sky_inline
 sky_bool_t char_is_type(sky_uchar_t c, sky_u8_t type) {
