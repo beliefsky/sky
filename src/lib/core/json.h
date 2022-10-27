@@ -195,6 +195,24 @@ sky_json_unsafe_is_ctn(const sky_json_val_t *val) {
 };
 
 static sky_inline sky_bool_t
+sky_json_unsafe_is_uint(const sky_json_val_t *val) {
+    const sky_u8_t patt = SKY_JSON_TYPE_BOOL | SKY_JSON_SUBTYPE_UINT;
+    return sky_json_unsafe_get_tag(val) == patt;
+}
+
+static sky_inline sky_bool_t
+sky_json_unsafe_is_int(const sky_json_val_t *val) {
+    const sky_u8_t patt = SKY_JSON_TYPE_BOOL | SKY_JSON_SUBTYPE_INT;
+    return sky_json_unsafe_get_tag(val) == patt;
+}
+
+static sky_inline sky_bool_t
+sky_json_unsafe_is_real(const sky_json_val_t *val) {
+    const sky_u8_t patt = SKY_JSON_TYPE_BOOL | SKY_JSON_SUBTYPE_REAL;
+    return sky_json_unsafe_get_tag(val) == patt;
+}
+
+static sky_inline sky_bool_t
 sky_json_unsafe_is_true(const sky_json_val_t *val) {
     const sky_u8_t patt = SKY_JSON_TYPE_BOOL | SKY_JSON_SUBTYPE_TRUE;
     return sky_json_unsafe_get_tag(val) == patt;
@@ -329,6 +347,21 @@ sky_json_is_obj(const sky_json_val_t *val) {
 static sky_inline sky_bool_t
 sky_json_is_ctn(const sky_json_val_t *val) {
     return val && sky_json_unsafe_is_ctn(val);
+}
+
+static sky_inline sky_bool_t
+sky_json_is_unit(const sky_json_val_t *val) {
+    return val && sky_json_unsafe_is_uint(val);
+}
+
+static sky_inline sky_bool_t
+sky_json_is_int(const sky_json_val_t *val) {
+    return val && sky_json_unsafe_is_int(val);
+}
+
+static sky_inline sky_bool_t
+sky_json_is_real(const sky_json_val_t *val) {
+    return val && sky_json_unsafe_is_real(val);
 }
 
 static sky_inline sky_bool_t
