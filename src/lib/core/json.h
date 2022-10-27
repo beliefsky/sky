@@ -8,6 +8,7 @@
 #include "types.h"
 #include "string.h"
 #include "palloc.h"
+#include "mem_pool.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -92,6 +93,7 @@ extern "C" {
 
 typedef struct sky_json_doc_s sky_json_doc_t;
 typedef struct sky_json_val_s sky_json_val_t;
+typedef struct sky_json_mut_doc_s sky_json_mut_doc_t;
 typedef struct sky_json_mut_val_s sky_json_mut_val_t;
 
 typedef union {
@@ -116,6 +118,12 @@ struct sky_json_val_s {
     sky_json_val_uni_t uni;
 };
 
+struct sky_json_mut_doc_s {
+    sky_json_mut_val_t *root; /**< root value of the JSON document, nullable */
+    sky_mem_pool_t *str_pool; /**< string memory pool */
+    sky_mem_pool_t *val_pool; /**< value memory pool */
+};
+
 /**
  Mutable JSON value, 24 bytes.
  The 'tag' and 'uni' field is same as immutable value.
@@ -127,15 +135,7 @@ struct sky_json_mut_val_s {
     sky_json_mut_val_t *next; /**< the next value in circular linked list */
 };
 
-sky_json_doc_t *sky_json_read_opts(const sky_str_t *str, sky_u32_t opts);
-
-sky_json_val_t *sky_json_obj_get(sky_json_val_t *obj, const sky_uchar_t *key, sky_u32_t key_len);
-
-sky_json_val_t *sky_json_arr_get(sky_json_val_t *arr, sky_usize_t idx);
-
-void sky_json_doc_free(sky_json_doc_t *doc);
-
-/* ============================= unsafe api ========================= */
+/* ============================= read unsafe api ========================= */
 
 static sky_inline sky_u8_t
 sky_json_unsafe_get_type(const sky_json_val_t *val) {
@@ -284,7 +284,15 @@ sky_json_unsafe_get_real(const sky_json_val_t *val) {
     return val->uni.f64;
 }
 
-/* ===================================================================== */
+/* ============================= public read api ======================================== */
+
+sky_json_doc_t *sky_json_read_opts(const sky_str_t *str, sky_u32_t opts);
+
+sky_json_val_t *sky_json_obj_get(sky_json_val_t *obj, const sky_uchar_t *key, sky_u32_t key_len);
+
+sky_json_val_t *sky_json_arr_get(sky_json_val_t *arr, sky_usize_t idx);
+
+void sky_json_doc_free(sky_json_doc_t *doc);
 
 static sky_inline sky_json_doc_t *
 sky_json_read(const sky_str_t *str, sky_u32_t opts) {
@@ -477,6 +485,36 @@ sky_json_get_real(const sky_json_val_t *val) {
         (_idx) < (_max);                             \
         (_idx)++,                                    \
         (_val) = sky_json_unsafe_get_next(_val))
+
+
+/* ============================= unsafe write api ======================================== */
+
+
+/* ============================= public write api ======================================== */
+
+sky_json_mut_doc_t *sky_json_mut_doc_create();
+
+void sky_json_mut_doc_free(sky_json_mut_doc_t *doc);
+
+static sky_inline void
+sky_json_mut_set_root(sky_json_mut_doc_t *doc, sky_json_mut_val_t *root) {
+    if (sky_likely(doc)) {
+        doc->root = root;
+    }
+}
+
+static sky_inline sky_json_mut_val_t *
+sky_json_mut_obj(sky_json_mut_doc_t *doc) {
+    if (sky_likely(doc)) {
+        sky_json_mut_val_t *val = sky_mem_pool_get(doc->val_pool);
+        if (sky_likely(val)) {
+            val->tag = SKY_JSON_TYPE_OBJ | SKY_JSON_SUBTYPE_NONE;
+            return val;
+        }
+    }
+    return null;
+}
+
 
 #if defined(__cplusplus)
 } /* extern "C" { */
