@@ -153,6 +153,11 @@ typedef struct {
     sky_u64_t bits[BIGINT_MAX_CHUNKS]; /* chunks */
 } bigint_t;
 
+
+typedef struct {
+    sky_usize_t tag;
+} json_write_ctx_t;
+
 static sky_bool_t char_is_type(sky_uchar_t c, sky_u8_t type);
 
 static sky_bool_t char_is_space(sky_uchar_t c);
@@ -277,6 +282,10 @@ static sky_uchar_t *write_string(
         sky_bool_t esc,
         sky_bool_t env
 );
+
+static sky_usize_t size_align_up(sky_usize_t size, sky_usize_t align);
+
+static sky_usize_t size_align_down(sky_usize_t size, sky_usize_t align);
 
 sky_json_doc_t *
 sky_json_read_opts(const sky_str_t *str, sky_u32_t opts) {
@@ -4250,9 +4259,30 @@ json_write_single(const sky_json_val_t *val, sky_u32_t opts) {
 }
 
 static sky_str_t *
-json_write_pretty(const sky_json_val_t *val, sky_u32_t opts) {
+json_write_pretty(const sky_json_val_t *root, sky_u32_t opts) {
+
+    const sky_u8_t *enc_table = get_enc_table_with_flag(opts);
+    const sky_bool_t esc = (opts & SKY_JSON_WRITE_ESCAPE_UNICODE) != 0;
+    const sky_bool_t inv = (opts & SKY_JSON_WRITE_ALLOW_INVALID_UNICODE) != 0;
+
+    sky_usize_t alc_len = root->uni.ofs / sizeof(sky_json_val_t);
+    alc_len = alc_len * WRITER_ESTIMATED_PRETTY_RATIO + 64;
+    alc_len = size_align_up(alc_len, sizeof(json_write_ctx_t));
+    sky_uchar_t *hdr = sky_malloc(alc_len);
+    if (sky_unlikely(!hdr)) {
+        goto fail_alloc;
+    }
+    sky_uchar_t *cur = hdr;
+    sky_uchar_t *end = hdr + alc_len;
+    json_write_ctx_t *ctx = (json_write_ctx_t *)end;
 
     return null;
+
+
+    fail_alloc:
+    sky_log_error("memory allocation failed");
+    return null;
+
 }
 
 static sky_str_t *
@@ -4406,4 +4436,53 @@ write_number(sky_uchar_t *cur, const sky_json_val_t *val, sky_u32_t opts) {
 static sky_uchar_t *
 write_string(sky_uchar_t *cur, const sky_str_t *str, const sky_u8_t *enc_table, sky_bool_t esc, sky_bool_t env) {
     return cur;
+}
+
+
+/** Returns whether the size is overflow after increment. */
+static sky_inline sky_bool_t
+size_add_is_overflow(sky_usize_t size, sky_usize_t add) {
+    sky_usize_t val = size + add;
+    return (val < size) | (val < add);
+}
+
+/** Align size upwards (may overflow). */
+static sky_inline sky_usize_t
+size_align_up(sky_usize_t size, sky_usize_t align) {
+    if (sky_is_2_power(align)) {
+        return (size + (align - 1)) & ~(align - 1);
+    } else {
+        return size + align - (size + align - 1) % align - 1;
+    }
+}
+
+/** Align size downwards. */
+static sky_inline sky_usize_t
+size_align_down(sky_usize_t size, sky_usize_t align) {
+    if (sky_is_2_power(align)) {
+        return size & ~(align - 1);
+    } else {
+        return size - (size % align);
+    }
+}
+
+/** Align address upwards (may overflow). */
+static sky_inline void *
+mem_align_up(void *mem, sky_usize_t align) {
+    sky_usize_t size = *(sky_usize_t *) mem;
+
+    size = size_align_up(size, align);
+    *(sky_usize_t *) mem = size;
+
+    return mem;
+}
+
+/** Align address downwards. */
+static sky_inline void *
+mem_align_down(void *mem, sky_usize_t align) {
+    sky_usize_t size = *(sky_usize_t *) mem;
+
+    size = size_align_down(size, align);
+    *(sky_usize_t *) mem = size;
+    return mem;
 }
