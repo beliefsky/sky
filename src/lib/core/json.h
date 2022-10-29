@@ -280,16 +280,11 @@ sky_json_unsafe_get_next(const sky_json_val_t *val) {
     return (sky_json_val_t *) ((uint8_t *) val + ofs);
 }
 
-static sky_inline sky_uchar_t *
-sky_json_unsafe_get_raw(const sky_json_val_t *val) {
-    return val->uni.str;
-}
-
 static sky_inline sky_str_t
 sky_json_unsafe_get_str(const sky_json_val_t *val) {
     sky_str_t str = {
             .len = sky_json_unsafe_get_len(val),
-            .data = sky_json_unsafe_get_raw(val)
+            .data = val->uni.str
     };
 
     return str;
@@ -433,12 +428,6 @@ sky_json_arr_get_first(sky_json_val_t *arr) {
         }
     }
     return null;
-}
-
-
-static sky_inline sky_uchar_t *
-sky_json_get_raw(const sky_json_val_t *val) {
-    return sky_likely(val) ? sky_json_unsafe_get_raw(val) : null;
 }
 
 static sky_inline sky_str_t
