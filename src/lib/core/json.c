@@ -252,6 +252,12 @@ static sky_bool_t read_inf_or_nan(sky_uchar_t **ptr, sky_uchar_t **pre, sky_json
 
 static sky_bool_t read_hex_u16(const sky_uchar_t *cur, sky_u16_t *val);
 
+static sky_str_t * json_write_single(const sky_json_val_t *root, sky_u32_t opts);
+
+static sky_str_t *json_write_pretty(const sky_json_val_t *root, sky_u32_t opts);
+
+static sky_str_t *json_write_minify(const sky_json_val_t *root, sky_u32_t opts);
+
 sky_json_doc_t *
 sky_json_read_opts(const sky_str_t *str, sky_u32_t opts) {
 #define has_flag(_flag) sky_unlikely((opts & (_flag)) != 0)
@@ -379,6 +385,22 @@ sky_json_doc_free(sky_json_doc_t *doc) {
     }
 }
 
+sky_str_t *
+sky_json_val_write_opts(const sky_json_val_t *val, sky_u32_t opts) {
+    if (sky_unlikely(!val)) {
+        return null;
+    }
+    if (!sky_json_unsafe_is_ctn(val) || sky_json_unsafe_get_len(val) == 0) {
+        return json_write_single(val, opts);
+    } else if (opts & SKY_JSON_WRITE_PRETTY) {
+        return json_write_pretty(val, opts);
+    } else {
+        return json_write_minify(val, opts);
+    }
+}
+
+
+/* ========================================================================== */
 sky_json_mut_doc_t *
 sky_json_mut_doc_create() {
     sky_json_mut_doc_t *doc = sky_malloc(sizeof(sky_json_mut_doc_t));
@@ -4112,4 +4134,22 @@ read_hex_u16(const sky_uchar_t *cur, sky_u16_t *val) {
 
     *val = (sky_u16_t) ((t0 << 4) | t1);
     return ((t0 | t1) & (sky_u16_t) 0xF0F0) == 0;
+}
+
+static sky_str_t *
+json_write_single(const sky_json_val_t *root, sky_u32_t opts) {
+
+    return null;
+}
+
+static sky_str_t *
+json_write_pretty(const sky_json_val_t *root, sky_u32_t opts) {
+
+    return null;
+}
+
+static sky_str_t *
+json_write_minify(const sky_json_val_t *root, sky_u32_t opts) {
+
+    return null;
 }

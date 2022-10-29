@@ -28,7 +28,7 @@ extern "C" {
     This option allows the reader to modify and use input data to store string
     values, which can increase reading speed slightly.
     The caller should hold the input data before free the document.
-    The input data must be padded by at least `YYJSON_PADDING_SIZE` bytes.
+    The input data must be padded by at least `SKY_JSON_PADDING_SIZE` bytes.
     For example: "[1,2]" should be "[1,2]\0\0\0\0", length should be 5. */
 #define SKY_JSON_READ_IN_SITU (SKY_U32(1) << 0)
 
@@ -48,7 +48,7 @@ extern "C" {
     such as 1e999, NaN, inf, -Infinity (non-standard). */
 #define SKY_JSON_READ_ALLOW_INF_AND_NAN (SKY_U32(1)  << 4)
 
-/** Read number as raw string (value with YYJSON_TYPE_RAW type),
+/** Read number as raw string (value with SKY_JSON_TYPE_RAW type),
     inf/nan literal is also read as raw with `ALLOW_INF_AND_NAN` flag. */
 #define SKY_JSON_READ_NUMBER_AS_RAW (SKY_U32(1)  << 5)
 
@@ -61,6 +61,37 @@ extern "C" {
     option is used, you need to handle these strings carefully to avoid security
     risks. */
 #define SKY_JSON_READ_ALLOW_INVALID_UNICODE (SKY_U32(1)  << 6)
+
+
+/** Default option:
+    - Write JSON minify.
+    - Report error on inf or nan number.
+    - Report error on invalid UTF-8 string.
+    - Do not escape unicode or slash. */
+#define SKY_JSON_WRITE_NO_FLAG                  (SKY_U32(0) << 0)
+
+/** Write JSON pretty with 4 space indent. */
+#define SKY_JSON_WRITE_PRETTY                   (SKY_U32(1) << 0)
+
+/** Escape unicode as `uXXXX`, make the output ASCII only. */
+#define SKY_JSON_WRITE_ESCAPE_UNICODE           (SKY_U32(1) << 1)
+
+/** Escape '/' as '\/'. */
+#define SKY_JSON_WRITE_ESCAPE_SLASHES           (SKY_U32(1) << 2)
+
+/** Write inf and nan number as 'Infinity' and 'NaN' literal (non-standard). */
+#define SKY_JSON_WRITE_ALLOW_INF_AND_NAN        (SKY_U32(1) << 3)
+
+/** Write inf and nan number as null literal.
+    This flag will override `SKY_JSON_WRITE_ALLOW_INF_AND_NAN` flag. */
+#define SKY_JSON_WRITE_INF_AND_NAN_AS_NULL      (SKY_U32(1) << 4)
+
+/** Allow invalid unicode when encoding string values (non-standard).
+    Invalid characters in string value will be copied byte by byte.
+    If `SKY_JSON_WRITE_ESCAPE_UNICODE` flag is also set, invalid character will be
+    escaped as `U+FFFD` (replacement character).
+    This flag does not affect the performance of correctly encoded strings. */
+#define SKY_JSON_WRITE_ALLOW_INVALID_UNICODE    (SKY_U32(1) << 5)
 
 
 /** Type of JSON value (3 bit). */
@@ -491,6 +522,17 @@ sky_json_get_real(const sky_json_val_t *val) {
 
 
 /* ============================= public write api ======================================== */
+
+sky_str_t *sky_json_val_write_opts(const sky_json_val_t *val, sky_u32_t opts);
+
+
+static sky_inline sky_str_t *
+sky_json_write_opts(const sky_json_doc_t *doc, sky_u32_t opts) {
+    sky_json_val_t *val = sky_likely(doc) ? doc->root : null;
+
+    return sky_json_val_write_opts(val, opts);
+}
+
 
 sky_json_mut_doc_t *sky_json_mut_doc_create();
 
