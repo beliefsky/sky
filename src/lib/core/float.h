@@ -11,16 +11,29 @@
 extern "C" {
 #endif
 
-sky_bool_t sky_str_to_f32(const sky_str_t *in, sky_f32_t *out);
+sky_bool_t sky_str_len_to_f64_opts(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *out, sky_u32_t opts);
 
-sky_bool_t sky_str_len_to_f32(const sky_uchar_t *in, sky_usize_t in_len, sky_f32_t *out);
+sky_u8_t sky_f64_to_str_opts(sky_f64_t data, sky_uchar_t *out, sky_u32_t opts);
 
-sky_bool_t sky_str_to_f64(const sky_str_t *in, sky_f64_t *out);
 
-sky_bool_t sky_str_len_to_f64(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *out);
+static sky_inline sky_bool_t
+sky_str_to_f64_opts(const sky_str_t *in, sky_f64_t *out, sky_u32_t opts) {
+    return in && sky_str_len_to_f64_opts(in->data, in->len, out, opts);
+}
 
-sky_u8_t sky_f32_to_str(sky_f32_t data, sky_uchar_t *out);
+static sky_inline sky_bool_t
+sky_str_len_to_f64(const sky_str_t *in, sky_f64_t *out) {
+    return sky_str_len_to_f64_opts(in->data, in->len, out, 0);
+}
 
-sky_u8_t sky_f64_to_str(sky_f64_t data, sky_uchar_t *out);
+static sky_inline sky_bool_t
+sky_str_to_f64(const sky_str_t *in, sky_f64_t *out) {
+    return sky_str_to_f64_opts(in, out, 0);
+}
+
+static sky_inline
+sky_u8_t sky_f64_to_str(sky_f64_t data, sky_uchar_t *out) {
+    return sky_f64_to_str_opts(data, out, 0);
+}
 
 #endif //SKY_FLOAT_H
