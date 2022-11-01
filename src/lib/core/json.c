@@ -5,6 +5,7 @@
 #include "json.h"
 #include "number.h"
 #include "log.h"
+#include "float.h"
 
 #define SKY_JSON_PADDING_SIZE 4
 
@@ -125,7 +126,21 @@
 /** Maximum exact decimal exponent in pow10_sig_table */
 #define POW10_SIG_TABLE_MAX_EXACT_EXP 55
 
+
+#define CHAR_ENC_CPY_1  0 /* 1-byte UTF-8, copy. */
+#define CHAR_ENC_ERR_1  1 /* 1-byte UTF-8, error. */
+#define CHAR_ENC_ESC_A  2 /* 1-byte ASCII, escaped as '\x'. */
+#define CHAR_ENC_ESC_1  3 /* 1-byte UTF-8, escaped as '\uXXXX'. */
+#define CHAR_ENC_CPY_2  4 /* 2-byte UTF-8, copy. */
+#define CHAR_ENC_ESC_2  5 /* 2-byte UTF-8, escaped as '\uXXXX'. */
+#define CHAR_ENC_CPY_3  6 /* 3-byte UTF-8, copy. */
+#define CHAR_ENC_ESC_3  7 /* 3-byte UTF-8, escaped as '\uXXXX'. */
+#define CHAR_ENC_CPY_4  8 /* 4-byte UTF-8, copy. */
+#define CHAR_ENC_ESC_4  9 /* 4-byte UTF-8, escaped as '\uXXXX\uXXXX'. */
+
 #define repeat16(x) { x x x x x x x x x x x x x x x x }
+
+#define repeat4_incr(x)  { x(0) x(1) x(2) x(3) }
 #define repeat16_incr(x) { x(0) x(1) x(2) x(3) x(4) x(5) x(6) x(7) \
                            x(8) x(9) x(10) x(11) x(12) x(13) x(14) x(15) }
 
@@ -152,7 +167,6 @@ typedef struct {
     sky_u32_t used; /* used chunks count, should not be 0 */
     sky_u64_t bits[BIGINT_MAX_CHUNKS]; /* chunks */
 } bigint_t;
-
 
 typedef struct {
     sky_usize_t tag;
@@ -259,9 +273,13 @@ static sky_bool_t read_hex_u16(const sky_uchar_t *cur, sky_u16_t *val);
 
 static sky_str_t *json_write_single(const sky_json_val_t *val, sky_u32_t opts);
 
-static sky_str_t *json_write_pretty(const sky_json_val_t *val, sky_u32_t opts);
+static sky_str_t *json_write_pretty(const sky_json_val_t *root, sky_u32_t opts);
 
-static sky_str_t *json_write_minify(const sky_json_val_t *val, sky_u32_t opts);
+static sky_str_t *json_write_minify(const sky_json_val_t *root, sky_u32_t opts);
+
+static void json_write_ctx_set(json_write_ctx_t *ctx, sky_usize_t size, sky_bool_t is_obj);
+
+static void json_write_ctx_get(const json_write_ctx_t *ctx, sky_usize_t *size, sky_bool_t *is_obj);
 
 static const sky_u8_t *get_enc_table_with_flag(sky_u32_t opts);
 
@@ -280,8 +298,10 @@ static sky_uchar_t *write_string(
         const sky_str_t *str,
         const sky_u8_t *enc_table,
         sky_bool_t esc,
-        sky_bool_t env
+        sky_bool_t inv
 );
+
+static sky_bool_t size_add_is_overflow(sky_usize_t size, sky_usize_t add);
 
 static sky_usize_t size_align_up(sky_usize_t size, sky_usize_t align);
 
@@ -3989,6 +4009,7 @@ read_string(sky_uchar_t **ptr, const sky_uchar_t *lst, sky_json_val_t *val, sky_
 #undef is_valid_seq_4
 #undef is_valid_seq_3
 #undef is_valid_seq_2
+#undef is_valid_seq_1
 }
 
 static sky_inline sky_bool_t
@@ -4169,7 +4190,7 @@ static sky_str_t *
 json_write_single(const sky_json_val_t *val, sky_u32_t opts) {
 
 #define return_err(_msg) do { \
-    sky_free(hdr);            \
+    sky_free(result);         \
     sky_log_error(_msg);      \
     return null;              \
 } while (false)
@@ -4179,6 +4200,8 @@ json_write_single(const sky_json_val_t *val, sky_u32_t opts) {
     if (sky_unlikely(!hdr)) { \
         goto fail_alloc;    \
     }                       \
+    result = (sky_str_t *)hdr;\
+    hdr += sizeof(sky_str_t); \
     cur = hdr;              \
 } while (false)
 
@@ -4192,6 +4215,7 @@ json_write_single(const sky_json_val_t *val, sky_u32_t opts) {
     const sky_bool_t inv = (opts & SKY_JSON_WRITE_ALLOW_INVALID_UNICODE) != 0;
 
     sky_uchar_t *hdr, *cur;
+    sky_str_t *result;
     sky_str_t str;
 
     switch (sky_json_unsafe_get_type(val)) {
@@ -4241,6 +4265,10 @@ json_write_single(const sky_json_val_t *val, sky_u32_t opts) {
     }
 
     *cur = '\0';
+    result->len = (sky_usize_t) (cur - hdr);
+    result->data = hdr;
+
+    return result;
 
     fail_alloc:
     sky_log_error("memory allocation failed");
@@ -4260,35 +4288,413 @@ json_write_single(const sky_json_val_t *val, sky_u32_t opts) {
 
 static sky_str_t *
 json_write_pretty(const sky_json_val_t *root, sky_u32_t opts) {
+#define return_err(_msg) do { \
+    sky_free(result);         \
+    sky_log_error(_msg);      \
+    return null;              \
+} while (false)
+
+#define incr_len(_len) do { \
+    ext_len = (sky_usize_t)(_len); \
+    if (sky_unlikely((sky_uchar_t *)(cur + ext_len) >= (sky_uchar_t *)ctx)) { \
+        alc_inc = sky_max(alc_len >> 1, ext_len);                             \
+        alc_inc = size_align_up(alc_inc, sizeof(json_write_ctx_t));           \
+        if (size_add_is_overflow(alc_len, alc_inc)) {                         \
+            goto fail_alloc;\
+        }                   \
+        alc_len += alc_inc; \
+        tmp = sky_realloc(hdr, alc_len + sizeof(sky_str_t));                  \
+        if (sky_unlikely(!tmp)) {  \
+            goto fail_alloc;\
+        }                   \
+        result = (sky_str_t *)tmp; \
+        tmp += sizeof(sky_str_t);  \
+        ctx_len = (sky_usize_t)(end - (sky_uchar_t *)ctx);                    \
+        ctx_tmp = (json_write_ctx_t *)(tmp + (alc_len - ctx_len));            \
+        sky_memmove(ctx_tmp, tmp + ((sky_uchar_t *)ctx - hdr), ctx_len);      \
+        ctx = ctx_tmp;      \
+        cur = tmp + (cur - hdr); \
+        end = tmp + alc_len; \
+        hdr = tmp; \
+    } \
+} while (false)
+
+#define check_str_len(_len) do { \
+    if ((SKY_USIZE_MAX < SKY_U64_MAX) && ((_len) >= (SKY_USIZE_MAX - 16) / 6)) \
+        goto fail_alloc;         \
+} while (false)
+
 
     const sky_u8_t *enc_table = get_enc_table_with_flag(opts);
     const sky_bool_t esc = (opts & SKY_JSON_WRITE_ESCAPE_UNICODE) != 0;
     const sky_bool_t inv = (opts & SKY_JSON_WRITE_ALLOW_INVALID_UNICODE) != 0;
 
+
+    sky_str_t *result = null;
     sky_usize_t alc_len = root->uni.ofs / sizeof(sky_json_val_t);
     alc_len = alc_len * WRITER_ESTIMATED_PRETTY_RATIO + 64;
     alc_len = size_align_up(alc_len, sizeof(json_write_ctx_t));
-    sky_uchar_t *hdr = sky_malloc(alc_len);
+    sky_uchar_t *hdr = sky_malloc(alc_len + sizeof(sky_str_t));
     if (sky_unlikely(!hdr)) {
         goto fail_alloc;
     }
+    result = (sky_str_t *) hdr;
+    hdr += sizeof(sky_str_t);
+
     sky_uchar_t *cur = hdr;
     sky_uchar_t *end = hdr + alc_len;
-    json_write_ctx_t *ctx = (json_write_ctx_t *)end;
+    json_write_ctx_t *ctx = (json_write_ctx_t *) end;
 
-    return null;
+    sky_str_t str;
+    sky_uchar_t *tmp;
+    json_write_ctx_t *ctx_tmp;
+    sky_json_val_t *val;
+    sky_usize_t alc_inc, ctx_len, ctn_len, ctn_len_tmp, ext_len, level;
+    sky_u8_t val_type;
+    sky_bool_t ctn_obj, ctn_obj_tmp, is_key, no_indent;
+
+
+    val = (sky_json_val_t *) root;
+    val_type = sky_json_unsafe_get_type(val);
+    ctn_obj = (val_type == SKY_JSON_TYPE_OBJ);
+    ctn_len = sky_json_unsafe_get_len(val) << (sky_u8_t) ctn_obj;
+    *cur++ = (sky_u8_t) ('[' | ((sky_u8_t) ctn_obj << 5));
+    *cur++ = '\n';
+    ++val;
+    level = 1;
+
+    val_begin:
+    val_type = sky_json_unsafe_get_type(val);
+    if (val_type == SKY_JSON_TYPE_STR) {
+        is_key = (sky_bool_t) ((sky_u8_t) ctn_obj & (sky_u8_t) ~ctn_len);
+        no_indent = (sky_bool_t) ((sky_u8_t) ctn_obj & (sky_u8_t) ctn_len);
+        str = sky_json_unsafe_get_str(val);
+        check_str_len(str.len);
+        incr_len(str.len * 6 + 16 + (no_indent ? 0 : level * 4));
+        cur = write_indent(cur, no_indent ? 0 : level);
+        cur = write_string(cur, &str, enc_table, esc, inv);
+        if (sky_unlikely(!cur)) {
+            goto fail_str;
+        }
+        *cur++ = is_key ? ':' : ',';
+        *cur++ = is_key ? ' ' : '\n';
+        goto val_end;
+    }
+    if (val_type == SKY_JSON_TYPE_NUM) {
+        no_indent = (sky_bool_t) ((sky_u8_t) ctn_obj & (sky_u8_t) ctn_len);
+        incr_len(32 + (no_indent ? 0 : level * 4));
+        cur = write_indent(cur, no_indent ? 0 : level);
+        cur = write_number(cur, val, opts);
+        if (sky_unlikely(!cur)) {
+            goto fail_num;
+        }
+        *cur++ = ',';
+        *cur++ = '\n';
+        goto val_end;
+    }
+    if ((val_type & (SKY_JSON_TYPE_ARR & SKY_JSON_TYPE_OBJ)) == (SKY_JSON_TYPE_ARR & SKY_JSON_TYPE_OBJ)) {
+        no_indent = (sky_bool_t) ((sky_u8_t) ctn_obj & (sky_u8_t) ctn_len);
+        ctn_len_tmp = sky_json_unsafe_get_len(val);
+        ctn_obj_tmp = (val_type == SKY_JSON_TYPE_OBJ);
+        if (sky_unlikely(ctn_len_tmp == 0)) {
+            /* write empty container */
+            incr_len(16 + (no_indent ? 0 : level * 4));
+            cur = write_indent(cur, no_indent ? 0 : level);
+            *cur++ = (sky_uchar_t) ('[' | ((sky_u8_t) ctn_obj_tmp << 5));
+            *cur++ = (sky_uchar_t) (']' | ((sky_u8_t) ctn_obj_tmp << 5));
+            *cur++ = ',';
+            *cur++ = '\n';
+            goto val_end;
+        } else {
+            /* push context, setup new container */
+            incr_len(32 + (no_indent ? 0 : level * 4));
+            json_write_ctx_set(--ctx, ctn_len, ctn_obj);
+            ctn_len = ctn_len_tmp << (sky_u8_t) ctn_obj_tmp;
+            ctn_obj = ctn_obj_tmp;
+            cur = write_indent(cur, no_indent ? 0 : level);
+            ++level;
+            *cur++ = (sky_uchar_t) ('[' | ((sky_u8_t) ctn_obj << 5));
+            *cur++ = '\n';
+            ++val;
+            goto val_begin;
+        }
+    }
+    if (val_type == SKY_JSON_TYPE_BOOL) {
+        no_indent = (sky_bool_t) ((sky_u8_t) ctn_obj & (sky_u8_t) ctn_len);
+        incr_len(16 + (no_indent ? 0 : level * 4));
+        cur = write_indent(cur, no_indent ? 0 : level);
+        cur = write_bool(cur, sky_json_unsafe_get_bool(val));
+        cur += 2;
+        goto val_end;
+    }
+    if (val_type == SKY_JSON_TYPE_NULL) {
+        no_indent = (sky_bool_t) ((sky_u8_t) ctn_obj & (sky_u8_t) ctn_len);
+        incr_len(16 + (no_indent ? 0 : level * 4));
+        cur = write_indent(cur, no_indent ? 0 : level);
+        cur = write_null(cur);
+        cur += 2;
+        goto val_end;
+    }
+    if (val_type == SKY_JSON_TYPE_RAW) {
+        str = sky_json_unsafe_get_str(val);
+        check_str_len(str.len);
+        incr_len(str.len + 3);
+        cur = write_raw(cur, &str);
+        *cur++ = ',';
+        *cur++ = '\n';
+        goto val_end;
+    }
+    goto fail_type;
+
+    val_end:
+    ++val;
+    --ctn_len;
+    if (sky_unlikely(ctn_len == 0)) {
+        goto ctn_end;
+    }
+    goto val_begin;
+
+    ctn_end:
+    cur -= 2;
+    *cur++ = '\n';
+    incr_len(level * 4);
+    cur = write_indent(cur, --level);
+    *cur++ = (sky_uchar_t) (']' | ((sky_u8_t) ctn_obj << 5));
+    if (sky_unlikely((sky_uchar_t *) ctx >= end)) {
+        goto doc_end;
+    }
+    json_write_ctx_get(ctx++, &ctn_len, &ctn_obj);
+    ctn_len--;
+    *cur++ = ',';
+    *cur++ = '\n';
+    if (sky_likely(ctn_len > 0)) {
+        goto val_begin;
+    } else {
+        goto ctn_end;
+    }
+
+    doc_end:
+    *cur = '\0';
+
+    result->len = (sky_usize_t) (cur - hdr);
+    result->data = hdr;
+
+    return result;
 
 
     fail_alloc:
-    sky_log_error("memory allocation failed");
+    return_err("invalid JSON value type");
     return null;
+    fail_type:
+    return_err("invalid JSON value type");
+    fail_num:
+    return_err("nan or inf number is not allowed");
+    fail_str:
+    return_err("invalid utf-8 encoding in string");
 
+#undef return_err
+#undef incr_len
+#undef check_str_len
 }
 
 static sky_str_t *
-json_write_minify(const sky_json_val_t *val, sky_u32_t opts) {
+json_write_minify(const sky_json_val_t *root, sky_u32_t opts) {
+#define return_err(_msg) do { \
+    sky_free(result);         \
+    sky_log_error(_msg);      \
+    return null;              \
+} while (false)
 
+#define incr_len(_len) do { \
+    ext_len = (sky_usize_t)(_len); \
+    if (sky_unlikely((sky_uchar_t *)(cur + ext_len) >= (sky_uchar_t *)ctx)) { \
+        alc_inc = sky_max(alc_len >> 1, ext_len);                             \
+        alc_inc = size_align_up(alc_inc, sizeof(json_write_ctx_t));           \
+        if (size_add_is_overflow(alc_len, alc_inc)) {                         \
+            goto fail_alloc;\
+        }                   \
+        alc_len += alc_inc; \
+        tmp = sky_realloc(hdr, alc_len + sizeof(sky_str_t));                  \
+        if (sky_unlikely(!tmp)) {  \
+            goto fail_alloc;\
+        }                   \
+        result = (sky_str_t *)tmp; \
+        tmp += sizeof(sky_str_t);  \
+        ctx_len = (sky_usize_t)(end - (sky_uchar_t *)ctx);                    \
+        ctx_tmp = (json_write_ctx_t *)(tmp + (alc_len - ctx_len));            \
+        sky_memmove(ctx_tmp, tmp + ((sky_uchar_t *)ctx - hdr), ctx_len);      \
+        ctx = ctx_tmp;      \
+        cur = tmp + (cur - hdr); \
+        end = tmp + alc_len; \
+        hdr = tmp; \
+    } \
+} while (false)
+
+#define check_str_len(_len) do { \
+    if ((SKY_USIZE_MAX < SKY_U64_MAX) && ((_len) >= (SKY_USIZE_MAX - 16) / 6)) \
+        goto fail_alloc;         \
+} while (false)
+
+
+    const sky_u8_t *enc_table = get_enc_table_with_flag(opts);
+    const sky_bool_t esc = (opts & SKY_JSON_WRITE_ESCAPE_UNICODE) != 0;
+    const sky_bool_t inv = (opts & SKY_JSON_WRITE_ALLOW_INVALID_UNICODE) != 0;
+
+
+    sky_str_t *result = null;
+    sky_usize_t alc_len = root->uni.ofs / sizeof(sky_json_val_t);
+    alc_len = alc_len * WRITER_ESTIMATED_PRETTY_RATIO + 64;
+    alc_len = size_align_up(alc_len, sizeof(json_write_ctx_t));
+    sky_uchar_t *hdr = sky_malloc(alc_len + sizeof(sky_str_t));
+    if (sky_unlikely(!hdr)) {
+        goto fail_alloc;
+    }
+    result = (sky_str_t *) hdr;
+    hdr += sizeof(sky_str_t);
+
+    sky_uchar_t *cur = hdr;
+    sky_uchar_t *end = hdr + alc_len;
+    json_write_ctx_t *ctx = (json_write_ctx_t *) end;
+
+    sky_str_t str;
+    sky_uchar_t *tmp;
+    json_write_ctx_t *ctx_tmp;
+    sky_json_val_t *val;
+    sky_usize_t alc_inc, ctx_len, ctn_len, ctn_len_tmp, ext_len;
+    sky_u8_t val_type;
+    sky_bool_t ctn_obj, ctn_obj_tmp, is_key;
+
+
+    val = (sky_json_val_t *) root;
+    val_type = sky_json_unsafe_get_type(val);
+    ctn_obj = (val_type == SKY_JSON_TYPE_OBJ);
+    ctn_len = sky_json_unsafe_get_len(val) << (sky_u8_t) ctn_obj;
+    *cur++ = (sky_u8_t) ('[' | ((sky_u8_t) ctn_obj << 5));
+    ++val;
+
+    val_begin:
+    val_type = sky_json_unsafe_get_type(val);
+    if (val_type == SKY_JSON_TYPE_STR) {
+        is_key = (sky_bool_t) ((sky_u8_t) ctn_obj & (sky_u8_t) ~ctn_len);
+        str = sky_json_unsafe_get_str(val);
+        check_str_len(str.len);
+        incr_len(str.len * 6 + 16);
+        cur = write_string(cur, &str, enc_table, esc, inv);
+        if (sky_unlikely(!cur)) {
+            goto fail_str;
+        }
+        *cur++ = is_key ? ':' : ',';
+        goto val_end;
+    }
+    if (val_type == SKY_JSON_TYPE_NUM) {
+        incr_len(32);
+        cur = write_number(cur, val, opts);
+        if (sky_unlikely(!cur)) {
+            goto fail_num;
+        }
+        *cur++ = ',';
+        goto val_end;
+    }
+    if ((val_type & (SKY_JSON_TYPE_ARR & SKY_JSON_TYPE_OBJ)) == (SKY_JSON_TYPE_ARR & SKY_JSON_TYPE_OBJ)) {
+        ctn_len_tmp = sky_json_unsafe_get_len(val);
+        ctn_obj_tmp = (val_type == SKY_JSON_TYPE_OBJ);
+
+        incr_len(16);
+        if (sky_unlikely(ctn_len_tmp == 0)) {
+            /* write empty container */
+            *cur++ = (sky_uchar_t) ('[' | ((sky_u8_t) ctn_obj_tmp << 5));
+            *cur++ = (sky_uchar_t) (']' | ((sky_u8_t) ctn_obj_tmp << 5));
+            *cur++ = ',';
+            goto val_end;
+        } else {
+            /* push context, setup new container */
+            json_write_ctx_set(--ctx, ctn_len, ctn_obj);
+            ctn_len = ctn_len_tmp << (sky_u8_t) ctn_obj_tmp;
+            ctn_obj = ctn_obj_tmp;
+            *cur++ = (sky_uchar_t) ('[' | ((sky_u8_t) ctn_obj << 5));
+            ++val;
+            goto val_begin;
+        }
+    }
+    if (val_type == SKY_JSON_TYPE_BOOL) {
+        incr_len(16);
+        cur = write_bool(cur, sky_json_unsafe_get_bool(val));
+        ++cur;
+        goto val_end;
+    }
+    if (val_type == SKY_JSON_TYPE_NULL) {
+        incr_len(16);
+        cur = write_null(cur);
+        ++cur;
+        goto val_end;
+    }
+    if (val_type == SKY_JSON_TYPE_RAW) {
+        str = sky_json_unsafe_get_str(val);
+        check_str_len(str.len);
+        incr_len(str.len + 2);
+        cur = write_raw(cur, &str);
+        *cur++ = ',';
+        goto val_end;
+    }
+    goto fail_type;
+
+    val_end:
+    ++val;
+    --ctn_len;
+    if (sky_unlikely(ctn_len == 0)) {
+        goto ctn_end;
+    }
+    goto val_begin;
+
+    ctn_end:
+    --cur;
+    *cur++ = (sky_uchar_t) (']' | ((sky_u8_t) ctn_obj << 5));
+    *cur++ = ',';
+    if (sky_unlikely((sky_uchar_t *) ctx >= end)) {
+        goto doc_end;
+    }
+    json_write_ctx_get(ctx++, &ctn_len, &ctn_obj);
+    --ctn_len;
+    if (sky_likely(ctn_len > 0)) {
+        goto val_begin;
+    } else {
+        goto ctn_end;
+    }
+
+    doc_end:
+    *--cur = '\0';
+
+    result->len = (sky_usize_t) (cur - hdr);
+    result->data = hdr;
+
+    return result;
+
+
+    fail_alloc:
+    return_err("invalid JSON value type");
     return null;
+    fail_type:
+    return_err("invalid JSON value type");
+    fail_num:
+    return_err("nan or inf number is not allowed");
+    fail_str:
+    return_err("invalid utf-8 encoding in string");
+
+#undef return_err
+#undef incr_len
+#undef check_str_len
+}
+
+static sky_inline void
+json_write_ctx_set(json_write_ctx_t *ctx, sky_usize_t size, sky_bool_t is_obj) {
+    ctx->tag = (size << 1) | (sky_usize_t) is_obj;
+}
+
+static sky_inline void
+json_write_ctx_get(const json_write_ctx_t *ctx, sky_usize_t *size, sky_bool_t *is_obj) {
+    sky_usize_t tag = ctx->tag;
+    *size = tag >> 1;
+    *is_obj = (sky_bool_t) (tag & 1);
 }
 
 static sky_inline const sky_u8_t *
@@ -4430,12 +4836,448 @@ write_indent(sky_uchar_t *cur, sky_usize_t level) {
 
 static sky_uchar_t *
 write_number(sky_uchar_t *cur, const sky_json_val_t *val, sky_u32_t opts) {
+    if (val->tag & SKY_JSON_SUBTYPE_REAL) {
+        const sky_u8_t n = sky_f64_to_str(val->uni.f64, cur);
+        if (sky_unlikely(!n)) {
+            return null;
+        }
+        cur += n;
+    } else {
+        sky_u64_t pos = val->uni.u64;
+        sky_usize_t sgn = ((val->tag & SKY_JSON_SUBTYPE_INT) > 0) & ((sky_i64_t) pos < 0);
+        if (sgn) {
+            *cur++ = '-';
+            pos = ~pos + 1;
+        }
+        cur += sky_u64_to_str(pos, cur);
+    }
+
+
     return cur;
 }
 
 static sky_uchar_t *
-write_string(sky_uchar_t *cur, const sky_str_t *str, const sky_u8_t *enc_table, sky_bool_t esc, sky_bool_t env) {
+write_string(sky_uchar_t *cur, const sky_str_t *str, const sky_u8_t *enc_table, sky_bool_t esc, sky_bool_t inv) {
+
+    /** Escaped hex character table: ["00" "01" "02" ... "FD" "FE" "FF"].
+    (generate with misc/make_tables.c) */
+    static const sky_uchar_t esc_hex_char_table[512] = {
+            '0', '0', '0', '1', '0', '2', '0', '3',
+            '0', '4', '0', '5', '0', '6', '0', '7',
+            '0', '8', '0', '9', '0', 'A', '0', 'B',
+            '0', 'C', '0', 'D', '0', 'E', '0', 'F',
+            '1', '0', '1', '1', '1', '2', '1', '3',
+            '1', '4', '1', '5', '1', '6', '1', '7',
+            '1', '8', '1', '9', '1', 'A', '1', 'B',
+            '1', 'C', '1', 'D', '1', 'E', '1', 'F',
+            '2', '0', '2', '1', '2', '2', '2', '3',
+            '2', '4', '2', '5', '2', '6', '2', '7',
+            '2', '8', '2', '9', '2', 'A', '2', 'B',
+            '2', 'C', '2', 'D', '2', 'E', '2', 'F',
+            '3', '0', '3', '1', '3', '2', '3', '3',
+            '3', '4', '3', '5', '3', '6', '3', '7',
+            '3', '8', '3', '9', '3', 'A', '3', 'B',
+            '3', 'C', '3', 'D', '3', 'E', '3', 'F',
+            '4', '0', '4', '1', '4', '2', '4', '3',
+            '4', '4', '4', '5', '4', '6', '4', '7',
+            '4', '8', '4', '9', '4', 'A', '4', 'B',
+            '4', 'C', '4', 'D', '4', 'E', '4', 'F',
+            '5', '0', '5', '1', '5', '2', '5', '3',
+            '5', '4', '5', '5', '5', '6', '5', '7',
+            '5', '8', '5', '9', '5', 'A', '5', 'B',
+            '5', 'C', '5', 'D', '5', 'E', '5', 'F',
+            '6', '0', '6', '1', '6', '2', '6', '3',
+            '6', '4', '6', '5', '6', '6', '6', '7',
+            '6', '8', '6', '9', '6', 'A', '6', 'B',
+            '6', 'C', '6', 'D', '6', 'E', '6', 'F',
+            '7', '0', '7', '1', '7', '2', '7', '3',
+            '7', '4', '7', '5', '7', '6', '7', '7',
+            '7', '8', '7', '9', '7', 'A', '7', 'B',
+            '7', 'C', '7', 'D', '7', 'E', '7', 'F',
+            '8', '0', '8', '1', '8', '2', '8', '3',
+            '8', '4', '8', '5', '8', '6', '8', '7',
+            '8', '8', '8', '9', '8', 'A', '8', 'B',
+            '8', 'C', '8', 'D', '8', 'E', '8', 'F',
+            '9', '0', '9', '1', '9', '2', '9', '3',
+            '9', '4', '9', '5', '9', '6', '9', '7',
+            '9', '8', '9', '9', '9', 'A', '9', 'B',
+            '9', 'C', '9', 'D', '9', 'E', '9', 'F',
+            'A', '0', 'A', '1', 'A', '2', 'A', '3',
+            'A', '4', 'A', '5', 'A', '6', 'A', '7',
+            'A', '8', 'A', '9', 'A', 'A', 'A', 'B',
+            'A', 'C', 'A', 'D', 'A', 'E', 'A', 'F',
+            'B', '0', 'B', '1', 'B', '2', 'B', '3',
+            'B', '4', 'B', '5', 'B', '6', 'B', '7',
+            'B', '8', 'B', '9', 'B', 'A', 'B', 'B',
+            'B', 'C', 'B', 'D', 'B', 'E', 'B', 'F',
+            'C', '0', 'C', '1', 'C', '2', 'C', '3',
+            'C', '4', 'C', '5', 'C', '6', 'C', '7',
+            'C', '8', 'C', '9', 'C', 'A', 'C', 'B',
+            'C', 'C', 'C', 'D', 'C', 'E', 'C', 'F',
+            'D', '0', 'D', '1', 'D', '2', 'D', '3',
+            'D', '4', 'D', '5', 'D', '6', 'D', '7',
+            'D', '8', 'D', '9', 'D', 'A', 'D', 'B',
+            'D', 'C', 'D', 'D', 'D', 'E', 'D', 'F',
+            'E', '0', 'E', '1', 'E', '2', 'E', '3',
+            'E', '4', 'E', '5', 'E', '6', 'E', '7',
+            'E', '8', 'E', '9', 'E', 'A', 'E', 'B',
+            'E', 'C', 'E', 'D', 'E', 'E', 'E', 'F',
+            'F', '0', 'F', '1', 'F', '2', 'F', '3',
+            'F', '4', 'F', '5', 'F', '6', 'F', '7',
+            'F', '8', 'F', '9', 'F', 'A', 'F', 'B',
+            'F', 'C', 'F', 'D', 'F', 'E', 'F', 'F'
+    };
+
+
+    /** Escaped single character table. (generate with misc/make_tables.c) */
+    static const sky_uchar_t esc_single_char_table[512] = {
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            '\\', 'b', '\\', 't', '\\', 'n', ' ', ' ',
+            '\\', 'f', '\\', 'r', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', '\\', '"', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', '\\', '/',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            '\\', '\\', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ',
+            ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '
+    };
+
+
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+#define b2_mask SKY_U32(0x0000C0E0)
+#define b2_patt SKY_U32(0x000080C0)
+#define b2_requ SKY_U32(0x0000001E)
+#define b3_mask SKY_U32(0x00C0C0F0)
+#define b3_patt SKY_U32(0x008080E0)
+#define b3_requ SKY_U32(0x0000200F)
+#define b3_erro SKY_U32(0x0000200D)
+#define b4_mask SKY_U32(0xC0C0C0F8)
+#define b4_patt SKY_U32(0x808080F0)
+#define b4_requ SKY_U32(0x00003007)
+#define b4_err0 SKY_U32(0x00000004)
+#define b4_err1 SKY_U32(0x00003003)
+#else
+#define b2_mask SKY_U32(0xE0C00000)
+#define b2_patt SKY_U32(0xC0800000)
+#define b2_requ SKY_U32(0x1E000000)
+#define b3_mask SKY_U32(0xF0C0C000)
+#define b3_patt SKY_U32(0xE0808000)
+#define b3_requ SKY_U32(0x0F200000)
+#define b3_erro SKY_U32(0x0D200000)
+#define b4_mask SKY_U32(0xF8C0C0C0)
+#define b4_patt SKY_U32(0xF0808080)
+#define b4_requ SKY_U32(0x07300000)
+#define b4_err0 SKY_U32(0x04000000)
+#define b4_err1 SKY_U32(0x03300000)
+#endif
+
+#define is_valid_seq_2(_uni) ( \
+    (((_uni) & b2_mask) == b2_patt) && \
+    (((_uni) & b2_requ)) \
+)
+
+#define is_valid_seq_3(_uni) ( \
+    (((_uni) & b3_mask) == b3_patt) && \
+    ((tmp = ((_uni) & b3_requ))) && \
+    ((tmp != b3_erro)) \
+)
+
+#define is_valid_seq_4(_uni) ( \
+    (((_uni) & b4_mask) == b4_patt) && \
+    ((tmp = ((_uni) & b4_requ))) &&    \
+    ((tmp & b4_err0) == 0 || (tmp & b4_err1) == 0) \
+)
+    /* The replacement character U+FFFD, used to indicate invalid character. */
+    const sky_uchar_t rep[] = {'F', 'F', 'F', 'D'};
+    const sky_uchar_t pre[] = {'\\', 'u', '0', '0'};
+
+    const sky_uchar_t *src = str->data;
+    const sky_uchar_t *end = str->data + str->len;
+    *cur++ = '"';
+
+    copy_ascii:
+    /*
+     Copy continuous ASCII, loop unrolling, same as the following code:
+
+         while (end > src) (
+            if (unlikely(enc_table[*src])) break;
+            *cur++ = *src++;
+         );
+     */
+#define expr_jump(i) \
+    if (sky_unlikely(enc_table[src[i]])) goto stop_char_##i;
+
+#define expr_stop(i) \
+    stop_char_##i:   \
+    sky_memcpy(cur, src, i); \
+    cur += (i);      \
+    src += (i);      \
+    goto copy_utf8;
+
+    while ((end - src) >= 16) {
+        repeat16_incr(expr_jump);
+        sky_memcpy(cur, src, 16);
+        cur += 16;
+        src += 16;
+    }
+
+    while ((end - src) >= 4) {
+        repeat4_incr(expr_jump);
+        sky_memcpy4(cur, src);
+        cur += 4;
+        src += 4;
+    }
+
+    while (end > src) {
+        expr_jump(0);
+        *cur++ = *src++;
+    }
+    *cur++ = '"';
     return cur;
+
+    repeat16_incr(expr_stop);
+
+#undef expr_jump
+#undef expr_stop
+
+    copy_utf8:
+    if (sky_unlikely((src + 4) > end)) {
+        if (end == src) {
+            goto copy_end;
+        }
+        if ((end - src) < (enc_table[*src] >> 1)) {
+            goto err_one;
+        }
+    }
+    switch (enc_table[*src]) {
+        case CHAR_ENC_CPY_1: {
+            *cur++ = *src++;
+            goto copy_ascii;
+        }
+        case CHAR_ENC_CPY_2: {
+            sky_u16_t v;
+            v = *(sky_u16_t *) src;
+            if (sky_unlikely(!is_valid_seq_2(v))) {
+                goto err_cpy;
+            }
+            sky_memcpy2(cur, src);
+            cur += 2;
+            src += 2;
+            goto copy_utf8;
+        }
+        case CHAR_ENC_CPY_3: {
+            sky_u32_t v, tmp;
+            if (sky_likely(src + 4 <= end)) {
+                v = *(sky_u32_t *) src;
+                if (sky_unlikely(!is_valid_seq_3(v))) {
+                    goto err_cpy;
+                }
+                sky_memcpy4(cur, src);
+            } else {
+                *((sky_u16_t *) &v) = *(sky_u16_t *) src;
+                *((sky_u8_t *) &v + 2) = src[2];
+                *((sky_u8_t *) &v + 3) = 0;
+
+                if (sky_unlikely(!is_valid_seq_3(v))) {
+                    goto err_cpy;
+                }
+                sky_memcpy4(cur, &v);
+            }
+            cur += 3;
+            src += 3;
+            goto copy_utf8;
+        }
+        case CHAR_ENC_CPY_4: {
+            sky_u32_t v, tmp;
+            v = *(sky_u32_t *) src;
+            if (sky_unlikely(!is_valid_seq_4(v))) {
+                goto err_cpy;
+            }
+            sky_memcpy4(cur, src);
+            cur += 4;
+            src += 4;
+            goto copy_utf8;
+        }
+        case CHAR_ENC_ESC_A: {
+            sky_memmove2(cur, &esc_single_char_table[*src * 2]);
+            cur += 2;
+            src += 1;
+            goto copy_utf8;
+        }
+        case CHAR_ENC_ESC_1: {
+            sky_memcpy4(cur + 0, &pre);
+            sky_memcpy2(cur + 4, &esc_hex_char_table[*src * 2]);
+            cur += 6;
+            src += 1;
+            goto copy_utf8;
+        }
+        case CHAR_ENC_ESC_2: {
+            sky_u16_t u, v;
+            v = *(sky_u16_t *) src;
+            if (sky_unlikely(!is_valid_seq_2(v))) goto err_esc;
+
+            u = (sky_u16_t) (((sky_u16_t) (src[0] & 0x1F) << 6) |
+                             ((sky_u16_t) (src[1] & 0x3F) << 0));
+            sky_memcpy2(cur + 0, &pre);
+            sky_memcpy2(cur + 2, &esc_hex_char_table[(u >> 8) * 2]);
+            sky_memcpy2(cur + 4, &esc_hex_char_table[(u & 0xFF) * 2]);
+            cur += 6;
+            src += 2;
+            goto copy_utf8;
+        }
+        case CHAR_ENC_ESC_3: {
+            sky_u16_t u;
+            sky_u32_t v, tmp;
+
+            *((sky_u16_t *) &v) = *(sky_u16_t *) src;
+            *((sky_u8_t *) &v + 2) = src[2];
+            *((sky_u8_t *) &v + 3) = 0;
+            if (sky_unlikely(!is_valid_seq_3(v))) {
+                goto err_esc;
+            }
+
+            u = (sky_u16_t) (((sky_u16_t) (src[0] & 0x0F) << 12) |
+                             ((sky_u16_t) (src[1] & 0x3F) << 6) |
+                             ((sky_u16_t) (src[2] & 0x3F) << 0));
+            sky_memcpy2(cur + 0, &pre);
+            sky_memcpy2(cur + 2, &esc_hex_char_table[(u >> 8) * 2]);
+            sky_memcpy2(cur + 4, &esc_hex_char_table[(u & 0xFF) * 2]);
+            cur += 6;
+            src += 3;
+            goto copy_utf8;
+        }
+        case CHAR_ENC_ESC_4: {
+            sky_u32_t hi, lo, u, v, tmp;
+            v = *(sky_u32_t *) src;
+            if (sky_unlikely(!is_valid_seq_4(v))) {
+                goto err_esc;
+            }
+
+            u = ((sky_u32_t) (src[0] & 0x07) << 18) |
+                ((sky_u32_t) (src[1] & 0x3F) << 12) |
+                ((sky_u32_t) (src[2] & 0x3F) << 6) |
+                ((sky_u32_t) (src[3] & 0x3F) << 0);
+            u -= 0x10000;
+            hi = (u >> 10) + 0xD800;
+            lo = (u & 0x3FF) + 0xDC00;
+            sky_memcpy2(cur + 0, &pre);
+            sky_memcpy2(cur + 2, &esc_hex_char_table[(hi >> 8) * 2]);
+            sky_memcpy2(cur + 4, &esc_hex_char_table[(hi & 0xFF) * 2]);
+            sky_memcpy2(cur + 6, &pre);
+            sky_memcpy2(cur + 8, &esc_hex_char_table[(lo >> 8) * 2]);
+            sky_memcpy2(cur + 10, &esc_hex_char_table[(lo & 0xFF) * 2]);
+            cur += 12;
+            src += 4;
+            goto copy_utf8;
+        }
+        case CHAR_ENC_ERR_1: {
+            goto err_one;
+        }
+        default:
+            break;
+    }
+
+    copy_end:
+    *cur++ = '"';
+    return cur;
+
+    err_one:
+    if (esc) {
+        goto err_esc;
+    } else {
+        goto err_cpy;
+    }
+
+    err_cpy:
+    if (!inv) {
+        return null;
+    }
+    *cur++ = *src++;
+    goto copy_utf8;
+
+    err_esc:
+    if (!inv) {
+        return null;
+    }
+    sky_memcpy2(cur + 0, &pre);
+    sky_memcpy4(cur + 2, &rep);
+    cur += 6;
+    src += 1;
+    goto copy_utf8;
+
+
+#undef b2_mask
+#undef b2_patt
+#undef b2_requ
+#undef b3_mask
+#undef b3_patt
+#undef b3_requ
+#undef b3_erro
+#undef b4_mask
+#undef b4_patt
+#undef b4_requ
+#undef b4_err0
+#undef b4_err1
+
+#undef return_err
+#undef is_valid_seq_4
+#undef is_valid_seq_3
+#undef is_valid_seq_2
 }
 
 
