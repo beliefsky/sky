@@ -612,10 +612,21 @@ sky_json_unsafe_set_obj(sky_json_val_t *val, sky_usize_t n) {
 
 /* ============================= public write api ======================================== */
 
+sky_str_t *sky_json_val_write_opts(const sky_json_val_t *val, sky_u32_t opts);
+
 
 sky_json_mut_doc_t *sky_json_mut_doc_create();
 
 void sky_json_mut_doc_free(sky_json_mut_doc_t *doc);
+
+
+static sky_inline sky_str_t *
+sky_json_write_opts(const sky_json_doc_t *doc, sky_u32_t opts) {
+    const sky_json_val_t *root = sky_likely(doc) ? doc->root : null;
+
+    return sky_json_val_write_opts(root, opts);
+}
+
 
 static sky_inline void
 sky_json_mut_set_root(sky_json_mut_doc_t *doc, sky_json_mut_val_t *root) {
@@ -629,7 +640,7 @@ sky_json_mut_obj(sky_json_mut_doc_t *doc) {
     if (sky_likely(doc)) {
         sky_json_mut_val_t *val = sky_mem_pool_get(doc->val_pool);
         if (sky_likely(val)) {
-            val->tag = SKY_JSON_TYPE_OBJ | SKY_JSON_SUBTYPE_NONE;
+            val->val.tag = SKY_JSON_TYPE_OBJ | SKY_JSON_SUBTYPE_NONE;
             return val;
         }
     }
