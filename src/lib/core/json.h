@@ -161,8 +161,7 @@ struct sky_json_mut_doc_s {
  The 'next' field links all elements inside the container to be a cycle.
  */
 struct sky_json_mut_val_s {
-    uint64_t tag; /**< type, subtype and length */
-    sky_json_val_uni_t uni; /**< payload */
+    sky_json_val_t val; /**< json value */
     sky_json_mut_val_t *next; /**< the next value in circular linked list */
 };
 
