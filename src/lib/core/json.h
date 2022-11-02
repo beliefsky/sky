@@ -165,7 +165,7 @@ struct sky_json_mut_val_s {
     sky_json_mut_val_t *next; /**< the next value in circular linked list */
 };
 
-/* ============================= read unsafe api ========================= */
+/* ============================= unsafe json api ========================= */
 
 static sky_inline sky_u8_t
 sky_json_unsafe_get_type(const sky_json_val_t *val) {
@@ -319,9 +319,91 @@ sky_json_unsafe_get_real(const sky_json_val_t *val) {
     return val->uni.f64;
 }
 
-/* ============================= public read api ======================================== */
+static sky_inline void
+sky_json_unsafe_set_tag(sky_json_val_t *val, sky_u8_t tag) {
+    val->tag = (val->tag & (~(sky_u64_t) SKY_JSON_TAG_MASK)) | (sky_u64_t) tag;
+}
+
+static sky_inline void
+sky_json_unsafe_set_type(sky_json_val_t *val, sky_u8_t type, sky_u8_t subtype) {
+    const sky_u8_t tag = (type | subtype);
+    sky_json_unsafe_set_tag(val, tag);
+}
+
+static sky_inline void
+sky_json_unsafe_set_len(sky_json_val_t *val, sky_usize_t len) {
+    sky_u64_t tag = val->tag & SKY_JSON_TAG_MASK;
+    tag |= (uint64_t) len << SKY_JSON_TAG_BIT;
+    val->tag = tag;
+}
+
+static sky_inline void
+sky_json_unsafe_set_raw_len(sky_json_val_t *val, sky_uchar_t *str_data, sky_usize_t str_len) {
+    sky_json_unsafe_set_type(val, SKY_JSON_TYPE_RAW, SKY_JSON_SUBTYPE_NONE);
+    sky_json_unsafe_set_len(val, str_len);
+    val->uni.str = str_data;
+}
+
+static sky_inline void
+sky_json_unsafe_set_raw(sky_json_val_t *val, sky_str_t *str) {
+    sky_json_unsafe_set_raw_len(val, str->data, str->len);
+}
+
+static sky_inline void
+sky_json_unsafe_set_str_len(sky_json_val_t *val, sky_uchar_t *str_data, sky_usize_t str_len) {
+    sky_json_unsafe_set_type(val, SKY_JSON_TYPE_STR, SKY_JSON_SUBTYPE_NONE);
+    sky_json_unsafe_set_len(val, str_len);
+    val->uni.str = str_data;
+}
+
+static sky_inline void
+sky_json_unsafe_set_str(sky_json_val_t *val, sky_str_t *str) {
+    sky_json_unsafe_set_str_len(val, str->data, str->len);
+}
+
+static sky_inline void
+sky_json_unsafe_set_null(sky_json_val_t *val) {
+    sky_json_unsafe_set_type(val, SKY_JSON_TYPE_NULL, SKY_JSON_SUBTYPE_NONE);
+    sky_json_unsafe_set_len(val, 0);
+}
+
+static sky_inline void
+sky_json_unsafe_set_bool(sky_json_val_t *val, sky_bool_t v) {
+    sky_json_unsafe_set_type(val, SKY_JSON_TYPE_BOOL, v ? SKY_JSON_SUBTYPE_TRUE : SKY_JSON_SUBTYPE_FALSE);
+    sky_json_unsafe_set_len(val, 0);
+}
+
+static sky_inline void
+sky_json_unsafe_set_int(sky_json_val_t *val, sky_i64_t v) {
+    sky_json_unsafe_set_type(val, SKY_JSON_TYPE_NUM, SKY_JSON_SUBTYPE_INT);
+    sky_json_unsafe_set_len(val, 0);
+    val->uni.i64 = v;
+}
+
+static sky_inline void
+sky_json_unsafe_set_uint(sky_json_val_t *val, sky_u64_t v) {
+    sky_json_unsafe_set_type(val, SKY_JSON_TYPE_NUM, SKY_JSON_SUBTYPE_UINT);
+    sky_json_unsafe_set_len(val, 0);
+    val->uni.u64 = v;
+}
+
+static sky_inline void
+sky_json_unsafe_set_arr(sky_json_val_t *val, sky_usize_t n) {
+    sky_json_unsafe_set_type(val, SKY_JSON_TYPE_ARR, SKY_JSON_SUBTYPE_REAL);
+    sky_json_unsafe_set_len(val, n);
+}
+
+static sky_inline void
+sky_json_unsafe_set_obj(sky_json_val_t *val, sky_usize_t n) {
+    sky_json_unsafe_set_type(val, SKY_JSON_TYPE_OBJ, SKY_JSON_SUBTYPE_REAL);
+    sky_json_unsafe_set_len(val, n);
+}
+
+/* ============================= public json api ======================================== */
 
 sky_json_doc_t *sky_json_read_opts(const sky_str_t *str, sky_u32_t opts);
+
+sky_str_t *sky_json_val_write_opts(const sky_json_val_t *val, sky_u32_t opts);
 
 sky_json_val_t *sky_json_obj_get(sky_json_val_t *obj, const sky_uchar_t *key, sky_u32_t key_len);
 
@@ -335,6 +417,14 @@ sky_json_read(const sky_str_t *str, sky_u32_t opts) {
 
     return sky_json_read_opts(str, opts);
 }
+
+static sky_inline sky_str_t *
+sky_json_write_opts(const sky_json_doc_t *doc, sky_u32_t opts) {
+    const sky_json_val_t *root = sky_likely(doc) ? doc->root : null;
+
+    return sky_json_val_write_opts(root, opts);
+}
+
 
 static sky_inline sky_json_val_t *
 sky_json_doc_get_root(sky_json_doc_t *doc) {
@@ -527,106 +617,14 @@ sky_json_get_real(const sky_json_val_t *val) {
         (_val) = sky_json_unsafe_get_next(_val))
 
 
-/* ============================= unsafe write api ======================================== */
-
-static sky_inline void
-sky_json_unsafe_set_tag(sky_json_val_t *val, sky_u8_t tag) {
-    val->tag = (val->tag & (~(sky_u64_t) SKY_JSON_TAG_MASK)) | (sky_u64_t) tag;
-}
-
-static sky_inline void
-sky_json_unsafe_set_type(sky_json_val_t *val, sky_u8_t type, sky_u8_t subtype) {
-    const sky_u8_t tag = (type | subtype);
-    sky_json_unsafe_set_tag(val, tag);
-}
-
-static sky_inline void
-sky_json_unsafe_set_len(sky_json_val_t *val, sky_usize_t len) {
-    sky_u64_t tag = val->tag & SKY_JSON_TAG_MASK;
-    tag |= (uint64_t) len << SKY_JSON_TAG_BIT;
-    val->tag = tag;
-}
-
-static sky_inline void
-sky_json_unsafe_set_raw_len(sky_json_val_t *val, sky_uchar_t *str_data, sky_usize_t str_len) {
-    sky_json_unsafe_set_type(val, SKY_JSON_TYPE_RAW, SKY_JSON_SUBTYPE_NONE);
-    sky_json_unsafe_set_len(val, str_len);
-    val->uni.str = str_data;
-}
-
-static sky_inline void
-sky_json_unsafe_set_raw(sky_json_val_t *val, sky_str_t *str) {
-    sky_json_unsafe_set_raw_len(val, str->data, str->len);
-}
-
-static sky_inline void
-sky_json_unsafe_set_str_len(sky_json_val_t *val, sky_uchar_t *str_data, sky_usize_t str_len) {
-    sky_json_unsafe_set_type(val, SKY_JSON_TYPE_STR, SKY_JSON_SUBTYPE_NONE);
-    sky_json_unsafe_set_len(val, str_len);
-    val->uni.str = str_data;
-}
-
-static sky_inline void
-sky_json_unsafe_set_str(sky_json_val_t *val, sky_str_t *str) {
-    sky_json_unsafe_set_str_len(val, str->data, str->len);
-}
-
-static sky_inline void
-sky_json_unsafe_set_null(sky_json_val_t *val) {
-    sky_json_unsafe_set_type(val, SKY_JSON_TYPE_NULL, SKY_JSON_SUBTYPE_NONE);
-    sky_json_unsafe_set_len(val, 0);
-}
-
-static sky_inline void
-sky_json_unsafe_set_bool(sky_json_val_t *val, sky_bool_t v) {
-    sky_json_unsafe_set_type(val, SKY_JSON_TYPE_BOOL, v ? SKY_JSON_SUBTYPE_TRUE : SKY_JSON_SUBTYPE_FALSE);
-    sky_json_unsafe_set_len(val, 0);
-}
-
-static sky_inline void
-sky_json_unsafe_set_int(sky_json_val_t *val, sky_i64_t v) {
-    sky_json_unsafe_set_type(val, SKY_JSON_TYPE_NUM, SKY_JSON_SUBTYPE_INT);
-    sky_json_unsafe_set_len(val, 0);
-    val->uni.i64 = v;
-}
-
-static sky_inline void
-sky_json_unsafe_set_uint(sky_json_val_t *val, sky_u64_t v) {
-    sky_json_unsafe_set_type(val, SKY_JSON_TYPE_NUM, SKY_JSON_SUBTYPE_UINT);
-    sky_json_unsafe_set_len(val, 0);
-    val->uni.u64 = v;
-}
-
-static sky_inline void
-sky_json_unsafe_set_arr(sky_json_val_t *val, sky_usize_t n) {
-    sky_json_unsafe_set_type(val, SKY_JSON_TYPE_ARR, SKY_JSON_SUBTYPE_REAL);
-    sky_json_unsafe_set_len(val, n);
-}
-
-static sky_inline void
-sky_json_unsafe_set_obj(sky_json_val_t *val, sky_usize_t n) {
-    sky_json_unsafe_set_type(val, SKY_JSON_TYPE_OBJ, SKY_JSON_SUBTYPE_REAL);
-    sky_json_unsafe_set_len(val, n);
-}
+/* ============================= unsafe json mut api ======================================== */
 
 
-/* ============================= public write api ======================================== */
-
-sky_str_t *sky_json_val_write_opts(const sky_json_val_t *val, sky_u32_t opts);
-
+/* ============================= public json mut api ======================================== */
 
 sky_json_mut_doc_t *sky_json_mut_doc_create();
 
 void sky_json_mut_doc_free(sky_json_mut_doc_t *doc);
-
-
-static sky_inline sky_str_t *
-sky_json_write_opts(const sky_json_doc_t *doc, sky_u32_t opts) {
-    const sky_json_val_t *root = sky_likely(doc) ? doc->root : null;
-
-    return sky_json_val_write_opts(root, opts);
-}
-
 
 static sky_inline void
 sky_json_mut_set_root(sky_json_mut_doc_t *doc, sky_json_mut_val_t *root) {

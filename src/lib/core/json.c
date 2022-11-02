@@ -386,6 +386,20 @@ sky_json_read_opts(const sky_str_t *str, sky_u32_t opts) {
 #undef has_flag
 }
 
+sky_str_t *
+sky_json_val_write_opts(const sky_json_val_t *val, sky_u32_t opts) {
+    if (sky_unlikely(!val)) {
+        return null;
+    }
+    if (!sky_json_unsafe_is_ctn(val) || sky_json_unsafe_get_len(val) == 0) {
+        return json_write_single(val, opts);
+    } else if (opts & SKY_JSON_WRITE_PRETTY) {
+        return json_write_pretty(val, opts);
+    } else {
+        return json_write_minify(val, opts);
+    }
+}
+
 sky_json_val_t *
 sky_json_obj_get(sky_json_val_t *obj, const sky_uchar_t *key, sky_u32_t key_len) {
     const sky_u64_t tag = (((sky_u64_t) key_len) << SKY_JSON_TAG_BIT) | SKY_JSON_TYPE_STR;
@@ -429,20 +443,6 @@ sky_json_doc_free(sky_json_doc_t *doc) {
             doc->str_pool = null;
         }
         sky_free(doc);
-    }
-}
-
-sky_str_t *
-sky_json_val_write_opts(const sky_json_val_t *val, sky_u32_t opts) {
-    if (sky_unlikely(!val)) {
-        return null;
-    }
-    if (!sky_json_unsafe_is_ctn(val) || sky_json_unsafe_get_len(val) == 0) {
-        return json_write_single(val, opts);
-    } else if (opts & SKY_JSON_WRITE_PRETTY) {
-        return json_write_pretty(val, opts);
-    } else {
-        return json_write_minify(val, opts);
     }
 }
 
@@ -4834,7 +4834,7 @@ write_indent(sky_uchar_t *cur, sky_usize_t level) {
 
 static sky_inline sky_uchar_t *
 write_number(sky_uchar_t *cur, const sky_json_val_t *val, sky_u32_t opts) {
-    (void )opts;
+    (void) opts;
     if (val->tag & SKY_JSON_SUBTYPE_REAL) {
         const sky_u8_t n = sky_f64_to_str(val->uni.f64, cur);
         if (sky_unlikely(!n)) {
