@@ -305,8 +305,6 @@ static sky_bool_t size_add_is_overflow(sky_usize_t size, sky_usize_t add);
 
 static sky_usize_t size_align_up(sky_usize_t size, sky_usize_t align);
 
-static sky_usize_t size_align_down(sky_usize_t size, sky_usize_t align);
-
 sky_json_doc_t *
 sky_json_read_opts(const sky_str_t *str, sky_u32_t opts) {
 #define has_flag(_flag) sky_unlikely((opts & (_flag)) != 0)
@@ -4834,8 +4832,9 @@ write_indent(sky_uchar_t *cur, sky_usize_t level) {
     return cur;
 }
 
-static sky_uchar_t *
+static sky_inline sky_uchar_t *
 write_number(sky_uchar_t *cur, const sky_json_val_t *val, sky_u32_t opts) {
+    (void )opts;
     if (val->tag & SKY_JSON_SUBTYPE_REAL) {
         const sky_u8_t n = sky_f64_to_str(val->uni.f64, cur);
         if (sky_unlikely(!n)) {
@@ -5296,35 +5295,4 @@ size_align_up(sky_usize_t size, sky_usize_t align) {
     } else {
         return size + align - (size + align - 1) % align - 1;
     }
-}
-
-/** Align size downwards. */
-static sky_inline sky_usize_t
-size_align_down(sky_usize_t size, sky_usize_t align) {
-    if (sky_is_2_power(align)) {
-        return size & ~(align - 1);
-    } else {
-        return size - (size % align);
-    }
-}
-
-/** Align address upwards (may overflow). */
-static sky_inline void *
-mem_align_up(void *mem, sky_usize_t align) {
-    sky_usize_t size = *(sky_usize_t *) mem;
-
-    size = size_align_up(size, align);
-    *(sky_usize_t *) mem = size;
-
-    return mem;
-}
-
-/** Align address downwards. */
-static sky_inline void *
-mem_align_down(void *mem, sky_usize_t align) {
-    sky_usize_t size = *(sky_usize_t *) mem;
-
-    size = size_align_down(size, align);
-    *(sky_usize_t *) mem = size;
-    return mem;
 }
