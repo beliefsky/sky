@@ -118,7 +118,7 @@ __extension__ typedef unsigned __int128 sky_u128_t;
 #define sky_max(_v1, _v2)   ((_v1) ^ (((_v1) ^ (_v2)) & -((_v1) < (_v2))))
 #define sky_min(_v1, _v2)   ((_v2) ^ (((_v1) ^ (_v2)) & -((_v1) < (_v2))))
 #define sky_swap(_a, _b)    (((_a) ^ (_b)) && ((_b) ^= (_a) ^= (_b), (_a) ^= (_b)))
-#define sky_two_avg(_a, _b) ((_a) & (_b)) + (((_a) ^ (_b)) >> 1)
+#define sky_two_avg(_a, _b) (((_a) & (_b)) + (((_a) ^ (_b)) >> 1))
 
 /**
  * 是否是2的冪数
