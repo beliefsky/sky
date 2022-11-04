@@ -39,7 +39,7 @@ sky_http_response_static(sky_http_request_t *r, sky_str_t *buf) {
     if (!buf) {
         sky_http_response_static_len(r, null, 0);
     } else {
-        sky_http_response_static_len(r, buf->data, (sky_u32_t) buf->len);
+        sky_http_response_static_len(r, buf->data, buf->len);
     }
 }
 
