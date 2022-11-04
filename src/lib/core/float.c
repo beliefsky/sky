@@ -21,29 +21,7 @@ static sky_u8_t f64_encode_trim(const sky_uchar_t *src, sky_u8_t len);
 
 
 sky_bool_t
-sky_str_to_f32(const sky_str_t *in, sky_f32_t *out) {
-    return sky_str_len_to_f32(in->data, in->len, out);
-}
-
-sky_bool_t
-sky_str_len_to_f32(const sky_uchar_t *in, sky_usize_t in_len, sky_f32_t *out) {
-    sky_f64_t result;
-
-    if (sky_unlikely(!sky_str_len_to_f64(in, in_len, &result))) {
-        return false;
-    }
-    *out = (sky_f32_t) result;
-
-    return true;
-}
-
-sky_bool_t
-sky_str_to_f64(const sky_str_t *in, sky_f64_t *out) {
-    return sky_str_len_to_f64(in->data, in->len, out);
-}
-
-sky_bool_t
-sky_str_len_to_f64(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *out) {
+sky_str_len_to_f64_opts(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *out, sky_u32_t opts) {
     if (sky_unlikely(!in_len)) {
         return false;
     }
@@ -156,41 +134,7 @@ sky_str_len_to_f64(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *out) {
 
 
 sky_u8_t
-sky_f32_to_str(sky_f32_t data, sky_uchar_t *out) {
-
-    return sky_f64_to_str((sky_f64_t)data, out);
-//    const sky_u32_t raw = *((sky_u32_t *) &data);
-//    const sky_u32_t sig_raw = raw & SKY_U32(0x007FFFFF);
-//    const sky_u32_t exp_raw = (raw & SKY_U32(0x7F800000)) >> 23;
-//    const sky_bool_t sign = raw >> 31;
-//
-//    if (sky_unlikely(exp_raw == (1 << 8) - 1)) {
-//        sky_memcpy4(out, "null");
-//        out[4] = '\0';
-//        return 4;
-//    }
-//    *out = '-';
-//    out += sign;
-//    if ((raw << 1) == 0) {
-//        sky_memcpy2(out, "0");
-//
-//        return (sky_u8_t) (sig_raw + 3);
-//    }
-//
-//    if (sky_likely(exp_raw != 0)) {
-//        const sky_u32_t sig_bin = sig_raw | (SKY_U32(1) << 23);
-//        const sky_i32_t exp_bin = (sky_i32_t) exp_raw - 127 - 23;
-//
-//    }
-//
-//
-//    sky_memcpy4(out, "nnnn");
-//
-//    return 0;
-}
-
-sky_u8_t
-sky_f64_to_str(sky_f64_t data, sky_uchar_t *out) {
+sky_f64_to_str_opts(sky_f64_t data, sky_uchar_t *out, sky_u32_t opts) {
     const sky_u64_t raw = *((sky_u64_t *) &data);
     const sky_u64_t sig_raw = raw & SKY_U64(0x000FFFFFFFFFFFFF);
     const sky_u32_t exp_raw = (raw & SKY_U64(0x7FF0000000000000)) >> 52;

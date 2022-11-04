@@ -76,9 +76,9 @@ create_server() {
 
     const sky_http_file_conf_t file_config = {
             .prefix = sky_string(""),
-            .dir = sky_string("/home/beliefsky/www/"),
+            .dir = sky_string("/mnt/d/private/sky/html"),
             .module = sky_array_push(&modules),
-            .pre_run = http_index_router
+//            .pre_run = http_index_router
     };
     sky_http_module_file_init(pool, &file_config);
 

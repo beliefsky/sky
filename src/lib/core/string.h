@@ -125,7 +125,7 @@ sky_str_replace_char(sky_str_t *src, sky_uchar_t old_ch, sky_uchar_t new_ch) {
 }
 
 static sky_inline sky_bool_t
-sky_str_len_equals_uncheck(const sky_uchar_t *s1, const sky_uchar_t *s2, sky_usize_t len) {
+sky_str_len_unsafe_equals(const sky_uchar_t *s1, const sky_uchar_t *s2, sky_usize_t len) {
     return memcmp(s1, s2, len) == 0;
 }
 
@@ -135,7 +135,7 @@ sky_str_len_equals(const sky_uchar_t *s1, sky_usize_t s1_len,
     if (s1_len != s2_len) {
         return false;
     }
-    return sky_str_len_equals_uncheck(s1, s2, s2_len);
+    return sky_str_len_unsafe_equals(s1, s2, s2_len);
 }
 
 static sky_inline sky_bool_t
@@ -149,7 +149,7 @@ sky_str_equals2(const sky_str_t *s1, const sky_uchar_t *s2, sky_usize_t s2_len) 
 }
 
 static sky_inline sky_i32_t
-sky_str_len_cmp_uncheck(const sky_uchar_t *s1, const sky_uchar_t *s2, sky_usize_t len) {
+sky_str_len_unsafe_cmp(const sky_uchar_t *s1, const sky_uchar_t *s2, sky_usize_t len) {
     return memcmp(s1, s2, len);
 }
 
@@ -158,7 +158,7 @@ sky_str_len_cmp(const sky_uchar_t *s1, sky_usize_t s1_len, const sky_uchar_t *s2
     if (s1_len != s2_len) {
         return (sky_i32_t) (s1_len - s2_len);
     }
-    return sky_str_len_cmp_uncheck(s1, s2, s2_len);
+    return sky_str_len_unsafe_cmp(s1, s2, s2_len);
 }
 
 static sky_inline sky_i32_t
@@ -172,8 +172,8 @@ sky_str_cmp2(const sky_str_t *s1, const sky_uchar_t *s2, sky_usize_t s2_len) {
 }
 
 static sky_inline sky_bool_t
-sky_str_len_starts_with_uncheck(const sky_uchar_t *src, const sky_uchar_t *prefix, sky_usize_t prefix_len) {
-    return sky_str_len_equals_uncheck(src, prefix, prefix_len);
+sky_str_len__unsafe_starts_with(const sky_uchar_t *src, const sky_uchar_t *prefix, sky_usize_t prefix_len) {
+    return sky_str_len_unsafe_equals(src, prefix, prefix_len);
 }
 
 static sky_inline sky_bool_t
@@ -182,7 +182,7 @@ sky_str_len_starts_with(const sky_uchar_t *src, sky_usize_t src_len,
     if (src_len < prefix_len) {
         return false;
     }
-    return sky_str_len_equals_uncheck(src, prefix, prefix_len);
+    return sky_str_len_unsafe_equals(src, prefix, prefix_len);
 }
 
 static sky_inline sky_bool_t
