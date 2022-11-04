@@ -5159,6 +5159,7 @@ json_mut_write_minify(const sky_json_mut_val_t *root, sky_u32_t opts) {
             ctn_len = ctn_len_tmp << (sky_u8_t) ctn_obj_tmp;
             ctn_obj = ctn_obj_tmp;
             *cur++ = (sky_uchar_t) ('[' | ((sky_u8_t) ctn_obj << 5));
+            ctn = val;
             val = ctn->val.uni.ptr; /* tail */
             val = ctn_obj ? val->next->next : val->next;
             goto val_begin;
@@ -5201,6 +5202,7 @@ json_mut_write_minify(const sky_json_mut_val_t *root, sky_u32_t opts) {
     if (sky_unlikely((sky_uchar_t *) ctx >= end)) {
         goto doc_end;
     }
+    val = ctn->next;
     json_mut_write_ctx_get(ctx++, &ctn, &ctn_len, &ctn_obj);
     --ctn_len;
     if (sky_likely(ctn_len > 0)) {
