@@ -148,6 +148,17 @@
                             x(8) x(9) x(10) x(11) x(12) x(13) x(14) x(15) \
                             x(16) x(17) x(18) }
 
+/** Maximum exponent of exact pow10 */
+#define U64_POW10_MAX_EXP 19
+
+/** Maximum numbers of chunks used by a bigint_t (58 is enough here). */
+#define BIGINT_MAX_CHUNKS 64
+
+
+typedef struct json_str_chunk_s json_str_chunk_t;
+typedef struct json_val_chunk_s json_val_chunk_t;
+typedef struct json_str_pool_s json_str_pool_t;
+typedef struct json_val_pool_s json_val_pool_t;
 
 /** "Do It Yourself Floating Point" struct. */
 typedef struct {
@@ -155,12 +166,6 @@ typedef struct {
     sky_i32_t exp; /* exponent, base 2 */
     sky_i32_t pad; /* padding, useless */
 } diy_fp_t;
-
-/** Maximum exponent of exact pow10 */
-#define U64_POW10_MAX_EXP 19
-
-/** Maximum numbers of chunks used by a bigint_t (58 is enough here). */
-#define BIGINT_MAX_CHUNKS 64
 
 /** Unsigned arbitrarily large integer */
 typedef struct {
@@ -171,6 +176,46 @@ typedef struct {
 typedef struct {
     sky_usize_t tag;
 } json_write_ctx_t;
+
+
+/**
+ A memory chunk in string memory pool.
+ */
+struct json_str_chunk_s {
+    json_str_chunk_t *next;
+    /* flexible array member here */
+};
+
+/**
+ A memory chunk in value memory pool.
+ */
+struct json_val_chunk_s {
+    json_val_chunk_t *next;
+    /* flexible array member here */
+};
+
+struct json_str_pool_s {
+    sky_uchar_t *cur; /* cursor inside current chunk */
+    sky_uchar_t *end; /* the end of current chunk */
+    sky_usize_t chunk_size; /* chunk size in bytes while creating new chunk */
+    sky_usize_t chunk_size_max; /* maximum chunk size in bytes */
+    json_str_chunk_t *chunks; /* a linked list of chunks, nullable */
+};
+
+struct json_val_pool_s {
+    sky_json_mut_val_t *cur; /* cursor inside current chunk */
+    sky_json_mut_val_t *end; /* the end of current chunk */
+    sky_usize_t chunk_size; /* chunk size in bytes while creating new chunk */
+    sky_usize_t chunk_size_max; /* maximum chunk size in bytes */
+    json_val_chunk_t *chunks; /* a linked list of chunks, nullable */
+};
+
+struct sky_json_mut_doc_s {
+    sky_json_mut_val_t *root; /**< root value of the JSON document, nullable */
+    json_str_pool_t str_pool; /**< string memory pool */
+    json_val_pool_t val_pool; /**< value memory pool */
+};
+
 
 static sky_bool_t char_is_type(sky_uchar_t c, sky_u8_t type);
 
@@ -304,6 +349,14 @@ static sky_uchar_t *write_string(
 static sky_bool_t size_add_is_overflow(sky_usize_t size, sky_usize_t add);
 
 static sky_usize_t size_align_up(sky_usize_t size, sky_usize_t align);
+
+static sky_bool_t json_str_pool_grow(json_str_pool_t *pool, sky_usize_t n);
+
+static sky_bool_t json_val_pool_grow(json_val_pool_t *pool, sky_usize_t n);
+
+static void json_str_pool_release(json_str_pool_t *pool);
+
+static void json_val_pool_release(json_val_pool_t *pool);
 
 sky_json_doc_t *
 sky_json_read_opts(const sky_str_t *str, sky_u32_t opts) {
@@ -448,21 +501,60 @@ sky_json_doc_free(sky_json_doc_t *doc) {
 
 
 /* ========================================================================== */
+
+sky_json_mut_val_t *
+sky_json_mut_unsafe_val(sky_json_mut_doc_t *doc, sky_usize_t n) {
+    sky_json_mut_val_t *val;
+    json_val_pool_t *pool = &doc->val_pool;
+    if (sky_unlikely((sky_usize_t) (pool->end - pool->cur) < n)) {
+        if (sky_unlikely(!json_val_pool_grow(pool, n))) {
+            return NULL;
+        }
+    }
+
+    val = pool->cur;
+    pool->cur += n;
+    return val;
+}
+
+sky_uchar_t *
+sky_json_mut_unsafe_str_cpy(sky_json_mut_doc_t *doc, const sky_uchar_t *data, sky_usize_t len) {
+    sky_uchar_t *mem;
+    json_str_pool_t *pool = &doc->str_pool;
+
+    if (sky_unlikely((sky_usize_t) (pool->end - pool->cur) <= len)) {
+        if (sky_unlikely(!json_str_pool_grow(pool, len + 1))) {
+            return NULL;
+        }
+    }
+    mem = pool->cur;
+    pool->cur = mem + len + 1;
+    sky_memcpy(mem, data, len);
+    mem[len] = '\0';
+
+    return mem;
+}
+
 sky_json_mut_doc_t *
 sky_json_mut_doc_create() {
     sky_json_mut_doc_t *doc = sky_malloc(sizeof(sky_json_mut_doc_t));
     if (sky_unlikely(!doc)) {
         return null;
     }
-    doc->root = null;
-    doc->str_pool = null;
-    doc->val_pool = sky_mem_pool_create(sizeof(sky_json_mut_val_t), 16);
-    if (sky_unlikely(!doc->val_pool)) {
-        sky_free(doc);
-        return null;
-    }
+    sky_memzero(doc, sizeof(sky_json_mut_doc_t));
+    doc->str_pool.chunk_size = 0x100;
+    doc->str_pool.chunk_size_max = 0x10000000;
+    doc->val_pool.chunk_size = 0x10 * sizeof(sky_json_mut_val_t);
+    doc->val_pool.chunk_size_max = 0x1000000 * sizeof(sky_json_mut_val_t);
 
     return doc;
+}
+
+void
+sky_json_mut_set_root(sky_json_mut_doc_t *doc, sky_json_mut_val_t *root) {
+    if (sky_likely(doc)) {
+        doc->root = root;
+    }
 }
 
 void
@@ -470,6 +562,8 @@ sky_json_mut_doc_free(sky_json_mut_doc_t *doc) {
     if (sky_unlikely(!doc)) {
         return;
     }
+    json_str_pool_release(&doc->str_pool);
+    json_val_pool_release(&doc->val_pool);
     sky_free(doc);
 }
 
@@ -5294,5 +5388,75 @@ size_align_up(sky_usize_t size, sky_usize_t align) {
         return (size + (align - 1)) & ~(align - 1);
     } else {
         return size + align - (size + align - 1) % align - 1;
+    }
+}
+
+static sky_bool_t
+json_str_pool_grow(json_str_pool_t *pool, sky_usize_t n) {
+    json_str_chunk_t *chunk;
+    sky_usize_t size = n + sizeof(json_str_chunk_t);
+
+    size = sky_max(pool->chunk_size, size);
+    chunk = sky_malloc(size);
+    if (sky_unlikely(!chunk)) {
+        return false;
+    }
+
+    chunk->next = pool->chunks;
+    pool->chunks = chunk;
+    pool->cur = (sky_uchar_t *) chunk + sizeof(json_str_chunk_t);
+    pool->end = (sky_uchar_t *) chunk + size;
+
+    n = pool->chunk_size << 1;
+    size = sky_min(n, pool->chunk_size_max);
+    pool->chunk_size = size;
+
+    return true;
+}
+
+static sky_bool_t
+json_val_pool_grow(json_val_pool_t *pool, sky_usize_t n) {
+    json_val_chunk_t *chunk;
+    sky_usize_t size;
+
+    if (n >= SKY_USIZE_MAX / sizeof(sky_json_mut_val_t) - 16) {
+        return false;
+    }
+    size = (n + 1) * sizeof(sky_json_mut_val_t);
+    size = sky_max(pool->chunk_size, size);
+    chunk = sky_malloc(size);
+    if (sky_unlikely(!chunk)) {
+        return false;
+    }
+
+    chunk->next = pool->chunks;
+    pool->chunks = chunk;
+    pool->cur = (sky_json_mut_val_t *) ((sky_uchar_t *) chunk + sizeof(sky_json_mut_val_t));
+    pool->end = (sky_json_mut_val_t *) ((sky_uchar_t *) chunk + size);
+
+    n = pool->chunk_size << 1;
+    size = sky_min(n, pool->chunk_size_max);
+    pool->chunk_size = size;
+
+    return true;
+}
+
+static void
+json_str_pool_release(json_str_pool_t *pool) {
+    json_str_chunk_t *chunk = pool->chunks, *next;
+    while (chunk) {
+        next = chunk->next;
+        sky_free(chunk);
+        chunk = next;
+    }
+}
+
+static void
+json_val_pool_release(json_val_pool_t *pool) {
+    json_val_chunk_t *chunk = pool->chunks, *next;
+    while (chunk) {
+        next = chunk->next;
+        sky_free(chunk);
+        chunk = next;
     }
 }
