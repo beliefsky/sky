@@ -220,12 +220,18 @@ static SKY_HTTP_MAPPER_HANDLER(redis_test) {
 
     if (data && data->is_ok && data->rows) {
         for (sky_u32_t i = 0; i != data->rows; ++i) {
-            sky_json_t *root = sky_json_object_create(req->pool);
-            sky_json_put_integer(root, sky_str_line("status"), 200);
-            sky_json_put_str_len(root, sky_str_line("msg"), sky_str_line("success"));
-            sky_json_put_string(root, sky_str_line("data"), &data->data[i].stream);
+            sky_json_mut_doc_t *doc = sky_json_mut_doc_create();
+            sky_json_mut_val_t *root = sky_json_mut_obj(doc);
+            sky_json_mut_doc_set_root(doc, root);
 
-            sky_str_t *res = sky_json_tostring(root);
+            sky_json_mut_obj_add_int(doc, root, sky_str_line("status"), 200);
+            sky_json_mut_obj_add_str_len(doc, root, sky_str_line("msg"), sky_str_line("success"));
+            sky_json_mut_obj_add_str(doc, root, sky_str_line("data"), &data->data[i].stream);
+
+            sky_str_t *res = sky_json_mut_write_opts(doc, 0);
+            sky_json_mut_doc_free(doc);
+            sky_defer_add(req->conn->coro, free, res);
+
             sky_http_response_static(req, res);
         }
     }
@@ -268,35 +274,38 @@ static SKY_HTTP_MAPPER_HANDLER(pgsql_test) {
         sky_http_response_static_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\", \"data\": null}"));
         return;
     }
-    sky_json_t *json = sky_json_object_create(req->pool);
+    sky_json_mut_doc_t *doc = sky_json_mut_doc_create();
+    sky_json_mut_val_t *root = sky_json_mut_obj(doc);
+    sky_json_mut_doc_set_root(doc, root);
+
     sky_pgsql_row_t *row = result->data;
 
     sky_i32_t *i32 = sky_pgsql_row_get_i32(row, 0);
     if (i32) {
-        sky_json_put_integer(json, sky_str_line("i32"), *i32);
+        sky_json_mut_obj_add_int(doc, root, sky_str_line("i32"), *i32);
     } else {
-        sky_json_put_null(json, sky_str_line("i32"));
+        sky_json_mut_obj_add_null(doc, root, sky_str_line("i32"));
     }
     sky_i64_t *i64 = sky_pgsql_row_get_i64(row, 1);
     if (i64) {
-        sky_json_put_integer(json, sky_str_line("i32"), *i64);
+        sky_json_mut_obj_add_int(doc, root, sky_str_line("i32"), *i64);
     } else {
-        sky_json_put_null(json, sky_str_line("i64"));
+        sky_json_mut_obj_add_null(doc, root, sky_str_line("i64"));
     }
 
     sky_i16_t *i16 = sky_pgsql_row_get_i16(row, 2);
     if (i16) {
-        sky_json_put_integer(json, sky_str_line("i16"), *i16);
+        sky_json_mut_obj_add_int(doc, root, sky_str_line("i16"), *i16);
     } else {
-        sky_json_put_null(json, sky_str_line("i16"));
+        sky_json_mut_obj_add_null(doc, root, sky_str_line("i16"));
     }
 
     sky_str_t *text = sky_pgsql_row_get_str(row, 3);
 
     if (text) {
-        sky_json_put_string(json, sky_str_line("text"), text);
+        sky_json_mut_obj_add_str(doc, root, sky_str_line("text"), text);
     } else {
-        sky_json_put_null(json, sky_str_line("text"));
+        sky_json_mut_obj_add_null(doc, root, sky_str_line("text"));
     }
 //    if (!sky_pgsql_data_is_null(data)) {
 //        sky_pgsql_array_t *array = data->array;
@@ -315,16 +324,16 @@ static SKY_HTTP_MAPPER_HANDLER(pgsql_test) {
     sky_pgsql_data_t *data = row->data + 5;
     if (!sky_pgsql_data_is_null(data)) {
         sky_pgsql_array_t *array = data->array;
-        sky_json_t *tmp = sky_json_put_array(json, sky_str_line("int32_arr"));
+        sky_json_mut_val_t *tmp = sky_json_mut_obj_add_arr(doc, root, sky_str_line("int32_arr"));
         for (sky_u32_t i = 0; i < array->nelts; ++i) {
             if (!sky_pgsql_data_is_null(&array->data[i])) {
-                sky_json_add_integer(tmp, array->data[i].int32);
+                sky_json_mut_arr_add_int(doc, tmp, array->data[i].int32);
             } else {
-                sky_json_add_null(tmp);
+                sky_json_mut_arr_add_null(doc, tmp);
             }
         }
     } else {
-        sky_json_put_null(json, sky_str_line("int32_arr"));
+        sky_json_mut_obj_add_null(doc, root, sky_str_line("int32_arr"));
     }
 
     sky_uchar_t tmp[30];
@@ -338,7 +347,13 @@ static SKY_HTTP_MAPPER_HANDLER(pgsql_test) {
     sky_i64_t time = *sky_pgsql_row_get_time(row, 8);
     sky_time_to_str((sky_u32_t) (time / 1000000), tmp);
     sky_log_info(" -> %s", tmp);
-    sky_http_response_static(req, sky_json_tostring(json));
+
+
+    sky_str_t *json = sky_json_mut_write_opts(doc, 0);
+    sky_json_mut_doc_free(doc);
+    sky_defer_add(req->conn->coro, sky_free, json);
+
+    sky_http_response_static(req, json);
 }
 
 static void *
