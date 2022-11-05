@@ -138,7 +138,7 @@
 #define CHAR_ENC_CPY_4  8 /* 4-byte UTF-8, copy. */
 #define CHAR_ENC_ESC_4  9 /* 4-byte UTF-8, escaped as '\uXXXX\uXXXX'. */
 
-#define repeat16(x) { x x x x x x x x x x x x x x x x }
+#define repeat16(x) do { x x x x x x x x x x x x x x x x } while(0)
 
 #define repeat4_incr(x)  { x(0) x(1) x(2) x(3) }
 #define repeat16_incr(x) { x(0) x(1) x(2) x(3) x(4) x(5) x(6) x(7) \
@@ -479,7 +479,7 @@ sky_json_val_write_opts(const sky_json_val_t *val, sky_u32_t opts) {
 }
 
 sky_json_val_t *
-sky_json_obj_get(sky_json_val_t *obj, const sky_uchar_t *key, sky_u32_t key_len) {
+sky_json_obj_get(sky_json_val_t *obj, const sky_uchar_t *key, sky_usize_t key_len) {
     const sky_u64_t tag = (((sky_u64_t) key_len) << SKY_JSON_TAG_BIT) | SKY_JSON_TYPE_STR;
     if (sky_likely(sky_json_is_obj(obj) && key_len)) {
         sky_usize_t len = sky_json_unsafe_get_len(obj);
