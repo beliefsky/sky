@@ -398,7 +398,7 @@ sky_json_doc_t *sky_json_read_opts(const sky_str_t *str, sky_u32_t opts);
 
 sky_str_t *sky_json_val_write_opts(const sky_json_val_t *val, sky_u32_t opts);
 
-sky_json_val_t *sky_json_obj_get(sky_json_val_t *obj, const sky_uchar_t *key, sky_u32_t key_len);
+sky_json_val_t *sky_json_obj_get(sky_json_val_t *obj, const sky_uchar_t *key, sky_usize_t key_len);
 
 sky_json_val_t *sky_json_arr_get(sky_json_val_t *arr, sky_usize_t idx);
 
