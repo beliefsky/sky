@@ -36,26 +36,25 @@ extern "C" {
 #define sky_memcpy(_dest, _src, _n)     memcpy(_dest, _src, _n)
 #define sky_memmove(_dest, _src, _n)    memmove(_dest, _src, _n)
 
-#define sky_memcpy2(_dist, _src)                            \
-    do {                                                    \
-        *(sky_u16_t *)(_dist) = *(((sky_u16_t *)(_src)));   \
-    } while(0)                                              \
-
-#define sky_memcpy4(_dist, _src)                            \
-    do {                                                    \
-        *(sky_u32_t *)(_dist) = *(((sky_u32_t *)(_src)));   \
-    } while(0)                                              \
-
-#define sky_memcpy8(_dist, _src)                            \
-    do {                                                    \
-        *(sky_u64_t *)(_dist) = *(((sky_u64_t *)(_src)));   \
-    } while(0)                                              \
-
 #define sky_memmove2(_dist, _src) sky_memcpy2(_dist, _src)
-
 #define sky_memmove4(_dist, _src) sky_memcpy4(_dist, _src)
-
 #define sky_memmove8(_dist, _src) sky_memcpy8(_dist, _src)
+
+
+static sky_inline void
+sky_memcpy2(void *dist, const void *src) {
+    *(sky_u16_t *) dist = *((sky_u16_t *) src);
+}
+
+static sky_inline void
+sky_memcpy4(void *dist, const void *src) {
+    *(sky_u32_t *) dist = *((sky_u32_t *) src);
+}
+
+static sky_inline void
+sky_memcpy8(void *dist, const void *src) {
+    *(sky_u64_t *) dist = *((sky_u64_t *) src);
+}
 
 static sky_inline void
 sky_free(void *ptr) {

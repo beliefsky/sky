@@ -172,7 +172,7 @@ sky_str_cmp2(const sky_str_t *s1, const sky_uchar_t *s2, sky_usize_t s2_len) {
 }
 
 static sky_inline sky_bool_t
-sky_str_len__unsafe_starts_with(const sky_uchar_t *src, const sky_uchar_t *prefix, sky_usize_t prefix_len) {
+sky_str_len_unsafe_starts_with(const sky_uchar_t *src, const sky_uchar_t *prefix, sky_usize_t prefix_len) {
     return sky_str_len_unsafe_equals(src, prefix, prefix_len);
 }
 

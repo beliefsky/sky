@@ -254,7 +254,7 @@ sky_http_read_multipart(sky_http_request_t *r, sky_http_multipart_conf_t *conf) 
                     break;
                 }
                 if (!sky_str2_cmp(buf->pos, '-', '-')
-                    || !sky_str_len__unsafe_starts_with(buf->pos + 2, boundary, boundary_len)) {
+                    || !sky_str_len_unsafe_starts_with(buf->pos + 2, boundary, boundary_len)) {
                     goto error;
                 }
                 buf->pos += boundary_len + 2;
