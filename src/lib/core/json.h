@@ -219,19 +219,21 @@ sky_json_unsafe_is_ctn(const sky_json_val_t *val) {
 
 static sky_inline sky_bool_t
 sky_json_unsafe_is_uint(const sky_json_val_t *val) {
-    const sky_u8_t patt = SKY_JSON_TYPE_BOOL | SKY_JSON_SUBTYPE_UINT;
+    const sky_u8_t patt = SKY_JSON_TYPE_NUM | SKY_JSON_SUBTYPE_UINT;
     return sky_json_unsafe_get_tag(val) == patt;
 }
 
 static sky_inline sky_bool_t
 sky_json_unsafe_is_int(const sky_json_val_t *val) {
-    const sky_u8_t patt = SKY_JSON_TYPE_BOOL | SKY_JSON_SUBTYPE_INT;
-    return sky_json_unsafe_get_tag(val) == patt;
+    const uint8_t mask = SKY_JSON_TAG_MASK & (~SKY_JSON_SUBTYPE_INT);
+    const uint8_t patt = SKY_JSON_TYPE_NUM | SKY_JSON_SUBTYPE_UINT;
+
+    return (sky_json_unsafe_get_tag(val) & mask) == patt;
 }
 
 static sky_inline sky_bool_t
 sky_json_unsafe_is_real(const sky_json_val_t *val) {
-    const sky_u8_t patt = SKY_JSON_TYPE_BOOL | SKY_JSON_SUBTYPE_REAL;
+    const sky_u8_t patt = SKY_JSON_TYPE_NUM | SKY_JSON_SUBTYPE_REAL;
     return sky_json_unsafe_get_tag(val) == patt;
 }
 
