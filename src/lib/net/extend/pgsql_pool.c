@@ -43,7 +43,7 @@ static sky_uchar_t *decode_data(
         sky_uchar_t *p
 );
 
-static sky_usize_t encode_data_size(
+static sky_u32_t encode_data_size(
         sky_pgsql_type_t *type,
         sky_pgsql_data_t *data,
         sky_u16_t param_len
@@ -70,8 +70,11 @@ sky_pgsql_pool_create(sky_event_loop_t *ev_loop, const sky_pgsql_conf_t *conf) {
     sky_u32_t buf_size;
 
 
-    buf_size =
-            11 + sizeof("user") + sizeof("database") + (sky_u32_t) conf->username.len + (sky_u32_t) conf->database.len;
+    buf_size = SKY_U32(11)
+            + sizeof("user")
+            + sizeof("database")
+            + (sky_u32_t) conf->username.len
+            + (sky_u32_t) conf->database.len;
 
     pg_pool = sky_malloc(sizeof(sky_pgsql_pool_t) + buf_size);
     pg_pool->username = conf->username;
@@ -1453,9 +1456,9 @@ decode_data(sky_pool_t *pool, sky_pgsql_data_t *data, sky_pgsql_desc_t *desc, sk
     return p;
 }
 
-static sky_inline sky_usize_t
+static sky_inline sky_u32_t
 encode_data_size(sky_pgsql_type_t *type, sky_pgsql_data_t *data, sky_u16_t param_len) {
-    sky_usize_t size = 0;
+    sky_u32_t size = 0;
 
     for (; param_len; --param_len, ++type, ++data) {
         switch (*type) {

@@ -2022,7 +2022,7 @@ read_number(sky_uchar_t **ptr, sky_uchar_t **pre, sky_json_val_t *val, sky_bool_
         }
         /* begin with 0 */
         if (sky_likely(!digit_is_digit_or_fp(*++cur))) {
-            return_i64(0);
+            return_i64(SKY_U64(0));
         }
         if (sky_likely(*cur == '.')) {
             dot_pos = cur++;
@@ -4333,7 +4333,7 @@ json_write_single(const sky_json_val_t *val, sky_u32_t opts) {
 } while (false)
 
 #define incr_len(_len) do { \
-    hdr = sky_malloc(_len); \
+    hdr = sky_malloc((_len) + sizeof(sky_str_t)); \
     if (sky_unlikely(!hdr)) { \
         goto fail_alloc;    \
     }                       \
@@ -4951,7 +4951,7 @@ json_mut_write_pretty(const sky_json_mut_val_t *root, sky_u32_t opts) {
         } else {
             /* push context, setup new container */
             incr_len(32 + (no_indent ? 0 : level * 4));
-            json_mut_write_ctx_set(--ctx,ctn, ctn_len, ctn_obj);
+            json_mut_write_ctx_set(--ctx, ctn, ctn_len, ctn_obj);
             ctn_len = ctn_len_tmp << (sky_u8_t) ctn_obj_tmp;
             ctn_obj = ctn_obj_tmp;
             cur = write_indent(cur, no_indent ? 0 : level);
