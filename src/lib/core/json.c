@@ -1339,6 +1339,7 @@ read_root_pretty(sky_uchar_t *hdr, sky_uchar_t *cur, sky_uchar_t *end, sky_u32_t
     return null;
 
     fail_alloc:
+    sky_free(val_hdr);
     sky_log_error("memory allocation failed");
     return null;
 
@@ -1785,6 +1786,7 @@ read_root_minify(sky_uchar_t *hdr, sky_uchar_t *cur, sky_uchar_t *end, sky_u32_t
     return null;
 
     fail_alloc:
+    sky_free(val_hdr);
     sky_log_error("memory allocation failed");
     return null;
 
