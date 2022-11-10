@@ -274,25 +274,38 @@ sky_json_unsafe_get_next(const sky_json_val_t *val) {
     return (sky_json_val_t *) ((uint8_t *) val + ofs);
 }
 
+static sky_inline void
+sky_json_unsafe_get_str_out(const sky_json_val_t *val, sky_str_t *dst) {
+    dst->len = sky_json_unsafe_get_len(val);
+    dst->data = val->uni.str;
+}
+
 static sky_inline sky_str_t
 sky_json_unsafe_get_str(const sky_json_val_t *val) {
-    sky_str_t str = {
+    const sky_str_t str = {
             .len = sky_json_unsafe_get_len(val),
             .data = val->uni.str
     };
 
     return str;
+}
+
+static sky_inline void
+sky_json_unsafe_get_raw_out(const sky_json_val_t *val, sky_str_t *dst) {
+    dst->len = sky_json_unsafe_get_len(val);
+    dst->data = val->uni.str;
 }
 
 static sky_inline sky_str_t
 sky_json_unsafe_get_raw(const sky_json_val_t *val) {
-    sky_str_t str = {
+    const sky_str_t str = {
             .len = sky_json_unsafe_get_len(val),
             .data = val->uni.str
     };
 
     return str;
 }
+
 
 static sky_inline sky_bool_t
 sky_json_unsafe_get_bool(const sky_json_val_t *val) {
@@ -524,14 +537,32 @@ sky_json_arr_get_first(sky_json_val_t *arr) {
     return null;
 }
 
+static sky_inline void
+sky_json_get_str_out(const sky_json_val_t *val, sky_str_t *dst) {
+    if (sky_likely(sky_json_is_str(val))) {
+        sky_json_unsafe_get_str_out(val, dst);
+    } else {
+        sky_str_null(dst);
+    }
+}
+
 static sky_inline sky_str_t
 sky_json_get_str(const sky_json_val_t *val) {
     if (sky_likely(sky_json_is_str(val))) {
         return sky_json_unsafe_get_str(val);
     } else {
-        sky_str_t str = sky_null_string;
+        const sky_str_t str = sky_null_string;
 
         return str;
+    }
+}
+
+static sky_inline void
+sky_json_get_raw_out(const sky_json_val_t *val, sky_str_t *dst) {
+    if (sky_likely(sky_json_is_str(val))) {
+        sky_json_unsafe_get_raw_out(val, dst);
+    } else {
+        sky_str_null(dst);
     }
 }
 
@@ -540,7 +571,7 @@ sky_json_get_raw(const sky_json_val_t *val) {
     if (sky_likely(sky_json_is_raw(val))) {
         return sky_json_unsafe_get_raw(val);
     } else {
-        sky_str_t str = sky_null_string;
+        const sky_str_t str = sky_null_string;
 
         return str;
     }

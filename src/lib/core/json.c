@@ -4357,14 +4357,14 @@ json_write_single(const sky_json_val_t *val, sky_u32_t opts) {
 
     switch (sky_json_unsafe_get_type(val)) {
         case SKY_JSON_TYPE_RAW:
-            str = sky_json_unsafe_get_str(val);
+            sky_json_unsafe_get_raw_out(val, &str);
             check_str_len(str.len);
             incr_len(str.len + 1);
             cur = write_raw(cur, &str);
 
             break;
         case SKY_JSON_TYPE_STR:
-            str = sky_json_unsafe_get_str(val);
+            sky_json_unsafe_get_str_out(val, &str);
             check_str_len(str.len);
             incr_len(str.len * 6 + 4);
             cur = write_string(cur, &str, enc_table, esc, inv);
@@ -4505,7 +4505,7 @@ json_write_pretty(const sky_json_val_t *root, sky_u32_t opts) {
     if (val_type == SKY_JSON_TYPE_STR) {
         is_key = (sky_bool_t) ((sky_u8_t) ctn_obj & (sky_u8_t) ~ctn_len);
         no_indent = (sky_bool_t) ((sky_u8_t) ctn_obj & (sky_u8_t) ctn_len);
-        str = sky_json_unsafe_get_str(val);
+        sky_json_unsafe_get_str_out(val, &str);
         check_str_len(str.len);
         incr_len(str.len * 6 + 16 + (no_indent ? 0 : level * 4));
         cur = write_indent(cur, no_indent ? 0 : level);
@@ -4573,7 +4573,7 @@ json_write_pretty(const sky_json_val_t *root, sky_u32_t opts) {
         goto val_end;
     }
     if (val_type == SKY_JSON_TYPE_RAW) {
-        str = sky_json_unsafe_get_str(val);
+        sky_json_unsafe_get_raw_out(val, &str);
         check_str_len(str.len);
         incr_len(str.len + 3);
         cur = write_raw(cur, &str);
@@ -4713,7 +4713,7 @@ json_write_minify(const sky_json_val_t *root, sky_u32_t opts) {
     val_type = sky_json_unsafe_get_type(val);
     if (val_type == SKY_JSON_TYPE_STR) {
         is_key = (sky_bool_t) ((sky_u8_t) ctn_obj & (sky_u8_t) ~ctn_len);
-        str = sky_json_unsafe_get_str(val);
+        sky_json_unsafe_get_str_out(val, &str);
         check_str_len(str.len);
         incr_len(str.len * 6 + 16);
         cur = write_string(cur, &str, enc_table, esc, inv);
@@ -4766,7 +4766,7 @@ json_write_minify(const sky_json_val_t *root, sky_u32_t opts) {
         goto val_end;
     }
     if (val_type == SKY_JSON_TYPE_RAW) {
-        str = sky_json_unsafe_get_str(val);
+        sky_json_unsafe_get_raw_out(val, &str);
         check_str_len(str.len);
         incr_len(str.len + 2);
         cur = write_raw(cur, &str);
@@ -4911,7 +4911,7 @@ json_mut_write_pretty(const sky_json_mut_val_t *root, sky_u32_t opts) {
     if (val_type == SKY_JSON_TYPE_STR) {
         is_key = (sky_bool_t) ((sky_u8_t) ctn_obj & (sky_u8_t) ~ctn_len);
         no_indent = (sky_bool_t) ((sky_u8_t) ctn_obj & (sky_u8_t) ctn_len);
-        str = sky_json_unsafe_get_str(&val->val);
+        sky_json_unsafe_get_str_out(&val->val, &str);
         check_str_len(str.len);
         incr_len(str.len * 6 + 16 + (no_indent ? 0 : level * 4));
         cur = write_indent(cur, no_indent ? 0 : level);
@@ -4981,7 +4981,7 @@ json_mut_write_pretty(const sky_json_mut_val_t *root, sky_u32_t opts) {
         goto val_end;
     }
     if (val_type == SKY_JSON_TYPE_RAW) {
-        str = sky_json_unsafe_get_str(&val->val);
+        sky_json_unsafe_get_raw_out(&val->val, &str);
         check_str_len(str.len);
         incr_len(str.len + 3);
         cur = write_raw(cur, &str);
@@ -5123,7 +5123,7 @@ json_mut_write_minify(const sky_json_mut_val_t *root, sky_u32_t opts) {
     val_type = sky_json_unsafe_get_type(&val->val);
     if (val_type == SKY_JSON_TYPE_STR) {
         is_key = (sky_bool_t) ((sky_u8_t) ctn_obj & (sky_u8_t) ~ctn_len);
-        str = sky_json_unsafe_get_str(&val->val);
+        sky_json_unsafe_get_str_out(&val->val, &str);
         check_str_len(str.len);
         incr_len(str.len * 6 + 16);
         cur = write_string(cur, &str, enc_table, esc, inv);
@@ -5178,7 +5178,7 @@ json_mut_write_minify(const sky_json_mut_val_t *root, sky_u32_t opts) {
         goto val_end;
     }
     if (val_type == SKY_JSON_TYPE_RAW) {
-        str = sky_json_unsafe_get_str(&val->val);
+        sky_json_unsafe_get_raw_out(&val->val, &str);
         check_str_len(str.len);
         incr_len(str.len + 2);
         cur = write_raw(cur, &str);
