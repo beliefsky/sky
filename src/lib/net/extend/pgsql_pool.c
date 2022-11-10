@@ -70,11 +70,11 @@ sky_pgsql_pool_create(sky_event_loop_t *ev_loop, const sky_pgsql_conf_t *conf) {
     sky_u32_t buf_size;
 
 
-    buf_size = SKY_U32(11)
-            + sizeof("user")
-            + sizeof("database")
-            + (sky_u32_t) conf->username.len
-            + (sky_u32_t) conf->database.len;
+    buf_size = (sky_u32_t) (SKY_USIZE(11)
+                            + sizeof("user")
+                            + sizeof("database")
+                            + conf->username.len
+                            + conf->database.len);
 
     pg_pool = sky_malloc(sizeof(sky_pgsql_pool_t) + buf_size);
     pg_pool->username = conf->username;
