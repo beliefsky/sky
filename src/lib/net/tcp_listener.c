@@ -163,7 +163,7 @@ sky_tcp_listener_write_packet(sky_tcp_listener_t *listener) {
                 sky_event_timeout_expired(&listener->ev);
                 return true;
             }
-            listener->write_size += size;
+            listener->write_size += (sky_u32_t)size;
             buf += size;
             if (listener->write_size >= packet->size) {
                 break;
