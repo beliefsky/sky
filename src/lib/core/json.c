@@ -1339,6 +1339,7 @@ read_root_pretty(sky_uchar_t *hdr, sky_uchar_t *cur, sky_uchar_t *end, sky_u32_t
     return null;
 
     fail_alloc:
+    sky_free(val_hdr);
     sky_log_error("memory allocation failed");
     return null;
 
@@ -1785,6 +1786,7 @@ read_root_minify(sky_uchar_t *hdr, sky_uchar_t *cur, sky_uchar_t *end, sky_u32_t
     return null;
 
     fail_alloc:
+    sky_free(val_hdr);
     sky_log_error("memory allocation failed");
     return null;
 
@@ -2022,7 +2024,7 @@ read_number(sky_uchar_t **ptr, sky_uchar_t **pre, sky_json_val_t *val, sky_bool_
         }
         /* begin with 0 */
         if (sky_likely(!digit_is_digit_or_fp(*++cur))) {
-            return_i64(0);
+            return_i64(SKY_U64(0));
         }
         if (sky_likely(*cur == '.')) {
             dot_pos = cur++;
@@ -3837,21 +3839,22 @@ read_string(sky_uchar_t **ptr, const sky_uchar_t *lst, sky_json_val_t *val, sky_
          loop, which is more friendly to branch prediction.
          */
         pos = src;
-        uni = *(sky_u32_t *) src;
+
+        uni = sky_mem4_load(src);
         while (is_valid_seq_3(uni)) {
             src += 3;
-            uni = *(sky_u32_t *) src;
+            uni = sky_mem4_load(src);
         }
         if (is_valid_seq_1(uni)) {
             goto skip_ascii;
         }
         while (is_valid_seq_2(uni)) {
             src += 2;
-            uni = *(sky_u32_t *) src;
+            uni = sky_mem4_load(src);
         }
         while (is_valid_seq_4(uni)) {
             src += 4;
-            uni = *(sky_u32_t *) src;
+            uni = sky_mem4_load(src);
         }
         if (sky_unlikely(pos == src)) {
             if (!inv) {
@@ -4095,12 +4098,12 @@ read_string(sky_uchar_t **ptr, const sky_uchar_t *lst, sky_json_val_t *val, sky_
 
     if (*src & 0x80) { /* non-ASCII character */
         pos = src;
-        uni = *(sky_u32_t *) src;
+        uni = sky_mem4_load(src);
         while (is_valid_seq_3(uni)) {
             sky_memmove4(dst, &uni);
             dst += 3;
             src += 3;
-            uni = *(sky_u32_t *) src;
+            uni = sky_mem4_load(src);
         }
         if (is_valid_seq_1(uni)) {
             goto copy_ascii;
@@ -4109,13 +4112,13 @@ read_string(sky_uchar_t **ptr, const sky_uchar_t *lst, sky_json_val_t *val, sky_
             sky_memmove2(dst, &uni);
             dst += 2;
             src += 2;
-            uni = *(sky_u32_t *) src;
+            uni = sky_mem4_load(src);
         }
         while (is_valid_seq_4(uni)) {
             sky_memmove2(dst, &uni);
             dst += 4;
             src += 4;
-            uni = *(sky_u32_t *) src;
+            uni = sky_mem4_load(src);
         }
         if (sky_unlikely(pos == src)) {
             if (!inv) {
@@ -4333,7 +4336,7 @@ json_write_single(const sky_json_val_t *val, sky_u32_t opts) {
 } while (false)
 
 #define incr_len(_len) do { \
-    hdr = sky_malloc(_len); \
+    hdr = sky_malloc((_len) + sizeof(sky_str_t)); \
     if (sky_unlikely(!hdr)) { \
         goto fail_alloc;    \
     }                       \
@@ -4357,14 +4360,14 @@ json_write_single(const sky_json_val_t *val, sky_u32_t opts) {
 
     switch (sky_json_unsafe_get_type(val)) {
         case SKY_JSON_TYPE_RAW:
-            str = sky_json_unsafe_get_str(val);
+            sky_json_unsafe_get_raw_out(val, &str);
             check_str_len(str.len);
             incr_len(str.len + 1);
             cur = write_raw(cur, &str);
 
             break;
         case SKY_JSON_TYPE_STR:
-            str = sky_json_unsafe_get_str(val);
+            sky_json_unsafe_get_str_out(val, &str);
             check_str_len(str.len);
             incr_len(str.len * 6 + 4);
             cur = write_string(cur, &str, enc_table, esc, inv);
@@ -4505,7 +4508,7 @@ json_write_pretty(const sky_json_val_t *root, sky_u32_t opts) {
     if (val_type == SKY_JSON_TYPE_STR) {
         is_key = (sky_bool_t) ((sky_u8_t) ctn_obj & (sky_u8_t) ~ctn_len);
         no_indent = (sky_bool_t) ((sky_u8_t) ctn_obj & (sky_u8_t) ctn_len);
-        str = sky_json_unsafe_get_str(val);
+        sky_json_unsafe_get_str_out(val, &str);
         check_str_len(str.len);
         incr_len(str.len * 6 + 16 + (no_indent ? 0 : level * 4));
         cur = write_indent(cur, no_indent ? 0 : level);
@@ -4573,7 +4576,7 @@ json_write_pretty(const sky_json_val_t *root, sky_u32_t opts) {
         goto val_end;
     }
     if (val_type == SKY_JSON_TYPE_RAW) {
-        str = sky_json_unsafe_get_str(val);
+        sky_json_unsafe_get_raw_out(val, &str);
         check_str_len(str.len);
         incr_len(str.len + 3);
         cur = write_raw(cur, &str);
@@ -4713,7 +4716,7 @@ json_write_minify(const sky_json_val_t *root, sky_u32_t opts) {
     val_type = sky_json_unsafe_get_type(val);
     if (val_type == SKY_JSON_TYPE_STR) {
         is_key = (sky_bool_t) ((sky_u8_t) ctn_obj & (sky_u8_t) ~ctn_len);
-        str = sky_json_unsafe_get_str(val);
+        sky_json_unsafe_get_str_out(val, &str);
         check_str_len(str.len);
         incr_len(str.len * 6 + 16);
         cur = write_string(cur, &str, enc_table, esc, inv);
@@ -4766,7 +4769,7 @@ json_write_minify(const sky_json_val_t *root, sky_u32_t opts) {
         goto val_end;
     }
     if (val_type == SKY_JSON_TYPE_RAW) {
-        str = sky_json_unsafe_get_str(val);
+        sky_json_unsafe_get_raw_out(val, &str);
         check_str_len(str.len);
         incr_len(str.len + 2);
         cur = write_raw(cur, &str);
@@ -4911,7 +4914,7 @@ json_mut_write_pretty(const sky_json_mut_val_t *root, sky_u32_t opts) {
     if (val_type == SKY_JSON_TYPE_STR) {
         is_key = (sky_bool_t) ((sky_u8_t) ctn_obj & (sky_u8_t) ~ctn_len);
         no_indent = (sky_bool_t) ((sky_u8_t) ctn_obj & (sky_u8_t) ctn_len);
-        str = sky_json_unsafe_get_str(&val->val);
+        sky_json_unsafe_get_str_out(&val->val, &str);
         check_str_len(str.len);
         incr_len(str.len * 6 + 16 + (no_indent ? 0 : level * 4));
         cur = write_indent(cur, no_indent ? 0 : level);
@@ -4951,7 +4954,7 @@ json_mut_write_pretty(const sky_json_mut_val_t *root, sky_u32_t opts) {
         } else {
             /* push context, setup new container */
             incr_len(32 + (no_indent ? 0 : level * 4));
-            json_mut_write_ctx_set(--ctx,ctn, ctn_len, ctn_obj);
+            json_mut_write_ctx_set(--ctx, ctn, ctn_len, ctn_obj);
             ctn_len = ctn_len_tmp << (sky_u8_t) ctn_obj_tmp;
             ctn_obj = ctn_obj_tmp;
             cur = write_indent(cur, no_indent ? 0 : level);
@@ -4981,7 +4984,7 @@ json_mut_write_pretty(const sky_json_mut_val_t *root, sky_u32_t opts) {
         goto val_end;
     }
     if (val_type == SKY_JSON_TYPE_RAW) {
-        str = sky_json_unsafe_get_str(&val->val);
+        sky_json_unsafe_get_raw_out(&val->val, &str);
         check_str_len(str.len);
         incr_len(str.len + 3);
         cur = write_raw(cur, &str);
@@ -5123,7 +5126,7 @@ json_mut_write_minify(const sky_json_mut_val_t *root, sky_u32_t opts) {
     val_type = sky_json_unsafe_get_type(&val->val);
     if (val_type == SKY_JSON_TYPE_STR) {
         is_key = (sky_bool_t) ((sky_u8_t) ctn_obj & (sky_u8_t) ~ctn_len);
-        str = sky_json_unsafe_get_str(&val->val);
+        sky_json_unsafe_get_str_out(&val->val, &str);
         check_str_len(str.len);
         incr_len(str.len * 6 + 16);
         cur = write_string(cur, &str, enc_table, esc, inv);
@@ -5178,7 +5181,7 @@ json_mut_write_minify(const sky_json_mut_val_t *root, sky_u32_t opts) {
         goto val_end;
     }
     if (val_type == SKY_JSON_TYPE_RAW) {
-        str = sky_json_unsafe_get_str(&val->val);
+        sky_json_unsafe_get_raw_out(&val->val, &str);
         check_str_len(str.len);
         incr_len(str.len + 2);
         cur = write_raw(cur, &str);
@@ -5675,8 +5678,7 @@ write_string(sky_uchar_t *cur, const sky_str_t *str, const sky_u8_t *enc_table, 
             goto copy_ascii;
         }
         case CHAR_ENC_CPY_2: {
-            sky_u16_t v;
-            v = *(sky_u16_t *) src;
+            const sky_u16_t v = sky_mem2_load(src);
             if (sky_unlikely(!is_valid_seq_2(v))) {
                 goto err_cpy;
             }
@@ -5688,16 +5690,14 @@ write_string(sky_uchar_t *cur, const sky_str_t *str, const sky_u8_t *enc_table, 
         case CHAR_ENC_CPY_3: {
             sky_u32_t v, tmp;
             if (sky_likely(src + 4 <= end)) {
-                v = *(sky_u32_t *) src;
+
+                v = sky_mem4_load(src);
                 if (sky_unlikely(!is_valid_seq_3(v))) {
                     goto err_cpy;
                 }
                 sky_memcpy4(cur, src);
             } else {
-                *((sky_u16_t *) &v) = *(sky_u16_t *) src;
-                *((sky_u8_t *) &v + 2) = src[2];
-                *((sky_u8_t *) &v + 3) = 0;
-
+                v = sky_mem3_load(src);
                 if (sky_unlikely(!is_valid_seq_3(v))) {
                     goto err_cpy;
                 }
@@ -5709,7 +5709,7 @@ write_string(sky_uchar_t *cur, const sky_str_t *str, const sky_u8_t *enc_table, 
         }
         case CHAR_ENC_CPY_4: {
             sky_u32_t v, tmp;
-            v = *(sky_u32_t *) src;
+            v = sky_mem4_load(src);
             if (sky_unlikely(!is_valid_seq_4(v))) {
                 goto err_cpy;
             }
@@ -5733,7 +5733,7 @@ write_string(sky_uchar_t *cur, const sky_str_t *str, const sky_u8_t *enc_table, 
         }
         case CHAR_ENC_ESC_2: {
             sky_u16_t u, v;
-            v = *(sky_u16_t *) src;
+            v = sky_mem2_load(src);
             if (sky_unlikely(!is_valid_seq_2(v))) goto err_esc;
 
             u = (sky_u16_t) (((sky_u16_t) (src[0] & 0x1F) << 6) |
@@ -5749,9 +5749,7 @@ write_string(sky_uchar_t *cur, const sky_str_t *str, const sky_u8_t *enc_table, 
             sky_u16_t u;
             sky_u32_t v, tmp;
 
-            *((sky_u16_t *) &v) = *(sky_u16_t *) src;
-            *((sky_u8_t *) &v + 2) = src[2];
-            *((sky_u8_t *) &v + 3) = 0;
+            v = sky_mem3_load(src);
             if (sky_unlikely(!is_valid_seq_3(v))) {
                 goto err_esc;
             }
@@ -5768,7 +5766,8 @@ write_string(sky_uchar_t *cur, const sky_str_t *str, const sky_u8_t *enc_table, 
         }
         case CHAR_ENC_ESC_4: {
             sky_u32_t hi, lo, u, v, tmp;
-            v = *(sky_u32_t *) src;
+
+            v = sky_mem4_load(src);
             if (sky_unlikely(!is_valid_seq_4(v))) {
                 goto err_esc;
             }

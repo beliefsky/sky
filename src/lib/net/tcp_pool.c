@@ -524,8 +524,6 @@ sky_tcp_pool_conn_write_nowait(sky_tcp_conn_t *conn, const sky_uchar_t *data, sk
                 case EAGAIN:
                     break;
                 default:
-                    close(ev->fd);
-                    ev->fd = -1;
                     sky_log_error("write errno: %d", errno);
                     return -1;
             }
@@ -693,11 +691,11 @@ tcp_connection_defer(sky_tcp_conn_t *conn) {
         sky_queue_remove(&conn->link);
     }
     conn->defer = null;
-    if (!conn->client) {
-        return;
-    }
 
     sky_tcp_node_t *client = conn->client;
+    if (!client) {
+        return;
+    }
     conn->client = null;
     client->current = null;
 

@@ -36,7 +36,7 @@ struct sky_tcp_listener_s {
     sky_u32_t address_len;
     sky_i32_t keep_alive;
     sky_i32_t timeout;
-    sky_u32_t write_size;
+    sky_usize_t write_size;
     sky_bool_t reconnect;
     sky_bool_t free;
 };
@@ -163,7 +163,7 @@ sky_tcp_listener_write_packet(sky_tcp_listener_t *listener) {
                 sky_event_timeout_expired(&listener->ev);
                 return true;
             }
-            listener->write_size += size;
+            listener->write_size += (sky_usize_t)size;
             buf += size;
             if (listener->write_size >= packet->size) {
                 break;
