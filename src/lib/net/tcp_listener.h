@@ -33,7 +33,7 @@ struct sky_tcp_listener_conf_s {
 struct sky_tcp_listener_stream_s {
     sky_queue_t link;
     sky_uchar_t *data;
-    sky_u32_t size;
+    sky_usize_t size;
 };
 
 
@@ -59,7 +59,7 @@ sky_tcp_listener_stream_buff(sky_tcp_listener_stream_t *stream) {
 }
 
 static sky_inline void
-sky_tcp_listener_stream_set_n(sky_tcp_listener_stream_t *stream, sky_u32_t n) {
+sky_tcp_listener_stream_set_n(sky_tcp_listener_stream_t *stream, sky_usize_t n) {
     stream->size += n;
 }
 
