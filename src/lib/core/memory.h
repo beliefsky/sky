@@ -43,22 +43,53 @@ extern "C" {
 
 static sky_inline void
 sky_memcpy2(void *dist, const void *src) {
-    *(sky_u16_t *) dist = *((sky_u16_t *) src);
+    *((sky_u16_t *) dist) = *((sky_u16_t *) src);
 }
 
 static sky_inline void
 sky_memcpy4(void *dist, const void *src) {
-    *(sky_u32_t *) dist = *((sky_u32_t *) src);
+    *((sky_u32_t *) dist) = *((sky_u32_t *) src);
 }
 
 static sky_inline void
 sky_memcpy8(void *dist, const void *src) {
-    *(sky_u64_t *) dist = *((sky_u64_t *) src);
+    *((sky_u64_t *) dist) = *((sky_u64_t *) src);
 }
 
 static sky_inline void
 sky_free(void *ptr) {
     free(ptr);
+}
+
+static sky_inline sky_u16_t
+sky_mem2_load(const void *src) {
+    sky_u16_t dst;
+    sky_memcpy2(&dst, src);
+
+    return dst;
+}
+
+static sky_inline sky_u32_t
+sky_mem3_load(const void *src) {
+    sky_u32_t dst;
+    sky_u8_t *ptr = (sky_u8_t *) &dst;
+
+    sky_memcpy2(ptr, src);
+    ptr += 2;
+    src += 2;
+
+    *(ptr++) = *(sky_u8_t *)src;
+    *ptr = 0;
+
+    return dst;
+}
+
+static sky_inline sky_u32_t
+sky_mem4_load(const void *src) {
+    sky_u32_t dst;
+    sky_memcpy4(&dst, src);
+
+    return dst;
 }
 
 #if defined(__cplusplus)
