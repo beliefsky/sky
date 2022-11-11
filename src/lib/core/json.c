@@ -3839,21 +3839,22 @@ read_string(sky_uchar_t **ptr, const sky_uchar_t *lst, sky_json_val_t *val, sky_
          loop, which is more friendly to branch prediction.
          */
         pos = src;
-        uni = *(sky_u32_t *) src;
+
+        uni = sky_mem4_load(src);
         while (is_valid_seq_3(uni)) {
             src += 3;
-            uni = *(sky_u32_t *) src;
+            uni = sky_mem4_load(src);
         }
         if (is_valid_seq_1(uni)) {
             goto skip_ascii;
         }
         while (is_valid_seq_2(uni)) {
             src += 2;
-            uni = *(sky_u32_t *) src;
+            uni = sky_mem4_load(src);
         }
         while (is_valid_seq_4(uni)) {
             src += 4;
-            uni = *(sky_u32_t *) src;
+            uni = sky_mem4_load(src);
         }
         if (sky_unlikely(pos == src)) {
             if (!inv) {
@@ -4097,12 +4098,12 @@ read_string(sky_uchar_t **ptr, const sky_uchar_t *lst, sky_json_val_t *val, sky_
 
     if (*src & 0x80) { /* non-ASCII character */
         pos = src;
-        uni = *(sky_u32_t *) src;
+        uni = sky_mem4_load(src);
         while (is_valid_seq_3(uni)) {
             sky_memmove4(dst, &uni);
             dst += 3;
             src += 3;
-            uni = *(sky_u32_t *) src;
+            uni = sky_mem4_load(src);
         }
         if (is_valid_seq_1(uni)) {
             goto copy_ascii;
@@ -4111,13 +4112,13 @@ read_string(sky_uchar_t **ptr, const sky_uchar_t *lst, sky_json_val_t *val, sky_
             sky_memmove2(dst, &uni);
             dst += 2;
             src += 2;
-            uni = *(sky_u32_t *) src;
+            uni = sky_mem4_load(src);
         }
         while (is_valid_seq_4(uni)) {
             sky_memmove2(dst, &uni);
             dst += 4;
             src += 4;
-            uni = *(sky_u32_t *) src;
+            uni = sky_mem4_load(src);
         }
         if (sky_unlikely(pos == src)) {
             if (!inv) {
