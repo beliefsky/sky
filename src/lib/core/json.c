@@ -5677,8 +5677,7 @@ write_string(sky_uchar_t *cur, const sky_str_t *str, const sky_u8_t *enc_table, 
             goto copy_ascii;
         }
         case CHAR_ENC_CPY_2: {
-            sky_u16_t v;
-            v = *(sky_u16_t *) src;
+            const sky_u16_t v = sky_mem2_load(src);
             if (sky_unlikely(!is_valid_seq_2(v))) {
                 goto err_cpy;
             }
@@ -5690,16 +5689,14 @@ write_string(sky_uchar_t *cur, const sky_str_t *str, const sky_u8_t *enc_table, 
         case CHAR_ENC_CPY_3: {
             sky_u32_t v, tmp;
             if (sky_likely(src + 4 <= end)) {
-                v = *(sky_u32_t *) src;
+
+                v = sky_mem4_load(src);
                 if (sky_unlikely(!is_valid_seq_3(v))) {
                     goto err_cpy;
                 }
                 sky_memcpy4(cur, src);
             } else {
-                *((sky_u16_t *) &v) = *(sky_u16_t *) src;
-                *((sky_u8_t *) &v + 2) = src[2];
-                *((sky_u8_t *) &v + 3) = 0;
-
+                v = sky_mem3_load(src);
                 if (sky_unlikely(!is_valid_seq_3(v))) {
                     goto err_cpy;
                 }
@@ -5711,7 +5708,7 @@ write_string(sky_uchar_t *cur, const sky_str_t *str, const sky_u8_t *enc_table, 
         }
         case CHAR_ENC_CPY_4: {
             sky_u32_t v, tmp;
-            v = *(sky_u32_t *) src;
+            v = sky_mem4_load(src);
             if (sky_unlikely(!is_valid_seq_4(v))) {
                 goto err_cpy;
             }
@@ -5735,7 +5732,7 @@ write_string(sky_uchar_t *cur, const sky_str_t *str, const sky_u8_t *enc_table, 
         }
         case CHAR_ENC_ESC_2: {
             sky_u16_t u, v;
-            v = *(sky_u16_t *) src;
+            v = sky_mem2_load(src);
             if (sky_unlikely(!is_valid_seq_2(v))) goto err_esc;
 
             u = (sky_u16_t) (((sky_u16_t) (src[0] & 0x1F) << 6) |
@@ -5751,9 +5748,7 @@ write_string(sky_uchar_t *cur, const sky_str_t *str, const sky_u8_t *enc_table, 
             sky_u16_t u;
             sky_u32_t v, tmp;
 
-            *((sky_u16_t *) &v) = *(sky_u16_t *) src;
-            *((sky_u8_t *) &v + 2) = src[2];
-            *((sky_u8_t *) &v + 3) = 0;
+            v = sky_mem3_load(src);
             if (sky_unlikely(!is_valid_seq_3(v))) {
                 goto err_esc;
             }
@@ -5770,7 +5765,8 @@ write_string(sky_uchar_t *cur, const sky_str_t *str, const sky_u8_t *enc_table, 
         }
         case CHAR_ENC_ESC_4: {
             sky_u32_t hi, lo, u, v, tmp;
-            v = *(sky_u32_t *) src;
+
+            v = sky_mem4_load(src);
             if (sky_unlikely(!is_valid_seq_4(v))) {
                 goto err_esc;
             }
