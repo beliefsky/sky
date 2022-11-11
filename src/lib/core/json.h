@@ -433,6 +433,11 @@ sky_json_write_opts(const sky_json_doc_t *doc, sky_u32_t opts) {
     return sky_json_val_write_opts(root, opts);
 }
 
+static sky_inline sky_str_t *
+sky_json_write(const sky_json_doc_t *doc, sky_u32_t opts) {
+    return sky_json_write_opts(doc, opts);
+}
+
 
 static sky_inline sky_json_val_t *
 sky_json_doc_get_root(sky_json_doc_t *doc) {
@@ -682,6 +687,11 @@ sky_str_t *sky_json_mut_write_opts(const sky_json_mut_doc_t *doc, sky_u32_t opts
 
 void sky_json_mut_doc_free(sky_json_mut_doc_t *doc);
 
+
+static sky_inline sky_str_t *
+sky_json_mut_write(const sky_json_mut_doc_t *doc, sky_u32_t opts) {
+    return sky_json_mut_write_opts(doc, opts);
+}
 
 static sky_inline sky_bool_t
 sky_json_mut_is_raw(const sky_json_mut_val_t *val) {
