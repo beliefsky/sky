@@ -61,6 +61,37 @@ sky_free(void *ptr) {
     free(ptr);
 }
 
+static sky_inline sky_u16_t
+sky_mem2_load(const void *src) {
+    sky_u16_t dst;
+    sky_memcpy2(&dst, src);
+
+    return dst;
+}
+
+static sky_inline sky_u32_t
+sky_mem3_load(const void *src) {
+    sky_u32_t dst;
+    sky_u8_t *ptr = (sky_u8_t *) &dst;
+
+    sky_memcpy2(ptr, src);
+    ptr += 2;
+    src += 2;
+
+    *(ptr++) = *(sky_u8_t *)src;
+    *ptr = 0;
+
+    return dst;
+}
+
+static sky_inline sky_u32_t
+sky_mem4_load(const void *src) {
+    sky_u32_t dst;
+    sky_memcpy4(&dst, src);
+
+    return dst;
+}
+
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif
