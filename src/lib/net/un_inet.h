@@ -31,6 +31,14 @@ void sky_un_inet_run(
         void *data
 );
 
+void sky_un_inet_run_delay(
+        sky_event_loop_t *ev_loop,
+        sky_coro_switcher_t *switcher,
+        sky_un_inet_process_pt func,
+        void *data,
+        sky_u32_t delay_sec
+);
+
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif
