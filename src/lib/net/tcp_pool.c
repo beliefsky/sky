@@ -101,7 +101,8 @@ sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event
         sky_queue_init_node(&conn->link);
         return false;
     }
-    sky_tcp_node_t *client = tcp_pool->clients + ((sky_u32_t) event->fd & tcp_pool->conn_mask);
+    const sky_u32_t idx = (sky_u32_t)((((sky_usize_t) event) >> 4) & tcp_pool->conn_mask);
+    sky_tcp_node_t *client = tcp_pool->clients + idx;
 
     const sky_bool_t empty = sky_queue_is_empty(&client->tasks);
 
@@ -524,8 +525,6 @@ sky_tcp_pool_conn_write_nowait(sky_tcp_conn_t *conn, const sky_uchar_t *data, sk
                 case EAGAIN:
                     break;
                 default:
-                    close(ev->fd);
-                    ev->fd = -1;
                     sky_log_error("write errno: %d", errno);
                     return -1;
             }
@@ -693,11 +692,11 @@ tcp_connection_defer(sky_tcp_conn_t *conn) {
         sky_queue_remove(&conn->link);
     }
     conn->defer = null;
-    if (!conn->client) {
-        return;
-    }
 
     sky_tcp_node_t *client = conn->client;
+    if (!client) {
+        return;
+    }
     conn->client = null;
     client->current = null;
 
