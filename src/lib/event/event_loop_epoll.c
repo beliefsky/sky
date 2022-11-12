@@ -191,7 +191,7 @@ sky_event_register_only_write(sky_event_t *ev, sky_i32_t timeout) {
 
 static sky_inline sky_bool_t
 event_register_with_flags(sky_event_t *ev, sky_u32_t flags, sky_i32_t timeout) {
-    if (sky_unlikely(sky_event_is_reg(ev) || ev->fd == -1)) {
+    if (sky_unlikely(sky_event_is_reg(ev) || ev->fd < 0)) {
         return false;
     }
     ev->timer.cb = (sky_timer_wheel_pt) event_timer_callback;
