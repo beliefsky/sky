@@ -174,7 +174,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
 sky_bool_t
 sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
-    if (sky_unlikely(sky_event_is_reg(ev) || ev->fd == -1)) {
+    if (sky_unlikely(sky_event_is_reg(ev) || ev->fd < 0)) {
         return false;
     }
     ev->timer.cb = (sky_timer_wheel_pt) event_timer_callback;
@@ -221,7 +221,7 @@ sky_event_register_none(sky_event_t *ev, sky_i32_t timeout) {
 
 sky_bool_t
 sky_event_register_only_read(sky_event_t *ev, sky_i32_t timeout) {
-    if (sky_unlikely(sky_event_is_reg(ev) || ev->fd == -1)) {
+    if (sky_unlikely(sky_event_is_reg(ev) || ev->fd < 0)) {
         return false;
     }
     ev->timer.cb = (sky_timer_wheel_pt) event_timer_callback;
@@ -246,7 +246,7 @@ sky_event_register_only_read(sky_event_t *ev, sky_i32_t timeout) {
 
 sky_bool_t
 sky_event_register_only_write(sky_event_t *ev, sky_i32_t timeout) {
-    if (sky_unlikely(sky_event_is_reg(ev) || ev->fd == -1)) {
+    if (sky_unlikely(sky_event_is_reg(ev) || ev->fd < 0)) {
         return false;
     }
     ev->timer.cb = (sky_timer_wheel_pt) event_timer_callback;
