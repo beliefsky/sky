@@ -79,6 +79,13 @@ sky_isize_t sky_coro_resume(sky_coro_t *coro);
  */
 sky_isize_t sky_coro_yield(sky_coro_t *coro, sky_isize_t value);
 
+/**
+ * 获取协程的switcher
+ * @param coro  协程
+ * @return 协程切换器
+ */
+sky_coro_switcher_t *sky_coro_get_switcher(sky_coro_t *coro);
+
 
 /**
  * 销毁协程
