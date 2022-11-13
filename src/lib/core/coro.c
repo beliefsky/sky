@@ -254,6 +254,11 @@ sky_coro_yield(sky_coro_t *coro, sky_isize_t value) {
     }
 }
 
+sky_inline sky_coro_switcher_t *
+sky_coro_get_switcher(sky_coro_t *coro) {
+    return coro->switcher;
+}
+
 void
 sky_coro_destroy(sky_coro_t *coro) {
     sky_defer_t *defer;
