@@ -49,6 +49,8 @@ struct sky_event_loop_s {
 #define sky_event_clean_read(_ev)   (_ev)->status &= 0xFFFFFFFD
 #define sky_event_clean_write(_ev)  (_ev)->status &= 0xFFFFFFFB
 
+#define sky_event_get_fd(_ev) (_ev)->fd
+#define sky_event_get_loop(_ev) (_ev)->loop
 
 #define sky_event_init(_loop, _ev, _fd, _run, _close) \
     do {                                              \
