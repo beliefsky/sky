@@ -8,27 +8,24 @@
 #include <errno.h>
 #include <unistd.h>
 
-#define PACKET_BUFF_SIZE (4096U - sizeof(tcp_packet_t))
-
 typedef enum {
     CONNECTING = 0,
     READY,
     CLOSE
 } tcp_status_t;
 
-typedef struct {
-    sky_queue_t link;
-    sky_uchar_t *data;
-    sky_u32_t size;
-} tcp_packet_t;
+struct sky_tcp_listener_reader_s {
+    sky_tcp_listener_t *listener;
+};
 
 struct sky_tcp_listener_s {
     sky_event_t ev;
     sky_timer_wheel_entry_t reconnect_timer;
-    sky_queue_t packet;
+    sky_queue_t tasks;
+    sky_tcp_listener_reader_t reader;
     sky_coro_t *coro;
+    sky_tcp_listener_writer_t *current;
     sky_inet_address_t *address;
-    sky_tcp_listener_stream_t *current_packet;
     void *data;
     sky_coro_func_t run;
     sky_tcp_listener_close_pt close;
@@ -36,9 +33,9 @@ struct sky_tcp_listener_s {
     sky_u32_t address_len;
     sky_i32_t keep_alive;
     sky_i32_t timeout;
-    sky_usize_t write_size;
-    sky_bool_t reconnect;
-    sky_bool_t free;
+    sky_bool_t reconnect: 1;
+    sky_bool_t main: 1; // 是否是当前连接触发的事件
+    sky_bool_t free: 1;
 };
 
 static sky_bool_t tcp_run_connection(sky_tcp_listener_t *listener);
@@ -49,35 +46,36 @@ static void tcp_close(sky_tcp_listener_t *listener);
 
 static void tcp_reconnect_timer_cb(sky_timer_wheel_entry_t *timer);
 
-static void tcp_clean_packet(sky_tcp_listener_t *listener);
-
 static tcp_status_t tcp_create_connection(sky_tcp_listener_t *listener);
 
 static tcp_status_t tcp_connection(sky_tcp_listener_t *listener);
 
-static sky_isize_t write_nowait(sky_tcp_listener_t *listener, const sky_uchar_t *data, sky_usize_t size);
+static void tcp_connection_defer(sky_tcp_listener_writer_t *writer);
+
 
 sky_tcp_listener_t *
 sky_tcp_listener_create(sky_event_loop_t *loop, sky_coro_switcher_t *switcher, const sky_tcp_listener_conf_t *conf) {
-    sky_coro_t *coro = sky_coro_create(switcher, conf->run, conf->data);
+    sky_coro_t *coro = sky_coro_new(switcher);
+    sky_tcp_listener_t *listener = sky_coro_malloc(coro, sizeof(sky_tcp_listener_t));
+    listener->address = sky_coro_malloc(coro, conf->address_len);
+    listener->reader.listener = listener;
 
-    sky_tcp_listener_t *listener = sky_coro_malloc(coro, sizeof(sky_tcp_listener_t) + conf->address_len);
+    sky_coro_set(coro, conf->run, &listener->reader);
+
     sky_event_init(loop, &listener->ev, -1, tcp_run_connection, tcp_close);
-
     sky_timer_entry_init(&listener->reconnect_timer, tcp_reconnect_timer_cb);
+    sky_queue_init(&listener->tasks);
 
     listener->coro = coro;
-    listener->address = (sky_inet_address_t *) (listener + 1);
     listener->address_len = conf->address_len;
     listener->keep_alive = conf->keep_alive ?: -1;
     listener->timeout = conf->timeout ?: 5;
     listener->data = conf->data;
     listener->run = conf->run;
     listener->close = conf->close;
-    listener->current_packet = null;
-    sky_queue_init(&listener->packet);
-    listener->write_size = 0;
     listener->reconnect = conf->reconnect;
+    listener->current = null;
+    listener->main = false;
     listener->free = false;
 
     sky_memcpy(listener->address, conf->address, conf->address_len);
@@ -97,97 +95,229 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_coro_switcher_t *switcher, c
     return listener;
 }
 
-sky_tcp_listener_stream_t *
-sky_tcp_listener_get_stream(sky_tcp_listener_t *listener, sky_u32_t need_size) {
-    if (sky_unlikely(listener->free)) {
-        return null;
-    }
-    sky_tcp_listener_stream_t *packet = listener->current_packet;
-    if (!packet) {
-        if (need_size > PACKET_BUFF_SIZE) {
-            packet = sky_malloc(need_size + sizeof(sky_tcp_listener_stream_t));
-        } else {
-            packet = sky_malloc(PACKET_BUFF_SIZE + sizeof(sky_tcp_listener_stream_t));
-            listener->current_packet = packet;
-        }
-        sky_queue_insert_prev(&listener->packet, &packet->link);
-        packet->data = (sky_uchar_t *) (packet + 1);
-        packet->size = 0;
-        return packet;
-    }
-
-    if ((listener->current_packet->size + need_size) > PACKET_BUFF_SIZE) {
-        if (sky_queue_is_linked(&packet->link)) {
-            listener->current_packet = null;
-        }
-        if (need_size > PACKET_BUFF_SIZE) {
-            packet = sky_malloc(need_size + sizeof(sky_tcp_listener_stream_t));
-        } else {
-            packet = sky_malloc(PACKET_BUFF_SIZE + sizeof(sky_tcp_listener_stream_t));
-        }
-
-        sky_queue_insert_prev(&listener->packet, &packet->link);
-        packet->data = (sky_uchar_t *) (packet + 1);
-        packet->size = 0;
-        return packet;
-    }
-    if (!sky_queue_is_linked(&packet->link)) {
-        sky_queue_insert_prev(&listener->packet, &packet->link);
-    }
-    return packet;
-}
-
 sky_bool_t
-sky_tcp_listener_write_packet(sky_tcp_listener_t *listener) {
-    sky_tcp_listener_stream_t *packet;
-    sky_uchar_t *buf;
-    sky_isize_t size;
+sky_tcp_listener_bind(
+        sky_tcp_listener_t *listener,
+        sky_tcp_listener_writer_t *writer,
+        sky_event_t *event,
+        sky_coro_t *coro
+) {
+    writer->client = null;
+    writer->ev = event;
+    writer->coro = coro;
 
     if (sky_unlikely(listener->free)) {
+        writer->defer = null;
+        sky_queue_init_node(&writer->link);
         return false;
     }
-    if (sky_event_none_write(&listener->ev) || sky_queue_is_empty(&listener->packet)) {
-        return true;
+    const sky_bool_t empty = sky_queue_is_empty(&listener->tasks);
+
+    writer->defer = sky_defer_add(coro, (sky_defer_func_t) tcp_connection_defer, writer);
+    sky_queue_insert_prev(&listener->tasks, &writer->link);
+
+    if (!empty) {
+        do {
+            sky_coro_yield(coro, SKY_CORO_MAY_RESUME);
+        } while (!listener->main);
     }
 
-    do {
-        packet = (sky_tcp_listener_stream_t *) sky_queue_next(&listener->packet);
-
-        buf = packet->data + listener->write_size;
-
-        for (;;) {
-            size = write_nowait(listener, buf, packet->size - listener->write_size);
-            if (sky_unlikely(size == -1)) {
-                return false;
-            } else if (size == 0) {
-                sky_event_timeout_expired(&listener->ev);
-                return true;
-            }
-            listener->write_size += (sky_usize_t)size;
-            buf += size;
-            if (listener->write_size >= packet->size) {
-                break;
-            }
-        }
-        listener->write_size = 0;
-        sky_queue_remove(&packet->link);
-        if (packet != listener->current_packet) {
-            sky_free(packet);
-        } else {
-            packet->size = 0;
-        }
-    } while (!sky_queue_is_empty(&listener->packet));
-
-    sky_event_timeout_expired(&listener->ev);
+    writer->client = listener;
+    listener->current = writer;
 
     return true;
 }
 
+sky_bool_t
+sky_tcp_listener_bind_self(sky_tcp_listener_reader_t *reader, sky_tcp_listener_writer_t *writer) {
+    sky_tcp_listener_t *listener = reader->listener;
+
+    return sky_tcp_listener_bind(reader->listener, writer, &listener->ev, listener->coro);
+}
+
 sky_usize_t
-sky_tcp_listener_read(sky_tcp_listener_t *listener, sky_uchar_t *data, sky_usize_t size) {
+sky_tcp_listener_write(sky_tcp_listener_writer_t *writer, const sky_uchar_t *data, sky_usize_t size) {
+    sky_tcp_listener_t *client;
+    sky_event_t *ev;
     sky_isize_t n;
 
-    if (sky_unlikely(listener->free)) {
+    client = writer->client;
+    if (sky_unlikely(!client || client->status != READY)) {
+        return 0;
+    }
+
+    ev = &client->ev;
+
+    sky_event_reset_timeout_self(ev, client->timeout);
+
+    if (sky_unlikely(sky_event_none_write(ev))) {
+        do {
+            sky_coro_yield(writer->coro, SKY_CORO_MAY_RESUME);
+            if (sky_unlikely(!writer->client || client->status != READY)) {
+                return 0;
+            }
+        } while (sky_unlikely(sky_event_none_write(ev)));
+    }
+
+    for (;;) {
+        if ((n = send(ev->fd, data, size, 0)) > 0) {
+            sky_event_reset_timeout_self(ev, client->keep_alive);
+
+            return (sky_usize_t) n;
+        }
+        sky_event_clean_write(ev);
+        switch (errno) {
+            case EINTR:
+            case EAGAIN:
+                break;
+            default:
+                sky_log_error("write errno: %d", errno);
+                return 0;
+        }
+        do {
+            sky_coro_yield(writer->coro, SKY_CORO_MAY_RESUME);
+            if (sky_unlikely(!writer->client || client->reconnect)) {
+                return 0;
+            }
+        } while (sky_unlikely(sky_event_none_write(ev)));
+    }
+}
+
+sky_bool_t
+sky_tcp_listener_write_all(sky_tcp_listener_writer_t *writer, const sky_uchar_t *data, sky_usize_t size) {
+    sky_tcp_listener_t *client;
+    sky_event_t *ev;
+    sky_isize_t n;
+
+    client = writer->client;
+    if (sky_unlikely(!client || client->status != READY)) {
+        return false;
+    }
+
+    ev = &client->ev;
+    sky_event_reset_timeout_self(ev, client->timeout);
+
+    if (sky_unlikely(sky_event_none_write(ev))) {
+        do {
+            sky_coro_yield(writer->coro, SKY_CORO_MAY_RESUME);
+            if (sky_unlikely(!writer->client || client->status != READY)) {
+                return false;
+            }
+        } while (sky_unlikely(sky_event_none_write(ev)));
+    }
+
+    for (;;) {
+        if ((n = send(ev->fd, data, size, 0)) > 0) {
+            if ((sky_usize_t) n < size) {
+                data += n;
+                size -= (sky_usize_t) n;
+            } else {
+                sky_event_reset_timeout_self(ev, client->keep_alive);
+                return true;
+            }
+        } else {
+            switch (errno) {
+                case EINTR:
+                case EAGAIN:
+                    break;
+                default:
+                    sky_log_error("write errno: %d", errno);
+                    return false;
+            }
+        }
+        sky_event_clean_write(ev);
+        do {
+            sky_coro_yield(writer->coro, SKY_CORO_MAY_RESUME);
+            if (sky_unlikely(!writer->client || client->status != READY)) {
+                return false;
+            }
+        } while (sky_unlikely(sky_event_none_write(ev)));
+    }
+}
+
+sky_isize_t
+sky_tcp_listener_write_nowait(sky_tcp_listener_writer_t *writer, const sky_uchar_t *data, sky_usize_t size) {
+    sky_tcp_listener_t *client;
+    sky_event_t *ev;
+    sky_isize_t n;
+
+    client = writer->client;
+    if (sky_unlikely(!client || client->status != READY)) {
+        return -1;
+    }
+
+    ev = &client->ev;
+
+    if (sky_likely(sky_event_is_write(ev))) {
+        if ((n = send(ev->fd, data, size, 0)) > 0) {
+            return n;
+        }
+        sky_event_clean_write(ev);
+        switch (errno) {
+            case EINTR:
+            case EAGAIN:
+                break;
+            default:
+                sky_log_error("write errno: %d", errno);
+                return -1;
+        }
+    }
+
+    return 0;
+}
+
+void
+sky_tcp_listener_unbind(sky_tcp_listener_writer_t *writer) {
+    if (sky_unlikely(!writer->defer)) {
+        return;
+    }
+    sky_defer_cancel(writer->coro, writer->defer);
+
+    if (sky_queue_is_linked(&writer->link)) {
+        sky_queue_remove(&writer->link);
+    }
+    writer->defer = null;
+    if (!writer->client) {
+        return;
+    }
+    writer->client->current = null;
+    writer->client = null;
+
+}
+
+void *
+sky_tcp_listener_reader_data(sky_tcp_listener_reader_t *reader) {
+    sky_tcp_listener_t *listener = reader->listener;
+    if (sky_unlikely(!listener || listener->free)) {
+        return null;
+    }
+    return listener->data;
+}
+
+sky_event_t *
+sky_tcp_listener_reader_event(sky_tcp_listener_reader_t *reader) {
+    sky_tcp_listener_t *listener = reader->listener;
+    if (sky_unlikely(!listener || listener->free)) {
+        return null;
+    }
+    return &(listener->ev);
+}
+
+sky_coro_t *sky_tcp_listener_reader_coro(sky_tcp_listener_reader_t *reader) {
+    sky_tcp_listener_t *listener = reader->listener;
+    if (sky_unlikely(!listener || listener->free)) {
+        return null;
+    }
+    return listener->coro;
+}
+
+sky_usize_t
+sky_tcp_listener_read(sky_tcp_listener_reader_t *reader, sky_uchar_t *data, sky_usize_t size) {
+    sky_tcp_listener_t *listener;
+    sky_isize_t n;
+
+    listener = reader->listener;
+    if (sky_unlikely(!listener || listener->free)) {
         return 0;
     }
     const sky_i32_t fd = listener->ev.fd;
@@ -213,12 +343,14 @@ sky_tcp_listener_read(sky_tcp_listener_t *listener, sky_uchar_t *data, sky_usize
     }
 }
 
-void
-sky_tcp_listener_read_all(sky_tcp_listener_t *listener, sky_uchar_t *data, sky_usize_t size) {
+sky_bool_t
+sky_tcp_listener_read_all(sky_tcp_listener_reader_t *reader, sky_uchar_t *data, sky_usize_t size) {
+    sky_tcp_listener_t *listener;
     sky_isize_t n;
 
-    if (sky_unlikely(listener->free)) {
-        return;
+    listener = reader->listener;
+    if (sky_unlikely(!listener || listener->free)) {
+        return false;
     }
     const sky_i32_t fd = listener->ev.fd;
     for (;;) {
@@ -227,7 +359,7 @@ sky_tcp_listener_read_all(sky_tcp_listener_t *listener, sky_uchar_t *data, sky_u
                 data += n;
                 size -= (sky_usize_t) n;
             } else {
-                return;
+                return true;
             }
         } else {
             switch (errno) {
@@ -276,19 +408,53 @@ tcp_run_connection(sky_tcp_listener_t *listener) {
 
 static sky_bool_t
 tcp_run(sky_tcp_listener_t *listener) {
-    return sky_coro_resume(listener->coro) == SKY_CORO_MAY_RESUME && sky_tcp_listener_write_packet(listener);
+    listener->main = true;
+    sky_bool_t result = sky_coro_resume(listener->coro) == SKY_CORO_MAY_RESUME;
+    if (sky_unlikely(!result)) {
+        listener->main = false;
+        return false;
+    }
+
+    sky_tcp_listener_writer_t *writer;
+    sky_event_t *event;
+    for (;;) {
+        writer = listener->current;
+        if (writer) {
+            event = writer->ev;
+
+            if (event->run(event)) {
+                if (listener->current) {
+                    break;
+                }
+            } else {
+                if (listener->current) {
+                    sky_tcp_listener_unbind(writer);
+                    sky_event_unregister(event);
+                    result = false;
+                    break;
+                }
+                sky_event_unregister(event);
+            }
+        }
+        if (sky_queue_is_empty(&listener->tasks)) {
+            break;
+        }
+        listener->current = (sky_tcp_listener_writer_t *) sky_queue_next(&listener->tasks);
+    }
+    listener->main = false;
+
+    return result;
 }
 
 static void
 tcp_close(sky_tcp_listener_t *listener) {
     listener->status = CLOSE;
-    tcp_clean_packet(listener);
     if (listener->free) {
         sky_coro_destroy(listener->coro);
         return;
     }
     if (listener->reconnect) {
-        sky_coro_reset(listener->coro, listener->run, listener->data);
+        sky_coro_reset(listener->coro, listener->run, &listener->reader);
         sky_event_reset(&listener->ev, tcp_run_connection, tcp_close);
 
         sky_event_timer_register(listener->ev.loop, &listener->reconnect_timer, 5);
@@ -317,20 +483,6 @@ tcp_reconnect_timer_cb(sky_timer_wheel_entry_t *timer) {
     }
 }
 
-static void
-tcp_clean_packet(sky_tcp_listener_t *listener) {
-    if (null != listener->current_packet && !sky_queue_is_linked(&listener->current_packet->link)) {
-        sky_free(listener->current_packet);
-    }
-    listener->current_packet = null;
-
-    sky_tcp_listener_stream_t *packet;
-    while (!sky_queue_is_empty(&listener->packet)) {
-        packet = (sky_tcp_listener_stream_t *) sky_queue_next(&listener->packet);
-        sky_queue_remove(&packet->link);
-        sky_free(packet);
-    }
-}
 
 static tcp_status_t
 tcp_create_connection(sky_tcp_listener_t *listener) {
@@ -394,25 +546,17 @@ tcp_connection(sky_tcp_listener_t *listener) {
     return READY;
 }
 
-static sky_isize_t
-write_nowait(sky_tcp_listener_t *listener, const sky_uchar_t *data, sky_usize_t size) {
-    const sky_socket_t fd = listener->ev.fd;
-
-    if (sky_likely(sky_event_is_write(&listener->ev))) {
-        const sky_isize_t n = send(fd, data, size, 0);
-        if (n > 0) {
-            return n;
-        }
-        switch (errno) {
-            case EINTR:
-            case EAGAIN:
-                break;
-            default:
-                return -1;
-        }
-        sky_event_clean_write(&listener->ev);
+static sky_inline void
+tcp_connection_defer(sky_tcp_listener_writer_t *writer) {
+    if (sky_queue_is_linked(&writer->link)) {
+        sky_queue_remove(&writer->link);
     }
+    writer->defer = null;
 
-    return 0;
+    sky_tcp_listener_t *client = writer->client;
+    if (!client) {
+        return;
+    }
+    writer->client = null;
+    client->current = null;
 }
-
