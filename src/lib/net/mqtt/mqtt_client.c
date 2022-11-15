@@ -3,7 +3,6 @@
 //
 
 #include "mqtt_client.h"
-#include "../tcp_listener.h"
 #include "../../core/memory.h"
 #include "../../core/palloc.h"
 #include "../../core/log.h"
