@@ -27,8 +27,6 @@ static void tcp_close(sky_tcp_client_t *client);
 
 static void tcp_close_cb(sky_tcp_client_t *client);
 
-static void tcp_shutdown(sky_tcp_client_t *client);
-
 static void tcp_client_defer(sky_tcp_client_t *client);
 
 sky_tcp_client_t *
@@ -151,7 +149,7 @@ sky_tcp_client_read(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t siz
     sky_event_t *ev;
     sky_isize_t n;
 
-    if (sky_unlikely(client->free || client->ev.fd == -1)) {
+    if (sky_unlikely(!sky_tcp_client_is_connection(client))) {
         return 0;
     }
 
@@ -218,7 +216,7 @@ sky_tcp_client_read_all(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t
     sky_event_t *ev;
     sky_isize_t n;
 
-    if (sky_unlikely(client->free || client->ev.fd == -1)) {
+    if (sky_unlikely(!sky_tcp_client_is_connection(client))) {
         return false;
     }
 
@@ -297,7 +295,7 @@ sky_tcp_client_read_nowait(sky_tcp_client_t *client, sky_uchar_t *data, sky_usiz
     sky_event_t *ev;
     sky_isize_t n;
 
-    if (sky_unlikely(client->free || client->ev.fd == -1)) {
+    if (sky_unlikely(!sky_tcp_client_is_connection(client))) {
         return -1;
     }
 
@@ -344,7 +342,7 @@ sky_tcp_client_write(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usiz
     sky_event_t *ev;
     sky_isize_t n;
 
-    if (sky_unlikely(client->free || client->ev.fd == -1)) {
+    if (sky_unlikely(!sky_tcp_client_is_connection(client))) {
         return 0;
     }
 
@@ -411,7 +409,7 @@ sky_tcp_client_write_all(sky_tcp_client_t *client, const sky_uchar_t *data, sky_
     sky_event_t *ev;
     sky_isize_t n;
 
-    if (sky_unlikely(client->free || client->ev.fd == -1)) {
+    if (sky_unlikely(!sky_tcp_client_is_connection(client))) {
         return false;
     }
 
@@ -489,7 +487,7 @@ sky_tcp_client_write_nowait(sky_tcp_client_t *client, const sky_uchar_t *data, s
     sky_event_t *ev;
     sky_isize_t n;
 
-    if (sky_unlikely(client->free || client->ev.fd == -1)) {
+    if (sky_unlikely(!sky_tcp_client_is_connection(client))) {
         return -1;
     }
 
@@ -549,7 +547,7 @@ tcp_run(sky_tcp_client_t *client) {
 
     if (!result) {
         sky_event_unregister(event);
-        sky_event_reset(&client->ev, tcp_run, tcp_shutdown);
+        sky_event_reset(&client->ev, tcp_run, sky_free);
     }
 
     return result;
@@ -562,11 +560,7 @@ tcp_close(sky_tcp_client_t *client) {
 
 static sky_inline void
 tcp_close_cb(sky_tcp_client_t *client) {
-}
-
-static sky_inline void
-tcp_shutdown(sky_tcp_client_t *client) {
-    sky_free(client);
+    (void) client;
 }
 
 static sky_inline void
@@ -576,9 +570,9 @@ tcp_client_defer(sky_tcp_client_t *client) {
     if (sky_unlikely(sky_event_none_callback(&client->ev))) {
         close(client->ev.fd);
         sky_event_rebind(&client->ev, -1);
-        tcp_shutdown(client);
+        sky_free(client);
     } else {
-        sky_event_reset(&client->ev, tcp_run, tcp_shutdown);
+        sky_event_reset(&client->ev, tcp_run, sky_free);
         sky_event_unregister(&client->ev);
     }
 }
