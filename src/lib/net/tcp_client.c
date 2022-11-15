@@ -31,11 +31,11 @@ static void tcp_shutdown(sky_tcp_client_t *client);
 static void tcp_client_defer(sky_tcp_client_t *client);
 
 sky_tcp_client_t *
-sky_tcp_client_create(const sky_tcp_client_conf_t *conf) {
+sky_tcp_client_create(sky_event_t *event, sky_coro_t *coro, const sky_tcp_client_conf_t *conf) {
     sky_tcp_client_t *client = sky_malloc(sizeof(sky_tcp_client_t));
-    sky_event_init(conf->event->loop, &client->ev, -1, tcp_run, tcp_close);
-    client->main_ev = conf->event;
-    client->coro = conf->coro;
+    sky_event_init(sky_event_get_loop(event), &client->ev, -1, tcp_run, tcp_close);
+    client->main_ev = event;
+    client->coro = coro;
     client->keep_alive = conf->keep_alive ?: -1;
     client->timeout = conf->timeout ?: 5;
     client->free = false;
