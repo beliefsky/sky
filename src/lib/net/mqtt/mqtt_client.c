@@ -90,6 +90,9 @@ sky_mqtt_client_bind(
         sky_coro_t *coro
 ) {
     writer->client = null;
+    if (!client->ping_timer) {
+        return false;
+    }
 
     const sky_bool_t flags = sky_tcp_listener_bind(client->listener, &writer->writer, event, coro);
     if (flags) {
@@ -112,7 +115,7 @@ sky_mqtt_client_pub(
         sky_bool_t retain,
         sky_bool_t dup
 ) {
-    if (!writer->client) {
+    if (!writer->client || !writer->client->ping_timer) {
         return false;
     }
     const sky_mqtt_publish_msg_t msg = {
@@ -135,7 +138,7 @@ sky_mqtt_client_pub(
 
 sky_bool_t
 sky_mqtt_client_sub(sky_mqtt_client_writer_t *writer, sky_mqtt_topic_t *topic, sky_u32_t topic_n) {
-    if (!writer->client) {
+    if (!writer->client || !writer->client->ping_timer) {
         return false;
     }
 
@@ -155,7 +158,7 @@ sky_mqtt_client_sub(sky_mqtt_client_writer_t *writer, sky_mqtt_topic_t *topic, s
 
 sky_bool_t
 sky_mqtt_client_unsub(sky_mqtt_client_writer_t *writer, sky_mqtt_topic_t *topic, sky_u32_t topic_n) {
-    if (!writer->client) {
+    if (!writer->client || !writer->client->ping_timer) {
         return false;
     }
 
