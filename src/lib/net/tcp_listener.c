@@ -414,21 +414,29 @@ tcp_run(sky_tcp_listener_t *listener) {
             if (writer) {
                 event = writer->ev;
                 if (event == &listener->ev) {
-                    break;
-                }
-
-                if (event->run(event)) {
-                    if (listener->current) {
-                        break;
-                    }
-                } else {
-                    if (listener->current) {
+                    if (sky_coro_resume(listener->coro) == SKY_CORO_MAY_RESUME) {
+                        if (listener->current) {
+                            break;
+                        }
+                    } else {
                         sky_tcp_listener_unbind(writer);
-                        sky_event_unregister(event);
                         result = false;
                         break;
                     }
-                    sky_event_unregister(event);
+                } else {
+                    if (event->run(event)) {
+                        if (listener->current) {
+                            break;
+                        }
+                    } else {
+                        if (listener->current) {
+                            sky_tcp_listener_unbind(writer);
+                            sky_event_unregister(event);
+                            result = false;
+                            break;
+                        }
+                        sky_event_unregister(event);
+                    }
                 }
             }
             if (sky_queue_is_empty(&listener->tasks)) {
@@ -453,12 +461,16 @@ tcp_close(sky_tcp_listener_t *listener) {
         if (writer) {
             event = writer->ev;
 
-            const sky_bool_t success = event->run(event);
-            if (listener->current) {
+            if (event == &listener->ev) {
                 sky_tcp_listener_unbind(writer);
-            }
-            if (!success) {
-                sky_event_unregister(event);
+            } else {
+                const sky_bool_t success = event->run(event);
+                if (listener->current) {
+                    sky_tcp_listener_unbind(writer);
+                }
+                if (!success) {
+                    sky_event_unregister(event);
+                }
             }
         }
         if (sky_queue_is_empty(&listener->tasks)) {
