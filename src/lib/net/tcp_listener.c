@@ -405,15 +405,8 @@ static sky_bool_t
 tcp_run(sky_tcp_listener_t *listener) {
     listener->main = true;
 
-    if (sky_event_is_read(&listener->ev)) {
-        sky_bool_t result = sky_coro_resume(listener->coro) == SKY_CORO_MAY_RESUME;
-        if (sky_unlikely(!result)) {
-            listener->main = false;
-            return false;
-        }
-    }
-
-    if (sky_event_is_write(&listener->ev)) {
+    sky_bool_t result = sky_coro_resume(listener->coro) == SKY_CORO_MAY_RESUME;
+    if (sky_likely(result)) {
         sky_tcp_listener_writer_t *writer;
         sky_event_t *event;
         for (;;) {
@@ -429,8 +422,7 @@ tcp_run(sky_tcp_listener_t *listener) {
                     if (listener->current) {
                         sky_tcp_listener_unbind(writer);
                         sky_event_unregister(event);
-                        listener->main = false;
-                        return false;
+                        result = false;
                     }
                     sky_event_unregister(event);
                 }
@@ -441,8 +433,9 @@ tcp_run(sky_tcp_listener_t *listener) {
             listener->current = (sky_tcp_listener_writer_t *) sky_queue_next(&listener->tasks);
         }
     }
+
     listener->main = false;
-    return true;
+    return result;
 }
 
 static void
