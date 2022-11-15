@@ -48,6 +48,7 @@ set(SOURCES
         net/http/http_request.c
         net/http/http_response.c
         net/http/http_parse.c
+        net/http/http_client.c
         net/http/http_server.c
         net/http/module/http_module_file.c
         net/http/module/http_module_dispatcher.c
@@ -213,6 +214,7 @@ install(FILES
         net/http/http_parse.h
         net/http/http_request.h
         net/http/http_response.h
+        net/http/http_client.h
         net/http/http_server.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/http")
 install(FILES
