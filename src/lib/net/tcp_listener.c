@@ -441,13 +441,10 @@ tcp_run(sky_tcp_listener_t *listener) {
 
 static void
 tcp_close(sky_tcp_listener_t *listener) {
-    listener->status = CLOSE;
-    if (listener->free) {
-        sky_coro_destroy(listener->coro);
-        return;
-    }
     sky_tcp_listener_writer_t *writer;
     sky_event_t *event;
+
+    listener->status = CLOSE;
     for (;;) {
         writer = listener->current;
         if (writer) {
@@ -465,6 +462,10 @@ tcp_close(sky_tcp_listener_t *listener) {
             break;
         }
         listener->current = (sky_tcp_listener_writer_t *) sky_queue_next(&listener->tasks);
+    }
+    if (listener->free) {
+        sky_coro_destroy(listener->coro);
+        return;
     }
 
     if (listener->reconnect) {
