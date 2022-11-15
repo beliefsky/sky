@@ -14,10 +14,23 @@ extern "C" {
 #endif
 
 typedef struct sky_tcp_listener_s sky_tcp_listener_t;
+typedef struct sky_tcp_listener_writer_s sky_tcp_listener_writer_t;
+typedef struct sky_tcp_listener_reader_s sky_tcp_listener_reader_t;
 typedef struct sky_tcp_listener_conf_s sky_tcp_listener_conf_t;
-typedef struct sky_tcp_listener_stream_s sky_tcp_listener_stream_t;
 
 typedef void (*sky_tcp_listener_close_pt)(sky_tcp_listener_t *listener, void *data);
+
+
+struct sky_tcp_listener_writer_s {
+    sky_queue_t link;
+    sky_event_t *ev;
+    sky_coro_t *coro;
+    sky_tcp_listener_t *client;
+    sky_defer_t *defer;
+};
+
+#define sky_tcp_listener_writer_event(_writer) (_writer)->ev
+#define sky_tcp_listener_writer_coro(_writer) (_writer)->coro
 
 struct sky_tcp_listener_conf_s {
     sky_inet_address_t *address;
@@ -30,12 +43,6 @@ struct sky_tcp_listener_conf_s {
     sky_bool_t reconnect;
 };
 
-struct sky_tcp_listener_stream_s {
-    sky_queue_t link;
-    sky_uchar_t *data;
-    sky_usize_t size;
-};
-
 
 sky_tcp_listener_t *sky_tcp_listener_create(
         sky_event_loop_t *loop,
@@ -43,25 +50,35 @@ sky_tcp_listener_t *sky_tcp_listener_create(
         const sky_tcp_listener_conf_t *conf
 );
 
-sky_tcp_listener_stream_t *sky_tcp_listener_get_stream(sky_tcp_listener_t *listener, sky_u32_t need_size);
 
-sky_bool_t sky_tcp_listener_write_packet(sky_tcp_listener_t *listener);
+sky_bool_t sky_tcp_listener_bind(
+        sky_tcp_listener_t *listener,
+        sky_tcp_listener_writer_t *writer,
+        sky_event_t *event,
+        sky_coro_t *coro
+);
 
-sky_usize_t sky_tcp_listener_read(sky_tcp_listener_t *listener, sky_uchar_t *data, sky_usize_t size);
+sky_bool_t sky_tcp_listener_bind_self(sky_tcp_listener_reader_t *reader, sky_tcp_listener_writer_t *writer);
 
-void sky_tcp_listener_read_all(sky_tcp_listener_t *listener, sky_uchar_t *data, sky_usize_t size);
+sky_usize_t sky_tcp_listener_write(sky_tcp_listener_writer_t *writer, const sky_uchar_t *data, sky_usize_t size);
+
+sky_bool_t sky_tcp_listener_write_all(sky_tcp_listener_writer_t *writer, const sky_uchar_t *data, sky_usize_t size);
+
+sky_isize_t sky_tcp_listener_write_nowait(sky_tcp_listener_writer_t *writer, const sky_uchar_t *data, sky_usize_t size);
+
+void sky_tcp_listener_unbind(sky_tcp_listener_writer_t *writer);
+
+void *sky_tcp_listener_reader_data(sky_tcp_listener_reader_t *reader);
+
+sky_event_t *sky_tcp_listener_reader_event(sky_tcp_listener_reader_t *reader);
+
+sky_coro_t *sky_tcp_listener_reader_coro(sky_tcp_listener_reader_t *reader);
+
+sky_usize_t sky_tcp_listener_read(sky_tcp_listener_reader_t *reader, sky_uchar_t *data, sky_usize_t size);
+
+sky_bool_t sky_tcp_listener_read_all(sky_tcp_listener_reader_t *reader, sky_uchar_t *data, sky_usize_t size);
 
 void sky_tcp_listener_destroy(sky_tcp_listener_t *listener);
-
-static sky_inline sky_uchar_t *
-sky_tcp_listener_stream_buff(sky_tcp_listener_stream_t *stream) {
-    return stream->data + stream->size;
-}
-
-static sky_inline void
-sky_tcp_listener_stream_set_n(sky_tcp_listener_stream_t *stream, sky_usize_t n) {
-    stream->size += n;
-}
 
 
 #if defined(__cplusplus)
