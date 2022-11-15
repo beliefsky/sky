@@ -40,7 +40,6 @@ sky_tcp_client_create(sky_event_t *event, sky_coro_t *coro, const sky_tcp_client
     client->keep_alive = conf->keep_alive ?: -1;
     client->timeout = conf->timeout ?: 5;
     client->free = false;
-    client->closed = false;
     client->nodelay = conf->nodelay;
 
     client->defer = sky_defer_add(client->coro, (sky_defer_func_t) tcp_client_defer, client);
