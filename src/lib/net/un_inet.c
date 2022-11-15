@@ -101,6 +101,9 @@ sky_un_inet_run_timer(
 
 void
 sky_un_inet_cancel(sky_un_inet_t *un_inet) {
+    if (sky_unlikely(!un_inet)) {
+        return;
+    }
     if (un_inet->wait) {
         sky_timer_wheel_unlink(&un_inet->ev.timer);
         sky_coro_destroy(un_inet->coro);
@@ -110,11 +113,17 @@ sky_un_inet_cancel(sky_un_inet_t *un_inet) {
 
 sky_event_t *
 sky_un_inet_event(sky_un_inet_t *un_inet) {
+    if (sky_unlikely(!un_inet)) {
+        return null;
+    }
     return &(un_inet->ev);
 }
 
 sky_coro_t *
 sky_un_inet_coro(sky_un_inet_t *un_inet) {
+    if (sky_unlikely(!un_inet)) {
+        return null;
+    }
     return un_inet->coro;
 }
 
