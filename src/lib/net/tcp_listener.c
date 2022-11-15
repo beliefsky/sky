@@ -413,6 +413,9 @@ tcp_run(sky_tcp_listener_t *listener) {
             writer = listener->current;
             if (writer) {
                 event = writer->ev;
+                if (event == &listener->ev) {
+                    break;
+                }
 
                 if (event->run(event)) {
                     if (listener->current) {
