@@ -446,6 +446,27 @@ tcp_close(sky_tcp_listener_t *listener) {
         sky_coro_destroy(listener->coro);
         return;
     }
+    sky_tcp_listener_writer_t *writer;
+    sky_event_t *event;
+    for (;;) {
+        writer = listener->current;
+        if (writer) {
+            event = writer->ev;
+
+            const sky_bool_t success =  event->run(event);
+            if (listener->current) {
+                sky_tcp_listener_unbind(writer);
+            }
+            if (!success) {
+                sky_event_unregister(event);
+            }
+        }
+        if (sky_queue_is_empty(&listener->tasks)) {
+            break;
+        }
+        listener->current = (sky_tcp_listener_writer_t *) sky_queue_next(&listener->tasks);
+    }
+
     if (listener->reconnect) {
         sky_coro_reset(listener->coro, listener->run, &listener->reader);
         sky_event_reset(&listener->ev, tcp_run_connection, tcp_close);
