@@ -423,6 +423,7 @@ tcp_run(sky_tcp_listener_t *listener) {
                         sky_tcp_listener_unbind(writer);
                         sky_event_unregister(event);
                         result = false;
+                        break;
                     }
                     sky_event_unregister(event);
                 }
