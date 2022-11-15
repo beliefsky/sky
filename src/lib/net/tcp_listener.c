@@ -176,7 +176,7 @@ sky_tcp_listener_write(sky_tcp_listener_writer_t *writer, const sky_uchar_t *dat
         }
         do {
             sky_coro_yield(writer->coro, SKY_CORO_MAY_RESUME);
-            if (sky_unlikely(!writer->client || client->reconnect)) {
+            if (sky_unlikely(!writer->client || client->status != READY)) {
                 return 0;
             }
         } while (sky_unlikely(sky_event_none_write(ev)));
@@ -450,7 +450,7 @@ tcp_close(sky_tcp_listener_t *listener) {
         if (writer) {
             event = writer->ev;
 
-            const sky_bool_t success =  event->run(event);
+            const sky_bool_t success = event->run(event);
             if (listener->current) {
                 sky_tcp_listener_unbind(writer);
             }
