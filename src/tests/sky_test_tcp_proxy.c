@@ -107,6 +107,7 @@ server_start(sky_event_loop_t *loop, sky_coro_switcher_t *switcher) {
                 .nodelay = true,
                 .reuse_port = true,
                 .run = tcp_accept_cb,
+                .data = switcher,
                 .timeout = -1,
                 .address = (sky_inet_address_t *) &server_address_v6,
                 .address_len = sizeof(struct sockaddr_in6),
@@ -144,13 +145,13 @@ tcp_proxy_close(tcp_proxy_conn_t *conn) {
 static sky_isize_t
 tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
     const sky_tcp_client_conf_t conf = {
-            .coro = coro,
-            .event = &conn->event,
+            .nodelay = true,
             .timeout = 5,
             .keep_alive = 300
     };
 
-    sky_tcp_client_t *client = sky_tcp_client_create(&conf);
+    sky_tcp_client_t *client = sky_tcp_client_create(&conn->event, coro, &conf);
+    sky_defer_add(coro, (sky_defer_func_t) sky_tcp_client_destroy, client);
 
     sky_uchar_t mq_ip[] = {192, 168, 0, 15};
     const struct sockaddr_in mqtt_address = {
@@ -209,7 +210,6 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
         }
     }
     error:
-    sky_tcp_client_destroy(client);
 
     return SKY_CORO_FINISHED;
 }

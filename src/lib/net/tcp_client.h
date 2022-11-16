@@ -14,8 +14,6 @@ extern "C" {
 #endif
 
 typedef struct {
-    sky_event_t *event;
-    sky_coro_t *coro;
     sky_i32_t keep_alive;
     sky_i32_t timeout;
     sky_bool_t nodelay: 1;
@@ -23,10 +21,11 @@ typedef struct {
 
 typedef struct sky_tcp_client_s sky_tcp_client_t;
 
-sky_tcp_client_t *sky_tcp_client_create(const sky_tcp_client_conf_t *conf);
+sky_tcp_client_t *sky_tcp_client_create(sky_event_t *event, sky_coro_t *coro, const sky_tcp_client_conf_t *conf);
 
-sky_bool_t
-sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_address_t *address, sky_u32_t address_len);
+sky_bool_t sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_address_t *address, sky_u32_t address_len);
+
+void sky_tcp_client_close(sky_tcp_client_t *client);
 
 sky_bool_t sky_tcp_client_is_connection(sky_tcp_client_t *client);
 
@@ -41,7 +40,6 @@ sky_usize_t sky_tcp_client_write(sky_tcp_client_t *client, const sky_uchar_t *da
 sky_bool_t sky_tcp_client_write_all(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usize_t size);
 
 sky_isize_t sky_tcp_client_write_nowait(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usize_t size);
-
 
 void sky_tcp_client_destroy(sky_tcp_client_t *client);
 
