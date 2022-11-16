@@ -35,34 +35,34 @@ main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
-    sky_i32_t cpu_num = (sky_i32_t) sysconf(_SC_NPROCESSORS_ONLN);
-    if (cpu_num < 1) {
-        cpu_num = 1;
-    }
-
-    for (int i = 1; i < cpu_num; ++i) {
-        const int32_t pid = sky_process_fork();
-        switch (pid) {
-            case -1:
-                return -1;
-            case 0: {
-                sky_process_bind_cpu(i);
-
-                sky_coro_switcher_t *switcher = sky_malloc(sky_coro_switcher_size());
-
-                sky_event_loop_t *ev_loop = sky_event_loop_create();
-                server_start(ev_loop, switcher);
-                sky_event_loop_run(ev_loop);
-                sky_event_loop_destroy(ev_loop);
-
-                sky_free(switcher);
-                return 0;
-            }
-            default:
-                break;
-        }
-    }
-    sky_process_bind_cpu(0);
+//    sky_i32_t cpu_num = (sky_i32_t) sysconf(_SC_NPROCESSORS_ONLN);
+//    if (cpu_num < 1) {
+//        cpu_num = 1;
+//    }
+//
+//    for (int i = 1; i < cpu_num; ++i) {
+//        const int32_t pid = sky_process_fork();
+//        switch (pid) {
+//            case -1:
+//                return -1;
+//            case 0: {
+//                sky_process_bind_cpu(i);
+//
+//                sky_coro_switcher_t *switcher = sky_malloc(sky_coro_switcher_size());
+//
+//                sky_event_loop_t *ev_loop = sky_event_loop_create();
+//                server_start(ev_loop, switcher);
+//                sky_event_loop_run(ev_loop);
+//                sky_event_loop_destroy(ev_loop);
+//
+//                sky_free(switcher);
+//                return 0;
+//            }
+//            default:
+//                break;
+//        }
+//    }
+//    sky_process_bind_cpu(0);
 
     sky_coro_switcher_t *switcher = sky_malloc(sky_coro_switcher_size());
 
@@ -107,6 +107,7 @@ server_start(sky_event_loop_t *loop, sky_coro_switcher_t *switcher) {
                 .nodelay = true,
                 .reuse_port = true,
                 .run = tcp_accept_cb,
+                .data = switcher,
                 .timeout = -1,
                 .address = (sky_inet_address_t *) &server_address_v6,
                 .address_len = sizeof(struct sockaddr_in6),
@@ -144,13 +145,13 @@ tcp_proxy_close(tcp_proxy_conn_t *conn) {
 static sky_isize_t
 tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
     const sky_tcp_client_conf_t conf = {
-            .coro = coro,
-            .event = &conn->event,
+            .nodelay = true,
             .timeout = 5,
             .keep_alive = 300
     };
 
-    sky_tcp_client_t *client = sky_tcp_client_create(&conf);
+    sky_tcp_client_t *client = sky_tcp_client_create(&conn->event, coro, &conf);
+    sky_defer_add(coro, (sky_defer_func_t) sky_tcp_client_destroy, client);
 
     sky_uchar_t mq_ip[] = {192, 168, 0, 15};
     const struct sockaddr_in mqtt_address = {
@@ -209,7 +210,6 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
         }
     }
     error:
-    sky_tcp_client_destroy(client);
 
     return SKY_CORO_FINISHED;
 }
