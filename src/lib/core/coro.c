@@ -199,6 +199,9 @@ sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func, void *data)
 
 sky_inline sky_coro_t *
 sky_coro_new(sky_coro_switcher_t *switcher) {
+    if (sky_unlikely(!switcher)) {
+        return null;
+    }
     sky_coro_t *coro = sky_malloc(CORE_BLOCK_SIZE);
 
     coro->switcher = switcher;
