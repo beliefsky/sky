@@ -42,7 +42,7 @@ void
 sky_http_client_req_init(sky_http_client_req_t *req, sky_pool_t *pool, sky_str_t *url) {
     req->pool = pool;
     sky_str_set(&req->method, "GET");
-    sky_str_set(&req->path, "/assets/index.f986331c.js");
+    sky_str_set(&req->path, "/api/bangumi/lastest");
     sky_str_set(&req->version_name, "HTTP/1.1");
     sky_list_init(&req->headers, pool, 16, sizeof(sky_http_header_t));
 
@@ -52,18 +52,21 @@ sky_http_client_req_init(sky_http_client_req_t *req, sky_pool_t *pool, sky_str_t
 
 sky_http_client_res_t *
 sky_http_client_req(sky_http_client_t *client, sky_http_client_req_t *req) {
-    const sky_uchar_t ip[4] = {192, 168, 31, 10};
-    const struct sockaddr_in address = {
-            .sin_family = AF_INET,
-            .sin_addr.s_addr = sky_mem4_load(ip),
-            .sin_port = sky_htons(80)
-    };
-    if (!sky_tcp_client_connection(
-            client->client,
-            (const sky_inet_address_t *) &address,
-            sizeof(address)
-    )) {
-        return null;
+    if (!sky_tcp_client_is_connection(client->client)) {
+        const sky_uchar_t ip[4] = {192, 168, 31, 10};
+        const struct sockaddr_in address = {
+                .sin_family = AF_INET,
+                .sin_addr.s_addr = sky_mem4_load(ip),
+                .sin_port = sky_htons(80)
+        };
+        sky_log_info("reconnect");
+        if (!sky_tcp_client_connection(
+                client->client,
+                (const sky_inet_address_t *) &address,
+                sizeof(address)
+        )) {
+            return null;
+        }
     }
     http_req_writer(client, req);
 
@@ -120,7 +123,7 @@ http_req_writer(sky_http_client_t *client, sky_http_client_req_t *req) {
 
 static sky_http_client_res_t *
 http_res_read(sky_http_client_t *client, sky_pool_t *pool) {
-    sky_uchar_t *stream = sky_palloc(pool, 4096);
-    sky_tcp_client_read_all(client->client, stream, 4096);
+    sky_uchar_t *stream = sky_palloc(pool, 2048);
+    sky_tcp_client_read(client->client, stream, 2048);
     sky_log_info("%s", stream);
 }
