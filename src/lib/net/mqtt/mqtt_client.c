@@ -117,52 +117,55 @@ sky_mqtt_client_pub(
         sky_bool_t retain,
         sky_bool_t dup
 ) {
-    if (!writer->client || !writer->client->ping_timer) {
+    sky_mqtt_client_t *client = writer->client;
+    if (!client || !client->ping_timer) {
         return false;
     }
     const sky_mqtt_publish_msg_t msg = {
             .topic = *topic,
             .payload = *payload,
-            .packet_identifier = qos > 0 ? mqtt_packet_identifier(writer->client) : 0
+            .packet_identifier = qos > 0 ? mqtt_packet_identifier(client) : 0
     };
     const sky_u32_t alloc_size = sky_mqtt_unpack_alloc_size(sky_mqtt_publish_unpack_size(&msg, qos));
 
-    sky_uchar_t *stream = sky_palloc(writer->client->writer_pool, alloc_size);
+    sky_uchar_t *stream = sky_palloc(client->writer_pool, alloc_size);
     sky_u32_t size = sky_mqtt_publish_unpack(stream, &msg, qos, retain, dup);
     sky_tcp_listener_write_all(&writer->writer, stream, size);
-    sky_pool_reset(writer->client->writer_pool);
+    sky_pool_reset(client->writer_pool);
 
     return true;
 }
 
 sky_bool_t
 sky_mqtt_client_sub(sky_mqtt_client_writer_t *writer, sky_mqtt_topic_t *topic, sky_u32_t topic_n) {
-    if (!writer->client || !writer->client->ping_timer) {
+    sky_mqtt_client_t *client = writer->client;
+    if (!client || !client->ping_timer) {
         return false;
     }
 
-    const sky_u16_t packet_identifier = mqtt_packet_identifier(writer->client);
+    const sky_u16_t packet_identifier = mqtt_packet_identifier(client);
     const sky_u32_t alloc_size = sky_mqtt_unpack_alloc_size(sky_mqtt_subscribe_unpack_size(topic, topic_n));
-    sky_uchar_t *stream = sky_palloc(writer->client->writer_pool, alloc_size);
+    sky_uchar_t *stream = sky_palloc(client->writer_pool, alloc_size);
     const sky_u32_t size = sky_mqtt_subscribe_unpack(stream, packet_identifier, topic, topic_n);
     sky_tcp_listener_write_all(&writer->writer, stream, size);
-    sky_pool_reset(writer->client->writer_pool);
+    sky_pool_reset(client->writer_pool);
 
     return true;
 }
 
 sky_bool_t
 sky_mqtt_client_unsub(sky_mqtt_client_writer_t *writer, sky_mqtt_topic_t *topic, sky_u32_t topic_n) {
-    if (!writer->client || !writer->client->ping_timer) {
+    sky_mqtt_client_t *client = writer->client;
+    if (!client || !client->ping_timer) {
         return false;
     }
 
-    const sky_u16_t packet_identifier = mqtt_packet_identifier(writer->client);
+    const sky_u16_t packet_identifier = mqtt_packet_identifier(client);
     const sky_u32_t alloc_size = sky_mqtt_unpack_alloc_size(sky_mqtt_unsubscribe_unpack_size(topic, topic_n));
-    sky_uchar_t *stream = sky_palloc(writer->client->writer_pool, alloc_size);
+    sky_uchar_t *stream = sky_palloc(client->writer_pool, alloc_size);
     const sky_u32_t size = sky_mqtt_unsubscribe_unpack(stream, packet_identifier, topic, topic_n);
     sky_tcp_listener_write_all(&writer->writer, stream, size);
-    sky_pool_reset(writer->client->writer_pool);;
+    sky_pool_reset(client->writer_pool);;
 
     return true;
 }
