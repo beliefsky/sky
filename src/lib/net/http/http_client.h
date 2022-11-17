@@ -27,11 +27,17 @@ struct sky_http_client_req_s {
 
 struct sky_http_client_res_s {
     sky_list_t headers;
-    sky_str_t method_name;
+    sky_str_t version_name;
+    sky_str_t *content_type;
+    sky_str_t *content_length;
+    sky_buf_t *tmp;
+    sky_pool_t *pool;
 
+    sky_u64_t content_length_n;
     sky_u32_t state: 9;
-    sky_u8_t method: 7;
     sky_bool_t keep_alive: 1;
+    sky_bool_t chunked: 1;
+    sky_bool_t read_res_body: 1;
 };
 
 sky_http_client_t *sky_http_client_create(sky_event_t *event, sky_coro_t *coro);
@@ -40,9 +46,13 @@ void sky_http_client_req_init(sky_http_client_req_t *req, sky_pool_t *pool, sky_
 
 sky_http_client_res_t *sky_http_client_req(sky_http_client_t *client, sky_http_client_req_t *req);
 
-sky_str_t *sky_http_client_res_body_str(sky_http_client_res_t *res);
+sky_str_t *sky_http_client_res_body_str(sky_http_client_t *client, sky_http_client_res_t *res);
 
-sky_bool_t sky_http_client_res_body_file(sky_http_client_res_t *res, sky_str_t *path);
+sky_str_t *sky_http_client_res_chunked(sky_http_client_t *client, sky_http_client_res_t *res);
+
+sky_bool_t sky_http_client_res_body_none(sky_http_client_t *client, sky_http_client_res_t *res);
+
+sky_bool_t sky_http_client_res_body_file(sky_http_client_t *client, sky_http_client_res_t *res, sky_str_t *path);
 
 void sky_http_client_destroy(sky_http_client_t *client);
 
