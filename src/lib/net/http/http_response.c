@@ -118,6 +118,7 @@ sky_http_response_chunked_len(sky_http_request_t *r, sky_uchar_t *buf, sky_usize
 
     if (!r->response) {
         r->response = true;
+        r->chunked = true;
         header = sky_list_push(&r->headers_out.headers);
         sky_str_set(&header->key, "Transfer-Encoding");
         sky_str_set(&header->val, "chunked");
@@ -128,7 +129,7 @@ sky_http_response_chunked_len(sky_http_request_t *r, sky_uchar_t *buf, sky_usize
             sky_str_buf_init2(&str_buf, r->pool, 2048 + buf_len);
         }
         http_header_build(r, &str_buf);
-    } else if (r->chunked ) {
+    } else if (r->chunked) {
         sky_str_buf_init2(&str_buf, r->pool, 20 + buf_len);
     } else {
         return;
@@ -150,6 +151,7 @@ sky_http_response_chunked_len(sky_http_request_t *r, sky_uchar_t *buf, sky_usize
             .data = str_buf.start
     };
     r->conn->server->http_write(r->conn, out.data, out.len);
+    sky_str_buf_destroy(&str_buf);
 }
 
 

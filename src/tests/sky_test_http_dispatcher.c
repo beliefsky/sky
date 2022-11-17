@@ -392,8 +392,8 @@ static SKY_HTTP_MAPPER_HANDLER(upload_test) {
 }
 
 static SKY_HTTP_MAPPER_HANDLER(hello_world) {
-
-    sky_http_response_static_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\"}"));
+    sky_http_response_chunked_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\"}"));
+    sky_http_response_chunked(req, null);
 }
 
 
