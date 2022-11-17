@@ -33,7 +33,7 @@ typedef enum {
     sw_header_name,
     sw_header_value_first,
     sw_header_value,
-    sw_line_LF
+    sw_line_lf
 } parse_state_t;
 
 typedef struct {
@@ -53,7 +53,9 @@ static sky_str_t *http_res_content_body_str(sky_http_client_t *client, sky_http_
 
 static sky_bool_t http_res_content_body_none(sky_http_client_t *client, sky_http_client_res_t *res);
 
-static sky_str_t *http_res_checked_str(sky_http_client_t *client, sky_http_client_res_t *res);
+static sky_str_t *http_res_chunked_str(sky_http_client_t *client, sky_http_client_res_t *res);
+
+static sky_bool_t http_res_chunked_none(sky_http_client_t *client, sky_http_client_res_t *res);
 
 static sky_i8_t http_res_line_parse(sky_http_client_res_t *r, sky_buf_t *b, http_res_ctx_t *ctx);
 
@@ -97,7 +99,7 @@ sky_http_client_req_init(sky_http_client_req_t *req, sky_pool_t *pool, sky_str_t
     sky_str_set(&req->version_name, "HTTP/1.1");
     sky_list_init(&req->headers, pool, 16, sizeof(sky_http_header_t));
 
-    sky_str_t host = sky_string("localhost");
+    sky_str_t host = sky_string("www.wnacg.top");
     sky_http_client_req_append_header(req, sky_str_line("Host"), &host);
 }
 
@@ -144,20 +146,7 @@ sky_http_client_res_body_str(sky_http_client_t *client, sky_http_client_res_t *r
     }
     res->read_res_body = true;
 
-    return !res->chunked ? http_res_content_body_str(client, res) : null;
-}
-
-sky_str_t *
-sky_http_client_res_chunked(sky_http_client_t *client, sky_http_client_res_t *res) {
-    if (sky_unlikely(!client || !res || !res->chunked)) {
-        return null;
-    }
-    if (sky_unlikely(res->read_res_body)) {
-        sky_log_error("response body read repeat");
-        return null;
-    }
-
-    return http_res_checked_str(client, res);
+    return !res->chunked ? http_res_content_body_str(client, res) : http_res_chunked_str(client, res);
 }
 
 sky_bool_t
@@ -171,7 +160,7 @@ sky_http_client_res_body_none(sky_http_client_t *client, sky_http_client_res_t *
     }
     res->read_res_body = true;
 
-    return !res->chunked ? http_res_content_body_none(client, res) : false;
+    return !res->chunked ? http_res_content_body_none(client, res) : http_res_chunked_none(client, res);
 }
 
 sky_bool_t
@@ -184,6 +173,8 @@ sky_http_client_res_body_file(sky_http_client_t *client, sky_http_client_res_t *
         return null;
     }
     res->read_res_body = true;
+
+    return false;
 }
 
 
@@ -380,8 +371,47 @@ http_res_content_body_none(sky_http_client_t *client, sky_http_client_res_t *res
 }
 
 static sky_str_t *
-http_res_checked_str(sky_http_client_t *client, sky_http_client_res_t *res) {
+http_res_chunked_str(sky_http_client_t *client, sky_http_client_res_t *res) {
+    res->chunked = false;
+
     return null;
+}
+
+static sky_bool_t
+http_res_chunked_none(sky_http_client_t *client, sky_http_client_res_t *res) {
+    res->chunked = false;
+
+    sky_buf_t *tmp = res->tmp;
+    if ((sky_usize_t) (tmp->end - tmp->pos) < 4095) { // 缓冲 4095字节
+        sky_buf_rebuild(tmp, 4095);
+    }
+    sky_usize_t read_n = (sky_usize_t) (tmp->last - tmp->pos);
+    sky_uchar_t *p = tmp->pos;
+
+    goto error;
+//    while (read_n >= 4) {
+//        index = sky_str_len_index_char(p, n, '\n');
+//        if (index == -1) {
+//            if (sky_unlikely(n > 18)) {
+//                goto error;
+//            }
+//        } else if (index > 1 && tmp->pos[index - 1] == '\r') {
+//            if (sky_unlikely(sky_hex_str_len_to_usize(tmp->pos, (sky_usize_t) (--index), &size))) {
+//                goto error;
+//            }
+//            n -= (sky_usize_t) (++index);
+//        } else {
+//            goto error;
+//        }
+//    }
+
+    done:
+    sky_buf_rebuild(tmp, 0);
+    return false;
+
+    error:
+    sky_buf_rebuild(tmp, 0);
+    return false;
 }
 
 
@@ -569,9 +599,9 @@ http_res_header_parse(sky_http_client_res_t *r, sky_buf_t *b, http_res_ctx_t *ct
                     state = sw_start;
                     break;
                 }
-                state = sw_line_LF;
+                state = sw_line_lf;
             }
-            case sw_line_LF: {
+            case sw_line_lf: {
                 if (sky_unlikely(*p != '\n')) {
                     if (sky_likely(p == end)) {
                         goto again;
