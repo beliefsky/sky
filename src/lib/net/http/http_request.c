@@ -482,10 +482,10 @@ http_read_body_none_need(sky_http_request_t *r) {
     sky_http_server_t *server;
     sky_buf_t *tmp;
     sky_u64_t size;
-    sky_u32_t n, t;
+    sky_usize_t n, t;
 
     tmp = r->tmp;
-    n = (sky_u32_t) (tmp->last - tmp->pos);
+    n = (sky_usize_t) (tmp->last - tmp->pos);
     size = r->headers_in.content_length_n;
 
     if (n >= size) {
@@ -494,7 +494,7 @@ http_read_body_none_need(sky_http_request_t *r) {
     }
     size -= n;
 
-    n = (sky_u32_t) (tmp->end - tmp->pos);
+    n = (sky_usize_t) (tmp->end - tmp->pos);
     server = r->conn->server;
 
     // 实际数据小于缓冲
@@ -507,12 +507,12 @@ http_read_body_none_need(sky_http_request_t *r) {
     }
     // 缓冲区间太小，分配一较大区域
     if (n < SKY_U32(4096)) {
-        n = (sky_u32_t) sky_min(size, SKY_U64(4096));
+        n = (sky_usize_t) sky_min(size, SKY_U64(4096));
         sky_buf_rebuild(tmp, n);
     }
 
     do {
-        t = (sky_u32_t) sky_min(n, size);
+        t = (sky_usize_t) sky_min(n, size);
         size -= server->http_read(r->conn, tmp->pos, t);
     } while (size > 0);
 
