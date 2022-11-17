@@ -163,12 +163,39 @@ sky_str_len_to_usize(const sky_uchar_t *in, sky_usize_t in_len, sky_usize_t *out
 }
 
 static sky_inline sky_bool_t
+sky_hex_str_to_u32(const sky_str_t *in, sky_u32_t *out) {
+    if (sky_unlikely(sky_str_is_null(in))) {
+        return false;
+    }
+    return sky_hex_str_len_to_u32(in->data, in->len, out);
+}
+
+static sky_inline sky_bool_t
 sky_hex_str_to_u64(const sky_str_t *in, sky_u64_t *out) {
     if (sky_unlikely(sky_str_is_null(in))) {
         return false;
     }
     return sky_hex_str_len_to_u64(in->data, in->len, out);
 }
+
+static sky_inline sky_bool_t
+sky_hex_str_to_usize(const sky_str_t *in, sky_usize_t *out) {
+#if SKY_USIZE_MAX == SKY_U64_MAX
+    return sky_hex_str_to_u64(in, out);
+#else
+    return sky_hex_str_to_u32(in, out);
+#endif
+}
+
+static sky_inline sky_bool_t
+sky_hex_str_len_to_usize(const sky_uchar_t *in, sky_usize_t in_len, sky_usize_t *out) {
+#if SKY_USIZE_MAX == SKY_U64_MAX
+    return sky_hex_str_len_to_u64(in, in_len, out);
+#else
+    return sky_hex_str_len_to_u32(in, in_len, out);
+#endif
+}
+
 
 static sky_inline sky_u8_t
 sky_i8_to_str(sky_i8_t data, sky_uchar_t *out) {
