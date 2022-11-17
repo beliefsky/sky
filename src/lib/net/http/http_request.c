@@ -107,12 +107,17 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
             return null;
         }
         if (sky_unlikely(buf->last == buf->end)) {
-            if (--buf_n && r->req_pos) {
+            if (sky_likely(--buf_n == 0)) {
+                return null;
+            }
+            if (r->req_pos) {
                 n = (sky_u32_t) (buf->pos - r->req_pos);
                 buf->pos -= n;
                 sky_buf_rebuild(buf, server->header_buf_size);
                 r->req_pos = buf->pos;
                 buf->pos += n;
+            } else {
+                sky_buf_rebuild(buf, server->header_buf_size);
             }
         }
         n = server->http_read(conn, buf->last, (sky_usize_t) (buf->end - buf->last));
