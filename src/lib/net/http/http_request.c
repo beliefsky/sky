@@ -80,8 +80,8 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
     r = sky_pcalloc(pool, sizeof(sky_http_request_t));
     r->pool = pool;
     r->conn = conn;
-    sky_list_init(&r->headers_out.headers, pool, 32, sizeof(sky_http_header_t));
-    sky_list_init(&r->headers_in.headers, pool, 32, sizeof(sky_http_header_t));
+    sky_list_init(&r->headers_out.headers, pool, 16, sizeof(sky_http_header_t));
+    sky_list_init(&r->headers_in.headers, pool, 16, sizeof(sky_http_header_t));
 
     buf = sky_buf_create(pool, server->header_buf_size);
     r->tmp = buf;
