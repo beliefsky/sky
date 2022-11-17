@@ -20,37 +20,23 @@ extern "C" {
     ((((_mask) + 0x0606060606060606) & 0xF0F0F0F0F0F0F0F0) >> 4)) == \
     0x3333333333333333)
 
-sky_bool_t sky_str_to_i8(const sky_str_t *in, sky_i8_t *out);
-
 sky_bool_t sky_str_len_to_i8(const sky_uchar_t *in, sky_usize_t in_len, sky_i8_t *out);
-
-sky_bool_t sky_str_to_u8(const sky_str_t *in, sky_u8_t *out);
 
 sky_bool_t sky_str_len_to_u8(const sky_uchar_t *in, sky_usize_t in_len, sky_u8_t *out);
 
-sky_bool_t sky_str_to_i16(const sky_str_t *in, sky_i16_t *out);
-
 sky_bool_t sky_str_len_to_i16(const sky_uchar_t *in, sky_usize_t in_len, sky_i16_t *out);
-
-sky_bool_t sky_str_to_u16(const sky_str_t *in, sky_u16_t *out);
 
 sky_bool_t sky_str_len_to_u16(const sky_uchar_t *in, sky_usize_t in_len, sky_u16_t *out);
 
-sky_bool_t sky_str_to_i32(const sky_str_t *in, sky_i32_t *out);
-
 sky_bool_t sky_str_len_to_i32(const sky_uchar_t *in, sky_usize_t in_len, sky_i32_t *out);
-
-sky_bool_t sky_str_to_u32(const sky_str_t *in, sky_u32_t *out);
 
 sky_bool_t sky_str_len_to_u32(const sky_uchar_t *in, sky_usize_t in_len, sky_u32_t *out);
 
-sky_bool_t sky_str_to_i64(const sky_str_t *in, sky_i64_t *out);
-
 sky_bool_t sky_str_len_to_i64(const sky_uchar_t *in, sky_usize_t in_len, sky_i64_t *out);
 
-sky_bool_t sky_str_to_u64(const sky_str_t *in, sky_u64_t *out);
-
 sky_bool_t sky_str_len_to_u64(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out);
+
+sky_bool_t sky_hex_str_len_to_u64(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out);
 
 sky_u8_t sky_i32_to_str(sky_i32_t data, sky_uchar_t *out);
 
@@ -70,6 +56,72 @@ sky_u8_t sky_u64_to_hex_str(sky_u64_t data, sky_uchar_t *out, sky_bool_t lower_a
  * @return 占用的字符长度
  */
 sky_u8_t sky_u32_check_str_count(sky_u32_t x);
+
+
+static sky_inline sky_bool_t
+sky_str_to_i8(const sky_str_t *in, sky_i8_t *out) {
+    if (sky_unlikely(sky_str_is_null(in))) {
+        return false;
+    }
+    return sky_str_len_to_i8(in->data, in->len, out);
+}
+
+static sky_inline sky_bool_t
+sky_str_to_u8(const sky_str_t *in, sky_u8_t *out) {
+    if (sky_unlikely(sky_str_is_null(in))) {
+        return false;
+    }
+    return sky_str_len_to_u8(in->data, in->len, out);
+}
+
+static sky_inline sky_bool_t
+sky_str_to_i16(const sky_str_t *in, sky_i16_t *out) {
+    if (sky_unlikely(sky_str_is_null(in))) {
+        return false;
+    }
+    return sky_str_len_to_i16(in->data, in->len, out);
+}
+
+static sky_inline sky_bool_t
+sky_str_to_u16(const sky_str_t *in, sky_u16_t *out) {
+    if (sky_unlikely(sky_str_is_null(in))) {
+        return false;
+    }
+    return sky_str_len_to_u16(in->data, in->len, out);
+}
+
+static sky_inline sky_bool_t
+sky_str_to_i32(const sky_str_t *in, sky_i32_t *out) {
+    if (sky_unlikely(sky_str_is_null(in))) {
+        return false;
+    }
+    return sky_str_len_to_i32(in->data, in->len, out);
+}
+
+static sky_inline sky_bool_t
+sky_str_to_u32(const sky_str_t *in, sky_u32_t *out) {
+    if (sky_unlikely(sky_str_is_null(in))) {
+        return false;
+    }
+    return sky_str_len_to_u32(in->data, in->len, out);
+}
+
+static sky_inline sky_bool_t
+sky_str_to_i64(const sky_str_t *in, sky_i64_t *out) {
+    if (sky_unlikely(sky_str_is_null(in))) {
+        return false;
+    }
+    return sky_str_len_to_i64(in->data, in->len, out);
+}
+
+
+static sky_inline sky_bool_t
+sky_str_to_u64(const sky_str_t *in, sky_u64_t *out) {
+    if (sky_unlikely(sky_str_is_null(in))) {
+        return false;
+    }
+    return sky_str_len_to_u64(in->data, in->len, out);
+}
 
 
 static sky_inline sky_bool_t
