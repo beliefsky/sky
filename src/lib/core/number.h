@@ -160,6 +160,14 @@ sky_str_len_to_usize(const sky_uchar_t *in, sky_usize_t in_len, sky_usize_t *out
 #endif
 }
 
+static sky_inline sky_bool_t
+sky_hex_str_to_u64(const sky_str_t *in, sky_u64_t *out) {
+    if (sky_unlikely(sky_str_is_null(in))) {
+        return false;
+    }
+    return sky_hex_str_len_to_u64(in->data, in->len, out);
+}
+
 static sky_inline sky_u8_t
 sky_i8_to_str(sky_i8_t data, sky_uchar_t *out) {
     return sky_i32_to_str(data, out);
