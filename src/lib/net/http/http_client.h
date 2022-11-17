@@ -48,8 +48,6 @@ sky_http_client_res_t *sky_http_client_req(sky_http_client_t *client, sky_http_c
 
 sky_str_t *sky_http_client_res_body_str(sky_http_client_t *client, sky_http_client_res_t *res);
 
-sky_str_t *sky_http_client_res_chunked(sky_http_client_t *client, sky_http_client_res_t *res);
-
 sky_bool_t sky_http_client_res_body_none(sky_http_client_t *client, sky_http_client_res_t *res);
 
 sky_bool_t sky_http_client_res_body_file(sky_http_client_t *client, sky_http_client_res_t *res, sky_str_t *path);
