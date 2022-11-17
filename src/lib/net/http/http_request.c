@@ -87,7 +87,7 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
     r->tmp = buf;
 
     for (;;) {
-        n = server->http_read(conn, buf->last, (sky_u32_t) (buf->end - buf->last));
+        n = server->http_read(conn, buf->last, (sky_usize_t) (buf->end - buf->last));
         buf->last += n;
         i = sky_http_request_line_parse(r, buf);
         if (i == 1) {
@@ -115,7 +115,7 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
                 buf->pos += n;
             }
         }
-        n = server->http_read(conn, buf->last, (sky_u32_t) (buf->end - buf->last));
+        n = server->http_read(conn, buf->last, (sky_usize_t) (buf->end - buf->last));
         buf->last += n;
     }
 
