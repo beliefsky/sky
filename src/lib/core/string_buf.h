@@ -19,15 +19,13 @@ typedef struct {
     sky_pool_t *pool;
 } sky_str_buf_t;
 
-
 void sky_str_buf_init(sky_str_buf_t *buf, sky_usize_t n);
 
 void sky_str_buf_init2(sky_str_buf_t *buf, sky_pool_t *pool, sky_usize_t n);
 
-
 void sky_str_buf_destroy(sky_str_buf_t *buf);
 
-void sky_str_buf_need_size(sky_str_buf_t *buf, sky_usize_t size);
+sky_uchar_t *sky_str_buf_need_size(sky_str_buf_t *buf, sky_usize_t size);
 
 sky_uchar_t *sky_str_buf_put(sky_str_buf_t *buf, sky_usize_t size);
 
@@ -61,6 +59,11 @@ sky_str_buf_reset(sky_str_buf_t *buf) {
 static sky_inline sky_usize_t
 sky_str_buf_size(const sky_str_buf_t *buf) {
     return (sky_usize_t) (buf->post - buf->start);
+}
+
+static sky_inline void
+sky_str_buf_need_commit(sky_str_buf_t *buf, sky_usize_t size) {
+    buf->post += size;
 }
 
 #if defined(__cplusplus)
