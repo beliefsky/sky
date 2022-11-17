@@ -147,6 +147,16 @@ sky_usize_to_str(sky_usize_t data, sky_uchar_t *out) {
 }
 
 
+static sky_inline sky_u8_t
+sky_usize_to_hex_str(sky_usize_t data, sky_uchar_t *out, sky_bool_t lower_alpha) {
+#if SKY_USIZE_MAX == SKY_U64_MAX
+    return sky_u64_to_hex_str(data, out, lower_alpha);
+#else
+    return sky_u32_to_hex_str(data, out, lower_alpha);
+#endif
+}
+
+
 static sky_inline sky_u64_t
 sky_fast_str_parse_mask8(const sky_uchar_t *chars) {
     return *(sky_u64_t *) chars;
