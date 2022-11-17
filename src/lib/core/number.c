@@ -254,7 +254,7 @@ sky_hex_str_len_to_u64(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out
     }
     sky_u64_t result = 0;
     for (sky_usize_t i = 0; i < in_len; ++i, ++in) {
-        result <<= 2;
+        result <<= 4;
 
         if (*in >= '0' && *in <= '9') {
             result += *in - '0';
