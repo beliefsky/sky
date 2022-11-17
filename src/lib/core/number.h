@@ -36,6 +36,8 @@ sky_bool_t sky_str_len_to_i64(const sky_uchar_t *in, sky_usize_t in_len, sky_i64
 
 sky_bool_t sky_str_len_to_u64(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out);
 
+sky_bool_t sky_hex_str_len_to_u32(const sky_uchar_t *in, sky_usize_t in_len, sky_u32_t *out);
+
 sky_bool_t sky_hex_str_len_to_u64(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out);
 
 sky_u8_t sky_i32_to_str(sky_i32_t data, sky_uchar_t *out);

@@ -248,6 +248,30 @@ sky_str_len_to_u64(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out) {
 }
 
 sky_bool_t
+sky_hex_str_len_to_u32(const sky_uchar_t *in, sky_usize_t in_len, sky_u32_t *out) {
+    if (sky_unlikely(!in_len || in_len > 8)) {
+        return false;
+    }
+    sky_u32_t result = 0;
+    for (sky_usize_t i = 0; i < in_len; ++i, ++in) {
+        result <<= 4;
+
+        if (*in >= '0' && *in <= '9') {
+            result += *in - '0';
+        } else if (*in >= 'A' && *in <= 'F') {
+            result += *in - 'A' + 10;
+        } else if (*in >= 'a' && *in <= 'e') {
+            result += *in - 'a' + 10;
+        } else {
+            return false;
+        }
+    }
+    *out = result;
+
+    return true;
+}
+
+sky_bool_t
 sky_hex_str_len_to_u64(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out) {
     if (sky_unlikely(!in_len || in_len > 16)) {
         return false;
@@ -258,7 +282,7 @@ sky_hex_str_len_to_u64(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out
 
         if (*in >= '0' && *in <= '9') {
             result += *in - '0';
-        } else if (*in >= 'A' && *in <= 'E') {
+        } else if (*in >= 'A' && *in <= 'F') {
             result += *in - 'A' + 10;
         } else if (*in >= 'a' && *in <= 'e') {
             result += *in - 'a' + 10;
