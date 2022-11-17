@@ -52,14 +52,6 @@ sky_bool_t sky_str_to_u64(const sky_str_t *in, sky_u64_t *out);
 
 sky_bool_t sky_str_len_to_u64(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out);
 
-sky_u8_t sky_i8_to_str(sky_i8_t data, sky_uchar_t *out);
-
-sky_u8_t sky_u8_to_str(sky_u8_t data, sky_uchar_t *out);
-
-sky_u8_t sky_i16_to_str(sky_i16_t data, sky_uchar_t *out);
-
-sky_u8_t sky_u16_to_str(sky_u16_t data, sky_uchar_t *out);
-
 sky_u8_t sky_i32_to_str(sky_i32_t data, sky_uchar_t *out);
 
 sky_u8_t sky_u32_to_str(sky_u32_t data, sky_uchar_t *out);
@@ -68,7 +60,9 @@ sky_u8_t sky_i64_to_str(sky_i64_t data, sky_uchar_t *out);
 
 sky_u8_t sky_u64_to_str(sky_u64_t data, sky_uchar_t *out);
 
-sky_u32_t sky_u32_to_hex_str(sky_u32_t data, sky_uchar_t *src, sky_bool_t lower_alpha);
+sky_u8_t sky_u32_to_hex_str(sky_u32_t data, sky_uchar_t *out, sky_bool_t lower_alpha);
+
+sky_u8_t sky_u64_to_hex_str(sky_u64_t data, sky_uchar_t *out, sky_bool_t lower_alpha);
 
 /**
  * 计算u32转换字符串时的长度
@@ -76,6 +70,81 @@ sky_u32_t sky_u32_to_hex_str(sky_u32_t data, sky_uchar_t *src, sky_bool_t lower_
  * @return 占用的字符长度
  */
 sky_u8_t sky_u32_check_str_count(sky_u32_t x);
+
+
+static sky_inline sky_bool_t
+sky_str_to_isize(const sky_str_t *in, sky_isize_t *out) {
+#if SKY_USIZE_MAX == SKY_U64_MAX
+    return sky_str_to_i64(in, out);
+#else
+    return sky_str_to_i32(in, out);
+#endif
+}
+
+static sky_inline sky_bool_t
+sky_str_len_to_isize(const sky_uchar_t *in, sky_usize_t in_len, sky_isize_t *out) {
+#if SKY_USIZE_MAX == SKY_U64_MAX
+    return sky_str_len_to_i64(in, in_len, out);
+#else
+    return sky_str_len_to_i32(in, in_len, out);
+#endif
+}
+
+static sky_inline sky_bool_t
+sky_str_to_usize(const sky_str_t *in, sky_usize_t *out) {
+#if SKY_USIZE_MAX == SKY_U64_MAX
+    return sky_str_to_u64(in, out);
+#else
+    return sky_str_to_u32(in, out);
+#endif
+}
+
+static sky_inline sky_bool_t
+sky_str_len_to_usize(const sky_uchar_t *in, sky_usize_t in_len, sky_usize_t *out) {
+#if SKY_USIZE_MAX == SKY_U64_MAX
+    return sky_str_len_to_u64(in, in_len, out);
+#else
+    return sky_str_len_to_u32(in, in_len, out);
+#endif
+}
+
+static sky_inline sky_u8_t
+sky_i8_to_str(sky_i8_t data, sky_uchar_t *out) {
+    return sky_i32_to_str(data, out);
+}
+
+static sky_inline sky_u8_t
+sky_u8_to_str(sky_u8_t data, sky_uchar_t *out) {
+    return sky_u32_to_str(data, out);
+}
+
+static sky_inline sky_u8_t
+sky_i16_to_str(sky_i16_t data, sky_uchar_t *out) {
+    return sky_i32_to_str(data, out);
+}
+
+static sky_inline sky_u8_t
+sky_u16_to_str(sky_u16_t data, sky_uchar_t *out) {
+    return sky_u32_to_str(data, out);
+}
+
+static sky_inline sky_u8_t
+sky_isize_to_str(sky_isize_t data, sky_uchar_t *out) {
+#if SKY_USIZE_MAX == SKY_U64_MAX
+    return sky_i64_to_str(data, out);
+#else
+    return sky_i32_to_str(data, out);
+#endif
+}
+
+static sky_inline sky_u8_t
+sky_usize_to_str(sky_usize_t data, sky_uchar_t *out) {
+#if SKY_USIZE_MAX == SKY_U64_MAX
+    return sky_u64_to_str(data, out);
+#else
+    return sky_u32_to_str(data, out);
+#endif
+}
 
 
 static sky_inline sky_u64_t
