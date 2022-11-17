@@ -247,6 +247,30 @@ sky_str_len_to_u64(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out) {
     return true;
 }
 
+sky_bool_t
+sky_hex_str_len_to_u64(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out) {
+    if (sky_unlikely(!in_len || in_len > 16)) {
+        return false;
+    }
+    sky_u64_t result = 0;
+    for (sky_usize_t i = 0; i < in_len; ++i, ++in) {
+        result <<= 2;
+
+        if (*in >= '0' && *in <= '9') {
+            result += *in - '0';
+        } else if (*in >= 'A' && *in <= 'E') {
+            result += *in - 'A' + 10;
+        } else if (*in >= 'a' && *in <= 'e') {
+            result += *in - 'a' + 10;
+        } else {
+            return false;
+        }
+    }
+    *out = result;
+
+    return true;
+}
+
 
 sky_u8_t
 sky_i32_to_str(sky_i32_t data, sky_uchar_t *out) {
