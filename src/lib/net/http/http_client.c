@@ -3,6 +3,7 @@
 //
 
 #include <netinet/in.h>
+#include <netdb.h>
 #include "http_client.h"
 #include "../tcp_client.h"
 #include "../../core/memory.h"
@@ -23,6 +24,9 @@ struct sky_http_client_s {
     sky_tcp_client_t *client;
     sky_coro_t *coro;
     sky_defer_t *defer;
+    sky_usize_t host_len;
+    sky_uchar_t host[64];
+    sky_u16_t port;
 };
 
 typedef enum {
@@ -44,7 +48,10 @@ typedef struct {
 
 } http_res_ctx_t;
 
+
 static void http_client_defer(sky_http_client_t *client);
+
+static sky_bool_t http_create_connect(sky_http_client_t *client, sky_http_client_req_t *req);
 
 static void http_req_writer(sky_http_client_t *client, sky_http_client_req_t *req);
 
@@ -88,6 +95,8 @@ sky_http_client_create(sky_event_t *event, sky_coro_t *coro) {
     client->client = sky_tcp_client_create(event, coro, &conf);
     client->coro = coro;
     client->defer = sky_defer_add(coro, (sky_defer_func_t) http_client_defer, client);
+    client->host_len = 0;
+    client->port = 0;
 
     return client;
 }
@@ -137,20 +146,23 @@ sky_http_client_req(sky_http_client_t *client, sky_http_client_req_t *req) {
         return null;
     }
     if (!sky_tcp_client_is_connection(client->client)) {
-        const sky_uchar_t ip[4] = {31, 22, 108, 237};
-        const struct sockaddr_in address = {
-                .sin_family = AF_INET,
-                .sin_addr.s_addr = sky_mem4_load(ip),
-                .sin_port = sky_htons(req->port)
-        };
-        sky_log_info("reconnect");
-        if (!sky_tcp_client_connection(
-                client->client,
-                (const sky_inet_address_t *) &address,
-                sizeof(address)
-        )) {
-            sky_log_info("connect error");
+        if (!http_create_connect(client, req)) {
             return null;
+        }
+        if (req->host_address.len > 64) {
+            client->port = 0;
+        } else {
+            client->host_len = req->host_address.len;
+            sky_memcpy(client->host, req->host_address.data, client->host_len);
+            client->port = req->port;
+        }
+    } else {
+        if (!(client->port
+              && req->port == client->port
+              && sky_str_equals2(&req->host_address, client->host, client->host_len))) {
+            if (!http_create_connect(client, req)) {
+                return null;
+            }
         }
     }
     http_req_writer(client, req);
@@ -217,6 +229,60 @@ http_client_defer(sky_http_client_t *client) {
     sky_tcp_client_destroy(client->client);
     client->client = null;
     sky_free(client);
+}
+
+static sky_bool_t
+http_create_connect(sky_http_client_t *client, sky_http_client_req_t *req) {
+
+    struct addrinfo hints = {
+            .ai_family = AF_UNSPEC,
+            .ai_socktype = SOCK_STREAM,
+            .ai_flags  = AI_CANONNAME,
+    };
+    struct addrinfo *result, *item;
+
+    sky_i32_t ret = getaddrinfo((const sky_char_t *)req->host_address.data, null, &hints, &result);
+    if (sky_unlikely(ret != 0)) {
+        return false;
+    }
+    sky_u32_t addr_len = 0;
+    sky_inet_address_t *addr;
+
+    for (item = result; null != item ; item = item->ai_next) {
+        switch (result->ai_family) {
+            case AF_INET: {
+                struct sockaddr_in *address = (struct sockaddr_in *) item->ai_addr;
+                address->sin_port = sky_htons(req->port);
+                addr_len = item->ai_addrlen;
+                addr = (sky_inet_address_t *) address;
+                break;
+            }
+            case AF_INET6: {
+                struct sockaddr_in6 *address = (struct sockaddr_in6 *) item->ai_addr;
+                address->sin6_port = sky_htons(req->port);
+                addr_len = item->ai_addrlen;
+                addr = (sky_inet_address_t *) address;
+                break;
+            }
+            default:
+                continue;
+        }
+        break;
+    }
+    if (sky_unlikely(!addr_len)) {
+        freeaddrinfo(result);
+        return false;
+    }
+    sky_defer_t *defer = sky_defer_add(client->coro, (sky_defer_func_t) freeaddrinfo, result);
+    const sky_bool_t flags = sky_tcp_client_connection(
+            client->client,
+            addr,
+            addr_len
+    );
+    sky_defer_cancel(client->coro, defer);
+    freeaddrinfo(result);
+
+    return flags;
 }
 
 
@@ -409,7 +475,7 @@ http_res_chunked_str(sky_http_client_t *client, sky_http_client_res_t *res) {
         buff_size = 32;
     }
     sky_str_buf_t str_buf;
-    sky_str_buf_init2(&str_buf, res->pool, 1024);
+    sky_str_buf_init2(&str_buf, res->pool, 2048);
 
     sky_uchar_t *start = buff->pos;
     sky_uchar_t *p = start;
