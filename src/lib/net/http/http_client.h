@@ -57,12 +57,7 @@ sky_http_client_res_t *sky_http_client_req(sky_http_client_t *client, sky_http_c
 
 sky_str_t *sky_http_client_res_body_str(sky_http_client_res_t *res);
 
-sky_bool_t sky_http_client_res_body_none(sky_http_client_res_t *res);
-
-sky_bool_t sky_http_client_res_body_file(sky_http_client_res_t *res, sky_str_t *path);
-
 void sky_http_client_destroy(sky_http_client_t *client);
-
 
 static sky_inline sky_bool_t
 sky_http_client_req_init(sky_http_client_req_t *req, sky_pool_t *pool, sky_str_t *url) {
@@ -76,14 +71,12 @@ sky_http_client_req_init(sky_http_client_req_t *req, sky_pool_t *pool, sky_str_t
 
 static sky_inline void
 sky_http_client_req_set_host_len(sky_http_client_req_t *req, sky_uchar_t *host, sky_usize_t host_len) {
-
     req->host->data = host;
     req->host->len = host_len;
 }
 
 static sky_inline void
 sky_http_client_req_set_method_len(sky_http_client_req_t *req, sky_uchar_t *method, sky_usize_t method_len) {
-
     req->method.data = method;
     req->method.len = method_len;
 }
@@ -104,13 +97,25 @@ sky_http_client_req_set_method(sky_http_client_req_t *req, sky_str_t *method) {
     sky_http_client_req_set_method_len(req, method->data, method->len);
 }
 
+
 static sky_inline void
-sky_http_client_req_append_header(sky_http_client_req_t *req, sky_uchar_t *key, sky_usize_t key_len, sky_str_t *val) {
+sky_http_client_req_append_header_len(
+        sky_http_client_req_t *req,
+        sky_uchar_t *key,
+        sky_usize_t key_len,
+        sky_uchar_t *val,
+        sky_usize_t val_len
+) {
     sky_http_header_t *header = sky_list_push(&req->headers);
     header->key.data = key;
     header->key.len = key_len;
-    header->val.data = val->data;
-    header->val.len = val->len;
+    header->val.data = val;
+    header->val.len = val_len;
+}
+
+static sky_inline void
+sky_http_client_req_append_header(sky_http_client_req_t *req, sky_uchar_t *key, sky_usize_t key_len, sky_str_t *val) {
+    sky_http_client_req_append_header_len(req, key, key_len, val->data, val->len);
 }
 
 static sky_inline sky_bool_t
