@@ -23,6 +23,8 @@ struct sky_http_client_req_s {
     sky_str_t version_name;
     sky_str_t *host;
     sky_pool_t *pool;
+    sky_u16_t port;
+    sky_bool_t is_ssl: 1;
 };
 
 struct sky_http_client_res_s {
