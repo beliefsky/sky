@@ -260,7 +260,7 @@ sky_hex_str_len_to_u32(const sky_uchar_t *in, sky_usize_t in_len, sky_u32_t *out
             result += *in - '0';
         } else if (*in >= 'A' && *in <= 'F') {
             result += *in - 'A' + 10;
-        } else if (*in >= 'a' && *in <= 'e') {
+        } else if (*in >= 'a' && *in <= 'f') {
             result += *in - 'a' + 10;
         } else {
             return false;
@@ -284,7 +284,7 @@ sky_hex_str_len_to_u64(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out
             result += *in - '0';
         } else if (*in >= 'A' && *in <= 'F') {
             result += *in - 'A' + 10;
-        } else if (*in >= 'a' && *in <= 'e') {
+        } else if (*in >= 'a' && *in <= 'f') {
             result += *in - 'a' + 10;
         } else {
             return false;
