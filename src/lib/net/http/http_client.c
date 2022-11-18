@@ -105,28 +105,27 @@ sky_http_client_req_init_len(
         return false;
     }
     req->pool = pool;
+    sky_str_set(&req->method, "GET");
+    sky_str_set(&req->version_name, "HTTP/1.1");
+    req->host_address = parsed->host;
+    req->path = parsed->path;
     req->is_ssl = parsed->scheme.is_ssl;
 
+    sky_str_t *host_name = &parsed->host;
     if (parsed->port) {
         req->port = parsed->port;
-        sky_uchar_t *tmp = sky_palloc(pool, parsed->host.len + 7);
-        sky_memcpy(tmp, parsed->host.data, parsed->host.len);
-        parsed->host.data = tmp;
-        tmp += parsed->host.len;
+        sky_uchar_t *tmp = sky_palloc(pool, host_name->len + 7);
+        sky_memcpy(tmp, host_name->data, host_name->len);
+        host_name->data = tmp;
+        tmp += host_name->len;
         *tmp++ = ':';
-        parsed->host.len += sky_u16_to_str(parsed->port, tmp);
+        host_name->len += sky_u16_to_str(parsed->port, tmp);
     } else {
         req->port = parsed->scheme.default_port;
     }
-
-    sky_log_info("%s %lu", parsed->host.data, parsed->host.len);
-
-    sky_str_set(&req->method, "GET");
-    req->path = parsed->path;
-    sky_str_set(&req->version_name, "HTTP/1.1");
     sky_list_init(&req->headers, pool, 16, sizeof(sky_http_header_t));
 
-    sky_http_client_req_append_header(req, sky_str_line("Host"), &parsed->host);
+    sky_http_client_req_append_header(req, sky_str_line("Host"), host_name);
 
     return true;
 }
