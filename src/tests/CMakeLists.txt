@@ -1,7 +1,7 @@
 include_directories(${CMAKE_SOURCE_DIR}/src/lib)
 #include_directories(BEFORE ${CMAKE_BINARY_DIR})
 
-add_executable(sky_test sky_test.c)
+add_executable(sky_test sky_test.c yyjson.c)
 
 target_link_libraries(sky_test
         ${SKY_COMMON_LIBS}

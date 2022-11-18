@@ -99,6 +99,7 @@ struct sky_http_request_s {
     sky_bool_t keep_alive: 1;
     sky_bool_t read_request_body: 1;
     sky_bool_t response: 1;
+    sky_bool_t chunked: 1;
 };
 
 struct sky_http_multipart_conf_s {

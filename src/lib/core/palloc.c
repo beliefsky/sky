@@ -99,13 +99,11 @@ sky_prealloc(sky_pool_t *pool, void *ptr, sky_usize_t ptr_size, sky_usize_t size
     if (p == pool->d.last) {
         if (size <= ptr_size) {
             pool->d.last = ptr + size;
-
             return ptr;
         }
         const sky_usize_t re_size = size - ptr_size;
         if ((p + re_size) <= pool->d.end) {
             pool->d.last += re_size;
-
             return ptr;
         }
     } else {
@@ -116,7 +114,6 @@ sky_prealloc(sky_pool_t *pool, void *ptr, sky_usize_t ptr_size, sky_usize_t size
                     if (sky_unlikely(!size || new_ptr)) {
                         l->alloc = new_ptr;
                     }
-
                     return new_ptr;
                 }
             }
@@ -124,7 +121,9 @@ sky_prealloc(sky_pool_t *pool, void *ptr, sky_usize_t ptr_size, sky_usize_t size
     }
 
     void *new_ptr = sky_pnalloc(pool, size);
-    sky_memcpy(new_ptr, ptr, ptr_size);
+    if (sky_likely(new_ptr)) {
+        sky_memcpy(new_ptr, ptr, ptr_size);
+    }
 
     return new_ptr;
 }
