@@ -28,6 +28,7 @@ set(SOURCES
         core/random.c
         core/uuid.c
         core/json.c
+        core/url.c
         core/timer_wheel.c
         core/process.c
         safe/spsc_queue.c
@@ -183,6 +184,7 @@ install(FILES
         core/uuid.h
         core/log.h
         core/json.h
+        core/url.h
         core/timer_wheel.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/core")
 install(FILES

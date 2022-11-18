@@ -132,10 +132,7 @@ sky_str_len_unsafe_equals(const sky_uchar_t *s1, const sky_uchar_t *s2, sky_usiz
 static sky_inline sky_bool_t
 sky_str_len_equals(const sky_uchar_t *s1, sky_usize_t s1_len,
                    const sky_uchar_t *s2, sky_usize_t s2_len) {
-    if (s1_len != s2_len) {
-        return false;
-    }
-    return sky_str_len_unsafe_equals(s1, s2, s2_len);
+    return s1_len != s2_len ? false : sky_str_len_unsafe_equals(s1, s2, s2_len);
 }
 
 static sky_inline sky_bool_t
@@ -155,10 +152,7 @@ sky_str_len_unsafe_cmp(const sky_uchar_t *s1, const sky_uchar_t *s2, sky_usize_t
 
 static sky_inline sky_i32_t
 sky_str_len_cmp(const sky_uchar_t *s1, sky_usize_t s1_len, const sky_uchar_t *s2, sky_usize_t s2_len) {
-    if (s1_len != s2_len) {
-        return (sky_i32_t) (s1_len - s2_len);
-    }
-    return sky_str_len_unsafe_cmp(s1, s2, s2_len);
+    return s1_len != s2_len ? (sky_i32_t) (s1_len - s2_len) : sky_str_len_unsafe_cmp(s1, s2, s2_len);
 }
 
 static sky_inline sky_i32_t
@@ -179,10 +173,7 @@ sky_str_len_unsafe_starts_with(const sky_uchar_t *src, const sky_uchar_t *prefix
 static sky_inline sky_bool_t
 sky_str_len_starts_with(const sky_uchar_t *src, sky_usize_t src_len,
                         const sky_uchar_t *prefix, sky_usize_t prefix_len) {
-    if (src_len < prefix_len) {
-        return false;
-    }
-    return sky_str_len_unsafe_equals(src, prefix, prefix_len);
+    return src_len < prefix_len ? false : sky_str_len_unsafe_equals(src, prefix, prefix_len);
 }
 
 static sky_inline sky_bool_t
@@ -200,10 +191,7 @@ sky_str_find(const sky_str_t *src, const sky_uchar_t *sub, sky_usize_t sub_len) 
 static sky_inline sky_isize_t
 sky_str_len_index(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *sub, sky_usize_t sub_len) {
     const sky_uchar_t *p = sky_str_len_find(src, src_len, sub, sub_len);
-    if (!p) {
-        return -1;
-    }
-    return (p - src);
+    return !p ? -1 : (p - src);
 }
 
 static sky_inline sky_isize_t
@@ -224,10 +212,7 @@ sky_str_find_char(const sky_str_t *src, sky_uchar_t ch) {
 static sky_inline sky_isize_t
 sky_str_len_index_char(const sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t ch) {
     const sky_uchar_t *p = sky_str_len_find_char(src, src_len, ch);
-    if (!p) {
-        return -1;
-    }
-    return (p - src);
+    return !p ? -1 : (p - src);
 }
 
 static sky_inline sky_isize_t

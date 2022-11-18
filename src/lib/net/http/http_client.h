@@ -42,7 +42,12 @@ struct sky_http_client_res_s {
 
 sky_http_client_t *sky_http_client_create(sky_event_t *event, sky_coro_t *coro);
 
-void sky_http_client_req_init(sky_http_client_req_t *req, sky_pool_t *pool, sky_str_t *url);
+sky_bool_t sky_http_client_req_init_len(
+        sky_http_client_req_t *req,
+        sky_pool_t *pool,
+        const sky_uchar_t *url,
+        sky_usize_t url_len
+);
 
 sky_http_client_res_t *sky_http_client_req(sky_http_client_t *client, sky_http_client_req_t *req);
 
@@ -53,6 +58,16 @@ sky_bool_t sky_http_client_res_body_none(sky_http_client_t *client, sky_http_cli
 sky_bool_t sky_http_client_res_body_file(sky_http_client_t *client, sky_http_client_res_t *res, sky_str_t *path);
 
 void sky_http_client_destroy(sky_http_client_t *client);
+
+
+static sky_inline sky_bool_t
+sky_http_client_req_init(sky_http_client_req_t *req, sky_pool_t *pool, sky_str_t *url) {
+    if (sky_unlikely(!url)) {
+        req->pool = null;
+        return false;
+    }
+    return sky_http_client_req_init_len(req, pool, url->data, url->len);
+}
 
 
 static sky_inline void
@@ -74,6 +89,11 @@ sky_http_client_req_append_header(sky_http_client_req_t *req, sky_uchar_t *key, 
     header->key.len = key_len;
     header->val.data = val->data;
     header->val.len = val->len;
+}
+
+static sky_inline sky_bool_t
+sky_http_client_res_is_chunked(sky_http_client_res_t *res) {
+    return !res->read_res_body && res->chunked;
 }
 
 
