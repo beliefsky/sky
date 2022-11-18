@@ -39,6 +39,7 @@ extern "C" {
 #define sky_memmove2(_dist, _src) sky_memcpy2(_dist, _src)
 #define sky_memmove4(_dist, _src) sky_memcpy4(_dist, _src)
 #define sky_memmove8(_dist, _src) sky_memcpy8(_dist, _src)
+#define sky_memmove16(_dist, _src) sky_memcpy16(_dist, _src)
 
 
 static sky_inline void
@@ -54,6 +55,16 @@ sky_memcpy4(void *dist, const void *src) {
 static sky_inline void
 sky_memcpy8(void *dist, const void *src) {
     *((sky_u64_t *) dist) = *((sky_u64_t *) src);
+}
+
+static sky_inline void
+sky_memcpy16(void *dist, const void *src) {
+#ifdef HAVE_INT_128
+    *((sky_u128_t *) dist) = *((sky_u128_t *) src);
+#else
+    sky_memcpy8(dist, src);
+    sky_memcpy8(((sky_uchar_t *)dist) + 8, ((sky_uchar_t *)src) + 8);
+#endif
 }
 
 static sky_inline void
@@ -78,7 +89,7 @@ sky_mem3_load(const void *src) {
     ptr += 2;
     src += 2;
 
-    *(ptr++) = *(sky_u8_t *)src;
+    *(ptr++) = *(sky_u8_t *) src;
     *ptr = 0;
 
     return dst;
