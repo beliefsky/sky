@@ -91,8 +91,13 @@ sky_http_client_create(sky_event_t *event, sky_coro_t *coro) {
     return client;
 }
 
-void
-sky_http_client_req_init(sky_http_client_req_t *req, sky_pool_t *pool, sky_str_t *url) {
+sky_bool_t
+sky_http_client_req_init_len(
+        sky_http_client_req_t *req,
+        sky_pool_t *pool,
+        const sky_uchar_t *url,
+        sky_usize_t url_len
+) {
     req->pool = pool;
     sky_str_set(&req->method, "GET");
     sky_str_set(&req->path, "/");
@@ -101,11 +106,14 @@ sky_http_client_req_init(sky_http_client_req_t *req, sky_pool_t *pool, sky_str_t
 
     sky_str_t host = sky_string("www.wnacg.top");
     sky_http_client_req_append_header(req, sky_str_line("Host"), &host);
+
+    return true;
 }
+
 
 sky_http_client_res_t *
 sky_http_client_req(sky_http_client_t *client, sky_http_client_req_t *req) {
-    if (sky_unlikely(!client || !req)) {
+    if (sky_unlikely(!client || !req->pool)) {
         return null;
     }
     if (!sky_tcp_client_is_connection(client->client)) {
