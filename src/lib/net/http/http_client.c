@@ -8,6 +8,7 @@
 #include "../../core/memory.h"
 #include "../../core/number.h"
 #include "../../core/string_buf.h"
+#include "../../core/url.h"
 #include "../../core/log.h"
 
 #ifdef __SSE4_2__
@@ -98,14 +99,34 @@ sky_http_client_req_init_len(
         const sky_uchar_t *url,
         sky_usize_t url_len
 ) {
+    sky_url_t *parsed = sky_url_len_parse(pool, url, url_len);
+    if (sky_unlikely(!parsed)) {
+        req->pool = null;
+        return false;
+    }
     req->pool = pool;
+    req->is_ssl = parsed->scheme.is_ssl;
+
+    if (parsed->port) {
+        req->port = parsed->port;
+        sky_uchar_t *tmp = sky_palloc(pool, parsed->host.len + 7);
+        sky_memcpy(tmp, parsed->host.data, parsed->host.len);
+        parsed->host.data = tmp;
+        tmp += parsed->host.len;
+        *tmp++ = ':';
+        parsed->host.len += sky_u16_to_str(parsed->port, tmp);
+    } else {
+        req->port = parsed->scheme.default_port;
+    }
+
+    sky_log_info("%s %lu", parsed->host.data, parsed->host.len);
+
     sky_str_set(&req->method, "GET");
-    sky_str_set(&req->path, "/");
+    req->path = parsed->path;
     sky_str_set(&req->version_name, "HTTP/1.1");
     sky_list_init(&req->headers, pool, 16, sizeof(sky_http_header_t));
 
-    sky_str_t host = sky_string("www.wnacg.top");
-    sky_http_client_req_append_header(req, sky_str_line("Host"), &host);
+    sky_http_client_req_append_header(req, sky_str_line("Host"), &parsed->host);
 
     return true;
 }
@@ -121,7 +142,7 @@ sky_http_client_req(sky_http_client_t *client, sky_http_client_req_t *req) {
         const struct sockaddr_in address = {
                 .sin_family = AF_INET,
                 .sin_addr.s_addr = sky_mem4_load(ip),
-                .sin_port = sky_htons(80)
+                .sin_port = sky_htons(req->port)
         };
         sky_log_info("reconnect");
         if (!sky_tcp_client_connection(
@@ -431,7 +452,7 @@ http_res_chunked_str(sky_http_client_t *client, sky_http_client_res_t *res) {
 
             const sky_usize_t read_size = (sky_usize_t) (buff->last - p);
             if (body_size <= read_size) { // 已经读完body
-                sky_str_buf_append_str_len(&str_buf, p, (sky_usize_t)body_size);
+                sky_str_buf_append_str_len(&str_buf, p, (sky_usize_t) body_size);
                 p += body_size;
             } else {
                 if (sky_unlikely(body_size > SKY_USIZE_MAX)) {
@@ -442,8 +463,8 @@ http_res_chunked_str(sky_http_client_t *client, sky_http_client_res_t *res) {
                 body_size -= read_size;
                 buff->last = buff->pos;
 
-                p = sky_str_buf_put(&str_buf, (sky_usize_t)body_size);
-                if (sky_unlikely(!sky_tcp_client_read_all(client->client, p, (sky_usize_t)body_size))) {
+                p = sky_str_buf_put(&str_buf, (sky_usize_t) body_size);
+                if (sky_unlikely(!sky_tcp_client_read_all(client->client, p, (sky_usize_t) body_size))) {
                     goto error;
                 }
                 p = buff->pos;
