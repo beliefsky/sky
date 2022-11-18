@@ -20,14 +20,13 @@ typedef struct {
 
 typedef struct {
     sky_url_scheme_t scheme;
-    sky_str_t authority;
     sky_str_t host;
     sky_str_t path;
     sky_u16_t port;
 } sky_url_t;
 
 
-sky_bool_t sky_url_len_parse(sky_url_t *parsed, const sky_uchar_t *url, sky_usize_t url_len);
+sky_url_t *sky_url_len_parse(sky_pool_t *pool, const sky_uchar_t *url, sky_usize_t url_len);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

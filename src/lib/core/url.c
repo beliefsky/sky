@@ -3,12 +3,24 @@
 //
 
 #include "url.h"
+#include "number.h"
 
 static sky_usize_t parse_scheme(sky_url_scheme_t *scheme, const sky_uchar_t *url, sky_usize_t url_len);
 
+static sky_usize_t parse_authority_and_path(
+        sky_pool_t *pool,
+        sky_url_t *parsed,
+        const sky_uchar_t *url,
+        sky_usize_t url_len
+);
 
-sky_bool_t
-sky_http_url_len_parse(sky_url_t *parsed, const sky_uchar_t *url, sky_usize_t url_len) {
+static sky_usize_t parse_host_port(sky_pool_t *pool, sky_url_t *parsed, const sky_uchar_t *url, sky_usize_t url_len);
+
+
+sky_url_t *
+sky_url_len_parse(sky_pool_t *pool, const sky_uchar_t *url, sky_usize_t url_len) {
+    sky_url_t *parsed = sky_pcalloc(pool, sizeof(sky_url_t));
+
     if (sky_unlikely(!url_len)) {
         return false;
     }
@@ -23,6 +35,7 @@ sky_http_url_len_parse(sky_url_t *parsed, const sky_uchar_t *url, sky_usize_t ur
     }
     url_len -= 2;
 
+    return sky_unlikely(!parse_authority_and_path(pool, parsed, url, url_len)) ? null : parsed;
 }
 
 
@@ -46,69 +59,76 @@ parse_scheme(sky_url_scheme_t *scheme, const sky_uchar_t *url, sky_usize_t url_l
 }
 
 static sky_usize_t
-parse_authority_and_path(sky_url_t *parsed, const sky_uchar_t *url, sky_usize_t url_len) {
-    const char *p = h2o_url_parse_hostport(src, url_end - src, &parsed->host, &parsed->_port);
-    if (p == NULL)
-        return -1;
-    parsed->authority = h2o_iovec_init(src, p - src);
-    if (p == url_end) {
-        parsed->path = h2o_iovec_init(H2O_STRLIT("/"));
-    } else {
-        if (*p != '/')
-            return -1;
-        parsed->path = h2o_iovec_init(p, url_end - p);
+parse_authority_and_path(sky_pool_t *pool, sky_url_t *parsed, const sky_uchar_t *url, sky_usize_t url_len) {
+    sky_usize_t n = parse_host_port(pool, parsed, url, url_len);
+    if (sky_unlikely(!n)) {
+        return 0;
     }
-    return 0;
+    url += n;
+    url_len -= n;
+    if (!url_len) {
+        sky_str_set(&parsed->path, "/");
+    } else {
+        parsed->path.data = sky_palloc(pool, url_len + 1);
+        sky_memcpy(parsed->path.data, url, url_len);
+        parsed->path.data[url_len] = '\0';
+        parsed->path.len = url_len;
+    }
+
+    return true;
 }
 
-const sky_usize_t
-parse_host_port(sky_url_t *parsed, const sky_uchar_t *url, sky_usize_t url_len) {
+static sky_usize_t
+parse_host_port(sky_pool_t *pool, sky_url_t *parsed, const sky_uchar_t *url, sky_usize_t url_len) {
     sky_isize_t index;
 
     if (sky_unlikely(!url_len)) {
         return 0;
     }
+    const sky_usize_t total = url_len;
+
     if (*url == '[') { /* is IPv6 address */
         ++url;
-        --url_len;
         index = sky_str_len_index_char(url, url_len, ']');
+        if (sky_unlikely(index == -1)) {
+            return false;
+        }
+        parsed->host.len = (sky_usize_t) index;
+        parsed->host.data = sky_palloc(pool, parsed->host.len + 1);
+        sky_memcpy(parsed->host.data, url, parsed->host.len);
+        parsed->host.data[parsed->host.len] = '\0';
 
-    }
-
-    if (token_start == end)
-        return NULL;
-
-    if (*token_start == '[') {
-        /* is IPv6 address */
-        ++token_start;
-        if ((token_end = memchr(token_start, ']', end - token_start)) == NULL)
-            return NULL;
-        *host = h2o_iovec_init(token_start, token_end - token_start);
-        token_start = token_end + 1;
+        url_len -= (sky_usize_t) index + 2;
+        url += index + 1;
     } else {
-        for (token_end = token_start; !(token_end == end || *token_end == '/' || *token_end == ':'); ++token_end)
-            ;
-        *host = h2o_iovec_init(token_start, token_end - token_start);
-        token_start = token_end;
+        const sky_uchar_t *start = url;
+        for (; !(!url_len || *url == '/' || *url == ':'); --url_len, ++url);
+        parsed->host.len = (sky_usize_t) (url - start);
+        parsed->host.data = sky_palloc(pool, parsed->host.len + 1);
+        sky_memcpy(parsed->host.data, start, parsed->host.len);
+        parsed->host.data[parsed->host.len] = '\0';
+    }
+    if (sky_unlikely(!parsed->host.len)) {
+        return 0;
+    }
+    if (url_len > 0 && *url == ':') {
+        ++url;
+        --url_len;
+        index = sky_str_len_index_char(url, url_len, '/');
+        if (index == -1) {
+            if (sky_unlikely(!sky_str_len_to_u16(url, url_len, &parsed->port))) {
+                return 0;
+            }
+            url_len = 0;
+        } else {
+            if (sky_unlikely(!sky_str_len_to_u16(url, (sky_usize_t) index, &parsed->port))) {
+                return 0;
+            }
+            url_len -= (sky_usize_t) index;
+        }
     }
 
-    /* disallow zero-length host */
-    if (host->len == 0)
-        return NULL;
-
-    /* parse port */
-    if (token_start != end && *token_start == ':') {
-        size_t p;
-        ++token_start;
-        if ((token_end = memchr(token_start, '/', end - token_start)) == NULL)
-            token_end = end;
-        if ((p = h2o_strtosize(token_start, token_end - token_start)) >= 65535)
-            return NULL;
-        *port = (uint16_t)p;
-        token_start = token_end;
-    }
-
-    return token_start;
+    return (total - url_len);
 }
 
 
