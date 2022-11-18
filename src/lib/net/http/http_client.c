@@ -381,36 +381,76 @@ static sky_bool_t
 http_res_chunked_none(sky_http_client_t *client, sky_http_client_res_t *res) {
     res->chunked = false;
 
-    sky_buf_t *tmp = res->tmp;
-    if ((sky_usize_t) (tmp->end - tmp->pos) < 4095) { // 缓冲 4095字节
-        sky_buf_rebuild(tmp, 4095);
+    sky_buf_t *buff = res->tmp;
+    sky_usize_t buff_size = (sky_usize_t) (buff->end - buff->pos);
+    if (buff_size < 4095) { // 缓冲 4095字节
+        sky_buf_rebuild(buff, 4095);
+        buff_size = 4095;
     }
-    sky_usize_t read_n = (sky_usize_t) (tmp->last - tmp->pos);
-    sky_uchar_t *p = tmp->pos;
+    sky_uchar_t *p = buff->pos;
+    sky_uchar_t *start = p;
+    for (;;) {
+        const sky_isize_t index = sky_str_len_index_char(p, (sky_usize_t) (buff->last - p), '\n');
+        if (index == -1) {
+            if ((sky_usize_t) (buff->last - buff->pos) > 18) { // hex长度过长
+                goto error;
+            }
+            sky_usize_t buff_free = (sky_usize_t) (buff->end - buff->last);
+            if (buff_free < 18) { // 剩余长度较少时，数据移动到开始处
+                const sky_usize_t str_len = (sky_usize_t) (buff->last - start);
+                sky_memcpy(buff->pos, start, str_len);
+                start = buff->pos;
+                buff->last = start + str_len;
+                buff_free = buff_size - str_len;
+            }
+            p = buff->last;
 
-    goto error;
-//    while (read_n >= 4) {
-//        index = sky_str_len_index_char(p, n, '\n');
-//        if (index == -1) {
-//            if (sky_unlikely(n > 18)) {
-//                goto error;
-//            }
-//        } else if (index > 1 && tmp->pos[index - 1] == '\r') {
-//            if (sky_unlikely(sky_hex_str_len_to_usize(tmp->pos, (sky_usize_t) (--index), &size))) {
-//                goto error;
-//            }
-//            n -= (sky_usize_t) (++index);
-//        } else {
-//            goto error;
-//        }
-//    }
+            const sky_usize_t read_n = sky_tcp_client_read(client->client, buff->last, buff_free);
+            if (sky_unlikely(!read_n)) {
+                goto error;
+            }
+            buff->last += read_n;
+        } else {
+            p += index - 1;
+            if (sky_unlikely(*p != '\r')) { // \r\n
+                goto error;
+            }
+            const sky_usize_t str_len = (sky_usize_t) (p - start);
+            sky_u64_t body_size;
+            if (sky_unlikely(!sky_hex_str_len_to_u64(start, str_len, &body_size))) { // 非HEX字符或过长
+                goto error;
+            }
+            const sky_bool_t end = !body_size;
+            buff_size += 2;
+            p += 2;
+
+            const sky_usize_t read_size = (sky_usize_t) (buff->last - p);
+            if (body_size <= read_size) { // 已经读完body
+                p += body_size;
+            } else {
+                body_size -= read_size;
+                const sky_u64_t tmp_buff_size = buff_size;
+                sky_usize_t read_min;
+                do {
+                    read_min = sky_min(tmp_buff_size, body_size);
+                    sky_tcp_client_read_all(client->client, buff->pos, read_min);
+                    body_size -= read_min;
+                } while (body_size > 0);
+                p = buff->pos;
+            }
+            start = p;
+            if (end) {
+                goto done;
+            }
+        }
+    }
 
     done:
-    sky_buf_rebuild(tmp, 0);
-    return false;
+    sky_buf_rebuild(buff, 0);
+    return true;
 
     error:
-    sky_buf_rebuild(tmp, 0);
+    sky_buf_rebuild(buff, 0);
     return false;
 }
 
