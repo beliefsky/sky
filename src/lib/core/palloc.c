@@ -62,7 +62,6 @@ sky_pool_reset(sky_pool_t *pool) {
     for (sky_pool_large_t *l = pool->large; l; l = l->next) {
         if (sky_likely(l->alloc)) {
             sky_free(l->alloc);
-            l->alloc = null;
         }
     }
     for (sky_pool_t *p = pool; p; p = p->d.next) {
@@ -89,7 +88,6 @@ sky_pcalloc(sky_pool_t *pool, sky_usize_t size) {
     if (sky_likely(p)) {
         sky_memzero(p, size);
     }
-
     return p;
 }
 
