@@ -44,7 +44,13 @@ struct sky_http_client_res_s {
     sky_bool_t read_res_body: 1;
 };
 
-sky_http_client_t *sky_http_client_create(sky_event_t *event, sky_coro_t *coro);
+typedef struct {
+    sky_i32_t keep_alive;
+    sky_i32_t timeout;
+    sky_bool_t nodelay: 1;
+} sky_http_client_conf_t;
+
+sky_http_client_t *sky_http_client_create(sky_event_t *event, sky_coro_t *coro, const sky_http_client_conf_t *conf);
 
 sky_bool_t sky_http_client_req_init_len(
         sky_http_client_req_t *req,
