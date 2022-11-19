@@ -547,8 +547,6 @@ tcp_run(sky_tcp_client_t *client) {
 
     if (!result) {
         sky_event_unregister(event);
-        client->free = true;
-        sky_event_reset(&client->ev, tcp_run, sky_free);
     }
 
     return result;
