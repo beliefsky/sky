@@ -23,21 +23,23 @@ sky_buf_create(sky_pool_t *pool, sky_usize_t size) {
 }
 
 void sky_buf_rebuild(sky_buf_t *buf, sky_usize_t size) {
-    const sky_usize_t n = (sky_usize_t) (buf->end - buf->pos);
+    const sky_usize_t n = (sky_usize_t) (buf->end - buf->pos); // 可读写缓冲
+    const sky_usize_t data_size = (sky_usize_t) (buf->last - buf->pos);
 
-    if (size < n) {
+    if (size <= n) {
         if (buf->end == buf->pool->d.last) {
+            size = sky_max(data_size, size);
+
             buf->end = buf->pos + size;
             buf->pool->d.last = buf->end;
         }
         return;
     }
-    if (buf->end == buf->pool->d.last && (buf->pos + size) <= buf->pool->d.end) {
+    if (buf->end == buf->pool->d.last && (buf->pos + size) < buf->pool->d.end) {
         buf->end = buf->pos + size;
         buf->pool->d.last = buf->end;
         return;
     }
-    const sky_usize_t data_size = (sky_usize_t) (buf->last - buf->pos);
 
     buf->start = sky_pnalloc(buf->pool, size);
     sky_memcpy(buf->start, buf->pos, data_size);
