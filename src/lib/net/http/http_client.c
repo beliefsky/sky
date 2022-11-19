@@ -475,6 +475,8 @@ http_res_chunked_str(sky_http_client_res_t *res) {
         sky_buf_rebuild(buff, 32);
         buff_size = 32;
     }
+    sky_str_t *result = sky_palloc(res->pool, sizeof(sky_str_t));
+
     sky_str_buf_t str_buf;
     sky_str_buf_init2(&str_buf, res->pool, 2048);
 
@@ -544,7 +546,6 @@ http_res_chunked_str(sky_http_client_res_t *res) {
 
     done:
     sky_buf_rebuild(buff, 0);
-    sky_str_t *result = sky_pcalloc(res->pool, sizeof(sky_str_t));
     sky_str_buf_build(&str_buf, result);
     return result;
 
