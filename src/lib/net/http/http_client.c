@@ -83,16 +83,27 @@ static sky_bool_t find_char_fast(sky_uchar_t **buf, sky_usize_t buf_size,
 #endif
 
 sky_http_client_t *
-sky_http_client_create(sky_event_t *event, sky_coro_t *coro) {
+sky_http_client_create(sky_event_t *event, sky_coro_t *coro,  const sky_http_client_conf_t *conf) {
     sky_http_client_t *client = sky_malloc(sizeof(sky_http_client_t));
 
-    const sky_tcp_client_conf_t conf = {
-            .keep_alive = 60,
-            .nodelay = true,
-            .timeout = 5
-    };
+    if (!conf) {
+        const sky_tcp_client_conf_t tcp_conf = {
+                .keep_alive = 60,
+                .nodelay = false,
+                .timeout = 5
+        };
 
-    client->client = sky_tcp_client_create(event, coro, &conf);
+        client->client = sky_tcp_client_create(event, coro, &tcp_conf);
+    } else {
+        const sky_tcp_client_conf_t tcp_conf = {
+                .keep_alive = conf->keep_alive ?: 60,
+                .nodelay = conf->nodelay,
+                .timeout = conf->timeout ?:5
+        };
+
+        client->client = sky_tcp_client_create(event, coro, &tcp_conf);
+    }
+
     client->coro = coro;
     client->defer = sky_defer_add(coro, (sky_defer_func_t) http_client_defer, client);
     client->host_len = 0;
