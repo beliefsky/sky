@@ -546,6 +546,10 @@ tcp_run(sky_tcp_client_t *client) {
     sky_bool_t result = event->run(event);
 
     if (!result) {
+        if (!client->free) {
+            client->free = true;
+            sky_event_reset(&client->ev, tcp_run, sky_free);
+        }
         sky_event_unregister(event);
     }
 
