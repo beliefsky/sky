@@ -4,6 +4,7 @@
 
 #include <netinet/in.h>
 #include <netdb.h>
+#include <unistd.h>
 #include "http_client.h"
 #include "../tcp_client.h"
 #include "../../core/memory.h"
@@ -59,9 +60,13 @@ static sky_http_client_res_t *http_res_read(sky_http_client_t *client, sky_pool_
 
 static sky_str_t *http_res_content_body_str(sky_http_client_res_t *res);
 
+static sky_bool_t http_res_content_body_read(sky_http_client_res_t *res, sky_http_res_body_pt func, void *data);
+
 static sky_bool_t http_res_content_body_none(sky_http_client_res_t *res);
 
 static sky_str_t *http_res_chunked_str(sky_http_client_res_t *res);
+
+static sky_bool_t http_res_chunked_read(sky_http_client_res_t *res, sky_http_res_body_pt func, void *data);
 
 static sky_bool_t http_res_chunked_none(sky_http_client_res_t *res);
 
@@ -83,7 +88,7 @@ static sky_bool_t find_char_fast(sky_uchar_t **buf, sky_usize_t buf_size,
 #endif
 
 sky_http_client_t *
-sky_http_client_create(sky_event_t *event, sky_coro_t *coro,  const sky_http_client_conf_t *conf) {
+sky_http_client_create(sky_event_t *event, sky_coro_t *coro, const sky_http_client_conf_t *conf) {
     sky_http_client_t *client = sky_malloc(sizeof(sky_http_client_t));
 
     if (!conf) {
@@ -98,7 +103,7 @@ sky_http_client_create(sky_event_t *event, sky_coro_t *coro,  const sky_http_cli
         const sky_tcp_client_conf_t tcp_conf = {
                 .keep_alive = conf->keep_alive ?: 60,
                 .nodelay = conf->nodelay,
-                .timeout = conf->timeout ?:5
+                .timeout = conf->timeout ?: 5
         };
 
         client->client = sky_tcp_client_create(event, coro, &tcp_conf);
@@ -197,7 +202,7 @@ sky_http_client_res_body_str(sky_http_client_res_t *res) {
     }
     res->read_res_body = true;
 
-    return !res->chunked ? http_res_content_body_str(res) : http_res_chunked_str( res);
+    return !res->chunked ? http_res_content_body_str(res) : http_res_chunked_str(res);
 }
 
 sky_bool_t
@@ -211,21 +216,21 @@ sky_http_client_res_body_none(sky_http_client_res_t *res) {
     }
     res->read_res_body = true;
 
-    return !res->chunked ? http_res_content_body_none(res) : http_res_chunked_none( res);
+    return !res->chunked ? http_res_content_body_none(res) : http_res_chunked_none(res);
 }
 
 sky_bool_t
-sky_http_client_res_body_file(sky_http_client_res_t *res, sky_str_t *path) {
+sky_http_client_res_body_read(sky_http_client_res_t *res, sky_http_res_body_pt func, void *data) {
     if (sky_unlikely(!res)) {
-        return null;
+        return false;
     }
     if (sky_unlikely(res->read_res_body)) {
         sky_log_error("response body read repeat");
-        return null;
+        return false;
     }
     res->read_res_body = true;
 
-    return false;
+    return !res->chunked ? http_res_content_body_read(res, func, data) : http_res_chunked_read(res, func, data);
 }
 
 
@@ -252,14 +257,14 @@ http_create_connect(sky_http_client_t *client, sky_http_client_req_t *req) {
     };
     struct addrinfo *result, *item;
 
-    sky_i32_t ret = getaddrinfo((const sky_char_t *)req->host_address.data, null, &hints, &result);
+    sky_i32_t ret = getaddrinfo((const sky_char_t *) req->host_address.data, null, &hints, &result);
     if (sky_unlikely(ret != 0)) {
         return false;
     }
     sky_u32_t addr_len = 0;
     sky_inet_address_t *addr;
 
-    for (item = result; null != item ; item = item->ai_next) {
+    for (item = result; null != item; item = item->ai_next) {
         switch (result->ai_family) {
             case AF_INET: {
                 struct sockaddr_in *address = (struct sockaddr_in *) item->ai_addr;
@@ -428,7 +433,61 @@ http_res_content_body_str(sky_http_client_res_t *res) {
 }
 
 static sky_bool_t
-http_res_content_body_none( sky_http_client_res_t *res) {
+http_res_content_body_read(sky_http_client_res_t *res, sky_http_res_body_pt func, void *data) {
+    sky_buf_t *tmp;
+    sky_u64_t size;
+    sky_usize_t n, t;
+    sky_bool_t flags;
+
+    tmp = res->tmp;
+    n = (sky_usize_t) (tmp->last - tmp->pos);
+    size = res->content_length_n;
+
+    if (n >= size) {
+        flags = func(data, tmp->pos, size);
+        sky_buf_rebuild(tmp, 0);
+        return flags;
+    }
+    size -= n;
+
+    n = (sky_usize_t) (tmp->end - tmp->pos);
+
+    // 实际数据小于缓冲
+    if (size <= n) {
+        if (sky_unlikely(!sky_tcp_client_read_all(res->client->client, tmp->pos, size))) {
+            sky_buf_rebuild(tmp, 0);
+            return false;
+        }
+        flags = func(data, tmp->pos, size);
+        sky_buf_rebuild(tmp, 0);
+        return flags;
+    }
+    // 缓冲区间太小，分配一较大区域
+    if (n < SKY_U32(4096)) {
+        n = (sky_usize_t) sky_min(size, SKY_U64(4096));
+        sky_buf_rebuild(tmp, n);
+    }
+
+    do {
+        t = (sky_usize_t) sky_min(n, size);
+        if (sky_unlikely(!sky_tcp_client_read_all(res->client->client, tmp->pos, t))) {
+            sky_buf_rebuild(tmp, 0);
+            return false;
+        }
+        if (sky_unlikely(!func(data, tmp->pos, t))) {
+            sky_buf_rebuild(tmp, 0);
+            return false;
+        }
+        size -= t;
+    } while (size > 0);
+
+    sky_buf_rebuild(tmp, 0);
+
+    return true;
+}
+
+static sky_bool_t
+http_res_content_body_none(sky_http_client_res_t *res) {
     sky_buf_t *tmp;
     sky_u64_t size;
     sky_usize_t n, t;
@@ -447,15 +506,9 @@ http_res_content_body_none( sky_http_client_res_t *res) {
 
     // 实际数据小于缓冲
     if (size <= n) {
-        do {
-            if (sky_unlikely(!sky_tcp_client_read(res->client->client, tmp->pos, size))) {
-                sky_buf_rebuild(tmp, 0);
-                return false;
-            }
-        } while (size > 0);
-
+        const sky_bool_t flags = sky_tcp_client_read_all(res->client->client, tmp->pos, size);
         sky_buf_rebuild(tmp, 0);
-        return true;
+        return flags;
     }
     // 缓冲区间太小，分配一较大区域
     if (n < SKY_U32(4096)) {
@@ -465,10 +518,11 @@ http_res_content_body_none( sky_http_client_res_t *res) {
 
     do {
         t = (sky_usize_t) sky_min(n, size);
-        if (sky_unlikely(!sky_tcp_client_read(res->client->client, tmp->pos, t))) {
+        if (sky_unlikely(!sky_tcp_client_read_all(res->client->client, tmp->pos, t))) {
             sky_buf_rebuild(tmp, 0);
             return false;
         }
+        size -= t;
     } while (size > 0);
 
     sky_buf_rebuild(tmp, 0);
@@ -562,6 +616,102 @@ http_res_chunked_str(sky_http_client_res_t *res) {
 
     error:
     sky_str_buf_destroy(&str_buf);
+    sky_buf_rebuild(buff, 0);
+    return null;
+}
+
+static sky_bool_t
+http_res_chunked_read(sky_http_client_res_t *res, sky_http_res_body_pt func, void *data) {
+    res->chunked = false;
+
+    sky_buf_t *buff = res->tmp;
+    sky_usize_t buff_size = (sky_usize_t) (buff->end - buff->pos);
+    if (buff_size < 4095) { // 缓冲 4095字节
+        sky_buf_rebuild(buff, 4095);
+        buff_size = 4095;
+    }
+    sky_str_t *result = sky_palloc(res->pool, sizeof(sky_str_t));
+
+    sky_uchar_t *start = buff->pos;
+    sky_uchar_t *p = start;
+
+    for (;;) {
+        const sky_isize_t index = sky_str_len_index_char(p, (sky_usize_t) (buff->last - p), '\n');
+        if (index == -1) {
+            if ((sky_usize_t) (buff->last - buff->pos) > 18) { // hex长度过长
+                goto error;
+            }
+            sky_usize_t buff_free = (sky_usize_t) (buff->end - buff->last);
+            if (buff_free < 18) { // 剩余长度较少时，数据移动到开始处
+                const sky_usize_t str_len = (sky_usize_t) (buff->last - start);
+                sky_memcpy(buff->pos, start, str_len);
+                start = buff->pos;
+                buff->last = start + str_len;
+                buff_free = buff_size - str_len;
+            }
+            p = buff->last;
+            const sky_usize_t read_n = sky_tcp_client_read(res->client->client, buff->last, buff_free);
+            if (sky_unlikely(!read_n)) {
+                goto error;
+            }
+            buff->last += read_n;
+        } else {
+            p += index - 1;
+            if (sky_unlikely(*p != '\r')) { // \r\n
+                goto error;
+            }
+            const sky_usize_t str_len = (sky_usize_t) (p - start);
+            sky_u64_t body_size;
+            if (sky_unlikely(!sky_hex_str_len_to_u64(start, str_len, &body_size))) { // 非HEX字符或过长
+                sky_log_error("error: %.6s -> %lu", start, str_len);
+                goto error;
+            }
+            const sky_bool_t end = !body_size;
+            body_size += 2;
+            p += 2;
+
+            const sky_usize_t read_size = (sky_usize_t) (buff->last - p);
+            if (body_size <= read_size) { // 已经读完body
+                if (sky_unlikely(!func(data, p, (sky_usize_t) body_size))) {
+                    goto error;
+                }
+                p += body_size;
+            } else {
+                if (sky_unlikely(body_size > SKY_USIZE_MAX)) {
+                    goto error;
+                }
+                if (sky_unlikely(!func(data, p, read_size))) {
+                    goto error;
+                }
+                body_size -= read_size;
+                buff->last = buff->pos;
+
+                const sky_u64_t tmp_buff_size = buff_size;
+                sky_usize_t read_min;
+                do {
+                    read_min = sky_min(tmp_buff_size, body_size);
+                    if (sky_unlikely(!sky_tcp_client_read_all(res->client->client, buff->last, read_min))) {
+                        goto error;
+                    }
+                    if (sky_unlikely(!func(data, buff->last, read_min))) {
+                        goto error;
+                    }
+                    body_size -= read_min;
+                } while (body_size > 0);
+                p = buff->pos;
+            }
+            start = p;
+            if (end) {
+                goto done;
+            }
+        }
+    }
+
+    done:
+    sky_buf_rebuild(buff, 0);
+    return result;
+
+    error:
     sky_buf_rebuild(buff, 0);
     return null;
 }
@@ -984,7 +1134,6 @@ find_header_line(sky_uchar_t *post, const sky_uchar_t *end) {
         }
     }
 }
-
 
 static sky_isize_t
 parse_token(sky_uchar_t *buf, const sky_uchar_t *end, sky_uchar_t next_char) {
