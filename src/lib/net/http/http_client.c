@@ -448,6 +448,11 @@ http_res_content_body_read(sky_http_client_res_t *res, sky_http_res_body_pt func
         sky_buf_rebuild(tmp, 0);
         return flags;
     }
+    if (sky_unlikely(!func(data, tmp->pos, n))) {
+        sky_buf_rebuild(tmp, 0);
+        return false;
+    }
+
     size -= n;
 
     n = (sky_usize_t) (tmp->end - tmp->pos);
