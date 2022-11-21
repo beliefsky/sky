@@ -101,7 +101,7 @@ sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_conn_t *conn, sky_event
         sky_queue_init_node(&conn->link);
         return false;
     }
-    const sky_u32_t idx = (sky_u32_t)((((sky_usize_t) event) >> 4) & tcp_pool->conn_mask);
+    const sky_u32_t idx = (sky_u32_t) ((((sky_usize_t) event) >> 4) & tcp_pool->conn_mask);
     sky_tcp_node_t *client = tcp_pool->clients + idx;
 
     const sky_bool_t empty = sky_queue_is_empty(&client->tasks);
@@ -550,16 +550,14 @@ sky_tcp_pool_conn_unbind(sky_tcp_conn_t *conn) {
         return;
     }
     sky_defer_cancel(conn->coro, conn->defer);
-
     if (sky_queue_is_linked(&conn->link)) {
         sky_queue_remove(&conn->link);
     }
     conn->defer = null;
-    if (!conn->client) {
-        return;
+    if (conn->client) {
+        conn->client->current = null;
+        conn->client = null;
     }
-    conn->client->current = null;
-    conn->client = null;
 }
 
 
@@ -709,6 +707,5 @@ tcp_connection_defer(sky_tcp_conn_t *conn) {
     } else {
         close(client->ev.fd);
         sky_event_rebind(&client->ev, -1);
-        tcp_close(client);
     }
 }
