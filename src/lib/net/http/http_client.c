@@ -54,7 +54,7 @@ static void http_client_defer(sky_http_client_t *client);
 
 static sky_bool_t http_create_connect(sky_http_client_t *client, sky_http_client_req_t *req);
 
-static void http_req_writer(sky_http_client_t *client, sky_http_client_req_t *req);
+static sky_bool_t http_req_writer(sky_http_client_t *client, sky_http_client_req_t *req);
 
 static sky_http_client_res_t *http_res_read(sky_http_client_t *client, sky_pool_t *pool);
 
@@ -181,7 +181,10 @@ sky_http_client_req(sky_http_client_t *client, sky_http_client_req_t *req) {
             }
         }
     }
-    http_req_writer(client, req);
+    if (sky_unlikely(!http_req_writer(client, req))) {
+        sky_tcp_client_close(client->client);
+        return null;
+    }
 
     sky_http_client_res_t *res = http_res_read(client, req->pool);
     if (sky_unlikely(!res)) {
@@ -202,7 +205,13 @@ sky_http_client_res_body_str(sky_http_client_res_t *res) {
     }
     res->read_res_body = true;
 
-    return !res->chunked ? http_res_content_body_str(res) : http_res_chunked_str(res);
+    sky_str_t *result = !res->chunked ? http_res_content_body_str(res)
+                                      : http_res_chunked_str(res);
+    if (sky_unlikely(!result)) {
+        sky_tcp_client_close(res->client->client);
+    }
+
+    return result;
 }
 
 sky_bool_t
@@ -216,7 +225,13 @@ sky_http_client_res_body_none(sky_http_client_res_t *res) {
     }
     res->read_res_body = true;
 
-    return !res->chunked ? http_res_content_body_none(res) : http_res_chunked_none(res);
+    const sky_bool_t result = !res->chunked ? http_res_content_body_none(res)
+                                            : http_res_chunked_none(res);
+    if (sky_unlikely(!result)) {
+        sky_tcp_client_close(res->client->client);
+    }
+
+    return result;
 }
 
 sky_bool_t
@@ -230,7 +245,13 @@ sky_http_client_res_body_read(sky_http_client_res_t *res, sky_http_res_body_pt f
     }
     res->read_res_body = true;
 
-    return !res->chunked ? http_res_content_body_read(res, func, data) : http_res_chunked_read(res, func, data);
+    const sky_bool_t result = !res->chunked ? http_res_content_body_read(res, func, data)
+                                            : http_res_chunked_read(res, func, data);
+
+    if (sky_unlikely(!result)) {
+        sky_tcp_client_close(res->client->client);
+    }
+    return result;
 }
 
 
@@ -302,7 +323,7 @@ http_create_connect(sky_http_client_t *client, sky_http_client_req_t *req) {
 }
 
 
-static void
+static sky_bool_t
 http_req_writer(sky_http_client_t *client, sky_http_client_req_t *req) {
     sky_str_buf_t buf;
     sky_str_buf_init2(&buf, req->pool, 2048);
@@ -321,8 +342,10 @@ http_req_writer(sky_http_client_t *client, sky_http_client_req_t *req) {
     });
     sky_str_buf_append_two_uchar(&buf, '\r', '\n');
 
-    sky_tcp_client_write_all(client->client, buf.start, sky_str_buf_size(&buf));
+    const sky_bool_t result = sky_tcp_client_write_all(client->client, buf.start, sky_str_buf_size(&buf));
     sky_str_buf_destroy(&buf);
+
+    return result;
 }
 
 static sky_http_client_res_t *
