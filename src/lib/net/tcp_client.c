@@ -351,8 +351,6 @@ sky_tcp_client_write_nowait(sky_tcp_client_t *client, const sky_uchar_t *data, s
             case EAGAIN:
                 break;
             default:
-                close(ev->fd);
-                ev->fd = -1;
                 sky_log_error("write errno: %d", errno);
                 return -1;
         }
