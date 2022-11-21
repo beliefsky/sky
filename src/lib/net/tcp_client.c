@@ -82,6 +82,7 @@ sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_address_t *ad
     }
 
     sky_event_rebind(ev, fd);
+    sky_event_reset(ev, tcp_run, tcp_close);
     sky_event_register(ev, client->timeout);
 
     while (connect(ev->fd, address, address_len) < 0) {
