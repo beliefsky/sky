@@ -179,6 +179,13 @@ sky_http_client_req(sky_http_client_t *client, sky_http_client_req_t *req) {
             if (!http_create_connect(client, req)) {
                 return null;
             }
+            if (req->host_address.len > 64) {
+                client->port = 0;
+            } else {
+                client->host_len = req->host_address.len;
+                sky_memcpy(client->host, req->host_address.data, client->host_len);
+                client->port = req->port;
+            }
         }
     }
     if (sky_unlikely(!http_req_writer(client, req))) {
