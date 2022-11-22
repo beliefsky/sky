@@ -148,7 +148,7 @@ sky_tcp_pool_conn_read(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t size
     sky_isize_t n;
 
     client = conn->client;
-    if (sky_unlikely(!client || client->ev.fd == -1)) {
+    if (sky_unlikely(!client || client->ev.fd == -1 || !size)) {
         return 0;
     }
 
@@ -195,6 +195,10 @@ sky_tcp_pool_conn_read_all(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize_t 
     client = conn->client;
     if (sky_unlikely(!client || client->ev.fd == -1)) {
         return false;
+    }
+
+    if (!size) {
+        return true;
     }
 
     ev = &client->ev;
@@ -247,6 +251,10 @@ sky_tcp_pool_conn_read_nowait(sky_tcp_conn_t *conn, sky_uchar_t *data, sky_usize
         return -1;
     }
 
+    if (!size) {
+        return 0;
+    }
+
     ev = &client->ev;
     if (sky_likely(sky_event_is_read(ev))) {
         if ((n = recv(ev->fd, data, size, 0)) > 0) {
@@ -273,7 +281,7 @@ sky_tcp_pool_conn_write(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_usize
     sky_isize_t n;
 
     client = conn->client;
-    if (sky_unlikely(!client || client->ev.fd == -1)) {
+    if (sky_unlikely(!client || client->ev.fd == -1 || !size)) {
         return 0;
     }
 
@@ -320,6 +328,10 @@ sky_tcp_pool_conn_write_all(sky_tcp_conn_t *conn, const sky_uchar_t *data, sky_u
     client = conn->client;
     if (sky_unlikely(!client || client->ev.fd == -1)) {
         return false;
+    }
+
+    if (!size) {
+        return true;
     }
 
     ev = &client->ev;
@@ -371,6 +383,10 @@ sky_tcp_pool_conn_write_nowait(sky_tcp_conn_t *conn, const sky_uchar_t *data, sk
     client = conn->client;
     if (sky_unlikely(!client || client->ev.fd == -1)) {
         return -1;
+    }
+
+    if (!size) {
+        return 0;
     }
 
     ev = &client->ev;
