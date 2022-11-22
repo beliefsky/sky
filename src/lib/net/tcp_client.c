@@ -90,7 +90,7 @@ sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_address_t *ad
             case EALREADY:
             case EINPROGRESS:
                 sky_coro_yield(client->coro, SKY_CORO_MAY_RESUME);
-                if (sky_unlikely( ev->fd == -1)) {
+                if (sky_unlikely(ev->fd == -1)) {
                     return false;
                 }
                 continue;
@@ -125,7 +125,7 @@ sky_tcp_client_read(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t siz
     sky_event_t *ev;
     sky_isize_t n;
 
-    if (sky_unlikely(!sky_tcp_client_is_connection(client))) {
+    if (sky_unlikely(!sky_tcp_client_is_connection(client) || !size)) {
         return 0;
     }
 
@@ -170,6 +170,9 @@ sky_tcp_client_read_all(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t
 
     if (sky_unlikely(!sky_tcp_client_is_connection(client))) {
         return false;
+    }
+    if (!size) {
+        return true;
     }
 
     ev = &client->ev;
@@ -221,6 +224,10 @@ sky_tcp_client_read_nowait(sky_tcp_client_t *client, sky_uchar_t *data, sky_usiz
         return -1;
     }
 
+    if (!size) {
+        return 0;
+    }
+
     ev = &client->ev;
 
     if (sky_likely(sky_event_is_read(ev))) {
@@ -247,6 +254,9 @@ sky_tcp_client_write(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usiz
     sky_isize_t n;
 
     if (sky_unlikely(!sky_tcp_client_is_connection(client))) {
+        return 0;
+    }
+    if (!size) {
         return 0;
     }
 
@@ -291,6 +301,9 @@ sky_tcp_client_write_all(sky_tcp_client_t *client, const sky_uchar_t *data, sky_
 
     if (sky_unlikely(!sky_tcp_client_is_connection(client))) {
         return false;
+    }
+    if (!size) {
+        return true;
     }
 
     ev = &client->ev;
@@ -339,6 +352,10 @@ sky_tcp_client_write_nowait(sky_tcp_client_t *client, const sky_uchar_t *data, s
 
     if (sky_unlikely(!sky_tcp_client_is_connection(client))) {
         return -1;
+    }
+
+    if (!size) {
+        return 0;
     }
 
     ev = &client->ev;
