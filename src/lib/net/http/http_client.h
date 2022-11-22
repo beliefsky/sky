@@ -108,7 +108,7 @@ sky_http_client_req_set_method(sky_http_client_req_t *req, sky_str_t *method) {
 }
 
 
-static sky_inline void
+static sky_inline sky_str_t *
 sky_http_client_req_append_header_len(
         sky_http_client_req_t *req,
         sky_uchar_t *key,
@@ -121,11 +121,13 @@ sky_http_client_req_append_header_len(
     header->key.len = key_len;
     header->val.data = val;
     header->val.len = val_len;
+
+    return &header->val;
 }
 
-static sky_inline void
+static sky_inline sky_str_t *
 sky_http_client_req_append_header(sky_http_client_req_t *req, sky_uchar_t *key, sky_usize_t key_len, sky_str_t *val) {
-    sky_http_client_req_append_header_len(req, key, key_len, val->data, val->len);
+    return sky_http_client_req_append_header_len(req, key, key_len, val->data, val->len);
 }
 
 static sky_inline sky_bool_t

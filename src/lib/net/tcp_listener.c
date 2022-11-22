@@ -142,7 +142,7 @@ sky_tcp_listener_write(sky_tcp_listener_writer_t *writer, const sky_uchar_t *dat
     sky_isize_t n;
 
     client = writer->client;
-    if (sky_unlikely(!client || client->status != READY)) {
+    if (sky_unlikely(!client || client->status != READY || !size)) {
         return 0;
     }
 
@@ -192,6 +192,10 @@ sky_tcp_listener_write_all(sky_tcp_listener_writer_t *writer, const sky_uchar_t 
     client = writer->client;
     if (sky_unlikely(!client || client->status != READY)) {
         return false;
+    }
+
+    if (!size) {
+        return true;
     }
 
     ev = &client->ev;
@@ -244,6 +248,10 @@ sky_tcp_listener_write_nowait(sky_tcp_listener_writer_t *writer, const sky_uchar
     client = writer->client;
     if (sky_unlikely(!client || client->status != READY)) {
         return -1;
+    }
+
+    if (!size) {
+        return 0;
     }
 
     ev = &client->ev;
@@ -312,7 +320,7 @@ sky_tcp_listener_read(sky_tcp_listener_reader_t *reader, sky_uchar_t *data, sky_
     sky_isize_t n;
 
     listener = reader->listener;
-    if (sky_unlikely(!listener || listener->free)) {
+    if (sky_unlikely(!listener || listener->free || !size)) {
         return 0;
     }
     const sky_i32_t fd = listener->ev.fd;
@@ -347,6 +355,10 @@ sky_tcp_listener_read_all(sky_tcp_listener_reader_t *reader, sky_uchar_t *data, 
     if (sky_unlikely(!listener || listener->free)) {
         return false;
     }
+    if (!size) {
+        return true;
+    }
+
     const sky_i32_t fd = listener->ev.fd;
     for (;;) {
         if ((n = recv(fd, data, size, 0)) > 0) {
