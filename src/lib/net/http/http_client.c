@@ -636,7 +636,7 @@ http_res_chunked_str(sky_http_client_res_t *res) {
                 if (sky_unlikely(!sky_str2_cmp(p, '\r', '\n'))) {
                     goto error;
                 }
-                sky_str_buf_need_commit(&str_buf, need_read_n);
+                sky_str_buf_need_commit(&str_buf, body_size);
 
                 p = buff->pos;
             }
