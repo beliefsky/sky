@@ -161,7 +161,9 @@ sky_http_client_req(sky_http_client_t *client, sky_http_client_req_t *req) {
     if (sky_unlikely(!client || !req->pool)) {
         return null;
     }
-    if (!sky_tcp_client_is_connection(client->client)) {
+    if (!sky_tcp_client_is_connection(client->client) ||
+        !(client->port && req->port == client->port
+          && sky_str_equals2(&req->host_address, client->host, client->host_len))) {
         if (!http_create_connect(client, req)) {
             return null;
         }
@@ -171,21 +173,6 @@ sky_http_client_req(sky_http_client_t *client, sky_http_client_req_t *req) {
             client->host_len = req->host_address.len;
             sky_memcpy(client->host, req->host_address.data, client->host_len);
             client->port = req->port;
-        }
-    } else {
-        if (!(client->port
-              && req->port == client->port
-              && sky_str_equals2(&req->host_address, client->host, client->host_len))) {
-            if (!http_create_connect(client, req)) {
-                return null;
-            }
-            if (req->host_address.len > 64) {
-                client->port = 0;
-            } else {
-                client->host_len = req->host_address.len;
-                sky_memcpy(client->host, req->host_address.data, client->host_len);
-                client->port = req->port;
-            }
         }
     }
     if (sky_unlikely(!http_req_writer(client, req))) {
