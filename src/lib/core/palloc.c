@@ -123,6 +123,11 @@ sky_prealloc(sky_pool_t *pool, void *ptr, sky_usize_t ptr_size, sky_usize_t size
                 return new_ptr;
             }
         }
+        if (size <= ptr_size) {
+            return ptr;
+        }
+    } else if (size <= ptr_size) {
+        return ptr;
     }
 
     void *new_ptr = sky_pnalloc(pool, size);
