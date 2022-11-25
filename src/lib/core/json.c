@@ -4842,7 +4842,8 @@ json_mut_write_pretty(const sky_json_mut_val_t *root, sky_u32_t opts) {
 #define incr_len(_len) do { \
     ext_len = (sky_usize_t)(_len); \
     if (sky_unlikely((sky_uchar_t *)(cur + ext_len) >= (sky_uchar_t *)ctx)) { \
-        alc_inc = sky_max(alc_len >> 1, ext_len);                             \
+        const sky_usize_t _tmp_len = alc_len >> 1;                            \
+        alc_inc = sky_max(_tmp_len, ext_len);                                 \
         alc_inc = size_align_up(alc_inc, sizeof(json_mut_write_ctx_t));       \
         if (size_add_is_overflow(alc_len, alc_inc)) {                         \
             goto fail_alloc;\
@@ -5057,7 +5058,8 @@ json_mut_write_minify(const sky_json_mut_val_t *root, sky_u32_t opts) {
 #define incr_len(_len) do { \
     ext_len = (sky_usize_t)(_len); \
     if (sky_unlikely((sky_uchar_t *)(cur + ext_len) >= (sky_uchar_t *)ctx)) { \
-        alc_inc = sky_max(alc_len >> 1, ext_len);                             \
+        const sky_usize_t _tmp_len = alc_len >> 1;                            \
+        alc_inc = sky_max(_tmp_len, ext_len);                                 \
         alc_inc = size_align_up(alc_inc, sizeof(json_mut_write_ctx_t));       \
         if (size_add_is_overflow(alc_len, alc_inc)) {                         \
             goto fail_alloc;\
@@ -5070,7 +5072,7 @@ json_mut_write_minify(const sky_json_mut_val_t *root, sky_u32_t opts) {
         result = (sky_str_t *)tmp; \
         tmp += sizeof(sky_str_t);  \
         ctx_len = (sky_usize_t)(end - (sky_uchar_t *)ctx);                    \
-        ctx_tmp = (json_mut_write_ctx_t *)(tmp + (alc_len - ctx_len));            \
+        ctx_tmp = (json_mut_write_ctx_t *)(tmp + (alc_len - ctx_len));        \
         sky_memmove(ctx_tmp, tmp + ((sky_uchar_t *)ctx - hdr), ctx_len);      \
         ctx = ctx_tmp;      \
         cur = tmp + (cur - hdr); \
