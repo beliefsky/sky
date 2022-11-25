@@ -93,16 +93,17 @@ sky_pcalloc(sky_pool_t *pool, sky_usize_t size) {
 
 void *
 sky_prealloc(sky_pool_t *pool, void *ptr, sky_usize_t ptr_size, sky_usize_t size) {
-    const sky_uchar_t *p = (sky_uchar_t *) ptr + ptr_size;
+    const sky_uchar_t *end = ptr + size;
+    sky_pool_t *p = pool->current;
 
-    if (p == pool->d.last) {
+    if (end == p->d.last) {
         if (size <= ptr_size) {
-            pool->d.last = ptr + size;
+            p->d.last = ptr + size;
             return ptr;
         }
         const sky_usize_t re_size = size - ptr_size;
-        if ((p + re_size) < pool->d.end) {
-            pool->d.last += re_size;
+        if ((end + re_size) < p->d.end) {
+            p->d.last += re_size;
             return ptr;
         }
     } else if (ptr_size > pool->max) {
@@ -135,10 +136,11 @@ sky_prealloc(sky_pool_t *pool, void *ptr, sky_usize_t ptr_size, sky_usize_t size
 
 void
 sky_pfree(sky_pool_t *pool, const void *ptr, sky_usize_t size) {
-    const sky_uchar_t *p = ptr + size;
+    const sky_uchar_t *end = ptr + size;
+    sky_pool_t *p = pool->current;
 
-    if (p == pool->d.last) {
-        pool->d.last -= size;
+    if (end == p->d.last) {
+        p->d.last -= size;
     } else if (size > pool->max) {
         for (sky_pool_large_t *l = pool->large; l; l = l->next) {
             if (ptr == l->alloc) {
