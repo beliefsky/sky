@@ -24,7 +24,6 @@
 struct sky_http_client_s {
     sky_tcp_client_t *client;
     sky_coro_t *coro;
-    sky_defer_t *defer;
     sky_usize_t host_len;
     sky_uchar_t host[64];
     sky_u16_t port;
@@ -50,7 +49,7 @@ typedef struct {
 } http_res_ctx_t;
 
 
-static void http_client_defer(sky_http_client_t *client);
+static void http_client_free(sky_http_client_t *client);
 
 static sky_bool_t http_create_connect(sky_http_client_t *client, sky_http_client_req_t *req);
 
@@ -93,6 +92,8 @@ sky_http_client_create(sky_event_t *event, sky_coro_t *coro, const sky_http_clie
 
     if (!conf) {
         const sky_tcp_client_conf_t tcp_conf = {
+                .destroy = (sky_tcp_destroy_pt) http_client_free,
+                .data = client,
                 .keep_alive = 60,
                 .nodelay = false,
                 .timeout = 5
@@ -101,6 +102,8 @@ sky_http_client_create(sky_event_t *event, sky_coro_t *coro, const sky_http_clie
         client->client = sky_tcp_client_create(event, coro, &tcp_conf);
     } else {
         const sky_tcp_client_conf_t tcp_conf = {
+                .destroy = (sky_tcp_destroy_pt) http_client_free,
+                .data = client,
                 .keep_alive = conf->keep_alive ?: 60,
                 .nodelay = conf->nodelay,
                 .timeout = conf->timeout ?: 5
@@ -110,7 +113,6 @@ sky_http_client_create(sky_event_t *event, sky_coro_t *coro, const sky_http_clie
     }
 
     client->coro = coro;
-    client->defer = sky_defer_add(coro, (sky_defer_func_t) http_client_defer, client);
     client->host_len = 0;
     client->port = 0;
 
@@ -251,13 +253,11 @@ sky_http_client_res_body_read(sky_http_client_res_t *res, sky_http_res_body_pt f
 
 void
 sky_http_client_destroy(sky_http_client_t *client) {
-    sky_defer_cancel(client->coro, client->defer);
-    http_client_defer(client);
+    sky_tcp_client_destroy(client->client);
 }
 
-static void
-http_client_defer(sky_http_client_t *client) {
-    sky_tcp_client_destroy(client->client);
+static sky_inline void
+http_client_free(sky_http_client_t *client) {
     client->client = null;
     sky_free(client);
 }
