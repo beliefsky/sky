@@ -25,14 +25,11 @@ sky_buf_create(sky_pool_t *pool, sky_usize_t size) {
 void sky_buf_rebuild(sky_buf_t *buf, sky_usize_t size) {
     const sky_usize_t n = (sky_usize_t) (buf->end - buf->pos); // 可读写缓冲
     const sky_usize_t data_size = (sky_usize_t) (buf->last - buf->pos);
-
     sky_pool_t *p = buf->pool->current;
+
+    size = sky_max(data_size, size);
     if (size <= n) {
-        size = sky_max(data_size, size);
-
         if (buf->end == p->d.last) {
-            size = sky_max(data_size, size);
-
             buf->end = buf->pos + size;
             p->d.last = buf->end;
         }
