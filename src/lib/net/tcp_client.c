@@ -15,6 +15,8 @@ struct sky_tcp_client_s {
     sky_event_t *main_ev;
     sky_coro_t *coro;
     sky_defer_t *defer;
+    sky_tcp_destroy_pt destroy;
+    void *data;
     sky_i32_t keep_alive;
     sky_i32_t timeout;
     sky_bool_t free: 1;
@@ -27,6 +29,8 @@ static void tcp_close(sky_tcp_client_t *client);
 
 static void tcp_close_cb(sky_tcp_client_t *client);
 
+static void tcp_close_free(sky_tcp_client_t *client);
+
 static void tcp_client_defer(sky_tcp_client_t *client);
 
 sky_tcp_client_t *
@@ -35,6 +39,8 @@ sky_tcp_client_create(sky_event_t *event, sky_coro_t *coro, const sky_tcp_client
     sky_event_init(sky_event_get_loop(event), &client->ev, -1, tcp_run, tcp_close);
     client->main_ev = event;
     client->coro = coro;
+    client->destroy = conf->destroy;
+    client->data = conf->data;
     client->keep_alive = conf->keep_alive ?: -1;
     client->timeout = conf->timeout ?: 5;
     client->free = false;
@@ -396,7 +402,7 @@ tcp_run(sky_tcp_client_t *client) {
         if (!client->free) {
             client->free = true;
             sky_defer_cancel(client->coro, client->defer);
-            sky_event_reset(&client->ev, tcp_run, sky_free);
+            sky_event_reset(&client->ev, tcp_run, tcp_close_free);
         }
         sky_event_unregister(event);
     }
@@ -415,15 +421,23 @@ tcp_close_cb(sky_tcp_client_t *client) {
 }
 
 static sky_inline void
+tcp_close_free(sky_tcp_client_t *client) {
+    if (client->destroy) {
+        client->destroy(client->data);
+    }
+    sky_free(client);
+}
+
+static sky_inline void
 tcp_client_defer(sky_tcp_client_t *client) {
     client->free = true;
 
     if (sky_unlikely(sky_event_none_callback(&client->ev))) {
         close(client->ev.fd);
         sky_event_rebind(&client->ev, -1);
-        sky_free(client);
+        tcp_close_free(client);
     } else {
-        sky_event_reset(&client->ev, tcp_run, sky_free);
+        sky_event_reset(&client->ev, tcp_run, tcp_close_free);
         sky_event_unregister(&client->ev);
     }
 }
