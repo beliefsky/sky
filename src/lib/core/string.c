@@ -315,7 +315,7 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
 
             const sky_usize_t bit_pos = (sky_usize_t) __builtin_ctz(mask);
             if ((i + bit_pos) >= src_len) {
-                break;
+                return null;
             }
             if (func(src + i + bit_pos + 1, sub + 1, sub_len - 2)) {
                 return (sky_uchar_t *) (src + (i + bit_pos));
