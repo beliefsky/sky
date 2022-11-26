@@ -401,6 +401,9 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
 
         while (zeros) {
             if (zeros & 0x80) {
+                if(j >= src_len) {
+                    return null;
+                }
                 const sky_uchar_t *substr = (sky_uchar_t *) (block_first) + j + 1;
                 if (func(substr, sub + 1, sub_len - 2)) {
                     return (sky_uchar_t *) (src + (i + j));
@@ -484,6 +487,9 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
 
         while (zeros) {
             if (zeros & 0x80) {
+                if(j >= src_len) {
+                    return null;
+                }
                 const sky_uchar_t *substr = (sky_uchar_t *) (block_first) + j + 1;
                 if (func(substr, sub + 1, sub_len - 2)) {
                     return (sky_uchar_t *) (src + (i + j));
