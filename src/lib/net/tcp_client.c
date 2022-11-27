@@ -396,8 +396,8 @@ sky_tcp_client_destroy(sky_tcp_client_t *client) {
 static sky_bool_t
 tcp_run(sky_tcp_client_t *client) {
     sky_event_t *event = client->main_ev;
-    sky_bool_t result = event->run(event);
 
+    const sky_bool_t result = event->run(event);
     if (!result) {
         if (!client->free) {
             client->free = true;

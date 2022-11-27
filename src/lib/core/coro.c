@@ -79,14 +79,14 @@ struct sky_coro_s {
     sky_coro_context_t context;
     sky_isize_t yield_value;
 //===================================
-    sky_bool_t self;
-    sky_u32_t ptr_size;
     sky_queue_t defers;
     sky_queue_t global_defers;
     sky_queue_t free_defers;
     sky_queue_t blocks;
     sky_uchar_t *ptr;
     sky_uchar_t *stack;
+    sky_u32_t ptr_size;
+    sky_bool_t self: 1;
 };
 
 static void coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data);
