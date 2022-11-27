@@ -7,9 +7,11 @@
 
 sky_inline void
 sky_buf_init(sky_buf_t *buf, sky_pool_t *pool, sky_usize_t size) {
-    buf->start = buf->pos = buf->last = sky_pnalloc(pool, size);
+    buf->start = buf->pos = buf->last = sky_pnalloc(pool, size + 1);
     buf->end = buf->start + size;
     buf->pool = pool;
+
+    *buf->end = '\0';
 }
 
 sky_buf_t *
@@ -29,29 +31,33 @@ void sky_buf_rebuild(sky_buf_t *buf, sky_usize_t size) {
 
     size = sky_max(data_size, size);
     if (size <= n) {
-        if (buf->end == p->d.last) {
+        if ((buf->end + 1) == p->d.last) {
             buf->end = buf->pos + size;
-            p->d.last = buf->end;
+            p->d.last = buf->end + 1;
+            *(buf->end) = '\0';
         }
         return;
     }
-    if (buf->end == p->d.last && (buf->pos + size) < p->d.end) {
+    if ((buf->end + 1) == p->d.last && (buf->pos + (size + 1)) < p->d.end) {
         buf->end = buf->pos + size;
-        p->d.last = buf->end;
+        p->d.last = buf->end + 1;
+        *(buf->end) = '\0';
         return;
     }
 
-    buf->start = sky_pnalloc(buf->pool, size);
+    buf->start = sky_pnalloc(buf->pool, size + 1);
     sky_memcpy(buf->start, buf->pos, data_size);
     buf->pos = buf->start;
     buf->last = buf->pos + data_size;
     buf->end = buf->start + size;
+
+    *(buf->end) = '\0';
 }
 
 void sky_buf_destroy(sky_buf_t *buf) {
     const sky_usize_t total = (sky_usize_t) (buf->end - buf->start);
 
-    sky_pfree(buf->pool, buf->start, total);
+    sky_pfree(buf->pool, buf->start, total + 1);
     sky_memzero(buf, sizeof(sky_buf_t));
 }
 
