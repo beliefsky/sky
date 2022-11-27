@@ -149,8 +149,8 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
             };
             __m256i curr = _mm256_loadu_si256((const __m256i *) (src));
 
-            for (sky_usize_t i = 0; i < src_len; i += 32) {
-                const __m256i next = _mm256_loadu_si256((const __m256i *) (src + i + 32));
+            do {
+                const __m256i next = _mm256_loadu_si256((const __m256i *) (src + 32));
                 // AVX2 palignr works on 128-bit lanes, thus some extra work is needed
                 //
                 // curr = [a, b] (2 x 128 bit)
@@ -182,9 +182,13 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
                 if (mask != 0) {
                     const sky_usize_t bit_pos = (sky_usize_t) __builtin_ctz(mask);
 
-                    return (sky_uchar_t *) (src + (i + bit_pos));
+                    return (sky_uchar_t *) (src +  bit_pos);
                 }
-            }
+
+
+                src_len -= 32;
+                src += 32;
+            } while (src_len >= 2);
 
             return null;
         }
@@ -222,10 +226,9 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
     const __m256i first = _mm256_set1_epi8((sky_char_t) sub[0]);
     const __m256i last = _mm256_set1_epi8((sky_char_t) sub[sub_len - 1]);
 
-    for (sky_usize_t i = 0; i < src_len; i += 32) {
-
-        const __m256i block_first = _mm256_loadu_si256((const __m256i *) (src + i));
-        const __m256i block_last = _mm256_loadu_si256((const __m256i *) (src + i + sub_len - 1));
+    do {
+        const __m256i block_first = _mm256_loadu_si256((const __m256i *) src);
+        const __m256i block_last = _mm256_loadu_si256((const __m256i *) (src + sub_len - 1));
 
         const __m256i eq_first = _mm256_cmpeq_epi8(first, block_first);
         const __m256i eq_last = _mm256_cmpeq_epi8(last, block_last);
@@ -233,20 +236,17 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
         sky_u32_t mask = (sky_u32_t) _mm256_movemask_epi8(_mm256_and_si256(eq_first, eq_last));
 
         while (mask != 0) {
-
             const sky_usize_t bit_pos = (sky_usize_t) __builtin_ctz(mask);
 
-            if ((i + bit_pos) >= src_len) {
-                return null;
-            }
-            if (func(src + i + bit_pos + 1, sub + 1, sub_len - 2)) {
-                return (sky_uchar_t *) (src + (i + bit_pos));
+            if (func(src + bit_pos + 1, sub + 1, sub_len - 2)) {
+                return (sky_uchar_t *) (src +  bit_pos);
             }
 
             mask &= (mask - 1);
         }
-    }
-
+        src_len -= 32;
+        src += 32;
+    } while (src_len >= sub_len);
 
     return null;
 }
@@ -304,10 +304,9 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
     const __m128i first = _mm_set1_epi8((sky_char_t) sub[0]);
     const __m128i last = _mm_set1_epi8((sky_char_t) sub[sub_len - 1]);
 
-    for (sky_usize_t i = 0; i < src_len; i += 16) {
-
-        const __m128i block_first = _mm_loadu_si128((const __m128i *) (src + i));
-        const __m128i block_last = _mm_loadu_si128((const __m128i *) (src + i + sub_len - 1));
+    do {
+        const __m128i block_first = _mm_loadu_si128((const __m128i *) src);
+        const __m128i block_last = _mm_loadu_si128((const __m128i *) (src + sub_len - 1));
 
         const __m128i eq_first = _mm_cmpeq_epi8(first, block_first);
         const __m128i eq_last = _mm_cmpeq_epi8(last, block_last);
@@ -315,18 +314,16 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
         sky_u16_t mask = (sky_u16_t) _mm_movemask_epi8(_mm_and_si128(eq_first, eq_last));
 
         while (mask != 0) {
-
             const sky_usize_t bit_pos = (sky_usize_t) __builtin_ctz(mask);
-            if ((i + bit_pos) >= src_len) {
-                return null;
-            }
-            if (func(src + i + bit_pos + 1, sub + 1, sub_len - 2)) {
-                return (sky_uchar_t *) (src + (i + bit_pos));
+            if (func(src + bit_pos + 1, sub + 1, sub_len - 2)) {
+                return (sky_uchar_t *) (src + bit_pos);
             }
 
             mask &= (mask - 1);
         }
-    }
+        src_len -= 16;
+        src += 16;
+    } while (src_len >= sub_len);
 
     return null;
 }
@@ -387,11 +384,9 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
     sky_u64_t *block_first = (sky_u64_t *) src;
     sky_u64_t *block_last = (sky_u64_t *) (src + sub_len - 1);
 
-    // 2. sequence scan
-    for (sky_usize_t i = 0; i < src_len; i += 8, block_first++, block_last++) {
+    do {
         // 0 bytes in eq indicate matching chars
         const sky_u64_t eq = (*block_first ^ first) | (*block_last ^ last);
-
         // 7th bit set if lower 7 bits are zero
         const sky_u64_t t0 = (~eq & 0x7f7f7f7f7f7f7f7fllu) + 0x0101010101010101llu;
         // 7th bit set if 7th bit is zero
@@ -401,19 +396,19 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
 
         while (zeros) {
             if (zeros & 0x80) {
-                if(j >= src_len) {
-                    return null;
-                }
                 const sky_uchar_t *substr = (sky_uchar_t *) (block_first) + j + 1;
                 if (func(substr, sub + 1, sub_len - 2)) {
-                    return (sky_uchar_t *) (src + (i + j));
+                    return (sky_uchar_t *) (src + j);
                 }
             }
-
             zeros >>= 8;
             j += 1;
         }
-    }
+        src += 8;
+        src_len -= 8;
+        ++block_first;
+        ++block_last;
+    } while (src_len >= sub_len);
 
     return null;
 }
@@ -473,8 +468,7 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
     sky_u32_t *block_first = (sky_u32_t *) src;
     sky_u32_t *block_last = (sky_u32_t *) (src + sub_len - 1);
 
-    // 2. sequence scan
-    for (sky_usize_t i = 0; i < src_len; i += 4, block_first++, block_last++) {
+    do {
         // 0 bytes in eq indicate matching chars
         const sky_u32_t eq = (*block_first ^ first) | (*block_last ^ last);
 
@@ -487,19 +481,20 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
 
         while (zeros) {
             if (zeros & 0x80) {
-                if(j >= src_len) {
-                    return null;
-                }
                 const sky_uchar_t *substr = (sky_uchar_t *) (block_first) + j + 1;
                 if (func(substr, sub + 1, sub_len - 2)) {
-                    return (sky_uchar_t *) (src + (i + j));
+                    return (sky_uchar_t *) (src  + j);
                 }
             }
 
             zeros >>= 8;
             j += 1;
         }
-    }
+        src += 4;
+        src_len -= 4;
+        ++block_first;
+        ++block_last;
+    } while (src_len >= sub_len);
 
     return null;
 
