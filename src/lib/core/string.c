@@ -170,7 +170,7 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
             func = mem_equals10;
             break;
         default: {
-#if defined(__SSE4_2__)
+#if defined(__SSE2__)
             const __m128i first = _mm_set1_epi8((sky_char_t) sub[0]);
             const __m128i last = _mm_set1_epi8((sky_char_t) sub[sub_len - 1]);
 
@@ -260,7 +260,7 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
         }
     }
 
-#if defined(__SSE4_2__)
+#if defined(__SSE2__)
 
     const __m128i first = _mm_set1_epi8((sky_char_t) sub[0]);
     const __m128i last = _mm_set1_epi8((sky_char_t) sub[sub_len - 1]);
