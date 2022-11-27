@@ -86,7 +86,7 @@ struct sky_coro_s {
     sky_uchar_t *ptr;
     sky_uchar_t *stack;
     sky_u32_t ptr_size;
-    sky_bool_t self;
+    sky_bool_t self: 1;
 };
 
 static void coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data);
