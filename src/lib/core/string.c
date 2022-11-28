@@ -180,8 +180,7 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
                 const sky_u32_t mask = (sky_u32_t) _mm256_movemask_epi8(eq);
                 if (mask != 0) {
                     const sky_usize_t bit_pos = (sky_usize_t) __builtin_ctz(mask);
-                    i += bit_pos;
-                    return i >= src_len ? null : (sky_uchar_t *) (src + bit_pos);
+                    return (i + bit_pos) > src_len ? null : (sky_uchar_t *) (src + bit_pos);
                 }
             }
 
@@ -233,9 +232,11 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
                 sky_u32_t mask = (sky_u32_t) _mm256_movemask_epi8(_mm256_and_si256(eq_first, eq_last));
                 while (mask != 0) {
                     const sky_usize_t bit_pos = (sky_usize_t) __builtin_ctz(mask);
+                    if (sky_unlikely((i + bit_pos + sub_len - 1) >= src_len)) {
+                        return null;
+                    }
                     if (sky_str_len_unsafe_equals(src + bit_pos + 1, sub + 1, sub_len - 2)) {
-                        i += bit_pos;
-                        return i >= src_len ? null : (sky_uchar_t *) (src + bit_pos);
+                        return (sky_uchar_t *) (src + bit_pos);
                     }
 
                     mask &= (mask - 1);
@@ -256,9 +257,11 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
 
                 while (mask != 0) {
                     const sky_usize_t bit_pos = (sky_usize_t) __builtin_ctz(mask);
+                    if (sky_unlikely((i + bit_pos + sub_len - 1) >= src_len)) {
+                        return null;
+                    }
                     if (sky_str_len_unsafe_equals(src + bit_pos + 1, sub + 1, sub_len - 2)) {
-                        i += bit_pos;
-                        return i >= src_len ? null : (sky_uchar_t *) (src + bit_pos);
+                        return (sky_uchar_t *) (src + bit_pos);
                     }
 
                     mask &= (mask - 1);
@@ -285,9 +288,11 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
                 while (zeros) {
                     if (zeros & 0x80) {
                         const sky_uchar_t *substr = (sky_uchar_t *) (block_first) + j + 1;
+                        if (sky_unlikely((i + j + sub_len - 1) >= src_len)) {
+                            return null;
+                        }
                         if (sky_str_len_unsafe_equals(substr, sub + 1, sub_len - 2)) {
-                            i += j;
-                            return i >= src_len ? null : (sky_uchar_t *) (src + j);
+                            return (sky_uchar_t *) (src + j);
                         }
                     }
                     zeros >>= 8;
@@ -315,9 +320,11 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
                 while (zeros) {
                     if (zeros & 0x80) {
                         const sky_uchar_t *substr = (sky_uchar_t *) (block_first) + j + 1;
+                        if (sky_unlikely((i + j + sub_len - 1) >= src_len)) {
+                            return null;
+                        }
                         if (sky_str_len_unsafe_equals(substr, sub + 1, sub_len - 2)) {
-                            i += j;
-                            return i >= src_len ? null : (sky_uchar_t *) (src + j);
+                            return (sky_uchar_t *) (src + j);
                         }
                     }
 
@@ -346,9 +353,11 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
         sky_u32_t mask = (sky_u32_t) _mm256_movemask_epi8(_mm256_and_si256(eq_first, eq_last));
         while (mask != 0) {
             const sky_usize_t bit_pos = (sky_usize_t) __builtin_ctz(mask);
+            if (sky_unlikely((i + bit_pos + sub_len - 1) >= src_len)) {
+                return null;
+            }
             if (func(src + bit_pos + 1, sub + 1)) {
-                i += bit_pos;
-                return i >= src_len ? null : (sky_uchar_t *) (src + bit_pos);
+                return (sky_uchar_t *) (src + bit_pos);
             }
 
             mask &= (mask - 1);
@@ -370,9 +379,11 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
 
         while (mask != 0) {
             const sky_usize_t bit_pos = (sky_usize_t) __builtin_ctz(mask);
+            if (sky_unlikely((i + bit_pos + sub_len - 1) >= src_len)) {
+                return null;
+            }
             if (func(src + bit_pos + 1, sub + 1)) {
-                i += bit_pos;
-                return i >= src_len ? null : (sky_uchar_t *) (src + bit_pos);
+                return (sky_uchar_t *) (src + bit_pos);
             }
 
             mask &= (mask - 1);
@@ -399,9 +410,11 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
         while (zeros) {
             if (zeros & 0x80) {
                 const sky_uchar_t *substr = (sky_uchar_t *) (block_first) + j + 1;
+                if (sky_unlikely((i + j + sub_len - 1) >= src_len)) {
+                    return null;
+                }
                 if (func(substr, sub + 1)) {
-                    i += j;
-                    return i >= src_len ? null : (sky_uchar_t *) (src + j);
+                    return (sky_uchar_t *) (src + j);
                 }
             }
             zeros >>= 8;
@@ -430,9 +443,11 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
         while (zeros) {
             if (zeros & 0x80) {
                 const sky_uchar_t *substr = (sky_uchar_t *) (block_first) + j + 1;
+                if (sky_unlikely((i + j + sub_len - 1) >= src_len)) {
+                    return null;
+                }
                 if (func(substr, sub + 1)) {
-                    i += j;
-                    return i >= src_len ? null : (sky_uchar_t *) (src + j);
+                    return (sky_uchar_t *) (src + j);
                 }
             }
 
