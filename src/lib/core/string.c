@@ -4,7 +4,6 @@
 
 
 #include "string.h"
-#include "log.h"
 
 #if defined(__AVX2__)
 
