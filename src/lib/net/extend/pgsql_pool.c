@@ -355,6 +355,11 @@ pg_send_exec(
 
         return result;
     }
+    if (!params || params->alloc_n < param_len) {
+        sky_log_error("params is null or  out of size");
+        return false;
+    }
+
     size = 14;
     size += encode_data_size(params->types, params->values, param_len);
 
