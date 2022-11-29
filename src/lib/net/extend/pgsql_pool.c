@@ -180,7 +180,7 @@ pg_auth(sky_pgsql_conn_t *conn) {
     if (sky_unlikely(!sky_tcp_pool_conn_write_all(&conn->conn, conn_info->data, conn_info->len))) {
         return false;
     }
-    sky_buf_init(&buf, conn->pool, 1024);
+    sky_buf_init(&buf, conn->pool, 1023);
 
     enum {
         START = 0,
@@ -422,7 +422,7 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
     desc = null;
     row = null;
 
-    sky_buf_init(&buf, conn->pool, 1024);
+    sky_buf_init(&buf, conn->pool, 1023);
 
     size = 0;
     state = START;

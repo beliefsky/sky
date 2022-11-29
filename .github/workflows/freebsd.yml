@@ -13,8 +13,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: build in FreeBSD
-        uses: vmactions/freebsd-vm@v0
+        uses: vmactions/freebsd-vm@v0.3.0
         with:
+          release: 13.1
           usesh: true
           sync: rsync
           copyback: false
