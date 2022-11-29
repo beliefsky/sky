@@ -189,7 +189,7 @@ redis_exec_read(sky_redis_conn_t *rc) {
     size = 0;
     i = 0;
 
-    sky_buf_init(&buf, rc->pool, 1024);
+    sky_buf_init(&buf, rc->pool, 1023);
     for (;;) {
         n = sky_tcp_pool_conn_read(&rc->conn, buf.last, (sky_u32_t) (buf.end - buf.last));
         if (sky_unlikely(!n)) {
