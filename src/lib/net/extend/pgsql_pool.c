@@ -180,7 +180,7 @@ pg_auth(sky_pgsql_conn_t *conn) {
     if (sky_unlikely(!sky_tcp_pool_conn_write_all(&conn->conn, conn_info->data, conn_info->len))) {
         return false;
     }
-    sky_buf_init(&buf, conn->pool, 1024);
+    sky_buf_init(&buf, conn->pool, 1023);
 
     enum {
         START = 0,
@@ -355,6 +355,11 @@ pg_send_exec(
 
         return result;
     }
+    if (!params || params->alloc_n < param_len) {
+        sky_log_error("params is null or  out of size");
+        return false;
+    }
+
     size = 14;
     size += encode_data_size(params->types, params->values, param_len);
 
@@ -422,7 +427,7 @@ pg_exec_read(sky_pgsql_conn_t *conn) {
     desc = null;
     row = null;
 
-    sky_buf_init(&buf, conn->pool, 1024);
+    sky_buf_init(&buf, conn->pool, 1023);
 
     size = 0;
     state = START;
