@@ -58,10 +58,10 @@ void sky_buf_destroy(sky_buf_t *buf) {
     const sky_usize_t total = (sky_usize_t) (buf->end - buf->start);
 
     sky_pfree(buf->pool, buf->start, total + 1);
-    buf->pool = null;
-    buf->start = null;
-    buf->end = null;
     buf->pos = null;
     buf->end = null;
+    buf->start = null;
+    buf->end = null;
+    buf->pool = null;
 }
 
