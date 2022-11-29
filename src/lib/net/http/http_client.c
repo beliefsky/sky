@@ -265,55 +265,60 @@ http_client_free(sky_http_client_t *client) {
 static sky_bool_t
 http_create_connect(sky_http_client_t *client, sky_http_client_req_t *req) {
 
-    struct addrinfo hints = {
+    const struct addrinfo hints = {
             .ai_family = AF_UNSPEC,
             .ai_socktype = SOCK_STREAM,
             .ai_flags  = AI_CANONNAME,
     };
     struct addrinfo *result, *item;
 
-    sky_i32_t ret = getaddrinfo((const sky_char_t *) req->host_address.data, null, &hints, &result);
+    const sky_i32_t ret = getaddrinfo((const sky_char_t *) req->host_address.data, null, &hints, &result);
     if (sky_unlikely(ret != 0)) {
         return false;
     }
-    sky_u32_t addr_len = 0;
-    sky_inet_address_t *addr;
-
     for (item = result; null != item; item = item->ai_next) {
         switch (result->ai_family) {
             case AF_INET: {
-                struct sockaddr_in *address = (struct sockaddr_in *) item->ai_addr;
-                address->sin_port = sky_htons(req->port);
-                addr_len = item->ai_addrlen;
-                addr = (sky_inet_address_t *) address;
-                break;
+                const struct sockaddr_in *tmp = (struct sockaddr_in *) item->ai_addr;
+
+                const struct sockaddr_in address = {
+                        .sin_family = AF_INET,
+                        .sin_port = sky_htons(req->port),
+                        .sin_addr.s_addr = tmp->sin_addr.s_addr
+                };
+                freeaddrinfo(result);
+
+                return sky_tcp_client_connection(
+                        client->client,
+                        (const sky_inet_address_t *) &address,
+                        sizeof(struct sockaddr_in)
+                );
             }
             case AF_INET6: {
-                struct sockaddr_in6 *address = (struct sockaddr_in6 *) item->ai_addr;
-                address->sin6_port = sky_htons(req->port);
-                addr_len = item->ai_addrlen;
-                addr = (sky_inet_address_t *) address;
-                break;
+                const struct sockaddr_in6 *tmp = (struct sockaddr_in6 *) item->ai_addr;
+                const struct sockaddr_in6 address = {
+                        .sin6_family = AF_INET6,
+                        .sin6_port = sky_htons(req->port),
+                        .sin6_flowinfo = tmp->sin6_flowinfo,
+                        .sin6_scope_id = tmp->sin6_scope_id,
+                        .sin6_addr = tmp->sin6_addr
+                };
+                freeaddrinfo(result);
+
+                return sky_tcp_client_connection(
+                        client->client,
+                        (const sky_inet_address_t *) &address,
+                        sizeof(struct sockaddr_in6)
+                );
             }
             default:
-                continue;
+                break;
         }
-        break;
     }
-    if (sky_unlikely(!addr_len)) {
-        freeaddrinfo(result);
-        return false;
-    }
-    sky_defer_t *defer = sky_defer_add(client->coro, (sky_defer_func_t) freeaddrinfo, result);
-    const sky_bool_t flags = sky_tcp_client_connection(
-            client->client,
-            addr,
-            addr_len
-    );
-    sky_defer_cancel(client->coro, defer);
+
     freeaddrinfo(result);
 
-    return flags;
+    return false;
 }
 
 
