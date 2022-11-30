@@ -270,7 +270,7 @@ http_create_connect(sky_http_client_t *client, sky_http_client_req_t *req) {
             .ai_socktype = SOCK_STREAM,
             .ai_flags  = AI_CANONNAME,
     };
-    struct addrinfo *result, *item;
+    struct addrinfo *result = null, *item;
 
     const sky_i32_t ret = getaddrinfo((const sky_char_t *) req->host_address.data, null, &hints, &result);
     if (sky_unlikely(ret != 0)) {
