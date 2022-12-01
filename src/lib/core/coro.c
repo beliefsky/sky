@@ -271,23 +271,22 @@ sky_coro_get_switcher(sky_coro_t *coro) {
 void
 sky_coro_destroy(sky_coro_t *coro) {
     sky_defer_t *defer;
-    sky_queue_t *block;
+    sky_queue_t *item;
 
     sky_queue_insert_prev_list(&coro->defers, &coro->global_defers);
 
-    while (!sky_queue_is_empty(&coro->defers)) {
-        defer = (sky_defer_t *) sky_queue_next(&coro->defers);
-        sky_queue_remove(&defer->link);
+    sky_queue_iterator_t iterator;
+    sky_queue_iterator_init(&iterator, &coro->defers);
+    while ((item = sky_queue_iterator_next(&iterator))) {
+        defer = sky_queue_data(item, sky_defer_t, link);
         defer->free = true;
-
         defer->one_arg ? defer->one.func(defer->one.data)
                        : defer->two.func(defer->two.data1, defer->two.data2);
     }
 
-    while (!sky_queue_is_empty(&coro->blocks)) {
-        block = sky_queue_next(&coro->blocks);
-        sky_queue_remove(block);
-        sky_free(block);
+    sky_queue_iterator_init(&iterator, &coro->blocks);
+    while ((item = sky_queue_iterator_next(&iterator))) {
+        sky_free(item);
     }
 
     sky_free(coro);
