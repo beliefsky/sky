@@ -10,12 +10,12 @@ extern "C" {
 #define SKY_POOL_DEFAULT_SIZE   16384
 
 typedef struct sky_pool_large_s sky_pool_large_t;
+typedef struct sky_pool_s sky_pool_t;
 
 struct sky_pool_large_s {
     sky_pool_large_t *next;
     void *alloc;
 };
-typedef struct sky_pool_s sky_pool_t;
 
 typedef struct {
     sky_uchar_t *last;
