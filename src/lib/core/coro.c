@@ -273,17 +273,10 @@ sky_coro_destroy(sky_coro_t *coro) {
     sky_defer_t *defer;
     sky_queue_t *block;
 
+    sky_queue_insert_prev_list(&coro->defers, &coro->global_defers);
+
     while (!sky_queue_is_empty(&coro->defers)) {
         defer = (sky_defer_t *) sky_queue_next(&coro->defers);
-        sky_queue_remove(&defer->link);
-        defer->free = true;
-
-        defer->one_arg ? defer->one.func(defer->one.data)
-                       : defer->two.func(defer->two.data1, defer->two.data2);
-    }
-
-    while (!sky_queue_is_empty(&coro->global_defers)) {
-        defer = (sky_defer_t *) sky_queue_next(&coro->global_defers);
         sky_queue_remove(&defer->link);
         defer->free = true;
 
