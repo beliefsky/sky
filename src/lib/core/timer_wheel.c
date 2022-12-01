@@ -140,7 +140,7 @@ sky_timer_wheel_get_expired(sky_timer_wheel_t *ctx, sky_queue_t *result, sky_u64
         if (!sky_queue_is_empty(queue)) {
             do {
                 tmp = sky_queue_next(queue);
-                sky_queue_remove(queue);
+                sky_queue_remove(tmp);
                 entry = sky_queue_data(tmp, sky_timer_wheel_entry_t, link);
                 link_timer(ctx, entry);
             } while (!sky_queue_is_empty(queue));
