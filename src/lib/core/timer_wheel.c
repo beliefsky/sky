@@ -114,7 +114,7 @@ sky_timer_wheel_wake_at(sky_timer_wheel_t *ctx) {
 }
 
 void
-sky_timer_wheel_get_expired(sky_timer_wheel_t *ctx, sky_queue_t *link, sky_u64_t now) {
+sky_timer_wheel_get_expired(sky_timer_wheel_t *ctx, sky_queue_t *result, sky_u64_t now) {
     sky_usize_t wheel = 0, slot, slot_start;
     sky_queue_t *queue, *tmp;
     sky_timer_wheel_entry_t *entry;
@@ -130,7 +130,7 @@ sky_timer_wheel_get_expired(sky_timer_wheel_t *ctx, sky_queue_t *link, sky_u64_t
         queue = &ctx->wheels[wheel][slot];
 
         if (!wheel) {
-            sky_queue_insert_next_list(link, queue);
+            sky_queue_insert_next_list(result, queue);
             if (ctx->last_run == now) {
                 return;
             }

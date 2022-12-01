@@ -27,7 +27,7 @@ void sky_timer_wheel_destroy(sky_timer_wheel_t *ctx);
 
 sky_u64_t sky_timer_wheel_wake_at(sky_timer_wheel_t *ctx);
 
-void sky_timer_wheel_get_expired(sky_timer_wheel_t *ctx, sky_queue_t *link, sky_u64_t now);
+void sky_timer_wheel_get_expired(sky_timer_wheel_t *ctx, sky_queue_t *result, sky_u64_t now);
 
 void sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_u64_t now);
 
