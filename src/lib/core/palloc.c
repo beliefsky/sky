@@ -93,7 +93,7 @@ sky_pcalloc(sky_pool_t *pool, sky_usize_t size) {
 
 void *
 sky_prealloc(sky_pool_t *pool, void *ptr, sky_usize_t ptr_size, sky_usize_t size) {
-    const sky_uchar_t *end = (const sky_uchar_t *) ptr + size;
+    const sky_uchar_t *end = (const sky_uchar_t *) ptr + ptr_size;
     sky_pool_t *p = pool->current;
 
     if (end == p->d.last) {
