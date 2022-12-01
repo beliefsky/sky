@@ -404,7 +404,7 @@ sky_defer_run(sky_coro_t *coro) {
     sky_queue_t *tmp;
 
     while (!sky_queue_is_empty(&coro->defers)) {
-        tmp = sky_queue_next(&coro->free_defers);
+        tmp = sky_queue_next(&coro->defers);
         sky_queue_remove(tmp);
         defer = sky_queue_data(tmp, sky_defer_t, link);
         defer->free = true;
