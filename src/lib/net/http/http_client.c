@@ -293,23 +293,23 @@ http_create_connect(sky_http_client_t *client, sky_http_client_req_t *req) {
                         sizeof(struct sockaddr_in)
                 );
             }
-//            case AF_INET6: {
-//                const struct sockaddr_in6 *tmp = (struct sockaddr_in6 *) item->ai_addr;
-//                const struct sockaddr_in6 address = {
-//                        .sin6_family = AF_INET6,
-//                        .sin6_port = sky_htons(req->port),
-//                        .sin6_addr = tmp->sin6_addr,
-//                        .sin6_flowinfo = tmp->sin6_flowinfo,
-//                        .sin6_scope_id = tmp->sin6_scope_id
-//                };
-//                freeaddrinfo(result);
-//
-//                return sky_tcp_client_connection(
-//                        client->client,
-//                        (const sky_inet_address_t *) &address,
-//                        sizeof(struct sockaddr_in6)
-//                );
-//            }
+            case AF_INET6: {
+                const struct sockaddr_in6 *tmp = (struct sockaddr_in6 *) item->ai_addr;
+                const struct sockaddr_in6 address = {
+                        .sin6_family = AF_INET6,
+                        .sin6_port = sky_htons(req->port),
+                        .sin6_addr = tmp->sin6_addr,
+                        .sin6_flowinfo = tmp->sin6_flowinfo,
+                        .sin6_scope_id = tmp->sin6_scope_id
+                };
+                freeaddrinfo(result);
+
+                return sky_tcp_client_connection(
+                        client->client,
+                        (const sky_inet_address_t *) &address,
+                        sizeof(struct sockaddr_in6)
+                );
+            }
             default:
                 break;
         }
