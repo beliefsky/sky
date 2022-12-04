@@ -4,6 +4,7 @@
 
 #include "buf.h"
 #include "memory.h"
+#include "log.h"
 
 sky_inline void
 sky_buf_init(sky_buf_t *buf, sky_pool_t *pool, sky_usize_t size) {
@@ -25,6 +26,9 @@ sky_buf_create(sky_pool_t *pool, sky_usize_t size) {
 }
 
 void sky_buf_rebuild(sky_buf_t *buf, sky_usize_t size) {
+    if (sky_unlikely(buf->pos > buf->end || buf->pos > buf->last)) {
+        sky_log_error("buf out of memory: %d %d", buf->pos > buf->end, buf->pos > buf->last);
+    }
     const sky_usize_t n = (sky_usize_t) (buf->end - buf->pos); // 可读写缓冲
     const sky_usize_t data_size = (sky_usize_t) (buf->last - buf->pos);
     sky_pool_t *p = buf->pool->current;
