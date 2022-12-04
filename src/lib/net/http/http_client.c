@@ -1245,8 +1245,8 @@ find_char_fast(sky_uchar_t **buf, sky_usize_t buf_size, const sky_uchar_t *range
         const __m128i ranges16 = _mm_loadu_si128((const __m128i *) ranges);
 
         do {
-            __m128i b16 = _mm_loadu_si128((const __m128i *) tmp);
-            sky_i32_t r = _mm_cmpestri(
+            const __m128i b16 = _mm_loadu_si128((const __m128i *) tmp);
+            const sky_i32_t r = _mm_cmpestri(
                     ranges16,
                     ranges_size,
                     b16,
