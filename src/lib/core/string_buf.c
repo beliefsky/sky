@@ -5,6 +5,7 @@
 #include "string_buf.h"
 #include "memory.h"
 #include "number.h"
+#include "log.h"
 
 static void str_buf_append(sky_str_buf_t *buf, sky_usize_t size);
 
@@ -44,6 +45,15 @@ sky_str_buf_need_size(sky_str_buf_t *buf, sky_usize_t size) {
         str_buf_append(buf, size);
     }
     return buf->post;
+}
+
+void
+sky_str_buf_need_commit(sky_str_buf_t *buf, sky_usize_t size) {
+    if (sky_unlikely((buf->post + size) >= buf->end)) {
+        sky_log_error("commit size out of memory");
+        return;
+    }
+    buf->post += size;
 }
 
 sky_uchar_t *
