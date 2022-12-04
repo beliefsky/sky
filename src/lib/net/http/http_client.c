@@ -1200,7 +1200,7 @@ parse_token(sky_uchar_t *buf, const sky_uchar_t *end, sky_uchar_t next_char) {
     sky_uchar_t *start = buf;
 #ifdef __SSE4_2__
 
-    static const sky_uchar_t sky_align(16) ranges[] = "\x00 "  /* control chars and up to SP */
+    static const sky_uchar_t sky_align(16) ranges[16] = "\x00 "  /* control chars and up to SP */
                                                       "\"\""   /* 0x22 */
                                                       "()"     /* 0x28,0x29 */
                                                       ",,"     /* 0x2c */
