@@ -22,7 +22,7 @@ sky_array_init2(sky_array_t *array, sky_pool_t *pool, sky_u32_t n, sky_usize_t s
     array->size = size;
     array->nalloc = n;
     array->pool = pool;
-    array->elts = sky_palloc(pool, n * size);
+    array->elts = sky_pnalloc(pool, n * size);
 
     return array->elts != null;
 }
