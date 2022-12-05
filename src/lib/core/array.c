@@ -22,7 +22,7 @@ sky_array_init2(sky_array_t *array, sky_pool_t *pool, sky_u32_t n, sky_usize_t s
     array->size = size;
     array->nalloc = n;
     array->pool = pool;
-    array->elts = sky_palloc(pool, n * size);
+    array->elts = sky_pnalloc(pool, n * size);
 
     return array->elts != null;
 }
@@ -59,7 +59,7 @@ sky_array_push_n(sky_array_t *a, sky_u32_t n) {
                                   : sky_realloc(a->elts, re_size);
     }
 
-    void *elt = (sky_uchar_t *) a->elts + a->size * a->nelts;
+    void *elt = (sky_uchar_t *) a->elts + (a->size * a->nelts);
     a->nelts += n;
 
     return elt;
