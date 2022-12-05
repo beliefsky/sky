@@ -132,7 +132,7 @@ sky_str_len_unsafe_equals(const sky_uchar_t *s1, const sky_uchar_t *s2, sky_usiz
 static sky_inline sky_bool_t
 sky_str_len_equals(const sky_uchar_t *s1, sky_usize_t s1_len,
                    const sky_uchar_t *s2, sky_usize_t s2_len) {
-    return s1_len != s2_len ? false : sky_str_len_unsafe_equals(s1, s2, s2_len);
+    return s1_len == s2_len && sky_str_len_unsafe_equals(s1, s2, s2_len);
 }
 
 static sky_inline sky_bool_t
@@ -173,12 +173,22 @@ sky_str_len_unsafe_starts_with(const sky_uchar_t *src, const sky_uchar_t *prefix
 static sky_inline sky_bool_t
 sky_str_len_starts_with(const sky_uchar_t *src, sky_usize_t src_len,
                         const sky_uchar_t *prefix, sky_usize_t prefix_len) {
-    return src_len < prefix_len ? false : sky_str_len_unsafe_equals(src, prefix, prefix_len);
+    return src_len >= prefix_len && sky_str_len_unsafe_equals(src, prefix, prefix_len);
 }
 
 static sky_inline sky_bool_t
 sky_str_starts_with(const sky_str_t *src, const sky_uchar_t *prefix, sky_usize_t prefix_len) {
-    return sky_str_len_starts_with(src->data, src->len, prefix, prefix_len);
+    return src && sky_str_len_starts_with(src->data, src->len, prefix, prefix_len);
+}
+
+static sky_inline sky_bool_t
+sky_str_len_end_with(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *prefix, sky_usize_t prefix_len) {
+    return src_len >= prefix_len && sky_str_len_unsafe_equals(src + (src_len - prefix_len), prefix, prefix_len);
+}
+
+static sky_inline sky_bool_t
+sky_str_end_with(const sky_str_t *src, const sky_uchar_t *prefix, sky_usize_t prefix_len) {
+    return src && sky_str_len_end_with(src->data, src->len, prefix, prefix_len);
 }
 
 sky_uchar_t *sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *sub, sky_usize_t sub_len);
