@@ -34,6 +34,7 @@
 #if defined(__x86_64__)
 
 typedef sky_usize_t sky_coro_context_t[10];
+typedef struct coro_block_s coro_block_t;
 
 #elif defined(__i386__)
 
@@ -54,6 +55,10 @@ typedef libucontext_ucontext_t sky_coro_context_t;
 
 struct sky_coro_switcher_s {
     sky_coro_context_t caller;
+};
+
+struct coro_block_s {
+    coro_block_t *next;
 };
 
 struct sky_defer_s {
@@ -82,7 +87,7 @@ struct sky_coro_s {
     sky_queue_t defers;
     sky_queue_t global_defers;
     sky_queue_t free_defers;
-    sky_queue_t blocks;
+    coro_block_t *block;
     sky_uchar_t *ptr;
     sky_uchar_t *stack;
     sky_usize_t ptr_size;
@@ -251,9 +256,9 @@ sky_coro_new(sky_coro_switcher_t *switcher) {
     sky_queue_init(&coro->defers);
     sky_queue_init(&coro->global_defers);
     sky_queue_init(&coro->free_defers);
-    sky_queue_init(&coro->blocks);
 
     coro->self = false;
+    coro->block = null;
     coro->ptr = (sky_uchar_t *) (coro + 1);
     coro->ptr_size = PAGE_SIZE - sizeof(sky_coro_t);
     coro->stack = coro->ptr + coro->ptr_size;
@@ -340,6 +345,7 @@ void
 sky_coro_destroy(sky_coro_t *coro) {
     sky_defer_t *defer;
     sky_queue_t *item;
+    coro_block_t *block;
 
     sky_queue_insert_prev_list(&coro->defers, &coro->global_defers);
 
@@ -352,9 +358,8 @@ sky_coro_destroy(sky_coro_t *coro) {
                        : defer->two.func(defer->two.data1, defer->two.data2);
     }
 
-    sky_queue_iterator_init(&iterator, &coro->blocks);
-    while ((item = sky_queue_iterator_next(&iterator))) {
-        sky_free(item);
+    for (block = coro->block; block; block = block->next) {
+        sky_free(block);
     }
 
     sky_free(coro);
@@ -487,9 +492,11 @@ sky_inline void *
 sky_coro_malloc(sky_coro_t *coro, sky_u32_t size) {
     sky_uchar_t *ptr;
     if (sky_unlikely(coro->ptr_size < size)) {
-        if (sky_unlikely(size > 1024)) {
-            sky_queue_t *block = sky_malloc(size + sizeof(sky_queue_t));
-            sky_queue_insert_next(&coro->blocks, block);
+        if (sky_unlikely(size > 512)) {
+            coro_block_t *block = sky_malloc(size + sizeof(coro_block_t));
+            block->next = coro->block;
+            coro->block = block;
+
             return (sky_uchar_t *) (block + 1);
         }
         mem_block_add(coro);
@@ -511,9 +518,10 @@ coro_yield(sky_coro_t *coro, sky_isize_t value) {
 
 static sky_inline void
 mem_block_add(sky_coro_t *coro) {
-    sky_queue_t *block = sky_malloc(PAGE_SIZE);
-    sky_queue_insert_next(&coro->blocks, block);
+    coro_block_t *block = sky_malloc(PAGE_SIZE);
+    block->next = coro->block;
+    coro->block = block;
 
     coro->ptr = (sky_uchar_t *) (block + 1);
-    coro->ptr_size = PAGE_SIZE - sizeof(sky_queue_t);
+    coro->ptr_size = PAGE_SIZE - sizeof(coro_block_t);
 }
