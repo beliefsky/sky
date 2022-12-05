@@ -72,6 +72,15 @@ void sky_coro_reset(sky_coro_t *coro, sky_coro_func_t func, void *data);
 sky_isize_t sky_coro_resume(sky_coro_t *coro);
 
 /**
+ * 执行协程
+ * @param coro 协程
+ * @param value 协程状态
+ * @return 协程执行状态
+ */
+sky_isize_t sky_coro_resume_value(sky_coro_t *coro, sky_isize_t value);
+
+
+/**
  * 释放执行权
  * @param coro  协程
  * @param value 协程状态
