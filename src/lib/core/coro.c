@@ -11,7 +11,7 @@
 
 #if !defined(SIGSTKSZ) || SIGSTKSZ < 4096
 
-#define CORE_BLOCK_SIZE 4096
+#define CORE_BLOCK_SIZE 32768
 
 #else
 
