@@ -11,7 +11,7 @@
 
 #if !defined(SIGSTKSZ) || SIGSTKSZ < 4096
 
-#define CORE_BLOCK_SIZE 32768
+#define CORE_BLOCK_SIZE 4096
 
 #else
 
@@ -258,7 +258,7 @@ sky_coro_yield(sky_coro_t *coro, sky_isize_t value) {
     if (sky_likely(coro->self)) {
         return coro_yield(coro, value);
     } else {
-        sky_log_error("sky_coro_yield shouldn't out of coro");
+        sky_log_error("sky_coro_yield shouldn't out of stack");
         abort();
     }
 }
