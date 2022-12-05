@@ -59,7 +59,7 @@ sky_array_push_n(sky_array_t *a, sky_u32_t n) {
                                   : sky_realloc(a->elts, re_size);
     }
 
-    void *elt = (sky_uchar_t *) a->elts + a->size * a->nelts;
+    void *elt = (sky_uchar_t *) a->elts + (a->size * a->nelts);
     a->nelts += n;
 
     return elt;
