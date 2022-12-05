@@ -26,6 +26,10 @@ struct sky_event_s {
     sky_time_t now; // 当前时间
     sky_i32_t fd; //事件句柄
     sky_i32_t timeout; // 节点超时时间
+    /*
+     * |--- 2byte ---|--- ... ---|--- 1bit  ---|--- 1bit ---|--- 1bit ---|
+     * |--- index ---|--- 预留 ---|--- write ---|--- read ---|--- reg  ---|
+     */
     sky_u32_t status;
 };
 
