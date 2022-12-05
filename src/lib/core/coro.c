@@ -11,7 +11,7 @@
 
 #if !defined(SIGSTKSZ) || SIGSTKSZ < 8192
 
-#define CORE_BLOCK_SIZE 65536
+#define CORE_BLOCK_SIZE 8192
 
 #else
 
@@ -492,7 +492,7 @@ sky_inline void *
 sky_coro_malloc(sky_coro_t *coro, sky_u32_t size) {
     sky_uchar_t *ptr;
     if (sky_unlikely(coro->ptr_size < size)) {
-        if (sky_unlikely(size > 1024)) {
+        if (sky_unlikely(size > 512)) {
             coro_block_t *block = sky_malloc(size + sizeof(coro_block_t));
             block->next = coro->block;
             coro->block = block;
