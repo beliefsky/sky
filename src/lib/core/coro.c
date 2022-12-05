@@ -258,7 +258,7 @@ sky_coro_yield(sky_coro_t *coro, sky_isize_t value) {
     if (sky_likely(coro->self)) {
         return coro_yield(coro, value);
     } else {
-        sky_log_error("sky_coro_yield shouldn't out of stack");
+        sky_log_error("sky_coro out of stack");
         abort();
     }
 }
