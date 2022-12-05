@@ -9,7 +9,7 @@
 #include "log.h"
 
 
-#if !defined(SIGSTKSZ) || SIGSTKSZ < 4096
+#if !defined(SIGSTKSZ) || SIGSTKSZ < 8192
 
 #define CORE_BLOCK_SIZE 32768
 
@@ -258,7 +258,7 @@ sky_coro_yield(sky_coro_t *coro, sky_isize_t value) {
     if (sky_likely(coro->self)) {
         return coro_yield(coro, value);
     } else {
-        sky_log_error("sky coro out of stack");
+        sky_log_error("sky_coro_yield shouldn't into coro");
         abort();
     }
 }
