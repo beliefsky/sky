@@ -11,7 +11,7 @@
 
 #if !defined(SIGSTKSZ) || SIGSTKSZ < 8192
 
-#define CORE_BLOCK_SIZE 32768
+#define CORE_BLOCK_SIZE 65536
 
 #else
 
@@ -85,7 +85,7 @@ struct sky_coro_s {
     sky_queue_t blocks;
     sky_uchar_t *ptr;
     sky_uchar_t *stack;
-    sky_u32_t ptr_size;
+    sky_usize_t ptr_size;
     sky_bool_t self: 1;
 };
 
@@ -179,22 +179,30 @@ asm(".text\n\t"
 );
 #endif
 
-#if defined(__x86_64__)
-
 static sky_inline void
 coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
+#if defined(__x86_64__)
+
+
     coro->context[5 /* R15 */] = (sky_usize_t) data;
     coro->context[6 /* RDI */] = (sky_usize_t) coro;
     coro->context[7 /* RSI */] = (sky_usize_t) func;
     coro->context[8 /* RIP */] = (sky_usize_t) coro_entry_point_x86_64;
 #define STACK_PTR 9
-    coro->context[STACK_PTR /* RSP */] = (((sky_usize_t) coro->stack + CORO_STACK_MIN) & ~0xfUL) - 0x8UL;
-}
-
+    coro->context[STACK_PTR /* RSP */] =
+            (((sky_usize_t) coro->stack + CORO_STACK_MIN) & ~SKY_USIZE(0xF)) - SKY_USIZE(0x8);
 #elif defined(__i386__)
 
-static sky_inline void
-coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
+#elif defined(SKY_HAVE_LIBUCONTEXT)
+    sky_getcontext(&coro->context);
+    coro->context.uc_stack.ss_sp = coro->stack;
+    coro->context.uc_stack.ss_size = CORO_STACK_MIN;
+    coro->context.uc_stack.ss_flags = 0;
+    coro->context.uc_link = null;
+
+    sky_makecontext(&coro->context, coro_entry_point, 3, coro, func, data);
+
+#else
     sky_uchar_t *stack = (sky_uchar_t *) (sky_usize_t) (coro->stack + CORO_STACK_MIN);
     stack = (sky_uchar_t *) ((sky_usize_t) (stack - (3 * sizeof(sky_usize_t))) & (sky_usize_t) ~0x3);
 
@@ -207,23 +215,8 @@ coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     coro->context[5 /* EIP */] = (sky_usize_t) coro_entry_point;
 #define STACK_PTR 6
     coro->context[STACK_PTR /* ESP */] = (sky_usize_t) stack;
-}
-
-#elif defined(SKY_HAVE_LIBUCONTEXT)
-
-static sky_inline void
-coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
-    sky_getcontext(&coro->context);
-    coro->context.uc_stack.ss_sp = coro->stack;
-    coro->context.uc_stack.ss_size = CORO_STACK_MIN;
-    coro->context.uc_stack.ss_flags = 0;
-    coro->context.uc_link = null;
-
-    sky_makecontext(&coro->context, coro_entry_point, 3, coro, func, data);
-}
-
 #endif
-
+}
 
 sky_inline sky_usize_t
 sky_coro_switcher_size() {
