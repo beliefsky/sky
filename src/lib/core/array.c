@@ -34,8 +34,12 @@ sky_array_push(sky_array_t *a) {
         const sky_usize_t re_size = total << 1;
         a->nalloc <<= 1;
 
-        a->elts = a->pool != null ? sky_prealloc(a->pool, a->elts, total, re_size)
-                                  : sky_realloc(a->elts, re_size);
+        void *new_ptr = a->pool != null ? sky_prealloc(a->pool, a->elts, total, re_size)
+                                        : sky_realloc(a->elts, re_size);
+        if (sky_unlikely(!new_ptr)) {
+            return null;
+        }
+        a->elts = new_ptr;
     }
 
     void *elt = (sky_uchar_t *) a->elts + (a->size * a->nelts);
@@ -55,8 +59,13 @@ sky_array_push_n(sky_array_t *a, sky_u32_t n) {
 
         const sky_usize_t re_size = a->size * a->nalloc;
 
-        a->elts = a->pool != null ? sky_prealloc(a->pool, a->elts, total, re_size)
+        void *new_ptr = a->pool != null ? sky_prealloc(a->pool, a->elts, total, re_size)
                                   : sky_realloc(a->elts, re_size);
+
+        if (sky_unlikely(!new_ptr)) {
+            return null;
+        }
+        a->elts = new_ptr;
     }
 
     void *elt = (sky_uchar_t *) a->elts + (a->size * a->nelts);
