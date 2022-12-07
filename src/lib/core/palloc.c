@@ -114,13 +114,9 @@ sky_prealloc(sky_pool_t *pool, void *ptr, sky_usize_t ptr_size, sky_usize_t size
                     l->alloc = null;
                     return null;
                 }
-                void *new_ptr = sky_realloc(ptr, size);
-                if (sky_unlikely(!new_ptr)) {
-                    sky_free(ptr);
-                }
-                l->alloc = new_ptr;
+                l->alloc = sky_realloc(ptr, size);
 
-                return new_ptr;
+                return l->alloc;
             }
         }
         if (size <= ptr_size) {

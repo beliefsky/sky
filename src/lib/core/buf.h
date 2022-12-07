@@ -34,11 +34,11 @@ struct sky_buf_s {
     (_buf)->pos = (_buf)->last = (_buf)->start
 
 
-void sky_buf_init(sky_buf_t *buf, sky_pool_t *pool, sky_usize_t size);
+sky_bool_t sky_buf_init(sky_buf_t *buf, sky_pool_t *pool, sky_usize_t size);
 
 sky_buf_t *sky_buf_create(sky_pool_t *pool, sky_usize_t size);
 
-void sky_buf_rebuild(sky_buf_t *buf, sky_usize_t size);
+sky_bool_t sky_buf_rebuild(sky_buf_t *buf, sky_usize_t size);
 
 void sky_buf_destroy(sky_buf_t *buf);
 

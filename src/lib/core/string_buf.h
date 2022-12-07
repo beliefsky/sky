@@ -17,11 +17,12 @@ typedef struct {
     sky_uchar_t *post;
     sky_uchar_t *end;
     sky_pool_t *pool;
+    sky_bool_t fail: 1;
 } sky_str_buf_t;
 
-void sky_str_buf_init(sky_str_buf_t *buf, sky_usize_t n);
+sky_bool_t sky_str_buf_init(sky_str_buf_t *buf, sky_usize_t n);
 
-void sky_str_buf_init2(sky_str_buf_t *buf, sky_pool_t *pool, sky_usize_t n);
+sky_bool_t sky_str_buf_init2(sky_str_buf_t *buf, sky_pool_t *pool, sky_usize_t n);
 
 void sky_str_buf_destroy(sky_str_buf_t *buf);
 
@@ -51,7 +52,7 @@ void sky_str_buf_append_int64(sky_str_buf_t *buf, sky_i64_t num);
 
 void sky_str_buf_append_uint64(sky_str_buf_t *buf, sky_u64_t num);
 
-void sky_str_buf_build(sky_str_buf_t *buf, sky_str_t *out);
+sky_bool_t sky_str_buf_build(sky_str_buf_t *buf, sky_str_t *out);
 
 static sky_inline void
 sky_str_buf_reset(sky_str_buf_t *buf) {
@@ -61,6 +62,11 @@ sky_str_buf_reset(sky_str_buf_t *buf) {
 static sky_inline sky_usize_t
 sky_str_buf_size(const sky_str_buf_t *buf) {
     return (sky_usize_t) (buf->post - buf->start);
+}
+
+static sky_inline sky_bool_t
+sky_str_buf_fail(const sky_str_buf_t *buf) {
+    return buf->fail;
 }
 
 #if defined(__cplusplus)
