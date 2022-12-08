@@ -10,7 +10,7 @@
 #include "../../core/memory.h"
 #include "../../core/number.h"
 #include "../../core/string_buf.h"
-#include "../../core/url.h"
+#include "http_url.h"
 #include "../../core/log.h"
 
 #ifdef __SSE4_2__
@@ -126,7 +126,7 @@ sky_http_client_req_init_len(
         const sky_uchar_t *url,
         sky_usize_t url_len
 ) {
-    sky_url_t *parsed = sky_url_len_parse(pool, url, url_len);
+    sky_http_url_t *parsed = sky_url_len_parse(pool, url, url_len);
     if (sky_unlikely(!parsed)) {
         req->pool = null;
         return false;
