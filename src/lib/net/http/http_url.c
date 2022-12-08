@@ -2,24 +2,24 @@
 // Created by edz on 2022/11/18.
 //
 
-#include "url.h"
-#include "number.h"
+#include "http_url.h"
+#include "../../core/number.h"
 
-static sky_usize_t parse_scheme(sky_url_scheme_t *scheme, const sky_uchar_t *url, sky_usize_t url_len);
+static sky_usize_t parse_scheme(sky_http_scheme_t *scheme, const sky_uchar_t *url, sky_usize_t url_len);
 
 static sky_usize_t parse_authority_and_path(
         sky_pool_t *pool,
-        sky_url_t *parsed,
+        sky_http_url_t *parsed,
         const sky_uchar_t *url,
         sky_usize_t url_len
 );
 
-static sky_usize_t parse_host_port(sky_pool_t *pool, sky_url_t *parsed, const sky_uchar_t *url, sky_usize_t url_len);
+static sky_usize_t parse_host_port(sky_pool_t *pool, sky_http_url_t *parsed, const sky_uchar_t *url, sky_usize_t url_len);
 
 
-sky_url_t *
+sky_http_url_t *
 sky_url_len_parse(sky_pool_t *pool, const sky_uchar_t *url, sky_usize_t url_len) {
-    sky_url_t *parsed = sky_pcalloc(pool, sizeof(sky_url_t));
+    sky_http_url_t *parsed = sky_pcalloc(pool, sizeof(sky_http_url_t));
 
     if (sky_unlikely(!url_len)) {
         return false;
@@ -40,7 +40,7 @@ sky_url_len_parse(sky_pool_t *pool, const sky_uchar_t *url, sky_usize_t url_len)
 
 
 static sky_usize_t
-parse_scheme(sky_url_scheme_t *scheme, const sky_uchar_t *url, sky_usize_t url_len) {
+parse_scheme(sky_http_scheme_t *scheme, const sky_uchar_t *url, sky_usize_t url_len) {
     if (sky_likely(url_len >= 6)) {
         if (sky_str_len_unsafe_starts_with(url, sky_str_line("http:"))) {
             sky_str_set(&scheme->name, "http");
@@ -59,7 +59,7 @@ parse_scheme(sky_url_scheme_t *scheme, const sky_uchar_t *url, sky_usize_t url_l
 }
 
 static sky_usize_t
-parse_authority_and_path(sky_pool_t *pool, sky_url_t *parsed, const sky_uchar_t *url, sky_usize_t url_len) {
+parse_authority_and_path(sky_pool_t *pool, sky_http_url_t *parsed, const sky_uchar_t *url, sky_usize_t url_len) {
     sky_usize_t n = parse_host_port(pool, parsed, url, url_len);
     if (sky_unlikely(!n)) {
         return 0;
@@ -79,7 +79,7 @@ parse_authority_and_path(sky_pool_t *pool, sky_url_t *parsed, const sky_uchar_t 
 }
 
 static sky_usize_t
-parse_host_port(sky_pool_t *pool, sky_url_t *parsed, const sky_uchar_t *url, sky_usize_t url_len) {
+parse_host_port(sky_pool_t *pool, sky_http_url_t *parsed, const sky_uchar_t *url, sky_usize_t url_len) {
     sky_isize_t index;
 
     if (sky_unlikely(!url_len)) {
