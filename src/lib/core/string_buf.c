@@ -21,6 +21,8 @@ sky_str_buf_init(sky_str_buf_t *buf, sky_usize_t n) {
     buf->end = buf->start + n;
     buf->pool = null;
     buf->fail = false;
+
+    return true;
 }
 
 sky_bool_t
@@ -35,6 +37,8 @@ sky_str_buf_init2(sky_str_buf_t *buf, sky_pool_t *pool, sky_usize_t n) {
     buf->end = buf->start + n;
     buf->pool = pool;
     buf->fail = false;
+
+    return true;
 }
 
 
