@@ -28,7 +28,6 @@ set(SOURCES
         core/random.c
         core/uuid.c
         core/json.c
-        core/url.c
         core/timer_wheel.c
         core/process.c
         safe/spsc_queue.c
@@ -51,6 +50,7 @@ set(SOURCES
         net/http/http_parse.c
         net/http/http_client.c
         net/http/http_server.c
+        net/http/http_url.c
         net/http/module/http_module_file.c
         net/http/module/http_module_dispatcher.c
         net/http/module/http_module_websocket.c
@@ -184,7 +184,6 @@ install(FILES
         core/uuid.h
         core/log.h
         core/json.h
-        core/url.h
         core/timer_wheel.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/core")
 install(FILES
@@ -213,6 +212,7 @@ install(FILES
         net/extend/pgsql_pool.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/extend")
 install(FILES
+        net/http/http_url.h
         net/http/http_parse.h
         net/http/http_request.h
         net/http/http_response.h
