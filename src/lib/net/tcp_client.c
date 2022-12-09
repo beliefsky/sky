@@ -399,11 +399,6 @@ tcp_run(sky_tcp_client_t *client) {
 
     const sky_bool_t result = event->run(event);
     if (!result) {
-        if (!client->free) {
-            client->free = true;
-            sky_defer_cancel(client->coro, client->defer);
-            sky_event_reset(&client->ev, tcp_run, tcp_close_free);
-        }
         sky_event_unregister(event);
     }
 
@@ -431,6 +426,7 @@ tcp_close_free(sky_tcp_client_t *client) {
 static sky_inline void
 tcp_client_defer(sky_tcp_client_t *client) {
     client->free = true;
+    client->defer = null;
 
     if (sky_unlikely(sky_event_none_callback(&client->ev))) {
         close(client->ev.fd);
