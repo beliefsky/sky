@@ -20,7 +20,7 @@ sky_pool_t *
 sky_pool_create(sky_usize_t size) {
     sky_pool_t *p;
 
-    size = sky_align_size(size, SKY_USIZE(4096));
+    size = sky_align_size(size, SKY_USIZE(16));
 
     p = sky_malloc(size);
     if (sky_unlikely(!p)) {
