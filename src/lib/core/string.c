@@ -196,7 +196,7 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
                     break;
                 }
                 if (end_char == src[(sky_usize_t) index + 1]) {
-                    return (sky_uchar_t *) src;
+                    return (sky_uchar_t *) src + index;
                 }
                 n -= (sky_usize_t) index + 1;
                 src += index + 1;
@@ -364,7 +364,7 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
                 }
                 if (end_char == src[(sky_usize_t) index + sub_len - 1]
                     || sky_str_len_unsafe_equals(src + 1, sub + 1, sub_len - 2)) {
-                    return (sky_uchar_t *) src;
+                    return (sky_uchar_t *) src + index;
                 }
                 n -= (sky_usize_t) index + 1;
                 src += index + 1;
@@ -505,7 +505,7 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
             break;
         }
         if (end_char == src[(sky_usize_t) index + sub_len - 1] || func(src + 1, sub + 1)) {
-            return (sky_uchar_t *) src;
+            return (sky_uchar_t *) src + index;
         }
         n -= (sky_usize_t) index + 1;
         src += index + 1;
