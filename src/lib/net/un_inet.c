@@ -3,6 +3,7 @@
 //
 
 #include "un_inet.h"
+#include "../core/log.h"
 
 struct sky_un_inet_s {
     sky_event_t ev;
@@ -141,6 +142,7 @@ un_inet_close(sky_un_inet_t *un_inet) {
         sky_event_timer_register(un_inet->ev.loop, &un_inet->ev.timer, un_inet->period);
         sky_coro_reset(un_inet->coro, (sky_coro_func_t) un_inet_coro_process, un_inet);
     } else {
+        sky_log_info("==============<<<<");
         sky_coro_destroy(un_inet->coro);
     }
 }
@@ -157,6 +159,8 @@ un_inet_delay_run(sky_un_inet_t *un_inet) {
 
 static sky_isize_t
 un_inet_coro_process(sky_coro_t *coro, sky_un_inet_t *un_inet) {
+    (void) coro;
+
     un_inet->process(un_inet, un_inet->data);
     return SKY_CORO_FINISHED;
 }
