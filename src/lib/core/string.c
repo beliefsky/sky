@@ -141,13 +141,14 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
             return sky_str_len_find_char(src, src_len, sub[0]);
         case 2: {
 #if defined(__AVX2__)
-            __m256i broad_casted[] = {
+            const __m256i broad_casted[] = {
                     _mm256_set1_epi8((sky_char_t) sub[0]),
                     _mm256_set1_epi8((sky_char_t) sub[1])
             };
+
             __m256i curr = _mm256_loadu_si256((const __m256i *) (src));
 
-            for (sky_usize_t i = 0; i < src_len; i += 32, src += 32) {
+            for (; src_len > 33; src_len -= 32, src += 32) {
                 const __m256i next = _mm256_loadu_si256((const __m256i *) (src + 32));
                 // AVX2 palignr works on 128-bit lanes, thus some extra work is needed
                 //
@@ -179,10 +180,30 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
                 const sky_u32_t mask = (sky_u32_t) _mm256_movemask_epi8(eq);
                 if (mask != 0) {
                     const sky_usize_t bit_pos = (sky_usize_t) __builtin_ctz(mask);
-                    return (i + bit_pos) > src_len ? null : (sky_uchar_t *) (src + bit_pos);
+                    return (sky_uchar_t *) (src + bit_pos);
                 }
             }
 
+            const sky_uchar_t start_char = sub[0];
+            const sky_uchar_t end_char = sub[1];
+
+            sky_usize_t n = src_len - sub_len;
+
+            while (n > 0) {
+                const sky_isize_t index = sky_str_len_index_char(src, n, start_char);
+                if (index == -1) {
+                    src += n;
+                    break;
+                }
+                if (end_char == src[(sky_usize_t) index + 1]) {
+                    return (sky_uchar_t *) src;
+                }
+                n -= (sky_usize_t) index + 1;
+                src += index + 1;
+            }
+            if (sky_str2_cmp(src, start_char, end_char)) {
+                return (sky_uchar_t *) src;
+            }
             return null;
 #else
             func = mem_always_true;
@@ -217,248 +238,282 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
             break;
         default: {
 #if defined(__AVX2__)
+            {
+                const __m256i first = _mm256_set1_epi8((sky_char_t) sub[0]);
+                const __m256i last = _mm256_set1_epi8((sky_char_t) sub[sub_len - 1]);
 
-            const __m256i first = _mm256_set1_epi8((sky_char_t) sub[0]);
-            const __m256i last = _mm256_set1_epi8((sky_char_t) sub[sub_len - 1]);
+                const sky_usize_t limit = sub_len + 31;
+                for (; src_len > limit; src_len -= 32, src += 32) {
+                    const __m256i block_first = _mm256_loadu_si256((const __m256i *) src);
+                    const __m256i block_last = _mm256_loadu_si256((const __m256i *) (src + sub_len - 1));
 
-            for (sky_usize_t i = 0; i < src_len; i += 32, src += 32) {
-                const __m256i block_first = _mm256_loadu_si256((const __m256i *) src);
-                const __m256i block_last = _mm256_loadu_si256((const __m256i *) (src + sub_len - 1));
+                    const __m256i eq_first = _mm256_cmpeq_epi8(first, block_first);
+                    const __m256i eq_last = _mm256_cmpeq_epi8(last, block_last);
 
-                const __m256i eq_first = _mm256_cmpeq_epi8(first, block_first);
-                const __m256i eq_last = _mm256_cmpeq_epi8(last, block_last);
+                    sky_u32_t mask = (sky_u32_t) _mm256_movemask_epi8(_mm256_and_si256(eq_first, eq_last));
+                    while (mask != 0) {
+                        const sky_usize_t bit_pos = (sky_usize_t) __builtin_ctz(mask);
+                        if (sky_str_len_unsafe_equals(src + bit_pos + 1, sub + 1, sub_len - 2)) {
+                            return (sky_uchar_t *) (src + bit_pos);
+                        }
 
-                sky_u32_t mask = (sky_u32_t) _mm256_movemask_epi8(_mm256_and_si256(eq_first, eq_last));
-                while (mask != 0) {
-                    const sky_usize_t bit_pos = (sky_usize_t) __builtin_ctz(mask);
-                    if (sky_unlikely((i + bit_pos + sub_len - 1) >= src_len)) {
-                        return null;
+                        mask &= (mask - 1);
                     }
-                    if (sky_str_len_unsafe_equals(src + bit_pos + 1, sub + 1, sub_len - 2)) {
-                        return (sky_uchar_t *) (src + bit_pos);
-                    }
-
-                    mask &= (mask - 1);
                 }
             }
 #elif defined(__SSE2__)
-            const __m128i first = _mm_set1_epi8((sky_char_t) sub[0]);
-            const __m128i last = _mm_set1_epi8((sky_char_t) sub[sub_len - 1]);
+            {
+                const __m128i first = _mm_set1_epi8((sky_char_t) sub[0]);
+                const __m128i last = _mm_set1_epi8((sky_char_t) sub[sub_len - 1]);
 
-            for (sky_usize_t i = 0; i < src_len; i += 16, src += 16) {
-                const __m128i block_first = _mm_loadu_si128((const __m128i *) src);
-                const __m128i block_last = _mm_loadu_si128((const __m128i *) (src + sub_len - 1));
+                const sky_usize_t limit = sub_len + 15;
+                for (; src_len > limit; src_len -= 16, src += 16) {
+                    const __m128i block_first = _mm_loadu_si128((const __m128i_u *) src);
+                    const __m128i block_last = _mm_loadu_si128((const __m128i_u *) (src + sub_len - 1));
 
-                const __m128i eq_first = _mm_cmpeq_epi8(first, block_first);
-                const __m128i eq_last = _mm_cmpeq_epi8(last, block_last);
+                    const __m128i eq_first = _mm_cmpeq_epi8(first, block_first);
+                    const __m128i eq_last = _mm_cmpeq_epi8(last, block_last);
 
-                sky_u16_t mask = (sky_u16_t) _mm_movemask_epi8(_mm_and_si128(eq_first, eq_last));
+                    sky_u16_t mask = (sky_u16_t) _mm_movemask_epi8(_mm_and_si128(eq_first, eq_last));
 
-                while (mask != 0) {
-                    const sky_usize_t bit_pos = (sky_usize_t) __builtin_ctz(mask);
-                    if (sky_unlikely((i + bit_pos + sub_len - 1) >= src_len)) {
-                        return null;
+                    while (mask != 0) {
+                        const sky_usize_t bit_pos = (sky_usize_t) __builtin_ctz(mask);
+                        if (sky_str_len_unsafe_equals(src + bit_pos + 1, sub + 1, sub_len - 2)) {
+                            return (sky_uchar_t *) (src + bit_pos);
+                        }
+
+                        mask &= (mask - 1);
                     }
-                    if (sky_str_len_unsafe_equals(src + bit_pos + 1, sub + 1, sub_len - 2)) {
-                        return (sky_uchar_t *) (src + bit_pos);
-                    }
-
-                    mask &= (mask - 1);
                 }
             }
 
 #elif SKY_USIZE_MAX == SKY_U64_MAX
-            const sky_u64_t first = 0x0101010101010101llu * sub[0];
-            const sky_u64_t last = 0x0101010101010101llu * sub[sub_len - 1];
+            {
+                const sky_u64_t first = 0x0101010101010101llu * sub[0];
+                const sky_u64_t last = 0x0101010101010101llu * sub[sub_len - 1];
 
-            sky_u64_t *block_first = (sky_u64_t *) src;
-            sky_u64_t *block_last = (sky_u64_t *) (src + sub_len - 1);
+                const sky_usize_t limit = sub_len + 7;
+                for (; src_len > limit; src_len -= 8, src += 8) {
+                    const sky_u64_t *block_first = (sky_u64_t *) src;
+                    const sky_u64_t *block_last = (sky_u64_t *) (src + sub_len - 1);
+                    // 0 bytes in eq indicate matching chars
+                    const sky_u64_t eq = (*block_first ^ first) | (*block_last ^ last);
+                    // 7th bit set if lower 7 bits are zero
+                    const sky_u64_t t0 = (~eq & 0x7f7f7f7f7f7f7f7fllu) + 0x0101010101010101llu;
+                    // 7th bit set if 7th bit is zero
+                    const sky_u64_t t1 = (~eq & 0x8080808080808080llu);
+                    sky_u64_t zeros = t0 & t1;
+                    sky_usize_t j = 0;
 
-            for (sky_usize_t i = 0; i < src_len; i += 8, src += 8, ++block_first, ++block_last) {
-                // 0 bytes in eq indicate matching chars
-                const sky_u64_t eq = (*block_first ^ first) | (*block_last ^ last);
-                // 7th bit set if lower 7 bits are zero
-                const sky_u64_t t0 = (~eq & 0x7f7f7f7f7f7f7f7fllu) + 0x0101010101010101llu;
-                // 7th bit set if 7th bit is zero
-                const sky_u64_t t1 = (~eq & 0x8080808080808080llu);
-                sky_u64_t zeros = t0 & t1;
-                sky_usize_t j = 0;
-
-                while (zeros) {
-                    if (zeros & 0x80) {
-                        const sky_uchar_t *substr = (sky_uchar_t *) (block_first) + j + 1;
-                        if (sky_unlikely((i + j + sub_len - 1) >= src_len)) {
-                            return null;
+                    while (zeros) {
+                        if (zeros & 0x80) {
+                            const sky_uchar_t *substr = (sky_uchar_t *) (block_first) + j + 1;
+                            if (sky_str_len_unsafe_equals(substr, sub + 1, sub_len - 2)) {
+                                return (sky_uchar_t *) (src + j);
+                            }
                         }
-                        if (sky_str_len_unsafe_equals(substr, sub + 1, sub_len - 2)) {
-                            return (sky_uchar_t *) (src + j);
-                        }
+                        zeros >>= 8;
+                        j += 1;
                     }
-                    zeros >>= 8;
-                    j += 1;
                 }
             }
 #else
-            const sky_u32_t first = 0x01010101U * sub[0];
-            const sky_u32_t last = 0x01010101U * sub[sub_len - 1];
+            {
+                const sky_u32_t first = 0x01010101U * sub[0];
+                const sky_u32_t last = 0x01010101U * sub[sub_len - 1];
 
-            sky_u32_t *block_first = (sky_u32_t *) src;
-            sky_u32_t *block_last = (sky_u32_t *) (src + sub_len - 1);
+                const sky_usize_t limit = sub_len + 3;
+                for (; src_len > limit; src_len -= 4, src += 4) {
+                    const sky_u32_t *block_first = (sky_u32_t *) src;
+                    const sky_u32_t *block_last = (sky_u32_t *) (src + sub_len - 1);
+                    // 0 bytes in eq indicate matching chars
+                    const sky_u32_t eq = (*block_first ^ first) | (*block_last ^ last);
 
-            for (sky_usize_t i = 0; i < src_len; i += 4, src += 4, ++block_first, ++block_last) {
-                // 0 bytes in eq indicate matching chars
-                const sky_u32_t eq = (*block_first ^ first) | (*block_last ^ last);
+                    // 7th bit set if lower 7 bits are zero
+                    const sky_u32_t t0 = (~eq & 0x7f7f7f7fU) + 0x01010101U;
+                    // 7th bit set if 7th bit is zero
+                    const sky_u32_t t1 = (~eq & 0x80808080U);
+                    sky_u32_t zeros = t0 & t1;
+                    sky_usize_t j = 0;
 
-                // 7th bit set if lower 7 bits are zero
-                const sky_u32_t t0 = (~eq & 0x7f7f7f7fU) + 0x01010101U;
-                // 7th bit set if 7th bit is zero
-                const sky_u32_t t1 = (~eq & 0x80808080U);
-                sky_u32_t zeros = t0 & t1;
-                sky_usize_t j = 0;
-
-                while (zeros) {
-                    if (zeros & 0x80) {
-                        const sky_uchar_t *substr = (sky_uchar_t *) (block_first) + j + 1;
-                        if (sky_unlikely((i + j + sub_len - 1) >= src_len)) {
-                            return null;
+                    while (zeros) {
+                        if (zeros & 0x80) {
+                            const sky_uchar_t *substr = (sky_uchar_t *) (block_first) + j + 1;
+                            if (sky_str_len_unsafe_equals(substr, sub + 1, sub_len - 2)) {
+                                return (sky_uchar_t *) (src + j);
+                            }
                         }
-                        if (sky_str_len_unsafe_equals(substr, sub + 1, sub_len - 2)) {
-                            return (sky_uchar_t *) (src + j);
-                        }
+
+                        zeros >>= 8;
+                        j += 1;
                     }
-
-                    zeros >>= 8;
-                    j += 1;
                 }
             }
 #endif
 
+            const sky_uchar_t start_char = sub[0];
+            const sky_uchar_t end_char = sub[sub_len - 1];
+
+            sky_usize_t n = src_len - sub_len;
+
+            while (n > 0) {
+                const sky_isize_t index = sky_str_len_index_char(src, n, start_char);
+                if (index == -1) {
+                    src += n;
+                    break;
+                }
+                if (end_char == src[(sky_usize_t) index + sub_len - 1]
+                    || sky_str_len_unsafe_equals(src + 1, sub + 1, sub_len - 2)) {
+                    return (sky_uchar_t *) src;
+                }
+                n -= (sky_usize_t) index + 1;
+                src += index + 1;
+            }
+            if (start_char == src[0]
+                && end_char == src[sub_len - 1]
+                && sky_str_len_unsafe_equals(src + 1, sub + 1, sub_len - 2)) {
+                return (sky_uchar_t *) src;
+            }
             return null;
         }
     }
 
 #if defined(__AVX2__)
+    {
+        const __m256i first = _mm256_set1_epi8((sky_char_t) sub[0]);
+        const __m256i last = _mm256_set1_epi8((sky_char_t) sub[sub_len - 1]);
 
-    const __m256i first = _mm256_set1_epi8((sky_char_t) sub[0]);
-    const __m256i last = _mm256_set1_epi8((sky_char_t) sub[sub_len - 1]);
+        const sky_usize_t limit = sub_len + 31;
+        for (; src_len > limit; src_len -= 32, src += 32) {
+            const __m256i block_first = _mm256_loadu_si256((const __m256i *) src);
+            const __m256i block_last = _mm256_loadu_si256((const __m256i *) (src + sub_len - 1));
 
-    for (sky_usize_t i = 0; i < src_len; i += 32, src += 32) {
-        const __m256i block_first = _mm256_loadu_si256((const __m256i *) src);
-        const __m256i block_last = _mm256_loadu_si256((const __m256i *) (src + sub_len - 1));
+            const __m256i eq_first = _mm256_cmpeq_epi8(first, block_first);
+            const __m256i eq_last = _mm256_cmpeq_epi8(last, block_last);
 
-        const __m256i eq_first = _mm256_cmpeq_epi8(first, block_first);
-        const __m256i eq_last = _mm256_cmpeq_epi8(last, block_last);
+            sky_u32_t mask = (sky_u32_t) _mm256_movemask_epi8(_mm256_and_si256(eq_first, eq_last));
 
-        sky_u32_t mask = (sky_u32_t) _mm256_movemask_epi8(_mm256_and_si256(eq_first, eq_last));
-        while (mask != 0) {
-            const sky_usize_t bit_pos = (sky_usize_t) __builtin_ctz(mask);
-            if (sky_unlikely((i + bit_pos + sub_len - 1) >= src_len)) {
-                return null;
+            while (mask != 0) {
+                const sky_usize_t bit_pos = (sky_usize_t) __builtin_ctz(mask);
+                if (func(src + bit_pos + 1, sub + 1)) {
+                    return (sky_uchar_t *) (src + bit_pos);
+                }
+
+                mask &= (mask - 1);
             }
-            if (func(src + bit_pos + 1, sub + 1)) {
-                return (sky_uchar_t *) (src + bit_pos);
-            }
-
-            mask &= (mask - 1);
         }
     }
-#elif defined(__SSE2__)
+#elif defined(__SSE2__ )
+    {
+        const __m128i first = _mm_set1_epi8((sky_char_t) sub[0]);
+        const __m128i last = _mm_set1_epi8((sky_char_t) sub[sub_len - 1]);
 
-    const __m128i first = _mm_set1_epi8((sky_char_t) sub[0]);
-    const __m128i last = _mm_set1_epi8((sky_char_t) sub[sub_len - 1]);
+        const sky_usize_t limit = sub_len + 15;
+        for (; src_len > limit; src_len -= 16, src += 16) {
+            const __m128i block_first = _mm_loadu_si128((const __m128i_u *) src);
+            const __m128i block_last = _mm_loadu_si128((const __m128i_u *) (src + sub_len - 1));
 
-    for (sky_usize_t i = 0; i < src_len; i += 16, src += 16) {
-        const __m128i block_first = _mm_loadu_si128((const __m128i *) src);
-        const __m128i block_last = _mm_loadu_si128((const __m128i *) (src + sub_len - 1));
+            const __m128i eq_first = _mm_cmpeq_epi8(first, block_first);
+            const __m128i eq_last = _mm_cmpeq_epi8(last, block_last);
 
-        const __m128i eq_first = _mm_cmpeq_epi8(first, block_first);
-        const __m128i eq_last = _mm_cmpeq_epi8(last, block_last);
+            sky_u32_t mask = (sky_u32_t) _mm_movemask_epi8(_mm_and_si128(eq_first, eq_last));
 
-        sky_u32_t mask = (sky_u32_t) _mm_movemask_epi8(_mm_and_si128(eq_first, eq_last));
+            while (mask != 0) {
+                const sky_usize_t bit_pos = (sky_usize_t) __builtin_ctz(mask);
+                if (func(src + bit_pos + 1, sub + 1)) {
+                    return (sky_uchar_t *) (src + bit_pos);
+                }
 
-        while (mask != 0) {
-            const sky_usize_t bit_pos = (sky_usize_t) __builtin_ctz(mask);
-            if (sky_unlikely((i + bit_pos + sub_len - 1) >= src_len)) {
-                return null;
+                mask &= (mask - 1);
             }
-            if (func(src + bit_pos + 1, sub + 1)) {
-                return (sky_uchar_t *) (src + bit_pos);
-            }
-
-            mask &= (mask - 1);
         }
-    }
 
+    }
 #elif SKY_USIZE_MAX == SKY_U64_MAX
-    const sky_u64_t first = 0x0101010101010101llu * sub[0];
-    const sky_u64_t last = 0x0101010101010101llu * sub[sub_len - 1];
+    {
+        const sky_u64_t first = 0x0101010101010101llu * sub[0];
+        const sky_u64_t last = 0x0101010101010101llu * sub[sub_len - 1];
 
-    sky_u64_t *block_first = (sky_u64_t *) src;
-    sky_u64_t *block_last = (sky_u64_t *) (src + sub_len - 1);
+        const sky_usize_t limit = sub_len + 7;
+        for (; src_len > limit; src_len -= 8, src += 8) {
+            const sky_u64_t *block_first = (sky_u64_t *) src;
+            const sky_u64_t *block_last = (sky_u64_t *) (src + sub_len - 1);
+            // 0 bytes in eq indicate matching chars
+            const sky_u64_t eq = (*block_first ^ first) | (*block_last ^ last);
+            // 7th bit set if lower 7 bits are zero
+            const sky_u64_t t0 = (~eq & 0x7f7f7f7f7f7f7f7fllu) + 0x0101010101010101llu;
+            // 7th bit set if 7th bit is zero
+            const sky_u64_t t1 = (~eq & 0x8080808080808080llu);
+            sky_u64_t zeros = t0 & t1;
+            sky_usize_t j = 0;
 
-    for (sky_usize_t i = 0; i < src_len; i += 8, src += 8, ++block_first, ++block_last) {
-        // 0 bytes in eq indicate matching chars
-        const sky_u64_t eq = (*block_first ^ first) | (*block_last ^ last);
-        // 7th bit set if lower 7 bits are zero
-        const sky_u64_t t0 = (~eq & 0x7f7f7f7f7f7f7f7fllu) + 0x0101010101010101llu;
-        // 7th bit set if 7th bit is zero
-        const sky_u64_t t1 = (~eq & 0x8080808080808080llu);
-        sky_u64_t zeros = t0 & t1;
-        sky_usize_t j = 0;
-
-        while (zeros) {
-            if (zeros & 0x80) {
-                const sky_uchar_t *substr = (sky_uchar_t *) (block_first) + j + 1;
-                if (sky_unlikely((i + j + sub_len - 1) >= src_len)) {
-                    return null;
+            while (zeros) {
+                if (zeros & 0x80) {
+                    const sky_uchar_t *substr = (sky_uchar_t *) (block_first) + j + 1;
+                    if (func(substr, sub + 1)) {
+                        return (sky_uchar_t *) (src + j);
+                    }
                 }
-                if (func(substr, sub + 1)) {
-                    return (sky_uchar_t *) (src + j);
-                }
+                zeros >>= 8;
+                j += 1;
             }
-            zeros >>= 8;
-            j += 1;
         }
     }
 #else
+    {
+        const sky_u32_t first = 0x01010101U * sub[0];
+        const sky_u32_t last = 0x01010101U * sub[sub_len - 1];
 
-    const sky_u32_t first = 0x01010101U * sub[0];
-    const sky_u32_t last = 0x01010101U * sub[sub_len - 1];
+        const sky_usize_t limit = sub_len + 3;
+        for (; src_len > limit; src_len -= 4, src += 4) {
+            const sky_u32_t *block_first = (sky_u32_t *) src;
+            const sky_u32_t *block_last = (sky_u32_t *) (src + sub_len - 1);
+            // 0 bytes in eq indicate matching chars
+            const sky_u32_t eq = (*block_first ^ first) | (*block_last ^ last);
 
-    sky_u32_t *block_first = (sky_u32_t *) src;
-    sky_u32_t *block_last = (sky_u32_t *) (src + sub_len - 1);
+            // 7th bit set if lower 7 bits are zero
+            const sky_u32_t t0 = (~eq & 0x7f7f7f7fU) + 0x01010101U;
+            // 7th bit set if 7th bit is zero
+            const sky_u32_t t1 = (~eq & 0x80808080U);
+            sky_u32_t zeros = t0 & t1;
+            sky_usize_t j = 0;
 
-    for (sky_usize_t i = 0; i < src_len; i += 4, src += 4, ++block_first, ++block_last) {
-        // 0 bytes in eq indicate matching chars
-        const sky_u32_t eq = (*block_first ^ first) | (*block_last ^ last);
-
-        // 7th bit set if lower 7 bits are zero
-        const sky_u32_t t0 = (~eq & 0x7f7f7f7fU) + 0x01010101U;
-        // 7th bit set if 7th bit is zero
-        const sky_u32_t t1 = (~eq & 0x80808080U);
-        sky_u32_t zeros = t0 & t1;
-        sky_usize_t j = 0;
-
-        while (zeros) {
-            if (zeros & 0x80) {
-                const sky_uchar_t *substr = (sky_uchar_t *) (block_first) + j + 1;
-                if (sky_unlikely((i + j + sub_len - 1) >= src_len)) {
-                    return null;
+            while (zeros) {
+                if (zeros & 0x80) {
+                    const sky_uchar_t *substr = (sky_uchar_t *) (block_first) + j + 1;
+                    if (func(substr, sub + 1)) {
+                        return (sky_uchar_t *) (src + j);
+                    }
                 }
-                if (func(substr, sub + 1)) {
-                    return (sky_uchar_t *) (src + j);
-                }
+
+                zeros >>= 8;
+                j += 1;
             }
-
-            zeros >>= 8;
-            j += 1;
         }
     }
-
 #endif
 
-    return null;
+    const sky_uchar_t start_char = sub[0];
+    const sky_uchar_t end_char = sub[sub_len - 1];
 
+    sky_usize_t n = src_len - sub_len;
+
+    while (n > 0) {
+        const sky_isize_t index = sky_str_len_index_char(src, n, start_char);
+        if (index == -1) {
+            src += n;
+            break;
+        }
+        if (end_char == src[(sky_usize_t) index + sub_len - 1] || func(src + 1, sub + 1)) {
+            return (sky_uchar_t *) src;
+        }
+        n -= (sky_usize_t) index + 1;
+        src += index + 1;
+    }
+    if (start_char == src[0] && end_char == src[sub_len - 1] && func(src + 1, sub + 1)) {
+        return (sky_uchar_t *) src;
+    }
+    return null;
 }
 
 
