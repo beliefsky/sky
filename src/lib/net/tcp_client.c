@@ -400,6 +400,10 @@ tcp_run(sky_tcp_client_t *client) {
     const sky_bool_t result = event->run(event);
     if (!result) {
         sky_event_unregister(event);
+
+        if (client->defer) { // 不允许再调用
+            sky_event_reset(&client->ev, tcp_run, tcp_close_cb);
+        }
     }
 
     return result;

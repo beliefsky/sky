@@ -15,9 +15,9 @@ struct sky_un_inet_s {
     sky_bool_t rerun: 1;
 };
 
-static sky_bool_t un_inet_run(sky_un_inet_t *un_inet);
+static sky_bool_t un_inet_run(sky_event_t *event);
 
-static void un_inet_close(sky_un_inet_t *un_inet);
+static void un_inet_close(sky_event_t *event);
 
 static void un_inet_delay_run(sky_un_inet_t *un_inet);
 
@@ -42,8 +42,8 @@ sky_un_inet_run(
 
     sky_coro_set(coro, (sky_coro_func_t) un_inet_coro_process, un_inet);
 
-    if (!un_inet_run(un_inet)) {
-        un_inet_close(un_inet);
+    if (!un_inet_run(&un_inet->ev)) {
+        un_inet_close(&un_inet->ev);
     } else {
         sky_event_register_none(&un_inet->ev, -1);
     }
@@ -114,35 +114,31 @@ sky_un_inet_cancel(sky_un_inet_t *un_inet) {
 
 sky_event_t *
 sky_un_inet_event(sky_un_inet_t *un_inet) {
-    if (sky_unlikely(!un_inet)) {
-        return null;
-    }
-    return &(un_inet->ev);
+    return sky_unlikely(!un_inet) ? null : &(un_inet->ev);
 }
 
 sky_coro_t *
 sky_un_inet_coro(sky_un_inet_t *un_inet) {
-    if (sky_unlikely(!un_inet)) {
-        return null;
-    }
-    return un_inet->coro;
+    return sky_unlikely(!un_inet) ? null : un_inet->coro;
 }
 
 
 static sky_bool_t
-un_inet_run(sky_un_inet_t *un_inet) {
+un_inet_run(sky_event_t *event) {
+    sky_un_inet_t *un_inet = sky_type_convert(event, sky_un_inet_t, ev);
     return sky_coro_resume(un_inet->coro) == SKY_CORO_MAY_RESUME;
 }
 
 static void
-un_inet_close(sky_un_inet_t *un_inet) {
+un_inet_close(sky_event_t *event) {
+    sky_un_inet_t *un_inet = sky_type_convert(event, sky_un_inet_t, ev);
+
     if (un_inet->rerun) {
         un_inet->wait = true;
-        un_inet->ev.timer.cb = (sky_timer_wheel_pt) un_inet_delay_run;
-        sky_event_timer_register(un_inet->ev.loop, &un_inet->ev.timer, un_inet->period);
+        event->timer.cb = (sky_timer_wheel_pt) un_inet_delay_run;
+        sky_event_timer_register(un_inet->ev.loop, &event->timer, un_inet->period);
         sky_coro_reset(un_inet->coro, (sky_coro_func_t) un_inet_coro_process, un_inet);
     } else {
-        sky_log_info("==============<<<<");
         sky_coro_destroy(un_inet->coro);
     }
 }
@@ -150,8 +146,8 @@ un_inet_close(sky_un_inet_t *un_inet) {
 static void
 un_inet_delay_run(sky_un_inet_t *un_inet) {
     un_inet->wait = false;
-    if (!un_inet_run(un_inet)) {
-        un_inet_close(un_inet);
+    if (!un_inet_run(&un_inet->ev)) {
+        un_inet_close(&un_inet->ev);
     } else {
         sky_event_register_none(&un_inet->ev, -1);
     }
@@ -159,8 +155,9 @@ un_inet_delay_run(sky_un_inet_t *un_inet) {
 
 static sky_isize_t
 un_inet_coro_process(sky_coro_t *coro, sky_un_inet_t *un_inet) {
-    (void) coro;
 
     un_inet->process(un_inet, un_inet->data);
+
+    sky_log_info("222222222");
     return SKY_CORO_FINISHED;
 }

@@ -34,7 +34,6 @@
 #if defined(__x86_64__)
 
 typedef sky_usize_t sky_coro_context_t[10];
-typedef struct coro_block_s coro_block_t;
 
 #elif defined(__i386__)
 
@@ -52,6 +51,8 @@ typedef libucontext_ucontext_t sky_coro_context_t;
 #else
 #error Unsupported platform.
 #endif
+
+typedef struct coro_block_s coro_block_t;
 
 struct sky_coro_switcher_s {
     sky_coro_context_t caller;
@@ -191,15 +192,14 @@ coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     sky_uchar_t *stack = coro->stack;
 
 #if defined(__x86_64__)
-
+    const sky_usize_t rsp = (sky_usize_t) stack + CORO_STACK_MIN;
 
     coro->context[5 /* R15 */] = (sky_usize_t) data;
     coro->context[6 /* RDI */] = (sky_usize_t) coro;
     coro->context[7 /* RSI */] = (sky_usize_t) func;
     coro->context[8 /* RIP */] = (sky_usize_t) coro_entry_point_x86_64;
 #define STACK_PTR 9
-    coro->context[STACK_PTR /* RSP */] =
-            (((sky_usize_t) stack + CORO_STACK_MIN) & ~SKY_USIZE(0xF)) - SKY_USIZE(0x8);
+    coro->context[STACK_PTR /* RSP */] = (rsp & ~SKY_USIZE(0xF)) - SKY_USIZE(0x8);
 #elif defined(__i386__)
     stack = (sky_uchar_t *) ((sky_usize_t) ((stack + CORO_STACK_MIN) - (3 * sizeof(sky_usize_t))) & (sky_usize_t) ~0x3);
 
