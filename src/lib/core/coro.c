@@ -167,7 +167,7 @@ ASM_ROUTINE(coro_swapcontext)
 
 __attribute__((used, visibility("internal"))) void
 coro_entry_point(sky_coro_t *coro, sky_coro_func_t func, void *data) {
-    return (void) coro_yield(coro, func(coro, data));
+    coro_yield(coro, func(coro, data));
 }
 
 #ifdef __x86_64__
