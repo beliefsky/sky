@@ -34,7 +34,6 @@
 #if defined(__x86_64__)
 
 typedef sky_usize_t sky_coro_context_t[10];
-typedef struct coro_block_s coro_block_t;
 
 #elif defined(__i386__)
 
@@ -52,6 +51,8 @@ typedef libucontext_ucontext_t sky_coro_context_t;
 #else
 #error Unsupported platform.
 #endif
+
+typedef struct coro_block_s coro_block_t;
 
 struct sky_coro_switcher_s {
     sky_coro_context_t caller;
@@ -84,14 +85,16 @@ struct sky_coro_s {
     sky_coro_context_t context;
     sky_isize_t yield_value;
 //===================================
+    sky_bool_t self;
+    coro_block_t *block;
+    sky_uchar_t *ptr;
+    sky_usize_t ptr_size;
+
     sky_queue_t defers;
     sky_queue_t global_defers;
     sky_queue_t free_defers;
-    coro_block_t *block;
-    sky_uchar_t *ptr;
-    sky_uchar_t *stack;
-    sky_usize_t ptr_size;
-    sky_bool_t self: 1;
+
+    sky_uchar_t stack[];
 };
 
 static sky_isize_t coro_yield(sky_coro_t *coro, sky_isize_t value);
@@ -104,32 +107,32 @@ void __attribute__((noinline, visibility("internal")))
 coro_swapcontext(sky_coro_context_t *current, sky_coro_context_t *other);
 
 asm(
-".text\n\t"
-".p2align 5\n\t"
-ASM_ROUTINE(coro_swapcontext)
-"movq    %rbx,0(%rdi)\n\t"
-"movq    %rbp,8(%rdi)\n\t"
-"movq    %r12,16(%rdi)\n\t"
-"movq    %r13,24(%rdi)\n\t"
-"movq    %r14,32(%rdi)\n\t"
-"movq    %r15,40(%rdi)\n\t"
-"movq    %rdi,48(%rdi)\n\t"
-"movq    %rsi,56(%rdi)\n\t"
-"movq    (%rsp),%rcx\n\t"
-"movq    %rcx,64(%rdi)\n\t"
-"leaq    0x8(%rsp),%rcx\n\t"
-"movq    %rcx,72(%rdi)\n\t"
-"movq    72(%rsi),%rsp\n\t"
-"movq    0(%rsi),%rbx\n\t"
-"movq    8(%rsi),%rbp\n\t"
-"movq    16(%rsi),%r12\n\t"
-"movq    24(%rsi),%r13\n\t"
-"movq    32(%rsi),%r14\n\t"
-"movq    40(%rsi),%r15\n\t"
-"movq    48(%rsi),%rdi\n\t"
-"movq    64(%rsi),%rcx\n\t"
-"movq    56(%rsi),%rsi\n\t"
-"jmpq    *%rcx\n\t");
+        ".text\n\t"
+        ".p2align 5\n\t"
+        ASM_ROUTINE(coro_swapcontext)
+        "movq    %rbx,0(%rdi)\n\t"
+        "movq    %rbp,8(%rdi)\n\t"
+        "movq    %r12,16(%rdi)\n\t"
+        "movq    %r13,24(%rdi)\n\t"
+        "movq    %r14,32(%rdi)\n\t"
+        "movq    %r15,40(%rdi)\n\t"
+        "movq    %rdi,48(%rdi)\n\t"
+        "movq    %rsi,56(%rdi)\n\t"
+        "movq    (%rsp),%rcx\n\t"
+        "movq    %rcx,64(%rdi)\n\t"
+        "leaq    0x8(%rsp),%rcx\n\t"
+        "movq    %rcx,72(%rdi)\n\t"
+        "movq    72(%rsi),%rsp\n\t"
+        "movq    0(%rsi),%rbx\n\t"
+        "movq    8(%rsi),%rbp\n\t"
+        "movq    16(%rsi),%r12\n\t"
+        "movq    24(%rsi),%r13\n\t"
+        "movq    32(%rsi),%r14\n\t"
+        "movq    40(%rsi),%r15\n\t"
+        "movq    48(%rsi),%rdi\n\t"
+        "movq    64(%rsi),%rcx\n\t"
+        "movq    56(%rsi),%rsi\n\t"
+        "jmpq    *%rcx\n\t");
 #elif defined(__i386__)
 
 void __attribute__((noinline, visibility("internal")))
@@ -167,7 +170,7 @@ ASM_ROUTINE(coro_swapcontext)
 
 __attribute__((used, visibility("internal"))) void
 coro_entry_point(sky_coro_t *coro, sky_coro_func_t func, void *data) {
-    coro_yield(coro, func(coro, data));
+    return (void) coro_yield(coro, func(coro, data));
 }
 
 #ifdef __x86_64__
@@ -181,35 +184,24 @@ asm(".text\n\t"
     ASM_ROUTINE(coro_entry_point_x86_64)
     "mov %r15, %rdx\n\t"
     "jmp " ASM_SYMBOL(coro_entry_point) "\n\t"
-);
+        );
 #endif
 
 static sky_inline void
 coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
-#if defined(__x86_64__)
+    sky_uchar_t *stack = coro->stack;
 
+#if defined(__x86_64__)
+    const sky_usize_t rsp = (sky_usize_t) stack + CORO_STACK_MIN;
 
     coro->context[5 /* R15 */] = (sky_usize_t) data;
     coro->context[6 /* RDI */] = (sky_usize_t) coro;
     coro->context[7 /* RSI */] = (sky_usize_t) func;
     coro->context[8 /* RIP */] = (sky_usize_t) coro_entry_point_x86_64;
 #define STACK_PTR 9
-    coro->context[STACK_PTR /* RSP */] =
-            (((sky_usize_t) coro->stack + CORO_STACK_MIN) & ~SKY_USIZE(0xF)) - SKY_USIZE(0x8);
+    coro->context[STACK_PTR /* RSP */] = (rsp & ~SKY_USIZE(0xF)) - SKY_USIZE(0x8);
 #elif defined(__i386__)
-
-#elif defined(SKY_HAVE_LIBUCONTEXT)
-    sky_getcontext(&coro->context);
-    coro->context.uc_stack.ss_sp = coro->stack;
-    coro->context.uc_stack.ss_size = CORO_STACK_MIN;
-    coro->context.uc_stack.ss_flags = 0;
-    coro->context.uc_link = null;
-
-    sky_makecontext(&coro->context, coro_entry_point, 3, coro, func, data);
-
-#else
-    sky_uchar_t *stack = (sky_uchar_t *) (sky_usize_t) (coro->stack + CORO_STACK_MIN);
-    stack = (sky_uchar_t *) ((sky_usize_t) (stack - (3 * sizeof(sky_usize_t))) & (sky_usize_t) ~0x3);
+    stack = (sky_uchar_t *) ((sky_usize_t) ((stack + CORO_STACK_MIN) - (3 * sizeof(sky_usize_t))) & (sky_usize_t) ~0x3);
 
     sky_usize_t *argp = (sky_usize_t *) stack;
     *argp++ = 0;
@@ -220,6 +212,16 @@ coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     coro->context[5 /* EIP */] = (sky_usize_t) coro_entry_point;
 #define STACK_PTR 6
     coro->context[STACK_PTR /* ESP */] = (sky_usize_t) stack;
+
+#elif defined(SKY_HAVE_LIBUCONTEXT)
+    sky_getcontext(&coro->context);
+    coro->context.uc_stack.ss_sp = stack;
+    coro->context.uc_stack.ss_size = CORO_STACK_MIN;
+    coro->context.uc_stack.ss_flags = 0;
+    coro->context.uc_link = null;
+
+    sky_makecontext(&coro->context, coro_entry_point, 3, coro, func, data);
+
 #endif
 }
 
@@ -250,7 +252,6 @@ sky_coro_new(sky_coro_switcher_t *switcher) {
     if (sky_unlikely(!coro)) {
         return null;
     }
-
     coro->switcher = switcher;
 
     sky_queue_init(&coro->defers);
@@ -259,9 +260,8 @@ sky_coro_new(sky_coro_switcher_t *switcher) {
 
     coro->self = false;
     coro->block = null;
-    coro->ptr = (sky_uchar_t *) (coro + 1);
-    coro->ptr_size = PAGE_SIZE - sizeof(sky_coro_t);
-    coro->stack = coro->ptr + coro->ptr_size;
+    coro->ptr = (sky_uchar_t *) (coro + 1) + CORO_STACK_MIN + 16;
+    coro->ptr_size = PAGE_SIZE - sizeof(sky_coro_t) - 16;
 
     return coro;
 }
@@ -303,12 +303,6 @@ sky_coro_resume(sky_coro_t *coro) {
 
 sky_isize_t
 sky_coro_resume_value(sky_coro_t *coro, sky_isize_t value) {
-#ifdef STACK_PTR
-    if (sky_unlikely(coro->context[STACK_PTR] > (sky_usize_t) (coro->stack + CORO_STACK_MIN))) {
-        sky_log_error("sky_coro_resume out of stack");
-        abort();
-    }
-#endif
     if (sky_unlikely(coro->self)) {
         sky_log_error("sky_coro_resume shouldn't into coro");
         abort();
@@ -322,12 +316,6 @@ sky_coro_resume_value(sky_coro_t *coro, sky_isize_t value) {
 
 sky_inline sky_isize_t
 sky_coro_yield(sky_coro_t *coro, sky_isize_t value) {
-#ifdef STACK_PTR
-    if (sky_unlikely(coro->context[STACK_PTR] < (sky_usize_t) coro->stack)) {
-        sky_log_error("sky_coro_resume out of stack");
-        abort();
-    }
-#endif
     if (sky_unlikely(!coro->self)) {
         sky_log_error("sky_coro_yield shouldn't into coro");
         abort();
