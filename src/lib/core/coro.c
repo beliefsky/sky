@@ -84,14 +84,16 @@ struct sky_coro_s {
     sky_coro_context_t context;
     sky_isize_t yield_value;
 //===================================
+    sky_bool_t self;
+    coro_block_t *block;
+    sky_uchar_t *ptr;
+    sky_usize_t ptr_size;
+
     sky_queue_t defers;
     sky_queue_t global_defers;
     sky_queue_t free_defers;
-    coro_block_t *block;
-    sky_uchar_t *ptr;
-    sky_uchar_t *stack;
-    sky_usize_t ptr_size;
-    sky_bool_t self: 1;
+
+    sky_uchar_t stack[] __attribute__((aligned(64)));
 };
 
 static sky_isize_t coro_yield(sky_coro_t *coro, sky_isize_t value);
@@ -250,7 +252,6 @@ sky_coro_new(sky_coro_switcher_t *switcher) {
     if (sky_unlikely(!coro)) {
         return null;
     }
-
     coro->switcher = switcher;
 
     sky_queue_init(&coro->defers);
@@ -259,9 +260,8 @@ sky_coro_new(sky_coro_switcher_t *switcher) {
 
     coro->self = false;
     coro->block = null;
-    coro->ptr = (sky_uchar_t *) (coro + 1);
+    coro->ptr = (sky_uchar_t *) (coro + 1) + CORO_STACK_MIN;
     coro->ptr_size = PAGE_SIZE - sizeof(sky_coro_t);
-    coro->stack = coro->ptr + coro->ptr_size;
 
     return coro;
 }
