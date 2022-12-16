@@ -363,7 +363,7 @@ pg_send_exec(
     size = 14;
     size += encode_data_size(params->types, params->values, param_len);
 
-    sky_buf_init(&buf, conn->pool, size + 32);
+    sky_buf_init(&buf, conn->pool, cmd->len + size + 32);
 
     *(buf.last++) = 'P';
     *((sky_u32_t *) buf.last) = sky_htonl((sky_u32_t) cmd->len + 8);
