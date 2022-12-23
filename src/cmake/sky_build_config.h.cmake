@@ -21,6 +21,7 @@
 
 /* C11 _Static_assert() */
 #cmakedefine SKY_HAVE_STATIC_ASSERT
+#cmakedefine SKY_HAVE_STD_GNU
 
 #cmakedefine SKY_HAVE_LIBUCONTEXT
 #cmakedefine SKY_HAVE_OPENSSL

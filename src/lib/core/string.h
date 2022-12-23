@@ -6,7 +6,6 @@
 #define SKY_STRING_H
 
 #include "types.h"
-#include <string.h>
 
 #if defined(__cplusplus)
 extern "C" {
@@ -119,6 +118,10 @@ sky_str_is_null(const sky_str_t *str) {
 
 void sky_str_len_replace_char(sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t old_ch, sky_uchar_t new_ch);
 
+sky_uchar_t * sky_str_len_find_char(const sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t ch);
+
+sky_i32_t sky_str_len_unsafe_cmp(const sky_uchar_t *s1, const sky_uchar_t *s2, sky_usize_t len);
+
 static sky_inline void
 sky_str_replace_char(sky_str_t *src, sky_uchar_t old_ch, sky_uchar_t new_ch) {
     sky_str_len_replace_char(src->data, src->len, old_ch, new_ch);
@@ -126,7 +129,7 @@ sky_str_replace_char(sky_str_t *src, sky_uchar_t old_ch, sky_uchar_t new_ch) {
 
 static sky_inline sky_bool_t
 sky_str_len_unsafe_equals(const sky_uchar_t *s1, const sky_uchar_t *s2, sky_usize_t len) {
-    return memcmp(s1, s2, len) == 0;
+    return sky_str_len_unsafe_cmp(s1, s2, len) == 0;
 }
 
 static sky_inline sky_bool_t
@@ -143,11 +146,6 @@ sky_str_equals(const sky_str_t *s1, const sky_str_t *s2) {
 static sky_inline sky_bool_t
 sky_str_equals2(const sky_str_t *s1, const sky_uchar_t *s2, sky_usize_t s2_len) {
     return sky_str_len_equals(s1->data, s1->len, s2, s2_len);
-}
-
-static sky_inline sky_i32_t
-sky_str_len_unsafe_cmp(const sky_uchar_t *s1, const sky_uchar_t *s2, sky_usize_t len) {
-    return memcmp(s1, s2, len);
 }
 
 static sky_inline sky_i32_t
@@ -207,11 +205,6 @@ sky_str_len_index(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t
 static sky_inline sky_isize_t
 sky_str_index(const sky_str_t *src, const sky_uchar_t *sub, sky_usize_t sub_len) {
     return sky_str_len_index(src->data, src->len, sub, sub_len);
-}
-
-static sky_inline sky_uchar_t *
-sky_str_len_find_char(const sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t ch) {
-    return memchr(src, ch, src_len);
 }
 
 static sky_inline sky_uchar_t *
