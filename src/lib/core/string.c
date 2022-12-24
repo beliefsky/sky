@@ -2,8 +2,12 @@
 // Created by weijing on 17-11-16.
 //
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 
 #include "string.h"
+#include <string.h>
 
 #if defined(__AVX2__)
 
@@ -23,6 +27,8 @@ typedef sky_bool_t (*mem_equals_pt)(const sky_uchar_t *a, const sky_uchar_t *b);
 
 static void byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out, sky_bool_t upper);
 
+#ifndef SKY_HAVE_STD_GNU
+
 static sky_bool_t mem_always_true(const sky_uchar_t *a, const sky_uchar_t *b);
 
 static sky_bool_t mem_equals1(const sky_uchar_t *a, const sky_uchar_t *b);
@@ -41,6 +47,7 @@ static sky_bool_t mem_equals9(const sky_uchar_t *a, const sky_uchar_t *b);
 
 static sky_bool_t mem_equals10(const sky_uchar_t *a, const sky_uchar_t *b);
 
+#endif
 
 void
 sky_str_len_replace_char(sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t old_ch, sky_uchar_t new_ch) {
@@ -70,6 +77,16 @@ sky_str_len_replace_char(sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t old_
             src_len -= (sky_usize_t) (tmp - src);
         }
     }
+}
+
+sky_inline sky_uchar_t *
+sky_str_len_find_char(const sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t ch) {
+    return memchr(src, ch, src_len);
+}
+
+sky_inline sky_i32_t
+sky_str_len_unsafe_cmp(const sky_uchar_t *s1, const sky_uchar_t *s2, sky_usize_t len) {
+    return memcmp(s1, s2, len);
 }
 
 void
@@ -132,6 +149,9 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
     if (src_len < sub_len) {
         return null;
     }
+#ifdef SKY_HAVE_STD_GNU
+    return memmem(src, src_len, sub, sub_len);
+#else
     mem_equals_pt func;
 
     switch (sub_len) {
@@ -514,6 +534,8 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
         return (sky_uchar_t *) src;
     }
     return null;
+
+#endif
 }
 
 
@@ -579,7 +601,7 @@ byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out, sky_boo
     }
     *out = '\0';
 }
-
+#ifndef SKY_HAVE_STD_GNU
 static sky_bool_t
 mem_always_true(const sky_uchar_t *a, const sky_uchar_t *b) {
     (void) a;
@@ -635,6 +657,8 @@ mem_equals10(const sky_uchar_t *a, const sky_uchar_t *b) {
     return ((*(sky_u64_t *) a) == (*(sky_u64_t *) b))
            & ((*(sky_u16_t *) (a + 8)) == (*(sky_u16_t *) (b + 8)));
 }
+
+#endif
 
 
 
