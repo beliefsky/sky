@@ -3,7 +3,6 @@
 //
 
 #include "un_inet.h"
-#include "../core/log.h"
 
 struct sky_un_inet_s {
     sky_event_t ev;
@@ -155,9 +154,8 @@ un_inet_delay_run(sky_un_inet_t *un_inet) {
 
 static sky_isize_t
 un_inet_coro_process(sky_coro_t *coro, sky_un_inet_t *un_inet) {
+    (void )coro;
 
     un_inet->process(un_inet, un_inet->data);
-
-    sky_log_info("222222222");
     return SKY_CORO_FINISHED;
 }
