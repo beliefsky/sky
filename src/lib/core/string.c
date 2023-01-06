@@ -560,7 +560,7 @@ byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out, sky_boo
         );
         const __m256i maskf = _mm256_set1_epi8(0xf);
         do {
-            __m256i input = _mm256_loadu_si256((const __m256i *)(in));
+            __m256i input = _mm256_loadu_si256((const __m256i *) (in));
             input = _mm256_permute4x64_epi64(input, 0b11011000);
             const __m256i inputbase = _mm256_and_si256(maskf, input);
             const __m256i inputs4 = _mm256_and_si256(maskf, _mm256_srli_epi16(input, 4));
@@ -568,15 +568,16 @@ byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out, sky_boo
             const __m256i output1 = _mm256_shuffle_epi8(shuf, firstpart);
             const __m256i secondpart = _mm256_unpackhi_epi8(inputs4, inputbase);
             const __m256i output2 = _mm256_shuffle_epi8(shuf, secondpart);
-            _mm256_storeu_si256((__m256i *)(out), output1);
+            _mm256_storeu_si256((__m256i *) (out), output1);
             out += 32;
-            _mm256_storeu_si256((__m256i *)(out), output2);
+            _mm256_storeu_si256((__m256i *) (out), output2);
             out += 32;
             in += 32;
             in_len -= 32;
         } while (in_len >= 32);
     }
-#elif defined(__SSE4_1__)
+#endif
+#ifdef __SSE4_1__
     if (in_len >= 16) {
         const __m128i shuf = upper ? _mm_set_epi8(
                 'F', 'E', 'D', 'C', 'B', 'A', '9', '8',
