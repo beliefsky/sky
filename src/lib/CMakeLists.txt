@@ -24,6 +24,7 @@ set(SOURCES
         core/crc32.c
         core/md5.c
         core/sha1.c
+        core/base16.c
         core/base64.c
         core/random.c
         core/uuid.c
@@ -180,6 +181,7 @@ install(FILES
         core/crc32.h
         core/md5.h
         core/sha1.h
+        core/base16.h
         core/base64.h
         core/uuid.h
         core/log.h

@@ -7,6 +7,7 @@
 #endif
 
 #include "string.h"
+#include "base16.h"
 #include <string.h>
 
 #if defined(__AVX2__)
@@ -24,8 +25,6 @@
 #endif
 
 typedef sky_bool_t (*mem_equals_pt)(const sky_uchar_t *a, const sky_uchar_t *b);
-
-static void byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out, sky_bool_t upper);
 
 #ifndef SKY_HAVE_STD_GNU
 
@@ -137,11 +136,15 @@ sky_str_lower(const sky_uchar_t *src, sky_uchar_t *dst, sky_usize_t n) {
 
 void
 sky_byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out) {
-    byte_to_hex(in, in_len, out, false);
+    const sky_usize_t result = sky_base16_encode(out, in, in_len);
+
+    out[result] = '\0';
 }
 
 void sky_byte_to_hex_upper(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out) {
-    byte_to_hex(in, in_len, out, true);
+    const sky_usize_t result = sky_base16_encode_upper(out, in, in_len);
+
+    out[result] = '\0';
 }
 
 sky_uchar_t *
@@ -536,81 +539,6 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
     return null;
 
 #endif
-}
-
-
-static sky_inline void
-byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out, sky_bool_t upper) {
-    static const sky_uchar_t hex_map[2][16] = {
-            {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'},
-            {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'}
-    };
-#ifdef __AVX2__
-    if (in_len >= 32) {
-        const __m256i shuf = upper ? _mm256_set_epi8(
-                'F', 'E', 'D', 'C', 'B', 'A', '9', '8',
-                '7', '6', '5', '4', '3', '2', '1', '0',
-                'F', 'E', 'D', 'C', 'B', 'A', '9', '8',
-                '7', '6', '5', '4', '3', '2', '1', '0'
-        ) : _mm256_set_epi8(
-                'f', 'e', 'd', 'c', 'b', 'a', '9', '8',
-                '7', '6', '5', '4', '3', '2', '1', '0',
-                'f', 'e', 'd', 'c', 'b', 'a', '9', '8',
-                '7', '6', '5', '4', '3', '2', '1', '0'
-        );
-        const __m256i maskf = _mm256_set1_epi8(0xf);
-        do {
-            __m256i input = _mm256_loadu_si256((const __m256i *) (in));
-            input = _mm256_permute4x64_epi64(input, 0b11011000);
-            const __m256i inputbase = _mm256_and_si256(maskf, input);
-            const __m256i inputs4 = _mm256_and_si256(maskf, _mm256_srli_epi16(input, 4));
-            const __m256i firstpart = _mm256_unpacklo_epi8(inputs4, inputbase);
-            const __m256i output1 = _mm256_shuffle_epi8(shuf, firstpart);
-            const __m256i secondpart = _mm256_unpackhi_epi8(inputs4, inputbase);
-            const __m256i output2 = _mm256_shuffle_epi8(shuf, secondpart);
-            _mm256_storeu_si256((__m256i *) (out), output1);
-            out += 32;
-            _mm256_storeu_si256((__m256i *) (out), output2);
-            out += 32;
-            in += 32;
-            in_len -= 32;
-        } while (in_len >= 32);
-    }
-#endif
-#ifdef __SSE4_1__
-    if (in_len >= 16) {
-        const __m128i shuf = upper ? _mm_set_epi8(
-                'F', 'E', 'D', 'C', 'B', 'A', '9', '8',
-                '7', '6', '5', '4', '3', '2', '1', '0'
-        ) : _mm_set_epi8(
-                'f', 'e', 'd', 'c', 'b', 'a', '9', '8',
-                '7', '6', '5', '4', '3', '2', '1', '0'
-        );
-        const __m128i maskf = _mm_set1_epi8(0xf);
-        do {
-            const __m128i input = _mm_loadu_si128((const __m128i *) (in));
-            const __m128i inputbase = _mm_and_si128(maskf, input);
-            const __m128i inputs4 = _mm_and_si128(maskf, _mm_srli_epi16(input, 4));
-            const __m128i firstpart = _mm_unpacklo_epi8(inputs4, inputbase);
-            const __m128i output1 = _mm_shuffle_epi8(shuf, firstpart);
-            const __m128i secondpart = _mm_unpackhi_epi8(inputs4, inputbase);
-            const __m128i output2 = _mm_shuffle_epi8(shuf, secondpart);
-            _mm_storeu_si128((__m128i *) (out), output1);
-            out += 16;
-            _mm_storeu_si128((__m128i *) (out), output2);
-            out += 16;
-            in += 16;
-            in_len -= 16;
-        } while (in_len >= 16);
-    }
-#endif
-
-    const sky_uchar_t *hex = hex_map[upper];
-    for (; in_len != 0; --in_len) {
-        *(out++) = hex[(*in) >> 4];
-        *(out++) = hex[(*(in++)) & 0x0F];
-    }
-    *out = '\0';
 }
 
 #ifndef SKY_HAVE_STD_GNU
