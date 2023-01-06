@@ -545,53 +545,63 @@ byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out, sky_boo
             {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'},
             {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'}
     };
-#ifdef __SSE4_1__
-    static const sky_char_t offset_map[2] = {
-            'a' - 9 - 1,
-            'A' - 9 - 1
-    };
-
-    if (in_len >= 16) {
-        const __m128i CONST_0_CHR = _mm_set1_epi8('0');
-        const __m128i CONST_9 = _mm_set1_epi8(9);
-        const __m128i OFFSET = _mm_set1_epi8(offset_map[upper]);
-        const __m128i AND4BITS = _mm_set1_epi8(0xf);
-
-        const __m128i *pin_vec = (const __m128i *) in;
-        __m128i *pout_vec = (__m128i *) out;
-
+#ifdef __AVX2__
+    if (in_len >= 32) {
+        const __m256i shuf = upper ? _mm256_set_epi8(
+                'F', 'E', 'D', 'C', 'B', 'A', '9', '8',
+                '7', '6', '5', '4', '3', '2', '1', '0',
+                'F', 'E', 'D', 'C', 'B', 'A', '9', '8',
+                '7', '6', '5', '4', '3', '2', '1', '0'
+        ) : _mm256_set_epi8(
+                'f', 'e', 'd', 'c', 'b', 'a', '9', '8',
+                '7', '6', '5', '4', '3', '2', '1', '0',
+                'f', 'e', 'd', 'c', 'b', 'a', '9', '8',
+                '7', '6', '5', '4', '3', '2', '1', '0'
+        );
+        const __m256i maskf = _mm256_set1_epi8(0xf);
         do {
-            const __m128i in_vec = _mm_loadu_si128(pin_vec++);
-
-            // masked1 = [b0 & 0xf, b1 & 0xf, ...]
-            // masked2 = [b0 >> 4, b1 >> 4, ...]
-            __m128i masked1 = _mm_and_si128(in_vec, AND4BITS);
-            __m128i masked2 = _mm_srli_epi64(in_vec, 4);
-            masked2 = _mm_and_si128(masked2, AND4BITS);
-
-            // return 0xff corresponding to the elements > 9, or 0x00 otherwise
-            const __m128i cmp_mask1 = _mm_cmpgt_epi8(masked1, CONST_9);
-            const __m128i cmp_mask2 = _mm_cmpgt_epi8(masked2, CONST_9);
-
-            // add '0' or the offset depending on the masks
-            const __m128i add1 = _mm_blendv_epi8(CONST_0_CHR, OFFSET, cmp_mask1);
-            const __m128i add2 = _mm_blendv_epi8(CONST_0_CHR, OFFSET, cmp_mask2);
-            masked1 = _mm_add_epi8(masked1, add1);
-            masked2 = _mm_add_epi8(masked2, add2);
-
-            // interleave masked1 and masked2 bytes
-            const __m128i res1 = _mm_unpacklo_epi8(masked2, masked1);
-            const __m128i res2 = _mm_unpackhi_epi8(masked2, masked1);
-            _mm_storeu_si128(pout_vec++, res1);
-            _mm_storeu_si128(pout_vec++, res2);
-
+            __m256i input = _mm256_loadu_si256((const __m256i *)(in));
+            input = _mm256_permute4x64_epi64(input, 0b11011000);
+            const __m256i inputbase = _mm256_and_si256(maskf, input);
+            const __m256i inputs4 = _mm256_and_si256(maskf, _mm256_srli_epi16(input, 4));
+            const __m256i firstpart = _mm256_unpacklo_epi8(inputs4, inputbase);
+            const __m256i output1 = _mm256_shuffle_epi8(shuf, firstpart);
+            const __m256i secondpart = _mm256_unpackhi_epi8(inputs4, inputbase);
+            const __m256i output2 = _mm256_shuffle_epi8(shuf, secondpart);
+            _mm256_storeu_si256((__m256i *)(out), output1);
+            out += 32;
+            _mm256_storeu_si256((__m256i *)(out), output2);
+            out += 32;
+            in += 32;
+            in_len -= 32;
+        } while (in_len >= 32);
+    }
+#elif defined(__SSE4_1__)
+    if (in_len >= 16) {
+        const __m128i shuf = upper ? _mm_set_epi8(
+                'F', 'E', 'D', 'C', 'B', 'A', '9', '8',
+                '7', '6', '5', '4', '3', '2', '1', '0'
+        ) : _mm_set_epi8(
+                'f', 'e', 'd', 'c', 'b', 'a', '9', '8',
+                '7', '6', '5', '4', '3', '2', '1', '0'
+        );
+        const __m128i maskf = _mm_set1_epi8(0xf);
+        do {
+            const __m128i input = _mm_loadu_si128((const __m128i *) (in));
+            const __m128i inputbase = _mm_and_si128(maskf, input);
+            const __m128i inputs4 = _mm_and_si128(maskf, _mm_srli_epi16(input, 4));
+            const __m128i firstpart = _mm_unpacklo_epi8(inputs4, inputbase);
+            const __m128i output1 = _mm_shuffle_epi8(shuf, firstpart);
+            const __m128i secondpart = _mm_unpackhi_epi8(inputs4, inputbase);
+            const __m128i output2 = _mm_shuffle_epi8(shuf, secondpart);
+            _mm_storeu_si128((__m128i *) (out), output1);
+            out += 16;
+            _mm_storeu_si128((__m128i *) (out), output2);
+            out += 16;
+            in += 16;
             in_len -= 16;
         } while (in_len >= 16);
-
-        in = (const sky_uchar_t *) pin_vec;
-        out = (uint8_t *) pout_vec;
     }
-
 #endif
 
     const sky_uchar_t *hex = hex_map[upper];
@@ -601,6 +611,7 @@ byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out, sky_boo
     }
     *out = '\0';
 }
+
 #ifndef SKY_HAVE_STD_GNU
 static sky_bool_t
 mem_always_true(const sky_uchar_t *a, const sky_uchar_t *b) {
