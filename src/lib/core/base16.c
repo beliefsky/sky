@@ -4,15 +4,13 @@
 
 #include "base16.h"
 
-#undef __AVX2__
-
 #if defined(__AVX2__)
 
 #include <immintrin.h>
 
-#elif defined(__SSE4_1__)
+#elif defined(__SSSE3__)
 
-#include <smmintrin.h>
+#include <tmmintrin.h>
 
 #endif
 
@@ -46,7 +44,7 @@ sky_usize_t sky_base16_encode(sky_uchar_t *dst, const sky_uchar_t *src, sky_usiz
         } while (len >= 32);
     }
 #endif
-#ifdef __SSE4_1__
+#ifdef __SSSE3__
     if (len >= 16) {
         const __m128i shuf = _mm_set_epi8(
                 'f', 'e', 'd', 'c', 'b', 'a', '9', '8',
@@ -115,7 +113,7 @@ sky_base16_encode_upper(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t le
         } while (len >= 32);
     }
 #endif
-#ifdef __SSE4_1__
+#ifdef __SSSE3__
     if (len >= 16) {
         const __m128i shuf = _mm_set_epi8(
                 'F', 'E', 'D', 'C', 'B', 'A', '9', '8',
