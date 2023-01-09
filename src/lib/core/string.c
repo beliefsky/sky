@@ -13,7 +13,7 @@
 
 #include <immintrin.h>
 
-#elif defined(__SSE4_2__)
+#elif defined(__SSE4_1__)
 
 #include <smmintrin.h>
 
@@ -24,8 +24,6 @@
 #endif
 
 typedef sky_bool_t (*mem_equals_pt)(const sky_uchar_t *a, const sky_uchar_t *b);
-
-static void byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out, sky_bool_t upper);
 
 #ifndef SKY_HAVE_STD_GNU
 
@@ -132,16 +130,6 @@ sky_str_lower(const sky_uchar_t *src, sky_uchar_t *dst, sky_usize_t n) {
     while (n--) {
         *dst++ = tolower_map[*src++];
     }
-}
-
-
-void
-sky_byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out) {
-    byte_to_hex(in, in_len, out, false);
-}
-
-void sky_byte_to_hex_upper(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out) {
-    byte_to_hex(in, in_len, out, true);
 }
 
 sky_uchar_t *
@@ -538,69 +526,6 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
 #endif
 }
 
-
-static sky_inline void
-byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out, sky_bool_t upper) {
-    static const sky_uchar_t hex_map[2][16] = {
-            {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'},
-            {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'}
-    };
-#ifdef __SSE4_1__
-    static const sky_char_t offset_map[2] = {
-            'a' - 9 - 1,
-            'A' - 9 - 1
-    };
-
-    if (in_len >= 16) {
-        const __m128i CONST_0_CHR = _mm_set1_epi8('0');
-        const __m128i CONST_9 = _mm_set1_epi8(9);
-        const __m128i OFFSET = _mm_set1_epi8(offset_map[upper]);
-        const __m128i AND4BITS = _mm_set1_epi8(0xf);
-
-        const __m128i *pin_vec = (const __m128i *) in;
-        __m128i *pout_vec = (__m128i *) out;
-
-        do {
-            const __m128i in_vec = _mm_loadu_si128(pin_vec++);
-
-            // masked1 = [b0 & 0xf, b1 & 0xf, ...]
-            // masked2 = [b0 >> 4, b1 >> 4, ...]
-            __m128i masked1 = _mm_and_si128(in_vec, AND4BITS);
-            __m128i masked2 = _mm_srli_epi64(in_vec, 4);
-            masked2 = _mm_and_si128(masked2, AND4BITS);
-
-            // return 0xff corresponding to the elements > 9, or 0x00 otherwise
-            const __m128i cmp_mask1 = _mm_cmpgt_epi8(masked1, CONST_9);
-            const __m128i cmp_mask2 = _mm_cmpgt_epi8(masked2, CONST_9);
-
-            // add '0' or the offset depending on the masks
-            const __m128i add1 = _mm_blendv_epi8(CONST_0_CHR, OFFSET, cmp_mask1);
-            const __m128i add2 = _mm_blendv_epi8(CONST_0_CHR, OFFSET, cmp_mask2);
-            masked1 = _mm_add_epi8(masked1, add1);
-            masked2 = _mm_add_epi8(masked2, add2);
-
-            // interleave masked1 and masked2 bytes
-            const __m128i res1 = _mm_unpacklo_epi8(masked2, masked1);
-            const __m128i res2 = _mm_unpackhi_epi8(masked2, masked1);
-            _mm_storeu_si128(pout_vec++, res1);
-            _mm_storeu_si128(pout_vec++, res2);
-
-            in_len -= 16;
-        } while (in_len >= 16);
-
-        in = (const sky_uchar_t *) pin_vec;
-        out = (uint8_t *) pout_vec;
-    }
-
-#endif
-
-    const sky_uchar_t *hex = hex_map[upper];
-    for (; in_len != 0; --in_len) {
-        *(out++) = hex[(*in) >> 4];
-        *(out++) = hex[(*(in++)) & 0x0F];
-    }
-    *out = '\0';
-}
 #ifndef SKY_HAVE_STD_GNU
 static sky_bool_t
 mem_always_true(const sky_uchar_t *a, const sky_uchar_t *b) {

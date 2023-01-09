@@ -4,7 +4,7 @@
 
 #include "uuid.h"
 #include "random.h"
-#include "string.h"
+#include "base16.h"
 
 sky_bool_t
 sky_uuid_generate_random(sky_uuid_t *uuid) {
@@ -24,15 +24,14 @@ sky_uuid_generate_random(sky_uuid_t *uuid) {
 void
 sky_uuid_to_str(sky_uuid_t *uuid, sky_uchar_t out[36]) {
     sky_uchar_t *bytes = uuid->bytes;
-    sky_byte_to_hex(bytes, 4, out);
+    out += sky_base16_encode(out, bytes, 4);
     bytes += 4;
-    out += 8;
     *out++ = '-';
     for (int i = 0; i < 3; ++i) {
-        sky_byte_to_hex(bytes, 2, out);
+        out += sky_base16_encode(out, bytes, 2);
         bytes += 2;
-        out += 4;
         *out++ = '-';
     }
-    sky_byte_to_hex(bytes, 6, out);
+    out += sky_base16_encode(out, bytes, 6);
+    *out = '\0';
 }

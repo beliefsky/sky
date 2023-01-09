@@ -11,6 +11,7 @@
 #include "../../../core/sha1.h"
 #include "../http_response.h"
 #include "../../../core/memory.h"
+#include "../../../core/base16.h"
 
 typedef struct {
     sky_http_websocket_handler_t *handler;
@@ -81,7 +82,7 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
     sky_sha1_final(&ctx, ch);
 
     sky_uchar_t tem[41];
-    sky_byte_to_hex(ch, 20, tem);
+    sky_base16_encode(tem, ch, 20);
 
     key->data = sky_palloc(r->pool, sky_base64_encoded_length(20) + 1);
     key->len = sky_base64_encode(key->data, ch, 20);
