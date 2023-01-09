@@ -6,6 +6,7 @@
 #include "../../core/memory.h"
 #include "../../core/md5.h"
 #include "../../core/buf.h"
+#include "../../core/base16.h"
 
 #define START_TIMESTAMP SKY_I64(946684800000000)
 #define START_DAY SKY_I32(10957)
@@ -615,7 +616,7 @@ pg_send_password(sky_pgsql_conn_t *conn,
     sky_md5_update(&ctx, pg_pool->password.data, pg_pool->password.len);
     sky_md5_update(&ctx, pg_pool->username.data, pg_pool->username.len);
     sky_md5_final(&ctx, bin);
-    sky_byte_to_hex(bin, 16, hex);
+    sky_base16_encode(hex, bin, 16);
 
     sky_md5_init(&ctx);
     sky_md5_update(&ctx, hex, 32);
@@ -628,7 +629,8 @@ pg_send_password(sky_pgsql_conn_t *conn,
     ch += 4;
     sky_memcpy(ch, "md5", 3);
     ch += 3;
-    sky_byte_to_hex(bin, 16, ch);
+
+    sky_base16_encode(ch, bin, 16);
 
     return sky_tcp_pool_conn_write_all(&conn->conn, hex, 41);
 }
