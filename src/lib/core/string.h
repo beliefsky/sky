@@ -106,11 +106,6 @@ sky_str_lower2(sky_str_t *str) {
     sky_str_lower(str->data, str->data, str->len);
 }
 
-// out_len = in_len *2;注意\0结尾，因此申请长度为 in_len *2 + 1；
-void sky_byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out);
-
-void sky_byte_to_hex_upper(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out);
-
 static sky_inline sky_bool_t
 sky_str_is_null(const sky_str_t *str) {
     return !str || !str->len;
@@ -118,7 +113,7 @@ sky_str_is_null(const sky_str_t *str) {
 
 void sky_str_len_replace_char(sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t old_ch, sky_uchar_t new_ch);
 
-sky_uchar_t * sky_str_len_find_char(const sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t ch);
+sky_uchar_t *sky_str_len_find_char(const sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t ch);
 
 sky_i32_t sky_str_len_unsafe_cmp(const sky_uchar_t *s1, const sky_uchar_t *s2, sky_usize_t len);
 

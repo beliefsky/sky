@@ -12,7 +12,6 @@ extern "C" {
 #endif
 
 #define sky_base16_encoded_length(_len)  ((_len) << 1)
-#define sky_base16_decoded_length(_len)  ((_len) >> 1)
 
 sky_usize_t sky_base16_encode(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t len);
 

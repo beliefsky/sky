@@ -7,7 +7,6 @@
 #endif
 
 #include "string.h"
-#include "base16.h"
 #include <string.h>
 
 #if defined(__AVX2__)
@@ -131,20 +130,6 @@ sky_str_lower(const sky_uchar_t *src, sky_uchar_t *dst, sky_usize_t n) {
     while (n--) {
         *dst++ = tolower_map[*src++];
     }
-}
-
-
-void
-sky_byte_to_hex(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out) {
-    const sky_usize_t result = sky_base16_encode(out, in, in_len);
-
-    out[result] = '\0';
-}
-
-void sky_byte_to_hex_upper(const sky_uchar_t *in, sky_usize_t in_len, sky_uchar_t *out) {
-    const sky_usize_t result = sky_base16_encode_upper(out, in, in_len);
-
-    out[result] = '\0';
 }
 
 sky_uchar_t *
