@@ -4,11 +4,13 @@
 
 #include "base16.h"
 
+#undef __AVX2__
+
 #if defined(__AVX2__)
 
 #include <immintrin.h>
 
-#elif defined(__SSE4_2__)
+#elif defined(__SSE4_1__)
 
 #include <smmintrin.h>
 

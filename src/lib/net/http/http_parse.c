@@ -4,7 +4,7 @@
 #include "http_parse.h"
 #include "../../core/number.h"
 
-#ifdef __SSE4_2__
+#ifdef __SSE4_1__
 
 #include <smmintrin.h>
 
@@ -43,7 +43,7 @@ static sky_bool_t header_handle_run(sky_http_request_t *req, sky_http_header_t *
 
 static sky_bool_t multipart_header_handle_run(sky_http_multipart_t *req, sky_http_header_t *h);
 
-#ifdef __SSE4_2__
+#ifdef __SSE4_1__
 
 static sky_bool_t find_char_fast(sky_uchar_t **buf, sky_usize_t buf_size,
                                  const sky_uchar_t *ranges, sky_i32_t ranges_size);
@@ -561,7 +561,7 @@ http_method_identify(sky_http_request_t *r) {
 static sky_inline sky_isize_t
 advance_token(sky_uchar_t *buf, const sky_uchar_t *end) {
     sky_uchar_t *start = buf;
-#ifdef __SSE4_2__
+#ifdef __SSE4_1__
 
     static const sky_uchar_t sky_align(16) ranges[16] = "\000\040""\177\177";
 
@@ -595,7 +595,7 @@ advance_token(sky_uchar_t *buf, const sky_uchar_t *end) {
 static sky_inline sky_isize_t
 parse_url_no_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end) {
     sky_uchar_t *start = post;
-#ifdef __SSE4_2__
+#ifdef __SSE4_1__
     static const sky_uchar_t sky_align(16) ranges[16] = "\000\040"
                                                         "  "
                                                         "%%"
@@ -698,7 +698,7 @@ parse_url_no_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *e
 static sky_inline sky_isize_t
 parse_url_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end) {
     sky_uchar_t *start = post;
-#ifdef __SSE4_2__
+#ifdef __SSE4_1__
     static const sky_uchar_t sky_align(16) ranges[16] = "\000\040"
                                                         "  "
                                                         ".."
@@ -803,7 +803,7 @@ parse_url_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end)
 static sky_inline sky_isize_t
 find_header_line(sky_uchar_t *post, const sky_uchar_t *end) {
     sky_uchar_t *start = post;
-#ifdef __SSE4_2__
+#ifdef __SSE4_1__
     static const sky_uchar_t sky_align(16) ranges[16] = "\0\010"    /* allow HT */
                                                         "\012\037"  /* allow SP and up to but not including DEL */
                                                         "\177\177"; /* allow chars w. MSB set */
@@ -890,7 +890,7 @@ parse_token(sky_uchar_t *buf, const sky_uchar_t *end, sky_uchar_t next_char) {
             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0";
 
     sky_uchar_t *start = buf;
-#ifdef __SSE4_2__
+#ifdef __SSE4_1__
 
     static const sky_uchar_t sky_align(16) ranges[16] = "\x00 "  /* control chars and up to SP */
                                                       "\"\""   /* 0x22 */
@@ -1041,7 +1041,7 @@ multipart_header_handle_run(sky_http_multipart_t *r, sky_http_header_t *h) {
     return true;
 }
 
-#ifdef __SSE4_2__
+#ifdef __SSE4_1__
 
 static sky_inline sky_bool_t
 find_char_fast(sky_uchar_t **buf, sky_usize_t buf_size, const sky_uchar_t *ranges, sky_i32_t ranges_size) {
