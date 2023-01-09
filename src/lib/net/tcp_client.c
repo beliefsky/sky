@@ -423,7 +423,7 @@ io_read(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t size) {
         return 0;
     }
 
-    const sky_isize_t n = read(client->ev.fd, data, size);
+    const sky_isize_t n = recv(client->ev.fd, data, size, 0);
     if (n > 0) {
         return n;
     }
@@ -443,7 +443,7 @@ io_write(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usize_t size) {
         return 0;
     }
 
-    const sky_isize_t n = write(client->ev.fd, data, size);
+    const sky_isize_t n = send(client->ev.fd, data, size, 0);
     if (n > 0) {
         return n;
     }
