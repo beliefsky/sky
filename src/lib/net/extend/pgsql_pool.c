@@ -630,7 +630,8 @@ pg_send_password(sky_pgsql_conn_t *conn,
     sky_memcpy(ch, "md5", 3);
     ch += 3;
 
-    sky_base16_encode(ch, bin, 16);
+    ch += sky_base16_encode(ch, bin, 16);
+    *ch = '\0';
 
     return sky_tcp_pool_conn_write_all(&conn->conn, hex, 41);
 }
