@@ -16,7 +16,10 @@ include(FindPkgConfig)
 include(TrySanitizer)
 include(GNUInstallDirs)
 
-option(CMAKE_BUILD_TYPE "No build type selected, defaulting to Release" "Release")
+if (NOT CMAKE_BUILD_TYPE)
+    message(STATUS "No build type selected, defaulting to Release")
+    set(CMAKE_BUILD_TYPE "Release")
+endif ()
 
 if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^i[3456]86|x86|amd64|AMD64")
     set(SKY_HAVE_LIBUCONTEXT 1)
