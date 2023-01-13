@@ -24,16 +24,10 @@ extern "C" {
 #define SKY_HTTP_OPTIONS                   0x0020
 #define SKY_HTTP_PATCH                     0x0040
 
+typedef struct sky_http_multipart_ctx_s sky_http_multipart_ctx_t;
 typedef struct sky_http_multipart_s sky_http_multipart_t;
-typedef struct sky_http_multipart_conf_s sky_http_multipart_conf_t;
 
-typedef void *(*sky_http_multipart_init_pt)(
-        sky_http_request_t *r,
-        sky_http_multipart_t *multipart,
-        sky_http_multipart_conf_t *conf
-);
-
-typedef void (*sky_http_multipart_update_pt)(void *file, const sky_uchar_t *data, sky_usize_t size);
+typedef sky_bool_t (*sky_http_multipart_body_pt)(void *data, const sky_uchar_t *value, sky_usize_t len);
 
 typedef struct {
     sky_str_t key;
@@ -102,35 +96,24 @@ struct sky_http_request_s {
     sky_bool_t chunked: 1;
 };
 
-struct sky_http_multipart_conf_s {
-    sky_http_multipart_init_pt init;
-    sky_http_multipart_update_pt update;
-    sky_http_multipart_update_pt final;
+struct sky_http_multipart_ctx_s {
+    sky_str_t boundary;
+    sky_u64_t need_read;
+    sky_http_request_t *req;
+    sky_http_multipart_t *current;
+    sky_u32_t status;
 };
 
 struct sky_http_multipart_s {
     sky_u32_t state;
-    sky_bool_t is_file;
     sky_list_t headers;
     sky_str_t header_name;
     sky_uchar_t *req_pos;
 
+    sky_http_multipart_ctx_t *ctx;
     sky_str_t *content_type;
     sky_str_t *content_disposition;
-
-    union {
-        sky_str_t str;
-
-        struct {
-            void *file;
-            sky_u64_t file_size;
-        };
-    };
-
-    sky_http_multipart_t *next;
 };
-
-void sky_http_request_init(sky_http_server_t *server);
 
 sky_isize_t sky_http_request_process(sky_coro_t *coro, sky_http_connection_t *conn);
 
@@ -138,7 +121,15 @@ void sky_http_read_body_none_need(sky_http_request_t *r);
 
 sky_str_t *sky_http_read_body_str(sky_http_request_t *r);
 
-sky_http_multipart_t *sky_http_read_multipart(sky_http_request_t *r, sky_http_multipart_conf_t *conf);
+sky_bool_t sky_http_multipart_init(sky_http_request_t *r, sky_http_multipart_ctx_t *ctx);
+
+sky_bool_t sky_http_read_multipart(sky_http_multipart_ctx_t *ctx, sky_http_multipart_t *multipart);
+
+sky_str_t *sky_http_multipart_body_str(sky_http_multipart_t *multipart);
+
+sky_bool_t sky_http_multipart_body_none(sky_http_multipart_t *multipart);
+
+sky_bool_t sky_http_multipart_body_read(sky_http_multipart_t *multipart, sky_http_multipart_body_pt func, void *data);
 
 #if defined(__cplusplus)
 } /* extern "C" { */
