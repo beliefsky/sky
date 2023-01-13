@@ -14,7 +14,7 @@ extern "C" {
 typedef struct sky_http_client_s sky_http_client_t;
 typedef struct sky_http_client_req_s sky_http_client_req_t;
 typedef struct sky_http_client_res_s sky_http_client_res_t;
-typedef sky_bool_t (*sky_http_res_body_pt)(void *data, sky_uchar_t *value, sky_usize_t len);
+typedef sky_bool_t (*sky_http_res_body_pt)(void *data, const sky_uchar_t *value, sky_usize_t len);
 
 struct sky_http_client_req_s {
     sky_list_t headers;
