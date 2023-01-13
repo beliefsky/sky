@@ -16,11 +16,7 @@ include(FindPkgConfig)
 include(TrySanitizer)
 include(GNUInstallDirs)
 
-if (NOT CMAKE_BUILD_TYPE)
-    message(STATUS "No build type selected, defaulting to Release")
-    set(CMAKE_BUILD_TYPE "Release")
-endif ()
-
+option(CMAKE_BUILD_TYPE "No build type selected, defaulting to Release" "Release")
 
 if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^i[3456]86|x86|amd64|AMD64")
     set(SKY_HAVE_LIBUCONTEXT 1)
@@ -79,8 +75,11 @@ else ()
 endif ()
 
 
-enable_c_flag_if_avail(-mtune=native C_FLAGS_REL SKY_HAVE_MTUNE_NATIVE)
-enable_c_flag_if_avail(-march=native C_FLAGS_REL SKY_HAVE_MARCH_NATIVE)
+option(MTUNE_NATIVE "Build with -mtune=native/-march=native" "ON")
+if (MTUNE_NATIVE)
+    enable_c_flag_if_avail(-mtune=native C_FLAGS_REL SKY_HAVE_MTUNE_NATIVE)
+    enable_c_flag_if_avail(-march=native C_FLAGS_REL SKY_HAVE_MARCH_NATIVE)
+endif ()
 enable_c_flag_if_avail(-fstack-protector-explicit CMAKE_C_FLAGS SKY_HAVE_STACK_PROTECTOR_EXPLICIT)
 #
 # Check if immediate binding and read-only global offset table flags
@@ -106,13 +105,10 @@ if (${CMAKE_BUILD_TYPE} MATCHES "Rel")
     enable_c_flag_if_avail(-malign-data=abi C_FLAGS_REL SKY_HAVE_ALIGN_DATA)
     enable_c_flag_if_avail(-fno-asynchronous-unwind-tables C_FLAGS_REL SKY_HAVE_NO_ASYNC_UNWIND_TABLES)
 
-    enable_c_flag_if_avail(-flto=jobserver C_FLAGS_REL HAVE_LTO_JOBSERVER)
-    if (NOT HAVE_LTO_JOBSERVER)
-        enable_c_flag_if_avail(-flto C_FLAGS_REL HAVE_LTO)
-    endif ()
+    enable_c_flag_if_avail(-fPIC -flto C_FLAGS_REL SKY_HAVE_LTO)
 
-    enable_c_flag_if_avail(-ffat-lto-objects C_FLAGS_REL HAVE_LTO_FAT_OBJS)
-    enable_c_flag_if_avail(-mcrc32 C_FLAGS_REL HAVE_BUILTIN_IA32_CRC32)
+    enable_c_flag_if_avail(-ffat-lto-objects C_FLAGS_REL SKY_HAVE_LTO_FAT_OBJS)
+    enable_c_flag_if_avail(-mcrc32 C_FLAGS_REL SKY_HAVE_BUILTIN_IA32_CRC32)
 endif ()
 if (${CMAKE_BUILD_TYPE} MATCHES "Deb")
     option(SANITIZER "Use sanitizer (undefined, address, none)" "none")
@@ -129,15 +125,19 @@ endif ()
 #
 # These warnings are only supported by GCC, and some only in newer versions.
 #
-enable_warning_if_supported(-Wduplicated-cond)
-enable_warning_if_supported(-Wduplicated-branches)
-enable_warning_if_supported(-Wlogical-op)
-enable_warning_if_supported(-Wrestrict)
+enable_warning_if_supported(-Warray-bounds)
 enable_warning_if_supported(-Wdouble-promotion)
+enable_warning_if_supported(-Wduplicated-branches)
+enable_warning_if_supported(-Wduplicated-cond)
+enable_warning_if_supported(-Wlogical-op)
 enable_warning_if_supported(-Wno-unused-parameter)
+enable_warning_if_supported(-Wrestrict)
+enable_warning_if_supported(-Wstringop-overflow)
+enable_warning_if_supported(-Wstringop-overread)
 enable_warning_if_supported(-Wstringop-truncation)
-enable_warning_if_supported(-Wvla)
 enable_warning_if_supported(-Wunsequenced)
+enable_warning_if_supported(-Wvla)
+enable_warning_if_supported(-Wno-override-init)
 
 # While a useful warning, this is giving false positives.
 enable_warning_if_supported(-Wno-free-nonheap-object)
