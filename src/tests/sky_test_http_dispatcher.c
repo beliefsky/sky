@@ -18,6 +18,7 @@
 #include <core/date.h>
 #include <unistd.h>
 #include <core/process.h>
+#include <fcntl.h>
 
 static sky_bool_t create_server(sky_event_loop_t *ev_loop);
 
@@ -356,38 +357,55 @@ static SKY_HTTP_MAPPER_HANDLER(pgsql_test) {
     sky_http_response_static(req, json);
 }
 
-static void *
-multipart_init(sky_http_request_t *r, sky_http_multipart_t *multipart, sky_http_multipart_conf_t *conf) {
-    (void) r;
-    (void) multipart;
-    (void) conf;
+typedef struct {
+    sky_i32_t fd;
+} file_t;
 
-    return null;
-}
 
-static void
-multipart_update(void *file, const sky_uchar_t *data, sky_usize_t size) {
-    (void) file;
-    (void) data;
-    (void) size;
+static sky_bool_t
+write_file(void *data, const sky_uchar_t *stream, sky_usize_t size) {
+    file_t *file = data;
+
+    write(file->fd, stream, size);
+
+    return true;
 }
 
 static SKY_HTTP_MAPPER_HANDLER(upload_test) {
-    sky_http_multipart_conf_t conf = {
-            .init = multipart_init,
-            .update = multipart_update,
-            .final = multipart_update
-    };
+    sky_http_multipart_ctx_t ctx;
 
-    sky_http_multipart_t *multipart = sky_http_read_multipart(req, &conf);
-    while (multipart) {
-        if (multipart->is_file) {
-            sky_log_info("file size: %lu", multipart->file_size);
-        } else {
-            sky_log_info("(%lu)%s", multipart->str.len, multipart->str.data);
-        }
-        multipart = multipart->next;
+    sky_bool_t result = sky_http_multipart_init(req, &ctx);
+    sky_log_info("r1: %d", result);
+
+    sky_http_multipart_t multipart;
+    result = sky_http_read_multipart(&ctx, &multipart);
+    sky_log_info("r2: %d", result);
+    sky_list_foreach(&multipart.headers, sky_http_header_t, item, {
+        sky_log_info("%s: %s", item->key.data, item->val.data);
+    });
+    file_t file;
+
+    file.fd = open("test.zip", O_WRONLY | O_CREAT, 0644);
+    if (!sky_http_multipart_body_read(&multipart, write_file, &file)) {
+        close(file.fd);
+        remove("test.zip");
     }
+    close(file.fd);
+
+//    result = sky_http_multipart_body_none(&multipart);
+//    sky_log_info("r3: %d", result);
+
+    result = sky_http_read_multipart(&ctx, &multipart);
+    sky_log_info("r4: %d", result);
+    sky_list_foreach(&multipart.headers, sky_http_header_t, item, {
+        sky_log_info("%s: %s", item->key.data, item->val.data);
+    });
+
+    sky_str_t *data = sky_http_multipart_body_str(&multipart);
+
+    sky_log_info("r5: %s", data->data);
+
+
     sky_http_response_static_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\"}"));
 }
 
