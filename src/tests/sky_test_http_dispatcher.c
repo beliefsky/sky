@@ -373,38 +373,12 @@ write_file(void *data, const sky_uchar_t *stream, sky_usize_t size) {
 
 static SKY_HTTP_MAPPER_HANDLER(upload_test) {
     sky_http_multipart_ctx_t ctx;
-
-    sky_bool_t result = sky_http_multipart_init(req, &ctx);
-    sky_log_info("r1: %d", result);
-
     sky_http_multipart_t multipart;
-    result = sky_http_read_multipart(&ctx, &multipart);
-    sky_log_info("r2: %d", result);
-    sky_list_foreach(&multipart.headers, sky_http_header_t, item, {
-        sky_log_info("%s: %s", item->key.data, item->val.data);
-    });
-    file_t file;
 
-    file.fd = open("test.zip", O_WRONLY | O_CREAT, 0644);
-    if (!sky_http_multipart_body_read(&multipart, write_file, &file)) {
-        close(file.fd);
-        remove("test.zip");
+    if (sky_http_multipart_init(req, &ctx)) {
+        while (sky_http_read_multipart(&ctx, &multipart) && sky_http_multipart_body_none(&multipart)) {
+        }
     }
-    close(file.fd);
-
-//    result = sky_http_multipart_body_none(&multipart);
-//    sky_log_info("r3: %d", result);
-
-    result = sky_http_read_multipart(&ctx, &multipart);
-    sky_log_info("r4: %d", result);
-    sky_list_foreach(&multipart.headers, sky_http_header_t, item, {
-        sky_log_info("%s: %s", item->key.data, item->val.data);
-    });
-
-    sky_str_t *data = sky_http_multipart_body_str(&multipart);
-
-    sky_log_info("r5: %s", data->data);
-
 
     sky_http_response_static_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\"}"));
 }
