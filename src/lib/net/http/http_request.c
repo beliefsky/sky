@@ -317,7 +317,7 @@ sky_http_multipart_body_str(sky_http_multipart_t *multipart) {
 
     sky_str_t *result = sky_palloc(ctx->req->pool, sizeof(sky_str_t));
 
-    const sky_u64_t min_size = sky_min(ctx->need_read, SKY_U64(4096));
+    const sky_u64_t min_size = sky_min(ctx->need_read, SKY_U64(2047));
     if (sky_unlikely((sky_usize_t) (buf->end - buf->pos) < (sky_usize_t) min_size)) { // 保证读取内存能容纳
         sky_buf_rebuild(buf, (sky_usize_t) min_size);
     }
@@ -338,7 +338,7 @@ sky_http_multipart_body_str(sky_http_multipart_t *multipart) {
 
                 if ((sky_usize_t) (buf->end - buf->last) < 1024) {
                     sky_usize_t re_size = ctx->need_read - read_n;
-                    re_size = read_n + sky_min(re_size, SKY_USIZE(4096));
+                    re_size = read_n + sky_min(re_size, SKY_USIZE(2047));
                     sky_buf_rebuild(buf, re_size);
                 }
             } else {
@@ -369,7 +369,7 @@ sky_http_multipart_body_str(sky_http_multipart_t *multipart) {
                     buf->pos += result_size;
                     if ((sky_usize_t) (buf->end - buf->last) < 64) {
                         sky_usize_t re_size = ctx->need_read - read_n;
-                        re_size = read_n + sky_min(re_size, SKY_USIZE(4096));
+                        re_size = read_n + sky_min(re_size, SKY_USIZE(2047));
                         sky_buf_rebuild(buf, re_size);
                     }
 
@@ -433,7 +433,7 @@ sky_http_multipart_body_none(sky_http_multipart_t *multipart) {
     const sky_http_server_t *server = ctx->req->conn->server;
     sky_buf_t *buf = ctx->req->tmp;
 
-    const sky_u64_t min_size = sky_min(ctx->need_read, SKY_U64(4096));
+    const sky_u64_t min_size = sky_min(ctx->need_read, SKY_U64(4095));
     if (sky_unlikely((sky_usize_t) (buf->end - buf->pos) < (sky_usize_t) min_size)) { // 保证读取内存能容纳
         sky_buf_rebuild(buf, (sky_usize_t) min_size);
     }
@@ -539,7 +539,7 @@ sky_http_multipart_body_read(sky_http_multipart_t *multipart, sky_http_multipart
     const sky_http_server_t *server = ctx->req->conn->server;
     sky_buf_t *buf = ctx->req->tmp;
 
-    const sky_u64_t min_size = sky_min(ctx->need_read, SKY_U64(4096));
+    const sky_u64_t min_size = sky_min(ctx->need_read, SKY_U64(4095));
     if (sky_unlikely((sky_usize_t) (buf->end - buf->pos) < (sky_usize_t) min_size)) { // 保证读取内存能容纳
         sky_buf_rebuild(buf, (sky_usize_t) min_size);
     }
@@ -675,8 +675,8 @@ http_read_body_none_need(sky_http_request_t *r) {
         return;
     }
     // 缓冲区间太小，分配一较大区域
-    if (n < SKY_U32(4096)) {
-        n = (sky_usize_t) sky_min(size, SKY_U64(4096));
+    if (n < SKY_U32(4095)) {
+        n = (sky_usize_t) sky_min(size, SKY_U64(4095));
         sky_buf_rebuild(tmp, n);
     }
 
