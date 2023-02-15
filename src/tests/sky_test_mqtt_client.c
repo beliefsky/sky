@@ -10,10 +10,16 @@
 static void
 mqtt_connected_cb(sky_mqtt_client_t *client) {
     sky_mqtt_topic_t topic = {
-            .topic = sky_string("func/#"),
+            .topic = sky_string("hello/#"),
             .qos = 0,
     };
-    sky_mqtt_client_sub(client, &topic, 1);
+
+    sky_mqtt_client_writer_t writer;
+
+    sky_mqtt_client_bind(client, &writer, sky_mqtt_client_event(client), sky_mqtt_client_coro(client));
+    sky_mqtt_client_sub(&writer, &topic, 1);
+
+    sky_mqtt_client_unbind(&writer);
 }
 
 static void
