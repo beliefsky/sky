@@ -43,8 +43,8 @@ set(SOURCES
         net/tcp_client.c
         net/tcp_listener.c
         net/tls/tls.c
-        net/extend/pgsql_pool.c
-        net/extend/redis_pool.c
+        net/postgresql/pgsql_pool.c
+        net/redis/redis_pool.c
         net/http/http_io_wrappers.c
         net/http/http_request.c
         net/http/http_response.c
@@ -210,9 +210,11 @@ install(FILES
         net/tls/tls.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/tls")
 install(FILES
-        net/extend/redis_pool.h
-        net/extend/pgsql_pool.h
-        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/extend")
+        net/postgresql/pgsql_pool.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/postgresql")
+install(FILES
+        net/redis/redis_pool.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/redis")
 install(FILES
         net/http/http_url.h
         net/http/http_parse.h

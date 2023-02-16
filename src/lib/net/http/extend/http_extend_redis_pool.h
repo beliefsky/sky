@@ -5,7 +5,7 @@
 #ifndef SKY_HTTP_EXTEND_REDIS_POOL_H
 #define SKY_HTTP_EXTEND_REDIS_POOL_H
 
-#include "../../extend/redis_pool.h"
+#include "../../redis/redis_pool.h"
 #include "../http_request.h"
 
 #if defined(__cplusplus)

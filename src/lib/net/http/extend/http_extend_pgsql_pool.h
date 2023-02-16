@@ -5,7 +5,7 @@
 #ifndef SKY_HTTP_EXTEND_PGSQL_POOL_H
 #define SKY_HTTP_EXTEND_PGSQL_POOL_H
 
-#include "../../extend/pgsql_pool.h"
+#include "../../postgresql/pgsql_pool.h"
 #include "../http_request.h"
 
 #if defined(__cplusplus)
