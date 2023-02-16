@@ -47,7 +47,7 @@ sky_mqtt_server_bind(sky_mqtt_server_t *server, sky_inet_address_t *address, sky
             .data = server,
             .timeout = 300,
             .reuse_port = true,
-            .nodelay = true,
+            .nodelay = false,
             .defer_accept = true
     };
 
