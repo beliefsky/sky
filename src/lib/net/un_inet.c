@@ -104,11 +104,11 @@ sky_un_inet_cancel(sky_un_inet_t *un_inet) {
     if (sky_unlikely(!un_inet)) {
         return;
     }
+    un_inet->rerun = false;
     if (un_inet->wait) {
         sky_timer_wheel_unlink(&un_inet->ev.timer);
         sky_coro_destroy(un_inet->coro);
     }
-    un_inet->rerun = false;
 }
 
 sky_event_t *
