@@ -11,6 +11,8 @@
 #include "../../core/crc32.h"
 #include "mqtt_subs.h"
 
+static sky_bool_t mqtt_default_options(sky_i32_t fd, void *data);
+
 static sky_event_t *mqtt_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_mqtt_server_t *server);
 
 static sky_bool_t mqtt_run(sky_mqtt_connect_t *conn);
@@ -44,11 +46,21 @@ sky_mqtt_server_bind(sky_mqtt_server_t *server, sky_inet_address_t *address, sky
             .address = address,
             .address_len = address_len,
             .run = (sky_tcp_accept_cb_pt) mqtt_connection_accept_cb,
+            .options = mqtt_default_options,
             .data = server,
             .timeout = 300
     };
 
     return null != sky_tcp_server_create(server->ev_loop, &conf);
+}
+
+static sky_bool_t
+mqtt_default_options(sky_i32_t fd, void *data) {
+    (void) data;
+    sky_tcp_option_fast_open(fd, 5);
+    sky_tcp_option_defer_accept(fd);
+
+    return true;
 }
 
 static sky_event_t *

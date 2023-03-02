@@ -154,6 +154,7 @@ http_default_options(sky_i32_t fd, void *data) {
         return false;
     }
     sky_tcp_option_no_delay(fd);
+    sky_tcp_option_fast_open(fd, 5);
     sky_tcp_option_defer_accept(fd);
 
     return true;
