@@ -27,6 +27,8 @@ typedef struct {
 
 sky_tcp_server_t *sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf);
 
+void sky_tcp_server_destroy(sky_tcp_server_t *server);
+
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif
