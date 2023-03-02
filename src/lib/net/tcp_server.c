@@ -13,12 +13,12 @@
 #include <fcntl.h>
 
 
-typedef struct {
+struct sky_tcp_server_s {
     sky_event_t ev;
     sky_tcp_accept_cb_pt run;
     void *data;
     sky_i32_t timeout;
-} listener_t;
+};
 
 
 static sky_bool_t tcp_listener_accept(sky_event_t *ev);
@@ -28,27 +28,27 @@ static void tcp_listener_error(sky_event_t *ev);
 static sky_i32_t get_backlog_size();
 
 
-sky_bool_t
+sky_tcp_server_t *
 sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf) {
     sky_i32_t fd;
     sky_i32_t opt;
     sky_i32_t backlog;
-    listener_t *l;
+    sky_tcp_server_t *server;
 
 #ifdef SKY_HAVE_ACCEPT4
     fd = socket(conf->address->sa_family, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
 
     if (sky_unlikely(fd == -1)) {
-        return false;
+        return null;
     }
 #else
     fd = socket(conf->address->sa_family, SOCK_STREAM, 0);
         if (sky_unlikely(fd == -1)) {
-            return false;
+            return null;
         }
         if (sky_unlikely(!sky_set_socket_nonblock(fd))) {
             close(fd);
-            return false;
+            return null;
         }
 #endif
     opt = 1;
@@ -56,17 +56,17 @@ sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf)
 
     if (sky_unlikely(conf->options && !conf->options(fd, conf->data))) {
         close(fd);
-        return false;
+        return null;
     }
 
     if (sky_unlikely(bind(fd, conf->address, conf->address_len) != 0)) {
         close(fd);
-        return false;
+        return null;
     }
     backlog = get_backlog_size();
     if (sky_unlikely(listen(fd, backlog) != 0)) {
         close(fd);
-        return false;
+        return null;
     }
 
 #ifdef TCP_FASTOPEN
@@ -74,24 +74,24 @@ sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf)
     setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &opt, sizeof(sky_i32_t));
 #endif
 
-    l = sky_malloc(sizeof(listener_t));
-    l->run = conf->run;
-    l->data = conf->data;
-    l->timeout = conf->timeout;
-    sky_event_init(loop, &l->ev, fd, tcp_listener_accept, tcp_listener_error);
-    sky_event_register_only_read(&l->ev, -1);
+    server = sky_malloc(sizeof(sky_tcp_server_t));
+    server->run = conf->run;
+    server->data = conf->data;
+    server->timeout = conf->timeout;
+    sky_event_init(loop, &server->ev, fd, tcp_listener_accept, tcp_listener_error);
+    sky_event_register_only_read(&server->ev, -1);
 
-    return true;
+    return server;
 }
 
 static sky_bool_t
 tcp_listener_accept(sky_event_t *ev) {
-    listener_t *l;
+    sky_tcp_server_t *server;
     sky_i32_t listener, fd;
     sky_event_loop_t *loop;
     sky_event_t *event;
 
-    l = (listener_t *) ev;
+    server = (sky_tcp_server_t *) ev;
     listener = ev->fd;
     loop = ev->loop;
 #ifdef SKY_HAVE_ACCEPT4
@@ -104,12 +104,12 @@ tcp_listener_accept(sky_event_t *ev) {
             }
 #endif
 
-        if (sky_likely((event = l->run(loop, fd, l->data)))) {
+        if (sky_likely((event = server->run(loop, fd, server->data)))) {
             if (!event->run(event)) {
                 close(fd);
                 event->close(event);
             } else {
-                sky_event_register(event, event->timeout ?: l->timeout);
+                sky_event_register(event, event->timeout ?: server->timeout);
             }
         } else {
             close(fd);
