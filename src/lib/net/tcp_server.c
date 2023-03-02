@@ -7,7 +7,6 @@
 #endif
 
 #include "tcp_server.h"
-#include "../core/log.h"
 #include "../core/number.h"
 #include <unistd.h>
 #include <fcntl.h>
@@ -84,6 +83,11 @@ sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf)
     return server;
 }
 
+void
+sky_tcp_server_destroy(sky_tcp_server_t *server) {
+    sky_event_unregister(&server->ev);
+}
+
 static sky_bool_t
 tcp_listener_accept(sky_event_t *ev) {
     sky_tcp_server_t *server;
@@ -122,7 +126,6 @@ tcp_listener_accept(sky_event_t *ev) {
 
 static void
 tcp_listener_error(sky_event_t *ev) {
-    sky_log_info("%d: tcp listener error", ev->fd);
     sky_free(ev);
 }
 
