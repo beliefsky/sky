@@ -33,7 +33,7 @@ sky_set_socket_nonblock(sky_socket_t fd) {
     return true;
 }
 
-sky_bool_t
+sky_inline sky_bool_t
 sky_socket_option_reuse_port(sky_socket_t fd) {
     const sky_i32_t opt = 1;
 
@@ -46,7 +46,7 @@ sky_socket_option_reuse_port(sky_socket_t fd) {
 #endif
 }
 
-sky_bool_t
+sky_inline sky_bool_t
 sky_tcp_option_no_delay(sky_socket_t fd) {
 #ifdef TCP_NODELAY
     const sky_i32_t opt = 1;
@@ -57,7 +57,7 @@ sky_tcp_option_no_delay(sky_socket_t fd) {
 #endif
 }
 
-sky_bool_t
+sky_inline sky_bool_t
 sky_tcp_option_defer_accept(sky_socket_t fd) {
 #ifdef TCP_DEFER_ACCEPT
     const sky_i32_t opt = 1;
