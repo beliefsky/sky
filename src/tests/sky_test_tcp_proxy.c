@@ -156,7 +156,6 @@ tcp_proxy_close(tcp_proxy_conn_t *conn) {
 static sky_isize_t
 tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
     const sky_tcp_client_conf_t conf = {
-            .nodelay = true,
             .timeout = 10,
             .keep_alive = 300
     };
