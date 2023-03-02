@@ -7,8 +7,6 @@
 #include "../core/memory.h"
 #include <errno.h>
 #include <unistd.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
 
 struct sky_tcp_client_s {
     sky_event_t ev;
@@ -16,10 +14,10 @@ struct sky_tcp_client_s {
     sky_coro_t *coro;
     sky_defer_t *defer;
     sky_tcp_destroy_pt destroy;
+    sky_socket_options_pt options;
     void *data;
     sky_i32_t keep_alive;
     sky_i32_t timeout;
-    sky_bool_t nodelay: 1;
 };
 
 static sky_bool_t tcp_run(sky_tcp_client_t *client);
@@ -43,10 +41,10 @@ sky_tcp_client_create(sky_event_t *event, sky_coro_t *coro, const sky_tcp_client
     client->main_ev = event;
     client->coro = coro;
     client->destroy = conf->destroy;
+    client->options = conf->options;
     client->data = conf->data;
     client->keep_alive = conf->keep_alive ?: -1;
     client->timeout = conf->timeout ?: 5;
-    client->nodelay = conf->nodelay;
 
     client->defer = sky_defer_add(client->coro, (sky_defer_func_t) tcp_client_defer, client);
 
@@ -55,7 +53,6 @@ sky_tcp_client_create(sky_event_t *event, sky_coro_t *coro, const sky_tcp_client
 
 sky_bool_t
 sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_address_t *address, sky_u32_t address_len) {
-    sky_i32_t opt;
     sky_event_t *ev = &client->ev;
 
     if (sky_unlikely(!client->defer)) {
@@ -83,10 +80,9 @@ sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_address_t *ad
             return false;
         }
 #endif
-    opt = 1;
-    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_i32_t));
-    if (address->sa_family != AF_UNIX && client->nodelay) {
-        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(sky_i32_t));
+    if (sky_unlikely(client->options && !client->options(fd, client->data))) {
+        close(fd);
+        return false;
     }
 
     sky_event_rebind(ev, fd);

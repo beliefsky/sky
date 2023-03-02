@@ -28,6 +28,7 @@ struct sky_tcp_listener_s {
     sky_inet_address_t *address;
     void *data;
     sky_coro_func_t run;
+    sky_socket_options_pt options;
     sky_tcp_listener_close_pt close;
     tcp_status_t status;
     sky_u32_t address_len;
@@ -72,6 +73,7 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_coro_switcher_t *switcher, c
     listener->timeout = conf->timeout ?: 5;
     listener->data = conf->data;
     listener->run = conf->run;
+    listener->options = conf->options;
     listener->close = conf->close;
     listener->reconnect = conf->reconnect;
     listener->current = null;
@@ -547,6 +549,11 @@ tcp_create_connection(sky_tcp_listener_t *listener) {
         return CLOSE;
     }
 #endif
+    if (sky_unlikely(listener->options && !listener->options(fd, listener->data))) {
+        close(fd);
+        return CLOSE;
+    }
+
     if (connect(fd, listener->address, listener->address_len) < 0) {
         switch (errno) {
             case EALREADY:
