@@ -45,10 +45,7 @@ sky_mqtt_server_bind(sky_mqtt_server_t *server, sky_inet_address_t *address, sky
             .address_len = address_len,
             .run = (sky_tcp_accept_cb_pt) mqtt_connection_accept_cb,
             .data = server,
-            .timeout = 300,
-            .reuse_port = true,
-            .nodelay = false,
-            .defer_accept = true
+            .timeout = 300
     };
 
     return sky_tcp_server_create(server->ev_loop, &conf);
