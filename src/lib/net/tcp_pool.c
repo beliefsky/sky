@@ -7,23 +7,22 @@
 #include "../core/memory.h"
 #include <errno.h>
 #include <unistd.h>
-#include <netinet/tcp.h>
-#include <netinet/in.h>
 
 struct sky_tcp_pool_s {
     sky_tcp_node_t *clients;
     sky_inet_address_t *address;
+    sky_socket_options_pt options;
     sky_tcp_pool_conn_next next_func;
+
+    void *data;
 
     sky_i32_t keep_alive;
     sky_i32_t timeout;
     sky_u32_t address_len;
 
-    sky_u32_t conn_n;
     sky_u32_t conn_mask;
 
     sky_bool_t free: 1;
-    sky_bool_t nodelay: 1;
 };
 
 struct sky_tcp_node_s {
@@ -67,13 +66,13 @@ sky_tcp_pool_create(sky_event_loop_t *ev_loop, const sky_tcp_pool_conf_t *conf) 
     conn_pool->address_len = conf->address_len;
     sky_memcpy(conn_pool->address, conf->address, conn_pool->address_len);
 
-    conn_pool->conn_n = conn_n;
     conn_pool->conn_mask = conn_n - 1;
+    conn_pool->options = conf->options;
     conn_pool->next_func = conf->next_func;
+    conn_pool->data = conf->data;
     conn_pool->keep_alive = conf->keep_alive ?: -1;
     conn_pool->timeout = conf->timeout ?: 5;
     conn_pool->free = false;
-    conn_pool->nodelay = conf->address->sa_family != AF_UNIX && conf->nodelay;
 
     sky_tcp_node_t *client = conn_pool->clients;
 
@@ -487,7 +486,7 @@ tcp_close(sky_tcp_node_t *client) {
 
 static sky_bool_t
 tcp_connection(sky_tcp_conn_t *conn) {
-    sky_i32_t fd, opt;
+    sky_i32_t fd;
     sky_tcp_pool_t *conn_pool;
     sky_event_t *ev;
 
@@ -509,10 +508,9 @@ tcp_connection(sky_tcp_conn_t *conn) {
         return false;
     }
 #endif
-    opt = 1;
-    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_i32_t));
-    if (conn_pool->nodelay) {
-        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(sky_i32_t));
+    if (sky_unlikely(conn_pool->options && !conn_pool->options(fd, conn_pool->data))) {
+        close(fd);
+        return false;
     }
 
     sky_event_rebind(ev, fd);

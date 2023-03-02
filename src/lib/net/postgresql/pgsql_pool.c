@@ -105,8 +105,7 @@ sky_pgsql_pool_create(sky_event_loop_t *ev_loop, const sky_pgsql_conf_t *conf) {
             .connection_size = conf->connection_size,
             .keep_alive = 300,
             .timeout = 10,
-            .next_func = (sky_tcp_pool_conn_next) pg_auth,
-            .nodelay = true
+            .next_func = (sky_tcp_pool_conn_next) pg_auth
     };
 
     pg_pool->conn_pool = sky_tcp_pool_create(ev_loop, &c);

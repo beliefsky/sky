@@ -11,8 +11,6 @@
 #include "../core/number.h"
 #include <unistd.h>
 #include <fcntl.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
 
 
 typedef struct {
@@ -56,7 +54,7 @@ sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf)
     opt = 1;
     setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_i32_t));
 
-    if (conf->options && !conf->options(fd, conf->data)) {
+    if (sky_unlikely(conf->options && !conf->options(fd, conf->data))) {
         close(fd);
         return false;
     }
