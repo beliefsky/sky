@@ -12,6 +12,8 @@
 extern "C" {
 #endif
 
+typedef struct sky_tcp_server_s sky_tcp_server_t;
+
 typedef sky_event_t *(*sky_tcp_accept_cb_pt)(sky_event_loop_t *loop, sky_i32_t fd, void *data);
 
 typedef struct {
@@ -23,7 +25,7 @@ typedef struct {
     sky_i32_t timeout;
 } sky_tcp_server_conf_t;
 
-sky_bool_t sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf);
+sky_tcp_server_t *sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

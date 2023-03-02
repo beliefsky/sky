@@ -48,7 +48,7 @@ sky_mqtt_server_bind(sky_mqtt_server_t *server, sky_inet_address_t *address, sky
             .timeout = 300
     };
 
-    return sky_tcp_server_create(server->ev_loop, &conf);
+    return null != sky_tcp_server_create(server->ev_loop, &conf);
 }
 
 static sky_event_t *
