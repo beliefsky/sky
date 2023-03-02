@@ -56,26 +56,11 @@ sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf)
     opt = 1;
     setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_i32_t));
 
-    if (conf->reuse_port) {
-#if defined(SO_REUSEPORT_LB)
-        setsockopt(fd, SOL_SOCKET, SO_REUSEPORT_LB, &opt, sizeof(sky_i32_t));
-#elif defined(SO_REUSEPORT)
-        setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_i32_t));
-#else
+    if (conf->options && !conf->options(fd, conf->data)) {
         close(fd);
         return false;
-#endif
     }
 
-    if (conf->address->sa_family != AF_UNIX && conf->nodelay) {
-        setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(sky_i32_t));
-    }
-#ifdef TCP_DEFER_ACCEPT
-    if (conf->defer_accept) {
-        opt = 1;
-        setsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &opt, sizeof(sky_i32_t));
-    }
-#endif
     if (sky_unlikely(bind(fd, conf->address, conf->address_len) != 0)) {
         close(fd);
         return false;

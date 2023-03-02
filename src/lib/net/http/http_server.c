@@ -14,6 +14,8 @@ static sky_bool_t http_connection_run(sky_http_connection_t *conn);
 
 static void http_connection_close(sky_http_connection_t *conn);
 
+static sky_bool_t http_default_options(sky_i32_t fd, void *data);
+
 #ifdef SKY_HAVE_TLS
 
 static sky_event_t *https_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server_t *server);
@@ -105,11 +107,9 @@ sky_http_server_bind(sky_http_server_t *server, sky_inet_address_t *address, sky
 #else
             .run = (sky_tcp_accept_cb_pt) http_connection_accept_cb,
 #endif
+            .options = http_default_options,
             .data = server,
-            .timeout = 60,
-            .reuse_port = true,
-            .nodelay = true,
-            .defer_accept = true
+            .timeout = 60
     };
 
     return sky_tcp_server_create(server->ev_loop, &conf);
@@ -145,6 +145,18 @@ http_connection_run(sky_http_connection_t *conn) {
 static void
 http_connection_close(sky_http_connection_t *conn) {
     sky_coro_destroy(conn->coro);
+}
+
+static sky_bool_t
+http_default_options(sky_i32_t fd, void *data) {
+    (void) data;
+    if (sky_unlikely(!sky_socket_option_reuse_port(fd))) {
+        return false;
+    }
+    sky_tcp_option_no_delay(fd);
+    sky_tcp_option_defer_accept(fd);
+
+    return true;
 }
 
 #ifdef SKY_HAVE_TLS

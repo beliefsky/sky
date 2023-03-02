@@ -18,6 +18,8 @@ typedef struct {
 
 static void server_start(sky_event_loop_t *loop, sky_coro_switcher_t *switcher);
 
+static sky_bool_t tcp_option(sky_socket_t fd, void *data);
+
 static sky_event_t *tcp_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, void *data);
 
 static sky_bool_t tcp_proxy_run(tcp_proxy_conn_t *conn);
@@ -85,9 +87,8 @@ server_start(sky_event_loop_t *loop, sky_coro_switcher_t *switcher) {
                 .sin_port = sky_htons(1883)
         };
         const sky_tcp_server_conf_t tcp_conf = {
-                .nodelay = true,
-                .reuse_port = true,
                 .run = tcp_accept_cb,
+                .options = tcp_option,
                 .data = switcher,
                 .timeout = -1,
                 .address = (sky_inet_address_t *) &server_address_v4,
@@ -104,9 +105,8 @@ server_start(sky_event_loop_t *loop, sky_coro_switcher_t *switcher) {
                 .sin6_port = sky_htons(1883)
         };
         const sky_tcp_server_conf_t tcp_conf = {
-                .nodelay = true,
-                .reuse_port = true,
                 .run = tcp_accept_cb,
+                .options = tcp_option,
                 .data = switcher,
                 .timeout = -1,
                 .address = (sky_inet_address_t *) &server_address_v6,
@@ -115,6 +115,17 @@ server_start(sky_event_loop_t *loop, sky_coro_switcher_t *switcher) {
 
         sky_tcp_server_create(loop, &tcp_conf);
     }
+}
+
+static sky_bool_t
+tcp_option(sky_socket_t fd, void *data) {
+    (void )data;
+    if (sky_unlikely(!sky_socket_option_reuse_port(fd))) {
+        return false;
+    }
+    sky_tcp_option_no_delay(fd);
+
+    return true;
 }
 
 static sky_event_t *
