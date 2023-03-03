@@ -9,6 +9,8 @@
 #include "../../core/string_buf.h"
 #include "../../core/buf.h"
 
+static sky_bool_t redis_socket_options(sky_socket_t fd, void *data);
+
 static sky_bool_t redis_send_exec(sky_redis_conn_t *rc, sky_redis_data_t *prams, sky_u16_t param_len);
 
 static sky_redis_result_t *redis_exec_read(sky_redis_conn_t *rc);
@@ -22,6 +24,7 @@ sky_redis_pool_create(sky_event_loop_t *ev_loop, const sky_redis_conf_t *conf) {
             .connection_size = conf->connection_size,
             .timeout = 5,
             .keep_alive = 300,
+            .options = redis_socket_options,
             .next_func = null
     };
 
@@ -66,6 +69,14 @@ sky_redis_conn_put(sky_redis_conn_t *rc) {
 void
 sky_redis_pool_destroy(sky_redis_pool_t *conn_pool) {
     sky_tcp_pool_destroy(conn_pool);
+}
+
+static sky_bool_t
+redis_socket_options(sky_socket_t fd, void *data) {
+    (void) data;
+    sky_tcp_option_no_delay(fd);
+
+    return true;
 }
 
 
