@@ -95,7 +95,6 @@ sky_http_client_create(sky_event_t *event, sky_coro_t *coro, const sky_http_clie
                 .destroy = (sky_tcp_destroy_pt) http_client_free,
                 .data = client,
                 .keep_alive = 60,
-                .nodelay = false,
                 .timeout = 5
         };
 
@@ -105,7 +104,6 @@ sky_http_client_create(sky_event_t *event, sky_coro_t *coro, const sky_http_clie
                 .destroy = (sky_tcp_destroy_pt) http_client_free,
                 .data = client,
                 .keep_alive = conf->keep_alive ?: 60,
-                .nodelay = conf->nodelay,
                 .timeout = conf->timeout ?: 5
         };
 

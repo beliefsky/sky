@@ -31,8 +31,17 @@ extern "C" {
 typedef sky_i32_t sky_socket_t;
 typedef struct sockaddr sky_inet_address_t;
 
+typedef sky_bool_t (*sky_socket_options_pt)(sky_socket_t fd, void *data);
 
 sky_bool_t sky_set_socket_nonblock(sky_socket_t fd);
+
+sky_bool_t sky_socket_option_reuse_port(sky_socket_t fd);
+
+sky_bool_t sky_tcp_option_no_delay(sky_socket_t fd);
+
+sky_bool_t sky_tcp_option_defer_accept(sky_socket_t fd);
+
+sky_bool_t sky_tcp_option_fast_open(sky_socket_t fd, sky_i32_t n);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

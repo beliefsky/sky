@@ -22,7 +22,10 @@ typedef sky_bool_t (*sky_tcp_pool_conn_next)(sky_tcp_conn_t *conn);
 
 typedef struct {
     sky_inet_address_t *address;
+    sky_socket_options_pt options;
     sky_tcp_pool_conn_next next_func;
+
+    void *data;
 
     sky_i32_t keep_alive;
     sky_i32_t timeout;
@@ -30,7 +33,6 @@ typedef struct {
 
     sky_u32_t connection_size;
 
-    sky_bool_t nodelay: 1;
 } sky_tcp_pool_conf_t;
 
 struct sky_tcp_conn_s {

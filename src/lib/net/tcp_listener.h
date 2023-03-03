@@ -36,6 +36,7 @@ struct sky_tcp_listener_conf_s {
     sky_inet_address_t *address;
     void *data;
     sky_coro_func_t run;
+    sky_socket_options_pt options;
     sky_tcp_listener_close_pt close;
     sky_u32_t address_len;
     sky_i32_t keep_alive;

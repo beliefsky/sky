@@ -19,10 +19,10 @@ typedef void (*sky_tcp_destroy_pt)(void *data);
 
 typedef struct {
     sky_tcp_destroy_pt destroy;
+    sky_socket_options_pt options;
     void *data;
     sky_i32_t keep_alive;
     sky_i32_t timeout;
-    sky_bool_t nodelay: 1;
 } sky_tcp_client_conf_t;
 
 sky_tcp_client_t *sky_tcp_client_create(sky_event_t *event, sky_coro_t *coro, const sky_tcp_client_conf_t *conf);
