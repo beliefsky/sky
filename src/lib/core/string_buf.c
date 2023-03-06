@@ -5,6 +5,7 @@
 #include "string_buf.h"
 #include "memory.h"
 #include "number.h"
+#include "float.h"
 #include "log.h"
 
 static sky_bool_t str_buf_append(sky_str_buf_t *buf, sky_usize_t size);
@@ -139,6 +140,27 @@ sky_str_buf_append_two_uchar(sky_str_buf_t *buf, sky_uchar_t c1, sky_uchar_t c2)
 }
 
 void
+sky_str_buf_append_int8(sky_str_buf_t *buf, sky_i8_t num) {
+    if (sky_unlikely((buf->post + 4) >= buf->end)) {
+        if (sky_unlikely(!str_buf_append(buf, 4))) {
+            return;
+        }
+    }
+
+    buf->post += sky_i8_to_str(num, buf->post);
+}
+
+void
+sky_str_buf_append_uint8(sky_str_buf_t *buf, sky_u8_t num) {
+    if (sky_unlikely((buf->post + 3) >= buf->end)) {
+        if (sky_unlikely(!str_buf_append(buf, 3))) {
+            return;
+        }
+    }
+    buf->post += sky_u8_to_str(num, buf->post);
+}
+
+void
 sky_str_buf_append_int16(sky_str_buf_t *buf, sky_i16_t num) {
     if (sky_unlikely((buf->post + 6) >= buf->end)) {
         if (sky_unlikely(!str_buf_append(buf, 6))) {
@@ -151,7 +173,7 @@ sky_str_buf_append_int16(sky_str_buf_t *buf, sky_i16_t num) {
 
 void
 sky_str_buf_append_uint16(sky_str_buf_t *buf, sky_u16_t num) {
-    if (sky_unlikely((buf->post + 5) > buf->end)) {
+    if (sky_unlikely((buf->post + 5) >= buf->end)) {
         if (sky_unlikely(!str_buf_append(buf, 5))) {
             return;
         }
@@ -202,6 +224,16 @@ sky_str_buf_append_uint64(sky_str_buf_t *buf, sky_u64_t num) {
     }
 
     buf->post += sky_u64_to_str(num, buf->post);
+}
+
+void sky_str_buf_append_f64(sky_str_buf_t *buf, sky_f64_t num) {
+    if (sky_unlikely((buf->post + 23) >= buf->end)) {
+        if (sky_unlikely(!str_buf_append(buf, 23))) {
+            return;
+        }
+    }
+
+    buf->post += sky_f64_to_str(num, buf->post);
 }
 
 sky_bool_t
