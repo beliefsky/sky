@@ -176,7 +176,41 @@ sky_str_out_stream_write_two_uchar(sky_str_out_stream_t *stream, sky_uchar_t c1,
 }
 
 void
-sky_str_out_stream_write_8(sky_str_out_stream_t *stream, sky_i8_t num) {
+sky_str_out_stream_write_bytes2(sky_str_out_stream_t *stream, const sky_uchar_t *bytes) {
+    if (sky_unlikely((stream->post + 2) >= stream->end)) {
+        if (sky_unlikely(!str_out_stream_flush(stream))) {
+            return;
+        }
+    }
+    sky_memcpy2(stream->post, bytes);
+    stream->post += 2;
+}
+
+void
+sky_str_out_stream_write_bytes4(sky_str_out_stream_t *stream, const sky_uchar_t *bytes) {
+    if (sky_unlikely((stream->post + 4) >= stream->end)) {
+        if (sky_unlikely(!str_out_stream_flush(stream))) {
+            return;
+        }
+    }
+    sky_memcpy4(stream->post, bytes);
+    stream->post += 4;
+}
+
+void
+sky_str_out_stream_write_bytes8(sky_str_out_stream_t *stream, const sky_uchar_t *bytes) {
+    if (sky_unlikely((stream->post + 8) >= stream->end)) {
+        if (sky_unlikely(!str_out_stream_flush(stream))) {
+            return;
+        }
+    }
+    sky_memcpy8(stream->post, bytes);
+    stream->post += 8;
+}
+
+
+void
+sky_str_out_stream_write_i8(sky_str_out_stream_t *stream, sky_i8_t num) {
     if (sky_unlikely((stream->post + 4) >= stream->end)) {
         if (sky_unlikely(!str_out_stream_flush(stream))) {
             return;
@@ -197,7 +231,7 @@ sky_str_out_stream_write_u8(sky_str_out_stream_t *stream, sky_u8_t num) {
 }
 
 void
-sky_str_out_stream_write_16(sky_str_out_stream_t *stream, sky_i16_t num) {
+sky_str_out_stream_write_i16(sky_str_out_stream_t *stream, sky_i16_t num) {
     if (sky_unlikely((stream->post + 6) >= stream->end)) {
         if (sky_unlikely(!str_out_stream_flush(stream))) {
             return;
@@ -219,7 +253,7 @@ sky_str_out_stream_write_u16(sky_str_out_stream_t *stream, sky_u16_t num) {
 }
 
 void
-sky_str_out_stream_write_32(sky_str_out_stream_t *stream, sky_i32_t num) {
+sky_str_out_stream_write_i32(sky_str_out_stream_t *stream, sky_i32_t num) {
     if (sky_unlikely((stream->post + 12) >= stream->end)) {
         if (sky_unlikely(!str_out_stream_flush(stream))) {
             return;
@@ -241,7 +275,7 @@ sky_str_out_stream_write_u32(sky_str_out_stream_t *stream, sky_u32_t num) {
 }
 
 void
-sky_str_out_stream_write_64(sky_str_out_stream_t *stream, sky_i64_t num) {
+sky_str_out_stream_write_i64(sky_str_out_stream_t *stream, sky_i64_t num) {
     if (sky_unlikely((stream->post + 21) >= stream->end)) {
         if (sky_unlikely(!str_out_stream_flush(stream))) {
             return;

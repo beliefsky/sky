@@ -40,19 +40,25 @@ void sky_str_buf_append_uchar(sky_str_buf_t *buf, sky_uchar_t ch);
 
 void sky_str_buf_append_two_uchar(sky_str_buf_t *buf, sky_uchar_t c1, sky_uchar_t c2);
 
-void sky_str_buf_append_8(sky_str_buf_t *buf, sky_i8_t num);
+void sky_str_buf_append_byte2(sky_str_buf_t *buf, const sky_uchar_t *bytes);
+
+void sky_str_buf_append_byte4(sky_str_buf_t *buf, const sky_uchar_t *bytes);
+
+void sky_str_buf_append_byte8(sky_str_buf_t *buf, const sky_uchar_t *bytes);
+
+void sky_str_buf_append_i8(sky_str_buf_t *buf, sky_i8_t num);
 
 void sky_str_buf_append_u8(sky_str_buf_t *buf, sky_u8_t num);
 
-void sky_str_buf_append_16(sky_str_buf_t *buf, sky_i16_t num);
+void sky_str_buf_append_i16(sky_str_buf_t *buf, sky_i16_t num);
 
 void sky_str_buf_append_u16(sky_str_buf_t *buf, sky_u16_t num);
 
-void sky_str_buf_append_32(sky_str_buf_t *buf, sky_i32_t num);
+void sky_str_buf_append_i32(sky_str_buf_t *buf, sky_i32_t num);
 
 void sky_str_buf_append_u32(sky_str_buf_t *buf, sky_u32_t num);
 
-void sky_str_buf_append_64(sky_str_buf_t *buf, sky_i64_t num);
+void sky_str_buf_append_i64(sky_str_buf_t *buf, sky_i64_t num);
 
 void sky_str_buf_append_u64(sky_str_buf_t *buf, sky_u64_t num);
 
