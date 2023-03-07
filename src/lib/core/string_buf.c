@@ -140,7 +140,7 @@ sky_str_buf_append_two_uchar(sky_str_buf_t *buf, sky_uchar_t c1, sky_uchar_t c2)
 }
 
 void
-sky_str_buf_append_int8(sky_str_buf_t *buf, sky_i8_t num) {
+sky_str_buf_append_8(sky_str_buf_t *buf, sky_i8_t num) {
     if (sky_unlikely((buf->post + 4) >= buf->end)) {
         if (sky_unlikely(!str_buf_append(buf, 4))) {
             return;
@@ -151,7 +151,7 @@ sky_str_buf_append_int8(sky_str_buf_t *buf, sky_i8_t num) {
 }
 
 void
-sky_str_buf_append_uint8(sky_str_buf_t *buf, sky_u8_t num) {
+sky_str_buf_append_u8(sky_str_buf_t *buf, sky_u8_t num) {
     if (sky_unlikely((buf->post + 3) >= buf->end)) {
         if (sky_unlikely(!str_buf_append(buf, 3))) {
             return;
@@ -161,7 +161,7 @@ sky_str_buf_append_uint8(sky_str_buf_t *buf, sky_u8_t num) {
 }
 
 void
-sky_str_buf_append_int16(sky_str_buf_t *buf, sky_i16_t num) {
+sky_str_buf_append_16(sky_str_buf_t *buf, sky_i16_t num) {
     if (sky_unlikely((buf->post + 6) >= buf->end)) {
         if (sky_unlikely(!str_buf_append(buf, 6))) {
             return;
@@ -172,7 +172,7 @@ sky_str_buf_append_int16(sky_str_buf_t *buf, sky_i16_t num) {
 }
 
 void
-sky_str_buf_append_uint16(sky_str_buf_t *buf, sky_u16_t num) {
+sky_str_buf_append_u16(sky_str_buf_t *buf, sky_u16_t num) {
     if (sky_unlikely((buf->post + 5) >= buf->end)) {
         if (sky_unlikely(!str_buf_append(buf, 5))) {
             return;
@@ -183,7 +183,7 @@ sky_str_buf_append_uint16(sky_str_buf_t *buf, sky_u16_t num) {
 }
 
 void
-sky_str_buf_append_int32(sky_str_buf_t *buf, sky_i32_t num) {
+sky_str_buf_append_32(sky_str_buf_t *buf, sky_i32_t num) {
     if (sky_unlikely((buf->post + 12) >= buf->end)) {
         if (sky_unlikely(!str_buf_append(buf, 12))) {
             return;
@@ -194,7 +194,7 @@ sky_str_buf_append_int32(sky_str_buf_t *buf, sky_i32_t num) {
 }
 
 void
-sky_str_buf_append_uint32(sky_str_buf_t *buf, sky_u32_t num) {
+sky_str_buf_append_u32(sky_str_buf_t *buf, sky_u32_t num) {
     if (sky_unlikely((buf->post + 11) >= buf->end)) {
         if (sky_unlikely(!str_buf_append(buf, 11))) {
             return;
@@ -205,7 +205,7 @@ sky_str_buf_append_uint32(sky_str_buf_t *buf, sky_u32_t num) {
 }
 
 void
-sky_str_buf_append_int64(sky_str_buf_t *buf, sky_i64_t num) {
+sky_str_buf_append_64(sky_str_buf_t *buf, sky_i64_t num) {
     if (sky_unlikely((buf->post + 21) >= buf->end)) {
         if (sky_unlikely(!str_buf_append(buf, 21))) {
             return;
@@ -216,7 +216,7 @@ sky_str_buf_append_int64(sky_str_buf_t *buf, sky_i64_t num) {
 }
 
 void
-sky_str_buf_append_uint64(sky_str_buf_t *buf, sky_u64_t num) {
+sky_str_buf_append_u64(sky_str_buf_t *buf, sky_u64_t num) {
     if (sky_unlikely((buf->post + 21) >= buf->end)) {
         if (sky_unlikely(!str_buf_append(buf, 21))) {
             return;
