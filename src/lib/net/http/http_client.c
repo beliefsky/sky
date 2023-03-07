@@ -10,6 +10,7 @@
 #include "../../core/memory.h"
 #include "../../core/number.h"
 #include "../../core/string_buf.h"
+#include "../../core/string_out_stream.h"
 #include "http_url.h"
 #include "../../core/log.h"
 
@@ -314,25 +315,28 @@ http_create_connect(sky_http_client_t *client, sky_http_client_req_t *req) {
 
 static sky_bool_t
 http_req_writer(sky_http_client_t *client, sky_http_client_req_t *req) {
-    sky_str_buf_t buf;
-    sky_str_buf_init2(&buf, req->pool, 2048);
-    sky_str_buf_append_str(&buf, &req->method);
-    sky_str_buf_append_uchar(&buf, ' ');
-    sky_str_buf_append_str(&buf, &req->path);
-    sky_str_buf_append_uchar(&buf, ' ');
-    sky_str_buf_append_str(&buf, &req->version_name);
-    sky_str_buf_append_two_uchar(&buf, '\r', '\n');
+    sky_str_out_stream_t stream;
+
+    sky_str_out_stream_ini2(&stream, req->pool, (sky_str_out_stream_pt) sky_tcp_client_write_all, client->client, 2048);
+    sky_str_out_stream_write_str(&stream, &req->method);
+    sky_str_out_stream_write_uchar(&stream, ' ');
+    sky_str_out_stream_write_str(&stream, &req->path);
+    sky_str_out_stream_write_uchar(&stream, ' ');
+    sky_str_out_stream_write_str(&stream, &req->version_name);
+    sky_str_out_stream_write_two_uchar(&stream, '\r', '\n');
 
     sky_list_foreach(&req->headers, sky_http_header_t, item, {
-        sky_str_buf_append_str(&buf, &item->key);
-        sky_str_buf_append_two_uchar(&buf, ':', ' ');
-        sky_str_buf_append_str(&buf, &item->val);
-        sky_str_buf_append_two_uchar(&buf, '\r', '\n');
+        sky_str_out_stream_write_str(&stream, &item->key);
+        sky_str_out_stream_write_two_uchar(&stream, ':', ' ');
+        sky_str_out_stream_write_str(&stream, &item->val);
+        sky_str_out_stream_write_two_uchar(&stream, '\r', '\n');
     });
-    sky_str_buf_append_two_uchar(&buf, '\r', '\n');
+    sky_str_out_stream_write_two_uchar(&stream, '\r', '\n');
 
-    const sky_bool_t result = sky_tcp_client_write_all(client->client, buf.start, sky_str_buf_size(&buf));
-    sky_str_buf_destroy(&buf);
+    sky_str_out_stream_flush(&stream);
+    sky_str_out_stream_destroy(&stream);
+
+    const sky_bool_t result = !stream.fail;
 
     return result;
 }
