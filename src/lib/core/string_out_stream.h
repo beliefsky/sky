@@ -58,19 +58,25 @@ void sky_str_out_stream_write_uchar(sky_str_out_stream_t *stream, sky_uchar_t ch
 
 void sky_str_out_stream_write_two_uchar(sky_str_out_stream_t *stream, sky_uchar_t c1, sky_uchar_t c2);
 
-void sky_str_out_stream_write_8(sky_str_out_stream_t *stream, sky_i8_t num);
+void sky_str_out_stream_write_bytes2(sky_str_out_stream_t *stream, const sky_uchar_t *bytes);
+
+void sky_str_out_stream_write_bytes4(sky_str_out_stream_t *stream, const sky_uchar_t *bytes);
+
+void sky_str_out_stream_write_bytes8(sky_str_out_stream_t *stream, const sky_uchar_t *bytes);
+
+void sky_str_out_stream_write_i8(sky_str_out_stream_t *stream, sky_i8_t num);
 
 void sky_str_out_stream_write_u8(sky_str_out_stream_t *stream, sky_u8_t num);
 
-void sky_str_out_stream_write_16(sky_str_out_stream_t *stream, sky_i16_t num);
+void sky_str_out_stream_write_i16(sky_str_out_stream_t *stream, sky_i16_t num);
 
 void sky_str_out_stream_write_u16(sky_str_out_stream_t *stream, sky_u16_t num);
 
-void sky_str_out_stream_write_32(sky_str_out_stream_t *stream, sky_i32_t num);
+void sky_str_out_stream_write_i32(sky_str_out_stream_t *stream, sky_i32_t num);
 
 void sky_str_out_stream_write_u32(sky_str_out_stream_t *stream, sky_u32_t num);
 
-void sky_str_out_stream_write_64(sky_str_out_stream_t *stream, sky_i64_t num);
+void sky_str_out_stream_write_i64(sky_str_out_stream_t *stream, sky_i64_t num);
 
 void sky_str_out_stream_write_u64(sky_str_out_stream_t *stream, sky_u64_t num);
 

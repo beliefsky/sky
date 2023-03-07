@@ -140,7 +140,40 @@ sky_str_buf_append_two_uchar(sky_str_buf_t *buf, sky_uchar_t c1, sky_uchar_t c2)
 }
 
 void
-sky_str_buf_append_8(sky_str_buf_t *buf, sky_i8_t num) {
+sky_str_buf_append_byte2(sky_str_buf_t *buf, const sky_uchar_t *bytes) {
+    if (sky_unlikely((buf->post + 2) >= buf->end)) {
+        if (sky_unlikely(!str_buf_append(buf, 2))) {
+            return;
+        }
+    }
+    sky_memcpy2(buf->post, bytes);
+    buf->post += 2;
+}
+
+void
+sky_str_buf_append_byte4(sky_str_buf_t *buf, const sky_uchar_t *bytes) {
+    if (sky_unlikely((buf->post + 4) >= buf->end)) {
+        if (sky_unlikely(!str_buf_append(buf, 4))) {
+            return;
+        }
+    }
+    sky_memcpy4(buf->post, bytes);
+    buf->post += 4;
+}
+
+void
+sky_str_buf_append_byte8(sky_str_buf_t *buf, const sky_uchar_t *bytes) {
+    if (sky_unlikely((buf->post + 8) >= buf->end)) {
+        if (sky_unlikely(!str_buf_append(buf, 8))) {
+            return;
+        }
+    }
+    sky_memcpy8(buf->post, bytes);
+    buf->post += 8;
+}
+
+void
+sky_str_buf_append_i8(sky_str_buf_t *buf, sky_i8_t num) {
     if (sky_unlikely((buf->post + 4) >= buf->end)) {
         if (sky_unlikely(!str_buf_append(buf, 4))) {
             return;
@@ -161,7 +194,7 @@ sky_str_buf_append_u8(sky_str_buf_t *buf, sky_u8_t num) {
 }
 
 void
-sky_str_buf_append_16(sky_str_buf_t *buf, sky_i16_t num) {
+sky_str_buf_append_i16(sky_str_buf_t *buf, sky_i16_t num) {
     if (sky_unlikely((buf->post + 6) >= buf->end)) {
         if (sky_unlikely(!str_buf_append(buf, 6))) {
             return;
@@ -183,7 +216,7 @@ sky_str_buf_append_u16(sky_str_buf_t *buf, sky_u16_t num) {
 }
 
 void
-sky_str_buf_append_32(sky_str_buf_t *buf, sky_i32_t num) {
+sky_str_buf_append_i32(sky_str_buf_t *buf, sky_i32_t num) {
     if (sky_unlikely((buf->post + 12) >= buf->end)) {
         if (sky_unlikely(!str_buf_append(buf, 12))) {
             return;
@@ -205,7 +238,7 @@ sky_str_buf_append_u32(sky_str_buf_t *buf, sky_u32_t num) {
 }
 
 void
-sky_str_buf_append_64(sky_str_buf_t *buf, sky_i64_t num) {
+sky_str_buf_append_i64(sky_str_buf_t *buf, sky_i64_t num) {
     if (sky_unlikely((buf->post + 21) >= buf->end)) {
         if (sky_unlikely(!str_buf_append(buf, 21))) {
             return;
