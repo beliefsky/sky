@@ -58,11 +58,11 @@ void sky_str_out_stream_write_uchar(sky_str_out_stream_t *stream, sky_uchar_t ch
 
 void sky_str_out_stream_write_two_uchar(sky_str_out_stream_t *stream, sky_uchar_t c1, sky_uchar_t c2);
 
-void sky_str_out_stream_write_bytes2(sky_str_out_stream_t *stream, const sky_uchar_t *bytes);
+void sky_str_out_stream_write_b2(sky_str_out_stream_t *stream, const sky_uchar_t *bytes);
 
-void sky_str_out_stream_write_bytes4(sky_str_out_stream_t *stream, const sky_uchar_t *bytes);
+void sky_str_out_stream_write_b4(sky_str_out_stream_t *stream, const sky_uchar_t *bytes);
 
-void sky_str_out_stream_write_bytes8(sky_str_out_stream_t *stream, const sky_uchar_t *bytes);
+void sky_str_out_stream_write_b8(sky_str_out_stream_t *stream, const sky_uchar_t *bytes);
 
 void sky_str_out_stream_write_i8(sky_str_out_stream_t *stream, sky_i8_t num);
 
