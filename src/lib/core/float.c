@@ -40,7 +40,7 @@ sky_str_len_to_f64_opts(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *ou
             if (!sky_fast_str_check_number(mask)) {
                 break;
             }
-            i = i * sky_u32_power_ten(in_len) + sky_fast_str_parse_uint32(mask);
+            i = i * sky_u32_power_ten(in_len) + sky_fast_str_parse_u32(mask);
 
             *out = negative ? -((sky_f64_t) i) : (sky_f64_t) i;
             return true;
@@ -49,7 +49,7 @@ sky_str_len_to_f64_opts(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *ou
         if (!sky_fast_str_check_number(mask)) {
             break;
         }
-        i = i * sky_u32_power_ten(8) + sky_fast_str_parse_uint32(mask);
+        i = i * sky_u32_power_ten(8) + sky_fast_str_parse_u32(mask);
         in_len -= 8;
         in += 8;
         if (!in_len) {
@@ -65,7 +65,7 @@ sky_str_len_to_f64_opts(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *ou
 
         const sky_usize_t n = (sky_usize_t) (p - in);
         mask = sky_fast_str_parse_mask_small(in, n);
-        i = i * sky_u32_power_ten(n) + sky_fast_str_parse_uint32(mask);
+        i = i * sky_u32_power_ten(n) + sky_fast_str_parse_u32(mask);
 
         in = p;
         in_len -= n;
@@ -84,7 +84,7 @@ sky_str_len_to_f64_opts(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *ou
                 if (!sky_fast_str_check_number(mask)) {
                     break;
                 }
-                i = i * sky_u32_power_ten(in_len) + sky_fast_str_parse_uint32(mask);
+                i = i * sky_u32_power_ten(in_len) + sky_fast_str_parse_u32(mask);
                 power_ten -= (sky_isize_t) in_len;
 
                 return compute_float_64(i, power_ten, negative, out);
@@ -93,7 +93,7 @@ sky_str_len_to_f64_opts(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *ou
             if (!sky_fast_str_check_number(mask)) {
                 break;
             }
-            i = i * sky_u32_power_ten(8) + sky_fast_str_parse_uint32(mask);
+            i = i * sky_u32_power_ten(8) + sky_fast_str_parse_u32(mask);
             in_len -= 8;
             in += 8;
             power_ten -= 8;
@@ -110,7 +110,7 @@ sky_str_len_to_f64_opts(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *ou
 
             const sky_usize_t n = (sky_usize_t) (p - in);
             mask = sky_fast_str_parse_mask_small(in, n);
-            i = i * sky_u32_power_ten(n) + sky_fast_str_parse_uint32(mask);
+            i = i * sky_u32_power_ten(n) + sky_fast_str_parse_u32(mask);
 
             in = p;
             in_len -= n;

@@ -266,7 +266,7 @@ sky_fast_str_parse_mask_small(const sky_uchar_t *chars, sky_usize_t len) {
  * @return 转换的int
  */
 static sky_inline sky_u32_t
-sky_fast_str_parse_uint32(sky_u64_t mask) {
+sky_fast_str_parse_u32(sky_u64_t mask) {
     mask = (mask & 0x0F0F0F0F0F0F0F0F) * 2561 >> 8;
     mask = (mask & 0x00FF00FF00FF00FF) * 6553601 >> 16;
     return (sky_u32_t) ((mask & 0x0000FFFF0000FFFF) * 42949672960001 >> 32);
