@@ -27,13 +27,13 @@ sky_str_len_to_i8(const sky_uchar_t *in, sky_usize_t in_len, sky_i8_t *out) {
         if (sky_unlikely((!sky_fast_str_check_number(mask)))) {
             return false;
         }
-        *out = (sky_i8_t) (~((sky_i8_t) sky_fast_str_parse_uint32(mask)) + 1);
+        *out = (sky_i8_t) (~((sky_i8_t) sky_fast_str_parse_u32(mask)) + 1);
     } else {
         mask = fast_str_parse_mask(in, in_len);
         if (sky_unlikely((!sky_fast_str_check_number(mask)))) {
             return false;
         }
-        *out = (sky_i8_t) sky_fast_str_parse_uint32(mask);
+        *out = (sky_i8_t) sky_fast_str_parse_u32(mask);
     }
 
     return true;
@@ -51,7 +51,7 @@ sky_str_len_to_u8(const sky_uchar_t *in, sky_usize_t in_len, sky_u8_t *out) {
     if (sky_unlikely((!sky_fast_str_check_number(mask)))) {
         return false;
     }
-    *out = (sky_u8_t) sky_fast_str_parse_uint32(mask);
+    *out = (sky_u8_t) sky_fast_str_parse_u32(mask);
 
     return true;
 }
@@ -69,13 +69,13 @@ sky_str_len_to_i16(const sky_uchar_t *in, sky_usize_t in_len, sky_i16_t *out) {
         if (sky_unlikely((!sky_fast_str_check_number(mask)))) {
             return false;
         }
-        *out = (sky_i16_t) (~((sky_i16_t) sky_fast_str_parse_uint32(mask)) + 1);
+        *out = (sky_i16_t) (~((sky_i16_t) sky_fast_str_parse_u32(mask)) + 1);
     } else {
         mask = fast_str_parse_mask(in, in_len);
         if (sky_unlikely((!sky_fast_str_check_number(mask)))) {
             return false;
         }
-        *out = (sky_i16_t) sky_fast_str_parse_uint32(mask);
+        *out = (sky_i16_t) sky_fast_str_parse_u32(mask);
     }
 
     return true;
@@ -92,7 +92,7 @@ sky_str_len_to_u16(const sky_uchar_t *in, sky_usize_t in_len, sky_u16_t *out) {
     if (sky_unlikely((!sky_fast_str_check_number(mask)))) {
         return false;
     }
-    *out = (sky_u16_t) sky_fast_str_parse_uint32(mask);
+    *out = (sky_u16_t) sky_fast_str_parse_u32(mask);
 
     return true;
 }
@@ -111,13 +111,13 @@ sky_str_len_to_i32(const sky_uchar_t *in, sky_usize_t in_len, sky_i32_t *out) {
             if (sky_unlikely((!sky_fast_str_check_number(mask)))) {
                 return false;
             }
-            *out = ~((sky_i32_t) sky_fast_str_parse_uint32(mask)) + 1;
+            *out = ~((sky_i32_t) sky_fast_str_parse_u32(mask)) + 1;
             return true;
         }
         if (sky_unlikely((!sky_fast_str_check_number(mask)))) {
             return false;
         }
-        *out = (sky_i32_t) sky_fast_str_parse_uint32(mask);
+        *out = (sky_i32_t) sky_fast_str_parse_u32(mask);
 
         in_len -= 9;
 
@@ -128,11 +128,11 @@ sky_str_len_to_i32(const sky_uchar_t *in, sky_usize_t in_len, sky_i32_t *out) {
         if (in_len == 1) {
             *out = ~((*out) * 10 + (in[8] - '0')) + 1;
         } else {
-            *out = ~((*out) * 100 + (sky_i32_t) sky_fast_str_parse_uint32(mask)) + 1;
+            *out = ~((*out) * 100 + (sky_i32_t) sky_fast_str_parse_u32(mask)) + 1;
         }
 
         *out = in_len == 1 ? (~((*out) * 10 + (in[8] - '0')) + 1)
-                           : (~((*out) * 100 + (sky_i32_t) sky_fast_str_parse_uint32(mask)) + 1);
+                           : (~((*out) * 100 + (sky_i32_t) sky_fast_str_parse_u32(mask)) + 1);
 
         return true;
     }
@@ -142,13 +142,13 @@ sky_str_len_to_i32(const sky_uchar_t *in, sky_usize_t in_len, sky_i32_t *out) {
         if (sky_unlikely((!sky_fast_str_check_number(mask)))) {
             return false;
         }
-        *out = ((sky_i32_t) sky_fast_str_parse_uint32(mask));
+        *out = ((sky_i32_t) sky_fast_str_parse_u32(mask));
         return true;
     }
     if (sky_unlikely((!sky_fast_str_check_number(mask)))) {
         return false;
     }
-    *out = (sky_i32_t) sky_fast_str_parse_uint32(mask);
+    *out = (sky_i32_t) sky_fast_str_parse_u32(mask);
 
     in_len -= 8;
 
@@ -158,7 +158,7 @@ sky_str_len_to_i32(const sky_uchar_t *in, sky_usize_t in_len, sky_i32_t *out) {
     }
 
     *out = in_len == 1 ? ((*out) * 10 + (in[8] - '0'))
-                       : ((*out) * 100 + (sky_i32_t) sky_fast_str_parse_uint32(mask));
+                       : ((*out) * 100 + (sky_i32_t) sky_fast_str_parse_u32(mask));
 
     return true;
 }
@@ -176,10 +176,10 @@ sky_str_len_to_u32(const sky_uchar_t *in, sky_usize_t in_len, sky_u32_t *out) {
         if (sky_unlikely((!sky_fast_str_check_number(mask)))) {
             return false;
         }
-        *out = sky_fast_str_parse_uint32(mask);
+        *out = sky_fast_str_parse_u32(mask);
         return true;
     }
-    *out = sky_fast_str_parse_uint32(mask);
+    *out = sky_fast_str_parse_u32(mask);
     in_len -= 8;
 
     mask = fast_str_parse_mask(in + 8, in_len);
@@ -188,7 +188,7 @@ sky_str_len_to_u32(const sky_uchar_t *in, sky_usize_t in_len, sky_u32_t *out) {
     }
 
     *out = in_len == 1 ? ((*out) * 10 + (in[8] - '0'))
-                       : ((*out) * 100 + sky_fast_str_parse_uint32(mask));
+                       : ((*out) * 100 + sky_fast_str_parse_u32(mask));
 
     return true;
 }
@@ -216,13 +216,13 @@ sky_str_len_to_u64(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out) {
         if (sky_unlikely((!sky_fast_str_check_number(mask)))) {
             return false;
         }
-        *out = sky_fast_str_parse_uint32(mask);
+        *out = sky_fast_str_parse_u32(mask);
         return true;
     }
     if (sky_unlikely((!sky_fast_str_check_number(mask)))) {
         return false;
     }
-    *out = sky_fast_str_parse_uint32(mask);
+    *out = sky_fast_str_parse_u32(mask);
     in_len -= 8;
 
     mask = fast_str_parse_mask(in + 8, in_len);
@@ -230,20 +230,20 @@ sky_str_len_to_u64(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out) {
         if (sky_unlikely((!sky_fast_str_check_number(mask)))) {
             return false;
         }
-        *out = (*out) * sky_u32_power_ten(in_len) + sky_fast_str_parse_uint32(mask);
+        *out = (*out) * sky_u32_power_ten(in_len) + sky_fast_str_parse_u32(mask);
         return true;
     }
     if (sky_unlikely((!sky_fast_str_check_number(mask)))) {
         return false;
     }
-    *out = (*out) * sky_u32_power_ten(8) + sky_fast_str_parse_uint32(mask);
+    *out = (*out) * sky_u32_power_ten(8) + sky_fast_str_parse_u32(mask);
     in_len -= 8;
 
     mask = fast_str_parse_mask(in + 16, in_len);
     if (sky_unlikely((!sky_fast_str_check_number(mask)))) {
         return false;
     }
-    *out = (*out) * sky_u32_power_ten(in_len) + sky_fast_str_parse_uint32(mask);
+    *out = (*out) * sky_u32_power_ten(in_len) + sky_fast_str_parse_u32(mask);
     return true;
 }
 
@@ -402,7 +402,7 @@ sky_u64_to_hex_str(sky_u64_t data, sky_uchar_t *out, sky_bool_t lower_alpha) {
 
 sky_inline sky_u8_t
 sky_u32_check_str_count(sky_u32_t x) {
-    static const uint64_t table[] = {
+    static const sky_u64_t table[] = {
             4294967296, 8589934582, 8589934582, 8589934582, 12884901788,
             12884901788, 12884901788, 17179868184, 17179868184, 17179868184,
             21474826480, 21474826480, 21474826480, 21474826480, 25769703776,
