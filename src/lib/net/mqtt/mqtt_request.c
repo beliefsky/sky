@@ -150,7 +150,7 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
             case SKY_MQTT_TYPE_DISCONNECT:
                 return SKY_CORO_FINISHED;
             default:
-                sky_log_info(" error");
+                sky_log_info(" error: %d", head.type);
                 return SKY_CORO_ABORT;
         }
         sky_pool_reset(pool);

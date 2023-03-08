@@ -45,7 +45,7 @@ sky_mqtt_server_bind(sky_mqtt_server_t *server, sky_inet_address_t *address, sky
     sky_tcp_server_conf_t conf = {
             .address = address,
             .address_len = address_len,
-            .run = (sky_tcp_accept_cb_pt) mqtt_connection_accept_cb,
+            .accept = (sky_tcp_accept_cb_pt) mqtt_connection_accept_cb,
             .options = mqtt_default_options,
             .data = server,
             .timeout = 300
