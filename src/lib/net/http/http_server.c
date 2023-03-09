@@ -3,6 +3,7 @@
 //
 
 #include "http_server.h"
+#include "../tcp.h"
 #include "../tcp_server.h"
 #include "http_request.h"
 #include "http_io_wrappers.h"

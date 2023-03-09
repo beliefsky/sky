@@ -37,12 +37,6 @@ sky_bool_t sky_set_socket_nonblock(sky_socket_t fd);
 
 sky_bool_t sky_socket_option_reuse_port(sky_socket_t fd);
 
-sky_bool_t sky_tcp_option_no_delay(sky_socket_t fd);
-
-sky_bool_t sky_tcp_option_defer_accept(sky_socket_t fd);
-
-sky_bool_t sky_tcp_option_fast_open(sky_socket_t fd, sky_i32_t n);
-
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif
