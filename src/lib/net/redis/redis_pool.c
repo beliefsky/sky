@@ -184,9 +184,7 @@ redis_send_exec(sky_redis_conn_t *rc, sky_redis_data_t *params, sky_u16_t param_
         }
     }
 
-    sky_str_out_stream_flush(&stream);
-
-    const sky_bool_t result = !stream.fail;
+    const sky_bool_t result = sky_str_out_stream_flush(&stream);
 
     sky_str_out_stream_destroy(&stream);
 

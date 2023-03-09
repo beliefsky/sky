@@ -283,7 +283,7 @@ http_create_connect(sky_http_client_t *client, sky_http_client_req_t *req) {
                 struct sockaddr_in *tmp = (struct sockaddr_in *) item->ai_addr;
                 tmp->sin_port = sky_htons(req->port);
 
-                flags =  sky_tcp_client_connection(
+                flags = sky_tcp_client_connection(
                         client->client,
                         item->ai_addr,
                         item->ai_addrlen
@@ -294,7 +294,7 @@ http_create_connect(sky_http_client_t *client, sky_http_client_req_t *req) {
                 struct sockaddr_in6 *tmp = (struct sockaddr_in6 *) item->ai_addr;
                 tmp->sin6_port = sky_htons(req->port);
 
-                flags =  sky_tcp_client_connection(
+                flags = sky_tcp_client_connection(
                         client->client,
                         item->ai_addr,
                         item->ai_addrlen
@@ -333,10 +333,8 @@ http_req_writer(sky_http_client_t *client, sky_http_client_req_t *req) {
     });
     sky_str_out_stream_write_two_uchar(&stream, '\r', '\n');
 
-    sky_str_out_stream_flush(&stream);
+    const sky_bool_t result = sky_str_out_stream_flush(&stream);
     sky_str_out_stream_destroy(&stream);
-
-    const sky_bool_t result = !stream.fail;
 
     return result;
 }
