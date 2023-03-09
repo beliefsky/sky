@@ -87,7 +87,7 @@ server_start(sky_event_loop_t *loop, sky_coro_switcher_t *switcher) {
                 .sin_port = sky_htons(1883)
         };
         const sky_tcp_server_conf_t tcp_conf = {
-                .run = tcp_accept_cb,
+                .accept = tcp_accept_cb,
                 .options = tcp_option,
                 .data = switcher,
                 .timeout = -1,
@@ -105,7 +105,7 @@ server_start(sky_event_loop_t *loop, sky_coro_switcher_t *switcher) {
                 .sin6_port = sky_htons(1883)
         };
         const sky_tcp_server_conf_t tcp_conf = {
-                .run = tcp_accept_cb,
+                .accept = tcp_accept_cb,
                 .options = tcp_option,
                 .data = switcher,
                 .timeout = -1,
