@@ -6,6 +6,7 @@
 #include "mqtt_io_wrappers.h"
 #include "mqtt_request.h"
 #include "../../core/memory.h"
+#include "../tcp.h"
 #include "../tcp_server.h"
 #include "mqtt_response.h"
 #include "../../core/crc32.h"
