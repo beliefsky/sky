@@ -103,9 +103,9 @@ sky_http_server_bind(sky_http_server_t *server, sky_inet_address_t *address, sky
             .address = address,
             .address_len = address_len,
 #ifdef SKY_HAVE_TLS
-            .run = (sky_tcp_accept_cb_pt) (server->tls_ctx ? https_connection_accept_cb : http_connection_accept_cb),
+            .accept = (sky_tcp_accept_cb_pt) (server->tls_ctx ? https_connection_accept_cb : http_connection_accept_cb),
 #else
-            .run = (sky_tcp_accept_cb_pt) http_connection_accept_cb,
+            .accept = (sky_tcp_accept_cb_pt) http_connection_accept_cb,
 #endif
             .options = http_default_options,
             .data = server,

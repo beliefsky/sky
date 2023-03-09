@@ -17,7 +17,7 @@ typedef struct sky_tcp_server_s sky_tcp_server_t;
 typedef sky_event_t *(*sky_tcp_accept_cb_pt)(sky_event_loop_t *loop, sky_i32_t fd, void *data);
 
 typedef struct {
-    sky_tcp_accept_cb_pt run;
+    sky_tcp_accept_cb_pt accept;
     sky_socket_options_pt options;
     void *data;
     sky_inet_address_t *address;

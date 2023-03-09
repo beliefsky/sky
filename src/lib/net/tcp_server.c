@@ -14,7 +14,7 @@
 
 struct sky_tcp_server_s {
     sky_event_t ev;
-    sky_tcp_accept_cb_pt run;
+    sky_tcp_accept_cb_pt accept;
     void *data;
     sky_i32_t timeout;
 };
@@ -69,7 +69,7 @@ sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf)
     }
 
     server = sky_malloc(sizeof(sky_tcp_server_t));
-    server->run = conf->run;
+    server->accept = conf->accept;
     server->data = conf->data;
     server->timeout = conf->timeout;
     sky_event_init(loop, &server->ev, fd, tcp_listener_accept, tcp_listener_error);
@@ -103,7 +103,7 @@ tcp_listener_accept(sky_event_t *ev) {
             }
 #endif
 
-        if (sky_likely((event = server->run(loop, fd, server->data)))) {
+        if (sky_likely((event = server->accept(loop, fd, server->data)))) {
             if (!event->run(event)) {
                 close(fd);
                 event->close(event);
