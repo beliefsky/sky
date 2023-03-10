@@ -15,16 +15,16 @@ extern "C" {
 #endif
 
 typedef struct sky_tcp_ctx_s sky_tcp_ctx_t;
-typedef struct sky_tcp_connect_s sky_tcp_connect_t;
+typedef struct sky_tcp_s sky_tcp_t;
 
-typedef sky_isize_t (*sky_tcp_connect_read_pt)(sky_tcp_connect_t *conn, sky_uchar_t *data, sky_usize_t size);
+typedef sky_isize_t (*sky_tcp_read_pt)(sky_tcp_t *conn, sky_uchar_t *data, sky_usize_t size);
 
-typedef sky_isize_t (*sky_tcp_connect_write_pt)(sky_tcp_connect_t *conn, const sky_uchar_t *data, sky_usize_t size);
+typedef sky_isize_t (*sky_tcp_write_pt)(sky_tcp_t *conn, const sky_uchar_t *data, sky_usize_t size);
 
-typedef void (*sky_tcp_connect_close_pt)(sky_tcp_connect_t *conn);
+typedef void (*sky_tcp_close_pt)(sky_tcp_t *conn);
 
-typedef sky_isize_t (*sky_tcp_connect_sendfile_pt)(
-        sky_tcp_connect_t *conn,
+typedef sky_isize_t (*sky_tcp_sendfile_pt)(
+        sky_tcp_t *conn,
         sky_fs_t *fs,
         sky_i64_t *offset,
         sky_usize_t size,
@@ -33,27 +33,28 @@ typedef sky_isize_t (*sky_tcp_connect_sendfile_pt)(
 );
 
 struct sky_tcp_ctx_s {
-    sky_tcp_connect_close_pt close;
-    sky_tcp_connect_read_pt read;
-    sky_tcp_connect_write_pt write;
-    sky_tcp_connect_sendfile_pt sendfile;
+    sky_tcp_close_pt close;
+    sky_tcp_read_pt read;
+    sky_tcp_write_pt write;
+    sky_tcp_sendfile_pt sendfile;
 };
 
-struct sky_tcp_connect_s {
+struct sky_tcp_s {
     sky_event_t ev;
     sky_tcp_ctx_t *ctx;
 };
 
 void sky_tcp_ctx_init(sky_tcp_ctx_t *ctx);
 
-void sky_tcp_connect_close(sky_tcp_connect_t *conn);
 
-sky_isize_t sky_tcp_connect_read(sky_tcp_connect_t *conn, sky_uchar_t *data, sky_usize_t size);
+void sky_tcp_close(sky_tcp_t *conn);
 
-sky_isize_t sky_tcp_connect_write(sky_tcp_connect_t *conn, const sky_uchar_t *data, sky_usize_t size);
+sky_isize_t sky_tcp_read(sky_tcp_t *conn, sky_uchar_t *data, sky_usize_t size);
 
-sky_isize_t sky_tcp_connect_sendfile(
-        sky_tcp_connect_t *conn,
+sky_isize_t sky_tcp_write(sky_tcp_t *conn, const sky_uchar_t *data, sky_usize_t size);
+
+sky_isize_t sky_tcp_sendfile(
+        sky_tcp_t *conn,
         sky_fs_t *fs,
         sky_i64_t *offset,
         sky_usize_t size,
@@ -69,12 +70,12 @@ sky_bool_t sky_tcp_option_fast_open(sky_socket_t fd, sky_i32_t n);
 
 
 static sky_inline sky_event_t *
-sky_tcp_connect_get_event(sky_tcp_connect_t *conn) {
+sky_tcp_get_event(sky_tcp_t *conn) {
     return &conn->ev;
 }
 
 static sky_inline sky_bool_t
-sky_tcp_connect_closed(const sky_tcp_connect_t *conn) {
+sky_tcp_connect_closed(const sky_tcp_t *conn) {
     return sky_event_get_fd(&conn->ev) < 0;
 }
 

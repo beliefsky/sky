@@ -15,9 +15,9 @@
 struct sky_tcp_server_s {
     sky_event_t ev;
     sky_tcp_ctx_t ctx;
-    sky_tcp_connect_create_pt create_handle;
-    sky_tcp_connect_run_pt run_handle;
-    sky_tcp_connect_error_pt error_handle;
+    sky_tcp_create_pt create_handle;
+    sky_tcp_run_pt run_handle;
+    sky_tcp_error_pt error_handle;
     void *data;
     sky_event_loop_t *loop;
     sky_i32_t timeout;
@@ -97,7 +97,7 @@ static sky_bool_t
 tcp_listener_accept(sky_event_t *ev) {
     sky_socket_t listener, fd;
     sky_tcp_server_t *server;
-    sky_tcp_connect_t *conn;
+    sky_tcp_t *conn;
 
     server = (sky_tcp_server_t *) ev;
     listener = sky_event_get_fd(ev);
@@ -127,7 +127,7 @@ tcp_listener_accept(sky_event_t *ev) {
         conn->ctx = &server->ctx;
 
         if (!server->run_handle(conn)) {
-            sky_tcp_connect_close(conn);
+            sky_tcp_close(conn);
             server->error_handle(conn);
         } else {
             sky_event_register(&conn->ev, conn->ev.timeout ?: server->timeout);

@@ -258,7 +258,7 @@ static SKY_HTTP_MAPPER_HANDLER(pgsql_test) {
 
     sky_pgsql_param_set_i32(&params, 0, 2);
     sky_pgsql_param_set_timestamp_tz(&params, 1,
-                                     sky_event_get_now(sky_tcp_connect_get_event(&req->conn->tcp)) * 1000000);
+                                     sky_event_get_now(sky_tcp_get_event(&req->conn->tcp)) * 1000000);
     sky_pgsql_param_set_date(&params, 2, 365);
     sky_pgsql_param_set_time(&params, 3, 3600L * 1000000);
 

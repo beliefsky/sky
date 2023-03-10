@@ -167,7 +167,7 @@ http_header_write_pre(sky_http_request_t *r, sky_str_out_stream_t *stream) {
     }
     sky_str_out_stream_write_str_len(stream, sky_str_line("Date: "));
 
-    const sky_i64_t now = sky_event_get_now(sky_tcp_connect_get_event(&r->conn->tcp));
+    const sky_i64_t now = sky_event_get_now(sky_tcp_get_event(&r->conn->tcp));
 
     if (now > r->conn->server->rfc_last) {
         sky_date_to_rfc_str(now, r->conn->server->rfc_date);
