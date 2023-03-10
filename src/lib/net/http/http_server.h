@@ -10,7 +10,6 @@
 #include "../../core/buf.h"
 #include "../../core/trie.h"
 #include "../tcp.h"
-#include "../tls/tls.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -32,9 +31,6 @@ typedef struct {
 
 typedef struct {
     sky_http_module_host_t *modules_host;
-#ifdef SKY_HAVE_TLS
-    sky_tls_ctx_t *tls_ctx;
-#endif
     sky_u16_t modules_n;
     sky_u32_t header_buf_size;
     sky_u8_t header_buf_n;
@@ -44,19 +40,9 @@ struct sky_http_server_s {
     sky_pool_t *pool;
     sky_event_loop_t *ev_loop;
     sky_coro_switcher_t *switcher;
-#ifdef SKY_HAVE_TLS
-    sky_tls_ctx_t *tls_ctx;
-#endif
     sky_str_t *status_map;
     sky_trie_t *default_host;
     sky_trie_t *host_map;
-
-    sky_usize_t (*http_read)(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size);
-
-    void (*http_write)(sky_http_connection_t *conn, const sky_uchar_t *data, sky_usize_t size);
-
-    void (*http_send_file)(sky_http_connection_t *conn, sky_i32_t fd, sky_i64_t offset, sky_usize_t size,
-                           const sky_uchar_t *header, sky_u32_t header_len);
 
     sky_uchar_t rfc_date[30];
     sky_time_t rfc_last;

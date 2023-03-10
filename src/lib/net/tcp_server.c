@@ -88,6 +88,8 @@ sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf)
 
 void
 sky_tcp_server_destroy(sky_tcp_server_t *server) {
+    close(server->ev.fd);
+    sky_event_rebind(&server->ev, -1);
     sky_event_unregister(&server->ev);
 }
 

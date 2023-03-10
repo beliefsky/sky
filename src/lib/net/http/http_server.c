@@ -5,7 +5,6 @@
 #include "http_server.h"
 #include "../tcp_server.h"
 #include "http_request.h"
-#include "http_io_wrappers.h"
 
 
 static sky_tcp_connect_t *http_connection_accept_cb(void *data);
@@ -15,16 +14,6 @@ static sky_bool_t http_connection_run(sky_tcp_connect_t *data);
 static void http_connection_close(sky_tcp_connect_t *data);
 
 static sky_bool_t http_default_options(sky_i32_t fd, void *data);
-
-#ifdef SKY_HAVE_TLS
-
-static sky_event_t *https_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server_t *server);
-
-static sky_bool_t https_handshake(sky_http_connection_t *conn);
-
-static void https_connection_close(sky_http_connection_t *conn);
-
-#endif
 
 static void http_status_build(sky_http_server_t *server);
 
@@ -51,23 +40,6 @@ sky_http_server_create(sky_event_loop_t *ev_loop, sky_coro_switcher_t *switcher,
         conf->header_buf_size = 2047;   // 2kb
     }
     server->header_buf_size = sky_max(conf->header_buf_size, 511U);
-
-#ifdef SKY_HAVE_TLS
-    if (conf->tls_ctx) {
-        server->tls_ctx = conf->tls_ctx;
-        server->http_read = sky_https_read;
-        server->http_write = sky_https_write;
-        server->http_send_file = sky_https_send_file;
-    } else {
-        server->http_read = sky_http_read;
-        server->http_write = sky_http_write;
-        server->http_send_file = sky_http_send_file;
-    }
-#else
-    server->http_read = sky_http_read;
-    server->http_write = sky_http_write;
-    server->http_send_file = sky_http_send_file;
-#endif
     server->rfc_last = 0;
 
     // ====================================================================================
@@ -144,8 +116,9 @@ http_connection_run(sky_tcp_connect_t *data) {
 
 static void
 http_connection_close(sky_tcp_connect_t *data) {
-    sky_http_connection_t *conn = sky_type_convert(data, sky_http_connection_t, tcp);
+    sky_tcp_connect_close(data);
 
+    sky_http_connection_t *conn = sky_type_convert(data, sky_http_connection_t, tcp);
     sky_coro_destroy(conn->coro);
 }
 

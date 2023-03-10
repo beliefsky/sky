@@ -460,6 +460,8 @@ tcp_run(sky_tcp_node_t *client) {
                     break;
                 }
             } else {
+                close(event->fd);
+                sky_event_rebind(event, -1);
                 if (client->current) {
                     sky_tcp_pool_conn_unbind(session);
                     sky_event_unregister(event);
@@ -481,6 +483,8 @@ tcp_run(sky_tcp_node_t *client) {
 
 static void
 tcp_close(sky_tcp_node_t *client) {
+    close(client->ev.fd);
+    sky_event_rebind(&client->ev, -1);
     tcp_run(client);
 }
 
@@ -555,5 +559,7 @@ tcp_connection_defer(sky_tcp_session_t *session) {
     if (sky_unlikely(client->conn_pool->free)) {
         return;
     }
+    close(client->ev.fd);
+    sky_event_rebind(&client->ev, -1);
     sky_event_unregister(&client->ev);
 }

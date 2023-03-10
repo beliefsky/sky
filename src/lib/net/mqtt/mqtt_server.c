@@ -89,10 +89,10 @@ mqtt_run(sky_tcp_connect_t *data) {
 
 static void
 mqtt_close(sky_tcp_connect_t *data) {
+    sky_tcp_connect_close(data);
+
     sky_mqtt_connect_t *conn = sky_type_convert(data, sky_mqtt_connect_t, tcp);
-
     sky_mqtt_clean_packet(conn);
-
     sky_coro_destroy(conn->coro);
 }
 

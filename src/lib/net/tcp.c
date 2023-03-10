@@ -111,7 +111,7 @@ sky_tcp_option_fast_open(sky_socket_t fd, sky_i32_t n) {
 static void
 tcp_connect_close(sky_tcp_connect_t *conn) {
     const sky_socket_t fd = sky_event_get_fd(&conn->ev);
-    if (sky_unlikely(fd >= 0)) {
+    if (sky_likely(fd >= 0)) {
         close(fd);
         sky_event_rebind(&conn->ev, -1);
     }

@@ -5,6 +5,7 @@
 #include "http_response.h"
 #include "../../core/number.h"
 #include "../../core/string_out_stream.h"
+#include "http_io_wrappers.h"
 #include "../../core/date.h"
 
 static void http_header_write_pre(sky_http_request_t *r, sky_str_out_stream_t *stream);
@@ -139,7 +140,7 @@ sky_http_sendfile(sky_http_request_t *r, sky_i32_t fd, sky_usize_t offset, sky_u
     if (size) {
         const sky_u32_t header_len = (sky_u32_t) sky_str_out_stream_data_size(&stream);
         const sky_uchar_t *header_data = sky_str_out_stream_data(&stream);
-        r->conn->server->http_send_file(r->conn, fd, (sky_i64_t) offset, size, header_data, header_len);
+        sky_http_send_file(r->conn, fd, (sky_i64_t) offset, size, header_data, header_len);
         sky_str_out_stream_reset(&stream);
     } else {
         sky_str_out_stream_flush(&stream);
@@ -201,7 +202,7 @@ static sky_bool_t
 http_write_cb(void *data, const sky_uchar_t *buf, sky_usize_t size) {
     sky_http_connection_t *conn = data;
 
-    conn->server->http_write(conn, buf, size);
+    sky_http_write(conn, buf, size);
 
     return true;
 }

@@ -154,6 +154,7 @@ tcp_proxy_run(sky_tcp_connect_t *data) {
 
 static void
 tcp_proxy_close(sky_tcp_connect_t *data) {
+    sky_tcp_connect_close(data);
     tcp_proxy_conn_t *conn = sky_type_convert(data, tcp_proxy_conn_t, tcp);
 
     sky_coro_destroy(conn->coro);
