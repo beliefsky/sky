@@ -3,6 +3,7 @@
 //
 
 #include "redis_pool.h"
+#include "../tcp.h"
 #include "../../core/memory.h"
 #include "../../core/log.h"
 #include "../../core/number.h"

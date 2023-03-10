@@ -3,6 +3,7 @@
 //
 
 #include "pgsql_pool.h"
+#include "../tcp.h"
 #include "../../core/memory.h"
 #include "../../core/md5.h"
 #include "../../core/buf.h"
