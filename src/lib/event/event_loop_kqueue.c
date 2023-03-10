@@ -127,7 +127,6 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             }
             // 是否可读
             // 是否可写
-            ev->now = loop->now;
             ev->status |= 1 << ((sky_u32_t) (event->filter == EVFILT_WRITE) + 1);
             if ((ev->status & 0x80000000) != 0) {
                 ev->status = (index << 16) | (ev->status & 0x0000FFFF); // ev->index = index;
@@ -146,7 +145,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 continue;
             }
             if (ev->run(ev)) {
-                sky_timer_wheel_expired(ctx, &ev->timer, (sky_u64_t) (ev->now + ev->timeout));
+                sky_timer_wheel_expired(ctx, &ev->timer, (sky_u64_t) (loop->now + ev->timeout));
             } else {
                 close(ev->fd);
                 ev->fd = -1;

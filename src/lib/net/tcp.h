@@ -44,6 +44,8 @@ struct sky_tcp_connect_s {
     sky_tcp_ctx_t *ctx;
 };
 
+#define sky_tcp_connect_get_event(_conn) &(_conn)->ev
+
 void sky_tcp_ctx_init(sky_tcp_ctx_t *ctx);
 
 void sky_tcp_connect_close(sky_tcp_connect_t *conn);
