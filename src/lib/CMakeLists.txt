@@ -36,6 +36,7 @@ set(SOURCES
         safe/mpsc_queue.c
         safe/mpmc_queue.c
         safe/mpsc_ring_buf.c
+        fs/file.c
         event/event_loop_common.c
         net/un_inet.c
         net/inet.c
@@ -192,13 +193,17 @@ install(FILES
         core/timer_wheel.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/core")
 install(FILES
-        core/process.c
         safe/atomic.h
         safe/mpmc_queue.h
         safe/mpsc_queue.h
         safe/spsc_queue.h
         safe/mpsc_ring_buf.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/safe")
+
+install(FILES
+        fs/file.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/fs")
+
 install(FILES
         event/event_loop.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/event")
