@@ -20,14 +20,14 @@
 
 #endif
 
-static void tcp_connect_close(sky_tcp_connect_t *conn);
+static void tcp_connect_close(sky_tcp_t *conn);
 
-static sky_isize_t tcp_connect_read(sky_tcp_connect_t *conn, sky_uchar_t *data, sky_usize_t size);
+static sky_isize_t tcp_connect_read(sky_tcp_t *conn, sky_uchar_t *data, sky_usize_t size);
 
-static sky_isize_t tcp_connect_write(sky_tcp_connect_t *conn, const sky_uchar_t *data, sky_usize_t size);
+static sky_isize_t tcp_connect_write(sky_tcp_t *conn, const sky_uchar_t *data, sky_usize_t size);
 
 static sky_isize_t tcp_connect_sendfile(
-        sky_tcp_connect_t *conn,
+        sky_tcp_t *conn,
         sky_fs_t *fs,
         sky_i64_t *offset,
         sky_usize_t size,
@@ -44,12 +44,12 @@ sky_tcp_ctx_init(sky_tcp_ctx_t *ctx) {
 }
 
 void
-sky_tcp_connect_close(sky_tcp_connect_t *conn) {
+sky_tcp_close(sky_tcp_t *conn) {
     conn->ctx->close(conn);
 }
 
 sky_isize_t
-sky_tcp_connect_read(sky_tcp_connect_t *conn, sky_uchar_t *data, sky_usize_t size) {
+sky_tcp_read(sky_tcp_t *conn, sky_uchar_t *data, sky_usize_t size) {
     if (sky_unlikely(!size)) {
         return 0;
     }
@@ -57,7 +57,7 @@ sky_tcp_connect_read(sky_tcp_connect_t *conn, sky_uchar_t *data, sky_usize_t siz
 }
 
 sky_isize_t
-sky_tcp_connect_write(sky_tcp_connect_t *conn, const sky_uchar_t *data, sky_usize_t size) {
+sky_tcp_write(sky_tcp_t *conn, const sky_uchar_t *data, sky_usize_t size) {
     if (sky_unlikely(!size)) {
         return 0;
     }
@@ -65,8 +65,8 @@ sky_tcp_connect_write(sky_tcp_connect_t *conn, const sky_uchar_t *data, sky_usiz
 }
 
 sky_isize_t
-sky_tcp_connect_sendfile(
-        sky_tcp_connect_t *conn,
+sky_tcp_sendfile(
+        sky_tcp_t *conn,
         sky_fs_t *fs,
         sky_i64_t *offset,
         sky_usize_t size,
@@ -109,7 +109,7 @@ sky_tcp_option_fast_open(sky_socket_t fd, sky_i32_t n) {
 }
 
 static void
-tcp_connect_close(sky_tcp_connect_t *conn) {
+tcp_connect_close(sky_tcp_t *conn) {
     const sky_socket_t fd = sky_event_get_fd(&conn->ev);
     if (sky_likely(fd >= 0)) {
         close(fd);
@@ -118,7 +118,7 @@ tcp_connect_close(sky_tcp_connect_t *conn) {
 }
 
 static sky_isize_t
-tcp_connect_read(sky_tcp_connect_t *conn, sky_uchar_t *data, sky_usize_t size) {
+tcp_connect_read(sky_tcp_t *conn, sky_uchar_t *data, sky_usize_t size) {
     if (sky_unlikely(sky_event_none_read(&conn->ev))) {
         return 0;
     }
@@ -138,7 +138,7 @@ tcp_connect_read(sky_tcp_connect_t *conn, sky_uchar_t *data, sky_usize_t size) {
 }
 
 static sky_inline sky_isize_t
-tcp_connect_write(sky_tcp_connect_t *conn, const sky_uchar_t *data, sky_usize_t size) {
+tcp_connect_write(sky_tcp_t *conn, const sky_uchar_t *data, sky_usize_t size) {
     if (sky_unlikely(sky_event_none_write(&conn->ev))) {
         return 0;
     }
@@ -159,7 +159,7 @@ tcp_connect_write(sky_tcp_connect_t *conn, const sky_uchar_t *data, sky_usize_t 
 
 static sky_isize_t
 tcp_connect_sendfile(
-        sky_tcp_connect_t *conn,
+        sky_tcp_t *conn,
         sky_fs_t *fs,
         sky_i64_t *offset,
         sky_usize_t size,

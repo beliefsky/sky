@@ -40,7 +40,7 @@ struct sky_mqtt_session_s {
 };
 
 struct sky_mqtt_connect_s {
-    sky_tcp_connect_t tcp;
+    sky_tcp_t tcp;
     sky_coro_t *coro;
     sky_mqtt_server_t *server;
     sky_mqtt_packet_t *current_packet;

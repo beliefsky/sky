@@ -90,7 +90,7 @@ module_run(sky_http_request_t *r, websocket_data_t *data) {
 
     session = sky_pcalloc(r->pool, sizeof(sky_websocket_session_t));
     session->request = r;
-    session->event = sky_tcp_connect_get_event(&r->conn->tcp);
+    session->event = sky_tcp_get_event(&r->conn->tcp);
     session->server = data;
 
     if (sky_unlikely(!data->handler->open(session))) {
@@ -125,14 +125,14 @@ module_run_next(sky_websocket_session_t *session) {
 
     conn = session->request->conn;
 
-    sky_event_reset_timeout_self(sky_tcp_connect_get_event(&conn->tcp),3600);
+    sky_event_reset_timeout_self(sky_tcp_get_event(&conn->tcp),3600);
 
     session->read_work = read_work = sky_coro_create(session->switcher, (sky_coro_func_t) read_message, session);
     (void) sky_defer_add(conn->coro, (sky_defer_func_t) sky_coro_destroy, read_work);
     session->write_work = write_work = sky_coro_create(session->switcher, (sky_coro_func_t) write_message, session);
     (void) sky_defer_add(conn->coro, (sky_defer_func_t) sky_coro_destroy, write_work);
     for (;;) {
-        if (sky_event_is_read(sky_tcp_connect_get_event(&conn->tcp))) {
+        if (sky_event_is_read(sky_tcp_get_event(&conn->tcp))) {
             result = sky_coro_resume(read_work);
             if (sky_unlikely(result != SKY_CORO_MAY_RESUME)) {
                 sky_coro_destroy(read_work);
@@ -140,7 +140,7 @@ module_run_next(sky_websocket_session_t *session) {
                 return;
             }
         }
-        if (sky_event_is_write(sky_tcp_connect_get_event(&conn->tcp))) {
+        if (sky_event_is_write(sky_tcp_get_event(&conn->tcp))) {
             result = sky_coro_resume(write_work);
             if (sky_unlikely(result != SKY_CORO_MAY_RESUME)) {
                 sky_coro_destroy(write_work);

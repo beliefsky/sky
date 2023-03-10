@@ -10,7 +10,7 @@ sky_http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size) 
     sky_isize_t n;
 
     for (;;) {
-        n = sky_tcp_connect_read(&conn->tcp, data, size);
+        n = sky_tcp_read(&conn->tcp, data, size);
         if (sky_unlikely(n < 0)) {
             sky_coro_yield(conn->coro, SKY_CORO_ABORT);
             sky_coro_exit();
@@ -28,7 +28,7 @@ sky_http_write(sky_http_connection_t *conn, const sky_uchar_t *data, sky_usize_t
     sky_isize_t n;
 
     for (;;) {
-        n = sky_tcp_connect_write(&conn->tcp, data, size);
+        n = sky_tcp_write(&conn->tcp, data, size);
         if (sky_unlikely(n < 0)) {
             sky_coro_yield(conn->coro, SKY_CORO_ABORT);
             sky_coro_exit();
@@ -65,7 +65,7 @@ sky_http_send_file(
     sky_isize_t n;
 
     do {
-        n = sky_tcp_connect_sendfile(&conn->tcp, &fs, &offset, size, header, header_len);
+        n = sky_tcp_sendfile(&conn->tcp, &fs, &offset, size, header, header_len);
         if (sky_unlikely(n < 0)) {
             sky_coro_yield(conn->coro, SKY_CORO_ABORT);
             sky_coro_exit();
@@ -87,7 +87,7 @@ sky_http_send_file(
 
         do {
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-            n = sky_tcp_connect_sendfile(&conn->tcp, &fs, &offset, size, null, 0);
+            n = sky_tcp_sendfile(&conn->tcp, &fs, &offset, size, null, 0);
             if (sky_unlikely(n < 0)) {
                 sky_coro_yield(conn->coro, SKY_CORO_ABORT);
                 sky_coro_exit();

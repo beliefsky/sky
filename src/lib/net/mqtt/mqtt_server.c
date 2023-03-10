@@ -13,11 +13,11 @@
 
 static sky_bool_t mqtt_default_options(sky_i32_t fd, void *data);
 
-static sky_tcp_connect_t *mqtt_connection_accept_cb(void *data);
+static sky_tcp_t *mqtt_connection_accept_cb(void *data);
 
-static sky_bool_t mqtt_run(sky_tcp_connect_t *data);
+static sky_bool_t mqtt_run(sky_tcp_t *data);
 
-static void mqtt_close(sky_tcp_connect_t *data);
+static void mqtt_close(sky_tcp_t *data);
 
 static sky_u64_t session_hash(const void *item, void *secret);
 
@@ -62,7 +62,7 @@ mqtt_default_options(sky_i32_t fd, void *data) {
     return true;
 }
 
-static sky_tcp_connect_t *
+static sky_tcp_t *
 mqtt_connection_accept_cb(void *data) {
     sky_mqtt_server_t *server = data;
 
@@ -81,15 +81,15 @@ mqtt_connection_accept_cb(void *data) {
 }
 
 static sky_bool_t
-mqtt_run(sky_tcp_connect_t *data) {
+mqtt_run(sky_tcp_t *data) {
     sky_mqtt_connect_t *conn = sky_type_convert(data, sky_mqtt_connect_t, tcp);
 
     return sky_coro_resume(conn->coro) == SKY_CORO_MAY_RESUME && sky_mqtt_write_packet(conn);
 }
 
 static void
-mqtt_close(sky_tcp_connect_t *data) {
-    sky_tcp_connect_close(data);
+mqtt_close(sky_tcp_t *data) {
+    sky_tcp_close(data);
 
     sky_mqtt_connect_t *conn = sky_type_convert(data, sky_mqtt_connect_t, tcp);
     sky_mqtt_clean_packet(conn);

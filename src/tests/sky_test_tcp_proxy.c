@@ -12,7 +12,7 @@
 #include <core/process.h>
 
 typedef struct {
-    sky_tcp_connect_t tcp;
+    sky_tcp_t tcp;
     sky_coro_t *coro;
 } tcp_proxy_conn_t;
 
@@ -20,11 +20,11 @@ static void server_start(sky_event_loop_t *loop, sky_coro_switcher_t *switcher);
 
 static sky_bool_t tcp_option(sky_socket_t fd, void *data);
 
-static sky_tcp_connect_t *tcp_accept_cb(void *data);
+static sky_tcp_t *tcp_accept_cb(void *data);
 
-static sky_bool_t tcp_proxy_run(sky_tcp_connect_t *data);
+static sky_bool_t tcp_proxy_run(sky_tcp_t *data);
 
-static void tcp_proxy_close(sky_tcp_connect_t *data);
+static void tcp_proxy_close(sky_tcp_t *data);
 
 static sky_isize_t tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn);
 
@@ -132,7 +132,7 @@ tcp_option(sky_socket_t fd, void *data) {
     return true;
 }
 
-static sky_tcp_connect_t *
+static sky_tcp_t *
 tcp_accept_cb(void *data) {
     sky_coro_switcher_t *switcher = data;
 
@@ -146,15 +146,15 @@ tcp_accept_cb(void *data) {
 }
 
 static sky_bool_t
-tcp_proxy_run(sky_tcp_connect_t *data) {
+tcp_proxy_run(sky_tcp_t *data) {
     tcp_proxy_conn_t *conn = sky_type_convert(data, tcp_proxy_conn_t, tcp);
 
     return sky_coro_resume(conn->coro) == SKY_CORO_MAY_RESUME;
 }
 
 static void
-tcp_proxy_close(sky_tcp_connect_t *data) {
-    sky_tcp_connect_close(data);
+tcp_proxy_close(sky_tcp_t *data) {
+    sky_tcp_close(data);
     tcp_proxy_conn_t *conn = sky_type_convert(data, tcp_proxy_conn_t, tcp);
 
     sky_coro_destroy(conn->coro);
@@ -167,7 +167,7 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
             .keep_alive = 300
     };
 
-    sky_event_t *event = sky_tcp_connect_get_event(&conn->tcp);
+    sky_event_t *event = sky_tcp_get_event(&conn->tcp);
 
     sky_tcp_client_t *client = sky_tcp_client_create(event, coro, &conf);
     sky_defer_add(coro, (sky_defer_func_t) sky_tcp_client_destroy, client);
@@ -195,7 +195,7 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
         read_wait = true;
         write_wait = true;
 
-        sky_isize_t n = sky_tcp_connect_read(&conn->tcp, read_buf, buf_size);
+        sky_isize_t n = sky_tcp_read(&conn->tcp, read_buf, buf_size);
         if (sky_likely(n > 0)) {
             read_wait = false;
             if (sky_unlikely(!sky_tcp_client_write_all(client, read_buf, (sky_usize_t) n))) {
@@ -235,7 +235,7 @@ tcp_proxy_write_all(tcp_proxy_conn_t *conn, const sky_uchar_t *data, sky_usize_t
     sky_isize_t n;
 
     for (;;) {
-        n = sky_tcp_connect_write(&conn->tcp, data, size);
+        n = sky_tcp_write(&conn->tcp, data, size);
         if (sky_unlikely(n < 0)) {
             sky_coro_yield(conn->coro, SKY_CORO_ABORT);
             sky_coro_exit();

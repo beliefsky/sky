@@ -58,7 +58,7 @@ struct sky_http_module_s {
 };
 
 struct sky_http_connection_s {
-    sky_tcp_connect_t tcp;
+    sky_tcp_t tcp;
     sky_coro_t *coro;
     sky_http_server_t *server;
 };
