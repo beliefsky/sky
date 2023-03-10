@@ -44,8 +44,6 @@ struct sky_tcp_connect_s {
     sky_tcp_ctx_t *ctx;
 };
 
-#define sky_tcp_connect_get_event(_conn) &(_conn)->ev
-
 void sky_tcp_ctx_init(sky_tcp_ctx_t *ctx);
 
 void sky_tcp_connect_close(sky_tcp_connect_t *conn);
@@ -68,6 +66,17 @@ sky_bool_t sky_tcp_option_no_delay(sky_socket_t fd);
 sky_bool_t sky_tcp_option_defer_accept(sky_socket_t fd);
 
 sky_bool_t sky_tcp_option_fast_open(sky_socket_t fd, sky_i32_t n);
+
+
+static sky_inline sky_event_t *
+sky_tcp_connect_get_event(sky_tcp_connect_t *conn) {
+    return &conn->ev;
+}
+
+static sky_inline sky_bool_t
+sky_tcp_connect_is_close(const sky_tcp_connect_t *conn) {
+    return sky_event_get_fd(&conn->ev) < 0;
+}
 
 #if defined(__cplusplus)
 } /* extern "C" { */

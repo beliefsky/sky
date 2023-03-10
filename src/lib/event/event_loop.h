@@ -40,22 +40,9 @@ struct sky_event_loop_s {
     sky_bool_t update: 1;
 };
 
-#define sky_event_loop_now(_loop) (_loop)->now
-
-#define sky_event_is_reg(_ev)    (((_ev)->status & 0x00000001) != 0)
-#define sky_event_is_read(_ev)   (((_ev)->status & 0x00000002) != 0)
-#define sky_event_is_write(_ev)  (((_ev)->status & 0x00000004) != 0)
-
-#define sky_event_none_reg(_ev)    (((_ev)->status & 0x00000001) == 0)
-#define sky_event_none_read(_ev)   (((_ev)->status & 0x00000002) == 0)
-#define sky_event_none_write(_ev)  (((_ev)->status & 0x00000004) == 0)
-
-#define sky_event_clean_read(_ev)   (_ev)->status &= 0xFFFFFFFD
-#define sky_event_clean_write(_ev)  (_ev)->status &= 0xFFFFFFFB
-
-#define sky_event_get_fd(_ev) (_ev)->fd
-#define sky_event_get_loop(_ev) (_ev)->loop
-#define sky_event_get_now(_ev) sky_event_loop_now(sky_event_get_loop(_ev))
+#define sky_event_none_reg(_ev) !sky_event_is_reg(_ev)
+#define sky_event_none_read(_ev) !sky_event_is_read(_ev)
+#define sky_event_none_write(_ev) !sky_event_is_write(_ev)
 
 #define sky_event_init(_loop, _ev, _fd, _run, _close) \
     do {                                              \
@@ -152,6 +139,52 @@ void sky_event_reset_timeout_self(sky_event_t *ev, sky_i32_t timeout);
  * @param timeout 超时
  */
 void sky_event_reset_timeout(sky_event_t *ev, sky_i32_t timeout);
+
+static sky_inline sky_i64_t
+sky_event_loop_now(const sky_event_loop_t *loop) {
+    return loop->now;
+}
+
+static sky_inline sky_bool_t
+sky_event_is_reg(const sky_event_t *ev) {
+    return (ev->status & 0x00000001) != 0;
+}
+
+static sky_inline sky_bool_t
+sky_event_is_read(const sky_event_t *ev) {
+    return (ev->status & 0x00000002) != 0;
+}
+
+static sky_inline sky_bool_t
+sky_event_is_write(const sky_event_t *ev) {
+    return (ev->status & 0x00000004) != 0;
+}
+
+static sky_inline void
+sky_event_clean_read(sky_event_t *ev) {
+    ev->status &= 0xFFFFFFFD;
+}
+
+static sky_inline sky_bool_t
+sky_event_clean_write(sky_event_t *ev) {
+    ev->status &= 0xFFFFFFFB;
+}
+
+static sky_inline sky_i32_t
+sky_event_get_fd(const sky_event_t *ev) {
+    return ev->fd;
+}
+
+static sky_inline sky_event_loop_t *
+sky_event_get_loop(sky_event_t *ev) {
+    return ev->loop;
+}
+
+static sky_inline sky_bool_t
+sky_event_get_now(const sky_event_t *ev) {
+    return sky_event_loop_now(ev->loop);
+}
+
 
 static sky_inline void
 sky_event_timeout_expired(sky_event_t *event) {
