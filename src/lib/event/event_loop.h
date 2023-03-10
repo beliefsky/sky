@@ -147,17 +147,17 @@ sky_event_loop_now(const sky_event_loop_t *loop) {
 
 static sky_inline sky_bool_t
 sky_event_is_reg(const sky_event_t *ev) {
-    return (ev->status & 0x00000001) != 0;
+    return !!(ev->status & 0x00000001);
 }
 
 static sky_inline sky_bool_t
 sky_event_is_read(const sky_event_t *ev) {
-    return (ev->status & 0x00000002) != 0;
+    return !!(ev->status & 0x00000002);
 }
 
 static sky_inline sky_bool_t
 sky_event_is_write(const sky_event_t *ev) {
-    return (ev->status & 0x00000004) != 0;
+    return !!(ev->status & 0x00000004);
 }
 
 static sky_inline void
