@@ -31,7 +31,7 @@ sky_un_inet_run(
 ) {
     sky_coro_t *coro = sky_coro_new(switcher);
     sky_un_inet_t *un_inet = sky_coro_malloc(coro, sizeof(sky_un_inet_t));
-    sky_event_init(ev_loop, &un_inet->ev, -1, un_inet_run, un_inet_close);
+    sky_event_init( &un_inet->ev, ev_loop, -1, un_inet_run, un_inet_close);
     un_inet->coro = coro;
     un_inet->process = func;
     un_inet->data = data;
@@ -58,7 +58,7 @@ sky_un_inet_run_delay(
 ) {
     sky_coro_t *coro = sky_coro_new(switcher);
     sky_un_inet_t *un_inet = sky_coro_malloc(coro, sizeof(sky_un_inet_t));
-    sky_event_init(ev_loop, &un_inet->ev, -1, un_inet_run, un_inet_close);
+    sky_event_init( &un_inet->ev, ev_loop, -1, un_inet_run, un_inet_close);
     un_inet->ev.timer.cb = (sky_timer_wheel_pt) un_inet_delay_run;
     un_inet->coro = coro;
     un_inet->process = func;
@@ -84,7 +84,7 @@ sky_un_inet_run_timer(
 ) {
     sky_coro_t *coro = sky_coro_new(switcher);
     sky_un_inet_t *un_inet = sky_coro_malloc(coro, sizeof(sky_un_inet_t));
-    sky_event_init(ev_loop, &un_inet->ev, -1, un_inet_run, un_inet_close);
+    sky_event_init( &un_inet->ev, ev_loop, -1, un_inet_run, un_inet_close);
     un_inet->ev.timer.cb = (sky_timer_wheel_pt) un_inet_delay_run;
     un_inet->coro = coro;
     un_inet->process = func;

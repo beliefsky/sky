@@ -63,7 +63,7 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_coro_switcher_t *switcher, c
 
     sky_coro_set(coro, conf->run, &listener->reader);
 
-    sky_event_init(loop, &listener->ev, -1, (sky_event_run_pt) tcp_run_connection, (sky_event_close_pt) tcp_close);
+    sky_event_init(&listener->ev, loop, -1, (sky_event_run_pt) tcp_run_connection, (sky_event_close_pt) tcp_close);
     sky_timer_entry_init(&listener->reconnect_timer, tcp_reconnect_timer_cb);
     sky_queue_init(&listener->tasks);
 
