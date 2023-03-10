@@ -3,17 +3,16 @@
 //
 
 #include "http_server.h"
-#include "../tcp.h"
 #include "../tcp_server.h"
 #include "http_request.h"
 #include "http_io_wrappers.h"
 
 
-static sky_event_t *http_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server_t *server);
+static sky_tcp_connect_t *http_connection_accept_cb(void *data);
 
-static sky_bool_t http_connection_run(sky_http_connection_t *conn);
+static sky_bool_t http_connection_run(sky_tcp_connect_t *data);
 
-static void http_connection_close(sky_http_connection_t *conn);
+static void http_connection_close(sky_tcp_connect_t *data);
 
 static sky_bool_t http_default_options(sky_i32_t fd, void *data);
 
@@ -103,11 +102,9 @@ sky_http_server_bind(sky_http_server_t *server, sky_inet_address_t *address, sky
     sky_tcp_server_conf_t conf = {
             .address = address,
             .address_len = address_len,
-#ifdef SKY_HAVE_TLS
-            .accept = (sky_tcp_accept_cb_pt) (server->tls_ctx ? https_connection_accept_cb : http_connection_accept_cb),
-#else
-            .accept = (sky_tcp_accept_cb_pt) http_connection_accept_cb,
-#endif
+            .create_handle = http_connection_accept_cb,
+            .run_handle = http_connection_run,
+            .error_handle = http_connection_close,
             .options = http_default_options,
             .data = server,
             .timeout = 60
@@ -124,27 +121,31 @@ sky_http_status_find(sky_http_server_t *server, sky_u32_t status) {
     return server->status_map + (status - 100);
 }
 
-static sky_event_t *
-http_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server_t *server) {
+static sky_tcp_connect_t *
+http_connection_accept_cb(void *data) {
+    sky_http_server_t *server = data;
 
     sky_coro_t *coro = sky_coro_new(server->switcher);
     sky_http_connection_t *conn = sky_coro_malloc(coro, sizeof(sky_http_connection_t));
     conn->coro = coro;
     conn->server = server;
     sky_coro_set(coro, (sky_coro_func_t) sky_http_request_process, conn);
-    sky_event_init(loop, &conn->ev, fd, http_connection_run, http_connection_close);
 
-    return &conn->ev;
+    return &conn->tcp;
 }
 
 
 static sky_bool_t
-http_connection_run(sky_http_connection_t *conn) {
+http_connection_run(sky_tcp_connect_t *data) {
+    sky_http_connection_t *conn = sky_type_convert(data, sky_http_connection_t, tcp);
+
     return sky_coro_resume(conn->coro) == SKY_CORO_MAY_RESUME;
 }
 
 static void
-http_connection_close(sky_http_connection_t *conn) {
+http_connection_close(sky_tcp_connect_t *data) {
+    sky_http_connection_t *conn = sky_type_convert(data, sky_http_connection_t, tcp);
+
     sky_coro_destroy(conn->coro);
 }
 

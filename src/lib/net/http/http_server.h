@@ -9,7 +9,7 @@
 #include "../../core/coro.h"
 #include "../../core/buf.h"
 #include "../../core/trie.h"
-#include "../inet.h"
+#include "../tcp.h"
 #include "../tls/tls.h"
 
 #if defined(__cplusplus)
@@ -72,12 +72,9 @@ struct sky_http_module_s {
 };
 
 struct sky_http_connection_s {
-    sky_event_t ev;
+    sky_tcp_connect_t tcp;
     sky_coro_t *coro;
     sky_http_server_t *server;
-#ifdef SKY_HAVE_TLS
-    sky_tls_t tls;
-#endif
 };
 
 sky_http_server_t *sky_http_server_create(sky_event_loop_t *ev_loop, sky_coro_switcher_t *switcher, sky_http_conf_t *conf);
