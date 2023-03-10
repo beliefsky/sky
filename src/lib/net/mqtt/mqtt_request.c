@@ -41,7 +41,7 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
         return SKY_CORO_ABORT;
     }
     connect_msg.keep_alive <<= 1;
-    sky_event_reset_timeout_self(&conn->tcp.ev, sky_max(connect_msg.keep_alive, SKY_U16(30)));
+    sky_event_reset_timeout_self(sky_tcp_connect_get_event(&conn->tcp), sky_max(connect_msg.keep_alive, SKY_U16(30)));
 
     sky_mqtt_send_connect_ack(conn, false, 0x0);
 
@@ -248,7 +248,7 @@ session_get(sky_mqtt_connect_msg_t *msg, sky_mqtt_connect_t *conn) {
 
             sky_mqtt_topics_clean(&session->topics);
 
-            sky_event_unregister(&session->conn->tcp.ev);
+            sky_event_unregister(sky_tcp_connect_get_event(&session->conn->tcp));
         }
     } else {
         session = sky_malloc(sizeof(sky_mqtt_session_t) + msg->client_id.len);

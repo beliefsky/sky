@@ -94,7 +94,6 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
         for (event = events; n > 0; ++event, --n) {
             ev = event->data.ptr;
-            ev->now = loop->now;
             loop->current_ev = ev;
 
             // 需要处理被移除的请求
@@ -119,7 +118,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                           | ((sky_u32_t) ((event->events & EPOLLIN) != 0) << 1);
 
             if (ev->run(ev)) {
-                sky_timer_wheel_expired(ctx, &ev->timer, (sky_u64_t) (ev->now + ev->timeout));
+                sky_timer_wheel_expired(ctx, &ev->timer, (sky_u64_t) (loop->now + ev->timeout));
             } else {
                 close(ev->fd);
                 ev->fd = -1;

@@ -23,7 +23,6 @@ struct sky_event_s {
     sky_event_loop_t *loop; //该事件监听的主程
     sky_event_run_pt run; // 普通事件触发的回调函数
     sky_event_close_pt close; // 关闭事件回调函数
-    sky_time_t now; // 当前时间
     sky_i32_t fd; //事件句柄
     sky_i32_t timeout; // 节点超时时间
     /*
@@ -42,6 +41,8 @@ struct sky_event_loop_s {
     sky_bool_t update: 1;
 };
 
+#define sky_event_loop_now(_loop) (_loop)->now
+
 #define sky_event_is_reg(_ev)    (((_ev)->status & 0x00000001) != 0)
 #define sky_event_is_read(_ev)   (((_ev)->status & 0x00000002) != 0)
 #define sky_event_is_write(_ev)  (((_ev)->status & 0x00000004) != 0)
@@ -55,12 +56,12 @@ struct sky_event_loop_s {
 
 #define sky_event_get_fd(_ev) (_ev)->fd
 #define sky_event_get_loop(_ev) (_ev)->loop
+#define sky_event_get_now(_ev) sky_event_loop_now(sky_event_get_loop(_ev))
 
 #define sky_event_init(_loop, _ev, _fd, _run, _close) \
     do {                                              \
         sky_timer_entry_init(&(_ev)->timer, null);    \
         (_ev)->loop = (_loop);                        \
-        (_ev)->now = (_loop)->now;                    \
         (_ev)->run = (sky_event_run_pt)(_run);        \
         (_ev)->close = (sky_event_close_pt)(_close);  \
         (_ev)->fd = (_fd);                            \

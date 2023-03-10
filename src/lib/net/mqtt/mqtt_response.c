@@ -133,7 +133,7 @@ sky_mqtt_write_packet(sky_mqtt_connect_t *conn) {
             if (sky_unlikely(size == -1)) {
                 return false;
             } else if (size == 0) {
-                sky_event_timeout_expired(&conn->tcp.ev);
+                sky_event_timeout_expired(sky_tcp_connect_get_event(&conn->tcp));
                 return true;
             }
             conn->write_size += size;
@@ -151,7 +151,7 @@ sky_mqtt_write_packet(sky_mqtt_connect_t *conn) {
         }
     } while (!sky_queue_is_empty(&conn->packet));
 
-    sky_event_timeout_expired(&conn->tcp.ev);
+    sky_event_timeout_expired(sky_tcp_connect_get_event(&conn->tcp));
 
     return true;
 }

@@ -14,7 +14,7 @@ extern "C" {
 
 static sky_inline sky_pgsql_conn_t*
 sky_http_ex_pgsql_conn_get(sky_pgsql_pool_t *pg_pool, sky_http_request_t *req) {
-    return sky_pgsql_conn_get(pg_pool, req->pool, &req->conn->tcp.ev, req->conn->coro);
+    return sky_pgsql_conn_get(pg_pool, req->pool, sky_tcp_connect_get_event(&req->conn->tcp), req->conn->coro);
 }
 
 #if defined(__cplusplus)
