@@ -58,13 +58,9 @@ sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_address_t *ad
     if (sky_unlikely(!client->defer)) {
         return false;
     }
-
-    if (sky_event_none_callback(ev)) {
-        close(ev->fd);
-        ev->fd = -1;
-    } else {
-        sky_event_unregister(ev);
-    }
+    close(ev->fd);
+    sky_event_rebind(ev, -1);
+    sky_event_unregister(ev);
 #ifdef SKY_HAVE_ACCEPT4
     sky_i32_t fd = socket(address->sa_family, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
     if (sky_unlikely(fd < 0)) {
@@ -116,6 +112,8 @@ sky_tcp_client_close(sky_tcp_client_t *client) {
         return;
     }
     sky_event_reset(&client->ev, tcp_run, tcp_close_cb);
+    close(client->ev.fd);
+    sky_event_rebind(&client->ev, -1);
     sky_event_unregister(&client->ev);
 }
 
@@ -371,6 +369,8 @@ tcp_run(sky_tcp_client_t *client) {
 
     const sky_bool_t result = event->run(event);
     if (!result) {
+        close(event->fd);
+        sky_event_rebind(event, -1);
         sky_event_unregister(event);
 
         if (client->defer) { // 不允许再调用
@@ -383,16 +383,29 @@ tcp_run(sky_tcp_client_t *client) {
 
 static void
 tcp_close(sky_tcp_client_t *client) {
+    if (sky_event_get_fd(&client->ev) > 0) {
+        close(client->ev.fd);
+        sky_event_rebind(&client->ev, -1);
+    }
     tcp_run(client);
 }
 
 static sky_inline void
 tcp_close_cb(sky_tcp_client_t *client) {
+    if (sky_event_get_fd(&client->ev) > 0) {
+        close(client->ev.fd);
+        sky_event_rebind(&client->ev, -1);
+    }
+
     (void) client;
 }
 
 static sky_inline void
 tcp_close_free(sky_tcp_client_t *client) {
+    if (sky_event_get_fd(&client->ev) > 0) {
+        close(client->ev.fd);
+        sky_event_rebind(&client->ev, -1);
+    }
     if (client->destroy) {
         client->destroy(client->data);
     }
@@ -403,9 +416,9 @@ static sky_inline void
 tcp_client_defer(sky_tcp_client_t *client) {
     client->defer = null;
 
+    close(client->ev.fd);
+    sky_event_rebind(&client->ev, -1);
     if (sky_unlikely(sky_event_none_callback(&client->ev))) {
-        close(client->ev.fd);
-        sky_event_rebind(&client->ev, -1);
         tcp_close_free(client);
     } else {
         sky_event_reset(&client->ev, tcp_run, tcp_close_free);

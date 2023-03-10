@@ -248,6 +248,8 @@ session_get(sky_mqtt_connect_msg_t *msg, sky_mqtt_connect_t *conn) {
 
             sky_mqtt_topics_clean(&session->topics);
 
+            sky_tcp_connect_close(&session->conn->tcp);
+
             sky_event_unregister(sky_tcp_connect_get_event(&session->conn->tcp));
         }
     } else {

@@ -395,6 +395,8 @@ sky_tcp_listener_destroy(sky_tcp_listener_t *listener) {
     sky_timer_wheel_unlink(&listener->reconnect_timer);
     if (sky_event_has_callback(&listener->ev)) {
         listener->free = true;
+        close(listener->ev.fd);
+        sky_event_rebind(&listener->ev, -1);
         sky_event_unregister(&listener->ev);
     } else {
         sky_coro_destroy(listener->coro);
@@ -443,6 +445,9 @@ tcp_run(sky_tcp_listener_t *listener) {
                             break;
                         }
                     } else {
+                        close(event->fd);
+                        sky_event_rebind(event, -1);
+
                         if (listener->current) {
                             sky_tcp_listener_unbind(writer);
                             sky_event_unregister(event);
@@ -469,6 +474,9 @@ tcp_close(sky_tcp_listener_t *listener) {
     sky_tcp_listener_writer_t *writer;
     sky_event_t *event;
 
+    close(listener->ev.fd);
+    sky_event_rebind(&listener->ev, -1);
+
     listener->status = CLOSE;
     for (;;) {
         writer = listener->current;
@@ -483,6 +491,8 @@ tcp_close(sky_tcp_listener_t *listener) {
                     sky_tcp_listener_unbind(writer);
                 }
                 if (!success) {
+                    close(event->fd);
+                    sky_event_rebind(event, -1);
                     sky_event_unregister(event);
                 }
             }
@@ -612,5 +622,7 @@ tcp_connection_defer(sky_tcp_listener_writer_t *writer) {
     if (sky_unlikely(client->free)) {
         return;
     }
+    close(client->ev.fd);
+    sky_event_rebind(&client->ev, -1);
     sky_event_unregister(&client->ev);
 }

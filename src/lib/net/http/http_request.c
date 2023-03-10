@@ -5,6 +5,7 @@
 #include "http_request.h"
 #include "http_parse.h"
 #include "http_response.h"
+#include "http_io_wrappers.h"
 #include "../../core/log.h"
 #include "../../core/memory.h"
 
@@ -82,7 +83,7 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
     r->tmp = buf;
 
     for (;;) {
-        n = server->http_read(conn, buf->last, (sky_usize_t) (buf->end - buf->last));
+        n = sky_http_read(conn, buf->last, (sky_usize_t) (buf->end - buf->last));
         buf->last += n;
         i = sky_http_request_line_parse(r, buf);
         if (i == 1) {
@@ -115,7 +116,7 @@ http_header_read(sky_http_connection_t *conn, sky_pool_t *pool) {
                 sky_buf_rebuild(buf, server->header_buf_size);
             }
         }
-        n = server->http_read(conn, buf->last, (sky_usize_t) (buf->end - buf->last));
+        n = sky_http_read(conn, buf->last, (sky_usize_t) (buf->end - buf->last));
         buf->last += n;
     }
 
@@ -136,7 +137,6 @@ sky_str_t *
 sky_http_read_body_str(sky_http_request_t *r) {
     sky_usize_t size, read_size, n;
     sky_str_t *result;
-    sky_http_server_t *server;
     sky_buf_t *tmp;
 
     if (sky_unlikely(r->read_request_body)) {
@@ -164,7 +164,6 @@ sky_http_read_body_str(sky_http_request_t *r) {
 
     size = total - read_size; // 未读的数据字节大小
 
-    server = r->conn->server;
     n = (sky_usize_t) (tmp->end - tmp->last);
     if (n <= size) {
         // 重新加大缓存大小
@@ -172,7 +171,7 @@ sky_http_read_body_str(sky_http_request_t *r) {
     }
 
     do {
-        n = server->http_read(r->conn, tmp->last, size);
+        n = sky_http_read(r->conn, tmp->last, size);
         tmp->last += n;
         size -= n;
     } while (size > 0);
@@ -233,7 +232,7 @@ sky_http_multipart_init(sky_http_request_t *r, sky_http_multipart_ctx_t *ctx) {
     }
 
     while (sky_unlikely((sky_usize_t) (buf->last - buf->pos) < min_size)) {
-        buf->last += server->http_read(r->conn, buf->last, (sky_usize_t) (buf->end - buf->last));
+        buf->last += sky_http_read(r->conn, buf->last, (sky_usize_t) (buf->end - buf->last));
     }
 
     if (sky_str2_cmp(buf->pos, '-', '-')
@@ -256,7 +255,7 @@ sky_http_multipart_init(sky_http_request_t *r, sky_http_multipart_ctx_t *ctx) {
 
         do {
             size = sky_min(size, (sky_usize_t) ctx->need_read);
-            ctx->need_read -= server->http_read(r->conn, buf->pos, size);
+            ctx->need_read -= sky_http_read(r->conn, buf->pos, size);
         } while (ctx->need_read > 0);
     }
     sky_buf_rebuild(buf, 0);
@@ -297,7 +296,7 @@ sky_http_read_multipart(sky_http_multipart_ctx_t *ctx, sky_http_multipart_t *mul
             default:
                 return false;
         }
-        read_n = server->http_read(ctx->req->conn, buf->last, (sky_usize_t) (buf->end - buf->last));
+        read_n = sky_http_read(ctx->req->conn, buf->last, (sky_usize_t) (buf->end - buf->last));
         buf->last += read_n;
     } while (ctx->need_read >= read_n);
 
@@ -312,7 +311,6 @@ sky_http_multipart_body_str(sky_http_multipart_t *multipart) {
     }
 
     const sky_str_t *boundary = &ctx->boundary;
-    const sky_http_server_t *server = ctx->req->conn->server;
     sky_buf_t *buf = ctx->req->tmp;
 
     sky_str_t *result = sky_palloc(ctx->req->pool, sizeof(sky_str_t));
@@ -348,7 +346,7 @@ sky_http_multipart_body_str(sky_http_multipart_t *multipart) {
                         sky_usize_t size = (sky_usize_t) (buf->end - buf->pos);
                         do {
                             size = sky_min(size, (sky_usize_t) ctx->need_read);
-                            ctx->need_read -= server->http_read(ctx->req->conn, buf->pos, size);
+                            ctx->need_read -= sky_http_read(ctx->req->conn, buf->pos, size);
                         } while (ctx->need_read > 0);
                     }
                     sky_buf_rebuild(buf, 0);
@@ -374,7 +372,7 @@ sky_http_multipart_body_str(sky_http_multipart_t *multipart) {
                     }
 
                     do {
-                        size = server->http_read(ctx->req->conn, buf->last, (sky_usize_t) (buf->end - buf->last));
+                        size = sky_http_read(ctx->req->conn, buf->last, (sky_usize_t) (buf->end - buf->last));
                         buf->last += size;
                     } while ((size = (sky_usize_t) (buf->last - buf->pos)) < 4);
 
@@ -398,7 +396,7 @@ sky_http_multipart_body_str(sky_http_multipart_t *multipart) {
                         size = (sky_usize_t) (buf->end - buf->pos);
                         do {
                             size = sky_min(size, (sky_usize_t) ctx->need_read);
-                            ctx->need_read -= server->http_read(ctx->req->conn, buf->pos, size);
+                            ctx->need_read -= sky_http_read(ctx->req->conn, buf->pos, size);
                         } while (ctx->need_read > 0);
                     }
                     sky_buf_rebuild(buf, 0);
@@ -413,7 +411,7 @@ sky_http_multipart_body_str(sky_http_multipart_t *multipart) {
                 return result;
             }
         }
-        buf->last += server->http_read(ctx->req->conn, buf->last, (sky_usize_t) (buf->end - buf->last));
+        buf->last += sky_http_read(ctx->req->conn, buf->last, (sky_usize_t) (buf->end - buf->last));
 
         read_n = (sky_usize_t) (buf->last - buf->pos);
     } while (ctx->need_read >= read_n);
@@ -430,7 +428,6 @@ sky_http_multipart_body_none(sky_http_multipart_t *multipart) {
     }
 
     const sky_str_t *boundary = &ctx->boundary;
-    const sky_http_server_t *server = ctx->req->conn->server;
     sky_buf_t *buf = ctx->req->tmp;
 
     const sky_u64_t min_size = sky_min(ctx->need_read, SKY_U64(4095));
@@ -460,7 +457,7 @@ sky_http_multipart_body_none(sky_http_multipart_t *multipart) {
                         sky_usize_t size = (sky_usize_t) (buf->end - buf->pos);
                         do {
                             size = sky_min(size, (sky_usize_t) ctx->need_read);
-                            ctx->need_read -= server->http_read(ctx->req->conn, buf->pos, size);
+                            ctx->need_read -= sky_http_read(ctx->req->conn, buf->pos, size);
                         } while (ctx->need_read > 0);
                     }
                     sky_buf_rebuild(buf, 0);
@@ -475,7 +472,7 @@ sky_http_multipart_body_none(sky_http_multipart_t *multipart) {
                     buf->last = buf->pos + size;
 
                     do {
-                        size = server->http_read(ctx->req->conn, buf->last, (sky_usize_t) (buf->end - buf->last));
+                        size = sky_http_read(ctx->req->conn, buf->last, (sky_usize_t) (buf->end - buf->last));
                         buf->last += size;
                     } while ((size = (sky_usize_t) (buf->last - buf->pos)) < 4);
 
@@ -498,7 +495,7 @@ sky_http_multipart_body_none(sky_http_multipart_t *multipart) {
                         size = (sky_usize_t) (buf->end - buf->pos);
                         do {
                             size = sky_min(size, (sky_usize_t) ctx->need_read);
-                            ctx->need_read -= server->http_read(ctx->req->conn, buf->pos, size);
+                            ctx->need_read -= sky_http_read(ctx->req->conn, buf->pos, size);
                         } while (ctx->need_read > 0);
                     }
                     sky_buf_rebuild(buf, 0);
@@ -519,7 +516,7 @@ sky_http_multipart_body_none(sky_http_multipart_t *multipart) {
                 return true;
             }
         }
-        buf->last += server->http_read(ctx->req->conn, buf->last, (sky_usize_t) (buf->end - buf->last));
+        buf->last += sky_http_read(ctx->req->conn, buf->last, (sky_usize_t) (buf->end - buf->last));
 
         read_n = (sky_usize_t) (buf->last - buf->pos);
     } while (ctx->need_read >= read_n);
@@ -536,7 +533,6 @@ sky_http_multipart_body_read(sky_http_multipart_t *multipart, sky_http_multipart
     }
 
     const sky_str_t *boundary = &ctx->boundary;
-    const sky_http_server_t *server = ctx->req->conn->server;
     sky_buf_t *buf = ctx->req->tmp;
 
     const sky_u64_t min_size = sky_min(ctx->need_read, SKY_U64(4095));
@@ -563,7 +559,7 @@ sky_http_multipart_body_read(sky_http_multipart_t *multipart, sky_http_multipart
                         sky_usize_t buff_n = (sky_usize_t) (buf->end - buf->pos);
                         do {
                             buff_n = sky_min(buff_n, (sky_usize_t) ctx->need_read);
-                            ctx->need_read -= server->http_read(ctx->req->conn, buf->pos, buff_n);
+                            ctx->need_read -= sky_http_read(ctx->req->conn, buf->pos, buff_n);
                         } while (ctx->need_read > 0);
                     }
                     return false;
@@ -579,7 +575,7 @@ sky_http_multipart_body_read(sky_http_multipart_t *multipart, sky_http_multipart
                         sky_usize_t buff_n = (sky_usize_t) (buf->end - buf->pos);
                         do {
                             buff_n = sky_min(buff_n, (sky_usize_t) ctx->need_read);
-                            ctx->need_read -= server->http_read(ctx->req->conn, buf->pos, buff_n);
+                            ctx->need_read -= sky_http_read(ctx->req->conn, buf->pos, buff_n);
                         } while (ctx->need_read > 0);
                     }
                     sky_buf_rebuild(buf, 0);
@@ -594,7 +590,7 @@ sky_http_multipart_body_read(sky_http_multipart_t *multipart, sky_http_multipart
                     buf->last = buf->pos + size;
 
                     do {
-                        size = server->http_read(ctx->req->conn, buf->last, (sky_usize_t) (buf->end - buf->last));
+                        size = sky_http_read(ctx->req->conn, buf->last, (sky_usize_t) (buf->end - buf->last));
                         buf->last += size;
                     } while ((size = (sky_usize_t) (buf->last - buf->pos)) < 4);
 
@@ -617,7 +613,7 @@ sky_http_multipart_body_read(sky_http_multipart_t *multipart, sky_http_multipart
                         size = (sky_usize_t) (buf->end - buf->pos);
                         do {
                             size = sky_min(size, (sky_usize_t) ctx->need_read);
-                            ctx->need_read -= server->http_read(ctx->req->conn, buf->pos, size);
+                            ctx->need_read -= sky_http_read(ctx->req->conn, buf->pos, size);
                         } while (ctx->need_read > 0);
                     }
                     sky_buf_rebuild(buf, 0);
@@ -638,7 +634,7 @@ sky_http_multipart_body_read(sky_http_multipart_t *multipart, sky_http_multipart
                 return true;
             }
         }
-        buf->last += server->http_read(ctx->req->conn, buf->last, (sky_usize_t) (buf->end - buf->last));
+        buf->last += sky_http_read(ctx->req->conn, buf->last, (sky_usize_t) (buf->end - buf->last));
 
         read_n = (sky_usize_t) (buf->last - buf->pos);
     } while (ctx->need_read >= read_n);
@@ -648,7 +644,6 @@ sky_http_multipart_body_read(sky_http_multipart_t *multipart, sky_http_multipart
 
 static void
 http_read_body_none_need(sky_http_request_t *r) {
-    sky_http_server_t *server;
     sky_buf_t *tmp;
     sky_u64_t size;
     sky_usize_t n, t;
@@ -664,12 +659,11 @@ http_read_body_none_need(sky_http_request_t *r) {
     size -= n;
 
     n = (sky_usize_t) (tmp->end - tmp->pos);
-    server = r->conn->server;
 
     // 实际数据小于缓冲
     if (size <= n) {
         do {
-            size -= server->http_read(r->conn, tmp->pos, size);
+            size -= sky_http_read(r->conn, tmp->pos, size);
         } while (size > 0);
         sky_buf_rebuild(tmp, 0);
         return;
@@ -682,7 +676,7 @@ http_read_body_none_need(sky_http_request_t *r) {
 
     do {
         t = (sky_usize_t) sky_min(n, size);
-        size -= server->http_read(r->conn, tmp->pos, t);
+        size -= sky_http_read(r->conn, tmp->pos, t);
     } while (size > 0);
 
     sky_buf_rebuild(tmp, 0);
