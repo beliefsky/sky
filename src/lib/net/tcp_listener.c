@@ -113,7 +113,7 @@ sky_tcp_listener_bind(
         sky_queue_init_node(&writer->link);
         return false;
     }
-    const sky_bool_t empty = sky_queue_is_empty(&listener->tasks);
+    const sky_bool_t empty = sky_queue_empty(&listener->tasks);
 
     writer->defer = sky_defer_add(coro, (sky_defer_func_t) tcp_connection_defer, writer);
     sky_queue_insert_prev(&listener->tasks, &writer->link);
@@ -283,7 +283,7 @@ sky_tcp_listener_unbind(sky_tcp_listener_writer_t *writer) {
     }
     sky_defer_cancel(writer->coro, writer->defer);
 
-    if (sky_queue_is_linked(&writer->link)) {
+    if (sky_queue_linked(&writer->link)) {
         sky_queue_remove(&writer->link);
     }
     writer->defer = null;
@@ -458,7 +458,7 @@ tcp_run(sky_tcp_listener_t *listener) {
                     }
                 }
             }
-            if (sky_queue_is_empty(&listener->tasks)) {
+            if (sky_queue_empty(&listener->tasks)) {
                 break;
             }
             listener->current = (sky_tcp_listener_writer_t *) sky_queue_next(&listener->tasks);
@@ -497,7 +497,7 @@ tcp_close(sky_tcp_listener_t *listener) {
                 }
             }
         }
-        if (sky_queue_is_empty(&listener->tasks)) {
+        if (sky_queue_empty(&listener->tasks)) {
             break;
         }
         listener->current = (sky_tcp_listener_writer_t *) sky_queue_next(&listener->tasks);
@@ -607,7 +607,7 @@ tcp_connection(sky_tcp_listener_t *listener) {
 
 static sky_inline void
 tcp_connection_defer(sky_tcp_listener_writer_t *writer) {
-    if (sky_queue_is_linked(&writer->link)) {
+    if (sky_queue_linked(&writer->link)) {
         sky_queue_remove(&writer->link);
     }
     writer->defer = null;

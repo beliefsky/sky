@@ -356,7 +356,7 @@ sky_coro_destroy(sky_coro_t *coro) {
 sky_defer_t *
 sky_defer_add(sky_coro_t *coro, sky_defer_func_t func, void *data) {
     sky_defer_t *defer;
-    if (!sky_queue_is_empty(&coro->free_defers)) {
+    if (!sky_queue_empty(&coro->free_defers)) {
         sky_queue_t *tmp = sky_queue_next(&coro->free_defers);
         sky_queue_remove(tmp);
         defer = sky_queue_data(tmp, sky_defer_t, link);
@@ -376,7 +376,7 @@ sky_defer_add(sky_coro_t *coro, sky_defer_func_t func, void *data) {
 sky_defer_t *
 sky_defer_add2(sky_coro_t *coro, sky_defer_func2_t func, void *data1, void *data2) {
     sky_defer_t *defer;
-    if (!sky_queue_is_empty(&coro->free_defers)) {
+    if (!sky_queue_empty(&coro->free_defers)) {
         sky_queue_t *tmp = sky_queue_next(&coro->free_defers);
         sky_queue_remove(tmp);
         defer = sky_queue_data(tmp, sky_defer_t, link);
@@ -397,7 +397,7 @@ sky_defer_add2(sky_coro_t *coro, sky_defer_func2_t func, void *data1, void *data
 sky_defer_t *
 sky_defer_global_add(sky_coro_t *coro, sky_defer_func_t func, void *data) {
     sky_defer_t *defer;
-    if (!sky_queue_is_empty(&coro->free_defers)) {
+    if (!sky_queue_empty(&coro->free_defers)) {
         sky_queue_t *tmp = sky_queue_next(&coro->free_defers);
         sky_queue_remove(tmp);
         defer = sky_queue_data(tmp, sky_defer_t, link);
@@ -418,7 +418,7 @@ sky_defer_global_add(sky_coro_t *coro, sky_defer_func_t func, void *data) {
 sky_defer_t *
 sky_global_defer_add2(sky_coro_t *coro, sky_defer_func2_t func, void *data1, void *data2) {
     sky_defer_t *defer;
-    if (!sky_queue_is_empty(&coro->free_defers)) {
+    if (!sky_queue_empty(&coro->free_defers)) {
         sky_queue_t *tmp = sky_queue_next(&coro->free_defers);
         sky_queue_remove(tmp);
         defer = sky_queue_data(tmp, sky_defer_t, link);
@@ -464,7 +464,7 @@ sky_defer_run(sky_coro_t *coro) {
     sky_defer_t *defer;
     sky_queue_t *tmp;
 
-    while (!sky_queue_is_empty(&coro->defers)) {
+    while (!sky_queue_empty(&coro->defers)) {
         tmp = sky_queue_next(&coro->defers);
         sky_queue_remove(tmp);
         defer = sky_queue_data(tmp, sky_defer_t, link);

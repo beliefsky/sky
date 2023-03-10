@@ -158,7 +158,7 @@ static void
 mqtt_node_destroy(void *client) {
     sky_queue_t *queue = client;
 
-    if (sky_unlikely(!sky_queue_is_empty(queue))) {
+    if (sky_unlikely(!sky_queue_empty(queue))) {
         sky_log_error("sub queue is not empty");
         sky_queue_t *n = sky_queue_next(queue);
         mqtt_subs_node_t *node = sky_queue_data(n, mqtt_subs_node_t, link);
@@ -172,7 +172,7 @@ static void
 mqtt_publish(void *client, void *user_data) {
     sky_queue_t *queue = client;
     subs_publish_tmp_t *publish = user_data;
-    if (sky_unlikely(sky_queue_is_empty(queue))) {
+    if (sky_unlikely(sky_queue_empty(queue))) {
         sky_log_error("sub queue is empty");
         return;
     }

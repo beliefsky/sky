@@ -41,12 +41,12 @@ sky_queue_init_node(sky_queue_t *node) {
 }
 
 static sky_inline sky_bool_t
-sky_queue_is_empty(sky_queue_t *queue) {
+sky_queue_empty(sky_queue_t *queue) {
     return queue == queue->next;
 }
 
 static sky_inline sky_bool_t
-sky_queue_is_linked(sky_queue_t *queue) {
+sky_queue_linked(sky_queue_t *queue) {
     return queue->next != null;
 }
 
@@ -68,7 +68,7 @@ sky_queue_insert_prev(sky_queue_t *queue, sky_queue_t *node) {
 
 static sky_inline void
 sky_queue_insert_next_list(sky_queue_t *queue, sky_queue_t *link) {
-    if (sky_unlikely(sky_queue_is_empty(link))) {
+    if (sky_unlikely(sky_queue_empty(link))) {
         return;
     }
     link->next->prev = queue;
@@ -82,7 +82,7 @@ sky_queue_insert_next_list(sky_queue_t *queue, sky_queue_t *link) {
 
 static sky_inline void
 sky_queue_insert_prev_list(sky_queue_t *queue, sky_queue_t *link) {
-    if (sky_unlikely(sky_queue_is_empty(link))) {
+    if (sky_unlikely(sky_queue_empty(link))) {
         return;
     }
     link->prev->next = queue;

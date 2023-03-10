@@ -196,12 +196,12 @@ sky_event_timeout_expired(sky_event_t *event) {
 
 static sky_inline sky_bool_t
 sky_event_has_callback(sky_event_t *ev) {
-    return sky_event_is_reg(ev) || sky_timer_is_link(&ev->timer);
+    return sky_event_is_reg(ev) || sky_timer_linked(&ev->timer);
 }
 
 static sky_inline sky_bool_t
 sky_event_none_callback(sky_event_t *ev) {
-    return sky_event_none_reg(ev) && !sky_timer_is_link(&ev->timer);
+    return sky_event_none_reg(ev) && !sky_timer_linked(&ev->timer);
 }
 
 /**
