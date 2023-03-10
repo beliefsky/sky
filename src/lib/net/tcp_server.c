@@ -117,7 +117,13 @@ tcp_listener_accept(sky_event_t *ev) {
             close(fd);
             continue;
         }
-        sky_event_init(server->loop, &conn->ev, fd, server->run_handle, server->error_handle);
+        sky_event_init(
+                server->loop,
+                &conn->ev,
+                fd,
+                (sky_event_run_pt) server->run_handle,
+                (sky_event_close_pt) server->error_handle
+        );
         conn->ctx = &server->ctx;
 
         if (!server->run_handle(conn)) {

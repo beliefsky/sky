@@ -43,29 +43,6 @@ struct sky_event_loop_s {
 #define sky_event_none_read(_ev) !sky_event_is_read(_ev)
 #define sky_event_none_write(_ev) !sky_event_is_write(_ev)
 
-#define sky_event_init(_loop, _ev, _fd, _run, _close) \
-    do {                                              \
-        sky_timer_entry_init(&(_ev)->timer, (sky_timer_wheel_pt)(_close)); \
-        (_ev)->loop = (_loop);                        \
-        (_ev)->run = (sky_event_run_pt)(_run);        \
-        (_ev)->fd = (_fd);                            \
-        (_ev)->timeout = 0;                           \
-        (_ev)->status = 0x0000FFFE;                   \
-    } while(0)
-
-#define sky_event_rebind(_ev, _fd)     \
-    do {                               \
-        (_ev)->fd = (_fd);             \
-        (_ev)->status |= 0x0000FFFE;   \
-    } while(0)
-
-
-#define sky_event_reset(_ev, _run, _close) \
-    do {                                   \
-        (_ev)->run = (sky_event_run_pt)(_run); \
-        (_ev)->timer.cb = (sky_timer_wheel_pt)(_close); \
-    } while(0)
-
 /**
  * 创建io事件触发服务
  * @param pool 创建时所需的内存池
@@ -137,6 +114,34 @@ void sky_event_reset_timeout_self(sky_event_t *ev, sky_i32_t timeout);
  * @param timeout 超时
  */
 void sky_event_reset_timeout(sky_event_t *ev, sky_i32_t timeout);
+
+static sky_inline void
+sky_event_init(
+        sky_event_loop_t *loop,
+        sky_event_t *ev,
+        sky_i32_t fd,
+        sky_event_run_pt run_handle,
+        sky_event_close_pt close_handle
+) {
+    sky_timer_entry_init(&ev->timer, (sky_timer_wheel_pt) close_handle);
+    ev->loop = loop;
+    ev->run = run_handle;
+    ev->fd = fd;
+    ev->timeout = 0;
+    ev->status = 0x0000FFFE;
+}
+
+static sky_inline void
+sky_event_rebind(sky_event_t *ev, sky_i32_t fd) {
+    ev->fd = fd;
+    ev->status |= 0x0000FFFE;
+}
+
+static sky_inline void
+sky_event_reset(sky_event_t *ev, sky_event_run_pt run_handle, sky_event_close_pt close_handle) {
+    ev->run = run_handle;
+    ev->timer.cb = (sky_timer_wheel_pt) close_handle;
+}
 
 static sky_inline sky_i64_t
 sky_event_loop_now(const sky_event_loop_t *loop) {
