@@ -263,6 +263,8 @@ sky_event_unregister(sky_event_t *ev) {
     if (sky_likely(sky_event_none_reg(ev))) {
         return false;
     }
+    sky_event_loop_t *loop = ev->loop;
+
     if (ev->fd >= 0) {
         struct kevent event[2];
         EV_SET(&event[0], ev->fd, EVFILT_READ, EV_DELETE, 0, 0, ev);
@@ -272,8 +274,8 @@ sky_event_unregister(sky_event_t *ev) {
     ev->timeout = 0;
     ev->status &= 0xFFFFFFFE; // reg = false
     // 此处应添加 应追加需要处理的连接
-    ev->loop->update = true;
-    sky_timer_wheel_link(ev->loop->ctx, &ev->timer, 0);
+    loop->update = true;
+    sky_timer_wheel_link(loop->ctx, &ev->timer, 0);
 
     return true;
 }
