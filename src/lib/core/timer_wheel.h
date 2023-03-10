@@ -42,13 +42,13 @@ sky_timer_entry_init(sky_timer_wheel_entry_t *entry, sky_timer_wheel_pt cb) {
 }
 
 static sky_inline sky_bool_t
-sky_timer_is_link(sky_timer_wheel_entry_t *entry) {
-    return sky_queue_is_linked(&entry->link);
+sky_timer_linked(sky_timer_wheel_entry_t *entry) {
+    return sky_queue_linked(&entry->link);
 }
 
 static sky_inline void
 sky_timer_wheel_unlink(sky_timer_wheel_entry_t *entry) {
-    if (sky_likely(sky_queue_is_linked(&entry->link))) {
+    if (sky_likely(sky_queue_linked(&entry->link))) {
         sky_queue_remove(&entry->link);
     }
 }
