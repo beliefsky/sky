@@ -74,7 +74,7 @@ sky_tcp_connect_get_event(sky_tcp_connect_t *conn) {
 }
 
 static sky_inline sky_bool_t
-sky_tcp_connect_is_close(const sky_tcp_connect_t *conn) {
+sky_tcp_connect_closed(const sky_tcp_connect_t *conn) {
     return sky_event_get_fd(&conn->ev) < 0;
 }
 
