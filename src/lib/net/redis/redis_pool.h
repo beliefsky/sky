@@ -30,7 +30,7 @@ typedef struct {
 } sky_redis_conf_t;
 
 struct sky_redis_conn_s {
-    sky_tcp_conn_t conn;
+    sky_tcp_session_t conn;
     sky_pool_t *pool;
     sky_bool_t error;
 };
