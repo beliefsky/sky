@@ -117,8 +117,8 @@ void sky_event_reset_timeout(sky_event_t *ev, sky_i32_t timeout);
 
 static sky_inline void
 sky_event_init(
-        sky_event_loop_t *loop,
         sky_event_t *ev,
+        sky_event_loop_t *loop,
         sky_i32_t fd,
         sky_event_run_pt run_handle,
         sky_event_close_pt close_handle

@@ -77,7 +77,7 @@ sky_tcp_pool_create(sky_event_loop_t *ev_loop, const sky_tcp_pool_conf_t *conf) 
     sky_tcp_node_t *client = conn_pool->clients;
 
     for (sky_u32_t j = 0; j < conn_n; ++j, ++client) {
-        sky_event_init(ev_loop, &client->ev, -1, (sky_event_run_pt) tcp_run, (sky_event_close_pt) tcp_close);
+        sky_event_init(&client->ev, ev_loop, -1, (sky_event_run_pt) tcp_run, (sky_event_close_pt) tcp_close);
         client->conn_time = 0;
         client->conn_pool = conn_pool;
         client->current = null;

@@ -37,7 +37,7 @@ static sky_isize_t io_write(sky_tcp_client_t *client, const sky_uchar_t *data, s
 sky_tcp_client_t *
 sky_tcp_client_create(sky_event_t *event, sky_coro_t *coro, const sky_tcp_client_conf_t *conf) {
     sky_tcp_client_t *client = sky_malloc(sizeof(sky_tcp_client_t));
-    sky_event_init(sky_event_get_loop(event), &client->ev, -1, tcp_run, tcp_close);
+    sky_event_init(&client->ev, sky_event_get_loop(event), -1, tcp_run, tcp_close);
     client->main_ev = event;
     client->coro = coro;
     client->destroy = conf->destroy;
