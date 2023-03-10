@@ -49,7 +49,6 @@ sky_event_loop_create() {
     loop->max_events = max_events;
     loop->now = time(null);
     loop->ctx = sky_timer_wheel_create(TIMER_WHEEL_DEFAULT_NUM, (sky_u64_t) loop->now);
-    loop->current_ev = null;
 
     return loop;
 }
@@ -94,7 +93,6 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
         for (event = events; n > 0; ++event, --n) {
             ev = event->data.ptr;
-            loop->current_ev = ev;
 
             // 需要处理被移除的请求
             if (sky_event_none_reg(ev)) {
@@ -218,7 +216,6 @@ event_register_with_flags(sky_event_t *ev, sky_u32_t flags, sky_i32_t timeout) {
 
 static void
 event_timer_callback(sky_event_t *ev) {
-    ev->loop->current_ev = ev;
     if (sky_event_is_reg(ev)) {
         if (sky_likely(ev->fd >= 0)) {
             close(ev->fd);
