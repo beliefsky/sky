@@ -12,7 +12,7 @@
 #include <core/process.h>
 
 typedef struct {
-    sky_tcp_t tcp;
+    sky_tcp_connect_t tcp;
     sky_coro_t *coro;
 } tcp_proxy_conn_t;
 
@@ -20,11 +20,11 @@ static void server_start(sky_event_loop_t *loop, sky_coro_switcher_t *switcher);
 
 static sky_bool_t tcp_option(sky_socket_t fd, void *data);
 
-static sky_tcp_t *tcp_accept_cb(void *data);
+static sky_tcp_connect_t *tcp_accept_cb(void *data);
 
-static sky_bool_t tcp_proxy_run(sky_tcp_t *data);
+static sky_bool_t tcp_proxy_run(sky_tcp_connect_t *data);
 
-static void tcp_proxy_close(sky_tcp_t *data);
+static void tcp_proxy_close(sky_tcp_connect_t *data);
 
 static sky_isize_t tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn);
 
@@ -132,7 +132,7 @@ tcp_option(sky_socket_t fd, void *data) {
     return true;
 }
 
-static sky_tcp_t *
+static sky_tcp_connect_t *
 tcp_accept_cb(void *data) {
     sky_coro_switcher_t *switcher = data;
 
@@ -146,14 +146,14 @@ tcp_accept_cb(void *data) {
 }
 
 static sky_bool_t
-tcp_proxy_run(sky_tcp_t *data) {
+tcp_proxy_run(sky_tcp_connect_t *data) {
     tcp_proxy_conn_t *conn = sky_type_convert(data, tcp_proxy_conn_t, tcp);
 
     return sky_coro_resume(conn->coro) == SKY_CORO_MAY_RESUME;
 }
 
 static void
-tcp_proxy_close(sky_tcp_t *data) {
+tcp_proxy_close(sky_tcp_connect_t *data) {
     sky_tcp_close(data);
     tcp_proxy_conn_t *conn = sky_type_convert(data, tcp_proxy_conn_t, tcp);
 
