@@ -113,7 +113,7 @@ create_server() {
                 .sin_addr.s_addr = INADDR_ANY,
                 .sin_port = sky_htons(8080)
         };
-        sky_http_server_bind(server, (sky_inet_address_t *) &http_address, sizeof(struct sockaddr_in));
+        sky_http_server_bind(server, (sky_inet_addr_t *) &http_address, sizeof(struct sockaddr_in));
     }
 
     {
@@ -123,7 +123,7 @@ create_server() {
                 .sin6_port = sky_htons(8080)
         };
 
-        sky_http_server_bind(server, (sky_inet_address_t *) &http_address, sizeof(struct sockaddr_in6));
+        sky_http_server_bind(server, (sky_inet_addr_t *) &http_address, sizeof(struct sockaddr_in6));
     }
 
     sky_event_loop_run(ev_loop);

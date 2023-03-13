@@ -21,8 +21,8 @@ typedef struct sky_tcp_node_s sky_tcp_node_t;
 typedef sky_bool_t (*sky_tcp_pool_conn_next)(sky_tcp_session_t *session);
 
 typedef struct {
-    sky_inet_address_t *address;
-    sky_socket_options_pt options;
+    sky_inet_addr_t *address;
+    sky_scoket_opts_pt options;
     sky_tcp_pool_conn_next next_func;
 
     void *data;

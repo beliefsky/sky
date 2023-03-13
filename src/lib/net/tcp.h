@@ -17,6 +17,10 @@ extern "C" {
 typedef struct sky_tcp_ctx_s sky_tcp_ctx_t;
 typedef struct sky_tcp_s sky_tcp_t;
 
+typedef sky_bool_t (*sky_tcp_run_pt)(sky_tcp_t *conn);
+
+typedef void (*sky_tcp_error_pt)(sky_tcp_t *conn);
+
 typedef sky_isize_t (*sky_tcp_read_pt)(sky_tcp_t *conn, sky_uchar_t *data, sky_usize_t size);
 
 typedef sky_isize_t (*sky_tcp_write_pt)(sky_tcp_t *conn, const sky_uchar_t *data, sky_usize_t size);
@@ -37,6 +41,7 @@ struct sky_tcp_ctx_s {
     sky_tcp_read_pt read;
     sky_tcp_write_pt write;
     sky_tcp_sendfile_pt sendfile;
+    sky_i32_t backlog;
 };
 
 struct sky_tcp_s {
@@ -45,6 +50,20 @@ struct sky_tcp_s {
 };
 
 void sky_tcp_ctx_init(sky_tcp_ctx_t *ctx);
+
+void sky_tcp_init(sky_tcp_t *tcp, sky_event_loop_t *loop, sky_tcp_ctx_t *ctx);
+
+sky_bool_t sky_tcp_bind(sky_tcp_t *tcp, sky_scoket_opts_pt opts, sky_inet_addr_t *addr, sky_usize_t addr_len);
+
+sky_bool_t sky_tcp_listen(sky_tcp_t *tcp, sky_tcp_run_pt cbk, sky_tcp_close_pt error);
+
+sky_bool_t sky_tcp_accept(sky_tcp_t *server, sky_tcp_t *client);
+
+void sky_tcp_start_all(sky_tcp_t *tcp, sky_tcp_run_pt run, sky_tcp_error_pt error, sky_i32_t timeout);
+
+void sky_tcp_start_only_read(sky_tcp_t *tcp, sky_tcp_run_pt run, sky_tcp_error_pt error, sky_i32_t timeout);
+
+void sky_tcp_start_only_write(sky_tcp_t *tcp, sky_tcp_run_pt run, sky_tcp_error_pt error, sky_i32_t timeout);
 
 
 void sky_tcp_close(sky_tcp_t *conn);

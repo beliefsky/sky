@@ -29,9 +29,9 @@ extern "C" {
 #endif
 
 typedef sky_i32_t sky_socket_t;
-typedef struct sockaddr sky_inet_address_t;
+typedef struct sockaddr sky_inet_addr_t;
 
-typedef sky_bool_t (*sky_socket_options_pt)(sky_socket_t fd, void *data);
+typedef sky_bool_t (*sky_scoket_opts_pt)(sky_socket_t fd, void *data);
 
 sky_bool_t sky_set_socket_nonblock(sky_socket_t fd);
 

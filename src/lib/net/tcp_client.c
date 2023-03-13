@@ -14,7 +14,7 @@ struct sky_tcp_client_s {
     sky_coro_t *coro;
     sky_defer_t *defer;
     sky_tcp_destroy_pt destroy;
-    sky_socket_options_pt options;
+    sky_scoket_opts_pt options;
     void *data;
     sky_i32_t keep_alive;
     sky_i32_t timeout;
@@ -52,7 +52,7 @@ sky_tcp_client_create(sky_event_t *event, sky_coro_t *coro, const sky_tcp_client
 }
 
 sky_bool_t
-sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_address_t *address, sky_u32_t address_len) {
+sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_addr_t *address, sky_u32_t address_len) {
     sky_event_t *ev = &client->ev;
 
     if (sky_unlikely(!client->defer)) {

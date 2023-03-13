@@ -10,8 +10,8 @@
 
 struct sky_tcp_pool_s {
     sky_tcp_node_t *clients;
-    sky_inet_address_t *address;
-    sky_socket_options_pt options;
+    sky_inet_addr_t *address;
+    sky_scoket_opts_pt options;
     sky_tcp_pool_conn_next next_func;
 
     void *data;
@@ -62,7 +62,7 @@ sky_tcp_pool_create(sky_event_loop_t *ev_loop, const sky_tcp_pool_conf_t *conf) 
     );
 
     conn_pool->clients = (sky_tcp_node_t *) (conn_pool + 1);
-    conn_pool->address = (sky_inet_address_t *) (conn_pool->clients + conn_n);
+    conn_pool->address = (sky_inet_addr_t *) (conn_pool->clients + conn_n);
     conn_pool->address_len = conf->address_len;
     sky_memcpy(conn_pool->address, conf->address, conn_pool->address_len);
 

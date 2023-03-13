@@ -65,7 +65,7 @@ struct sky_http_connection_s {
 
 sky_http_server_t *sky_http_server_create(sky_event_loop_t *ev_loop, sky_coro_switcher_t *switcher, sky_http_conf_t *conf);
 
-sky_bool_t sky_http_server_bind(sky_http_server_t *server, sky_inet_address_t *address, sky_u32_t address_len);
+sky_bool_t sky_http_server_bind(sky_http_server_t *server, sky_inet_addr_t *addr, sky_u32_t addr_len);
 
 sky_str_t *sky_http_status_find(sky_http_server_t *server, sky_u32_t status);
 

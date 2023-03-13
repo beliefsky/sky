@@ -34,7 +34,7 @@ create_server(sky_event_loop_t *ev_loop, sky_coro_switcher_t *switcher) {
             .sin_addr.s_addr = INADDR_ANY,
             .sin_port = sky_htons(1883)
     };
-    sky_mqtt_server_bind(server, (sky_inet_address_t *) &v4_address, sizeof(v4_address));
+    sky_mqtt_server_bind(server, (sky_inet_addr_t *) &v4_address, sizeof(v4_address));
 
     struct sockaddr_in6 v6_address = {
             .sin6_family = AF_INET6,
@@ -42,5 +42,5 @@ create_server(sky_event_loop_t *ev_loop, sky_coro_switcher_t *switcher) {
             .sin6_port = sky_htons(1883)
     };
 
-    sky_mqtt_server_bind(server, (sky_inet_address_t *) &v6_address, sizeof(v6_address));
+    sky_mqtt_server_bind(server, (sky_inet_addr_t *) &v6_address, sizeof(v6_address));
 }
