@@ -38,7 +38,7 @@ sky_mqtt_server_create(sky_event_loop_t *ev_loop, sky_coro_switcher_t *switcher)
 }
 
 sky_bool_t
-sky_mqtt_server_bind(sky_mqtt_server_t *server, sky_inet_address_t *address, sky_u32_t address_len) {
+sky_mqtt_server_bind(sky_mqtt_server_t *server, sky_inet_addr_t *address, sky_u32_t address_len) {
     sky_tcp_server_conf_t conf = {
             .address = address,
             .address_len = address_len,

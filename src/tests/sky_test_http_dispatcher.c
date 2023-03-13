@@ -82,7 +82,7 @@ create_server(sky_event_loop_t *ev_loop) {
     };
 
     const sky_pgsql_conf_t pg_conf = {
-            .address = (sky_inet_address_t *) &pg_address,
+            .address = (sky_inet_addr_t *) &pg_address,
             .address_len = sizeof(struct sockaddr_in),
             .database = sky_string("beliefsky"),
             .username = sky_string("postgres"),
@@ -103,7 +103,7 @@ create_server(sky_event_loop_t *ev_loop) {
     };
 
     const sky_redis_conf_t redis_conf = {
-            .address = (sky_inet_address_t *) &redis_address,
+            .address = (sky_inet_addr_t *) &redis_address,
             .address_len = sizeof(struct sockaddr_in),
             .connection_size = 16,
     };
@@ -154,7 +154,7 @@ create_server(sky_event_loop_t *ev_loop) {
             .sin_addr.s_addr = INADDR_ANY,
             .sin_port = sky_htons(8080)
     };
-    sky_http_server_bind(server, (sky_inet_address_t *) &ipv4_address, sizeof(struct sockaddr_in));
+    sky_http_server_bind(server, (sky_inet_addr_t *) &ipv4_address, sizeof(struct sockaddr_in));
 
     struct sockaddr_in6 ipv6_address = {
             .sin6_family = AF_INET6,
@@ -162,7 +162,7 @@ create_server(sky_event_loop_t *ev_loop) {
             .sin6_port = sky_htons(8080)
     };
 
-    sky_http_server_bind(server, (sky_inet_address_t *) &ipv6_address, sizeof(struct sockaddr_in6));
+    sky_http_server_bind(server, (sky_inet_addr_t *) &ipv6_address, sizeof(struct sockaddr_in6));
 
     return true;
 }

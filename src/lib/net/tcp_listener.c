@@ -25,10 +25,10 @@ struct sky_tcp_listener_s {
     sky_tcp_listener_reader_t reader;
     sky_coro_t *coro;
     sky_tcp_listener_writer_t *current;
-    sky_inet_address_t *address;
+    sky_inet_addr_t *address;
     void *data;
     sky_coro_func_t run;
-    sky_socket_options_pt options;
+    sky_scoket_opts_pt options;
     sky_tcp_listener_close_pt close;
     tcp_status_t status;
     sky_u32_t address_len;

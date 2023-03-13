@@ -93,7 +93,7 @@ server_start(sky_event_loop_t *loop, sky_coro_switcher_t *switcher) {
                 .options = tcp_option,
                 .data = switcher,
                 .timeout = -1,
-                .address = (sky_inet_address_t *) &server_address_v4,
+                .address = (sky_inet_addr_t *) &server_address_v4,
                 .address_len = sizeof(struct sockaddr_in)
         };
 
@@ -113,7 +113,7 @@ server_start(sky_event_loop_t *loop, sky_coro_switcher_t *switcher) {
                 .options = tcp_option,
                 .data = switcher,
                 .timeout = -1,
-                .address = (sky_inet_address_t *) &server_address_v6,
+                .address = (sky_inet_addr_t *) &server_address_v6,
                 .address_len = sizeof(struct sockaddr_in6),
         };
 
@@ -179,7 +179,7 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
             .sin_port = sky_htons(18083)
     };
 
-    if (sky_unlikely(!sky_tcp_client_connection(client, (const sky_inet_address_t *) &mqtt_address,
+    if (sky_unlikely(!sky_tcp_client_connection(client, (const sky_inet_addr_t *) &mqtt_address,
                                                 sizeof(struct sockaddr_in)))) {
         return SKY_CORO_ABORT;
     }

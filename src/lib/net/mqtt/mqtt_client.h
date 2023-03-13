@@ -28,7 +28,7 @@ typedef struct {
     sky_str_t client_id;
     sky_str_t username;
     sky_str_t password;
-    sky_inet_address_t *address;
+    sky_inet_addr_t *address;
     sky_mqtt_status_pt connected;
     sky_mqtt_status_pt closed;
     sky_mqtt_msg_pt msg_handle;
