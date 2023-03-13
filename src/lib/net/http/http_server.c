@@ -7,11 +7,11 @@
 #include "http_request.h"
 
 
-static sky_tcp_t *http_connection_accept_cb(void *data);
+static sky_tcp_connect_t *http_connection_accept_cb(void *data);
 
-static sky_bool_t http_connection_run(sky_tcp_t *data);
+static sky_bool_t http_connection_run(sky_tcp_connect_t *data);
 
-static void http_connection_close(sky_tcp_t *data);
+static void http_connection_close(sky_tcp_connect_t *data);
 
 static sky_bool_t http_default_options(sky_i32_t fd, void *data);
 
@@ -93,7 +93,7 @@ sky_http_status_find(sky_http_server_t *server, sky_u32_t status) {
     return server->status_map + (status - 100);
 }
 
-static sky_tcp_t *
+static sky_tcp_connect_t *
 http_connection_accept_cb(void *data) {
     sky_http_server_t *server = data;
 
@@ -108,14 +108,14 @@ http_connection_accept_cb(void *data) {
 
 
 static sky_bool_t
-http_connection_run(sky_tcp_t *data) {
+http_connection_run(sky_tcp_connect_t *data) {
     sky_http_connection_t *conn = sky_type_convert(data, sky_http_connection_t, tcp);
 
     return sky_coro_resume(conn->coro) == SKY_CORO_MAY_RESUME;
 }
 
 static void
-http_connection_close(sky_tcp_t *data) {
+http_connection_close(sky_tcp_connect_t *data) {
     sky_tcp_close(data);
 
     sky_http_connection_t *conn = sky_type_convert(data, sky_http_connection_t, tcp);

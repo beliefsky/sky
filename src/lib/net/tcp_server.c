@@ -97,7 +97,7 @@ static sky_bool_t
 tcp_listener_accept(sky_event_t *ev) {
     sky_socket_t listener, fd;
     sky_tcp_server_t *server;
-    sky_tcp_t *conn;
+    sky_tcp_connect_t *conn;
 
     server = (sky_tcp_server_t *) ev;
     listener = sky_event_get_fd(ev);
