@@ -41,7 +41,6 @@ struct sky_tcp_ctx_s {
     sky_tcp_read_pt read;
     sky_tcp_write_pt write;
     sky_tcp_sendfile_pt sendfile;
-    sky_i32_t backlog;
 };
 
 struct sky_tcp_connect_s {
