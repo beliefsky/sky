@@ -458,7 +458,7 @@ tcp_connection_defer(sky_tcp_session_t *session) {
     if (sky_unlikely(client->conn_pool->free)) {
         return;
     }
-    sky_tcp_closed(&client->conn);
+    sky_tcp_close(&client->conn);
 
     sky_event_unregister(sky_tcp_get_event(&client->conn));
 }
