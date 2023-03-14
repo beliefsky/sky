@@ -48,12 +48,12 @@ sky_tcp_ctx_init(sky_tcp_ctx_t *ctx) {
 
 void
 sky_tcp_close(sky_tcp_connect_t *conn) {
-    conn->ctx->close(conn);
-
     const sky_socket_t fd = sky_event_get_fd(&conn->ev);
     if (sky_likely(fd >= 0)) {
         close(fd);
         sky_event_rebind(&conn->ev, -1);
+
+        conn->ctx->close(conn);
     }
 }
 
