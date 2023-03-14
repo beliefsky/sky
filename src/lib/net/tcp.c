@@ -50,10 +50,10 @@ void
 sky_tcp_close(sky_tcp_connect_t *conn) {
     const sky_socket_t fd = sky_event_get_fd(&conn->ev);
     if (sky_likely(fd >= 0)) {
+        conn->ctx->close(conn);
+
         close(fd);
         sky_event_rebind(&conn->ev, -1);
-
-        conn->ctx->close(conn);
     }
 }
 
@@ -129,7 +129,7 @@ tcp_connect_read(sky_tcp_connect_t *conn, sky_uchar_t *data, sky_usize_t size) {
     }
     const sky_isize_t n = recv(sky_event_get_fd(&conn->ev), data, size, 0);
 
-    if (n < 1) {
+    if (n < 0) {
         switch (errno) {
             case EINTR:
             case EAGAIN:
@@ -149,7 +149,7 @@ tcp_connect_write(sky_tcp_connect_t *conn, const sky_uchar_t *data, sky_usize_t 
     }
     const sky_isize_t n = send(sky_event_get_fd(&conn->ev), data, size, 0);
 
-    if (n < 1) {
+    if (n < 0) {
         switch (errno) {
             case EINTR:
             case EAGAIN:
@@ -185,7 +185,7 @@ tcp_connect_sendfile(
         return result;
     }
     const sky_i64_t n = sendfile(sky_event_get_fd(&conn->ev), fs->fd, offset, size);
-    if (n < 1) {
+    if (n < 0) {
         switch (errno) {
             case EINTR:
             case EAGAIN:
