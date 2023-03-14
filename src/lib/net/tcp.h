@@ -56,8 +56,7 @@ void sky_tcp_bind();
 
 void sky_tcp_listen();
 
-void sky_tcp_connect();
-
+sky_i8_t sky_tcp_connect(sky_tcp_connect_t *conn, sky_inet_addr_t *addr, sky_usize_t addr_size);
 
 
 void sky_tcp_close(sky_tcp_connect_t *conn);
@@ -88,7 +87,7 @@ sky_tcp_get_event(sky_tcp_connect_t *conn) {
 }
 
 static sky_inline sky_bool_t
-sky_tcp_closed(const sky_tcp_connect_t *conn) {
+sky_tcp_is_closed(const sky_tcp_connect_t *conn) {
     return sky_event_get_fd(&conn->ev) < 0;
 }
 
