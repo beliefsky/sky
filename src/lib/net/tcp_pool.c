@@ -3,12 +3,14 @@
 //
 
 #include "tcp_pool.h"
+#include "tcp.h"
 #include "../core/log.h"
 #include "../core/memory.h"
 #include <errno.h>
 #include <unistd.h>
 
 struct sky_tcp_pool_s {
+    sky_tcp_ctx_t ctx;
     sky_tcp_node_t *clients;
     sky_inet_addr_t *address;
     sky_scoket_opts_pt options;
@@ -26,7 +28,7 @@ struct sky_tcp_pool_s {
 };
 
 struct sky_tcp_node_s {
-    sky_event_t ev;
+    sky_tcp_connect_t conn;
     sky_queue_t tasks;
     sky_i64_t conn_time;
     sky_tcp_pool_t *conn_pool;
@@ -60,7 +62,7 @@ sky_tcp_pool_create(sky_event_loop_t *ev_loop, const sky_tcp_pool_conf_t *conf) 
             + (sizeof(sky_tcp_node_t) * conn_n)
             + conf->address_len
     );
-
+    sky_tcp_ctx_init(&conn_pool->ctx);
     conn_pool->clients = (sky_tcp_node_t *) (conn_pool + 1);
     conn_pool->address = (sky_inet_addr_t *) (conn_pool->clients + conn_n);
     conn_pool->address_len = conf->address_len;
@@ -77,7 +79,8 @@ sky_tcp_pool_create(sky_event_loop_t *ev_loop, const sky_tcp_pool_conf_t *conf) 
     sky_tcp_node_t *client = conn_pool->clients;
 
     for (sky_u32_t j = 0; j < conn_n; ++j, ++client) {
-        sky_event_init(&client->ev, ev_loop, -1, (sky_event_run_pt) tcp_run, (sky_event_close_pt) tcp_close);
+        sky_event_init(&client->conn.ev, ev_loop, -1, (sky_event_run_pt) tcp_run, (sky_event_close_pt) tcp_close);
+        client->conn.ctx = &conn_pool->ctx;
         client->conn_time = 0;
         client->conn_pool = conn_pool;
         client->current = null;
@@ -117,13 +120,15 @@ sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_session_t *session, sky
     session->client = client;
     client->current = session;
 
-    if (sky_unlikely(client->ev.fd == -1)) {
-        if (sky_likely(tcp_pool->free || client->conn_time > client->ev.loop->now)) {
+    if (sky_unlikely(sky_tcp_closed(&client->conn))) {
+        const sky_event_t *ev = sky_tcp_get_event(&client->conn);
+
+        if (sky_likely(tcp_pool->free || client->conn_time > sky_event_get_now(ev))) {
             sky_tcp_pool_conn_unbind(session);
             return false;
         }
         if (sky_unlikely(!tcp_connection(session))) {
-            client->conn_time = client->ev.loop->now + 5;
+            client->conn_time = sky_event_get_now(ev) + 5;
             sky_tcp_pool_conn_unbind(session);
             return false;
         }
@@ -142,57 +147,37 @@ sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_session_t *session, sky
 
 sky_usize_t
 sky_tcp_pool_conn_read(sky_tcp_session_t *session, sky_uchar_t *data, sky_usize_t size) {
-    sky_tcp_node_t *client;
-    sky_event_t *ev;
-    sky_isize_t n;
+    sky_tcp_node_t *client = session->client;
 
-    client = session->client;
-    if (sky_unlikely(!client || client->ev.fd == -1 || !size)) {
+    if (sky_unlikely(!client || sky_tcp_closed(&client->conn) || !size)) {
         return 0;
     }
-
-    ev = &client->ev;
+    sky_event_t *ev = sky_tcp_get_event(&client->conn);
 
     sky_event_reset_timeout_self(ev, client->conn_pool->timeout);
-    while (sky_unlikely(sky_event_none_read(ev))) {
-        sky_coro_yield(session->coro, SKY_CORO_MAY_RESUME);
-        if (sky_unlikely(!session->client || ev->fd == -1)) {
-            return false;
-        }
-    }
-
     for (;;) {
-
-        if ((n = recv(ev->fd, data, size, 0)) > 0) {
+        const sky_isize_t n = sky_tcp_read(&client->conn, data, size);
+        if (sky_likely(n > 0)) {
             sky_event_reset_timeout_self(ev, client->conn_pool->keep_alive);
             return (sky_usize_t) n;
         }
-        switch (errno) {
-            case EINTR:
-            case EAGAIN:
-                break;
-            default:
-                sky_log_error("read errno: %d", errno);
-                return 0;
-        }
-        sky_event_clean_read(ev);
-        do {
+        if (sky_likely(!n)) {
             sky_coro_yield(session->coro, SKY_CORO_MAY_RESUME);
-            if (sky_unlikely(!session->client || ev->fd == -1)) {
+            if (sky_unlikely(!session->client || sky_tcp_closed(&client->conn))) {
                 return 0;
             }
-        } while (sky_unlikely(sky_event_none_read(ev)));
+            continue;
+        }
+
+        return 0;
     }
 }
 
 sky_bool_t
 sky_tcp_pool_conn_read_all(sky_tcp_session_t *session, sky_uchar_t *data, sky_usize_t size) {
-    sky_tcp_node_t *client;
-    sky_event_t *ev;
-    sky_isize_t n;
+    sky_tcp_node_t *client = session->client;
 
-    client = session->client;
-    if (sky_unlikely(!client || client->ev.fd == -1)) {
+    if (sky_unlikely(!client || sky_tcp_closed(&client->conn))) {
         return false;
     }
 
@@ -200,53 +185,37 @@ sky_tcp_pool_conn_read_all(sky_tcp_session_t *session, sky_uchar_t *data, sky_us
         return true;
     }
 
-    ev = &client->ev;
+    sky_event_t *ev = sky_tcp_get_event(&client->conn);
 
     sky_event_reset_timeout_self(ev, client->conn_pool->timeout);
-    while (sky_unlikely(sky_event_none_read(ev))) {
-        sky_coro_yield(session->coro, SKY_CORO_MAY_RESUME);
-        if (sky_unlikely(!session->client || ev->fd == -1)) {
-            return false;
-        }
-    }
 
     for (;;) {
-        if ((n = recv(ev->fd, data, size, 0)) > 0) {
-            if ((sky_usize_t) n < size) {
-                data += n;
-                size -= (sky_usize_t) n;
-            } else {
+        const sky_isize_t n = sky_tcp_read(&client->conn, data, size);
+        if (sky_likely(n > 0)) {
+            data += n;
+            size -= (sky_usize_t) n;
+            if (!size) {
                 sky_event_reset_timeout_self(ev, client->conn_pool->keep_alive);
                 return true;
             }
-        } else {
-            switch (errno) {
-                case EINTR:
-                case EAGAIN:
-                    break;
-                default:
-                    sky_log_error("read errno: %d", errno);
-                    return false;
-            }
         }
-        sky_event_clean_read(ev);
-        do {
+        if (sky_likely(!n)) {
             sky_coro_yield(session->coro, SKY_CORO_MAY_RESUME);
-            if (sky_unlikely(!session->client || ev->fd == -1)) {
+            if (sky_unlikely(!session->client || sky_tcp_closed(&client->conn))) {
                 return false;
             }
-        } while (sky_unlikely(sky_event_none_read(ev)));
+            continue;
+        }
+
+        return false;
     }
 }
 
 sky_isize_t
 sky_tcp_pool_conn_read_nowait(sky_tcp_session_t *session, sky_uchar_t *data, sky_usize_t size) {
-    sky_tcp_node_t *client;
-    sky_event_t *ev;
-    sky_isize_t n;
+    sky_tcp_node_t *client = session->client;
 
-    client = session->client;
-    if (sky_unlikely(!client || client->ev.fd == -1)) {
+    if (sky_unlikely(!client || sky_tcp_closed(&client->conn))) {
         return -1;
     }
 
@@ -254,78 +223,42 @@ sky_tcp_pool_conn_read_nowait(sky_tcp_session_t *session, sky_uchar_t *data, sky
         return 0;
     }
 
-    ev = &client->ev;
-    if (sky_likely(sky_event_is_read(ev))) {
-        if ((n = recv(ev->fd, data, size, 0)) > 0) {
-            return n;
-        }
-        switch (errno) {
-            case EINTR:
-            case EAGAIN:
-                break;
-            default:
-                sky_log_error("read errno: %d", errno);
-                return -1;
-        }
-        sky_event_clean_read(ev);
-    }
-
-    return 0;
+    return sky_tcp_read(&client->conn, data, size);
 }
 
 sky_usize_t
 sky_tcp_pool_conn_write(sky_tcp_session_t *session, const sky_uchar_t *data, sky_usize_t size) {
-    sky_tcp_node_t *client;
-    sky_event_t *ev;
-    sky_isize_t n;
+    sky_tcp_node_t *client = session->client;
 
-    client = session->client;
-    if (sky_unlikely(!client || client->ev.fd == -1 || !size)) {
+    if (sky_unlikely(!client || sky_tcp_closed(&client->conn) || !size)) {
         return 0;
     }
-
-    ev = &client->ev;
+    sky_event_t *ev = sky_tcp_get_event(&client->conn);
 
     sky_event_reset_timeout_self(ev, client->conn_pool->timeout);
-    while (sky_unlikely(sky_event_none_write(ev))) {
-        sky_coro_yield(session->coro, SKY_CORO_MAY_RESUME);
-        if (sky_unlikely(!session->client || ev->fd == -1)) {
-            return false;
-        }
-    }
-
     for (;;) {
-        if ((n = send(ev->fd, data, size, 0)) > 0) {
+        const sky_isize_t n = sky_tcp_write(&client->conn, data, size);
+        if (sky_likely(n > 0)) {
             sky_event_reset_timeout_self(ev, client->conn_pool->keep_alive);
-
             return (sky_usize_t) n;
         }
-        sky_event_clean_write(ev);
-        switch (errno) {
-            case EINTR:
-            case EAGAIN:
-                break;
-            default:
-                sky_log_error("write errno: %d", errno);
-                return 0;
-        }
-        do {
+        if (sky_likely(!n)) {
             sky_coro_yield(session->coro, SKY_CORO_MAY_RESUME);
-            if (sky_unlikely(!session->client || ev->fd == -1)) {
+            if (sky_unlikely(!session->client || sky_tcp_closed(&client->conn))) {
                 return 0;
             }
-        } while (sky_unlikely(sky_event_none_write(ev)));
+            continue;
+        }
+
+        return 0;
     }
 }
 
 sky_bool_t
 sky_tcp_pool_conn_write_all(sky_tcp_session_t *session, const sky_uchar_t *data, sky_usize_t size) {
-    sky_tcp_node_t *client;
-    sky_event_t *ev;
-    sky_isize_t n;
+    sky_tcp_node_t *client = session->client;
 
-    client = session->client;
-    if (sky_unlikely(!client || client->ev.fd == -1)) {
+    if (sky_unlikely(!client || sky_tcp_closed(&client->conn))) {
         return false;
     }
 
@@ -333,54 +266,37 @@ sky_tcp_pool_conn_write_all(sky_tcp_session_t *session, const sky_uchar_t *data,
         return true;
     }
 
-    ev = &client->ev;
-
+    sky_event_t *ev = sky_tcp_get_event(&client->conn);
 
     sky_event_reset_timeout_self(ev, client->conn_pool->timeout);
-    while (sky_unlikely(sky_event_none_write(ev))) {
-        sky_coro_yield(session->coro, SKY_CORO_MAY_RESUME);
-        if (sky_unlikely(!session->client || ev->fd == -1)) {
-            return false;
-        }
-    }
 
     for (;;) {
-        if ((n = send(ev->fd, data, size, 0)) > 0) {
-            if ((sky_usize_t) n < size) {
-                data += n;
-                size -= (sky_usize_t) n;
-            } else {
+        const sky_isize_t n = sky_tcp_write(&client->conn, data, size);
+        if (sky_likely(n > 0)) {
+            data += n;
+            size -= (sky_usize_t) n;
+            if (!size) {
                 sky_event_reset_timeout_self(ev, client->conn_pool->keep_alive);
                 return true;
             }
-        } else {
-            switch (errno) {
-                case EINTR:
-                case EAGAIN:
-                    break;
-                default:
-                    sky_log_error("write errno: %d", errno);
-                    return false;
-            }
         }
-        sky_event_clean_write(ev);
-        do {
+        if (sky_likely(!n)) {
             sky_coro_yield(session->coro, SKY_CORO_MAY_RESUME);
-            if (sky_unlikely(!session->client || ev->fd == -1)) {
+            if (sky_unlikely(!session->client || sky_tcp_closed(&client->conn))) {
                 return false;
             }
-        } while (sky_unlikely(sky_event_none_write(ev)));
+            continue;
+        }
+
+        return false;
     }
 }
 
 sky_isize_t
 sky_tcp_pool_conn_write_nowait(sky_tcp_session_t *session, const sky_uchar_t *data, sky_usize_t size) {
-    sky_tcp_node_t *client;
-    sky_event_t *ev;
-    sky_isize_t n;
+    sky_tcp_node_t *client = session->client;
 
-    client = session->client;
-    if (sky_unlikely(!client || client->ev.fd == -1)) {
+    if (sky_unlikely(!client || sky_tcp_closed(&client->conn))) {
         return -1;
     }
 
@@ -388,23 +304,7 @@ sky_tcp_pool_conn_write_nowait(sky_tcp_session_t *session, const sky_uchar_t *da
         return 0;
     }
 
-    ev = &client->ev;
-    if (sky_likely(sky_event_is_write(ev))) {
-        if ((n = send(ev->fd, data, size, 0)) > 0) {
-            return n;
-        }
-        switch (errno) {
-            case EINTR:
-            case EAGAIN:
-                break;
-            default:
-                sky_log_error("write errno: %d", errno);
-                return -1;
-        }
-        sky_event_clean_write(ev);
-    }
-
-    return 0;
+    return sky_tcp_write(&client->conn, data, size);
 }
 
 sky_inline void
@@ -483,8 +383,7 @@ tcp_run(sky_tcp_node_t *client) {
 
 static void
 tcp_close(sky_tcp_node_t *client) {
-    close(client->ev.fd);
-    sky_event_rebind(&client->ev, -1);
+    sky_tcp_close(&client->conn);
     tcp_run(client);
 }
 
@@ -495,7 +394,7 @@ tcp_connection(sky_tcp_session_t *session) {
     sky_event_t *ev;
 
     conn_pool = session->client->conn_pool;
-    ev = &session->client->ev;
+    ev = sky_tcp_get_event(&session->client->conn);
 
 #ifdef SKY_HAVE_ACCEPT4
     fd = socket(conn_pool->address->sa_family, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
@@ -559,7 +458,7 @@ tcp_connection_defer(sky_tcp_session_t *session) {
     if (sky_unlikely(client->conn_pool->free)) {
         return;
     }
-    close(client->ev.fd);
-    sky_event_rebind(&client->ev, -1);
-    sky_event_unregister(&client->ev);
+    sky_tcp_closed(&client->conn);
+
+    sky_event_unregister(sky_tcp_get_event(&client->conn));
 }

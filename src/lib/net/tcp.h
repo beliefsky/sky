@@ -50,6 +50,16 @@ struct sky_tcp_connect_s {
 
 void sky_tcp_ctx_init(sky_tcp_ctx_t *ctx);
 
+void sky_tcp_init();
+
+void sky_tcp_bind();
+
+void sky_tcp_listen();
+
+void sky_tcp_connect();
+
+
+
 void sky_tcp_close(sky_tcp_connect_t *conn);
 
 sky_isize_t sky_tcp_read(sky_tcp_connect_t *conn, sky_uchar_t *data, sky_usize_t size);
