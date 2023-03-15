@@ -250,7 +250,7 @@ session_get(sky_mqtt_connect_msg_t *msg, sky_mqtt_connect_t *conn) {
 
             sky_tcp_close(&session->conn->tcp);
 
-            sky_event_unregister(sky_tcp_get_event(&session->conn->tcp));
+            sky_event_set_error(sky_tcp_get_event(&session->conn->tcp));
         }
     } else {
         session = sky_malloc(sizeof(sky_mqtt_session_t) + msg->client_id.len);
