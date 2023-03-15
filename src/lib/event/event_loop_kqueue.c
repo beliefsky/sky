@@ -105,13 +105,13 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             // 需要处理被移除的请求
             if (sky_event_none_reg(ev) || sky_event_is_error(ev)) {
                 if (!!(ev->status & SKY_EV_NONE_INDEX)) {
-                    ev->status &= (index << 16);
+                    ev->status &= (index << 16) | 0xFFFF; // index=xx
                 }
             } else if (sky_unlikely(!!(event->flags & EV_ERROR))) {
                 if (!!(ev->status & SKY_EV_NONE_INDEX)) {
                     ev->status |= SKY_EV_ERROR; // error = true
                     /* index=xx; read = false; write = false */
-                    ev->status &= (index << 16) | (~(SKY_EV_READ | SKY_EV_WRITE));
+                    ev->status &= (index << 16) | (0xFFFF & (~(SKY_EV_READ | SKY_EV_WRITE)));
                     run_ev[index++] = ev;
                 } else {
                     ev->status |= SKY_EV_ERROR; //  error = true
@@ -120,7 +120,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             } else {
                 ev->status |= 1 << ((sky_u32_t) (event->filter == EVFILT_WRITE) + 1); // 是否可读或可写
                 if (!!(ev->status & SKY_EV_NONE_INDEX)) {
-                    ev->status &= (index << 16);
+                    ev->status &= (index << 16) | 0xFFFF;
                 }
             }
         }
