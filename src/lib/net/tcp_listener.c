@@ -63,7 +63,7 @@ sky_tcp_listener_create(sky_event_loop_t *loop, sky_coro_switcher_t *switcher, c
 
     sky_coro_set(coro, conf->run, &listener->reader);
 
-    sky_event_init(&listener->ev, loop, -1, (sky_event_run_pt) tcp_run_connection, (sky_event_close_pt) tcp_close);
+    sky_event_init(&listener->ev, loop, -1, (sky_event_run_pt) tcp_run_connection, (sky_event_error_pt) tcp_close);
     sky_timer_entry_init(&listener->reconnect_timer, tcp_reconnect_timer_cb);
     sky_queue_init(&listener->tasks);
 
@@ -410,7 +410,7 @@ tcp_run_connection(sky_tcp_listener_t *listener) {
         case CONNECTING:
             return true;
         case READY:
-            sky_event_reset(&listener->ev, (sky_event_run_pt) tcp_run, (sky_event_close_pt) tcp_close);
+            sky_event_reset(&listener->ev, (sky_event_run_pt) tcp_run, (sky_event_error_pt) tcp_close);
             return tcp_run(listener);
         default:
             return false;
@@ -509,7 +509,7 @@ tcp_close(sky_tcp_listener_t *listener) {
 
     if (listener->reconnect) {
         sky_coro_reset(listener->coro, listener->run, &listener->reader);
-        sky_event_reset(&listener->ev, (sky_event_run_pt) tcp_run_connection, (sky_event_close_pt) tcp_close);
+        sky_event_reset(&listener->ev, (sky_event_run_pt) tcp_run_connection, (sky_event_error_pt) tcp_close);
 
         sky_event_timer_register(listener->ev.loop, &listener->reconnect_timer, 5);
     }

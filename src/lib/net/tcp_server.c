@@ -122,7 +122,7 @@ tcp_listener_accept(sky_event_t *ev) {
                 server->loop,
                 fd,
                 (sky_event_run_pt) server->run_handle,
-                (sky_event_close_pt) server->error_handle
+                (sky_event_error_pt) server->error_handle
         );
         conn->ctx = &server->ctx;
 
