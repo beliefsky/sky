@@ -110,8 +110,8 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             } else if (sky_unlikely(!!(event->flags & EV_ERROR))) {
                 if (!!(ev->status & SKY_EV_NONE_INDEX)) {
                     ev->status |= SKY_EV_ERROR; // error = true
-                    ev->status &=
-                            (index << 16) | (~(SKY_EV_READ | SKY_EV_WRITE));// index=xx; read = false; write = false
+                    /* index=xx; read = false; write = false */
+                    ev->status &= (index << 16) | (~(SKY_EV_READ | SKY_EV_WRITE));
                     run_ev[index++] = ev;
                 } else {
                     ev->status |= SKY_EV_ERROR; //  error = true
