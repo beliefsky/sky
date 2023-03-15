@@ -79,7 +79,7 @@ sky_tcp_pool_create(sky_event_loop_t *ev_loop, const sky_tcp_pool_conf_t *conf) 
     sky_tcp_node_t *client = conn_pool->clients;
 
     for (sky_u32_t j = 0; j < conn_n; ++j, ++client) {
-        sky_event_init(&client->conn.ev, ev_loop, -1, (sky_event_run_pt) tcp_run, (sky_event_close_pt) tcp_close);
+        sky_event_init(&client->conn.ev, ev_loop, -1, (sky_event_run_pt) tcp_run, (sky_event_error_pt) tcp_close);
         client->conn.ctx = &conn_pool->ctx;
         client->conn_time = 0;
         client->conn_pool = conn_pool;
@@ -360,15 +360,12 @@ tcp_run(sky_tcp_node_t *client) {
                     break;
                 }
             } else {
-                close(event->fd);
-                sky_event_rebind(event, -1);
+                sky_event_set_error(event);
                 if (client->current) {
                     sky_tcp_pool_conn_unbind(session);
-                    sky_event_unregister(event);
                     result = false;
                     break;
                 }
-                sky_event_unregister(event);
             }
         }
         if (sky_queue_empty(&client->tasks)) {
@@ -458,7 +455,5 @@ tcp_connection_defer(sky_tcp_session_t *session) {
     if (sky_unlikely(client->conn_pool->free)) {
         return;
     }
-    sky_tcp_close(&client->conn);
-
-    sky_event_unregister(sky_tcp_get_event(&client->conn));
+    sky_event_set_error(sky_tcp_get_event(&client->conn));
 }
