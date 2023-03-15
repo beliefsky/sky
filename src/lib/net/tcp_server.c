@@ -88,9 +88,7 @@ sky_tcp_server_create(sky_event_loop_t *loop, const sky_tcp_server_conf_t *conf)
 
 void
 sky_tcp_server_destroy(sky_tcp_server_t *server) {
-    close(server->ev.fd);
-    sky_event_rebind(&server->ev, -1);
-    sky_event_unregister(&server->ev);
+    sky_event_set_error(&server->ev);
 }
 
 static sky_bool_t
@@ -140,6 +138,8 @@ tcp_listener_accept(sky_event_t *ev) {
 
 static void
 tcp_listener_error(sky_event_t *ev) {
+    close(ev->fd);
+    sky_event_rebind(ev, -1);
     sky_free(ev);
 }
 
