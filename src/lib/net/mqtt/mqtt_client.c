@@ -389,13 +389,13 @@ mqtt_read_head_pack(sky_mqtt_client_t *client, sky_mqtt_head_t *head) {
     for (;;) {
         size = sky_tcp_listener_read(client->reader, buf, 8 - read_size);
         buf += size;
-        read_size += size;
+        read_size += (sky_u32_t) size;
         flag = sky_mqtt_head_pack(head, client->head_tmp, read_size);
 
         if (sky_likely(flag > 0)) {
 
-            if (read_size > (sky_usize_t) flag) {
-                read_size -= (sky_usize_t) flag;
+            if (read_size > (sky_u32_t) flag) {
+                read_size -= (sky_u32_t) flag;
                 client->head_copy = read_size;
 
                 sky_u64_t tmp = sky_htonll(*(sky_u64_t *) client->head_tmp);

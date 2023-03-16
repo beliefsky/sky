@@ -136,7 +136,7 @@ sky_mqtt_write_packet(sky_mqtt_connect_t *conn) {
                 sky_event_timeout_expired(sky_tcp_get_event(&conn->tcp));
                 return true;
             }
-            conn->write_size += size;
+            conn->write_size += (sky_u32_t) size;
             buf += size;
             if (conn->write_size >= packet->size) {
                 break;
