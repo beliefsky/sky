@@ -163,8 +163,8 @@ sky_f64_to_str_opts(sky_f64_t data, sky_uchar_t *out, sky_u32_t opts) {
         f64_bin_to_dec(sig_raw, exp_raw, sig_bin, exp_bin, &sig_dec, &exp_dec);
 
         sky_u8_t i = 17;
-        i -= (sig_dec < (SKY_U64(100000000) * 100000000));
-        i -= (sig_dec < (SKY_U64(100000000) * 10000000));
+        i -= (sky_u8_t)(sig_dec < (SKY_U64(100000000) * 100000000));
+        i -= (sky_u8_t)(sig_dec < (SKY_U64(100000000) * 10000000));
 
         const sky_i32_t dot_pos = i + exp_dec;
 

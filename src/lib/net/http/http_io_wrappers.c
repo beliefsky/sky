@@ -73,13 +73,13 @@ sky_http_send_file(
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
             continue;
         }
-        if (n < header_len) {
-            header_len -= n;
+        if ((sky_usize_t)n < header_len) {
+            header_len -= (sky_usize_t)n;
             header += n;
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
             continue;
         }
-        n -= header_len;
+        n -= (sky_isize_t)header_len;
         size -= (sky_usize_t) n;
         if (!size) {
             return;
