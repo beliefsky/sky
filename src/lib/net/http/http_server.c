@@ -135,47 +135,6 @@ http_default_options(sky_i32_t fd, void *data) {
     return true;
 }
 
-#ifdef SKY_HAVE_TLS
-
-static sky_event_t *
-https_connection_accept_cb(sky_event_loop_t *loop, sky_i32_t fd, sky_http_server_t *server) {
-    sky_coro_t *coro = sky_coro_new();
-    sky_http_connection_t *conn = sky_coro_malloc(coro, sizeof(sky_http_connection_t));
-    conn->coro = coro;
-    conn->server = server;
-    sky_tls_server_init(server->tls_ctx, &conn->tls, fd);
-    sky_event_init(loop, &conn->ev, fd, https_handshake, https_connection_close);
-
-    return &conn->ev;
-}
-
-
-static sky_bool_t
-https_handshake(sky_http_connection_t *conn) {
-    const sky_i8_t ret = sky_tls_accept(&conn->tls);
-    switch (ret) {
-        case 0:
-            return true;
-        case 1:
-            sky_coro_set(conn->coro, (sky_coro_func_t) sky_http_request_process, conn);
-            sky_event_reset(&conn->ev, http_connection_run, https_connection_close);
-            return http_connection_run(conn);
-        default:
-            break;
-    }
-
-    return false;
-}
-
-static void
-https_connection_close(sky_http_connection_t *conn) {
-    sky_tls_destroy(&conn->tls);
-    sky_coro_destroy(conn->coro);
-}
-
-#endif
-
-
 static sky_inline void
 http_status_build(sky_http_server_t *server) {
     sky_str_t *status_map;
