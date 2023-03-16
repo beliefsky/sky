@@ -4,10 +4,7 @@
 
 #include "tcp_pool.h"
 #include "tcp.h"
-#include "../core/log.h"
 #include "../core/memory.h"
-#include <errno.h>
-#include <unistd.h>
 
 struct sky_tcp_pool_s {
     sky_tcp_ctx_t ctx;
@@ -79,7 +76,7 @@ sky_tcp_pool_create(sky_event_loop_t *ev_loop, const sky_tcp_pool_conf_t *conf) 
     sky_tcp_node_t *client = conn_pool->clients;
 
     for (sky_u32_t j = 0; j < conn_n; ++j, ++client) {
-        sky_event_init(&client->conn.ev, ev_loop, -1, (sky_event_run_pt) tcp_run, (sky_event_error_pt) tcp_close);
+        sky_tcp_init(&client->conn, &conn_pool->ctx, ev_loop, (sky_tcp_run_pt) tcp_run, (sky_tcp_error_pt) tcp_close);
         client->conn.ctx = &conn_pool->ctx;
         client->conn_time = 0;
         client->conn_pool = conn_pool;
@@ -386,54 +383,35 @@ tcp_close(sky_tcp_node_t *client) {
 
 static sky_bool_t
 tcp_connection(sky_tcp_session_t *session) {
-    sky_i32_t fd;
-    sky_tcp_pool_t *conn_pool;
-    sky_event_t *ev;
+    sky_tcp_pool_t *conn_pool = session->client->conn_pool;
+    sky_tcp_connect_t *tcp = &session->client->conn;
 
-    conn_pool = session->client->conn_pool;
-    ev = sky_tcp_get_event(&session->client->conn);
+    if (sky_unlikely(!sky_tcp_open(tcp, conn_pool->address->sa_family))) {
+        return false;
+    }
+    sky_socket_t fd = sky_event_get_fd(sky_tcp_get_event(tcp));
 
-#ifdef SKY_HAVE_ACCEPT4
-    fd = socket(conn_pool->address->sa_family, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
-    if (sky_unlikely(fd < 0)) {
-        return false;
-    }
-#else
-    fd = socket(conn_pool->address->sa_family, SOCK_STREAM, 0);
-    if (sky_unlikely(fd < 0)) {
-        return false;
-    }
-    if (sky_unlikely(!sky_set_socket_nonblock(fd))) {
-        close(fd);
-        return false;
-    }
-#endif
     if (sky_unlikely(conn_pool->options && !conn_pool->options(fd, conn_pool->data))) {
-        close(fd);
+        sky_tcp_close(tcp);
         return false;
     }
+    sky_tcp_register(tcp, conn_pool->timeout);
 
-    sky_event_rebind(ev, fd);
-    sky_event_register(ev, conn_pool->timeout);
-
-    while (connect(ev->fd, conn_pool->address, conn_pool->address_len) < 0) {
-        switch (errno) {
-            case EALREADY:
-            case EINPROGRESS:
-                sky_coro_yield(session->coro, SKY_CORO_MAY_RESUME);
-                if (sky_unlikely(!session->client || ev->fd == -1)) {
-                    return false;
-                }
-                continue;
-            case EISCONN:
-                break;
-            default:
-                sky_log_error("connect errno: %d", errno);
+    for (;;) {
+        const sky_i8_t r = sky_tcp_connect(tcp, conn_pool->address, conn_pool->address_len);
+        if (sky_unlikely(r < 0)) {
+            return false;
+        } else if (!r) {
+            sky_coro_yield(session->coro, SKY_CORO_MAY_RESUME);
+            if (sky_unlikely(!session->client || sky_tcp_is_closed(tcp))) {
                 return false;
+            }
+        } else {
+            break;
         }
-        break;
     }
-    sky_event_reset_timeout_self(ev, conn_pool->keep_alive);
+
+    sky_event_reset_timeout_self(sky_tcp_get_event(tcp), conn_pool->keep_alive);
     return true;
 }
 

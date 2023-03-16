@@ -50,11 +50,15 @@ struct sky_tcp_connect_s {
 
 void sky_tcp_ctx_init(sky_tcp_ctx_t *ctx);
 
-void sky_tcp_init();
+void sky_tcp_init(
+        sky_tcp_connect_t *conn,
+        sky_tcp_ctx_t *ctx,
+        sky_event_loop_t *loop,
+        sky_tcp_run_pt run,
+        sky_tcp_error_pt error
+);
 
-void sky_tcp_bind();
-
-void sky_tcp_listen();
+sky_bool_t sky_tcp_open(sky_tcp_connect_t *conn, sky_i32_t domain);
 
 sky_i8_t sky_tcp_connect(sky_tcp_connect_t *conn, sky_inet_addr_t *addr, sky_usize_t addr_size);
 
@@ -84,6 +88,11 @@ sky_bool_t sky_tcp_option_fast_open(sky_socket_t fd, sky_i32_t n);
 static sky_inline sky_event_t *
 sky_tcp_get_event(sky_tcp_connect_t *conn) {
     return &conn->ev;
+}
+
+static sky_inline sky_bool_t
+sky_tcp_register(sky_tcp_connect_t *conn, sky_i32_t timeout) {
+    return sky_event_register(&conn->ev, timeout);
 }
 
 static sky_inline sky_bool_t
