@@ -23,6 +23,14 @@
 
 #endif
 
+#ifndef SKY_HAVE_ACCEPT4
+
+#include <fcntl.h>
+
+static sky_bool_t set_socket_nonblock(sky_socket_t fd);
+
+#endif
+
 static void tcp_connect_close(sky_tcp_connect_t *conn);
 
 static sky_isize_t tcp_connect_read(sky_tcp_connect_t *conn, sky_uchar_t *data, sky_usize_t size);
@@ -44,6 +52,57 @@ sky_tcp_ctx_init(sky_tcp_ctx_t *ctx) {
     ctx->read = tcp_connect_read;
     ctx->write = tcp_connect_write;
     ctx->sendfile = tcp_connect_sendfile;
+}
+
+void
+sky_tcp_init(
+        sky_tcp_connect_t *conn,
+        sky_tcp_ctx_t *ctx,
+        sky_event_loop_t *loop,
+        sky_tcp_run_pt run,
+        sky_tcp_error_pt error
+) {
+    conn->ctx = ctx;
+    sky_event_init(&conn->ev, loop, -1, (sky_event_run_pt) run, (sky_event_error_pt) error);
+}
+
+sky_bool_t
+sky_tcp_open(sky_tcp_connect_t *conn, sky_i32_t domain) {
+#ifdef SKY_HAVE_ACCEPT4
+    const sky_socket_t fd = socket(domain, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+    if (sky_unlikely(fd < 0)) {
+        return false;
+    }
+#else
+    const sky_socket_t fd = socket(domain, SOCK_STREAM, 0);
+    if (sky_unlikely(fd < 0)) {
+        return false;
+    }
+    if (sky_unlikely(!set_socket_nonblock(fd))) {
+        close(fd);
+        return false;
+    }
+#endif
+    sky_event_rebind(&conn->ev, fd);
+
+    return true;
+}
+
+sky_i8_t
+sky_tcp_connect(sky_tcp_connect_t *conn, sky_inet_addr_t *addr, sky_usize_t addr_size) {
+    if (connect(sky_event_get_fd(&conn->ev), addr, (sky_u32_t) addr_size) < 0) {
+        switch (errno) {
+            case EALREADY:
+            case EINPROGRESS:
+                return 0;
+            case EISCONN:
+                break;
+            default:
+                return -1;
+        }
+    }
+
+    return 1;
 }
 
 void
@@ -281,3 +340,34 @@ tcp_connect_sendfile(
 #endif
 
 }
+
+#ifndef SKY_HAVE_ACCEPT4
+
+static sky_bool_t
+set_socket_nonblock(sky_socket_t fd) {
+    sky_i32_t flags;
+
+    flags = fcntl(fd, F_GETFD);
+
+    if (sky_unlikely(flags < 0)) {
+        return false;
+    }
+
+    if (sky_unlikely(fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0)) {
+        return false;
+    }
+
+    flags = fcntl(fd, F_GETFD);
+
+    if (sky_unlikely(flags < 0)) {
+        return false;
+    }
+
+    if (sky_unlikely(fcntl(fd, F_SETFD, flags | O_NONBLOCK) < 0)) {
+        return false;
+    }
+
+    return true;
+}
+
+#endif
