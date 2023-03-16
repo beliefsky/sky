@@ -14,8 +14,6 @@ extern "C" {
 typedef struct sky_tcp_server_s sky_tcp_server_t;
 
 typedef sky_tcp_connect_t *(*sky_tcp_create_pt)(void *data);
-typedef sky_bool_t (*sky_tcp_run_pt)(sky_tcp_connect_t *conn);
-typedef void (*sky_tcp_error_pt)(sky_tcp_connect_t *conn);
 
 typedef struct {
     sky_tcp_create_pt create_handle;
