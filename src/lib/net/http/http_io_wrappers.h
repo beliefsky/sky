@@ -21,7 +21,7 @@ void sky_http_send_file(
         sky_i64_t offset,
         sky_usize_t size,
         const sky_uchar_t *header,
-        sky_u32_t header_len
+        sky_usize_t header_len
 );
 
 #ifdef SKY_HAVE_TLS
