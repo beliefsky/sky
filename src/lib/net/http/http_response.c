@@ -138,7 +138,7 @@ sky_http_sendfile(sky_http_request_t *r, sky_i32_t fd, sky_usize_t offset, sky_u
     http_header_write_ex(r, &stream);
 
     if (size) {
-        const sky_u32_t header_len = (sky_u32_t) sky_str_out_stream_data_size(&stream);
+        const sky_usize_t header_len = sky_str_out_stream_data_size(&stream);
         const sky_uchar_t *header_data = sky_str_out_stream_data(&stream);
         sky_http_send_file(r->conn, fd, (sky_i64_t) offset, size, header_data, header_len);
         sky_str_out_stream_reset(&stream);
