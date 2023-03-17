@@ -3,7 +3,6 @@
 //
 
 #include "tcp_pool.h"
-#include "tcp.h"
 #include "../core/memory.h"
 
 struct sky_tcp_pool_s {
@@ -59,6 +58,9 @@ sky_tcp_pool_create(sky_event_loop_t *ev_loop, const sky_tcp_pool_conf_t *conf) 
             + (sizeof(sky_tcp_node_t) * conn_n)
             + conf->address_len
     );
+    if (conf->ctx) {
+        sky_memcpy(&conn_pool->ctx, conf->ctx, sizeof(sky_tcp_ctx_t));
+    }
     sky_tcp_ctx_init(&conn_pool->ctx);
     conn_pool->clients = (sky_tcp_node_t *) (conn_pool + 1);
     conn_pool->address = (sky_inet_addr_t *) (conn_pool->clients + conn_n);
