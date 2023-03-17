@@ -23,11 +23,24 @@ sky_http_response_nobody(sky_http_request_t *r) {
     }
     r->response = true;
 
-    sky_str_out_stream_ini2(&stream, r->pool, http_write_cb, r->conn, 2048);
+    const sky_str_t buff = {
+            .len = 2048,
+            .data = sky_pnalloc(r->pool, 2048)
+    };
+
+    sky_str_out_stream_init_with_buff(
+            &stream,
+            (sky_str_out_stream_pt) http_write_cb,
+            r->conn,
+            buff.data,
+            buff.len
+    );
+
     http_header_write_pre(r, &stream);
     http_header_write_ex(r, &stream);
     sky_str_out_stream_flush(&stream);
     sky_str_out_stream_destroy(&stream);
+    sky_pfree(r->pool, buff.data, buff.len);
 }
 
 
@@ -49,7 +62,19 @@ sky_http_response_static_len(sky_http_request_t *r, const sky_uchar_t *buf, sky_
     }
     r->response = true;
 
-    sky_str_out_stream_ini2(&stream, r->pool, http_write_cb, r->conn, 2048);
+    const sky_str_t buff = {
+            .len = 2048,
+            .data = sky_pnalloc(r->pool, 2048)
+    };
+
+    sky_str_out_stream_init_with_buff(
+            &stream,
+            (sky_str_out_stream_pt) http_write_cb,
+            r->conn,
+            buff.data,
+            buff.len
+    );
+
     http_header_write_pre(r, &stream);
     if (!buf_len) {
         sky_str_out_stream_write_str_len(&stream, sky_str_line("Content-Length: 0\r\n"));
@@ -64,6 +89,7 @@ sky_http_response_static_len(sky_http_request_t *r, const sky_uchar_t *buf, sky_
 
     sky_str_out_stream_flush(&stream);
     sky_str_out_stream_destroy(&stream);
+    sky_pfree(r->pool, buff.data, buff.len);
 }
 
 void
@@ -78,17 +104,36 @@ sky_http_response_chunked(sky_http_request_t *r, const sky_str_t *buf) {
 void
 sky_http_response_chunked_len(sky_http_request_t *r, const sky_uchar_t *buf, sky_usize_t buf_len) {
     sky_str_out_stream_t stream;
+    sky_str_t buff;
 
     if (!r->response) {
         r->response = true;
         r->chunked = true;
 
-        sky_str_out_stream_ini2(&stream, r->pool, http_write_cb, r->conn, 2048);
+        buff.len = 2048;
+        buff.data = sky_pnalloc(r->pool, 2048);
+
+        sky_str_out_stream_init_with_buff(
+                &stream,
+                (sky_str_out_stream_pt) http_write_cb,
+                r->conn,
+                buff.data,
+                buff.len
+        );
         http_header_write_pre(r, &stream);
         sky_str_out_stream_write_str_len(&stream, sky_str_line("Transfer-Encoding: chunked\r\n"));
         http_header_write_ex(r, &stream);
     } else if (r->chunked) {
-        sky_str_out_stream_ini2(&stream, r->pool, http_write_cb, r->conn, 20 + buf_len);
+        buff.len = 20 + buf_len;
+        buff.data = sky_pnalloc(r->pool, buff.len);
+
+        sky_str_out_stream_init_with_buff(
+                &stream,
+                (sky_str_out_stream_pt) http_write_cb,
+                r->conn,
+                buff.data,
+                buff.len
+        );
     } else {
         return;
     }
@@ -107,6 +152,7 @@ sky_http_response_chunked_len(sky_http_request_t *r, const sky_uchar_t *buf, sky
 
     sky_str_out_stream_flush(&stream);
     sky_str_out_stream_destroy(&stream);
+    sky_pfree(r->pool, buff.data, buff.len);
 }
 
 
@@ -119,7 +165,18 @@ sky_http_sendfile(sky_http_request_t *r, sky_i32_t fd, sky_usize_t offset, sky_u
     }
     r->response = true;
 
-    sky_str_out_stream_ini2(&stream, r->pool, http_write_cb, r->conn, 2048);
+    const sky_str_t buff = {
+            .len = 2048,
+            .data = sky_pnalloc(r->pool, 2048)
+    };
+
+    sky_str_out_stream_init_with_buff(
+            &stream,
+            (sky_str_out_stream_pt) http_write_cb,
+            r->conn,
+            buff.data,
+            buff.len
+    );
     http_header_write_pre(r, &stream);
 
     sky_str_out_stream_write_str_len(&stream, sky_str_line("Content-Length: "));
@@ -146,6 +203,7 @@ sky_http_sendfile(sky_http_request_t *r, sky_i32_t fd, sky_usize_t offset, sky_u
         sky_str_out_stream_flush(&stream);
     }
     sky_str_out_stream_destroy(&stream);
+    sky_pfree(r->pool, buff.data, buff.len);
 }
 
 static void

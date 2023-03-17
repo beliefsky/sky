@@ -62,7 +62,6 @@ sky_bool_t sky_tcp_open(sky_tcp_connect_t *conn, sky_i32_t domain);
 
 sky_i8_t sky_tcp_connect(sky_tcp_connect_t *conn, sky_inet_addr_t *addr, sky_usize_t addr_size);
 
-
 void sky_tcp_close(sky_tcp_connect_t *conn);
 
 sky_isize_t sky_tcp_read(sky_tcp_connect_t *conn, sky_uchar_t *data, sky_usize_t size);
