@@ -25,7 +25,8 @@
 #endif
 #endif
 
-static void event_timer_callback(sky_event_t *ev);
+#define SKY_EV_NONE_INDEX SKY_U32(0x80000000)
+#define SKY_EV_STATUS_MASK SKY_U32(0xFFFF)
 
 static sky_i32_t setup_open_file_count_limits();
 
@@ -48,7 +49,6 @@ sky_event_loop_create() {
     loop->max_events = max_events;
     loop->now = time(null);
     loop->ctx = sky_timer_wheel_create(TIMER_WHEEL_DEFAULT_NUM, (sky_u64_t) loop->now);
-    loop->current_ev = null;
 
     return loop;
 }
@@ -104,55 +104,37 @@ sky_event_loop_run(sky_event_loop_t *loop) {
         for (index = 0, event = events; n > 0; ++event, --n) {
             ev = event->udata;
             // 需要处理被移除的请求
-            if (sky_event_none_reg(ev)) {
-                if ((ev->status & 0x80000000) != 0) {
-                    ev->status = (index << 16) | (ev->status & 0x0000FFFF);
-                    run_ev[index++] = ev;
+            if (sky_event_none_reg(ev) || sky_event_is_error(ev)) {
+                if (!!(ev->status & SKY_EV_NONE_INDEX)) {
+                    ev->status &= (index << 16) | SKY_EV_STATUS_MASK; // index=xx
                 }
-                continue;
-            }
-            // 是否出现异常
-            if (sky_unlikely(event->flags & EV_ERROR)) {
-                close(ev->fd);
-                ev->fd = -1;
-                if ((ev->status & 0x80000000) != 0) {
-                    // ev->index = index, ev->reg = false, ev->read = false, ev->write = false
-                    ev->status = (index << 16) | (ev->status & 0x0000FFF8);
+            } else if (sky_unlikely(!!(event->flags & EV_ERROR))) {
+                if (!!(ev->status & SKY_EV_NONE_INDEX)) {
+                    ev->status |= SKY_EV_ERROR; // error = true
+                    /* index=xx; read = false; write = false */
+                    ev->status &= (index << 16) | (SKY_EV_STATUS_MASK & (~(SKY_EV_READ | SKY_EV_WRITE)));
                     run_ev[index++] = ev;
                 } else {
-                    // ev->reg = false, ev->read = false, ev->write = false
-                    ev->status &= 0xFFFFFFF8;
+                    ev->status |= SKY_EV_ERROR; //  error = true
+                    ev->status &= ~(SKY_EV_READ | SKY_EV_WRITE);// read = false; write = false
                 }
-                continue;
-            }
-            // 是否可读
-            // 是否可写
-            ev->now = loop->now;
-            ev->status |= 1 << ((sky_u32_t) (event->filter == EVFILT_WRITE) + 1);
-            if ((ev->status & 0x80000000) != 0) {
-                ev->status = (index << 16) | (ev->status & 0x0000FFFF); // ev->index = index;
-                run_ev[index++] = ev;
+            } else {
+                ev->status |= 1 << ((sky_u32_t) (event->filter == EVFILT_WRITE) + 1); // 是否可读或可写
+                if (!!(ev->status & SKY_EV_NONE_INDEX)) {
+                    ev->status &= (index << 16) | SKY_EV_STATUS_MASK;
+                }
             }
         }
         loop->now = time(null);
 
         for (i = 0; i < index; ++i) {
             ev = run_ev[i];
-            ev->status |= 0x80000000; // index = none
-            loop->current_ev = ev;
-            if (sky_event_none_reg(ev)) {
+            ev->status |= SKY_EV_NONE_INDEX; // index = none
+            if (sky_event_none_reg(ev) || sky_event_is_error(ev) || !ev->run(ev)) {
                 sky_timer_wheel_unlink(&ev->timer);
-                ev->close(ev);
-                continue;
-            }
-            if (ev->run(ev)) {
-                sky_timer_wheel_expired(ctx, &ev->timer, (sky_u64_t) (ev->now + ev->timeout));
+                ev->timer.cb(&ev->timer);
             } else {
-                close(ev->fd);
-                ev->fd = -1;
-                ev->status &= 0xFFFFFFFE; // reg = false
-                sky_timer_wheel_unlink(&ev->timer);
-                ev->close(ev);
+                sky_timer_wheel_expired(ctx, &ev->timer, (sky_u64_t) (loop->now + ev->timeout));
             }
         }
 
@@ -172,13 +154,20 @@ sky_event_loop_run(sky_event_loop_t *loop) {
     }
 }
 
+void
+sky_event_loop_destroy(sky_event_loop_t *loop) {
+    close(loop->fd);
+    sky_timer_wheel_destroy(loop->ctx);
+
+    sky_free(loop);
+}
+
 sky_bool_t
 sky_event_register(sky_event_t *ev, sky_i32_t timeout) {
     if (sky_unlikely(sky_event_is_reg(ev) || ev->fd < 0)) {
         return false;
     }
-    ev->timer.cb = (sky_timer_wheel_pt) event_timer_callback;
-    ev->status |= 0x80000001; // index = none, reg = true
+    ev->status |= SKY_EV_NONE_INDEX | SKY_EV_REG; // index = none, reg = true
 
     sky_event_loop_t *loop = ev->loop;
     if (timeout < 0) {
@@ -203,8 +192,7 @@ sky_event_register_none(sky_event_t *ev, sky_i32_t timeout) {
     if (sky_unlikely(sky_event_is_reg(ev))) {
         return false;
     }
-    ev->timer.cb = (sky_timer_wheel_pt) event_timer_callback;
-    ev->status |= 0x80000001; // reg = true
+    ev->status |= SKY_EV_NONE_INDEX | SKY_EV_REG; // reg = true
 
     sky_event_loop_t *loop = ev->loop;
     if (timeout < 0) {
@@ -224,8 +212,7 @@ sky_event_register_only_read(sky_event_t *ev, sky_i32_t timeout) {
     if (sky_unlikely(sky_event_is_reg(ev) || ev->fd < 0)) {
         return false;
     }
-    ev->timer.cb = (sky_timer_wheel_pt) event_timer_callback;
-    ev->status |= 0x80000001; // index = none, reg = true
+    ev->status |= SKY_EV_NONE_INDEX | SKY_EV_REG; // index = none, reg = true
 
     sky_event_loop_t *loop = ev->loop;
     if (timeout < 0) {
@@ -249,8 +236,7 @@ sky_event_register_only_write(sky_event_t *ev, sky_i32_t timeout) {
     if (sky_unlikely(sky_event_is_reg(ev) || ev->fd < 0)) {
         return false;
     }
-    ev->timer.cb = (sky_timer_wheel_pt) event_timer_callback;
-    ev->status |= 0x80000001; // index = none, reg = true
+    ev->status |= SKY_EV_NONE_INDEX | SKY_EV_REG; // index = none, reg = true
 
     sky_event_loop_t *loop = ev->loop;
     if (timeout < 0) {
@@ -269,17 +255,26 @@ sky_event_register_only_write(sky_event_t *ev, sky_i32_t timeout) {
     return true;
 }
 
-static void
-event_timer_callback(sky_event_t *ev) {
-    ev->loop->current_ev = ev;
-    if (sky_event_is_reg(ev)) {
-        if (sky_likely(ev->fd >= 0)) {
-            close(ev->fd);
-        }
-        ev->fd = -1;
-        ev->status &= 0xFFFFFFFE; // reg = false
+sky_bool_t
+sky_event_unregister(sky_event_t *ev) {
+    if (sky_likely(sky_event_none_reg(ev))) {
+        return false;
     }
-    ev->close(ev);
+    sky_event_loop_t *loop = ev->loop;
+
+    if (ev->fd >= 0) {
+        struct kevent event[2];
+        EV_SET(&event[0], ev->fd, EVFILT_READ, EV_DELETE, 0, 0, ev);
+        EV_SET(&event[1], ev->fd, EVFILT_WRITE, EV_DELETE, 0, 0, ev);
+        kevent(loop->fd, event, 2, null, 0, null);
+    }
+    ev->timeout = 0;
+    ev->status &= ~SKY_EV_REG; // reg = false
+    // 此处应添加 应追加需要处理的连接
+    loop->update = true;
+    sky_timer_wheel_link(loop->ctx, &ev->timer, 0);
+
+    return true;
 }
 
 static sky_i32_t

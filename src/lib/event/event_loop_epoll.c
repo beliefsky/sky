@@ -5,7 +5,6 @@
 #include "event_loop.h"
 
 #include <sys/resource.h>
-#include <unistd.h>
 #include <errno.h>
 #include <signal.h>
 #include <sys/epoll.h>
@@ -15,6 +14,7 @@
 #ifndef OPEN_MAX
 
 #include <sys/param.h>
+#include <unistd.h>
 
 #ifndef OPEN_MAX
 #ifdef NOFILE
@@ -26,8 +26,6 @@
 #endif
 
 static sky_bool_t event_register_with_flags(sky_event_t *ev, sky_u32_t flags, sky_i32_t timeout);
-
-static void event_timer_callback(sky_event_t *ev);
 
 static sky_i32_t setup_open_file_count_limits();
 
@@ -49,7 +47,6 @@ sky_event_loop_create() {
     loop->max_events = max_events;
     loop->now = time(null);
     loop->ctx = sky_timer_wheel_create(TIMER_WHEEL_DEFAULT_NUM, (sky_u64_t) loop->now);
-    loop->current_ev = null;
 
     return loop;
 }
@@ -94,38 +91,25 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 
         for (event = events; n > 0; ++event, --n) {
             ev = event->data.ptr;
-            ev->now = loop->now;
-            loop->current_ev = ev;
-
-            // 需要处理被移除的请求
-            if (sky_event_none_reg(ev)) {
+            if (sky_event_none_reg(ev) || sky_event_is_error(ev)) {
                 sky_timer_wheel_unlink(&ev->timer);
-                ev->close(ev);
-                continue;
-            }
-
-            // 是否出现异常
-            if (sky_unlikely(event->events & (EPOLLRDHUP | EPOLLHUP))) {
-                close(ev->fd);
-                ev->fd = -1;
-                ev->status &= 0xFFFFFFF8; // reg = false ev->read = false, ev->write = false
+                ev->timer.cb(&ev->timer);
+            } else if (sky_unlikely(!!(event->events & (EPOLLRDHUP | EPOLLHUP)))) {
+                ev->status |= SKY_EV_ERROR; // error = true
+                ev->status &= ~(SKY_EV_READ | SKY_EV_WRITE);// read = false; write = false
                 sky_timer_wheel_unlink(&ev->timer);
-                ev->close(ev);
-                continue;
-            }
-
-            // 是否可读可写
-            ev->status |= ((sky_u32_t) ((event->events & EPOLLOUT) != 0) << 2)
-                          | ((sky_u32_t) ((event->events & EPOLLIN) != 0) << 1);
-
-            if (ev->run(ev)) {
-                sky_timer_wheel_expired(ctx, &ev->timer, (sky_u64_t) (ev->now + ev->timeout));
+                ev->timer.cb(&ev->timer);
             } else {
-                close(ev->fd);
-                ev->fd = -1;
-                ev->status &= 0xFFFFFFFE; // reg = false
-                sky_timer_wheel_unlink(&ev->timer);
-                ev->close(ev);
+                // 是否可读可写
+                ev->status |= ((sky_u32_t) ((event->events & EPOLLOUT) != 0) << 2)
+                              | ((sky_u32_t) ((event->events & EPOLLIN) != 0) << 1);
+
+                if (ev->run(ev)) {
+                    sky_timer_wheel_expired(ctx, &ev->timer, (sky_u64_t) (loop->now + ev->timeout));
+                } else {
+                    sky_timer_wheel_unlink(&ev->timer);
+                    ev->timer.cb(&ev->timer);
+                }
             }
         }
 
@@ -138,6 +122,14 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             timeout = next_time == SKY_U64_MAX ? -1 : (sky_i32_t) (next_time - (sky_u64_t) now) * 1000;
         }
     }
+}
+
+void
+sky_event_loop_destroy(sky_event_loop_t *loop) {
+    close(loop->fd);
+    sky_timer_wheel_destroy(loop->ctx);
+
+    sky_free(loop);
 }
 
 
@@ -155,9 +147,7 @@ sky_event_register_none(sky_event_t *ev, sky_i32_t timeout) {
     if (sky_unlikely(sky_event_is_reg(ev))) {
         return false;
     }
-    ev->timer.cb = (sky_timer_wheel_pt) event_timer_callback;
-    ev->status |= 0x00000001; // reg = true
-
+    ev->status |= SKY_EV_REG; // reg = true
     sky_event_loop_t *loop = ev->loop;
     if (timeout < 0) {
         timeout = 0;
@@ -189,13 +179,36 @@ sky_event_register_only_write(sky_event_t *ev, sky_i32_t timeout) {
     );
 }
 
+sky_bool_t
+sky_event_unregister(sky_event_t *ev) {
+    if (sky_unlikely(sky_event_none_reg(ev))) {
+        return false;
+    }
+
+    if (ev->fd >= 0) {
+        struct epoll_event event = {
+                .events = EPOLLIN | EPOLLOUT | EPOLLPRI | EPOLLRDHUP | EPOLLERR | EPOLLET,
+                .data.ptr = ev
+        };
+
+        (void) epoll_ctl(ev->loop->fd, EPOLL_CTL_DEL, ev->fd, &event);
+    }
+    ev->timeout = 0;
+    ev->status &= ~SKY_EV_REG; // reg = false
+    // 此处应添加 应追加需要处理的连接
+    ev->loop->update = true;
+    sky_timer_wheel_link(ev->loop->ctx, &ev->timer, 0);
+
+    return true;
+}
+
+
 static sky_inline sky_bool_t
 event_register_with_flags(sky_event_t *ev, sky_u32_t flags, sky_i32_t timeout) {
     if (sky_unlikely(sky_event_is_reg(ev) || ev->fd < 0)) {
         return false;
     }
-    ev->timer.cb = (sky_timer_wheel_pt) event_timer_callback;
-    ev->status |= 0x00000001; // reg = true
+    ev->status |= SKY_EV_REG; // reg = true
 
     sky_event_loop_t *loop = ev->loop;
     if (timeout < 0) {
@@ -216,20 +229,6 @@ event_register_with_flags(sky_event_t *ev, sky_u32_t flags, sky_i32_t timeout) {
 
     return true;
 }
-
-static void
-event_timer_callback(sky_event_t *ev) {
-    ev->loop->current_ev = ev;
-    if (sky_event_is_reg(ev)) {
-        if (sky_likely(ev->fd >= 0)) {
-            close(ev->fd);
-        }
-        ev->fd = -1;
-        ev->status &= 0xFFFFFFFE; // reg = false
-    }
-    ev->close(ev);
-}
-
 
 static sky_i32_t
 setup_open_file_count_limits() {

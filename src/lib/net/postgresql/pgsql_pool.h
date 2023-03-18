@@ -27,11 +27,11 @@ typedef struct {
     sky_str_t database;
     sky_u32_t connection_size;
     sky_u32_t address_len;
-    sky_inet_address_t *address;
+    sky_inet_addr_t *address;
 } sky_pgsql_conf_t;
 
 struct sky_pgsql_conn_s {
-    sky_tcp_conn_t conn;
+    sky_tcp_session_t conn;
     sky_pool_t *pool;
     sky_pgsql_pool_t *pg_pool;
     sky_bool_t error;

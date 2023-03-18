@@ -5,7 +5,6 @@
 #ifndef SKY_STRING_OUT_STREAM_H
 #define SKY_STRING_OUT_STREAM_H
 
-#include "palloc.h"
 #include "string.h"
 
 #if defined(__cplusplus)
@@ -20,10 +19,10 @@ struct sky_str_out_stream_s {
     sky_uchar_t *start;
     sky_uchar_t *post;
     sky_uchar_t *end;
-    sky_pool_t *pool;
     sky_str_out_stream_pt callback;
     void *data;
     sky_bool_t fail: 1;
+    sky_bool_t need_free:1;
 };
 
 
@@ -34,11 +33,11 @@ sky_bool_t sky_str_out_stream_init(
         sky_usize_t n
 );
 
-sky_bool_t sky_str_out_stream_ini2(
+void sky_str_out_stream_init_with_buff(
         sky_str_out_stream_t *stream,
-        sky_pool_t *pool,
         sky_str_out_stream_pt callback,
         void *data,
+        sky_uchar_t *buff,
         sky_usize_t n
 );
 

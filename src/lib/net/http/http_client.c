@@ -317,7 +317,18 @@ static sky_bool_t
 http_req_writer(sky_http_client_t *client, sky_http_client_req_t *req) {
     sky_str_out_stream_t stream;
 
-    sky_str_out_stream_ini2(&stream, req->pool, (sky_str_out_stream_pt) sky_tcp_client_write_all, client->client, 2048);
+    const sky_str_t buff = {
+            .len = 2048,
+            .data = sky_pnalloc(req->pool, 2048)
+    };
+
+    sky_str_out_stream_init_with_buff(
+            &stream,
+            (sky_str_out_stream_pt) sky_tcp_client_write_all,
+            client->client,
+            buff.data,
+            buff.len
+    );
     sky_str_out_stream_write_str(&stream, &req->method);
     sky_str_out_stream_write_uchar(&stream, ' ');
     sky_str_out_stream_write_str(&stream, &req->path);
@@ -335,6 +346,7 @@ http_req_writer(sky_http_client_t *client, sky_http_client_req_t *req) {
 
     const sky_bool_t result = sky_str_out_stream_flush(&stream);
     sky_str_out_stream_destroy(&stream);
+    sky_pfree(req->pool, buff.data, buff.len);
 
     return result;
 }

@@ -119,7 +119,7 @@ sky_mqtt_write_packet(sky_mqtt_connect_t *conn) {
     sky_uchar_t *buf;
     sky_isize_t size;
 
-    if (sky_event_none_write(&conn->ev) || sky_queue_is_empty(&conn->packet)) {
+    if (sky_queue_empty(&conn->packet)) {
         return true;
     }
 
@@ -129,14 +129,14 @@ sky_mqtt_write_packet(sky_mqtt_connect_t *conn) {
         buf = packet->data + conn->write_size;
 
         for (;;) {
-            size = conn->server->mqtt_write_nowait(conn, buf, packet->size - conn->write_size);
+            size = sky_tcp_write(&conn->tcp, buf, packet->size - conn->write_size);
             if (sky_unlikely(size == -1)) {
                 return false;
             } else if (size == 0) {
-                sky_event_timeout_expired(&conn->ev);
+                sky_event_timeout_expired(sky_tcp_get_event(&conn->tcp));
                 return true;
             }
-            conn->write_size += size;
+            conn->write_size += (sky_u32_t) size;
             buf += size;
             if (conn->write_size >= packet->size) {
                 break;
@@ -149,9 +149,9 @@ sky_mqtt_write_packet(sky_mqtt_connect_t *conn) {
         } else {
             packet->size = 0;
         }
-    } while (!sky_queue_is_empty(&conn->packet));
+    } while (!sky_queue_empty(&conn->packet));
 
-    sky_event_timeout_expired(&conn->ev);
+    sky_event_timeout_expired(sky_tcp_get_event(&conn->tcp));
 
     return true;
 }
@@ -174,7 +174,7 @@ sky_mqtt_get_packet(sky_mqtt_connect_t *conn, sky_u32_t need_size) {
     }
 
     if ((conn->current_packet->size + need_size) > MQTT_PACKET_BUFF_SIZE) {
-        if (sky_queue_is_linked(&packet->link)) {
+        if (sky_queue_linked(&packet->link)) {
             conn->current_packet = null;
         }
         if (need_size > MQTT_PACKET_BUFF_SIZE) {
@@ -188,7 +188,7 @@ sky_mqtt_get_packet(sky_mqtt_connect_t *conn, sky_u32_t need_size) {
         packet->size = 0;
         return packet;
     }
-    if (!sky_queue_is_linked(&packet->link)) {
+    if (!sky_queue_linked(&packet->link)) {
         sky_queue_insert_prev(&conn->packet, &packet->link);
     }
     return packet;
@@ -196,13 +196,13 @@ sky_mqtt_get_packet(sky_mqtt_connect_t *conn, sky_u32_t need_size) {
 
 void
 sky_mqtt_clean_packet(sky_mqtt_connect_t *conn) {
-    if (null != conn->current_packet && !sky_queue_is_linked(&conn->current_packet->link)) {
+    if (null != conn->current_packet && !sky_queue_linked(&conn->current_packet->link)) {
         sky_free(conn->current_packet);
     }
     conn->current_packet = null;
 
     sky_mqtt_packet_t *packet;
-    while (!sky_queue_is_empty(&conn->packet)) {
+    while (!sky_queue_empty(&conn->packet)) {
         packet = (sky_mqtt_packet_t *) sky_queue_next(&conn->packet);
         sky_queue_remove(&packet->link);
         sky_free(packet);

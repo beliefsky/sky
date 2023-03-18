@@ -26,11 +26,11 @@ typedef sky_tcp_pool_t sky_redis_pool_t;
 typedef struct {
     sky_u32_t connection_size;
     sky_u32_t address_len;
-    sky_inet_address_t *address;
+    sky_inet_addr_t *address;
 } sky_redis_conf_t;
 
 struct sky_redis_conn_s {
-    sky_tcp_conn_t conn;
+    sky_tcp_session_t conn;
     sky_pool_t *pool;
     sky_bool_t error;
 };

@@ -14,19 +14,19 @@ struct sky_tcp_client_s {
     sky_coro_t *coro;
     sky_defer_t *defer;
     sky_tcp_destroy_pt destroy;
-    sky_socket_options_pt options;
+    sky_scoket_opts_pt options;
     void *data;
     sky_i32_t keep_alive;
     sky_i32_t timeout;
 };
 
-static sky_bool_t tcp_run(sky_tcp_client_t *client);
+static sky_bool_t tcp_run(sky_event_t *ev);
 
-static void tcp_close(sky_tcp_client_t *client);
+static void tcp_close(sky_event_t *ev);
 
-static void tcp_close_cb(sky_tcp_client_t *client);
+static void tcp_close_cb(sky_event_t *ev);
 
-static void tcp_close_free(sky_tcp_client_t *client);
+static void tcp_close_free(sky_event_t *ev);
 
 static void tcp_client_defer(sky_tcp_client_t *client);
 
@@ -37,7 +37,7 @@ static sky_isize_t io_write(sky_tcp_client_t *client, const sky_uchar_t *data, s
 sky_tcp_client_t *
 sky_tcp_client_create(sky_event_t *event, sky_coro_t *coro, const sky_tcp_client_conf_t *conf) {
     sky_tcp_client_t *client = sky_malloc(sizeof(sky_tcp_client_t));
-    sky_event_init(sky_event_get_loop(event), &client->ev, -1, tcp_run, tcp_close);
+    sky_event_init(&client->ev, sky_event_get_loop(event), -1, tcp_run, tcp_close);
     client->main_ev = event;
     client->coro = coro;
     client->destroy = conf->destroy;
@@ -52,19 +52,15 @@ sky_tcp_client_create(sky_event_t *event, sky_coro_t *coro, const sky_tcp_client
 }
 
 sky_bool_t
-sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_address_t *address, sky_u32_t address_len) {
+sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_addr_t *address, sky_u32_t address_len) {
     sky_event_t *ev = &client->ev;
 
     if (sky_unlikely(!client->defer)) {
         return false;
     }
-
-    if (sky_event_none_callback(ev)) {
-        close(ev->fd);
-        ev->fd = -1;
-    } else {
-        sky_event_unregister(ev);
-    }
+    close(ev->fd);
+    sky_event_rebind(ev, -1);
+    sky_event_unregister(ev);
 #ifdef SKY_HAVE_ACCEPT4
     sky_i32_t fd = socket(address->sa_family, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
     if (sky_unlikely(fd < 0)) {
@@ -116,6 +112,8 @@ sky_tcp_client_close(sky_tcp_client_t *client) {
         return;
     }
     sky_event_reset(&client->ev, tcp_run, tcp_close_cb);
+    close(client->ev.fd);
+    sky_event_rebind(&client->ev, -1);
     sky_event_unregister(&client->ev);
 }
 
@@ -366,15 +364,19 @@ sky_tcp_client_destroy(sky_tcp_client_t *client) {
 }
 
 static sky_bool_t
-tcp_run(sky_tcp_client_t *client) {
+tcp_run(sky_event_t *ev) {
+    sky_tcp_client_t *client = (sky_tcp_client_t *) ev;
+
     sky_event_t *event = client->main_ev;
 
     const sky_bool_t result = event->run(event);
     if (!result) {
+        close(event->fd);
+        sky_event_rebind(event, -1);
         sky_event_unregister(event);
 
         if (client->defer) { // 不允许再调用
-            sky_event_reset(&client->ev, tcp_run, tcp_close_cb);
+            sky_event_reset(ev, tcp_run, tcp_close_cb);
         }
     }
 
@@ -382,17 +384,30 @@ tcp_run(sky_tcp_client_t *client) {
 }
 
 static void
-tcp_close(sky_tcp_client_t *client) {
-    tcp_run(client);
+tcp_close(sky_event_t *ev) {
+    if (sky_event_get_fd(ev) > 0) {
+        close(ev->fd);
+        sky_event_rebind(ev, -1);
+    }
+    tcp_run(ev);
 }
 
 static sky_inline void
-tcp_close_cb(sky_tcp_client_t *client) {
-    (void) client;
+tcp_close_cb(sky_event_t *ev) {
+    if (sky_event_get_fd(ev) > 0) {
+        close(ev->fd);
+        sky_event_rebind(ev, -1);
+    }
 }
 
 static sky_inline void
-tcp_close_free(sky_tcp_client_t *client) {
+tcp_close_free(sky_event_t *ev) {
+    sky_tcp_client_t *client = (sky_tcp_client_t *) ev;
+
+    if (sky_event_get_fd(ev) > 0) {
+        close(ev->fd);
+        sky_event_rebind(ev, -1);
+    }
     if (client->destroy) {
         client->destroy(client->data);
     }
@@ -403,10 +418,10 @@ static sky_inline void
 tcp_client_defer(sky_tcp_client_t *client) {
     client->defer = null;
 
+    close(client->ev.fd);
+    sky_event_rebind(&client->ev, -1);
     if (sky_unlikely(sky_event_none_callback(&client->ev))) {
-        close(client->ev.fd);
-        sky_event_rebind(&client->ev, -1);
-        tcp_close_free(client);
+        tcp_close_free(&client->ev);
     } else {
         sky_event_reset(&client->ev, tcp_run, tcp_close_free);
         sky_event_unregister(&client->ev);

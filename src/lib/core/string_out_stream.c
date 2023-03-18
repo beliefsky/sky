@@ -23,57 +23,43 @@ sky_str_out_stream_init(
     if (sky_unlikely(!stream->start)) {
         stream->post = null;
         stream->fail = true;
+        stream->need_free = false;
         return false;
     }
     stream->post = stream->start;
     stream->end = stream->start + n;
-    stream->pool = null;
     stream->callback = callback;
     stream->data = data;
     stream->fail = false;
-
-    return true;
-}
-
-sky_bool_t
-sky_str_out_stream_ini2(
-        sky_str_out_stream_t *stream,
-        sky_pool_t *pool,
-        sky_str_out_stream_pt callback,
-        void *data,
-        sky_usize_t n
-) {
-    n = sky_max(n, SKY_USIZE(128));
-
-    stream->start = sky_pnalloc(pool, n);
-    if (sky_unlikely(!stream->start)) {
-        stream->post = null;
-        stream->fail = true;
-        return false;
-    }
-    stream->post = stream->start;
-    stream->end = stream->start + n;
-    stream->pool = pool;
-    stream->callback = callback;
-    stream->data = data;
-    stream->fail = false;
+    stream->need_free = true;
 
     return true;
 }
 
 void
-sky_str_out_stream_destroy(sky_str_out_stream_t *stream) {
-    if (sky_likely(stream->start)) {
-        if (!stream->pool) {
-            sky_free(stream->start);
-        } else {
-            const sky_usize_t total = (sky_usize_t) (stream->end - stream->start);
-            sky_pfree(stream->pool, stream->start, total);
-            stream->pool = null;
-        }
+sky_str_out_stream_init_with_buff(
+        sky_str_out_stream_t *stream,
+        sky_str_out_stream_pt callback,
+        void *data,
+        sky_uchar_t *buff,
+        sky_usize_t n
+) {
+    stream->start = buff;
+    stream->post = stream->start;
+    stream->end = stream->start + n;
+    stream->callback = callback;
+    stream->data = data;
+    stream->fail = false;
+    stream->need_free = false;
+}
 
-        stream->start = stream->end = stream->post = null;
+void
+sky_str_out_stream_destroy(sky_str_out_stream_t *stream) {
+    if (stream->need_free) {
+        sky_free(stream->start);
+        stream->need_free = false;
     }
+    stream->start = stream->end = stream->post = null;
 }
 
 sky_uchar_t *
@@ -126,7 +112,8 @@ sky_str_out_stream_write_str(sky_str_out_stream_t *stream, const sky_str_t *str)
             return;
         }
         const sky_usize_t size = (sky_usize_t) (stream->end - stream->post);
-        if (size >= str->len && !stream_write(stream, str->data, str->len)) {
+        if (size <= str->len) {
+            stream_write(stream, str->data, str->len);
             return;
         }
     }
@@ -136,7 +123,7 @@ sky_str_out_stream_write_str(sky_str_out_stream_t *stream, const sky_str_t *str)
 
 void
 sky_str_out_stream_write_str_len(sky_str_out_stream_t *stream, const sky_uchar_t *str, sky_usize_t len) {
-    if (sky_unlikely(!str)) {
+    if (sky_unlikely(!str || !len)) {
         return;
     }
     if (sky_unlikely((stream->post + len) >= stream->end)) {
@@ -144,7 +131,8 @@ sky_str_out_stream_write_str_len(sky_str_out_stream_t *stream, const sky_uchar_t
             return;
         }
         const sky_usize_t size = (sky_usize_t) (stream->end - stream->post);
-        if (size >= len && !stream_write(stream, str, len)) {
+        if (size <= len) {
+            stream_write(stream, str, len);
             return;
         }
     }

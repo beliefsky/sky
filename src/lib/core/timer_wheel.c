@@ -55,7 +55,7 @@ void sky_timer_wheel_destroy(sky_timer_wheel_t *ctx) {
         for (j = 0; j < TIMER_WHEEL_SLOTS; ++j) {
 
             queue = &ctx->wheels[i][j];
-            while (!sky_queue_is_empty(queue)) {
+            while (!sky_queue_empty(queue)) {
                 node = sky_queue_next(queue);
                 sky_queue_remove(node);
             }
@@ -76,7 +76,7 @@ sky_timer_wheel_wake_at(sky_timer_wheel_t *ctx) {
         slot_base = timer_slot(wheel, at);
         for (slot = slot_base; slot < TIMER_WHEEL_SLOTS; ++slot) {
             queue = &ctx->wheels[wheel][slot];
-            if (!sky_queue_is_empty(queue)) {
+            if (!sky_queue_empty(queue)) {
                 return at;
             }
             at += at_incr;
@@ -87,7 +87,7 @@ sky_timer_wheel_wake_at(sky_timer_wheel_t *ctx) {
                 for (slot = wheel + 1; slot < ctx->num_wheels; ++slot) {
                     si = timer_slot(slot, at);
                     queue = &ctx->wheels[slot][si];
-                    if (!sky_queue_is_empty(queue)) {
+                    if (!sky_queue_empty(queue)) {
                         return at;
                     }
                     if (si) {
@@ -100,7 +100,7 @@ sky_timer_wheel_wake_at(sky_timer_wheel_t *ctx) {
             }
             for (slot = 0; slot < slot_base; ++slot) {
                 queue = &ctx->wheels[wheel][slot];
-                if (!sky_queue_is_empty(queue)) {
+                if (!sky_queue_empty(queue)) {
                     return at;
                 }
                 at += at_incr;
@@ -137,13 +137,13 @@ sky_timer_wheel_get_expired(sky_timer_wheel_t *ctx, sky_queue_t *result, sky_u64
             ++ctx->last_run;
             continue;
         }
-        if (!sky_queue_is_empty(queue)) {
+        if (!sky_queue_empty(queue)) {
             do {
                 tmp = sky_queue_next(queue);
                 sky_queue_remove(tmp);
                 entry = sky_queue_data(tmp, sky_timer_wheel_entry_t, link);
                 link_timer(ctx, entry);
-            } while (!sky_queue_is_empty(queue));
+            } while (!sky_queue_empty(queue));
             wheel = 0;
             goto redo;
         }
@@ -173,7 +173,7 @@ sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_u64_t now) {
     sky_queue_init(&queue);
     sky_timer_wheel_get_expired(ctx, &queue, now);
 
-    while (!sky_queue_is_empty(&queue)) {
+    while (!sky_queue_empty(&queue)) {
         tmp = sky_queue_next(&queue);
         sky_queue_remove(tmp);
         entry = sky_queue_data(tmp, sky_timer_wheel_entry_t, link);
@@ -185,7 +185,7 @@ void
 sky_timer_wheel_link(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky_u64_t at) {
     at = sky_max(at, ctx->last_run);
 
-    if (sky_unlikely(sky_queue_is_linked(&entry->link))) {
+    if (sky_unlikely(sky_queue_linked(&entry->link))) {
         if (at == entry->expire_at) {
             return;
         }
@@ -199,7 +199,7 @@ void
 sky_timer_wheel_expired(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky_u64_t at) {
     at = sky_max(at, ctx->last_run);
 
-    if (!sky_queue_is_linked(&entry->link) || at == entry->expire_at) {
+    if (!sky_queue_linked(&entry->link) || at == entry->expire_at) {
         return;
     }
 
@@ -219,14 +219,14 @@ cascade_all(sky_timer_wheel_t *ctx, sky_usize_t wheel) {
     for (; wheel < ctx->num_wheels; ++wheel) {
         slot = timer_slot(wheel, ctx->last_run);
         queue = &ctx->wheels[wheel][slot];
-        if (!sky_queue_is_empty(queue)) {
+        if (!sky_queue_empty(queue)) {
             cascaded = true;
             do {
                 tmp = sky_queue_next(queue);
                 sky_queue_remove(tmp);
                 entry = sky_queue_data(tmp, sky_timer_wheel_entry_t, link);
                 link_timer(ctx, entry);
-            } while (!sky_queue_is_empty(queue));
+            } while (!sky_queue_empty(queue));
         }
         if (slot != 0) {
             break;

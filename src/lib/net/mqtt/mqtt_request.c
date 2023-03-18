@@ -3,6 +3,7 @@
 //
 
 #include "mqtt_request.h"
+#include "mqtt_io_wrappers.h"
 #include "mqtt_response.h"
 #include "../../core/memory.h"
 #include "mqtt_subs.h"
@@ -40,7 +41,7 @@ sky_mqtt_process(sky_coro_t *coro, sky_mqtt_connect_t *conn) {
         return SKY_CORO_ABORT;
     }
     connect_msg.keep_alive <<= 1;
-    sky_event_reset_timeout_self(&conn->ev, sky_max(connect_msg.keep_alive, SKY_U16(30)));
+    sky_event_reset_timeout_self(sky_tcp_get_event(&conn->tcp), sky_max(connect_msg.keep_alive, SKY_U16(30)));
 
     sky_mqtt_send_connect_ack(conn, false, 0x0);
 
@@ -168,15 +169,16 @@ mqtt_read_head_pack(sky_mqtt_connect_t *conn, sky_mqtt_head_t *head) {
     read_size = conn->head_copy;
     buf = conn->head_tmp + read_size;
     for (;;) {
-        size = conn->server->mqtt_read(conn, buf, 8 - read_size);
+        size = sky_mqtt_read(conn, buf, 8 - read_size);
+
         buf += size;
         read_size += size;
         flag = sky_mqtt_head_pack(head, conn->head_tmp, read_size);
 
         if (sky_likely(flag > 0)) {
 
-            if (read_size > (sky_usize_t) flag) {
-                read_size -= (sky_usize_t) flag;
+            if (read_size > (sky_u32_t) flag) {
+                read_size -= (sky_u32_t) flag;
                 conn->head_copy = read_size;
 
                 sky_u64_t tmp = sky_htonll(*(sky_u64_t *) conn->head_tmp);
@@ -226,7 +228,7 @@ mqtt_read_body(sky_mqtt_connect_t *conn, const sky_mqtt_head_t *head, sky_uchar_
         return;
     }
 
-    conn->server->mqtt_read_all(conn, buf, head->body_size - read_size);
+    sky_mqtt_read_all(conn, buf, head->body_size - read_size);
 }
 
 
@@ -246,7 +248,9 @@ session_get(sky_mqtt_connect_msg_t *msg, sky_mqtt_connect_t *conn) {
 
             sky_mqtt_topics_clean(&session->topics);
 
-            sky_event_unregister(&session->conn->ev);
+            sky_tcp_close(&session->conn->tcp);
+
+            sky_event_set_error(sky_tcp_get_event(&session->conn->tcp));
         }
     } else {
         session = sky_malloc(sizeof(sky_mqtt_session_t) + msg->client_id.len);

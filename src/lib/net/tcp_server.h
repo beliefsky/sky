@@ -5,8 +5,7 @@
 #ifndef SKY_TCP_SERVER_H
 #define SKY_TCP_SERVER_H
 
-#include "../event/event_loop.h"
-#include "inet.h"
+#include "tcp.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -14,13 +13,15 @@ extern "C" {
 
 typedef struct sky_tcp_server_s sky_tcp_server_t;
 
-typedef sky_event_t *(*sky_tcp_accept_cb_pt)(sky_event_loop_t *loop, sky_i32_t fd, void *data);
+typedef sky_tcp_connect_t *(*sky_tcp_create_pt)(void *data);
 
 typedef struct {
-    sky_tcp_accept_cb_pt accept;
-    sky_socket_options_pt options;
+    sky_tcp_create_pt create_handle;
+    sky_tcp_run_pt run_handle;
+    sky_tcp_error_pt error_handle;
+    sky_scoket_opts_pt options;
     void *data;
-    sky_inet_address_t *address;
+    sky_inet_addr_t *address;
     sky_u32_t address_len;
     sky_i32_t timeout;
 } sky_tcp_server_conf_t;

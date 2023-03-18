@@ -10,7 +10,7 @@
 
 sky_i8_t
 sky_mqtt_head_pack(sky_mqtt_head_t *head, sky_uchar_t *buf, sky_u32_t size) {
-    sky_uchar_t flags;
+    sky_u8_t flags;
 
     flags = *buf;
 
@@ -104,25 +104,25 @@ sky_mqtt_head_unpack(const sky_mqtt_head_t *head, sky_uchar_t *buf) {
     if (sky_unlikely(head->body_size > SKY_U32(268435455))) {
         return 0;
     } else if (head->body_size < SKY_U32(128)) {
-        *(++buf) = head->body_size & 127U;
+        *(++buf) = (sky_uchar_t) (head->body_size & 127U);
 
         return 2;
     } else if (head->body_size < SKY_U32(16384)) {
-        *(++buf) = (head->body_size & 127U) | 0x80U;
-        *(++buf) = (head->body_size >> 7) & 127U;
+        *(++buf) = (sky_uchar_t) ((head->body_size & 127U) | 0x80U);
+        *(++buf) = (sky_uchar_t) ((head->body_size >> 7) & 127U);
 
         return 3;
     } else if (head->body_size < SKY_U32(2097152)) {
-        *(++buf) = (head->body_size & 127U) | 0x80U;
-        *(++buf) = ((head->body_size >> 7) & 127U) | 0x80U;
-        *(++buf) = (head->body_size >> 14) & 127U;
+        *(++buf) = (sky_uchar_t) ((head->body_size & 127U) | 0x80U);
+        *(++buf) = (sky_uchar_t) (((head->body_size >> 7) & 127U) | 0x80U);
+        *(++buf) = (sky_uchar_t) ((head->body_size >> 14) & 127U);
 
         return 4;
     } else {
-        *(++buf) = (head->body_size & 127U) | 0x80U;
-        *(++buf) = ((head->body_size >> 7) & 127U) | 0x80U;
-        *(++buf) = ((head->body_size >> 14) & 127U) | 0x80U;
-        *(++buf) = (head->body_size >> 21) & 127U;
+        *(++buf) = (sky_uchar_t) ((head->body_size & 127U) | 0x80U);
+        *(++buf) = (sky_uchar_t) (((head->body_size >> 7) & 127U) | 0x80U);
+        *(++buf) = (sky_uchar_t) (((head->body_size >> 14) & 127U) | 0x80U);
+        *(++buf) = (sky_uchar_t) ((head->body_size >> 21) & 127U);
 
         return 5;
     }
@@ -684,16 +684,16 @@ sky_mqtt_topic_read_next(sky_mqtt_topic_reader_t *msg, sky_mqtt_topic_t *topic) 
     msg->size -= 2;
 
     if (msg->has_qos) {
-        if (sky_unlikely(msg->size < (u16 + 1))) {
+        if (sky_unlikely(msg->size < (sky_u32_t) (u16 + 1))) {
             return false;
         }
-        topic->topic.len = u16;
+        topic->topic.len = (sky_u32_t) u16;
         topic->topic.data = msg->ptr;
 
         msg->size -= u16 + 1;
         msg->ptr += u16;
 
-        topic->qos = *(msg->ptr);
+        topic->qos = *((sky_u8_t *) msg->ptr);
         *(msg->ptr++) = '\0';
     } else {
         if (sky_unlikely(msg->size < u16)) {
@@ -713,21 +713,21 @@ sky_u32_t
 sky_mqtt_connect_unpack_size(const sky_mqtt_connect_msg_t *msg) {
     sky_u32_t size = 8;
 
-    size += msg->protocol_name.len;
-    size += msg->client_id.len;
+    size += (sky_u32_t) msg->protocol_name.len;
+    size += (sky_u32_t) msg->client_id.len;
 
     if (msg->will_flag) {
         size += 4;
-        size += msg->will_topic.len;
-        size += msg->will_payload.len;
+        size += (sky_u32_t) msg->will_topic.len;
+        size += (sky_u32_t) msg->will_payload.len;
     }
     if (msg->username_flag) {
         size += 2;
-        size += msg->username.len;
+        size += (sky_u32_t) msg->username.len;
     }
     if (msg->password_flag) {
         size += 2;
-        size += msg->password.len;
+        size += (sky_u32_t) msg->password.len;
     }
 
     return size;
@@ -739,7 +739,7 @@ sky_mqtt_subscribe_unpack_size(const sky_mqtt_topic_t *topic, sky_u32_t topic_n)
     size += topic_n * 3;
 
     for (; topic_n > 0; --topic_n) {
-        size += topic->topic.len;
+        size += (sky_u32_t) topic->topic.len;
     }
 
     return size;
@@ -751,7 +751,7 @@ sky_mqtt_unsubscribe_unpack_size(const sky_mqtt_topic_t *topic, sky_u32_t topic_
     size += topic_n << 1;
 
     for (; topic_n > 0; --topic_n) {
-        size += topic->topic.len;
+        size += (sky_u32_t) topic->topic.len;
     }
 
     return size;

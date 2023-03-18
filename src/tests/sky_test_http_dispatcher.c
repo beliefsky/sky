@@ -18,7 +18,6 @@
 #include <core/date.h>
 #include <unistd.h>
 #include <core/process.h>
-#include <fcntl.h>
 
 static sky_bool_t create_server(sky_event_loop_t *ev_loop);
 
@@ -83,7 +82,7 @@ create_server(sky_event_loop_t *ev_loop) {
     };
 
     const sky_pgsql_conf_t pg_conf = {
-            .address = (sky_inet_address_t *) &pg_address,
+            .address = (sky_inet_addr_t *) &pg_address,
             .address_len = sizeof(struct sockaddr_in),
             .database = sky_string("beliefsky"),
             .username = sky_string("postgres"),
@@ -104,7 +103,7 @@ create_server(sky_event_loop_t *ev_loop) {
     };
 
     const sky_redis_conf_t redis_conf = {
-            .address = (sky_inet_address_t *) &redis_address,
+            .address = (sky_inet_addr_t *) &redis_address,
             .address_len = sizeof(struct sockaddr_in),
             .connection_size = 16,
     };
@@ -155,7 +154,7 @@ create_server(sky_event_loop_t *ev_loop) {
             .sin_addr.s_addr = INADDR_ANY,
             .sin_port = sky_htons(8080)
     };
-    sky_http_server_bind(server, (sky_inet_address_t *) &ipv4_address, sizeof(struct sockaddr_in));
+    sky_http_server_bind(server, (sky_inet_addr_t *) &ipv4_address, sizeof(struct sockaddr_in));
 
     struct sockaddr_in6 ipv6_address = {
             .sin6_family = AF_INET6,
@@ -163,7 +162,7 @@ create_server(sky_event_loop_t *ev_loop) {
             .sin6_port = sky_htons(8080)
     };
 
-    sky_http_server_bind(server, (sky_inet_address_t *) &ipv6_address, sizeof(struct sockaddr_in6));
+    sky_http_server_bind(server, (sky_inet_addr_t *) &ipv6_address, sizeof(struct sockaddr_in6));
 
     return true;
 }
@@ -258,7 +257,8 @@ static SKY_HTTP_MAPPER_HANDLER(pgsql_test) {
     sky_pgsql_params_init(&params, req->pool, 4);
 
     sky_pgsql_param_set_i32(&params, 0, 2);
-    sky_pgsql_param_set_timestamp_tz(&params, 1, req->conn->ev.now * 1000000);
+    sky_pgsql_param_set_timestamp_tz(&params, 1,
+                                     sky_event_get_now(sky_tcp_get_event(&req->conn->tcp)) * 1000000);
     sky_pgsql_param_set_date(&params, 2, 365);
     sky_pgsql_param_set_time(&params, 3, 3600L * 1000000);
 
@@ -360,16 +360,6 @@ static SKY_HTTP_MAPPER_HANDLER(pgsql_test) {
 typedef struct {
     sky_i32_t fd;
 } file_t;
-
-
-static sky_bool_t
-write_file(void *data, const sky_uchar_t *stream, sky_usize_t size) {
-    file_t *file = data;
-
-    write(file->fd, stream, size);
-
-    return true;
-}
 
 static SKY_HTTP_MAPPER_HANDLER(upload_test) {
     sky_http_multipart_ctx_t ctx;

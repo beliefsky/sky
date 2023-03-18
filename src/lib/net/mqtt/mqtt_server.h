@@ -5,7 +5,7 @@
 #ifndef SKY_MQTT_SERVER_H
 #define SKY_MQTT_SERVER_H
 
-#include "../inet.h"
+#include "../tcp.h"
 #include "../../core/coro.h"
 #include "../../core/hashmap.h"
 #include "../../core/topic_tree.h"
@@ -23,13 +23,6 @@ typedef struct sky_mqtt_packet_s sky_mqtt_packet_t;
 
 struct sky_mqtt_server_s {
     sky_hashmap_t session_manager;
-
-    sky_usize_t (*mqtt_read)(sky_mqtt_connect_t *conn, sky_uchar_t *data, sky_usize_t size);
-
-    void (*mqtt_read_all)(sky_mqtt_connect_t *conn, sky_uchar_t *data, sky_usize_t size);
-
-    sky_isize_t (*mqtt_write_nowait)(sky_mqtt_connect_t *conn, const sky_uchar_t *data, sky_usize_t size);
-
     sky_event_loop_t *ev_loop;
     sky_coro_switcher_t *switcher;
 
@@ -47,7 +40,7 @@ struct sky_mqtt_session_s {
 };
 
 struct sky_mqtt_connect_s {
-    sky_event_t ev;
+    sky_tcp_connect_t tcp;
     sky_coro_t *coro;
     sky_mqtt_server_t *server;
     sky_mqtt_packet_t *current_packet;
@@ -67,7 +60,7 @@ struct sky_mqtt_packet_s {
 
 sky_mqtt_server_t *sky_mqtt_server_create(sky_event_loop_t *ev_loop, sky_coro_switcher_t *switcher);
 
-sky_bool_t sky_mqtt_server_bind(sky_mqtt_server_t *server, sky_inet_address_t *address, sky_u32_t address_len);
+sky_bool_t sky_mqtt_server_bind(sky_mqtt_server_t *server, sky_inet_addr_t *address, sky_u32_t address_len);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

@@ -3,6 +3,7 @@
 //
 
 #include "redis_pool.h"
+#include "../tcp.h"
 #include "../../core/memory.h"
 #include "../../core/log.h"
 #include "../../core/number.h"
@@ -89,7 +90,18 @@ redis_send_exec(sky_redis_conn_t *rc, sky_redis_data_t *params, sky_u16_t param_
     if (sky_unlikely(!param_len)) {
         return false;
     }
-    sky_str_out_stream_ini2(&stream, rc->pool, (sky_str_out_stream_pt) sky_tcp_pool_conn_write_all, &rc->conn, 1024);
+    const sky_str_t buff = {
+            .len = 1024,
+            .data = sky_pnalloc(rc->pool, 1024)
+    };
+
+    sky_str_out_stream_init_with_buff(
+            &stream,
+            (sky_str_out_stream_pt) sky_tcp_pool_conn_write_all,
+            &rc->conn,
+            buff.data,
+            buff.len
+    );
     sky_str_out_stream_write_uchar(&stream, '*');
     sky_str_out_stream_write_u16(&stream, param_len);
     sky_str_out_stream_write_two_uchar(&stream, '\r', '\n');
@@ -187,6 +199,7 @@ redis_send_exec(sky_redis_conn_t *rc, sky_redis_data_t *params, sky_u16_t param_
     const sky_bool_t result = sky_str_out_stream_flush(&stream);
 
     sky_str_out_stream_destroy(&stream);
+    sky_pfree(rc->pool, buff.data, buff.len);
 
     return result;
 }
