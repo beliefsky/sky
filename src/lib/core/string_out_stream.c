@@ -122,7 +122,7 @@ sky_str_out_stream_write_str(sky_str_out_stream_t *stream, const sky_str_t *str)
 
 void
 sky_str_out_stream_write_str_len(sky_str_out_stream_t *stream, const sky_uchar_t *str, sky_usize_t len) {
-    if (sky_unlikely(!str)) {
+    if (sky_unlikely(!str || !len)) {
         return;
     }
     if (sky_unlikely((stream->post + len) >= stream->end)) {
