@@ -30,7 +30,7 @@ sky_http_response_nobody(sky_http_request_t *r) {
 
     sky_str_out_stream_init_with_buff(
             &stream,
-            (sky_str_out_stream_pt) http_write_cb,
+            http_write_cb,
             r->conn,
             buff.data,
             buff.len
@@ -69,7 +69,7 @@ sky_http_response_static_len(sky_http_request_t *r, const sky_uchar_t *buf, sky_
 
     sky_str_out_stream_init_with_buff(
             &stream,
-            (sky_str_out_stream_pt) http_write_cb,
+            http_write_cb,
             r->conn,
             buff.data,
             buff.len
@@ -115,7 +115,7 @@ sky_http_response_chunked_len(sky_http_request_t *r, const sky_uchar_t *buf, sky
 
         sky_str_out_stream_init_with_buff(
                 &stream,
-                (sky_str_out_stream_pt) http_write_cb,
+                http_write_cb,
                 r->conn,
                 buff.data,
                 buff.len
@@ -129,7 +129,7 @@ sky_http_response_chunked_len(sky_http_request_t *r, const sky_uchar_t *buf, sky
 
         sky_str_out_stream_init_with_buff(
                 &stream,
-                (sky_str_out_stream_pt) http_write_cb,
+                http_write_cb,
                 r->conn,
                 buff.data,
                 buff.len
@@ -172,7 +172,7 @@ sky_http_sendfile(sky_http_request_t *r, sky_i32_t fd, sky_usize_t offset, sky_u
 
     sky_str_out_stream_init_with_buff(
             &stream,
-            (sky_str_out_stream_pt) http_write_cb,
+            http_write_cb,
             r->conn,
             buff.data,
             buff.len
@@ -211,7 +211,6 @@ http_header_write_pre(sky_http_request_t *r, sky_str_out_stream_t *stream) {
     if (!r->state) {
         r->state = 200;
     }
-    const sky_http_headers_out_t *header_out = &r->headers_out;
     const sky_str_t *status = sky_http_status_find(r->conn->server, r->state);
 
     sky_str_out_stream_write_str(stream, &r->version_name);
@@ -233,6 +232,8 @@ http_header_write_pre(sky_http_request_t *r, sky_str_out_stream_t *stream) {
     }
 
     sky_str_out_stream_write_str_len(stream, r->conn->server->rfc_date, 29);
+
+    const sky_http_headers_out_t *header_out = &r->headers_out;
 
     if (header_out->content_type.len) {
         sky_str_out_stream_write_str_len(stream, sky_str_line("\r\nContent-Type: "));
