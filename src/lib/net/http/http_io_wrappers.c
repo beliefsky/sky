@@ -64,7 +64,7 @@ sky_http_send_file(
 
     sky_isize_t n;
 
-    do {
+    for (;;) {
         n = sky_tcp_sendfile(&conn->tcp, &fs, &offset, size, header, header_len);
         if (sky_unlikely(n < 0)) {
             sky_coro_yield(conn->coro, SKY_CORO_ABORT);
@@ -82,7 +82,7 @@ sky_http_send_file(
         n -= (sky_isize_t)header_len;
         size -= (sky_usize_t) n;
         if (!size) {
-            return;
+            break;
         }
 
         do {
@@ -99,5 +99,6 @@ sky_http_send_file(
 
         } while (size > 0);
 
-    } while (true);
+        break;
+    }
 }
