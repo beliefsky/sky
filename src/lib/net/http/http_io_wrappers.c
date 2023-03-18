@@ -73,32 +73,31 @@ sky_http_send_file(
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
             continue;
         }
-        if ((sky_usize_t)n < header_len) {
-            header_len -= (sky_usize_t)n;
+        if ((sky_usize_t) n < header_len) {
+            header_len -= (sky_usize_t) n;
             header += n;
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
             continue;
         }
-        n -= (sky_isize_t)header_len;
+        n -= (sky_isize_t) header_len;
         size -= (sky_usize_t) n;
         if (!size) {
-            break;
+            return;
         }
-
-        do {
-            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-            n = sky_tcp_sendfile(&conn->tcp, &fs, &offset, size, null, 0);
-            if (sky_unlikely(n < 0)) {
-                sky_coro_yield(conn->coro, SKY_CORO_ABORT);
-                sky_coro_exit();
-            } else if (!n) {
-                sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
-                continue;
-            }
-            size -= (sky_usize_t) n;
-
-        } while (size > 0);
-
         break;
     }
+
+    do {
+        sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+        n = sky_tcp_sendfile(&conn->tcp, &fs, &offset, size, null, 0);
+        if (sky_unlikely(n < 0)) {
+            sky_coro_yield(conn->coro, SKY_CORO_ABORT);
+            sky_coro_exit();
+        } else if (!n) {
+            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+            continue;
+        }
+        size -= (sky_usize_t) n;
+
+    } while (size > 0);
 }
