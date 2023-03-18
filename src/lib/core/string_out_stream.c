@@ -112,7 +112,8 @@ sky_str_out_stream_write_str(sky_str_out_stream_t *stream, const sky_str_t *str)
             return;
         }
         const sky_usize_t size = (sky_usize_t) (stream->end - stream->post);
-        if (size >= str->len && !stream_write(stream, str->data, str->len)) {
+        if (size >= str->len) {
+            stream_write(stream, str->data, str->len);
             return;
         }
     }
@@ -130,7 +131,8 @@ sky_str_out_stream_write_str_len(sky_str_out_stream_t *stream, const sky_uchar_t
             return;
         }
         const sky_usize_t size = (sky_usize_t) (stream->end - stream->post);
-        if (size >= len && !stream_write(stream, str, len)) {
+        if (size >= len) {
+            stream_write(stream, str, len);
             return;
         }
     }
