@@ -36,7 +36,7 @@ sky_str_out_stream_init(
     return true;
 }
 
-void
+sky_bool_t
 sky_str_out_stream_init_with_buff(
         sky_str_out_stream_t *stream,
         sky_str_out_stream_pt callback,
@@ -44,6 +44,13 @@ sky_str_out_stream_init_with_buff(
         sky_uchar_t *buff,
         sky_usize_t n
 ) {
+    if (sky_unlikely(n < 64)) {
+        stream->post = null;
+        stream->fail = true;
+        stream->need_free = false;
+        return false;
+    }
+
     stream->start = buff;
     stream->post = stream->start;
     stream->end = stream->start + n;
@@ -51,6 +58,8 @@ sky_str_out_stream_init_with_buff(
     stream->data = data;
     stream->fail = false;
     stream->need_free = false;
+
+    return n;
 }
 
 void
