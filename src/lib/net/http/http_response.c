@@ -5,7 +5,6 @@
 #include "http_response.h"
 #include "../../core/number.h"
 #include "../../core/string_out_stream.h"
-#include "http_io_wrappers.h"
 #include "../../core/date.h"
 
 static void http_header_write_pre(sky_http_request_t *r, sky_str_out_stream_t *stream);
