@@ -33,7 +33,7 @@ sky_bool_t sky_str_out_stream_init(
         sky_usize_t n
 );
 
-void sky_str_out_stream_init_with_buff(
+sky_bool_t sky_str_out_stream_init_with_buff(
         sky_str_out_stream_t *stream,
         sky_str_out_stream_pt callback,
         void *data,
