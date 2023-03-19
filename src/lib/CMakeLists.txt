@@ -48,7 +48,6 @@ set(SOURCES
         net/tls/tls.c
         net/postgresql/pgsql_pool.c
         net/redis/redis_pool.c
-        net/http/http_io_wrappers.c
         net/http/http_request.c
         net/http/http_response.c
         net/http/http_parse.c
