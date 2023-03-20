@@ -12,7 +12,7 @@ struct sky_http_res_chunked_s {
     sky_http_request_t *r;
     sky_uchar_t *buff_data;
     sky_usize_t buff_size;
-    sky_bool_t end:1;
+    sky_bool_t end: 1;
 };
 
 
@@ -138,16 +138,15 @@ sky_http_response_chunked_create(sky_http_request_t *r) {
 
 void
 sky_http_response_chunked_write(sky_http_res_chunked_t *chunked, const sky_str_t *buf) {
-    if (!buf) {
-        sky_http_response_chunked_write_len(chunked, null, 0);
-    } else {
-        sky_http_response_chunked_write_len(chunked, buf->data, buf->len);
+    if (sky_unlikely(!buf)) {
+        return;
     }
+    sky_http_response_chunked_write_len(chunked, buf->data, buf->len);
 }
 
 void
 sky_http_response_chunked_write_len(sky_http_res_chunked_t *chunked, const sky_uchar_t *buf, sky_usize_t buf_len) {
-    if (sky_unlikely(chunked->end)) {
+    if (sky_unlikely(chunked->end || !buf_len)) {
         return;
     }
 
