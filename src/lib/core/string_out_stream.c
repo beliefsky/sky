@@ -22,6 +22,7 @@ sky_str_out_stream_init(
     stream->start = sky_malloc(n);
     if (sky_unlikely(!stream->start)) {
         stream->post = null;
+        stream->end = null;
         stream->fail = true;
         stream->need_free = false;
         return false;
@@ -45,7 +46,9 @@ sky_str_out_stream_init_with_buff(
         sky_usize_t n
 ) {
     if (sky_unlikely(n < 64)) {
+        stream->start = null;
         stream->post = null;
+        stream->end = null;
         stream->fail = true;
         stream->need_free = false;
         return false;
@@ -121,7 +124,7 @@ sky_str_out_stream_write_str(sky_str_out_stream_t *stream, const sky_str_t *str)
 
 void
 sky_str_out_stream_write_str_len(sky_str_out_stream_t *stream, const sky_uchar_t *str, sky_usize_t len) {
-    if (sky_unlikely(!len )) {
+    if (sky_unlikely(!len)) {
         return;
     }
     if (sky_unlikely((stream->post + len) > stream->end)) {
