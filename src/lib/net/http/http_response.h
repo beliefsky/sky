@@ -11,15 +11,24 @@
 extern "C" {
 #endif
 
+typedef struct sky_http_res_chunked_s sky_http_res_chunked_t;
+
 void sky_http_response_nobody(sky_http_request_t *r);
 
 void sky_http_response_static(sky_http_request_t *r, const sky_str_t *buf);
 
 void sky_http_response_static_len(sky_http_request_t *r, const sky_uchar_t *buf, sky_usize_t buf_len);
 
-void sky_http_response_chunked(sky_http_request_t *r, const sky_str_t *buf);
 
-void sky_http_response_chunked_len(sky_http_request_t *r, const sky_uchar_t *buf, sky_usize_t buf_len);
+sky_http_res_chunked_t *sky_http_response_chunked_create(sky_http_request_t *r);
+
+void sky_http_response_chunked_write(sky_http_res_chunked_t *chunked, const sky_str_t *buf);
+
+void sky_http_response_chunked_write_len(sky_http_res_chunked_t *chunked, const sky_uchar_t *buf, sky_usize_t buf_len);
+
+void sky_http_response_chunked_flush(sky_http_res_chunked_t *chunked);
+
+void sky_http_response_chunked_end(sky_http_res_chunked_t *chunked);
 
 void sky_http_sendfile(
         sky_http_request_t *r,

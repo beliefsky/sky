@@ -7,6 +7,15 @@
 #include "../../core/string_out_stream.h"
 #include "../../core/date.h"
 
+struct sky_http_res_chunked_s {
+    sky_str_out_stream_t stream;
+    sky_http_request_t *r;
+    sky_uchar_t *buff_data;
+    sky_usize_t buff_size;
+    sky_bool_t end:1;
+};
+
+
 static void http_header_write_pre(sky_http_request_t *r, sky_str_out_stream_t *stream);
 
 static void http_header_write_ex(sky_http_request_t *r, sky_str_out_stream_t *stream);
@@ -102,67 +111,72 @@ sky_http_response_static_len(sky_http_request_t *r, const sky_uchar_t *buf, sky_
     sky_pfree(r->pool, buff.data, buff.len);
 }
 
+sky_http_res_chunked_t *
+sky_http_response_chunked_create(sky_http_request_t *r) {
+    if (sky_unlikely(r->response)) {
+        return null;
+    }
+    sky_http_res_chunked_t *chunked = sky_palloc(r->pool, sizeof(sky_http_res_chunked_t));
+    chunked->r = r;
+    chunked->buff_data = sky_pnalloc(r->pool, 4096);
+    chunked->buff_size = 4096;
+    chunked->end = false;
+
+    sky_str_out_stream_init_with_buff(
+            &chunked->stream,
+            http_write_cb,
+            r->conn,
+            chunked->buff_data,
+            chunked->buff_size
+    );
+    http_header_write_pre(r, &chunked->stream);
+    sky_str_out_stream_write_str_len(&chunked->stream, sky_str_line("Transfer-Encoding: chunked\r\n"));
+    http_header_write_ex(r, &chunked->stream);
+
+    return chunked;
+}
+
 void
-sky_http_response_chunked(sky_http_request_t *r, const sky_str_t *buf) {
+sky_http_response_chunked_write(sky_http_res_chunked_t *chunked, const sky_str_t *buf) {
     if (!buf) {
-        sky_http_response_chunked_len(r, null, 0);
+        sky_http_response_chunked_write_len(chunked, null, 0);
     } else {
-        sky_http_response_chunked_len(r, buf->data, buf->len);
+        sky_http_response_chunked_write_len(chunked, buf->data, buf->len);
     }
 }
 
 void
-sky_http_response_chunked_len(sky_http_request_t *r, const sky_uchar_t *buf, sky_usize_t buf_len) {
-    sky_str_out_stream_t stream;
-    sky_str_t buff;
-
-    if (!r->response) {
-        r->response = true;
-        r->chunked = true;
-
-        buff.len = 4096;
-        buff.data = sky_pnalloc(r->pool, 4096);
-
-        sky_str_out_stream_init_with_buff(
-                &stream,
-                http_write_cb,
-                r->conn,
-                buff.data,
-                buff.len
-        );
-        http_header_write_pre(r, &stream);
-        sky_str_out_stream_write_str_len(&stream, sky_str_line("Transfer-Encoding: chunked\r\n"));
-        http_header_write_ex(r, &stream);
-    } else if (r->chunked) {
-        buff.len = 20 + sky_max( buf_len, SKY_USIZE(44));
-        buff.data = sky_pnalloc(r->pool, buff.len);
-
-        sky_str_out_stream_init_with_buff(
-                &stream,
-                http_write_cb,
-                r->conn,
-                buff.data,
-                buff.len
-        );
-    } else {
+sky_http_response_chunked_write_len(sky_http_res_chunked_t *chunked, const sky_uchar_t *buf, sky_usize_t buf_len) {
+    if (sky_unlikely(chunked->end)) {
         return;
     }
-    if (!buf_len) {
-        r->chunked = false;
-        sky_str_out_stream_write_str_len(&stream, sky_str_line("0\r\n\r\n"));
-    } else {
-        sky_uchar_t *tmp = sky_str_out_stream_need_size(&stream, 17);
-        const sky_u8_t n = sky_usize_to_hex_str(buf_len, tmp, false);
-        sky_str_out_stream_need_commit(&stream, n);
 
-        sky_str_out_stream_write_two_uchar(&stream, '\r', '\n');
-        sky_str_out_stream_write_str_len(&stream, buf, buf_len);
-        sky_str_out_stream_write_two_uchar(&stream, '\r', '\n');
+    sky_uchar_t *tmp = sky_str_out_stream_need_size(&chunked->stream, 17);
+    const sky_u8_t n = sky_usize_to_hex_str(buf_len, tmp, false);
+    sky_str_out_stream_need_commit(&chunked->stream, n);
+
+    sky_str_out_stream_write_two_uchar(&chunked->stream, '\r', '\n');
+    sky_str_out_stream_write_str_len(&chunked->stream, buf, buf_len);
+    sky_str_out_stream_write_two_uchar(&chunked->stream, '\r', '\n');
+}
+
+void
+sky_http_response_chunked_flush(sky_http_res_chunked_t *chunked) {
+    if (sky_unlikely(chunked->end)) {
+        return;
     }
+    sky_str_out_stream_flush(&chunked->stream);
+}
 
-    sky_str_out_stream_flush(&stream);
-    sky_str_out_stream_destroy(&stream);
-    sky_pfree(r->pool, buff.data, buff.len);
+void
+sky_http_response_chunked_end(sky_http_res_chunked_t *chunked) {
+    if (sky_unlikely(chunked->end)) {
+        return;
+    }
+    sky_str_out_stream_write_str_len(&chunked->stream, sky_str_line("0\r\n\r\n"));
+    sky_str_out_stream_flush(&chunked->stream);
+    sky_str_out_stream_destroy(&chunked->stream);
+    sky_pfree(chunked->r->pool, chunked->buff_data, chunked->buff_size);
 }
 
 
