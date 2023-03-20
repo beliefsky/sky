@@ -20,7 +20,7 @@ void sky_http_response_static(sky_http_request_t *r, const sky_str_t *buf);
 void sky_http_response_static_len(sky_http_request_t *r, const sky_uchar_t *buf, sky_usize_t buf_len);
 
 
-sky_http_res_chunked_t *sky_http_response_chunked_create(sky_http_request_t *r);
+sky_http_res_chunked_t *sky_http_response_chunked_start(sky_http_request_t *r);
 
 void sky_http_response_chunked_write(sky_http_res_chunked_t *chunked, const sky_str_t *buf);
 
