@@ -112,7 +112,7 @@ sky_http_response_static_len(sky_http_request_t *r, const sky_uchar_t *buf, sky_
 }
 
 sky_http_res_chunked_t *
-sky_http_response_chunked_create(sky_http_request_t *r) {
+sky_http_response_chunked_start(sky_http_request_t *r) {
     if (sky_unlikely(r->response)) {
         return null;
     }
