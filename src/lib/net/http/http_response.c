@@ -134,7 +134,7 @@ sky_http_response_chunked_len(sky_http_request_t *r, const sky_uchar_t *buf, sky
         sky_str_out_stream_write_str_len(&stream, sky_str_line("Transfer-Encoding: chunked\r\n"));
         http_header_write_ex(r, &stream);
     } else if (r->chunked) {
-        buff.len = 20 + buf_len;
+        buff.len = 20 + sky_max( buf_len, SKY_USIZE(44));
         buff.data = sky_pnalloc(r->pool, buff.len);
 
         sky_str_out_stream_init_with_buff(
