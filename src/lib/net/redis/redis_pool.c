@@ -10,7 +10,7 @@
 #include "../../core/string_out_stream.h"
 #include "../../core/buf.h"
 
-static sky_bool_t redis_socket_options(sky_socket_t fd, void *data);
+static sky_bool_t redis_socket_options(sky_tcp_t *conn, void *data);
 
 static sky_bool_t redis_send_exec(sky_redis_conn_t *rc, sky_redis_data_t *prams, sky_u16_t param_len);
 
@@ -73,9 +73,9 @@ sky_redis_pool_destroy(sky_redis_pool_t *conn_pool) {
 }
 
 static sky_bool_t
-redis_socket_options(sky_socket_t fd, void *data) {
+redis_socket_options(sky_tcp_t *conn, void *data) {
     (void) data;
-    sky_tcp_option_no_delay(fd);
+    sky_tcp_option_no_delay(conn);
 
     return true;
 }

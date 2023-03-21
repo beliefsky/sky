@@ -41,7 +41,6 @@ set(SOURCES
         net/un_inet.c
         net/inet.c
         net/tcp.c
-        net/tcp_server.c
         net/tcp_pool.c
         net/tcp_client.c
         net/tcp_listener.c
@@ -210,7 +209,6 @@ install(FILES
         net/un_inet.h
         net/inet.h
         net/tcp.h
-        net/tcp_server.h
         net/tcp_pool.h
         net/tcp_client.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net")

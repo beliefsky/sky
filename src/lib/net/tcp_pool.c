@@ -9,7 +9,7 @@ struct sky_tcp_pool_s {
     sky_tcp_ctx_t ctx;
     sky_tcp_node_t *clients;
     sky_inet_addr_t *address;
-    sky_scoket_opts_pt options;
+    sky_tcp_pool_opts_pt options;
     sky_tcp_pool_conn_next next_func;
 
     void *data;
@@ -24,7 +24,7 @@ struct sky_tcp_pool_s {
 };
 
 struct sky_tcp_node_s {
-    sky_tcp_connect_t conn;
+    sky_tcp_t conn;
     sky_queue_t tasks;
     sky_i64_t conn_time;
     sky_tcp_pool_t *conn_pool;
@@ -386,14 +386,12 @@ tcp_close(sky_tcp_node_t *client) {
 static sky_bool_t
 tcp_connection(sky_tcp_session_t *session) {
     sky_tcp_pool_t *conn_pool = session->client->conn_pool;
-    sky_tcp_connect_t *tcp = &session->client->conn;
+    sky_tcp_t *tcp = &session->client->conn;
 
     if (sky_unlikely(!sky_tcp_open(tcp, conn_pool->address->sa_family))) {
         return false;
     }
-    sky_socket_t fd = sky_event_get_fd(sky_tcp_get_event(tcp));
-
-    if (sky_unlikely(conn_pool->options && !conn_pool->options(fd, conn_pool->data))) {
+    if (sky_unlikely(conn_pool->options && !conn_pool->options(tcp, conn_pool->data))) {
         sky_tcp_close(tcp);
         return false;
     }
