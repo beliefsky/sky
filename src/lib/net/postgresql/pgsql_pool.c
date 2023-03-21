@@ -19,7 +19,7 @@ struct sky_pgsql_pool_s {
     sky_str_t conn_info;
 };
 
-static sky_bool_t pg_socket_options(sky_socket_t fd, void *data);
+static sky_bool_t pg_socket_options(sky_tcp_t *conn, void *data);
 
 static sky_bool_t pg_auth(sky_pgsql_conn_t *conn);
 
@@ -172,9 +172,9 @@ sky_pgsql_pool_destroy(sky_pgsql_pool_t *conn_pool) {
 }
 
 static sky_bool_t
-pg_socket_options(sky_socket_t fd, void *data) {
+pg_socket_options(sky_tcp_t *conn, void *data) {
     (void) data;
-    sky_tcp_option_no_delay(fd);
+    sky_tcp_option_no_delay(conn);
 
     return true;
 }

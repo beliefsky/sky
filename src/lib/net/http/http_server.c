@@ -3,17 +3,21 @@
 //
 
 #include "http_server.h"
-#include "../tcp_server.h"
 #include "http_request.h"
 
+typedef struct {
+    sky_tcp_t tcp;
+    sky_http_server_t *server;
+} http_listener_t;
 
-static sky_tcp_connect_t *http_connection_accept_cb(void *data);
 
-static sky_bool_t http_connection_run(sky_tcp_connect_t *data);
+static sky_bool_t http_server_accept(sky_tcp_t *server);
 
-static void http_connection_close(sky_tcp_connect_t *data);
+static void http_server_error(sky_tcp_t *server);
 
-static sky_bool_t http_default_options(sky_i32_t fd, void *data);
+static sky_bool_t http_connection_run(sky_tcp_t *data);
+
+static void http_connection_close(sky_tcp_t *data);
 
 static void http_status_build(sky_http_server_t *server);
 
@@ -27,9 +31,12 @@ sky_http_server_create(sky_event_loop_t *ev_loop, sky_coro_switcher_t *switcher,
 
     pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
     server = sky_palloc(pool, sizeof(sky_http_server_t));
+    sky_tcp_ctx_init(&server->ctx);
+
     server->pool = pool;
     server->ev_loop = ev_loop;
     server->switcher = switcher;
+    server->conn_tmp = null;
 
     if (!conf->header_buf_n) {
         conf->header_buf_n = 4; // 4 buff
@@ -71,18 +78,35 @@ sky_http_server_create(sky_event_loop_t *ev_loop, sky_coro_switcher_t *switcher,
 sky_bool_t
 sky_http_server_bind(sky_http_server_t *server, sky_inet_addr_t *address, sky_u32_t address_len) {
 
-    sky_tcp_server_conf_t conf = {
-            .address = address,
-            .address_len = address_len,
-            .create_handle = http_connection_accept_cb,
-            .run_handle = http_connection_run,
-            .error_handle = http_connection_close,
-            .options = http_default_options,
-            .data = server,
-            .timeout = 60
-    };
+    http_listener_t *listener = sky_palloc(server->pool, sizeof(http_listener_t));
 
-    return null != sky_tcp_server_create(server->ev_loop, &conf);
+    sky_tcp_init(&listener->tcp, &server->ctx, server->ev_loop, http_server_accept, http_server_error);
+    if (sky_unlikely(!sky_tcp_open(&listener->tcp, address->sa_family))) {
+        return false;
+    }
+    sky_tcp_option_reuse_addr(&listener->tcp);
+
+    if (sky_unlikely(!sky_tcp_option_reuse_port(&listener->tcp))) {
+        sky_tcp_close(&listener->tcp);
+        return false;
+    }
+    sky_tcp_option_no_delay(&listener->tcp);
+    sky_tcp_option_fast_open(&listener->tcp, 5);
+    sky_tcp_option_defer_accept(&listener->tcp);
+
+    if (sky_unlikely(!sky_tcp_bind(&listener->tcp, address, address_len))) {
+        sky_tcp_close(&listener->tcp);
+        return false;
+    }
+
+    if (sky_unlikely(!sky_tcp_listen(&listener->tcp, 1024))) {
+        sky_tcp_close(&listener->tcp);
+        return false;
+    }
+
+    listener->server = server;
+
+    return true;
 }
 
 sky_str_t *
@@ -93,47 +117,70 @@ sky_http_status_find(sky_http_server_t *server, sky_u32_t status) {
     return server->status_map + (status - 100);
 }
 
-static sky_tcp_connect_t *
-http_connection_accept_cb(void *data) {
-    sky_http_server_t *server = data;
+static sky_bool_t
+http_server_accept(sky_tcp_t *server) {
+    const http_listener_t *listener = sky_type_convert(server, http_listener_t, tcp);
+    sky_http_server_t *context = listener->server;
 
-    sky_coro_t *coro = sky_coro_new(server->switcher);
-    sky_http_connection_t *conn = sky_coro_malloc(coro, sizeof(sky_http_connection_t));
-    conn->coro = coro;
-    conn->server = server;
-    sky_coro_set(coro, (sky_coro_func_t) sky_http_request_process, conn);
+    sky_http_connection_t *conn = context->conn_tmp;
+    if (!conn) {
+        sky_coro_t *coro = sky_coro_new(context->switcher);
+        conn = sky_coro_malloc(coro, sizeof(sky_http_connection_t));
+        sky_tcp_init(&conn->tcp, &context->ctx, context->ev_loop, http_connection_run, http_connection_close);
+        conn->coro = coro;
+        conn->server = context;
+        sky_coro_set(coro, (sky_coro_func_t) sky_http_request_process, conn);
+    }
+    sky_bool_t result;
+    for (;;) {
+        result = sky_tcp_accept(server, &conn->tcp);
+        if (result > 0) {
+            if (http_connection_run(&conn->tcp)) {
+                sky_tcp_register(&conn->tcp, 60);
+            } else {
+                sky_tcp_close(&conn->tcp);
+                sky_coro_reset(conn->coro, (sky_coro_func_t) sky_http_request_process, conn);
 
-    return &conn->tcp;
+                continue;
+            }
+
+            sky_coro_t *coro = sky_coro_new(context->switcher);
+            conn = sky_coro_malloc(coro, sizeof(sky_http_connection_t));
+            sky_tcp_init(&conn->tcp, &context->ctx, context->ev_loop, http_connection_run, http_connection_close);
+            conn->coro = coro;
+            conn->server = context;
+            sky_coro_set(coro, (sky_coro_func_t) sky_http_request_process, conn);
+
+            continue;
+        }
+
+        context->conn_tmp = conn;
+
+        return !result;
+    }
+}
+
+static void
+http_server_error(sky_tcp_t *server) {
+    sky_tcp_close(server);
 }
 
 
 static sky_bool_t
-http_connection_run(sky_tcp_connect_t *data) {
+http_connection_run(sky_tcp_t *data) {
     sky_http_connection_t *conn = sky_type_convert(data, sky_http_connection_t, tcp);
 
     return sky_coro_resume(conn->coro) == SKY_CORO_MAY_RESUME;
 }
 
 static void
-http_connection_close(sky_tcp_connect_t *data) {
+http_connection_close(sky_tcp_t *data) {
     sky_tcp_close(data);
 
     sky_http_connection_t *conn = sky_type_convert(data, sky_http_connection_t, tcp);
     sky_coro_destroy(conn->coro);
 }
 
-static sky_bool_t
-http_default_options(sky_i32_t fd, void *data) {
-    (void) data;
-    if (sky_unlikely(!sky_socket_option_reuse_port(fd))) {
-        return false;
-    }
-    sky_tcp_option_no_delay(fd);
-    sky_tcp_option_fast_open(fd, 5);
-    sky_tcp_option_defer_accept(fd);
-
-    return true;
-}
 
 static sky_inline void
 http_status_build(sky_http_server_t *server) {
