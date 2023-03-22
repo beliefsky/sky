@@ -31,16 +31,3 @@ sky_set_socket_nonblock(sky_socket_t fd) {
     return true;
 }
 
-sky_inline sky_bool_t
-sky_socket_option_reuse_port(sky_socket_t fd) {
-    const sky_i32_t opt = 1;
-
-#if defined(SO_REUSEPORT_LB)
-    return 0 == setsockopt(fd, SOL_SOCKET, SO_REUSEPORT_LB, &opt, sizeof(sky_i32_t));
-#elif defined(SO_REUSEPORT)
-    return 0 == setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_i32_t));
-#else
-    return false;
-#endif
-}
-

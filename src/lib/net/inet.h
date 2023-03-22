@@ -35,8 +35,6 @@ typedef sky_bool_t (*sky_scoket_opts_pt)(sky_socket_t fd, void *data);
 
 sky_bool_t sky_set_socket_nonblock(sky_socket_t fd);
 
-sky_bool_t sky_socket_option_reuse_port(sky_socket_t fd);
-
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif
