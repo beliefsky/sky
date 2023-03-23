@@ -7,7 +7,7 @@
 
 #include "../event/event_loop.h"
 #include "../core/coro.h"
-#include "inet.h"
+#include "tcp.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -18,6 +18,7 @@ typedef struct sky_tcp_listener_writer_s sky_tcp_listener_writer_t;
 typedef struct sky_tcp_listener_reader_s sky_tcp_listener_reader_t;
 typedef struct sky_tcp_listener_conf_s sky_tcp_listener_conf_t;
 
+typedef sky_bool_t (*sky_tcp_listener_opts_pt)(sky_tcp_t *conn, void *data);
 typedef void (*sky_tcp_listener_close_pt)(sky_tcp_listener_t *listener, void *data);
 
 
@@ -33,10 +34,11 @@ struct sky_tcp_listener_writer_s {
 #define sky_tcp_listener_writer_coro(_writer) (_writer)->coro
 
 struct sky_tcp_listener_conf_s {
+    sky_tcp_ctx_t *ctx;
     sky_inet_addr_t *address;
     void *data;
     sky_coro_func_t run;
-    sky_scoket_opts_pt options;
+    sky_tcp_listener_opts_pt options;
     sky_tcp_listener_close_pt close;
     sky_u32_t address_len;
     sky_i32_t keep_alive;
