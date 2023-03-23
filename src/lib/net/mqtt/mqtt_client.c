@@ -13,6 +13,7 @@ struct sky_mqtt_client_s {
     sky_str_t client_id;
     sky_str_t username;
     sky_str_t password;
+    sky_tcp_ctx_t ctx;
     sky_event_loop_t *loop;
     sky_tcp_listener_t *listener;
     sky_un_inet_t *ping_timer;
@@ -47,6 +48,8 @@ sky_mqtt_client_t *
 sky_mqtt_client_create(sky_event_loop_t *loop, sky_coro_switcher_t *switcher, const sky_mqtt_client_conf_t *conf) {
 
     sky_mqtt_client_t *client = sky_malloc(sizeof(sky_mqtt_client_t));
+    sky_tcp_ctx_init(&client->ctx);
+
     client->client_id = conf->client_id;
     client->username = conf->username;
     client->password = conf->password;
@@ -61,6 +64,7 @@ sky_mqtt_client_create(sky_event_loop_t *loop, sky_coro_switcher_t *switcher, co
     client->writer_pool = sky_pool_create(8192);
 
     const sky_tcp_listener_conf_t listener_conf = {
+            .ctx = &client->ctx,
             .keep_alive = conf->keep_alive,
             .address_len = conf->address_len,
             .address = conf->address,
