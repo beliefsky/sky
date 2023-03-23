@@ -4,30 +4,14 @@
 
 #include "event_loop.h"
 
-#include <sys/resource.h>
 #include <errno.h>
 #include <signal.h>
 #include <sys/epoll.h>
+#include <unistd.h>
 #include "../core/log.h"
 #include "../core/memory.h"
 
-#ifndef OPEN_MAX
-
-#include <sys/param.h>
-#include <unistd.h>
-
-#ifndef OPEN_MAX
-#ifdef NOFILE
-#define OPEN_MAX NOFILE
-#else
-#define OPEN_MAX 65535
-#endif
-#endif
-#endif
-
 static sky_bool_t event_register_with_flags(sky_event_t *ev, sky_u32_t flags, sky_i32_t timeout);
-
-static sky_i32_t setup_open_file_count_limits();
 
 sky_event_loop_t *
 sky_event_loop_create() {
@@ -39,8 +23,7 @@ sky_event_loop_create() {
     sa.sa_handler = SIG_IGN;
     sigaction(SIGPIPE, &sa, null);
 
-    max_events = setup_open_file_count_limits();
-    max_events = sky_min(max_events, 1024);
+    max_events = 1024;
 
     loop = sky_malloc(sizeof(sky_event_loop_t) + (sizeof(struct epoll_event) * (sky_u32_t) max_events));
     loop->fd = epoll_create1(EPOLL_CLOEXEC);
@@ -202,34 +185,4 @@ event_register_with_flags(sky_event_t *ev, sky_u32_t flags, sky_i32_t timeout) {
     (void) epoll_ctl(loop->fd, EPOLL_CTL_ADD, ev->fd, &event);
 
     return true;
-}
-
-static sky_i32_t
-setup_open_file_count_limits() {
-    struct rlimit r;
-
-    if (getrlimit(RLIMIT_NOFILE, &r) < 0) {
-        sky_log_error("Could not obtain maximum number of file descriptors. Assuming %d", OPEN_MAX);
-        return OPEN_MAX;
-    }
-
-    if (r.rlim_max != r.rlim_cur) {
-        const rlim_t current = r.rlim_cur;
-
-        if (r.rlim_max == RLIM_INFINITY) {
-            r.rlim_cur = OPEN_MAX;
-        } else if (r.rlim_cur < r.rlim_max) {
-            r.rlim_cur = r.rlim_max;
-        } else {
-            /* Shouldn't happen, so just return the current value. */
-            return (sky_i32_t) r.rlim_cur;
-        }
-
-        if (setrlimit(RLIMIT_NOFILE, &r) < 0) {
-            sky_log_error("Could not raise maximum number of file descriptors to %lu. Leaving at %lu", r.rlim_max,
-                          current);
-            r.rlim_cur = current;
-        }
-    }
-    return (sky_i32_t) r.rlim_cur;
 }
