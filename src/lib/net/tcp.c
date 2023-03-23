@@ -151,6 +151,7 @@ sky_tcp_close(sky_tcp_t *conn) {
     if (sky_likely(fd >= 0)) {
         conn->ctx->close(conn);
 
+        sky_event_clean_read_write(&conn->ev);
         close(fd);
         sky_event_rebind(&conn->ev, -1);
     }
