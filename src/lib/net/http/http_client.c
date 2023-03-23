@@ -23,6 +23,7 @@
 #define IS_PRINTABLE_ASCII(_c) ((_c)-040u < 0137u)
 
 struct sky_http_client_s {
+    sky_tcp_ctx_t ctx;
     sky_tcp_client_t *client;
     sky_coro_t *coro;
     sky_usize_t host_len;
@@ -91,8 +92,10 @@ sky_http_client_t *
 sky_http_client_create(sky_event_t *event, sky_coro_t *coro, const sky_http_client_conf_t *conf) {
     sky_http_client_t *client = sky_malloc(sizeof(sky_http_client_t));
 
+    sky_tcp_ctx_init(&client->ctx);
     if (!conf) {
         const sky_tcp_client_conf_t tcp_conf = {
+                .ctx = &client->ctx,
                 .destroy = (sky_tcp_destroy_pt) http_client_free,
                 .data = client,
                 .keep_alive = 60,
@@ -102,6 +105,7 @@ sky_http_client_create(sky_event_t *event, sky_coro_t *coro, const sky_http_clie
         client->client = sky_tcp_client_create(event, coro, &tcp_conf);
     } else {
         const sky_tcp_client_conf_t tcp_conf = {
+                .ctx = &client->ctx,
                 .destroy = (sky_tcp_destroy_pt) http_client_free,
                 .data = client,
                 .keep_alive = conf->keep_alive ?: 60,
@@ -1207,13 +1211,13 @@ parse_token(sky_uchar_t *buf, const sky_uchar_t *end, sky_uchar_t next_char) {
 #ifdef __SSE4_1__
 
     static const sky_uchar_t sky_align(16) ranges[16] = "\x00 "  /* control chars and up to SP */
-                                                      "\"\""   /* 0x22 */
-                                                      "()"     /* 0x28,0x29 */
-                                                      ",,"     /* 0x2c */
-                                                      "//"     /* 0x2f */
-                                                      ":@"     /* 0x3a-0x40 */
-                                                      "[]"     /* 0x5b-0x5d */
-                                                      "{\xff"; /* 0x7b-0xff */
+                                                        "\"\""   /* 0x22 */
+                                                        "()"     /* 0x28,0x29 */
+                                                        ",,"     /* 0x2c */
+                                                        "//"     /* 0x2f */
+                                                        ":@"     /* 0x3a-0x40 */
+                                                        "[]"     /* 0x5b-0x5d */
+                                                        "{\xff"; /* 0x7b-0xff */
 
     if (!find_char_fast(&buf, (sky_usize_t) (end - start), ranges, sizeof(ranges) - 1)) {
         if (buf == end) {

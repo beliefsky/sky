@@ -31,10 +31,6 @@ extern "C" {
 typedef sky_i32_t sky_socket_t;
 typedef struct sockaddr sky_inet_addr_t;
 
-typedef sky_bool_t (*sky_scoket_opts_pt)(sky_socket_t fd, void *data);
-
-sky_bool_t sky_set_socket_nonblock(sky_socket_t fd);
-
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif

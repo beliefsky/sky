@@ -129,7 +129,7 @@ sky_tcp_accept(sky_tcp_t *server, sky_tcp_t *client) {
 }
 
 sky_i8_t
-sky_tcp_connect(sky_tcp_t *conn, sky_inet_addr_t *addr, sky_usize_t addr_size) {
+sky_tcp_connect(sky_tcp_t *conn, const sky_inet_addr_t *addr, sky_usize_t addr_size) {
     if (connect(sky_event_get_fd(&conn->ev), addr, (sky_u32_t) addr_size) < 0) {
         switch (errno) {
             case EALREADY:
