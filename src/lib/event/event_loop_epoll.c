@@ -179,30 +179,6 @@ sky_event_register_only_write(sky_event_t *ev, sky_i32_t timeout) {
     );
 }
 
-sky_bool_t
-sky_event_unregister(sky_event_t *ev) {
-    if (sky_unlikely(sky_event_none_reg(ev))) {
-        return false;
-    }
-
-    if (ev->fd >= 0) {
-        struct epoll_event event = {
-                .events = EPOLLIN | EPOLLOUT | EPOLLPRI | EPOLLRDHUP | EPOLLERR | EPOLLET,
-                .data.ptr = ev
-        };
-
-        (void) epoll_ctl(ev->loop->fd, EPOLL_CTL_DEL, ev->fd, &event);
-    }
-    ev->timeout = 0;
-    ev->status &= ~SKY_EV_REG; // reg = false
-    // 此处应添加 应追加需要处理的连接
-    ev->loop->update = true;
-    sky_timer_wheel_link(ev->loop->ctx, &ev->timer, 0);
-
-    return true;
-}
-
-
 static sky_inline sky_bool_t
 event_register_with_flags(sky_event_t *ev, sky_u32_t flags, sky_i32_t timeout) {
     if (sky_unlikely(sky_event_is_reg(ev) || ev->fd < 0)) {
