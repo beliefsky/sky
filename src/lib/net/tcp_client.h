@@ -7,7 +7,7 @@
 
 #include "../event/event_loop.h"
 #include "../core/coro.h"
-#include "inet.h"
+#include "tcp.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -15,11 +15,13 @@ extern "C" {
 
 typedef struct sky_tcp_client_s sky_tcp_client_t;
 
+typedef sky_bool_t (*sky_tcp_client_opts_pt)(sky_tcp_t *conn, void *data);
 typedef void (*sky_tcp_destroy_pt)(void *data);
 
 typedef struct {
     sky_tcp_destroy_pt destroy;
-    sky_scoket_opts_pt options;
+    sky_tcp_client_opts_pt options;
+    sky_tcp_ctx_t *ctx;
     void *data;
     sky_i32_t keep_alive;
     sky_i32_t timeout;

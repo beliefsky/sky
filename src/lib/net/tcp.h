@@ -66,7 +66,7 @@ sky_bool_t sky_tcp_listen(sky_tcp_t *server, sky_i32_t backlog);
 
 sky_i8_t sky_tcp_accept(sky_tcp_t *server, sky_tcp_t *client);
 
-sky_i8_t sky_tcp_connect(sky_tcp_t *conn, sky_inet_addr_t *addr, sky_usize_t addr_size);
+sky_i8_t sky_tcp_connect(sky_tcp_t *conn, const sky_inet_addr_t *addr, sky_usize_t addr_size);
 
 void sky_tcp_close(sky_tcp_t *conn);
 
