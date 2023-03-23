@@ -94,22 +94,26 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             if (sky_event_none_reg(ev) || sky_event_is_error(ev)) {
                 sky_timer_wheel_unlink(&ev->timer);
                 ev->timer.cb(&ev->timer);
-            } else if (sky_unlikely(!!(event->events & (EPOLLRDHUP | EPOLLHUP)))) {
+                continue;
+            }
+
+            if (sky_unlikely(!!(event->events & (EPOLLRDHUP | EPOLLHUP)))) {
                 ev->status |= SKY_EV_ERROR; // error = true
                 ev->status &= ~(SKY_EV_READ | SKY_EV_WRITE);// read = false; write = false
                 sky_timer_wheel_unlink(&ev->timer);
                 ev->timer.cb(&ev->timer);
-            } else {
-                // 是否可读可写
-                ev->status |= ((sky_u32_t) ((event->events & EPOLLOUT) != 0) << 2)
-                              | ((sky_u32_t) ((event->events & EPOLLIN) != 0) << 1);
 
-                if (ev->run(ev)) {
-                    sky_timer_wheel_expired(ctx, &ev->timer, (sky_u64_t) (loop->now + ev->timeout));
-                } else {
-                    sky_timer_wheel_unlink(&ev->timer);
-                    ev->timer.cb(&ev->timer);
-                }
+                continue;
+            }
+            // 是否可读可写
+            ev->status |= ((sky_u32_t) ((event->events & EPOLLOUT) != 0) << 2)
+                          | ((sky_u32_t) ((event->events & EPOLLIN) != 0) << 1);
+
+            if (ev->run(ev)) {
+                sky_timer_wheel_expired(ctx, &ev->timer, (sky_u64_t) (loop->now + ev->timeout));
+            } else {
+                sky_timer_wheel_unlink(&ev->timer);
+                ev->timer.cb(&ev->timer);
             }
         }
 
