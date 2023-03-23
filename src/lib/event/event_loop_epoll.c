@@ -53,28 +53,22 @@ sky_event_loop_create() {
 
 void
 sky_event_loop_run(sky_event_loop_t *loop) {
-    sky_i32_t fd, max_events, n, timeout;
+    sky_i32_t n, timeout;
     sky_time_t now;
     sky_u64_t next_time;
-    sky_timer_wheel_t *ctx;
     sky_event_t *ev;
     struct epoll_event *events, *event;
 
-    fd = loop->fd;
-    ctx = loop->ctx;
-
     now = loop->now;
-
-    max_events = loop->max_events;
     events = (struct epoll_event *) (loop + 1);
 
 
-    sky_timer_wheel_run(ctx, (sky_u64_t) now);
-    next_time = sky_timer_wheel_wake_at(ctx);
+    sky_timer_wheel_run(loop->ctx, (sky_u64_t) now);
+    next_time = sky_timer_wheel_wake_at(loop->ctx);
     timeout = next_time == SKY_U64_MAX ? -1 : (sky_i32_t) (next_time - (sky_u64_t) now) * 1000;
 
     for (;;) {
-        n = epoll_wait(fd, events, max_events, timeout);
+        n = epoll_wait(loop->fd, events, loop->max_events, timeout);
         if (sky_unlikely(n < 0)) {
             switch (errno) {
                 case EBADF:
@@ -83,7 +77,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                 default:
                     continue;
             }
-            sky_log_error("event error: fd ->%d", fd);
+            sky_log_error("event error: fd ->%d", loop->fd);
             break;
         }
 
@@ -110,7 +104,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
                           | ((sky_u32_t) ((event->events & EPOLLIN) != 0) << 1);
 
             if (ev->run(ev)) {
-                sky_timer_wheel_expired(ctx, &ev->timer, (sky_u64_t) (loop->now + ev->timeout));
+                sky_timer_wheel_expired(loop->ctx, &ev->timer, (sky_u64_t) (loop->now + ev->timeout));
             } else {
                 sky_timer_wheel_unlink(&ev->timer);
                 ev->timer.cb(&ev->timer);
@@ -121,8 +115,8 @@ sky_event_loop_run(sky_event_loop_t *loop) {
             now = loop->now;
             loop->update = false;
 
-            sky_timer_wheel_run(ctx, (sky_u64_t) now);
-            next_time = sky_timer_wheel_wake_at(ctx);
+            sky_timer_wheel_run(loop->ctx, (sky_u64_t) now);
+            next_time = sky_timer_wheel_wake_at(loop->ctx);
             timeout = next_time == SKY_U64_MAX ? -1 : (sky_i32_t) (next_time - (sky_u64_t) now) * 1000;
         }
     }
