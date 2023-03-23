@@ -100,13 +100,6 @@ sky_bool_t sky_event_register_only_read(sky_event_t *ev, sky_i32_t timeout);
 sky_bool_t sky_event_register_only_write(sky_event_t *ev, sky_i32_t timeout);
 
 /**
- * 移除监听触发，该函数会马上关闭io，并在稍后会触发关闭事件
- * @param ev 已经加入的事件
- */
-sky_bool_t sky_event_unregister(sky_event_t *ev);
-
-
-/**
  * 标记为事件异常状态，会主动触发异常回调
  * @param ev 事件
  */

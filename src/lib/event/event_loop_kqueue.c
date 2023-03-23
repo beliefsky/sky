@@ -255,28 +255,6 @@ sky_event_register_only_write(sky_event_t *ev, sky_i32_t timeout) {
     return true;
 }
 
-sky_bool_t
-sky_event_unregister(sky_event_t *ev) {
-    if (sky_likely(sky_event_none_reg(ev))) {
-        return false;
-    }
-    sky_event_loop_t *loop = ev->loop;
-
-    if (ev->fd >= 0) {
-        struct kevent event[2];
-        EV_SET(&event[0], ev->fd, EVFILT_READ, EV_DELETE, 0, 0, ev);
-        EV_SET(&event[1], ev->fd, EVFILT_WRITE, EV_DELETE, 0, 0, ev);
-        kevent(loop->fd, event, 2, null, 0, null);
-    }
-    ev->timeout = 0;
-    ev->status &= ~SKY_EV_REG; // reg = false
-    // 此处应添加 应追加需要处理的连接
-    loop->update = true;
-    sky_timer_wheel_link(loop->ctx, &ev->timer, 0);
-
-    return true;
-}
-
 static sky_i32_t
 setup_open_file_count_limits() {
     struct rlimit r;
