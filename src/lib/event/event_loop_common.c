@@ -3,7 +3,6 @@
 //
 #include <unistd.h>
 #include "event_loop.h"
-#include "../core/memory.h"
 
 void
 sky_event_set_error(sky_event_t *ev) {
