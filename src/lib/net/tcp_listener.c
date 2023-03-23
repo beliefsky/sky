@@ -302,7 +302,7 @@ sky_tcp_listener_read_all(sky_tcp_listener_reader_t *reader, sky_uchar_t *data, 
     }
 
     for (;;) {
-        n = sky_tcp_write(&listener->tcp, data, size);
+        n = sky_tcp_read(&listener->tcp, data, size);
         if (n > 0) {
             if ((sky_usize_t) n < size) {
                 data += n;
@@ -486,8 +486,7 @@ tcp_create_connection(sky_tcp_listener_t *listener) {
     const sky_i8_t r = sky_tcp_connect(&listener->tcp, listener->address, listener->address_len);
 
     if (r > 0) {
-        sky_event_t *ev = sky_tcp_get_event(&listener->tcp);
-        sky_event_reset_timeout_self(ev, listener->keep_alive);
+        sky_tcp_register(&listener->tcp, listener->keep_alive);
         return READY;
     }
 
@@ -495,6 +494,7 @@ tcp_create_connection(sky_tcp_listener_t *listener) {
         sky_tcp_register(&listener->tcp, listener->timeout);
         return CONNECTING;
     }
+    sky_tcp_close(&listener->tcp);
 
     return CLOSE;
 }
