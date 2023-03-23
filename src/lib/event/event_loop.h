@@ -242,6 +242,15 @@ sky_event_clean_write(sky_event_t *ev) {
 }
 
 /**
+ * 标记不可写状态
+ * @param ev 事件
+ */
+static sky_inline void
+sky_event_clean_read_write(sky_event_t *ev) {
+    ev->status &= ~(SKY_EV_READ | SKY_EV_WRITE);
+}
+
+/**
  * 获取事件io句柄
  * @param ev 事件
  * @return io句柄
