@@ -50,7 +50,7 @@ static sky_inline void
 sky_ev_init(sky_ev_t *ev, sky_ev_cb_pt cb, sky_socket_t fd) {
     ev->fd = fd;
     ev->flags = 0;
-    ev->status = SKY_EV_NO_REG | SKY_EV_NO_ERR;
+    ev->status = SKY_EV_NO_REG | SKY_EV_NO_ERR | SKY_EV_READ | SKY_EV_WRITE;
     ev->cb = cb;
 }
 
