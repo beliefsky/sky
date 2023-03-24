@@ -66,9 +66,9 @@ set(SOURCES
         )
 
 if (SKY_HAVE_EPOLL)
-    set(SOURCES ${SOURCES} event/event_loop_epoll.c)
+    set(SOURCES ${SOURCES} event/event_epoll.c event/event_loop_epoll.c)
 elseif (SKY_HAVE_KQUEUE)
-    set(SOURCES ${SOURCES} event/event_loop_kqueue.c)
+    set(SOURCES ${SOURCES} event/event_kqueue.c event/event_loop_kqueue.c)
 endif ()
 
 
