@@ -54,6 +54,11 @@ sky_ev_init(sky_ev_t *ev, sky_ev_cb_pt cb, sky_socket_t fd) {
     ev->cb = cb;
 }
 
+static sky_inline void
+sky_ev_reset_cb(sky_ev_t *ev, sky_ev_cb_pt cb) {
+    ev->cb = cb;
+}
+
 static sky_inline sky_bool_t
 sky_ev_no_reg(const sky_ev_t *ev) {
     return !!(ev->status & SKY_EV_NO_REG);
