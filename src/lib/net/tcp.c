@@ -114,7 +114,7 @@ sky_tcp_accept(sky_tcp_t *server, sky_tcp_t *client) {
         return 0;
     }
 #else
-    const sky_socket_t fd = accept4(listener, null, null);
+    const sky_socket_t fd = accept(listener, null, null);
     if (fd < 0) {
         return 0;
     }
