@@ -45,7 +45,7 @@ sky_ev_add(sky_ev_listener_t *l, sky_ev_t *ev, sky_u32_t flags) {
     if (sky_unlikely(!sky_ev_no_reg(ev) || ev->fd < 0)) {
         return false;
     }
-    sky_u32_t opts = EPOLLRDHUP | EPOLLERR | EPOLLET;
+    sky_u32_t opts = EPOLLRDHUP | EPOLLERR | EPOLLET | EPOLLONESHOT;
 
     if (!!(flags & SKY_EV_READ)) {
         opts |= EPOLLIN | EPOLLPRI;
@@ -71,30 +71,7 @@ sky_ev_add(sky_ev_listener_t *l, sky_ev_t *ev, sky_u32_t flags) {
 
 sky_bool_t
 sky_ev_update(sky_ev_t *ev, sky_u32_t flags) {
-    if (sky_unlikely(sky_ev_no_reg(ev) || ev->fd < 0)) {
-        return false;
-    }
-
-    sky_u32_t opts = EPOLLRDHUP | EPOLLERR | EPOLLET;
-
-    if (!!(flags & SKY_EV_READ)) {
-        opts |= EPOLLIN | EPOLLPRI;
-    }
-
-    if (!!(flags & SKY_EV_WRITE)) {
-        opts |= EPOLLOUT;
-    }
-    struct epoll_event event = {
-            .events = flags,
-            .data.ptr = ev
-    };
-
-    if (sky_unlikely(epoll_ctl(ev->l->fd, EPOLL_CTL_MOD, ev->fd, &event) < 0)) {
-        return false;
-    }
-    ev->flags = opts;
-
-    return true;
+    return false;
 }
 
 sky_bool_t
@@ -153,6 +130,8 @@ sky_ev_run(sky_ev_listener_t *l, sky_i32_t timeout) {
                           | ((sky_u32_t) ((event->events & EPOLLIN) != 0) << 1);
         }
         ev->status &= ((sky_u32_t) i << 16) | SKY_EV_STATUS_MASK;
+        ev->status |= SKY_EV_NO_REG;
+
         l->evs[i] = ev;
     }
 
