@@ -151,7 +151,6 @@ sky_tcp_close(sky_tcp_t *conn) {
     if (sky_likely(fd >= 0)) {
         conn->ctx->close(conn);
 
-        sky_event_clean_read_write(&conn->ev);
         close(fd);
         sky_event_rebind(&conn->ev, -1);
     }
@@ -255,10 +254,11 @@ tcp_connect_read(sky_tcp_t *conn, sky_uchar_t *data, sky_usize_t size) {
     const sky_isize_t n = recv(sky_event_get_fd(&conn->ev), data, size, 0);
 
     if (n < 0) {
+        sky_event_clean_read(&conn->ev);
+
         switch (errno) {
             case EINTR:
             case EAGAIN:
-                sky_event_clean_read(&conn->ev);
                 return 0;
             default:
                 return -1;
@@ -275,10 +275,11 @@ tcp_connect_write(sky_tcp_t *conn, const sky_uchar_t *data, sky_usize_t size) {
     const sky_isize_t n = send(sky_event_get_fd(&conn->ev), data, size, 0);
 
     if (n < 0) {
+        sky_event_clean_write(&conn->ev);
+
         switch (errno) {
             case EINTR:
             case EAGAIN:
-                sky_event_clean_write(&conn->ev);
                 return 0;
             default:
                 return -1;
@@ -311,10 +312,10 @@ tcp_connect_sendfile(
     }
     const sky_i64_t n = sendfile(sky_event_get_fd(&conn->ev), fs->fd, offset, size);
     if (n < 0) {
+        sky_event_clean_write(&conn->ev);
         switch (errno) {
             case EINTR:
             case EAGAIN:
-                sky_event_clean_write(&conn->ev);
                 return result;
             default:
                 return -1;
@@ -347,11 +348,11 @@ tcp_connect_sendfile(
     }
 
     if (r < 0) {
+        sky_event_clean_write(&conn->ev);
         switch (errno) {
             case EAGAIN:
             case EBUSY:
             case EINTR:
-                sky_event_clean_write(&conn->ev);
                 break;
             default:
                 return -1;
@@ -387,11 +388,11 @@ tcp_connect_sendfile(
     }
 
     if (r < 0) {
+        sky_event_clean_write(&conn->ev);
         switch (errno) {
             case EAGAIN:
             case EBUSY:
             case EINTR:
-                sky_event_clean_write(&conn->ev);
                 break;
             default:
                 return -1;
