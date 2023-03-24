@@ -109,12 +109,12 @@ sky_tcp_accept(sky_tcp_t *server, sky_tcp_t *client) {
     const sky_socket_t listener = sky_event_get_fd(&server->ev);
 
 #ifdef SKY_HAVE_ACCEPT4
-    const sky_socket_t fd = accept4(listener, null, null, SOCK_NONBLOCK | SOCK_CLOEXEC);
+    const sky_socket_t fd = accept4(listener, null, 0, SOCK_NONBLOCK | SOCK_CLOEXEC);
     if (fd < 0) {
         return 0;
     }
 #else
-    const sky_socket_t fd = accept(listener, null, null);
+    const sky_socket_t fd = accept(listener, null, 0);
     if (fd < 0) {
         return 0;
     }
