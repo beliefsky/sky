@@ -2,8 +2,8 @@
 // Created by weijing on 2023/3/24.
 //
 
-#ifndef SKY_EVENT_H
-#define SKY_EVENT_H
+#ifndef SKY_SELECTOR_H
+#define SKY_SELECTOR_H
 
 #include "../net/inet.h"
 
@@ -16,7 +16,7 @@ extern "C" {
 #define SKY_EV_WRITE    SKY_U32(0x00000004)
 #define SKY_EV_NO_ERR   SKY_U32(0x00000008)
 
-typedef struct sky_ev_listener_s sky_ev_listener_t;
+typedef struct sky_selector_s sky_selector_t;
 typedef struct sky_ev_s sky_ev_t;
 
 typedef void (*sky_ev_cb_pt)(sky_ev_t *ev);
@@ -30,20 +30,18 @@ struct sky_ev_s {
      */
     sky_u32_t status;
     sky_ev_cb_pt cb;
-    sky_ev_listener_t *l;
+    sky_selector_t *s;
 };
 
-sky_ev_listener_t *sky_ev_listener_create();
+sky_selector_t *sky_selector_create();
 
-void sky_ev_listener_destroy(sky_ev_listener_t *l);
+sky_bool_t sky_selector_run(sky_selector_t *s, sky_i32_t timeout);
 
-sky_bool_t sky_ev_add(sky_ev_listener_t *l, sky_ev_t *ev, sky_u32_t flags);
+void sky_selector_destroy(sky_selector_t *s);
 
-sky_bool_t sky_ev_update(sky_ev_t *ev, sky_u32_t flags);
+sky_bool_t sky_selector_register(sky_selector_t *l, sky_ev_t *ev, sky_u32_t flags);
 
-sky_bool_t sky_ev_remove(sky_ev_t *ev);
-
-sky_bool_t sky_ev_run(sky_ev_listener_t *l, sky_i32_t timeout);
+sky_bool_t sky_selector_cancel(sky_ev_t *ev);
 
 
 static sky_inline void
@@ -61,22 +59,22 @@ sky_ev_reset_cb(sky_ev_t *ev, sky_ev_cb_pt cb) {
 
 static sky_inline sky_bool_t
 sky_ev_no_reg(const sky_ev_t *ev) {
-    return !!(ev->status & SKY_EV_NO_REG);
+    return (ev->status & SKY_EV_NO_REG) != 0;
 }
 
 static sky_inline sky_bool_t
 sky_ev_no_error(const sky_ev_t *ev) {
-    return !!(ev->status & SKY_EV_NO_ERR);
+    return (ev->status & SKY_EV_NO_ERR) != 0;
 }
 
 static sky_inline sky_bool_t
-sky_ev_is_read(const sky_ev_t *ev) {
-    return !!(ev->status & SKY_EV_READ);
+sky_ev_readable(const sky_ev_t *ev) {
+    return (ev->status & SKY_EV_READ) != 0;
 }
 
 static sky_inline sky_bool_t
-sky_ev_is_write(const sky_ev_t *ev) {
-    return !!(ev->status & SKY_EV_WRITE);
+sky_ev_writable(const sky_ev_t *ev) {
+    return (ev->status & SKY_EV_WRITE) != 0;
 }
 
 static sky_inline void
@@ -93,4 +91,4 @@ sky_ev_clean_write(sky_ev_t *ev) {
 } /* extern "C" { */
 #endif
 
-#endif //SKY_EVENT_H
+#endif //SKY_SELECTOR_H
