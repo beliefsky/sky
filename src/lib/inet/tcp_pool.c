@@ -79,7 +79,6 @@ sky_tcp_pool_create(sky_event_loop_t *ev_loop, const sky_tcp_pool_conf_t *conf) 
 
     for (sky_u32_t j = 0; j < conn_n; ++j, ++client) {
         sky_tcp_init(&client->conn, &conn_pool->ctx);
-        sky_tcp_set_cb(&client->conn, null);
         client->conn.ctx = &conn_pool->ctx;
         client->conn_time = 0;
         client->conn_pool = conn_pool;
@@ -172,6 +171,9 @@ sky_tcp_pool_conn_read(sky_tcp_session_t *session, sky_uchar_t *data, sky_usize_
             continue;
         }
 
+        sky_tcp_close(&client->conn);
+        sky_tcp_register_cancel(&client->conn);
+
         return 0;
     }
 }
@@ -215,6 +217,9 @@ sky_tcp_pool_conn_read_all(sky_tcp_session_t *session, sky_uchar_t *data, sky_us
             continue;
         }
 
+        sky_tcp_close(&client->conn);
+        sky_tcp_register_cancel(&client->conn);
+
         return false;
     }
 }
@@ -231,7 +236,13 @@ sky_tcp_pool_conn_read_nowait(sky_tcp_session_t *session, sky_uchar_t *data, sky
         return 0;
     }
 
-    return sky_tcp_read(&client->conn, data, size);
+    const sky_isize_t r = sky_tcp_read(&client->conn, data, size);
+    if (sky_unlikely(r < 0)) {
+        sky_tcp_close(&client->conn);
+        sky_tcp_register_cancel(&client->conn);
+    }
+
+    return r;
 }
 
 sky_usize_t
@@ -262,6 +273,9 @@ sky_tcp_pool_conn_write(sky_tcp_session_t *session, const sky_uchar_t *data, sky
             }
             continue;
         }
+
+        sky_tcp_close(&client->conn);
+        sky_tcp_register_cancel(&client->conn);
 
         return 0;
     }
@@ -306,6 +320,9 @@ sky_tcp_pool_conn_write_all(sky_tcp_session_t *session, const sky_uchar_t *data,
             continue;
         }
 
+        sky_tcp_close(&client->conn);
+        sky_tcp_register_cancel(&client->conn);
+
         return false;
     }
 }
@@ -322,7 +339,13 @@ sky_tcp_pool_conn_write_nowait(sky_tcp_session_t *session, const sky_uchar_t *da
         return 0;
     }
 
-    return sky_tcp_write(&client->conn, data, size);
+    const sky_isize_t r = sky_tcp_write(&client->conn, data, size);
+    if (sky_unlikely(r < 0)) {
+        sky_tcp_close(&client->conn);
+        sky_tcp_register_cancel(&client->conn);
+    }
+
+    return r;
 }
 
 sky_inline void
@@ -394,16 +417,19 @@ tcp_connection(sky_tcp_session_t *session) {
     if (sky_unlikely(!sky_tcp_open(tcp, conn_pool->address->sa_family))) {
         return false;
     }
+    sky_tcp_set_cb(tcp, tcp_run);
     if (sky_unlikely(conn_pool->options && !conn_pool->options(tcp, conn_pool->data))) {
         sky_tcp_close(tcp);
+        sky_tcp_register_cancel(tcp);
         return false;
     }
 
     for (;;) {
         const sky_i8_t r = sky_tcp_connect(tcp, conn_pool->address, conn_pool->address_len);
-        if (sky_unlikely(r < 0)) {
-            return false;
-        } else if (!r) {
+        if (r > 0) {
+            return true;
+        }
+        if (sky_likely(!r)) {
             sky_tcp_try_register(
                     sky_event_selector(conn_pool->ev_loop),
                     tcp,
@@ -413,13 +439,16 @@ tcp_connection(sky_tcp_session_t *session) {
             if (sky_unlikely(!session->client || sky_tcp_is_closed(tcp))) {
                 return false;
             }
-        } else {
-            break;
+            continue;
         }
+
+        sky_tcp_close(tcp);
+        sky_tcp_register_cancel(tcp);
+
+        return false;
     }
 
 //    sky_event_reset_timeout_self(sky_tcp_get_event(tcp), conn_pool->keep_alive);
-    return true;
 }
 
 
@@ -440,5 +469,7 @@ tcp_connection_defer(sky_tcp_session_t *session) {
     if (sky_unlikely(client->conn_pool->free)) {
         return;
     }
+    sky_tcp_close(&client->conn);
+    sky_tcp_register_cancel(&client->conn);
 //    sky_event_set_error(sky_tcp_get_event(&client->conn));
 }
