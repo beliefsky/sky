@@ -40,6 +40,9 @@ set(SOURCES
         event/select_group.c
         event/event_loop.c
 
+        inet/tcp_pool.c
+        inet/postgresql/pgsql_pool.c
+        inet/redis/redis_pool.c
         inet/http/http_server.c
         inet/http/http_request.c
         inet/http/http_parse.c

@@ -5,7 +5,6 @@
 #include "http_server.h"
 #include "http_request.h"
 #include "../../core/memory.h"
-#include "../../core/log.h"
 
 typedef struct {
     sky_tcp_t tcp;
@@ -18,7 +17,7 @@ static void http_server_accept(sky_tcp_t *server);
 static void http_status_build(sky_http_server_t *server);
 
 sky_http_server_t *
-sky_http_server_create(sky_event_loop_t *ev_loop, sky_http_conf_t *conf) {
+sky_http_server_create(sky_event_loop_t *ev_loop, const sky_http_conf_t *conf) {
     sky_pool_t *pool;
     sky_http_server_t *server;
     sky_http_module_host_t *host;
@@ -34,15 +33,10 @@ sky_http_server_create(sky_event_loop_t *ev_loop, sky_http_conf_t *conf) {
     server->ev_loop = ev_loop;
     server->conn_tmp = null;
 
-    if (!conf->header_buf_n) {
-        conf->header_buf_n = 4; // 4 buff
-    }
-    server->header_buf_n = conf->header_buf_n;
+    server->header_buf_n = conf->header_buf_n ?: 4;
+    server->header_buf_size = conf->header_buf_size ?: 2047;
+    server->keep_alive = conf->keep_alive > 0 ? (sky_u32_t) conf->keep_alive : 60;
 
-    if (!conf->header_buf_size) {
-        conf->header_buf_size = 2047;   // 2kb
-    }
-    server->header_buf_size = sky_max(conf->header_buf_size, 511U);
     server->rfc_last = 0;
 
     // ====================================================================================

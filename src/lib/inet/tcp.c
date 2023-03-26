@@ -73,6 +73,7 @@ sky_tcp_open(sky_tcp_t *tcp, sky_i32_t domain) {
 #endif
 
     sky_ev_init(&tcp->ev, null, fd);
+    tcp->closed = false;
 
     return true;
 }
@@ -159,6 +160,7 @@ sky_tcp_close(sky_tcp_t *tcp) {
     const sky_socket_t fd = sky_ev_get_fd(&tcp->ev);
 
     tcp->ev.fd = -1;
+    tcp->closed = true;
     tcp->ctx->close(tcp);
     close(fd);
 }

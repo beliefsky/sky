@@ -42,6 +42,7 @@ struct sky_tcp_ctx_s {
 struct sky_tcp_s {
     sky_ev_t ev;
     sky_tcp_ctx_t *ctx;
+    sky_bool_t closed:1;
 };
 
 void sky_tcp_ctx_init(sky_tcp_ctx_t *ctx);
@@ -85,6 +86,7 @@ sky_bool_t sky_tcp_option_fast_open(sky_tcp_t *tcp, sky_i32_t n);
 static sky_inline void
 sky_tcp_init(sky_tcp_t *tcp, sky_tcp_ctx_t *ctx) {
     tcp->ctx = ctx;
+    tcp->closed = true;
 }
 
 static sky_inline sky_ev_t *
@@ -118,6 +120,11 @@ sky_tcp_register_update(sky_tcp_t *tcp, sky_u32_t flags) {
 static sky_inline sky_bool_t
 sky_tcp_register_cancel(sky_tcp_t *tcp) {
     return sky_selector_cancel(&tcp->ev);
+}
+
+static sky_inline sky_bool_t
+sky_tcp_is_closed(const sky_tcp_t *tcp) {
+    return tcp->closed;
 }
 
 

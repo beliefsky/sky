@@ -35,6 +35,7 @@ sky_http_request_process(sky_http_connection_t *conn) {
     conn->coro = null;
 
     sky_pool_t *pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
+
     http_request_process(conn, pool);
 }
 
@@ -45,7 +46,10 @@ sky_http_read_body_none_need(sky_http_request_t *r) {
         return;
     }
     r->read_request_body = true;
+
+    sky_event_timeout_set(r->conn->server->ev_loop, &r->timer, r->conn->server->keep_alive);
     http_read_body_none_need(r);
+    sky_timer_wheel_unlink(&r->timer);
 }
 
 sky_str_t *
@@ -85,11 +89,15 @@ sky_http_read_body_str(sky_http_request_t *r) {
         sky_buf_rebuild(tmp, (sky_usize_t) (total + 1));
     }
 
+    sky_event_timeout_set(r->conn->server->ev_loop, &r->timer, r->conn->server->keep_alive);
+
     do {
         n = http_read(r->conn, tmp->last, size);
         tmp->last += n;
         size -= n;
     } while (size > 0);
+
+    sky_timer_wheel_unlink(&r->timer);
 
     result->len = total;
     result->data = tmp->pos;
@@ -571,7 +579,8 @@ http_request_process(sky_http_connection_t *conn, sky_pool_t *pool) {
     r->free_buf_n = server->header_buf_n;
 
     sky_timer_entry_init(&r->timer, http_read_timeout);
-    sky_event_timeout_set(server->ev_loop, &r->timer, 60);
+    sky_event_timeout_set(server->ev_loop, &r->timer, server->keep_alive);
+
     conn->req_tmp = r;
 
     sky_tcp_set_cb(&conn->tcp, http_line_read);
@@ -624,8 +633,7 @@ http_line_read(sky_tcp_t *tcp) {
                     &conn->tcp,
                     SKY_EV_READ | SKY_EV_WRITE
             );
-
-            sky_event_timeout_expired(loop, &r->timer, 60);
+            sky_event_timeout_expired(loop, &r->timer, conn->server->keep_alive);
 
             return;
         }
@@ -684,7 +692,7 @@ http_header_read(sky_tcp_t *tcp) {
                     &conn->tcp,
                     SKY_EV_READ | SKY_EV_WRITE
             );
-            sky_event_timeout_expired(loop, &r->timer, 60);
+            sky_event_timeout_expired(loop, &r->timer, conn->server->keep_alive);
 
             return;
         }
@@ -816,6 +824,7 @@ http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size) {
                     &conn->tcp,
                     SKY_EV_READ | SKY_EV_WRITE
             );
+            sky_event_timeout_expired(conn->server->ev_loop, &conn->req_tmp->timer, conn->server->keep_alive);
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
             continue;
         }

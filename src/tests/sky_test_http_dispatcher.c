@@ -7,13 +7,13 @@
 //
 #include <netinet/in.h>
 
-#include <net/http/http_server.h>
-#include <net/http/module/http_module_dispatcher.h>
-#include <net/http/http_request.h>
-#include <net/http/extend//http_extend_pgsql_pool.h>
-#include <net/http/extend/http_extend_redis_pool.h>
+#include <inet/http/http_server.h>
+#include <inet/http/module/http_module_dispatcher.h>
+#include <inet/http/http_request.h>
+#include <inet/http/extend//http_extend_pgsql_pool.h>
+#include <inet/http/extend/http_extend_redis_pool.h>
 #include <core/number.h>
-#include <net/http/http_response.h>
+#include <inet/http/http_response.h>
 #include <core/json.h>
 #include <core/date.h>
 #include <unistd.h>
@@ -117,7 +117,6 @@ create_server(sky_event_loop_t *ev_loop) {
 
 
     sky_pool_t *pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
-    sky_coro_switcher_t *switcher = sky_palloc(pool, sky_coro_switcher_size());
 
     sky_array_t modules;
     sky_array_init2(&modules, pool, 8, sizeof(sky_http_module_t));
@@ -147,7 +146,7 @@ create_server(sky_event_loop_t *ev_loop) {
 #endif
     };
 
-    sky_http_server_t *server = sky_http_server_create(ev_loop, switcher, &conf);
+    sky_http_server_t *server = sky_http_server_create(ev_loop, &conf);
 
     struct sockaddr_in ipv4_address = {
             .sin_family = AF_INET,
@@ -258,7 +257,7 @@ static SKY_HTTP_MAPPER_HANDLER(pgsql_test) {
 
     sky_pgsql_param_set_i32(&params, 0, 2);
     sky_pgsql_param_set_timestamp_tz(&params, 1,
-                                     sky_event_get_now(sky_tcp_get_event(&req->conn->tcp)) * 1000000);
+                                     sky_event_now(req->conn->server->ev_loop) * 1000000);
     sky_pgsql_param_set_date(&params, 2, 365);
     sky_pgsql_param_set_time(&params, 3, 3600L * 1000000);
 
