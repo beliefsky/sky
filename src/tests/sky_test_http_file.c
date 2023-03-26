@@ -4,9 +4,9 @@
 #include <netinet/in.h>
 
 #include <event/event_loop.h>
-#include <net/http/http_server.h>
-#include <net/http/module/http_module_file.h>
-#include <net/http/http_request.h>
+#include <inet/http/http_server.h>
+#include <inet/http/module/http_module_file.h>
+#include <inet/http/http_request.h>
 #include <core/log.h>
 #include <unistd.h>
 #include <core/process.h>
@@ -69,7 +69,6 @@ create_server() {
     sky_event_loop_t *ev_loop = sky_event_loop_create();
 
     sky_pool_t *pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);;
-    sky_coro_switcher_t *switcher = sky_palloc(pool, sky_coro_switcher_size());
 
     sky_array_t modules;
     sky_array_init2(&modules, pool, 8, sizeof(sky_http_module_t));
@@ -105,7 +104,7 @@ create_server() {
 #endif
     };
 
-    sky_http_server_t *server = sky_http_server_create(ev_loop, switcher, &conf);
+    sky_http_server_t *server = sky_http_server_create(ev_loop, &conf);
 
     {
         struct sockaddr_in http_address = {

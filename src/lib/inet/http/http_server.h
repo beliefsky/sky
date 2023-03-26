@@ -31,8 +31,9 @@ typedef struct {
 
 typedef struct {
     sky_http_module_host_t *modules_host;
-    sky_u16_t modules_n;
     sky_u32_t header_buf_size;
+    sky_i32_t keep_alive;
+    sky_u16_t modules_n;
     sky_u8_t header_buf_n;
 } sky_http_conf_t;
 
@@ -50,6 +51,7 @@ struct sky_http_server_s {
     sky_time_t rfc_last;
 
     sky_u32_t header_buf_size;
+    sky_u32_t keep_alive;
     sky_u8_t header_buf_n;
 };
 
@@ -67,7 +69,7 @@ struct sky_http_connection_s {
 };
 
 sky_http_server_t *
-sky_http_server_create(sky_event_loop_t *ev_loop, sky_http_conf_t *conf);
+sky_http_server_create(sky_event_loop_t *ev_loop, const sky_http_conf_t *conf);
 
 sky_bool_t sky_http_server_bind(sky_http_server_t *server, sky_inet_addr_t *addr, sky_u32_t addr_len);
 

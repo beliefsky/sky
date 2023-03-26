@@ -33,7 +33,7 @@ static void http_send_file(
         sky_usize_t header_len
 );
 
-static void http_write_reg(sky_http_connection_t *conn);
+static void http_write_wait(sky_http_connection_t *conn);
 
 void
 sky_http_response_nobody(sky_http_request_t *r) {
@@ -62,6 +62,9 @@ sky_http_response_nobody(sky_http_request_t *r) {
     sky_str_out_stream_flush(&stream);
     sky_str_out_stream_destroy(&stream);
     sky_pfree(r->pool, buff.data, buff.len);
+
+
+    sky_timer_wheel_unlink(&r->timer);
 }
 
 
@@ -111,6 +114,8 @@ sky_http_response_static_len(sky_http_request_t *r, const sky_uchar_t *buf, sky_
     sky_str_out_stream_flush(&stream);
     sky_str_out_stream_destroy(&stream);
     sky_pfree(r->pool, buff.data, buff.len);
+
+    sky_timer_wheel_unlink(&r->timer);
 }
 
 sky_http_res_chunked_t *
@@ -178,6 +183,8 @@ sky_http_response_chunked_end(sky_http_res_chunked_t *chunked) {
     sky_str_out_stream_flush(&chunked->stream);
     sky_str_out_stream_destroy(&chunked->stream);
     sky_pfree(chunked->r->pool, chunked->buff_data, chunked->buff_size);
+
+    sky_timer_wheel_unlink(&chunked->r->timer);
 }
 
 
@@ -229,6 +236,8 @@ sky_http_sendfile(sky_http_request_t *r, sky_i32_t fd, sky_usize_t offset, sky_u
     }
     sky_str_out_stream_destroy(&stream);
     sky_pfree(r->pool, buff.data, buff.len);
+
+    sky_timer_wheel_unlink(&r->timer);
 }
 
 static void
@@ -236,9 +245,12 @@ http_header_write_pre(sky_http_request_t *r, sky_str_out_stream_t *stream) {
     if (!r->state) {
         r->state = 200;
     }
+
     sky_http_server_t *server = r->conn->server;
 
     const sky_str_t *status = sky_http_status_find(server, r->state);
+
+    sky_event_timeout_set(server->ev_loop, &r->timer, server->keep_alive);
 
     sky_str_out_stream_write_str(stream, &r->version_name);
     sky_str_out_stream_write_uchar(stream, ' ');
@@ -303,8 +315,7 @@ http_write(sky_http_connection_t *conn, const sky_uchar_t *data, sky_usize_t siz
             sky_coro_yield(conn->coro, SKY_CORO_ABORT);
             sky_coro_exit();
         } else if (!n) {
-            http_write_reg(conn);
-            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+            http_write_wait(conn);
             continue;
         }
 
@@ -312,8 +323,7 @@ http_write(sky_http_connection_t *conn, const sky_uchar_t *data, sky_usize_t siz
             data += n;
             size -= (sky_usize_t) n;
 
-            http_write_reg(conn);
-            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+            http_write_wait(conn);
             continue;
         }
 
@@ -343,16 +353,14 @@ http_send_file(
             sky_coro_yield(conn->coro, SKY_CORO_ABORT);
             sky_coro_exit();
         } else if (!n) {
-            http_write_reg(conn);
-            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+            http_write_wait(conn);
             continue;
         }
         if ((sky_usize_t) n < header_len) {
             header_len -= (sky_usize_t) n;
             header += n;
 
-            http_write_reg(conn);
-            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+            http_write_wait(conn);
             continue;
         }
         n -= (sky_isize_t) header_len;
@@ -364,15 +372,13 @@ http_send_file(
     }
 
     do {
-        http_write_reg(conn);
-        sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+        http_write_wait(conn);
         n = sky_tcp_sendfile(&conn->tcp, &fs, &offset, size, null, 0);
         if (sky_unlikely(n < 0)) {
             sky_coro_yield(conn->coro, SKY_CORO_ABORT);
             sky_coro_exit();
         } else if (!n) {
-            http_write_reg(conn);
-            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+            http_write_wait(conn);
             continue;
         }
         size -= (sky_usize_t) n;
@@ -381,22 +387,25 @@ http_send_file(
 }
 
 static sky_inline void
-http_write_reg(sky_http_connection_t *conn) {
+http_write_wait(sky_http_connection_t *conn) {
     sky_http_request_t *r = conn->req_tmp;
 
     if (r->keep_alive) {
-        sky_tcp_register(
+        sky_tcp_try_register(
                 sky_event_selector(conn->server->ev_loop),
                 &conn->tcp,
                 SKY_EV_READ | SKY_EV_WRITE
         );
+    } else {
 
-        return;
+        sky_tcp_try_register(
+                sky_event_selector(conn->server->ev_loop),
+                &conn->tcp,
+                SKY_EV_WRITE
+        );
     }
+    sky_event_timeout_expired(conn->server->ev_loop, &r->timer, conn->server->keep_alive);
 
-    sky_tcp_register(
-            sky_event_selector(conn->server->ev_loop),
-            &conn->tcp,
-            SKY_EV_WRITE
-    );
+    sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+
 }

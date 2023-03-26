@@ -42,6 +42,11 @@ sky_event_selector(sky_event_loop_t *loop) {
     return loop->selector;
 }
 
+static sky_inline sky_i64_t
+sky_event_now(sky_event_loop_t *loop) {
+    return loop->now;
+}
+
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif
