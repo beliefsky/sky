@@ -845,8 +845,6 @@ http_read_timeout(sky_timer_wheel_entry_t *timer) {
     }
     sky_pool_destroy(req->pool);
     sky_free(conn);
-
-    sky_log_info("timeout");
 }
 
 static sky_inline void
