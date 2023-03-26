@@ -73,7 +73,7 @@ sky_tcp_pool_create(sky_event_loop_t *ev_loop, const sky_tcp_pool_conf_t *conf) 
     conn_pool->options = conf->options;
     conn_pool->next_func = conf->next_func;
     conn_pool->data = conf->data;
-    conn_pool->timeout = (sky_u32_t) conf->timeout ?: 30;
+    conn_pool->timeout = conf->timeout ?: 30;
     conn_pool->free = false;
 
     sky_tcp_node_t *client = conn_pool->clients;
@@ -206,6 +206,7 @@ sky_tcp_pool_conn_read_all(sky_tcp_session_t *session, sky_uchar_t *data, sky_us
                 sky_timer_wheel_unlink(&client->timer);
                 return true;
             }
+            continue;
         }
         if (sky_likely(!n)) {
             sky_tcp_try_register(
@@ -313,6 +314,8 @@ sky_tcp_pool_conn_write_all(sky_tcp_session_t *session, const sky_uchar_t *data,
                 sky_timer_wheel_unlink(&client->timer);
                 return true;
             }
+
+            continue;
         }
         if (sky_likely(!n)) {
             sky_tcp_try_register(
@@ -426,12 +429,11 @@ tcp_connection(sky_tcp_session_t *session) {
     if (sky_unlikely(!sky_tcp_open(tcp, conn_pool->address->sa_family))) {
         return false;
     }
-    sky_tcp_set_cb(tcp, tcp_run);
     if (sky_unlikely(conn_pool->options && !conn_pool->options(tcp, conn_pool->data))) {
         sky_tcp_close(tcp);
-        sky_tcp_register_cancel(tcp);
         return false;
     }
+    sky_tcp_set_cb(tcp, tcp_run);
 
     sky_event_timeout_set(conn_pool->ev_loop, &session->client->timer, conn_pool->timeout);
 

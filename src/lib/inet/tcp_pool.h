@@ -30,7 +30,7 @@ typedef struct {
 
     void *data;
 
-    sky_i32_t timeout;
+    sky_u32_t timeout;
     sky_u32_t address_len;
 
     sky_u32_t connection_size;
