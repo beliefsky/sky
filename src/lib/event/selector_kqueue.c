@@ -15,10 +15,9 @@
 
 struct sky_selector_s {
     sky_i32_t fd;
-    sky_i32_t reg_n;
+    sky_u32_t ev_n;
     sky_ev_t *evs[SKY_EVENT_MAX];
     struct kevent sys_evs[SKY_EVENT_MAX];
-    struct kevent sys_ev_reg[SKY_EVENT_MAX];
 };
 
 sky_selector_t *
@@ -30,13 +29,17 @@ sky_selector_create() {
 
     sky_selector_t *s = sky_malloc(sizeof(sky_selector_t));
     s->fd = fd;
-    s->reg_n = 0;
+    s->ev_n = 0;
 
     return s;
 }
 
 sky_bool_t
-sky_selector_run(sky_selector_t *s, sky_i32_t timeout) {
+sky_selector_select(sky_selector_t *s, sky_i32_t timeout) {
+    if (sky_unlikely(s->ev_n > 0)) {
+        return true;
+    }
+
     struct timespec *tmp;
 
     struct timespec timespec = {
@@ -54,18 +57,18 @@ sky_selector_run(sky_selector_t *s, sky_i32_t timeout) {
         tmp->tv_nsec = (timeout % 1000) * 1000;
     }
 
-    const sky_i32_t n = kevent(s->fd, s->sys_ev_reg, s->reg_n, s->sys_evs, SKY_EVENT_MAX, tmp);
+    const sky_i32_t n = kevent(s->fd, null, 0, s->sys_evs, SKY_EVENT_MAX, tmp);
     if (sky_unlikely(n < 0)) {
+        s->ev_n = 0;
         switch (errno) {
             case EBADF:
             case EINVAL:
                 return false;
             default:
-                s->reg_n = 0;
                 return true;
         }
     }
-    s->reg_n = 0;
+    s->ev_n = (sky_u32_t) n;
 
     if (!n) {
         return true;
@@ -74,60 +77,43 @@ sky_selector_run(sky_selector_t *s, sky_i32_t timeout) {
     struct kevent *event = s->sys_evs;
     sky_ev_t *ev;
 
-    for (sky_i32_t i = 0; i < n; ++event, ++i) {
+    for (sky_u32_t i = 0; i < s->ev_n; ++event, ++i) {
         ev = event->udata;
 
-        if (event->filter == EVFILT_WRITE) {
-            if (sky_unlikely(!!(event->flags & EV_ERROR))) {
-                ev->status &= ~(SKY_EV_NO_ERR | SKY_EV_WRITE);
-            } else {
-                ev->status |= SKY_EV_WRITE;
-            }
-            ev->flags &= ~SKY_EV_WRITE;
-        } else {
-            if (sky_unlikely(!!(event->flags & EV_ERROR))) {
-                ev->status &= ~(SKY_EV_NO_ERR | SKY_EV_WRITE);
-            } else {
-                ev->status |= SKY_EV_READ;
-            }
-            ev->flags &= ~SKY_EV_READ;
+        if (sky_unlikely(!!(event->flags & EV_ERROR))) {
+            ev->status &= ~(SKY_EV_NO_ERR | SKY_EV_READ | SKY_EV_WRITE);
+            continue;
         }
+
+        ev->status |= event->filter == EVFILT_WRITE ? SKY_EV_WRITE : SKY_EV_READ;
 
         if (!(ev->status & SKY_EV_NONE_INDEX)) {
             continue;
         }
-        ev->status &= ((sky_u32_t) i << 16) | SKY_EV_STATUS_MASK;
+        ev->status &= (i << 16) | SKY_EV_STATUS_MASK;
         s->evs[i] = ev;
     }
+}
 
-    sky_ev_t **ev_ref = s->evs;
+void
+sky_selector_run(sky_selector_t *s) {
+    if (sky_unlikely(!s->ev_n)) {
+        return;
+    }
+    sky_ev_t *ev, **ev_ref = s->evs;
 
-    for (sky_i32_t i = 0; i < n; ++ev_ref, ++i) {
+    for (sky_u32_t i = s->ev_n; i > 0; ++ev_ref, --i) {
         ev = *ev_ref;
         if (sky_unlikely(!ev)) {
             continue;
         }
-
-        if ((ev->flags & SKY_EV_WRITE) != 0) {
-            if (s->reg_n >= (SKY_EVENT_MAX)) {
-                kevent(s->fd, s->sys_ev_reg, s->reg_n, null, 0, null);
-                s->reg_n = 0;
-            }
-            EV_SET(&s->sys_ev_reg[s->reg_n++], ev->fd, EVFILT_WRITE, EV_DELETE, 0, 0, ev);
-        } else if ((ev->flags & SKY_EV_READ) != 0) {
-            if (s->reg_n >= (SKY_EVENT_MAX)) {
-                kevent(s->fd, s->sys_ev_reg, s->reg_n, null, 0, null);
-                s->reg_n = 0;
-            }
-            EV_SET(&s->sys_ev_reg[s->reg_n++], ev->fd, EVFILT_READ, EV_DELETE, 0, 0, ev);
-        }
-
-        ev->status |= SKY_EV_NONE_INDEX | SKY_EV_NO_REG;
+        ev->status |= SKY_EV_NONE_INDEX;
         ev->cb(ev);
     }
 
-    return true;
+    s->ev_n = 0;
 }
+
 
 void
 sky_selector_destroy(sky_selector_t *l) {
@@ -138,48 +124,90 @@ sky_selector_destroy(sky_selector_t *l) {
 
 sky_bool_t
 sky_selector_register(sky_selector_t *s, sky_ev_t *ev, sky_u32_t flags) {
-    if (sky_unlikely(!sky_ev_no_reg(ev) || ev->fd < 0 || !(flags & (SKY_EV_READ | SKY_EV_WRITE)))) {
+    if (sky_unlikely(sky_ev_reg(ev) || ev->fd < 0 || !(flags & (SKY_EV_READ | SKY_EV_WRITE)))) {
         return false;
     }
+    sky_u32_t n = 0;
+    struct kevent events[2];
 
-    if (s->reg_n > (SKY_EVENT_MAX - 2)) {
-        kevent(s->fd, s->sys_ev_reg, s->reg_n, null, 0, null);
-        s->reg_n = 0;
-    }
     if ((flags & SKY_EV_READ) != 0) {
-        EV_SET(&s->sys_ev_reg[s->reg_n++], ev->fd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 0, ev);
+        EV_SET(&events[n++], ev->fd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
     }
 
     if ((flags & SKY_EV_WRITE) != 0) {
-        EV_SET(&s->sys_ev_reg[s->reg_n++], ev->fd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_ONESHOT, 0, 0, ev);
+        EV_SET(&events[n++], ev->fd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
     }
+
+    kevent(s->fd, events, n, null, 0, null);
 
     ev->s = s;
     ev->flags = flags;
     ev->status &= ~SKY_EV_NO_REG;
+    ev->status |= SKY_EV_NO_ERR;
+
+    return true;
+}
+
+sky_bool_t
+sky_selector_update(sky_ev_t *ev, sky_u32_t flags) {
+    if (sky_unlikely(!sky_ev_reg(ev) || ev->fd < 0 || !(flags & (SKY_EV_READ | SKY_EV_WRITE)))) {
+        return false;
+    }
+    sky_selector_t *s = ev->s;
+
+    sky_u32_t n = 0;
+    struct kevent events[2];
+
+    if ((flags & SKY_EV_READ) != 0) {
+        if ((ev->flags & SKY_EV_READ) == 0) {
+            EV_SET(&events[n++], ev->fd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
+        }
+    } else {
+        if ((ev->flags & SKY_EV_READ) != 0 ) {
+            EV_SET(&events[n++], ev->fd, EVFILT_READ, EV_DELETE, 0, 0, ev);
+        }
+    }
+
+    if ((flags & SKY_EV_WRITE) != 0) {
+        if ((ev->flags & SKY_EV_WRITE) == 0) {
+            EV_SET(&events[n++], ev->fd, EVFILT_WRITE, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
+        }
+    } else {
+        if ((ev->flags & SKY_EV_WRITE) != 0 ) {
+            EV_SET(&events[n++], ev->fd, EVFILT_WRITE, EV_DELETE, 0, 0, ev);
+        }
+    }
+
+    if (n > 0) {
+        kevent(s->fd, events, n, null, 0, null);
+    }
+
+    ev->flags = flags;
+    ev->status |= SKY_EV_NO_ERR;
 
     return true;
 }
 
 sky_bool_t
 sky_selector_cancel(sky_ev_t *ev) {
-    if (sky_unlikely(sky_ev_no_reg(ev))) {
+    if (sky_unlikely(!sky_ev_reg(ev))) {
         return true;
     }
     if (ev->fd >= 0) {
         sky_selector_t *s = ev->s;
 
-        if (s->reg_n > (SKY_EVENT_MAX - 2)) {
-            kevent(s->fd, s->sys_ev_reg, s->reg_n, null, 0, null);
-            s->reg_n = 0;
-        }
+        sky_u32_t n = 0;
+        struct kevent events[2];
+
+
         if ((ev->flags & SKY_EV_READ) != 0) {
-            EV_SET(&s->sys_ev_reg[s->reg_n++], ev->fd, EVFILT_READ, EV_DELETE, 0, 0, ev);
+            EV_SET(&events[n++], ev->fd, EVFILT_READ, EV_DELETE, 0, 0, ev);
         }
 
         if ((ev->flags & SKY_EV_WRITE) != 0) {
-            EV_SET(&s->sys_ev_reg[s->reg_n++], ev->fd, EVFILT_WRITE, EV_DELETE, 0, 0, ev);
+            EV_SET(&events[n++], ev->fd, EVFILT_WRITE, EV_DELETE, 0, 0, ev);
         }
+        kevent(s->fd, events, n, null, 0, null);
     }
 
     if (!(ev->status & SKY_EV_NONE_INDEX)) {

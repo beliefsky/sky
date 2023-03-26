@@ -37,45 +37,53 @@ set(SOURCES
         safe/mpmc_queue.c
         safe/mpsc_ring_buf.c
         fs/file.c
-        event/event_loop_common.c
-        net/un_inet.c
-        net/inet.c
-        net/tcp.c
-        net/tcp_pool.c
-        net/tcp_client.c
-        net/tcp_listener.c
-        net/tls/tls.c
-        net/postgresql/pgsql_pool.c
-        net/redis/redis_pool.c
-        net/http/http_request.c
-        net/http/http_response.c
-        net/http/http_parse.c
-        net/http/http_client.c
-        net/http/http_server.c
-        net/http/http_url.c
-        net/http/module/http_module_file.c
-        net/http/module/http_module_dispatcher.c
-        net/http/module/http_module_websocket.c
-        net/mqtt/mqtt_io_wrappers.c
-        net/mqtt/mqtt_protocol.c
-        net/mqtt/mqtt_subs.c
-        net/mqtt/mqtt_request.c
-        net/mqtt/mqtt_response.c
-        net/mqtt/mqtt_server.c
-        net/mqtt/mqtt_client.c
+        event/select_group.c
+        event/event_loop.c
+
+        inet/http/http_server.c
+        inet/http/http_request.c
+        inet/http/http_parse.c
+        inet/http/http_response.c
+        inet/http/module/http_module_file.c
+        inet/http/module/http_module_dispatcher.c
+        #        net/un_inet.c
+        #        net/inet.c
+        #        net/tcp.c
+        #        net/tcp_pool.c
+        #        net/tcp_client.c
+        #        net/tcp_listener.c
+        #        net/tls/tls.c
+        #        net/postgresql/pgsql_pool.c
+        #        net/redis/redis_pool.c
+        #        net/http/http_request.c
+        #        net/http/http_response.c
+        #        net/http/http_parse.c
+        #        net/http/http_client.c
+        #        net/http/http_server.c
+        #        net/http/http_url.c
+        #        net/http/module/http_module_file.c
+        #        net/http/module/http_module_dispatcher.c
+        #        net/http/module/http_module_websocket.c
+        #        net/mqtt/mqtt_io_wrappers.c
+        #        net/mqtt/mqtt_protocol.c
+        #        net/mqtt/mqtt_subs.c
+        #        net/mqtt/mqtt_request.c
+        #        net/mqtt/mqtt_response.c
+        #        net/mqtt/mqtt_server.c
+        #        net/mqtt/mqtt_client.c
+
+        inet/tcp.c
         )
 
 if (SKY_HAVE_EPOLL)
     set(SOURCES
             ${SOURCES}
             event/selector_epoll.c
-            event/event_loop_epoll.c
             )
 elseif (SKY_HAVE_KQUEUE)
     set(SOURCES
             ${SOURCES}
             event/selector_kqueue.c
-            event/event_loop_kqueue.c
             )
 endif ()
 
