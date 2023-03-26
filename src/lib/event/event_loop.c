@@ -25,23 +25,22 @@ sky_event_loop_create() {
 void
 sky_event_loop_run(sky_event_loop_t *loop) {
     sky_i32_t timeout;
-    sky_i64_t now;
     sky_u64_t next_time;
 
-    now = loop->now;
 
-    sky_timer_wheel_run(loop->timer_ctx, (sky_u64_t) now);
+    sky_timer_wheel_run(loop->timer_ctx, (sky_u64_t) loop->now);
     next_time = sky_timer_wheel_wake_at(loop->timer_ctx);
-    timeout = next_time == SKY_U64_MAX ? -1 : (sky_i32_t) (next_time - (sky_u64_t) now) * 1000;
+    timeout = next_time == SKY_U64_MAX ? -1 : (sky_i32_t) (next_time - (sky_u64_t) loop->now) * 1000;
 
 
     while (sky_selector_select(loop->selector, timeout)) {
         loop->now = time(null);
+
         sky_selector_run(loop->selector);
 
-        sky_timer_wheel_run(loop->timer_ctx, (sky_u64_t) now);
+        sky_timer_wheel_run(loop->timer_ctx, (sky_u64_t) loop->now);
         next_time = sky_timer_wheel_wake_at(loop->timer_ctx);
-        timeout = next_time == SKY_U64_MAX ? -1 : (sky_i32_t) (next_time - (sky_u64_t) now) * 1000;
+        timeout = next_time == SKY_U64_MAX ? -1 : (sky_i32_t) (next_time - (sky_u64_t) loop->now) * 1000;
     }
 }
 
