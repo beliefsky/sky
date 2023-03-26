@@ -39,6 +39,8 @@ set(SOURCES
         fs/file.c
         event/event_loop.c
         inet/tcp_pool.c
+        inet/tcp_listener.c
+        inet/tcp_client.c
         inet/postgresql/pgsql_pool.c
         inet/redis/redis_pool.c
         inet/http/http_server.c
@@ -47,6 +49,8 @@ set(SOURCES
         inet/http/http_response.c
         inet/http/module/http_module_file.c
         inet/http/module/http_module_dispatcher.c
+        inet/http/http_client.c
+        inet/http/http_url.c
         #        net/un_inet.c
         #        net/inet.c
         #        net/tcp.c
@@ -241,6 +245,7 @@ install(FILES
         inet/http/http_request.h
         inet/http/http_response.h
         inet/http/http_server.h
+        inet/http/http_client.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/inet/http")
 install(FILES
         inet/http/module/http_module_dispatcher.h
