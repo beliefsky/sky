@@ -27,8 +27,7 @@ accept_cb(sky_tcp_t *server) {
         sky_log_info("accept: %d", client.ev.fd);
         sky_tcp_close(&client);
     }
-
-    sky_tcp_register(sky_event_selector(loop), server, SKY_EV_READ);
+    sky_tcp_try_register(sky_event_selector(loop), server, SKY_EV_READ);
 }
 
 int

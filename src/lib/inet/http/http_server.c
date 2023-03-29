@@ -138,6 +138,9 @@ http_server_accept(sky_tcp_t *server) {
             sky_tcp_try_register(sky_event_selector(context->ev_loop), server, SKY_EV_READ);
             return;
         }
+
+        sky_tcp_close(server);
+        sky_tcp_register_cancel(server);
     }
 }
 

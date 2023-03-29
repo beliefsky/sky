@@ -41,12 +41,12 @@ sky_mqtt_client_t *sky_mqtt_client_create(sky_event_loop_t *loop, sky_coro_switc
 
 sky_coro_t *sky_mqtt_client_coro(sky_mqtt_client_t *client);
 
-sky_event_t *sky_mqtt_client_event(sky_mqtt_client_t *client);
+sky_ev_t *sky_mqtt_client_event(sky_mqtt_client_t *client);
 
 sky_bool_t sky_mqtt_client_bind(
         sky_mqtt_client_t *client,
         sky_mqtt_client_writer_t *writer,
-        sky_event_t *event,
+        sky_ev_t *event,
         sky_coro_t *coro
 );
 

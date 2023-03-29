@@ -75,7 +75,7 @@ create_server() {
 
     const sky_http_file_conf_t file_config = {
             .prefix = sky_string(""),
-            .dir = sky_string("/mnt/d/private/sky/html"),
+            .dir = sky_string("/mnt/d/private/sky/html/tree"),
             .module = sky_array_push(&modules),
 //            .pre_run = http_index_router
     };

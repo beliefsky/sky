@@ -164,7 +164,7 @@ void
 sky_tcp_close(sky_tcp_t *tcp) {
     const sky_socket_t fd = sky_ev_get_fd(&tcp->ev);
 
-    tcp->ev.fd = -1;
+    tcp->ev.fd = SKY_SOCKET_FD_NONE;
     tcp->closed = true;
     tcp->ctx->close(tcp);
     close(fd);

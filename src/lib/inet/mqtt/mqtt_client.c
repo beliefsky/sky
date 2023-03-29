@@ -5,7 +5,6 @@
 #include "mqtt_client.h"
 #include "../../core/memory.h"
 #include "../../core/palloc.h"
-#include "../un_inet.h"
 #include "../../core/log.h"
 
 
@@ -16,7 +15,6 @@ struct sky_mqtt_client_s {
     sky_tcp_ctx_t ctx;
     sky_event_loop_t *loop;
     sky_tcp_listener_t *listener;
-    sky_un_inet_t *ping_timer;
     sky_tcp_listener_reader_t *reader;
     sky_pool_t *reader_pool;
     sky_pool_t *writer_pool;
@@ -27,6 +25,7 @@ struct sky_mqtt_client_s {
     sky_u16_t packet_identifier;
     sky_u16_t keep_alive;
     sky_u32_t head_copy: 3;
+    sky_bool_t is_ok:1;
 };
 
 static sky_isize_t mqtt_handle(sky_coro_t *coro, sky_tcp_listener_reader_t *reader);
@@ -35,7 +34,7 @@ static void mqtt_connected(sky_mqtt_client_t *client);
 
 static void mqtt_closed_cb(sky_tcp_listener_t *listener, void *data);
 
-static void mqtt_ping_timer(sky_un_inet_t *un_inet, sky_mqtt_client_t *client);
+//static void mqtt_ping_timer(sky_un_inet_t *un_inet, sky_mqtt_client_t *client);
 
 static sky_u16_t mqtt_packet_identifier(sky_mqtt_client_t *client);
 
@@ -55,17 +54,18 @@ sky_mqtt_client_create(sky_event_loop_t *loop, sky_coro_switcher_t *switcher, co
     client->password = conf->password;
     client->keep_alive = conf->keep_alive ? conf->keep_alive : 60;
     client->loop = loop;
-    client->ping_timer = null;
+//    client->ping_timer = null;
     client->reader = null;
     client->connected = conf->connected;
     client->closed = conf->closed;
     client->msg_handle = conf->msg_handle;
     client->reader_pool = sky_pool_create(8192);
     client->writer_pool = sky_pool_create(8192);
+    client->is_ok = false;
 
     const sky_tcp_listener_conf_t listener_conf = {
             .ctx = &client->ctx,
-            .keep_alive = conf->keep_alive,
+//            .keep_alive = conf->keep_alive,
             .address_len = conf->address_len,
             .address = conf->address,
             .run = (sky_coro_func_t) mqtt_handle,
@@ -83,7 +83,7 @@ sky_mqtt_client_coro(sky_mqtt_client_t *client) {
     return client->reader ? sky_tcp_listener_reader_coro(client->reader) : null;
 }
 
-sky_event_t *
+sky_ev_t *
 sky_mqtt_client_event(sky_mqtt_client_t *client) {
     return client->reader ? sky_tcp_listener_reader_event(client->reader) : null;
 }
@@ -92,11 +92,11 @@ sky_bool_t
 sky_mqtt_client_bind(
         sky_mqtt_client_t *client,
         sky_mqtt_client_writer_t *writer,
-        sky_event_t *event,
+        sky_ev_t *event,
         sky_coro_t *coro
 ) {
     writer->client = null;
-    if (!client->ping_timer) {
+    if (!client->is_ok) {
         return false;
     }
 
@@ -122,7 +122,7 @@ sky_mqtt_client_pub(
         sky_bool_t dup
 ) {
     sky_mqtt_client_t *client = writer->client;
-    if (!client || !client->ping_timer) {
+    if (!client || !client->is_ok) {
         return false;
     }
     const sky_mqtt_publish_msg_t msg = {
@@ -143,7 +143,7 @@ sky_mqtt_client_pub(
 sky_bool_t
 sky_mqtt_client_sub(sky_mqtt_client_writer_t *writer, sky_mqtt_topic_t *topic, sky_u32_t topic_n) {
     sky_mqtt_client_t *client = writer->client;
-    if (!client || !client->ping_timer) {
+    if (!client || !client->is_ok) {
         return false;
     }
 
@@ -160,7 +160,7 @@ sky_mqtt_client_sub(sky_mqtt_client_writer_t *writer, sky_mqtt_topic_t *topic, s
 sky_bool_t
 sky_mqtt_client_unsub(sky_mqtt_client_writer_t *writer, sky_mqtt_topic_t *topic, sky_u32_t topic_n) {
     sky_mqtt_client_t *client = writer->client;
-    if (!client || !client->ping_timer) {
+    if (!client || !client->is_ok) {
         return false;
     }
 
@@ -176,7 +176,7 @@ sky_mqtt_client_unsub(sky_mqtt_client_writer_t *writer, sky_mqtt_topic_t *topic,
 
 void
 sky_mqtt_client_destroy(sky_mqtt_client_t *client) {
-    sky_un_inet_cancel(client->ping_timer);
+//    sky_un_inet_cancel(client->ping_timer);
     sky_tcp_listener_destroy(client->listener);
     sky_pool_destroy(client->reader_pool);
     sky_pool_destroy(client->writer_pool);
@@ -190,14 +190,17 @@ mqtt_handle(sky_coro_t *coro, sky_tcp_listener_reader_t *reader) {
     client->reader = reader;
 
     mqtt_connected(client);
-    client->ping_timer = sky_un_inet_run_timer(
-            client->loop,
-            sky_coro_get_switcher(coro),
-            (sky_un_inet_process_pt) mqtt_ping_timer,
-            client,
-            client->keep_alive >> 1,
-            client->keep_alive >> 1
-    );
+
+    client->is_ok = true;
+
+//    client->ping_timer = sky_un_inet_run_timer(
+//            client->loop,
+//            sky_coro_get_switcher(coro),
+//            (sky_un_inet_process_pt) mqtt_ping_timer,
+//            client,
+//            client->keep_alive >> 1,
+//            client->keep_alive >> 1
+//    );
 
 
     sky_mqtt_head_t head;
@@ -348,30 +351,31 @@ mqtt_closed_cb(sky_tcp_listener_t *listener, void *data) {
 
     sky_mqtt_client_t *client = data;
 
-    sky_un_inet_cancel(client->ping_timer);
+//    sky_un_inet_cancel(client->ping_timer);
     sky_pool_reset(client->reader_pool);
     sky_pool_reset(client->writer_pool);
 
     client->reader = null;
-    client->ping_timer = null;
+    client->is_ok = false;
+//    client->ping_timer = null;
     if (client->closed) {
         client->closed(client);
     }
 }
 
-static void
-mqtt_ping_timer(sky_un_inet_t *un_inet, sky_mqtt_client_t *client) {
-    sky_tcp_listener_writer_t writer;
-    sky_tcp_listener_bind(client->listener, &writer, sky_un_inet_event(un_inet), sky_un_inet_coro(un_inet));
-
-    const sky_u32_t alloc_size = sky_mqtt_unpack_alloc_size(sky_mqtt_ping_req_unpack_size());
-    sky_uchar_t *stream = sky_palloc(client->writer_pool, alloc_size);
-    const sky_u32_t size = sky_mqtt_ping_req_unpack(stream);
-    sky_tcp_listener_write_all(&writer, stream, size);
-    sky_pool_reset(client->writer_pool);
-
-    sky_tcp_listener_unbind(&writer);
-}
+//static void
+//mqtt_ping_timer(sky_un_inet_t *un_inet, sky_mqtt_client_t *client) {
+//    sky_tcp_listener_writer_t writer;
+//    sky_tcp_listener_bind(client->listener, &writer, sky_un_inet_event(un_inet), sky_un_inet_coro(un_inet));
+//
+//    const sky_u32_t alloc_size = sky_mqtt_unpack_alloc_size(sky_mqtt_ping_req_unpack_size());
+//    sky_uchar_t *stream = sky_palloc(client->writer_pool, alloc_size);
+//    const sky_u32_t size = sky_mqtt_ping_req_unpack(stream);
+//    sky_tcp_listener_write_all(&writer, stream, size);
+//    sky_pool_reset(client->writer_pool);
+//
+//    sky_tcp_listener_unbind(&writer);
+//}
 
 static sky_inline sky_u16_t
 mqtt_packet_identifier(sky_mqtt_client_t *client) {

@@ -130,17 +130,26 @@ sky_mqtt_write_packet(sky_mqtt_connect_t *conn) {
 
         for (;;) {
             size = sky_tcp_write(&conn->tcp, buf, packet->size - conn->write_size);
-            if (sky_unlikely(size == -1)) {
-                return false;
-            } else if (size == 0) {
-                sky_event_timeout_expired(sky_tcp_get_event(&conn->tcp));
+            if (size > 0) {
+                conn->write_size += (sky_u32_t) size;
+                buf += size;
+                if (conn->write_size >= packet->size) {
+                    break;
+                }
+                continue;
+            }
+            if (sky_likely(!size)) {
+                sky_tcp_try_register(
+                        sky_event_selector(conn->server->ev_loop),
+                        &conn->tcp,
+                        SKY_EV_READ | SKY_EV_WRITE
+                );
+//                sky_event_timeout_expired(sky_tcp_get_event(&conn->tcp));
+
                 return true;
             }
-            conn->write_size += (sky_u32_t) size;
-            buf += size;
-            if (conn->write_size >= packet->size) {
-                break;
-            }
+
+            return false;
         }
         conn->write_size = 0;
         sky_queue_remove(&packet->link);
@@ -151,7 +160,7 @@ sky_mqtt_write_packet(sky_mqtt_connect_t *conn) {
         }
     } while (!sky_queue_empty(&conn->packet));
 
-    sky_event_timeout_expired(sky_tcp_get_event(&conn->tcp));
+//    sky_event_timeout_expired(sky_tcp_get_event(&conn->tcp));
 
     return true;
 }
