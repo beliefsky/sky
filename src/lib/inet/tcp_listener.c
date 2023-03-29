@@ -27,7 +27,7 @@ struct sky_tcp_listener_s {
     sky_u32_t address_len;
     sky_u32_t timeout;
     sky_bool_t reconnect: 1;
-    sky_bool_t connected:1;
+    sky_bool_t connected: 1;
     sky_bool_t main: 1; // 是否是当前连接触发的事件
     sky_bool_t free: 1;
 };
@@ -141,6 +141,11 @@ sky_tcp_listener_write(sky_tcp_listener_writer_t *writer, const sky_uchar_t *dat
             return (sky_usize_t) n;
         }
         if (sky_likely(!n)) {
+            sky_tcp_try_register(
+                    sky_event_selector(client->loop),
+                    &client->tcp,
+                    SKY_EV_READ | SKY_EV_WRITE
+            );
             sky_coro_yield(writer->coro, SKY_CORO_MAY_RESUME);
             if (sky_unlikely(!writer->client || !client->connected)) {
                 return 0;
@@ -182,6 +187,11 @@ sky_tcp_listener_write_all(sky_tcp_listener_writer_t *writer, const sky_uchar_t 
             return false;
         }
 
+        sky_tcp_try_register(
+                sky_event_selector(client->loop),
+                &client->tcp,
+                SKY_EV_READ | SKY_EV_WRITE
+        );
         sky_coro_yield(writer->coro, SKY_CORO_MAY_RESUME);
         if (sky_unlikely(!writer->client || !client->connected)) {
             return false;
@@ -259,10 +269,17 @@ sky_tcp_listener_read(sky_tcp_listener_reader_t *reader, sky_uchar_t *data, sky_
         if (n > 0) {
             return (sky_usize_t) n;
         }
+
         if (sky_likely(!n)) {
+            sky_tcp_try_register(
+                    sky_event_selector(listener->loop),
+                    &listener->tcp,
+                    SKY_EV_READ | SKY_EV_WRITE
+            );
             sky_coro_yield(listener->coro, SKY_CORO_MAY_RESUME);
             continue;
         }
+
         sky_coro_yield(listener->coro, SKY_CORO_ABORT);
         sky_coro_exit();
     }
@@ -294,6 +311,12 @@ sky_tcp_listener_read_all(sky_tcp_listener_reader_t *reader, sky_uchar_t *data, 
             sky_coro_yield(listener->coro, SKY_CORO_ABORT);
             sky_coro_exit();
         }
+
+        sky_tcp_try_register(
+                sky_event_selector(listener->loop),
+                &listener->tcp,
+                SKY_EV_READ | SKY_EV_WRITE
+        );
         sky_coro_yield(listener->coro, SKY_CORO_MAY_RESUME);
     }
 }
@@ -370,23 +393,25 @@ tcp_connection(sky_tcp_t *conn) {
 
 static void
 tcp_run(sky_tcp_t *conn) {
+    sky_tcp_listener_writer_t *writer;
+    sky_ev_t *event;
+
     sky_tcp_listener_t *listener = sky_type_convert(conn, sky_tcp_listener_t, tcp);
 
     listener->main = true;
 
     sky_bool_t result = sky_coro_resume(listener->coro) == SKY_CORO_MAY_RESUME;
+
     if (sky_likely(result)) {
-        sky_tcp_listener_writer_t *writer;
-        sky_ev_t *event;
         for (;;) {
             writer = listener->current;
-
             if (writer) {
                 event = writer->ev;
                 if (event == sky_tcp_ev(&listener->tcp)) {
                     if (sky_coro_resume(listener->coro) == SKY_CORO_MAY_RESUME) {
                         if (listener->current) {
-                            break;
+                            listener->main = false;
+                            return;
                         }
                     } else {
                         break;
@@ -394,18 +419,59 @@ tcp_run(sky_tcp_t *conn) {
                 } else {
                     event->cb(event);
                     if (listener->current) {
-                        break;
+                        listener->main = false;
+                        return;
                     }
                 }
             }
             if (sky_queue_empty(&listener->tasks)) {
-                break;
+                listener->main = false;
+                return;
             }
             listener->current = (sky_tcp_listener_writer_t *) sky_queue_next(&listener->tasks);
         }
     }
 
-    listener->main = false;
+    sky_tcp_close(&listener->tcp);
+    sky_tcp_register_cancel(&listener->tcp);
+    listener->connected = false;
+
+    for (;;) {
+        writer = listener->current;
+        if (writer) {
+            event = writer->ev;
+
+            if (event == sky_tcp_ev(&listener->tcp)) {
+                sky_tcp_listener_unbind(writer);
+            } else {
+                event->cb(event);
+                if (listener->current) {
+                    sky_tcp_listener_unbind(writer);
+                }
+            }
+        }
+        if (sky_queue_empty(&listener->tasks)) {
+            break;
+        }
+        listener->current = (sky_tcp_listener_writer_t *) sky_queue_next(&listener->tasks);
+    }
+
+    if (listener->close) {
+        listener->close(listener, listener->data);
+    } else {
+        sky_log_error("tcp listener close");
+    }
+
+    if (!listener->reconnect) {
+        return;
+    }
+
+    sky_coro_reset(listener->coro, listener->run, &listener->reader);
+
+    if (listener->reconnect) {
+        listener->timer.cb = tcp_reconnect_timer_cb;
+        sky_event_timeout_set(listener->loop, &listener->timer, 5);
+    }
 }
 
 static sky_inline void
