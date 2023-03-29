@@ -109,7 +109,7 @@ sky_selector_register(sky_selector_t *s, sky_ev_t *ev, sky_u32_t flags) {
         return false;
     }
 
-    sky_u32_t opts = EPOLLRDHUP | EPOLLERR | EPOLLET;
+    sky_u32_t opts = EPOLLHUP | EPOLLERR | EPOLLET;
     if ((flags & SKY_EV_READ) != 0) {
         opts |= EPOLLIN | EPOLLPRI;
     }
