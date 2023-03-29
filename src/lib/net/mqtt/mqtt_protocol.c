@@ -19,7 +19,7 @@ sky_mqtt_head_pack(sky_mqtt_head_t *head, sky_uchar_t *buf, sky_u32_t size) {
         case 1:
             return 0;
         case 2: {
-            if ((*(++buf) & 0x80U) != 0) {
+            if ((*(++buf) & 0x80U) == 0) {
                 head->body_size = *buf;
                 size = 2;
                 break;
