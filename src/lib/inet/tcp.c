@@ -5,7 +5,6 @@
 #define _GNU_SOURCE
 
 #include "tcp.h"
-#include "../core/log.h"
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <errno.h>
