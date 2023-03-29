@@ -17,8 +17,8 @@ struct sky_tcp_pool_s {
 
     sky_u32_t timeout;
     sky_u32_t address_len;
-
     sky_u32_t conn_mask;
+
 };
 
 struct sky_tcp_node_s {
@@ -382,7 +382,7 @@ sky_tcp_pool_conn_unbind(sky_tcp_session_t *session) {
 void
 sky_tcp_pool_destroy(sky_tcp_pool_t *tcp_pool) {
     sky_tcp_node_t *client = tcp_pool->clients;
-    sky_u32_t conn_n =  tcp_pool->conn_mask + 1;
+    sky_u32_t conn_n = tcp_pool->conn_mask + 1;
 
     for (; conn_n > 0; --conn_n, ++client) {
         sky_tcp_close(&client->conn);
