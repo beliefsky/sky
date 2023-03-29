@@ -4,7 +4,7 @@
 #include <netinet/in.h>
 #include <event/event_loop.h>
 #include <core/log.h>
-#include <net/mqtt/mqtt_server.h>
+#include <inet/mqtt/mqtt_server.h>
 #include <core/memory.h>
 
 static void create_server(sky_event_loop_t *ev_loop, sky_coro_switcher_t *switcher);

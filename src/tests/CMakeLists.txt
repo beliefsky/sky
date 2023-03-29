@@ -29,17 +29,17 @@ target_link_libraries(sky_test_http_dispatcher
 #        ${SKY_COMMON_LIBS}
 #        ${ADDITIONAL_LIBRARIES}
 #        )
-#
-#add_executable(sky_test_mqtt_broker sky_test_mqtt_broker.c)
-#
-#target_link_libraries(sky_test_mqtt_broker
-#        ${SKY_COMMON_LIBS}
-#        ${ADDITIONAL_LIBRARIES}
-#        )
-#
-#add_executable(sky_test_mqtt_client sky_test_mqtt_client.c)
-#
-#target_link_libraries(sky_test_mqtt_client
-#        ${SKY_COMMON_LIBS}
-#        ${ADDITIONAL_LIBRARIES}
-#        )
+
+add_executable(sky_test_mqtt_broker sky_test_mqtt_broker.c)
+
+target_link_libraries(sky_test_mqtt_broker
+        ${SKY_COMMON_LIBS}
+        ${ADDITIONAL_LIBRARIES}
+        )
+
+add_executable(sky_test_mqtt_client sky_test_mqtt_client.c)
+
+target_link_libraries(sky_test_mqtt_client
+        ${SKY_COMMON_LIBS}
+        ${ADDITIONAL_LIBRARIES}
+        )

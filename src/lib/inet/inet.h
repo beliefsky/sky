@@ -8,6 +8,11 @@
 #include "../core/types.h"
 #include <sys/socket.h>
 
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 #define sky_htons(_s)   sky_swap_u16(_s)
 #define sky_ntohs(_s)   sky_swap_u16(_s)
@@ -24,9 +29,7 @@
 #define sky_ntohll(_ll) (_ll)
 #endif
 
-#if defined(__cplusplus)
-extern "C" {
-#endif
+#define SKY_SOCKET_FD_NONE (-1)
 
 typedef sky_i32_t sky_socket_t;
 typedef struct sockaddr sky_inet_addr_t;

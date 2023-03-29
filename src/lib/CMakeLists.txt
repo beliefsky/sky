@@ -38,6 +38,7 @@ set(SOURCES
         safe/mpsc_ring_buf.c
         fs/file.c
         event/event_loop.c
+        inet/tcp.c
         inet/tcp_pool.c
         inet/tcp_listener.c
         inet/tcp_client.c
@@ -51,33 +52,13 @@ set(SOURCES
         inet/http/module/http_module_dispatcher.c
         inet/http/http_client.c
         inet/http/http_url.c
-        #        net/un_inet.c
-        #        net/inet.c
-        #        net/tcp.c
-        #        net/tcp_pool.c
-        #        net/tcp_client.c
-        #        net/tcp_listener.c
-        #        net/tls/tls.c
-        #        net/postgresql/pgsql_pool.c
-        #        net/redis/redis_pool.c
-        #        net/http/http_request.c
-        #        net/http/http_response.c
-        #        net/http/http_parse.c
-        #        net/http/http_client.c
-        #        net/http/http_server.c
-        #        net/http/http_url.c
-        #        net/http/module/http_module_file.c
-        #        net/http/module/http_module_dispatcher.c
-        #        net/http/module/http_module_websocket.c
-        #        net/mqtt/mqtt_io_wrappers.c
-        #        net/mqtt/mqtt_protocol.c
-        #        net/mqtt/mqtt_subs.c
-        #        net/mqtt/mqtt_request.c
-        #        net/mqtt/mqtt_response.c
-        #        net/mqtt/mqtt_server.c
-        #        net/mqtt/mqtt_client.c
-
-        inet/tcp.c
+        inet/mqtt/mqtt_io_wrappers.c
+        inet/mqtt/mqtt_protocol.c
+        inet/mqtt/mqtt_subs.c
+        inet/mqtt/mqtt_request.c
+        inet/mqtt/mqtt_response.c
+        inet/mqtt/mqtt_server.c
+        inet/mqtt/mqtt_client.c
         )
 
 if (SKY_HAVE_EPOLL)
