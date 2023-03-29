@@ -19,8 +19,6 @@ struct sky_tcp_pool_s {
     sky_u32_t address_len;
 
     sky_u32_t conn_mask;
-
-    sky_bool_t free: 1;
 };
 
 struct sky_tcp_node_s {
@@ -74,7 +72,6 @@ sky_tcp_pool_create(sky_event_loop_t *ev_loop, const sky_tcp_pool_conf_t *conf) 
     conn_pool->next_func = conf->next_func;
     conn_pool->data = conf->data;
     conn_pool->timeout = conf->timeout ?: 30;
-    conn_pool->free = false;
 
     sky_tcp_node_t *client = conn_pool->clients;
 
@@ -98,11 +95,7 @@ sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_session_t *session, sky
     session->ev = event;
     session->coro = coro;
 
-    if (sky_unlikely(tcp_pool->free)) {
-        session->defer = null;
-        sky_queue_init_node(&session->link);
-        return false;
-    }
+
     const sky_u32_t idx = (sky_u32_t) ((((sky_usize_t) event) >> 4) & tcp_pool->conn_mask);
     sky_tcp_node_t *client = tcp_pool->clients + idx;
 
@@ -121,7 +114,7 @@ sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_session_t *session, sky
     client->current = session;
 
     if (sky_unlikely(sky_tcp_is_closed(&client->conn))) {
-        if (sky_likely(tcp_pool->free || client->conn_time > sky_event_now(tcp_pool->ev_loop))) {
+        if (sky_likely(client->conn_time > sky_event_now(tcp_pool->ev_loop))) {
             sky_tcp_pool_conn_unbind(session);
             return false;
         }
@@ -388,11 +381,13 @@ sky_tcp_pool_conn_unbind(sky_tcp_session_t *session) {
 
 void
 sky_tcp_pool_destroy(sky_tcp_pool_t *tcp_pool) {
-    if (sky_unlikely(tcp_pool->free)) {
-        return;
+    sky_tcp_node_t *client = tcp_pool->clients;
+    sky_u32_t conn_n =  tcp_pool->conn_mask + 1;
+
+    for (; conn_n > 0; --conn_n, ++client) {
+        sky_tcp_close(&client->conn);
+        sky_tcp_register_cancel(&client->conn);
     }
-    tcp_pool->free = true;
-    // 后续会处理
     sky_free(tcp_pool);
 }
 
@@ -481,9 +476,6 @@ tcp_connection_defer(sky_tcp_session_t *session) {
     session->client = null;
     client->current = null;
 
-    if (sky_unlikely(client->conn_pool->free)) {
-        return;
-    }
     sky_timer_wheel_unlink(&client->timer);
     sky_tcp_close(&client->conn);
     sky_tcp_register_cancel(&client->conn);
