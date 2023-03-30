@@ -36,7 +36,7 @@ coro_process(sky_coro_t *coro, void *data) {
         return SKY_CORO_ABORT;
     }
     sky_pool_t *pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
-    sky_str_t url = sky_string("http://www.htmanga4.top");
+    sky_str_t url = sky_string("http://www.baidu.com");
 
     sky_http_client_req_t req;
     if (!sky_http_client_req_init(&req, pool, &url)) {
