@@ -231,7 +231,6 @@ install(FILES
 install(FILES
         inet/http/module/http_module_dispatcher.h
         inet/http/module/http_module_file.h
-        inet/http/module/http_module_websocket.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/inet/http/module")
 install(FILES
         inet/http/extend/http_extend_pgsql_pool.h
