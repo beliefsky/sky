@@ -57,7 +57,7 @@ sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_addr_t *addre
         sky_tcp_close(&client->tcp);
         return false;
     }
-    sky_tcp_set_cb(&client->tcp, null);
+    sky_tcp_set_cb(&client->tcp, tcp_run);
     sky_event_timeout_set(client->loop, &client->timer, client->timeout);
     for (;;) {
         const sky_i8_t r = sky_tcp_connect(&client->tcp, address, address_len);
