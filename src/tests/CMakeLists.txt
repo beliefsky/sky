@@ -23,12 +23,12 @@ target_link_libraries(sky_test_http_dispatcher
         ${ADDITIONAL_LIBRARIES}
         )
 
-#add_executable(sky_test_tcp_proxy sky_test_tcp_proxy.c)
-#
-#target_link_libraries(sky_test_tcp_proxy
-#        ${SKY_COMMON_LIBS}
-#        ${ADDITIONAL_LIBRARIES}
-#        )
+add_executable(sky_test_tcp_proxy sky_test_tcp_proxy.c)
+
+target_link_libraries(sky_test_tcp_proxy
+        ${SKY_COMMON_LIBS}
+        ${ADDITIONAL_LIBRARIES}
+        )
 
 add_executable(sky_test_mqtt_broker sky_test_mqtt_broker.c)
 
