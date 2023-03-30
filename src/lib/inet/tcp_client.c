@@ -127,7 +127,7 @@ sky_tcp_client_read(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t siz
             );
             sky_event_timeout_expired(client->loop, &client->timer, client->timeout);
             sky_coro_yield(client->coro, SKY_CORO_MAY_RESUME);
-            if (sky_likely(!sky_tcp_is_closed(&client->tcp))) {
+            if (sky_unlikely(sky_tcp_is_closed(&client->tcp))) {
                 return 0;
             }
             continue;
@@ -248,8 +248,8 @@ sky_tcp_client_write(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usiz
             );
             sky_event_timeout_expired(client->loop, &client->timer, client->timeout);
             sky_coro_yield(client->coro, SKY_CORO_MAY_RESUME);
-            if (sky_likely(!sky_tcp_is_closed(&client->tcp))) {
-                continue;
+            if (sky_unlikely(sky_tcp_is_closed(&client->tcp))) {
+                return 0;
             }
 
             continue;
