@@ -254,8 +254,8 @@ sky_http_client_res_body_read(sky_http_client_res_t *res, sky_http_res_body_pt f
 
 void
 sky_http_client_destroy(sky_http_client_t *client) {
-    client->client = null;
     sky_tcp_client_destroy(client->client);
+    client->client = null;
     sky_free(client);
 }
 
