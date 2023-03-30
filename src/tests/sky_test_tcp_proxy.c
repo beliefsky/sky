@@ -309,7 +309,7 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
                 break;
             }
         }
-        if (sky_unlikely(n < -1)) {
+        if (sky_unlikely(n < 0)) {
             goto error;
         }
 
