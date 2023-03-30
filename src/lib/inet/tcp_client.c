@@ -200,12 +200,24 @@ sky_tcp_client_read_nowait(sky_tcp_client_t *client, sky_uchar_t *data, sky_usiz
     }
 
     const sky_isize_t n = sky_tcp_read(&client->tcp, data, size);
-    if (sky_unlikely(n < 0)) {
-        sky_tcp_close(&client->tcp);
-        sky_tcp_register_cancel(&client->tcp);
+
+    if (n > 0) {
+        return n;
     }
 
-    return n;
+    if (sky_likely(!n)) {
+        sky_tcp_try_register(
+                sky_event_selector(client->loop),
+                &client->tcp,
+                SKY_EV_READ | SKY_EV_WRITE
+        );
+        return 0;
+    }
+
+    sky_tcp_close(&client->tcp);
+    sky_tcp_register_cancel(&client->tcp);
+
+    return -1;
 }
 
 sky_usize_t
@@ -309,12 +321,21 @@ sky_tcp_client_write_nowait(sky_tcp_client_t *client, const sky_uchar_t *data, s
     }
 
     const sky_isize_t n = sky_tcp_write(&client->tcp, data, size);
-    if (sky_unlikely(n < 0)) {
-        sky_tcp_close(&client->tcp);
-        sky_tcp_register_cancel(&client->tcp);
+
+    if (n > 0) {
+        return n;
     }
 
-    return n;
+    if (sky_likely(!n)) {
+        sky_tcp_try_register(
+                sky_event_selector(client->loop),
+                &client->tcp,
+                SKY_EV_READ | SKY_EV_WRITE
+        );
+        return 0;
+    }
+
+    return -1;
 }
 
 void
