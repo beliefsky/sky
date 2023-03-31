@@ -31,6 +31,8 @@ static SKY_HTTP_MAPPER_HANDLER(upload_test);
 
 static SKY_HTTP_MAPPER_HANDLER(hello_world);
 
+static SKY_HTTP_MAPPER_HANDLER(srs_dvr);
+
 
 static sky_pgsql_pool_t *ps_pool;
 static sky_redis_pool_t *redis_pool;
@@ -151,14 +153,14 @@ create_server(sky_event_loop_t *ev_loop) {
     struct sockaddr_in ipv4_address = {
             .sin_family = AF_INET,
             .sin_addr.s_addr = INADDR_ANY,
-            .sin_port = sky_htons(8080)
+            .sin_port = sky_htons(8082)
     };
     sky_http_server_bind(server, (sky_inet_addr_t *) &ipv4_address, sizeof(struct sockaddr_in));
 
     struct sockaddr_in6 ipv6_address = {
             .sin6_family = AF_INET6,
             .sin6_addr = in6addr_any,
-            .sin6_port = sky_htons(8080)
+            .sin6_port = sky_htons(8082)
     };
 
     sky_http_server_bind(server, (sky_inet_addr_t *) &ipv6_address, sizeof(struct sockaddr_in6));
@@ -184,13 +186,17 @@ build_http_dispatcher(sky_pool_t *pool, sky_http_module_t *module) {
             {
                     .path = sky_string("/hello"),
                     .get_handler = hello_world
+            },
+            {
+                    .path = sky_string("/dvrs"),
+                    .post_handler = srs_dvr
             }
     };
 
     const sky_http_dispatcher_conf_t conf = {
             .prefix = sky_string("/api"),
             .mappers = mappers,
-            .mapper_len = 4,
+            .mapper_len = 5,
             .module = module
     };
 
@@ -377,6 +383,18 @@ static SKY_HTTP_MAPPER_HANDLER(hello_world) {
 
     sky_http_response_chunked_write_len(chunked, sky_str_line("{\"status\": 200, \"msg\": \"success\"}"));
     sky_http_response_chunked_end(chunked);
+}
+
+static SKY_HTTP_MAPPER_HANDLER(srs_dvr) {
+    sky_str_t *body = sky_http_read_body_str(req);
+    if (sky_unlikely(sky_str_is_null(body))) {
+        sky_log_warn("not found body");
+        sky_http_response_static_len(req, sky_str_line("-1"));
+        return;
+    }
+    sky_log_info("%s", body->data);
+
+    sky_http_response_static_len(req, sky_str_line("0"));
 }
 
 

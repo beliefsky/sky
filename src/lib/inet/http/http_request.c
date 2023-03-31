@@ -629,7 +629,7 @@ http_line_read(sky_tcp_t *tcp) {
             sky_event_loop_t *loop = conn->server->ev_loop;
 
             sky_tcp_try_register(
-                    sky_event_selector(conn->server->ev_loop),
+                    sky_event_selector(loop),
                     &conn->tcp,
                     SKY_EV_READ | SKY_EV_WRITE
             );
@@ -688,7 +688,7 @@ http_header_read(sky_tcp_t *tcp) {
             sky_event_loop_t *loop = conn->server->ev_loop;
 
             sky_tcp_try_register(
-                    sky_event_selector(conn->server->ev_loop),
+                    sky_event_selector(loop),
                     &conn->tcp,
                     SKY_EV_READ | SKY_EV_WRITE
             );
