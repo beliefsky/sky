@@ -462,7 +462,6 @@ tcp_connection(sky_tcp_session_t *session) {
             sky_event_timeout_expired(conn_pool->ev_loop, &session->client->timer, conn_pool->timeout);
             sky_coro_yield(session->coro, SKY_CORO_MAY_RESUME);
             if (sky_unlikely(!session->client || sky_tcp_is_closed(tcp))) {
-                sky_timer_wheel_unlink(&session->client->timer);
                 return false;
             }
             continue;
