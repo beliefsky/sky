@@ -162,7 +162,6 @@ sky_tcp_pool_conn_read(sky_tcp_session_t *session, sky_uchar_t *data, sky_usize_
             sky_event_timeout_expired(client->conn_pool->ev_loop, &client->timer, client->conn_pool->timeout);
             sky_coro_yield(session->coro, SKY_CORO_MAY_RESUME);
             if (sky_unlikely(!session->client || sky_tcp_is_closed(&client->conn))) {
-                sky_timer_wheel_unlink(&client->timer);
                 return 0;
             }
             continue;
@@ -210,7 +209,6 @@ sky_tcp_pool_conn_read_all(sky_tcp_session_t *session, sky_uchar_t *data, sky_us
             sky_event_timeout_expired(client->conn_pool->ev_loop, &client->timer, client->conn_pool->timeout);
             sky_coro_yield(session->coro, SKY_CORO_MAY_RESUME);
             if (sky_unlikely(!session->client || sky_tcp_is_closed(&client->conn))) {
-                sky_timer_wheel_unlink(&client->timer);
                 return false;
             }
             continue;
@@ -279,7 +277,6 @@ sky_tcp_pool_conn_write(sky_tcp_session_t *session, const sky_uchar_t *data, sky
             sky_event_timeout_expired(client->conn_pool->ev_loop, &client->timer, client->conn_pool->timeout);
             sky_coro_yield(session->coro, SKY_CORO_MAY_RESUME);
             if (sky_unlikely(!session->client || sky_tcp_is_closed(&client->conn))) {
-                sky_timer_wheel_unlink(&client->timer);
                 return 0;
             }
             continue;
