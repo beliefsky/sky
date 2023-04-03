@@ -320,6 +320,21 @@ sky_tcp_option_fast_open(sky_tcp_t *tcp, sky_i32_t n) {
 #endif
 }
 
+sky_bool_t
+sky_tcp_option_no_push(sky_tcp_t *tcp, sky_bool_t open) {
+    const sky_socket_t opt = open;
+    const sky_socket_t fd = sky_ev_get_fd(&tcp->ev);
+
+#if defined(TCP_CORK)
+    return 0 == setsockopt(fd, IPPROTO_TCP, TCP_CORK, &opt, sizeof(sky_i32_t));
+#elif defined(TCP_NOPUSH)
+    return 0 == setsockopt(fd, IPPROTO_TCP, TCP_NOPUSH, &opt, sizeof(sky_i32_t));
+#else
+    retrun false;
+#endif
+
+}
+
 static void
 tcp_connect_close(sky_tcp_t *tcp) {
     (void) tcp;

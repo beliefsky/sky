@@ -209,6 +209,7 @@ sky_http_sendfile(sky_http_request_t *r, sky_i32_t fd, sky_usize_t offset, sky_u
             buff.data,
             buff.len
     );
+    sky_tcp_option_no_push(&r->conn->tcp, true);
     http_header_write_pre(r, &stream);
 
     sky_str_out_stream_write_str_len(&stream, sky_str_line("Content-Length: "));
@@ -234,6 +235,7 @@ sky_http_sendfile(sky_http_request_t *r, sky_i32_t fd, sky_usize_t offset, sky_u
     } else {
         sky_str_out_stream_flush(&stream);
     }
+    sky_tcp_option_no_push(&r->conn->tcp, false);
     sky_str_out_stream_destroy(&stream);
     sky_pfree(r->pool, buff.data, buff.len);
 
