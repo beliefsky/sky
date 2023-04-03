@@ -120,7 +120,6 @@ mqtt_server_accept(sky_tcp_t *server) {
         }
 
         sky_tcp_close(server);
-        sky_tcp_register_cancel(server);
         sky_free(listener);
     }
 }
@@ -135,7 +134,6 @@ mqtt_run(sky_tcp_t *data) {
     sky_mqtt_clean_packet(conn);
 
     sky_tcp_close(data);
-    sky_tcp_register_cancel(data);
     sky_coro_destroy(conn->coro);
 }
 

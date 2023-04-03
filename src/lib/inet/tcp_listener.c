@@ -328,7 +328,6 @@ sky_tcp_listener_destroy(sky_tcp_listener_t *listener) {
     }
     sky_timer_wheel_unlink(&listener->timer);
     sky_tcp_close(&listener->tcp);
-    sky_tcp_register_cancel(&listener->tcp);
 
     sky_coro_destroy(listener->coro);
 }
@@ -384,7 +383,6 @@ tcp_connection(sky_tcp_t *conn) {
 
     sky_timer_wheel_unlink(&listener->timer);
     sky_tcp_close(&listener->tcp);
-    sky_tcp_register_cancel(&listener->tcp);
     if (listener->reconnect) {
         listener->timer.cb = tcp_reconnect_timer_cb;
         sky_event_timeout_set(listener->loop, &listener->timer, 5);
@@ -433,7 +431,6 @@ tcp_run(sky_tcp_t *conn) {
     }
 
     sky_tcp_close(&listener->tcp);
-    sky_tcp_register_cancel(&listener->tcp);
     listener->connected = false;
 
     for (;;) {
@@ -506,7 +503,6 @@ tcp_timeout_cb(sky_timer_wheel_entry_t *timer) {
     sky_tcp_listener_t *listener = sky_type_convert(timer, sky_tcp_listener_t, timer);
 
     sky_tcp_close(&listener->tcp);
-    sky_tcp_register_cancel(&listener->tcp);
 
     if (listener->connected) {
         listener->timer.cb = tcp_reconnect_timer_cb;

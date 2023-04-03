@@ -169,7 +169,6 @@ sky_tcp_pool_conn_read(sky_tcp_session_t *session, sky_uchar_t *data, sky_usize_
 
         sky_timer_wheel_unlink(&client->timer);
         sky_tcp_close(&client->conn);
-        sky_tcp_register_cancel(&client->conn);
 
         return 0;
     }
@@ -216,7 +215,6 @@ sky_tcp_pool_conn_read_all(sky_tcp_session_t *session, sky_uchar_t *data, sky_us
 
         sky_timer_wheel_unlink(&client->timer);
         sky_tcp_close(&client->conn);
-        sky_tcp_register_cancel(&client->conn);
 
         return false;
     }
@@ -247,7 +245,6 @@ sky_tcp_pool_conn_read_nowait(sky_tcp_session_t *session, sky_uchar_t *data, sky
         return 0;
     }
     sky_tcp_close(&client->conn);
-    sky_tcp_register_cancel(&client->conn);
 
     return -1;
 }
@@ -284,7 +281,6 @@ sky_tcp_pool_conn_write(sky_tcp_session_t *session, const sky_uchar_t *data, sky
 
         sky_timer_wheel_unlink(&client->timer);
         sky_tcp_close(&client->conn);
-        sky_tcp_register_cancel(&client->conn);
 
         return 0;
     }
@@ -332,7 +328,6 @@ sky_tcp_pool_conn_write_all(sky_tcp_session_t *session, const sky_uchar_t *data,
 
         sky_timer_wheel_unlink(&client->timer);
         sky_tcp_close(&client->conn);
-        sky_tcp_register_cancel(&client->conn);
 
         return false;
     }
@@ -363,7 +358,6 @@ sky_tcp_pool_conn_write_nowait(sky_tcp_session_t *session, const sky_uchar_t *da
         return 0;
     }
     sky_tcp_close(&client->conn);
-    sky_tcp_register_cancel(&client->conn);
 
     return -1;
 }
@@ -401,7 +395,6 @@ sky_tcp_pool_destroy(sky_tcp_pool_t *tcp_pool) {
 
     for (; conn_n > 0; --conn_n, ++client) {
         sky_tcp_close(&client->conn);
-        sky_tcp_register_cancel(&client->conn);
     }
     sky_free(tcp_pool);
 }
@@ -469,7 +462,6 @@ tcp_connection(sky_tcp_session_t *session) {
 
         sky_timer_wheel_unlink(&session->client->timer);
         sky_tcp_close(tcp);
-        sky_tcp_register_cancel(tcp);
 
         return false;
     }
@@ -492,7 +484,6 @@ tcp_connection_defer(sky_tcp_session_t *session) {
 
     sky_timer_wheel_unlink(&client->timer);
     sky_tcp_close(&client->conn);
-    sky_tcp_register_cancel(&client->conn);
 }
 
 static void
@@ -500,7 +491,6 @@ tcp_connect_timeout(sky_timer_wheel_entry_t *entry) {
     sky_tcp_node_t *client = sky_type_convert(entry, sky_tcp_node_t, timer);
 
     sky_tcp_close(&client->conn);
-    sky_tcp_register_cancel(&client->conn);
 
     tcp_run(&client->conn);
 }

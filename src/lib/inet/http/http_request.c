@@ -839,7 +839,6 @@ http_read_timeout(sky_timer_wheel_entry_t *timer) {
     sky_http_connection_t *conn = req->conn;
 
     sky_tcp_close(&conn->tcp);
-    sky_tcp_register_cancel(&conn->tcp);
     if (conn->coro) {
         sky_coro_destroy(conn->coro);
     }
