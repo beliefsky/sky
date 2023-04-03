@@ -90,7 +90,7 @@ sky_http_server_bind(sky_http_server_t *server, sky_inet_addr_t *address, sky_u3
         return false;
     }
 
-    if (sky_unlikely(!sky_async_tcp_listen(&listener->tcp, 1000, http_server_accept))) {
+    if (sky_unlikely(!sky_tcp_async_listen(&listener->tcp, 1000, http_server_accept))) {
         sky_tcp_close(&listener->tcp);
         return false;
     }

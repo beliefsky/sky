@@ -257,7 +257,7 @@ sky_tcp_sendfile(
 }
 
 sky_bool_t
-sky_async_tcp_listen(sky_tcp_t *server, sky_i32_t backlog, sky_tcp_cb_pt cb) {
+sky_tcp_async_listen(sky_tcp_t *server, sky_i32_t backlog, sky_tcp_cb_pt cb) {
     if (sky_unlikely(!sky_tcp_listen(server, backlog))) {
         return false;
     }
