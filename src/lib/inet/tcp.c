@@ -55,6 +55,9 @@ sky_tcp_ctx_init(sky_tcp_ctx_t *ctx) {
 
 sky_bool_t
 sky_tcp_open(sky_tcp_t *tcp, sky_i32_t domain) {
+    if (sky_unlikely(!sky_tcp_is_closed(tcp))) {
+        return false;
+    }
 #ifdef SKY_HAVE_ACCEPT4
     const sky_socket_t fd = socket(domain, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
     if (sky_unlikely(fd < 0)) {
@@ -251,6 +254,17 @@ sky_tcp_sendfile(
     sky_ev_set_error(&tcp->ev);
 
     return -1;
+}
+
+sky_bool_t
+sky_async_tcp_listen(sky_tcp_t *server, sky_i32_t backlog, sky_tcp_cb_pt cb) {
+    if (sky_unlikely(!sky_tcp_listen(server, backlog))) {
+        return false;
+    }
+    sky_tcp_set_cb(server, cb);
+    cb(server);
+
+    return true;
 }
 
 sky_bool_t
