@@ -3,7 +3,6 @@
 //
 
 #include <unistd.h>
-#include <errno.h>
 #include "mqtt_io_wrappers.h"
 
 sky_usize_t
@@ -16,11 +15,7 @@ sky_mqtt_read(sky_mqtt_connect_t *conn, sky_uchar_t *data, sky_usize_t size) {
             return (sky_usize_t) n;
         }
         if (sky_likely(!n)) {
-            sky_tcp_try_register(
-                    sky_event_selector(conn->server->ev_loop),
-                    &conn->tcp,
-                    SKY_EV_READ | SKY_EV_WRITE
-            );
+            sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
             continue;
         }
@@ -41,11 +36,7 @@ sky_mqtt_read_all(sky_mqtt_connect_t *conn, sky_uchar_t *data, sky_usize_t size)
                 data += n;
                 size -= (sky_usize_t) n;
 
-                sky_tcp_try_register(
-                        sky_event_selector(conn->server->ev_loop),
-                        &conn->tcp,
-                        SKY_EV_READ | SKY_EV_WRITE
-                );
+                sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
                 sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
                 continue;
             }
@@ -53,11 +44,7 @@ sky_mqtt_read_all(sky_mqtt_connect_t *conn, sky_uchar_t *data, sky_usize_t size)
         }
 
         if (sky_likely(!n)) {
-            sky_tcp_try_register(
-                    sky_event_selector(conn->server->ev_loop),
-                    &conn->tcp,
-                    SKY_EV_READ | SKY_EV_WRITE
-            );
+            sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
             continue;
         }

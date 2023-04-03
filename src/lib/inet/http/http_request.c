@@ -628,11 +628,7 @@ http_line_read(sky_tcp_t *tcp) {
         if (sky_likely(!n)) {
             sky_event_loop_t *loop = conn->server->ev_loop;
 
-            sky_tcp_try_register(
-                    sky_event_selector(conn->server->ev_loop),
-                    &conn->tcp,
-                    SKY_EV_READ | SKY_EV_WRITE
-            );
+            sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
             sky_event_timeout_expired(loop, &r->timer, conn->server->keep_alive);
 
             return;
@@ -687,11 +683,7 @@ http_header_read(sky_tcp_t *tcp) {
         if (sky_likely(!n)) {
             sky_event_loop_t *loop = conn->server->ev_loop;
 
-            sky_tcp_try_register(
-                    sky_event_selector(conn->server->ev_loop),
-                    &conn->tcp,
-                    SKY_EV_READ | SKY_EV_WRITE
-            );
+            sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
             sky_event_timeout_expired(loop, &r->timer, conn->server->keep_alive);
 
             return;
@@ -819,11 +811,7 @@ http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size) {
             return (sky_usize_t) n;
         }
         if (sky_likely(!n)) {
-            sky_tcp_try_register(
-                    sky_event_selector(conn->server->ev_loop),
-                    &conn->tcp,
-                    SKY_EV_READ | SKY_EV_WRITE
-            );
+            sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
             sky_event_timeout_expired(conn->server->ev_loop, &conn->req_tmp->timer, conn->server->keep_alive);
             sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
             continue;

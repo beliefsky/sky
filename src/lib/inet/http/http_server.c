@@ -69,7 +69,7 @@ sky_bool_t
 sky_http_server_bind(sky_http_server_t *server, sky_inet_addr_t *address, sky_u32_t address_len) {
 
     http_listener_t *listener = sky_palloc(server->pool, sizeof(http_listener_t));
-    sky_tcp_init(&listener->tcp, &server->ctx);
+    sky_tcp_init(&listener->tcp, &server->ctx, sky_event_selector(server->ev_loop));
     listener->server = server;
 
     if (sky_unlikely(!sky_tcp_open(&listener->tcp, address->sa_family))) {
@@ -117,7 +117,7 @@ http_server_accept(sky_tcp_t *server) {
     sky_http_connection_t *conn = context->conn_tmp;
     if (!conn) {
         conn = sky_malloc(sizeof(sky_http_connection_t));
-        sky_tcp_init(&conn->tcp, &context->ctx);
+        sky_tcp_init(&conn->tcp, &context->ctx, sky_event_selector(context->ev_loop));
         conn->server = context;
     }
     sky_i8_t r;
@@ -127,7 +127,7 @@ http_server_accept(sky_tcp_t *server) {
             sky_http_request_process(conn);
 
             conn = sky_malloc(sizeof(sky_http_connection_t));
-            sky_tcp_init(&conn->tcp, &context->ctx);
+            sky_tcp_init(&conn->tcp, &context->ctx, sky_event_selector(context->ev_loop));
             conn->server = context;
 
             continue;
@@ -135,7 +135,7 @@ http_server_accept(sky_tcp_t *server) {
         context->conn_tmp = conn;
 
         if (sky_likely(!r)) {
-            sky_tcp_try_register(sky_event_selector(context->ev_loop), server, SKY_EV_READ);
+            sky_tcp_try_register(server, SKY_EV_READ);
             return;
         }
 

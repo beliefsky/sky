@@ -391,18 +391,9 @@ http_write_wait(sky_http_connection_t *conn) {
     sky_http_request_t *r = conn->req_tmp;
 
     if (r->keep_alive) {
-        sky_tcp_try_register(
-                sky_event_selector(conn->server->ev_loop),
-                &conn->tcp,
-                SKY_EV_READ | SKY_EV_WRITE
-        );
+        sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
     } else {
-
-        sky_tcp_try_register(
-                sky_event_selector(conn->server->ev_loop),
-                &conn->tcp,
-                SKY_EV_WRITE
-        );
+        sky_tcp_try_register(&conn->tcp, SKY_EV_WRITE);
     }
     sky_event_timeout_expired(conn->server->ev_loop, &r->timer, conn->server->keep_alive);
 

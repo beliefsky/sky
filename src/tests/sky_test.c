@@ -98,7 +98,7 @@ main() {
     timer->loop = loop;
     timer->coro = null;
     timer->switcher = switcher;
-    sky_ev_init(&timer->ev, timer_run, -1);
+    sky_ev_init(&timer->ev, sky_event_selector(loop), timer_run, -1);
     sky_timer_entry_init(&timer->timer, timer_out);
     sky_event_timeout_set(loop, &timer->timer, 1);
 

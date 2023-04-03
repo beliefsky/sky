@@ -123,7 +123,7 @@ sky_selector_destroy(sky_selector_t *l) {
 }
 
 sky_bool_t
-sky_selector_register(sky_selector_t *s, sky_ev_t *ev, sky_u32_t flags) {
+sky_selector_register(sky_ev_t *ev, sky_u32_t flags) {
     if (sky_unlikely(sky_ev_reg(ev) || ev->fd < 0 || !(flags & (SKY_EV_READ | SKY_EV_WRITE)))) {
         return false;
     }
@@ -138,9 +138,8 @@ sky_selector_register(sky_selector_t *s, sky_ev_t *ev, sky_u32_t flags) {
         EV_SET(&events[n++], ev->fd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
     }
 
-    kevent(s->fd, events, n, null, 0, null);
+    kevent(ev->s->fd, events, n, null, 0, null);
 
-    ev->s = s;
     ev->flags = flags;
     ev->status &= ~SKY_EV_NO_REG;
     ev->status |= SKY_EV_NO_ERR;
@@ -163,7 +162,7 @@ sky_selector_update(sky_ev_t *ev, sky_u32_t flags) {
             EV_SET(&events[n++], ev->fd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
         }
     } else {
-        if ((ev->flags & SKY_EV_READ) != 0 ) {
+        if ((ev->flags & SKY_EV_READ) != 0) {
             EV_SET(&events[n++], ev->fd, EVFILT_READ, EV_DELETE, 0, 0, ev);
         }
     }
@@ -173,7 +172,7 @@ sky_selector_update(sky_ev_t *ev, sky_u32_t flags) {
             EV_SET(&events[n++], ev->fd, EVFILT_WRITE, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
         }
     } else {
-        if ((ev->flags & SKY_EV_WRITE) != 0 ) {
+        if ((ev->flags & SKY_EV_WRITE) != 0) {
             EV_SET(&events[n++], ev->fd, EVFILT_WRITE, EV_DELETE, 0, 0, ev);
         }
     }
@@ -217,7 +216,6 @@ sky_selector_cancel(sky_ev_t *ev) {
 
     ev->flags = 0;
     ev->status |= SKY_EV_NO_REG | SKY_EV_NONE_INDEX;
-    ev->s = null;
 
     return true;
 }
