@@ -70,6 +70,7 @@ sky_http_server_bind(sky_http_server_t *server, sky_inet_addr_t *address, sky_u3
 
     http_listener_t *listener = sky_palloc(server->pool, sizeof(http_listener_t));
     sky_tcp_init(&listener->tcp, &server->ctx);
+    listener->server = server;
 
     if (sky_unlikely(!sky_tcp_open(&listener->tcp, address->sa_family))) {
         return false;
@@ -89,14 +90,10 @@ sky_http_server_bind(sky_http_server_t *server, sky_inet_addr_t *address, sky_u3
         return false;
     }
 
-    if (sky_unlikely(!sky_tcp_listen(&listener->tcp, 1000))) {
+    if (sky_unlikely(!sky_async_tcp_listen(&listener->tcp, 1000, http_server_accept))) {
         sky_tcp_close(&listener->tcp);
         return false;
     }
-    listener->server = server;
-
-    sky_tcp_set_cb(&listener->tcp, http_server_accept);
-    http_server_accept(&listener->tcp);
 
     return true;
 }

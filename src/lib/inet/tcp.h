@@ -30,10 +30,9 @@ typedef sky_isize_t (*sky_tcp_sendfile_pt)(
         sky_usize_t head_size
 );
 
-typedef void (*sky_tcp_close_pt)(sky_tcp_t *tcp);
 
 struct sky_tcp_ctx_s {
-    sky_tcp_close_pt close;
+    sky_tcp_cb_pt close;
     sky_tcp_read_pt read;
     sky_tcp_write_pt write;
     sky_tcp_sendfile_pt sendfile;
@@ -42,7 +41,8 @@ struct sky_tcp_ctx_s {
 struct sky_tcp_s {
     sky_ev_t ev;
     sky_tcp_ctx_t *ctx;
-    sky_bool_t closed:1;
+    void *data;
+    sky_bool_t closed: 1;
 };
 
 void sky_tcp_ctx_init(sky_tcp_ctx_t *ctx);
@@ -72,6 +72,8 @@ sky_isize_t sky_tcp_sendfile(
         sky_usize_t head_size
 );
 
+sky_bool_t sky_async_tcp_listen(sky_tcp_t *server, sky_i32_t backlog, sky_tcp_cb_pt cb);
+
 sky_bool_t sky_tcp_option_reuse_addr(sky_tcp_t *tcp);
 
 sky_bool_t sky_tcp_option_reuse_port(sky_tcp_t *tcp);
@@ -97,6 +99,16 @@ sky_tcp_ev(sky_tcp_t *tcp) {
 static sky_inline void
 sky_tcp_set_cb(sky_tcp_t *tcp, sky_tcp_cb_pt cb) {
     sky_ev_reset_cb(&tcp->ev, (sky_ev_cb_pt) cb);
+}
+
+static sky_inline void
+sky_tcp_set_data(sky_tcp_t *tcp, void *data) {
+    tcp->data = data;
+}
+
+static sky_inline void *
+sky_tcp_get_data(sky_tcp_t *tcp) {
+    return tcp->data;
 }
 
 static sky_inline sky_bool_t
