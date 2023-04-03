@@ -168,6 +168,7 @@ sky_tcp_close(sky_tcp_t *tcp) {
     tcp->closed = true;
     tcp->ctx->close(tcp);
     close(fd);
+    sky_tcp_register_cancel(tcp);
 }
 
 sky_isize_t

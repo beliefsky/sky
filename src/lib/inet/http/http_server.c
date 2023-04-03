@@ -140,7 +140,6 @@ http_server_accept(sky_tcp_t *server) {
         }
 
         sky_tcp_close(server);
-        sky_tcp_register_cancel(server);
     }
 }
 

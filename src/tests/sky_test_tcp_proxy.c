@@ -248,7 +248,6 @@ proxy_server_v6_accept(sky_tcp_t *server) {
 static void
 proxy_server_close(sky_tcp_t *server) {
     sky_tcp_close(server);
-    sky_tcp_register_cancel(server);
 }
 
 
@@ -258,7 +257,6 @@ tcp_proxy_run(sky_tcp_t *data) {
 
     if (sky_coro_resume(conn->coro) != SKY_CORO_MAY_RESUME) {
         sky_tcp_close(data);
-        sky_tcp_register_cancel(data);
 
         sky_coro_destroy(conn->coro);
     }

@@ -47,7 +47,6 @@ sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_addr_t *addre
     }
     if (sky_unlikely(!sky_tcp_is_closed(&client->tcp))) {
         sky_tcp_close(&client->tcp);
-        sky_tcp_register_cancel(&client->tcp);
     }
 
     if (sky_unlikely(!sky_tcp_open(&client->tcp, address->sa_family))) {
@@ -82,7 +81,6 @@ sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_addr_t *addre
 
         sky_timer_wheel_unlink(&client->timer);
         sky_tcp_is_closed(&client->tcp);
-        sky_tcp_register_cancel(&client->tcp);
 
         return false;
     }
@@ -94,7 +92,6 @@ sky_tcp_client_close(sky_tcp_client_t *client) {
         return;
     }
     sky_tcp_close(&client->tcp);
-    sky_tcp_register_cancel(&client->tcp);
 }
 
 sky_inline sky_bool_t
@@ -135,7 +132,6 @@ sky_tcp_client_read(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t siz
 
         sky_timer_wheel_unlink(&client->timer);
         sky_tcp_close(&client->tcp);
-        sky_tcp_register_cancel(&client->tcp);
 
         return 0;
     }
@@ -182,7 +178,6 @@ sky_tcp_client_read_all(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t
 
         sky_timer_wheel_unlink(&client->timer);
         sky_tcp_close(&client->tcp);
-        sky_tcp_register_cancel(&client->tcp);
 
         return false;
     }
@@ -215,7 +210,6 @@ sky_tcp_client_read_nowait(sky_tcp_client_t *client, sky_uchar_t *data, sky_usiz
     }
 
     sky_tcp_close(&client->tcp);
-    sky_tcp_register_cancel(&client->tcp);
 
     return -1;
 }
@@ -257,7 +251,6 @@ sky_tcp_client_write(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usiz
 
         sky_timer_wheel_unlink(&client->timer);
         sky_tcp_close(&client->tcp);
-        sky_tcp_register_cancel(&client->tcp);
 
         return 0;
     }
@@ -304,7 +297,6 @@ sky_tcp_client_write_all(sky_tcp_client_t *client, const sky_uchar_t *data, sky_
 
         sky_timer_wheel_unlink(&client->timer);
         sky_tcp_close(&client->tcp);
-        sky_tcp_register_cancel(&client->tcp);
 
         return false;
     }
@@ -362,7 +354,6 @@ tcp_client_defer(sky_tcp_client_t *client) {
 
     sky_timer_wheel_unlink(&client->timer);
     sky_tcp_close(&client->tcp);
-    sky_tcp_register_cancel(&client->tcp);
     sky_free(&client->tcp);
 }
 
@@ -371,7 +362,6 @@ tcp_client_timeout(sky_timer_wheel_entry_t *entry) {
     sky_tcp_client_t *client = sky_type_convert(entry, sky_tcp_client_t, timer);
 
     sky_tcp_close(&client->tcp);
-    sky_tcp_register_cancel(&client->tcp);
 
     tcp_run(&client->tcp);
 }
