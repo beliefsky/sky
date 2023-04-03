@@ -72,7 +72,7 @@ sky_isize_t sky_tcp_sendfile(
         sky_usize_t head_size
 );
 
-sky_bool_t sky_async_tcp_listen(sky_tcp_t *server, sky_i32_t backlog, sky_tcp_cb_pt cb);
+sky_bool_t sky_tcp_async_listen(sky_tcp_t *server, sky_i32_t backlog, sky_tcp_cb_pt cb);
 
 sky_bool_t sky_tcp_option_reuse_addr(sky_tcp_t *tcp);
 
