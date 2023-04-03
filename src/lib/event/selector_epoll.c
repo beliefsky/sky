@@ -104,7 +104,7 @@ sky_selector_destroy(sky_selector_t *s) {
 }
 
 sky_bool_t
-sky_selector_register(sky_selector_t *s, sky_ev_t *ev, sky_u32_t flags) {
+sky_selector_register(sky_ev_t *ev, sky_u32_t flags) {
     if (sky_unlikely(sky_ev_reg(ev) || ev->fd < 0 || !(flags & (SKY_EV_READ | SKY_EV_WRITE)))) {
         return false;
     }
@@ -122,11 +122,10 @@ sky_selector_register(sky_selector_t *s, sky_ev_t *ev, sky_u32_t flags) {
             .data.ptr = ev
     };
 
-    if (sky_unlikely(epoll_ctl(s->fd, EPOLL_CTL_ADD, ev->fd, &event) < 0)) {
+    if (sky_unlikely(epoll_ctl(ev->s->fd, EPOLL_CTL_ADD, ev->fd, &event) < 0)) {
         sky_log_error("ev reg error: %d ->%d", ev->fd, errno);
         return false;
     }
-    ev->s = s;
     ev->flags = opts;
     ev->status &= ~(SKY_EV_NO_REG);
     ev->status |= SKY_EV_NO_ERR;
@@ -185,7 +184,6 @@ sky_selector_cancel(sky_ev_t *ev) {
         ev->s->evs[status] = null;
     }
 
-    ev->s = null;
     ev->flags = 0;
     ev->status |= SKY_EV_NO_REG | SKY_EV_NONE_INDEX;
 

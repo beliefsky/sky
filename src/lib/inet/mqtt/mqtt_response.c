@@ -139,11 +139,7 @@ sky_mqtt_write_packet(sky_mqtt_connect_t *conn) {
                 continue;
             }
             if (sky_likely(!size)) {
-                sky_tcp_try_register(
-                        sky_event_selector(conn->server->ev_loop),
-                        &conn->tcp,
-                        SKY_EV_READ | SKY_EV_WRITE
-                );
+                sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
 //                sky_event_timeout_expired(sky_tcp_get_event(&conn->tcp));
 
                 return true;
