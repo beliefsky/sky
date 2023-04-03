@@ -257,17 +257,6 @@ sky_tcp_sendfile(
 }
 
 sky_bool_t
-sky_tcp_async_listen(sky_tcp_t *server, sky_i32_t backlog, sky_tcp_cb_pt cb) {
-    if (sky_unlikely(!sky_tcp_listen(server, backlog))) {
-        return false;
-    }
-    sky_tcp_set_cb(server, cb);
-    cb(server);
-
-    return true;
-}
-
-sky_bool_t
 sky_tcp_option_reuse_addr(sky_tcp_t *tcp) {
     const sky_socket_t fd = sky_ev_get_fd(&tcp->ev);
     const sky_i32_t opt = 1;
