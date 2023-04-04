@@ -53,8 +53,18 @@ sky_tcp_ctx_init(sky_tcp_ctx_t *ctx) {
     ctx->sendfile = tcp_connect_sendfile;
 }
 
+void
+sky_tcp_init(sky_tcp_t *tcp, sky_tcp_ctx_t *ctx, sky_selector_t *s) {
+    tcp->ctx = ctx;
+    tcp->closed = true;
+    sky_ev_init(&tcp->ev, s, null, SKY_SOCKET_FD_NONE);
+}
+
 sky_bool_t
 sky_tcp_open(sky_tcp_t *tcp, sky_i32_t domain) {
+    if (sky_unlikely(!sky_tcp_is_closed(tcp))) {
+        return false;
+    }
 #ifdef SKY_HAVE_ACCEPT4
     const sky_socket_t fd = socket(domain, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
     if (sky_unlikely(fd < 0)) {
@@ -71,7 +81,7 @@ sky_tcp_open(sky_tcp_t *tcp, sky_i32_t domain) {
     }
 #endif
 
-    sky_ev_init(&tcp->ev, null, fd);
+    tcp->ev.fd = fd;
     tcp->closed = false;
 
     return true;
@@ -132,7 +142,7 @@ sky_tcp_accept(sky_tcp_t *server, sky_tcp_t *client) {
     }
 #endif
 
-    sky_ev_init(&client->ev, null, fd);
+    client->ev.fd = fd;
 
     return 1;
 }
@@ -168,6 +178,7 @@ sky_tcp_close(sky_tcp_t *tcp) {
     tcp->closed = true;
     tcp->ctx->close(tcp);
     close(fd);
+    sky_tcp_register_cancel(tcp);
 }
 
 sky_isize_t
@@ -307,6 +318,21 @@ sky_tcp_option_fast_open(sky_tcp_t *tcp, sky_i32_t n) {
 #else
     return false;
 #endif
+}
+
+sky_bool_t
+sky_tcp_option_no_push(sky_tcp_t *tcp, sky_bool_t open) {
+    const sky_socket_t opt = open;
+    const sky_socket_t fd = sky_ev_get_fd(&tcp->ev);
+
+#if defined(TCP_CORK)
+    return 0 == setsockopt(fd, IPPROTO_TCP, TCP_CORK, &opt, sizeof(sky_i32_t));
+#elif defined(TCP_NOPUSH)
+    return 0 == setsockopt(fd, IPPROTO_TCP, TCP_NOPUSH, &opt, sizeof(sky_i32_t));
+#else
+    retrun false;
+#endif
+
 }
 
 static void

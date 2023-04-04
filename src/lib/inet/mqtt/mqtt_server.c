@@ -42,7 +42,7 @@ sky_bool_t
 sky_mqtt_server_bind(sky_mqtt_server_t *server, sky_inet_addr_t *address, sky_u32_t address_len) {
     mqtt_listener_t *listener = sky_malloc(sizeof(mqtt_listener_t));
 
-    sky_tcp_init(&listener->tcp, &server->ctx);
+    sky_tcp_init(&listener->tcp, &server->ctx, sky_event_selector(server->ev_loop));
 
     if (sky_unlikely(!sky_tcp_open(&listener->tcp, address->sa_family))) {
         sky_free(listener);
@@ -80,7 +80,7 @@ mqtt_server_accept(sky_tcp_t *server) {
     if (!conn) {
         sky_coro_t *coro = sky_coro_new(context->switcher);
         conn = sky_coro_malloc(coro, sizeof(sky_mqtt_connect_t));
-        sky_tcp_init(&conn->tcp, &context->ctx);
+        sky_tcp_init(&conn->tcp, &context->ctx, sky_event_selector(context->ev_loop));
         conn->coro = coro;
         conn->server = context;
         conn->current_packet = null;
@@ -99,7 +99,7 @@ mqtt_server_accept(sky_tcp_t *server) {
 
             sky_coro_t *coro = sky_coro_new(context->switcher);
             conn = sky_coro_malloc(coro, sizeof(sky_mqtt_connect_t));
-            sky_tcp_init(&conn->tcp, &context->ctx);
+            sky_tcp_init(&conn->tcp, &context->ctx, sky_event_selector(context->ev_loop));
             conn->coro = coro;
             conn->server = context;
             conn->current_packet = null;
@@ -115,12 +115,11 @@ mqtt_server_accept(sky_tcp_t *server) {
         context->conn_tmp = conn;
 
         if (sky_likely(!r)) {
-            sky_tcp_try_register(sky_event_selector(context->ev_loop), server, SKY_EV_READ);
+            sky_tcp_try_register(server, SKY_EV_READ);
             return;
         }
 
         sky_tcp_close(server);
-        sky_tcp_register_cancel(server);
         sky_free(listener);
     }
 }
@@ -135,7 +134,6 @@ mqtt_run(sky_tcp_t *data) {
     sky_mqtt_clean_packet(conn);
 
     sky_tcp_close(data);
-    sky_tcp_register_cancel(data);
     sky_coro_destroy(conn->coro);
 }
 

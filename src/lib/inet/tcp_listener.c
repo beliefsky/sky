@@ -51,7 +51,7 @@ sky_tcp_listener_t *
 sky_tcp_listener_create(sky_event_loop_t *loop, sky_coro_switcher_t *switcher, const sky_tcp_listener_conf_t *conf) {
     sky_coro_t *coro = sky_coro_new(switcher);
     sky_tcp_listener_t *listener = sky_coro_malloc(coro, sizeof(sky_tcp_listener_t));
-    sky_tcp_init(&listener->tcp, conf->ctx);
+    sky_tcp_init(&listener->tcp, conf->ctx, sky_event_selector(loop));
     sky_timer_entry_init(&listener->timer, null);
     listener->address = sky_coro_malloc(coro, conf->address_len);
     listener->reader.listener = listener;
@@ -141,11 +141,7 @@ sky_tcp_listener_write(sky_tcp_listener_writer_t *writer, const sky_uchar_t *dat
             return (sky_usize_t) n;
         }
         if (sky_likely(!n)) {
-            sky_tcp_try_register(
-                    sky_event_selector(client->loop),
-                    &client->tcp,
-                    SKY_EV_READ | SKY_EV_WRITE
-            );
+            sky_tcp_try_register(&client->tcp, SKY_EV_READ | SKY_EV_WRITE);
             sky_coro_yield(writer->coro, SKY_CORO_MAY_RESUME);
             if (sky_unlikely(!writer->client || !client->connected)) {
                 return 0;
@@ -187,11 +183,7 @@ sky_tcp_listener_write_all(sky_tcp_listener_writer_t *writer, const sky_uchar_t 
             return false;
         }
 
-        sky_tcp_try_register(
-                sky_event_selector(client->loop),
-                &client->tcp,
-                SKY_EV_READ | SKY_EV_WRITE
-        );
+        sky_tcp_try_register(&client->tcp, SKY_EV_READ | SKY_EV_WRITE);
         sky_coro_yield(writer->coro, SKY_CORO_MAY_RESUME);
         if (sky_unlikely(!writer->client || !client->connected)) {
             return false;
@@ -271,11 +263,7 @@ sky_tcp_listener_read(sky_tcp_listener_reader_t *reader, sky_uchar_t *data, sky_
         }
 
         if (sky_likely(!n)) {
-            sky_tcp_try_register(
-                    sky_event_selector(listener->loop),
-                    &listener->tcp,
-                    SKY_EV_READ | SKY_EV_WRITE
-            );
+            sky_tcp_try_register(&listener->tcp, SKY_EV_READ | SKY_EV_WRITE);
             sky_coro_yield(listener->coro, SKY_CORO_MAY_RESUME);
             continue;
         }
@@ -312,11 +300,7 @@ sky_tcp_listener_read_all(sky_tcp_listener_reader_t *reader, sky_uchar_t *data, 
             sky_coro_exit();
         }
 
-        sky_tcp_try_register(
-                sky_event_selector(listener->loop),
-                &listener->tcp,
-                SKY_EV_READ | SKY_EV_WRITE
-        );
+        sky_tcp_try_register(&listener->tcp, SKY_EV_READ | SKY_EV_WRITE);
         sky_coro_yield(listener->coro, SKY_CORO_MAY_RESUME);
     }
 }
@@ -328,7 +312,6 @@ sky_tcp_listener_destroy(sky_tcp_listener_t *listener) {
     }
     sky_timer_wheel_unlink(&listener->timer);
     sky_tcp_close(&listener->tcp);
-    sky_tcp_register_cancel(&listener->tcp);
 
     sky_coro_destroy(listener->coro);
 }
@@ -374,17 +357,12 @@ tcp_connection(sky_tcp_t *conn) {
 
     if (sky_likely(!r)) {
         sky_event_timeout_expired(listener->loop, &listener->timer, listener->timeout);
-        sky_tcp_try_register(
-                sky_event_selector(listener->loop),
-                conn,
-                SKY_EV_READ | SKY_EV_WRITE
-        );
+        sky_tcp_try_register(conn, SKY_EV_READ | SKY_EV_WRITE);
         return;
     }
 
     sky_timer_wheel_unlink(&listener->timer);
     sky_tcp_close(&listener->tcp);
-    sky_tcp_register_cancel(&listener->tcp);
     if (listener->reconnect) {
         listener->timer.cb = tcp_reconnect_timer_cb;
         sky_event_timeout_set(listener->loop, &listener->timer, 5);
@@ -433,7 +411,6 @@ tcp_run(sky_tcp_t *conn) {
     }
 
     sky_tcp_close(&listener->tcp);
-    sky_tcp_register_cancel(&listener->tcp);
     listener->connected = false;
 
     for (;;) {
@@ -506,7 +483,6 @@ tcp_timeout_cb(sky_timer_wheel_entry_t *timer) {
     sky_tcp_listener_t *listener = sky_type_convert(timer, sky_tcp_listener_t, timer);
 
     sky_tcp_close(&listener->tcp);
-    sky_tcp_register_cancel(&listener->tcp);
 
     if (listener->connected) {
         listener->timer.cb = tcp_reconnect_timer_cb;

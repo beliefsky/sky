@@ -5,6 +5,7 @@
 #ifndef SKY_TCP_H
 #define SKY_TCP_H
 
+
 #include "../event/selector.h"
 #include "../fs/file.h"
 
@@ -30,10 +31,9 @@ typedef sky_isize_t (*sky_tcp_sendfile_pt)(
         sky_usize_t head_size
 );
 
-typedef void (*sky_tcp_close_pt)(sky_tcp_t *tcp);
 
 struct sky_tcp_ctx_s {
-    sky_tcp_close_pt close;
+    sky_tcp_cb_pt close;
     sky_tcp_read_pt read;
     sky_tcp_write_pt write;
     sky_tcp_sendfile_pt sendfile;
@@ -42,10 +42,12 @@ struct sky_tcp_ctx_s {
 struct sky_tcp_s {
     sky_ev_t ev;
     sky_tcp_ctx_t *ctx;
-    sky_bool_t closed:1;
+    sky_bool_t closed: 1;
 };
 
 void sky_tcp_ctx_init(sky_tcp_ctx_t *ctx);
+
+void sky_tcp_init(sky_tcp_t *tcp, sky_tcp_ctx_t *ctx, sky_selector_t *s);
 
 sky_bool_t sky_tcp_open(sky_tcp_t *tcp, sky_i32_t domain);
 
@@ -82,12 +84,7 @@ sky_bool_t sky_tcp_option_defer_accept(sky_tcp_t *tcp);
 
 sky_bool_t sky_tcp_option_fast_open(sky_tcp_t *tcp, sky_i32_t n);
 
-
-static sky_inline void
-sky_tcp_init(sky_tcp_t *tcp, sky_tcp_ctx_t *ctx) {
-    tcp->ctx = ctx;
-    tcp->closed = true;
-}
+sky_bool_t sky_tcp_option_no_push(sky_tcp_t *tcp, sky_bool_t open);
 
 static sky_inline sky_ev_t *
 sky_tcp_ev(sky_tcp_t *tcp) {
@@ -100,16 +97,16 @@ sky_tcp_set_cb(sky_tcp_t *tcp, sky_tcp_cb_pt cb) {
 }
 
 static sky_inline sky_bool_t
-sky_tcp_register(sky_selector_t *selector, sky_tcp_t *tcp, sky_u32_t flags) {
-    return sky_selector_register(selector, &tcp->ev, flags);
+sky_tcp_register(sky_tcp_t *tcp, sky_u32_t flags) {
+    return sky_selector_register(&tcp->ev, flags);
 }
 
 static sky_inline sky_bool_t
-sky_tcp_try_register(sky_selector_t *selector, sky_tcp_t *tcp, sky_u32_t flags) {
+sky_tcp_try_register(sky_tcp_t *tcp, sky_u32_t flags) {
     if (sky_ev_reg(&tcp->ev)) {
         return true;
     }
-    return sky_selector_register(selector, &tcp->ev, flags);
+    return sky_selector_register(&tcp->ev, flags);
 }
 
 static sky_inline sky_bool_t
