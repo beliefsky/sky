@@ -333,16 +333,12 @@ sky_inline sky_isize_t
 sky_coro_yield(sky_coro_t *coro, sky_isize_t value) {
     const sky_coro_t *current = coro->switcher->current;
 
-    if (sky_unlikely(!current)) {
-        sky_log_error("sky_coro_yield not allow");
-        abort();
-    }
-    if (sky_unlikely(current != coro)) {
-        sky_log_error("sky_coro_yield not current coro");
-        abort();
+    if (sky_likely(current == coro)) {
+        return coro_yield(coro, value);
     }
 
-    return coro_yield(coro, value);
+    sky_log_error("sky_coro_yield not current coro");
+    abort();
 }
 
 void
