@@ -139,29 +139,29 @@ void __attribute__((noinline, visibility("internal")))
 coro_swapcontext(sky_coro_context_t *current, sky_coro_context_t *other);
 
 asm(
-".text\n\t"
-".p2align 5\n\t"
-ASM_ROUTINE(coro_swapcontext)
-"movl   0x4(%esp),%eax\n\t"
-"movl   %ecx,0x1c(%eax)\n\t" /* ECX */
-"movl   %ebx,0x0(%eax)\n\t"  /* EBX */
-"movl   %esi,0x4(%eax)\n\t"  /* ESI */
-"movl   %edi,0x8(%eax)\n\t"  /* EDI */
-"movl   %ebp,0xc(%eax)\n\t"  /* EBP */
-"movl   (%esp),%ecx\n\t"
-"movl   %ecx,0x14(%eax)\n\t" /* EIP */
-"leal   0x4(%esp),%ecx\n\t"
-"movl   %ecx,0x18(%eax)\n\t" /* ESP */
-"movl   8(%esp),%eax\n\t"
-"movl   0x14(%eax),%ecx\n\t" /* EIP (1) */
-"movl   0x18(%eax),%esp\n\t" /* ESP */
-"pushl  %ecx\n\t"            /* EIP (2) */
-"movl   0x0(%eax),%ebx\n\t"  /* EBX */
-"movl   0x4(%eax),%esi\n\t"  /* ESI */
-"movl   0x8(%eax),%edi\n\t"  /* EDI */
-"movl   0xc(%eax),%ebp\n\t"  /* EBP */
-"movl   0x1c(%eax),%ecx\n\t" /* ECX */
-"ret\n\t");
+        ".text\n\t"
+        ".p2align 5\n\t"
+        ASM_ROUTINE(coro_swapcontext)
+        "movl   0x4(%esp),%eax\n\t"
+        "movl   %ecx,0x1c(%eax)\n\t" /* ECX */
+        "movl   %ebx,0x0(%eax)\n\t"  /* EBX */
+        "movl   %esi,0x4(%eax)\n\t"  /* ESI */
+        "movl   %edi,0x8(%eax)\n\t"  /* EDI */
+        "movl   %ebp,0xc(%eax)\n\t"  /* EBP */
+        "movl   (%esp),%ecx\n\t"
+        "movl   %ecx,0x14(%eax)\n\t" /* EIP */
+        "leal   0x4(%esp),%ecx\n\t"
+        "movl   %ecx,0x18(%eax)\n\t" /* ESP */
+        "movl   8(%esp),%eax\n\t"
+        "movl   0x14(%eax),%ecx\n\t" /* EIP (1) */
+        "movl   0x18(%eax),%esp\n\t" /* ESP */
+        "pushl  %ecx\n\t"            /* EIP (2) */
+        "movl   0x0(%eax),%ebx\n\t"  /* EBX */
+        "movl   0x4(%eax),%esi\n\t"  /* ESI */
+        "movl   0x8(%eax),%edi\n\t"  /* EDI */
+        "movl   0xc(%eax),%ebp\n\t"  /* EBP */
+        "movl   0x1c(%eax),%ecx\n\t" /* ECX */
+        "ret\n\t");
 #elif defined(SKY_HAVE_LIBUCONTEXT)
 #define coro_swapcontext(cur, oth) sky_swapcontext(cur, oth)
 #else
