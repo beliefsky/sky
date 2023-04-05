@@ -15,10 +15,10 @@ struct sky_tcp_pool_s {
 
     void *data;
 
+    sky_u32_t keep_alive;
     sky_u32_t timeout;
     sky_u32_t address_len;
     sky_u32_t conn_mask;
-
 };
 
 struct sky_tcp_node_s {
@@ -71,6 +71,7 @@ sky_tcp_pool_create(sky_event_loop_t *ev_loop, const sky_tcp_pool_conf_t *conf) 
     conn_pool->options = conf->options;
     conn_pool->next_func = conf->next_func;
     conn_pool->data = conf->data;
+    conn_pool->keep_alive = conf->keep_alive ?: 60;
     conn_pool->timeout = conf->timeout ?: 30;
 
     sky_tcp_node_t *client = conn_pool->clients;
@@ -356,9 +357,17 @@ sky_tcp_pool_conn_unbind(sky_tcp_session_t *session) {
         sky_queue_remove(&session->link);
     }
     session->defer = null;
-    if (session->client) {
-        session->client->current = null;
+
+    sky_tcp_node_t *client = session->client;
+    if (client) {
+        client->current = null;
         session->client = null;
+
+        sky_event_timeout_set(
+                client->conn_pool->ev_loop,
+                &client->timer,
+                client->conn_pool->keep_alive
+        );
     }
 }
 
