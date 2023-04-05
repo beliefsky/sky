@@ -56,6 +56,7 @@ typedef struct coro_block_s coro_block_t;
 
 struct sky_coro_switcher_s {
     sky_coro_context_t caller;
+    sky_coro_t *current;
 };
 
 struct coro_block_s {
@@ -85,7 +86,6 @@ struct sky_coro_s {
     sky_coro_context_t context;
     sky_isize_t yield_value;
 //===================================
-    sky_bool_t self;
     coro_block_t *block;
     sky_uchar_t *ptr;
     sky_usize_t ptr_size;
@@ -187,8 +187,61 @@ asm(".text\n\t"
         );
 #endif
 
-static sky_inline void
-coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
+sky_coro_switcher_t *
+sky_coro_switcher_create() {
+    sky_coro_switcher_t *switcher = sky_malloc(sizeof(sky_coro_switcher_t));
+    switcher->current = null;
+
+    return switcher;
+}
+
+void
+sky_coro_switcher_destroy(sky_coro_switcher_t *switcher) {
+    if (sky_likely(!switcher->current)) {
+        sky_free(switcher);
+        return;
+    }
+    sky_log_error("coro switcher destroy error: current is run");
+    abort();
+}
+
+
+sky_inline sky_coro_t *
+sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func, void *data) {
+    sky_coro_t *coro = sky_coro_new(switcher);
+    if (sky_unlikely(!coro)) {
+        return null;
+    }
+
+    sky_coro_set(coro, func, data);
+
+    return coro;
+}
+
+sky_inline sky_coro_t *
+sky_coro_new(sky_coro_switcher_t *switcher) {
+    if (sky_unlikely(!switcher)) {
+        return null;
+    }
+    sky_coro_t *coro = sky_malloc(CORE_BLOCK_SIZE);
+    if (sky_unlikely(!coro)) {
+        return null;
+    }
+    coro->switcher = switcher;
+
+    sky_queue_init(&coro->defers);
+    sky_queue_init(&coro->global_defers);
+    sky_queue_init(&coro->free_defers);
+
+    coro->block = null;
+    coro->ptr = (sky_uchar_t *) (coro + 1) + CORO_STACK_MIN + 16;
+    coro->ptr_size = PAGE_SIZE - sizeof(sky_coro_t) - 16;
+
+    return coro;
+}
+
+sky_inline void
+sky_coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     sky_uchar_t *stack = coro->stack;
 
 #if defined(__x86_64__)
@@ -225,60 +278,11 @@ coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
 #endif
 }
 
-sky_inline sky_usize_t
-sky_coro_switcher_size() {
-    return sizeof(sky_coro_switcher_t);
-}
-
-
-sky_inline sky_coro_t *
-sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func, void *data) {
-    sky_coro_t *coro = sky_coro_new(switcher);
-    if (sky_unlikely(!coro)) {
-        return null;
-    }
-
-    coro_set(coro, func, data);
-
-    return coro;
-}
-
-sky_inline sky_coro_t *
-sky_coro_new(sky_coro_switcher_t *switcher) {
-    if (sky_unlikely(!switcher)) {
-        return null;
-    }
-    sky_coro_t *coro = sky_malloc(CORE_BLOCK_SIZE);
-    if (sky_unlikely(!coro)) {
-        return null;
-    }
-    coro->switcher = switcher;
-
-    sky_queue_init(&coro->defers);
-    sky_queue_init(&coro->global_defers);
-    sky_queue_init(&coro->free_defers);
-
-    coro->self = false;
-    coro->block = null;
-    coro->ptr = (sky_uchar_t *) (coro + 1) + CORO_STACK_MIN + 16;
-    coro->ptr_size = PAGE_SIZE - sizeof(sky_coro_t) - 16;
-
-    return coro;
-}
-
-void sky_coro_set(sky_coro_t *coro, sky_coro_func_t func, void *data) {
-    if (sky_unlikely(coro->self)) {
-        sky_log_error("sky_coro_set shouldn't into coro");
-        abort();
-    }
-    coro_set(coro, func, data);
-}
-
 
 void
 sky_coro_reset(sky_coro_t *coro, sky_coro_func_t func, void *data) {
     sky_defer_run(coro);
-    coro_set(coro, func, data);
+    sky_coro_set(coro, func, data);
 }
 
 
@@ -290,43 +294,55 @@ sky_coro_resume(sky_coro_t *coro) {
         abort();
     }
 #endif
-    if (sky_unlikely(coro->self)) {
-        sky_log_error("sky_coro_resume shouldn't into coro");
-        abort();
+
+    if (sky_likely(!coro->switcher->current)) {
+        coro->switcher->current = coro;
+        coro_swapcontext(&coro->switcher->caller, &coro->context);
+        coro->switcher->current = null;
+
+        return coro->yield_value;
     }
 
-    coro->self = true;
-    coro_swapcontext(&coro->switcher->caller, &coro->context);
-    coro->self = false;
-    return coro->yield_value;
+    sky_log_error("sky_coro_resume not allow");
+    abort();
 }
 
 sky_isize_t
 sky_coro_resume_value(sky_coro_t *coro, sky_isize_t value) {
-    if (sky_unlikely(coro->self)) {
-        sky_log_error("sky_coro_resume shouldn't into coro");
+#ifdef STACK_PTR
+    if (sky_unlikely(coro->context[STACK_PTR] > (sky_usize_t) (coro->stack + CORO_STACK_MIN))) {
+        sky_log_error("sky_coro_resume out of stack");
         abort();
     }
-    coro->yield_value = value;
-    coro->self = true;
-    coro_swapcontext(&coro->switcher->caller, &coro->context);
-    coro->self = false;
-    return coro->yield_value;
+#endif
+
+    if (sky_likely(!coro->switcher->current)) {
+        coro->yield_value = value;
+        coro->switcher->current = coro;
+        coro_swapcontext(&coro->switcher->caller, &coro->context);
+        coro->switcher->current = null;
+
+        return coro->yield_value;
+    }
+
+    sky_log_error("sky_coro_resume not allow");
+    abort();
 }
 
 sky_inline sky_isize_t
 sky_coro_yield(sky_coro_t *coro, sky_isize_t value) {
-    if (sky_unlikely(!coro->self)) {
-        sky_log_error("sky_coro_yield shouldn't into coro");
+    const sky_coro_t *current = coro->switcher->current;
+
+    if (sky_unlikely(!current)) {
+        sky_log_error("sky_coro_yield not allow");
+        abort();
+    }
+    if (sky_unlikely(current != coro)) {
+        sky_log_error("sky_coro_yield not current coro");
         abort();
     }
 
     return coro_yield(coro, value);
-}
-
-sky_inline sky_coro_switcher_t *
-sky_coro_get_switcher(sky_coro_t *coro) {
-    return coro->switcher;
 }
 
 void

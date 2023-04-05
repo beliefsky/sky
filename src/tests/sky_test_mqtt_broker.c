@@ -15,12 +15,12 @@ main() {
     setvbuf(stderr, null, _IOLBF, 0);
 
     sky_event_loop_t *ev_loop = sky_event_loop_create();
-    sky_coro_switcher_t *switcher = sky_malloc(sky_coro_switcher_size());
+    sky_coro_switcher_t *switcher = sky_coro_switcher_create();
     create_server(ev_loop, switcher);
     sky_event_loop_run(ev_loop);
     sky_event_loop_destroy(ev_loop);
 
-    sky_free(switcher);
+    sky_coro_switcher_destroy(switcher);
 
     return 0;
 }
