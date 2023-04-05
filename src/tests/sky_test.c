@@ -3,10 +3,7 @@
 //
 #include <core/types.h>
 #include <core/log.h>
-#include <inet/http/http_server.h>
-#include "core/array.h"
-#include "inet/http/http_client.h"
-#include "core/memory.h"
+#include <core/coro.h>
 
 static sky_coro_switcher_t *switcher;
 
