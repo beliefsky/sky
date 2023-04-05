@@ -74,27 +74,27 @@ main() {
     }
     sky_process_bind_cpu(0);
 
-    sky_coro_switcher_t *switcher = sky_malloc(sky_coro_switcher_size());
+    sky_coro_switcher_t *switcher = sky_coro_switcher_create();
 
     sky_event_loop_t *ev_loop = sky_event_loop_create();
     server_start(ev_loop);
     sky_event_loop_run(ev_loop);
     sky_event_loop_destroy(ev_loop);
 
-    sky_free(switcher);
+    sky_coro_switcher_destroy(switcher);
 
     return 0;
 }
 
 static void
 server_start(sky_event_loop_t *loop) {
-    tcp_proxy_server_t *server = sky_malloc(sizeof(tcp_proxy_server_t) + sky_coro_switcher_size());
+    tcp_proxy_server_t *server = sky_malloc(sizeof(tcp_proxy_server_t));
     sky_tcp_ctx_init(&server->ctx);
     sky_tcp_init(&server->v4, &server->ctx, sky_event_selector(loop));
     sky_tcp_init(&server->v6, &server->ctx, sky_event_selector(loop));
     server->ev_loop = loop;
     server->conn_tmp = null;
-    server->switcher = (sky_coro_switcher_t *) (server + 1);
+    server->switcher = sky_coro_switcher_create();
 
     {
         if (sky_unlikely(!sky_tcp_open(&server->v4, AF_INET))) {

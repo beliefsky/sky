@@ -27,10 +27,12 @@ typedef void (*sky_defer_func2_t)(void *data1, void *data2);
 
 
 /**
- * 协程切换器内存占用（可以此申请内存）
- * @return 内存占用字节数
+ * 创建协程切换器
+ * @return 协程切换器
  */
-sky_usize_t sky_coro_switcher_size();
+sky_coro_switcher_t *sky_coro_switcher_create();
+
+void sky_coro_switcher_destroy(sky_coro_switcher_t *switcher);
 
 /**
  * 创建协程
@@ -87,14 +89,6 @@ sky_isize_t sky_coro_resume_value(sky_coro_t *coro, sky_isize_t value);
  * @return 最终协程状态
  */
 sky_isize_t sky_coro_yield(sky_coro_t *coro, sky_isize_t value);
-
-/**
- * 获取协程的switcher
- * @param coro  协程
- * @return 协程切换器
- */
-sky_coro_switcher_t *sky_coro_get_switcher(sky_coro_t *coro);
-
 
 /**
  * 销毁协程
