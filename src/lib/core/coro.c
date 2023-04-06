@@ -86,6 +86,7 @@ struct sky_coro_s {
     sky_coro_context_t context;
     sky_isize_t yield_value;
 //===================================
+    sky_coro_t *parent;
     coro_block_t *block;
     sky_uchar_t *ptr;
     sky_usize_t ptr_size;
@@ -97,6 +98,8 @@ struct sky_coro_s {
     sky_uchar_t stack[];
 };
 
+static sky_isize_t coro_resume(sky_coro_t *coro);
+
 static sky_isize_t coro_yield(sky_coro_t *coro, sky_isize_t value);
 
 static void mem_block_add(sky_coro_t *coro);
@@ -107,32 +110,32 @@ void __attribute__((noinline, visibility("internal")))
 coro_swapcontext(sky_coro_context_t *current, sky_coro_context_t *other);
 
 asm(
-        ".text\n\t"
-        ".p2align 5\n\t"
-        ASM_ROUTINE(coro_swapcontext)
-        "movq    %rbx,0(%rdi)\n\t"
-        "movq    %rbp,8(%rdi)\n\t"
-        "movq    %r12,16(%rdi)\n\t"
-        "movq    %r13,24(%rdi)\n\t"
-        "movq    %r14,32(%rdi)\n\t"
-        "movq    %r15,40(%rdi)\n\t"
-        "movq    %rdi,48(%rdi)\n\t"
-        "movq    %rsi,56(%rdi)\n\t"
-        "movq    (%rsp),%rcx\n\t"
-        "movq    %rcx,64(%rdi)\n\t"
-        "leaq    0x8(%rsp),%rcx\n\t"
-        "movq    %rcx,72(%rdi)\n\t"
-        "movq    72(%rsi),%rsp\n\t"
-        "movq    0(%rsi),%rbx\n\t"
-        "movq    8(%rsi),%rbp\n\t"
-        "movq    16(%rsi),%r12\n\t"
-        "movq    24(%rsi),%r13\n\t"
-        "movq    32(%rsi),%r14\n\t"
-        "movq    40(%rsi),%r15\n\t"
-        "movq    48(%rsi),%rdi\n\t"
-        "movq    64(%rsi),%rcx\n\t"
-        "movq    56(%rsi),%rsi\n\t"
-        "jmpq    *%rcx\n\t");
+".text\n\t"
+".p2align 5\n\t"
+ASM_ROUTINE(coro_swapcontext)
+"movq    %rbx,0(%rdi)\n\t"
+"movq    %rbp,8(%rdi)\n\t"
+"movq    %r12,16(%rdi)\n\t"
+"movq    %r13,24(%rdi)\n\t"
+"movq    %r14,32(%rdi)\n\t"
+"movq    %r15,40(%rdi)\n\t"
+"movq    %rdi,48(%rdi)\n\t"
+"movq    %rsi,56(%rdi)\n\t"
+"movq    (%rsp),%rcx\n\t"
+"movq    %rcx,64(%rdi)\n\t"
+"leaq    0x8(%rsp),%rcx\n\t"
+"movq    %rcx,72(%rdi)\n\t"
+"movq    72(%rsi),%rsp\n\t"
+"movq    0(%rsi),%rbx\n\t"
+"movq    8(%rsi),%rbp\n\t"
+"movq    16(%rsi),%r12\n\t"
+"movq    24(%rsi),%r13\n\t"
+"movq    32(%rsi),%r14\n\t"
+"movq    40(%rsi),%r15\n\t"
+"movq    48(%rsi),%rdi\n\t"
+"movq    64(%rsi),%rcx\n\t"
+"movq    56(%rsi),%rsi\n\t"
+"jmpq    *%rcx\n\t");
 #elif defined(__i386__)
 
 void __attribute__((noinline, visibility("internal")))
@@ -184,7 +187,7 @@ asm(".text\n\t"
     ASM_ROUTINE(coro_entry_point_x86_64)
     "mov %r15, %rdx\n\t"
     "jmp " ASM_SYMBOL(coro_entry_point) "\n\t"
-        );
+);
 #endif
 
 sky_coro_switcher_t *
@@ -295,16 +298,7 @@ sky_coro_resume(sky_coro_t *coro) {
     }
 #endif
 
-    if (sky_likely(!coro->switcher->current)) {
-        coro->switcher->current = coro;
-        coro_swapcontext(&coro->switcher->caller, &coro->context);
-        coro->switcher->current = null;
-
-        return coro->yield_value;
-    }
-
-    sky_log_error("sky_coro_resume not allow");
-    abort();
+    return coro_resume(coro);
 }
 
 sky_isize_t
@@ -315,18 +309,9 @@ sky_coro_resume_value(sky_coro_t *coro, sky_isize_t value) {
         abort();
     }
 #endif
+    coro->yield_value = value;
 
-    if (sky_likely(!coro->switcher->current)) {
-        coro->yield_value = value;
-        coro->switcher->current = coro;
-        coro_swapcontext(&coro->switcher->caller, &coro->context);
-        coro->switcher->current = null;
-
-        return coro->yield_value;
-    }
-
-    sky_log_error("sky_coro_resume not allow");
-    abort();
+    return coro_resume(coro);
 }
 
 sky_inline sky_isize_t
@@ -509,9 +494,32 @@ sky_coro_malloc(sky_coro_t *coro, sky_u32_t size) {
 }
 
 static sky_inline sky_isize_t
+coro_resume(sky_coro_t *coro) {
+    sky_coro_switcher_t *switcher = coro->switcher;
+
+    coro->parent = switcher->current;
+    switcher->current = coro;
+    if (!coro->parent) {
+        coro_swapcontext(&switcher->caller, &coro->context);
+        switcher->current = null;
+    } else {
+        coro_swapcontext(&coro->parent->context, &coro->context);
+        switcher->current = coro->parent;
+    }
+
+    return coro->yield_value;
+}
+
+static sky_inline sky_isize_t
 coro_yield(sky_coro_t *coro, sky_isize_t value) {
     coro->yield_value = value;
-    coro_swapcontext(&coro->context, &coro->switcher->caller);
+
+    if (!coro->parent) {
+        coro_swapcontext(&coro->context, &coro->switcher->caller);
+    } else {
+        coro_swapcontext(&coro->context, &coro->parent->context);
+    }
+
 
     return coro->yield_value;
 }
