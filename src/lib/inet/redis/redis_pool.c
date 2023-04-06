@@ -22,6 +22,7 @@ sky_redis_pool_create(sky_event_loop_t *ev_loop, const sky_redis_conf_t *conf) {
             .address = conf->address,
             .address_len = conf->address_len,
             .connection_size = conf->connection_size,
+            .keep_alive = 300,
             .timeout = 5,
             .options = redis_socket_options,
             .next_func = null

@@ -55,14 +55,14 @@ main() {
             .closed = mqtt_close_cb
     };
 
-    sky_coro_switcher_t *switcher = sky_malloc(sky_coro_switcher_size());
+    sky_coro_switcher_t *switcher = sky_coro_switcher_create();
 
     sky_mqtt_client_create(ev_loop, switcher, &mqtt_conf);
 
     sky_event_loop_run(ev_loop);
     sky_event_loop_destroy(ev_loop);
 
-    sky_free(switcher);
+    sky_coro_switcher_destroy(switcher);
 
     return 0;
 }
