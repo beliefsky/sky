@@ -32,7 +32,7 @@ sky_tcp_client_t *sky_tcp_client_create(
 );
 
 sky_bool_t
-sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_addr_t *address, sky_u32_t address_len);
+sky_tcp_client_connect(sky_tcp_client_t *client, const sky_inet_addr_t *address, sky_u32_t address_len);
 
 void sky_tcp_client_close(sky_tcp_client_t *client);
 

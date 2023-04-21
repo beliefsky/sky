@@ -41,7 +41,7 @@ sky_tcp_client_create(sky_event_loop_t *loop, sky_ev_t *event, sky_coro_t *coro,
 }
 
 sky_bool_t
-sky_tcp_client_connection(sky_tcp_client_t *client, const sky_inet_addr_t *address, sky_u32_t address_len) {
+sky_tcp_client_connect(sky_tcp_client_t *client, const sky_inet_addr_t *address, sky_u32_t address_len) {
     if (sky_unlikely(!client->defer)) {
         return false;
     }
