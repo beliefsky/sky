@@ -254,13 +254,15 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
             .ctx = &conn->server->ctx,
             .timeout = 10,
     };
+    sky_tcp_client_t client;
 
-    sky_tcp_client_t *client = sky_tcp_client_create(
+    sky_tcp_client_create(
+            &client,
             conn->server->ev_loop,
             sky_tcp_ev(&conn->tcp),
             &conf
     );
-    sky_defer_add(coro, (sky_defer_func_t) sky_tcp_client_destroy, client);
+    sky_defer_add(coro, (sky_defer_func_t) sky_tcp_client_destroy, &client);
 
     sky_uchar_t mq_ip[] = {192, 168, 0, 15};
     const struct sockaddr_in mqtt_address = {
@@ -269,7 +271,7 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
             .sin_port = sky_htons(18083)
     };
 
-    if (sky_unlikely(!sky_tcp_client_connect(client, (const sky_inet_addr_t *) &mqtt_address,
+    if (sky_unlikely(!sky_tcp_client_connect(&client, (const sky_inet_addr_t *) &mqtt_address,
                                                 sizeof(struct sockaddr_in)))) {
         return SKY_CORO_ABORT;
     }
@@ -288,7 +290,7 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
         sky_isize_t n = sky_tcp_read(&conn->tcp, read_buf, buf_size);
         if (sky_likely(n > 0)) {
             read_wait = false;
-            if (sky_unlikely(!sky_tcp_client_write_all(client, read_buf, (sky_usize_t) n))) {
+            if (sky_unlikely(!sky_tcp_client_write_all(&client, read_buf, (sky_usize_t) n))) {
                 break;
             }
         }
@@ -296,7 +298,7 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
             goto error;
         }
 
-        n = sky_tcp_client_read_nowait(client, write_buf, buf_size);
+        n = sky_tcp_client_read_nowait(&client, write_buf, buf_size);
         if (sky_unlikely(n < 0)) {
             break;
         }
