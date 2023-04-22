@@ -3,19 +3,6 @@
 //
 
 #include "tcp_client.h"
-#include "../core/memory.h"
-
-struct sky_tcp_client_s {
-    sky_tcp_t tcp;
-    sky_timer_wheel_entry_t timer;
-    sky_event_loop_t *loop;
-    sky_ev_t *main_ev;
-    sky_coro_t *coro;
-    sky_defer_t *defer;
-    sky_tcp_client_opts_pt options;
-    void *data;
-    sky_u32_t timeout;
-};
 
 static void tcp_run(sky_tcp_t *conn);
 
@@ -23,14 +10,16 @@ static void tcp_client_defer(sky_tcp_client_t *client);
 
 static void tcp_client_timeout(sky_timer_wheel_entry_t *entry);
 
-sky_tcp_client_t *
-sky_tcp_client_create(sky_event_loop_t *loop, sky_ev_t *event, const sky_tcp_client_conf_t *conf) {
+sky_bool_t sky_tcp_client_create(
+        sky_tcp_client_t *client,
+        sky_event_loop_t *loop,
+        sky_ev_t *event,
+        const sky_tcp_client_conf_t *conf
+) {
     sky_coro_t *coro = sky_coro_current();
     if (sky_unlikely(!coro)) {
-        return null;
+        return false;
     }
-
-    sky_tcp_client_t *client = sky_malloc(sizeof(sky_tcp_client_t));
     sky_tcp_init(&client->tcp, conf->ctx, sky_event_selector(loop));
     sky_timer_entry_init(&client->timer, tcp_client_timeout);
     client->loop = loop;
@@ -42,7 +31,16 @@ sky_tcp_client_create(sky_event_loop_t *loop, sky_ev_t *event, const sky_tcp_cli
 
     client->defer = sky_defer_add(client->coro, (sky_defer_func_t) tcp_client_defer, client);
 
-    return client;
+    return true;
+}
+
+void
+sky_tcp_client_destroy(sky_tcp_client_t *client) {
+    if (sky_unlikely(!client->defer)) {
+        return;
+    }
+    sky_defer_cancel(client->coro, client->defer);
+    tcp_client_defer(client);
 }
 
 sky_bool_t
@@ -307,15 +305,6 @@ sky_tcp_client_write_nowait(sky_tcp_client_t *client, const sky_uchar_t *data, s
     return -1;
 }
 
-void
-sky_tcp_client_destroy(sky_tcp_client_t *client) {
-    if (sky_unlikely(!client->defer)) {
-        return;
-    }
-    sky_defer_cancel(client->coro, client->defer);
-    tcp_client_defer(client);
-}
-
 static void
 tcp_run(sky_tcp_t *conn) {
     sky_tcp_client_t *client = sky_type_convert(conn, sky_tcp_client_t, tcp);
@@ -331,7 +320,6 @@ tcp_client_defer(sky_tcp_client_t *client) {
 
     sky_timer_wheel_unlink(&client->timer);
     sky_tcp_close(&client->tcp);
-    sky_free(&client->tcp);
 }
 
 static void

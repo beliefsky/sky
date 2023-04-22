@@ -76,7 +76,8 @@ endif ()
 if (SKY_HAVE_SSL)
     set(SOURCES
             ${SOURCES}
-            inet/tls.c
+            inet/ssl/tls.c
+            inet/ssl/tls_client.c
             )
 endif ()
 
@@ -225,8 +226,9 @@ install(FILES
 
 if (SKY_HAVE_SSL)
     install(FILES
-            inet/tls.h
-            DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/inet")
+            inet/ssl/tls.h
+            inet/ssl/tls_client.h
+            DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/inet/ssl")
 endif ()
 
 install(FILES

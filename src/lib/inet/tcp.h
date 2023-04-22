@@ -88,14 +88,15 @@ sky_bool_t sky_tcp_option_fast_open(sky_tcp_t *tcp, sky_i32_t n);
 
 sky_bool_t sky_tcp_option_no_push(sky_tcp_t *tcp, sky_bool_t open);
 
-static sky_inline sky_tcp_ctx_t *
-sky_tcp_get_ctx(sky_tcp_t *tcp) {
-    return tcp->ctx;
-}
 
 static sky_inline sky_ev_t *
 sky_tcp_ev(sky_tcp_t *tcp) {
     return &tcp->ev;
+}
+
+static sky_inline sky_socket_t
+sky_tcp_fd(sky_tcp_t *tcp) {
+    return sky_ev_get_fd(&tcp->ev);
 }
 
 static sky_inline void

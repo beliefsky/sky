@@ -3,7 +3,7 @@
 //
 
 #include "tls.h"
-#include "../core/log.h"
+#include "../../core/log.h"
 #include <openssl/ssl.h>
 #include <unistd.h>
 
@@ -51,7 +51,7 @@ void sky_tls_ctx_destroy(sky_tcp_ctx_t *ctx) {
 void
 sky_tls_init(sky_tcp_t *tls) {
     SSL *ssl = SSL_new(tls->ctx->ex_data);
-    SSL_set_fd(ssl, sky_ev_get_fd(sky_tcp_ev(tls)));
+    SSL_set_fd(ssl, sky_tcp_fd(tls));
     tls->ex_data = ssl;
 }
 
@@ -92,7 +92,9 @@ sky_tls_accept(sky_tcp_t *tls) {
 static void
 tls_connect_close(sky_tcp_t *tcp) {
     SSL *ssl = tcp->ex_data;
-
+    if (sky_unlikely(!ssl)) {
+        return;
+    }
     SSL_shutdown(ssl);
     SSL_free(ssl);
 }
