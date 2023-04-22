@@ -47,7 +47,7 @@ struct sky_tcp_session_s {
 sky_tcp_pool_t *sky_tcp_pool_create(sky_event_loop_t *ev_loop, const sky_tcp_pool_conf_t *conf);
 
 sky_bool_t
-sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_session_t *session, sky_ev_t *event, sky_coro_t *coro);
+sky_tcp_pool_conn_bind(sky_tcp_pool_t *tcp_pool, sky_tcp_session_t *session, sky_ev_t *event);
 
 sky_usize_t sky_tcp_pool_conn_read(sky_tcp_session_t *session, sky_uchar_t *data, sky_usize_t size);
 

@@ -27,7 +27,6 @@ typedef struct {
 sky_tcp_client_t *sky_tcp_client_create(
         sky_event_loop_t *loop,
         sky_ev_t *event,
-        sky_coro_t *coro,
         const sky_tcp_client_conf_t *conf
 );
 

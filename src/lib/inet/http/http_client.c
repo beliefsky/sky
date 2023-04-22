@@ -112,7 +112,7 @@ sky_http_client_ctx_destroy(sky_http_client_ctx_t *ctx) {
 }
 
 sky_http_client_t *
-sky_http_client_create(sky_http_client_ctx_t *ctx, sky_ev_t *event, sky_coro_t *coro) {
+sky_http_client_create(sky_http_client_ctx_t *ctx, sky_ev_t *event) {
     sky_http_client_t *client = sky_malloc(sizeof(sky_http_client_t));
 
     const sky_tcp_client_conf_t conf = {
@@ -121,9 +121,13 @@ sky_http_client_create(sky_http_client_ctx_t *ctx, sky_ev_t *event, sky_coro_t *
             .timeout = ctx->timeout
     };
 
-    client->client = sky_tcp_client_create(ctx->loop, event, coro, &conf);
+    client->client = sky_tcp_client_create(ctx->loop, event, &conf);
+    if (sky_unlikely(!client->client)) {
+        sky_free(client);
+        return null;
+    }
 
-    client->coro = coro;
+    client->coro = sky_coro_current();
     client->host_len = 0;
     client->port = 0;
 

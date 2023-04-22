@@ -119,12 +119,7 @@ sky_pgsql_pool_create(sky_event_loop_t *ev_loop, const sky_pgsql_conf_t *conf) {
 }
 
 sky_pgsql_conn_t *
-sky_pgsql_conn_get(
-        sky_pgsql_pool_t *conn_pool,
-        sky_pool_t *pool,
-        sky_ev_t *event,
-        sky_coro_t *coro
-) {
+sky_pgsql_conn_get(sky_pgsql_pool_t *conn_pool, sky_pool_t *pool, sky_ev_t *event) {
     sky_pgsql_conn_t *conn;
 
     conn = sky_palloc(pool, sizeof(sky_pgsql_conn_t));
@@ -132,7 +127,7 @@ sky_pgsql_conn_get(
     conn->pool = pool;
     conn->pg_pool = conn_pool;
 
-    if (sky_unlikely(!sky_tcp_pool_conn_bind(conn_pool->conn_pool, &conn->conn, event, coro))) {
+    if (sky_unlikely(!sky_tcp_pool_conn_bind(conn_pool->conn_pool, &conn->conn, event))) {
         return null;
     }
 
