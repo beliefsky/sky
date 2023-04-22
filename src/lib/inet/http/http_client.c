@@ -312,7 +312,7 @@ http_create_connect(sky_http_client_t *client, sky_http_client_req_t *req) {
 #ifdef SKY_HAVE_SSL
         flags = sky_tls_client_connect(&client->client);
 #else
-        flags = flase;
+        flags = false;
         sky_log_error("not support tls");
 #endif
     }
