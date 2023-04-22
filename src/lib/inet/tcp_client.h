@@ -24,14 +24,28 @@ typedef struct {
     sky_u32_t timeout;
 } sky_tcp_client_conf_t;
 
-sky_tcp_client_t *sky_tcp_client_create(
+struct sky_tcp_client_s {
+    sky_tcp_t tcp;
+    sky_timer_wheel_entry_t timer;
+    sky_event_loop_t *loop;
+    sky_ev_t *main_ev;
+    sky_coro_t *coro;
+    sky_defer_t *defer;
+    sky_tcp_client_opts_pt options;
+    void *data;
+    sky_u32_t timeout;
+};
+
+sky_bool_t sky_tcp_client_create(
+        sky_tcp_client_t *client,
         sky_event_loop_t *loop,
         sky_ev_t *event,
         const sky_tcp_client_conf_t *conf
 );
 
-sky_bool_t
-sky_tcp_client_connect(sky_tcp_client_t *client, const sky_inet_addr_t *address, sky_u32_t address_len);
+void sky_tcp_client_destroy(sky_tcp_client_t *client);
+
+sky_bool_t sky_tcp_client_connect(sky_tcp_client_t *client, const sky_inet_addr_t *address, sky_u32_t address_len);
 
 void sky_tcp_client_close(sky_tcp_client_t *client);
 
@@ -48,9 +62,6 @@ sky_usize_t sky_tcp_client_write(sky_tcp_client_t *client, const sky_uchar_t *da
 sky_bool_t sky_tcp_client_write_all(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usize_t size);
 
 sky_isize_t sky_tcp_client_write_nowait(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usize_t size);
-
-void sky_tcp_client_destroy(sky_tcp_client_t *client);
-
 
 #if defined(__cplusplus)
 } /* extern "C" { */

@@ -45,6 +45,7 @@ struct sky_http_client_res_s {
 };
 
 typedef struct {
+    sky_tcp_ctx_t *ctx;
     sky_u32_t keep_alive;
     sky_u32_t timeout;
     sky_bool_t nodelay: 1;

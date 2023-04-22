@@ -57,6 +57,7 @@ sky_tcp_ctx_init(sky_tcp_ctx_t *ctx) {
 void
 sky_tcp_init(sky_tcp_t *tcp, sky_tcp_ctx_t *ctx, sky_selector_t *s) {
     tcp->ctx = ctx;
+    tcp->ex_data = null;
     tcp->closed = true;
     sky_ev_init(&tcp->ev, s, null, SKY_SOCKET_FD_NONE);
 }

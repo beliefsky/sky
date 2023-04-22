@@ -5,7 +5,7 @@
 #ifndef SKY_TLS_H
 #define SKY_TLS_H
 
-#include "tcp.h"
+#include "../tcp.h"
 
 #if defined(__cplusplus)
 extern "C" {
