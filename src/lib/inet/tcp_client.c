@@ -24,7 +24,12 @@ static void tcp_client_defer(sky_tcp_client_t *client);
 static void tcp_client_timeout(sky_timer_wheel_entry_t *entry);
 
 sky_tcp_client_t *
-sky_tcp_client_create(sky_event_loop_t *loop, sky_ev_t *event, sky_coro_t *coro, const sky_tcp_client_conf_t *conf) {
+sky_tcp_client_create(sky_event_loop_t *loop, sky_ev_t *event, const sky_tcp_client_conf_t *conf) {
+    sky_coro_t *coro = sky_coro_current();
+    if (sky_unlikely(!coro)) {
+        return null;
+    }
+
     sky_tcp_client_t *client = sky_malloc(sizeof(sky_tcp_client_t));
     sky_tcp_init(&client->tcp, conf->ctx, sky_event_selector(loop));
     sky_timer_entry_init(&client->timer, tcp_client_timeout);

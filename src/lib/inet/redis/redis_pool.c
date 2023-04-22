@@ -32,12 +32,12 @@ sky_redis_pool_create(sky_event_loop_t *ev_loop, const sky_redis_conf_t *conf) {
 }
 
 sky_redis_conn_t *
-sky_redis_conn_get(sky_redis_pool_t *redis_pool, sky_pool_t *pool, sky_ev_t *event, sky_coro_t *coro) {
+sky_redis_conn_get(sky_redis_pool_t *redis_pool, sky_pool_t *pool, sky_ev_t *event) {
     sky_redis_conn_t *conn = sky_palloc(pool, sizeof(sky_redis_conn_t));
     conn->pool = pool;
     conn->error = false;
 
-    if (sky_unlikely(!sky_tcp_pool_conn_bind(redis_pool, &conn->conn, event, coro))) {
+    if (sky_unlikely(!sky_tcp_pool_conn_bind(redis_pool, &conn->conn, event))) {
         return null;
     }
     return conn;
