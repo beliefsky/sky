@@ -23,11 +23,10 @@ static sky_u64_t session_hash(const void *item, void *secret);
 static sky_bool_t session_equals(const void *a, const void *b);
 
 sky_mqtt_server_t *
-sky_mqtt_server_create(sky_event_loop_t *ev_loop, sky_coro_switcher_t *switcher) {
+sky_mqtt_server_create(sky_event_loop_t *ev_loop) {
 
     sky_mqtt_server_t *server = sky_malloc(sizeof(sky_mqtt_server_t));
     server->ev_loop = ev_loop;
-    server->switcher = switcher;
     server->conn_tmp = null;
 
     sky_tcp_ctx_init(&server->ctx);
@@ -78,7 +77,7 @@ mqtt_server_accept(sky_tcp_t *server) {
 
     sky_mqtt_connect_t *conn = context->conn_tmp;
     if (!conn) {
-        sky_coro_t *coro = sky_coro_new(context->switcher);
+        sky_coro_t *coro = sky_coro_new();
         conn = sky_coro_malloc(coro, sizeof(sky_mqtt_connect_t));
         sky_tcp_init(&conn->tcp, &context->ctx, sky_event_selector(context->ev_loop));
         conn->coro = coro;
@@ -97,7 +96,7 @@ mqtt_server_accept(sky_tcp_t *server) {
             sky_tcp_set_cb(&conn->tcp, mqtt_run);
             mqtt_run(&conn->tcp);
 
-            sky_coro_t *coro = sky_coro_new(context->switcher);
+            sky_coro_t *coro = sky_coro_new();
             conn = sky_coro_malloc(coro, sizeof(sky_mqtt_connect_t));
             sky_tcp_init(&conn->tcp, &context->ctx, sky_event_selector(context->ev_loop));
             conn->coro = coro;

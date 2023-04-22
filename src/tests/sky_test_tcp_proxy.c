@@ -18,7 +18,6 @@ struct tcp_proxy_server_s {
     sky_tcp_t v6;
     sky_tcp_ctx_t ctx;
     sky_event_loop_t *ev_loop;
-    sky_coro_switcher_t *switcher;
     tcp_proxy_conn_t *conn_tmp;
 };
 
@@ -74,14 +73,10 @@ main() {
     }
     sky_process_bind_cpu(0);
 
-    sky_coro_switcher_t *switcher = sky_coro_switcher_create();
-
     sky_event_loop_t *ev_loop = sky_event_loop_create();
     server_start(ev_loop);
     sky_event_loop_run(ev_loop);
     sky_event_loop_destroy(ev_loop);
-
-    sky_coro_switcher_destroy(switcher);
 
     return 0;
 }
@@ -94,7 +89,6 @@ server_start(sky_event_loop_t *loop) {
     sky_tcp_init(&server->v6, &server->ctx, sky_event_selector(loop));
     server->ev_loop = loop;
     server->conn_tmp = null;
-    server->switcher = sky_coro_switcher_create();
 
     {
         if (sky_unlikely(!sky_tcp_open(&server->v4, AF_INET))) {
@@ -163,7 +157,7 @@ proxy_server_v4_accept(sky_tcp_t *server) {
 
     tcp_proxy_conn_t *conn = listener->conn_tmp;
     if (!conn) {
-        sky_coro_t *coro = sky_coro_new(listener->switcher);
+        sky_coro_t *coro = sky_coro_new();
         conn = sky_coro_malloc(coro, sizeof(tcp_proxy_conn_t));
         sky_tcp_init(&conn->tcp, &listener->ctx, sky_event_selector(listener->ev_loop));
         conn->coro = coro;
@@ -177,7 +171,7 @@ proxy_server_v4_accept(sky_tcp_t *server) {
             sky_tcp_set_cb(&conn->tcp, tcp_proxy_run);
             tcp_proxy_run(&conn->tcp);
 
-            sky_coro_t *coro = sky_coro_new(listener->switcher);
+            sky_coro_t *coro = sky_coro_new();
             conn = sky_coro_malloc(coro, sizeof(tcp_proxy_conn_t));
             sky_tcp_init(&conn->tcp, &listener->ctx, sky_event_selector(listener->ev_loop));
             conn->coro = coro;
@@ -203,7 +197,7 @@ proxy_server_v6_accept(sky_tcp_t *server) {
 
     tcp_proxy_conn_t *conn = listener->conn_tmp;
     if (!conn) {
-        sky_coro_t *coro = sky_coro_new(listener->switcher);
+        sky_coro_t *coro = sky_coro_new();
         conn = sky_coro_malloc(coro, sizeof(tcp_proxy_conn_t));
         sky_tcp_init(&conn->tcp, &listener->ctx, sky_event_selector(listener->ev_loop));
         conn->coro = coro;
@@ -217,7 +211,7 @@ proxy_server_v6_accept(sky_tcp_t *server) {
             sky_tcp_set_cb(&conn->tcp, tcp_proxy_run);
             tcp_proxy_run(&conn->tcp);
 
-            sky_coro_t *coro = sky_coro_new(listener->switcher);
+            sky_coro_t *coro = sky_coro_new();
             conn = sky_coro_malloc(coro, sizeof(tcp_proxy_conn_t));
             sky_tcp_init(&conn->tcp, &listener->ctx, sky_event_selector(listener->ev_loop));
             conn->coro = coro;
@@ -276,7 +270,7 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
             .sin_port = sky_htons(18083)
     };
 
-    if (sky_unlikely(!sky_tcp_client_connection(client, (const sky_inet_addr_t *) &mqtt_address,
+    if (sky_unlikely(!sky_tcp_client_connect(client, (const sky_inet_addr_t *) &mqtt_address,
                                                 sizeof(struct sockaddr_in)))) {
         return SKY_CORO_ABORT;
     }
@@ -314,7 +308,7 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
 
         if (read_wait && write_wait) {
             sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
-            sky_coro_yield(coro, SKY_CORO_MAY_RESUME);
+            sky_coro_yield(SKY_CORO_MAY_RESUME);
         }
     }
     error:
@@ -335,11 +329,10 @@ tcp_proxy_write_all(tcp_proxy_conn_t *conn, const sky_uchar_t *data, sky_usize_t
     for (;;) {
         n = sky_tcp_write(&conn->tcp, data, size);
         if (sky_unlikely(n < 0)) {
-            sky_coro_yield(conn->coro, SKY_CORO_ABORT);
-            sky_coro_exit();
+            sky_coro_exit(SKY_CORO_ABORT);
         } else if (!n) {
             sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
-            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+            sky_coro_yield(SKY_CORO_MAY_RESUME);
             continue;
         }
 
@@ -348,7 +341,7 @@ tcp_proxy_write_all(tcp_proxy_conn_t *conn, const sky_uchar_t *data, sky_usize_t
             size -= (sky_usize_t) n;
 
             sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
-            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+            sky_coro_yield(SKY_CORO_MAY_RESUME);
             continue;
         }
 

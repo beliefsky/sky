@@ -15,7 +15,6 @@
 #define SKY_CORO_MAY_RESUME 0
 #define SKY_CORO_FINISHED   1
 
-typedef struct sky_coro_switcher_s sky_coro_switcher_t;
 typedef struct sky_coro_s sky_coro_t;
 typedef struct sky_defer_s sky_defer_t;
 
@@ -27,28 +26,18 @@ typedef void (*sky_defer_func2_t)(void *data1, void *data2);
 
 
 /**
- * 创建协程切换器
- * @return 协程切换器
- */
-sky_coro_switcher_t *sky_coro_switcher_create();
-
-void sky_coro_switcher_destroy(sky_coro_switcher_t *switcher);
-
-/**
  * 创建协程
- * @param switcher  协程切换器
  * @param func      异步函数
  * @param data      异步函数参数
  * @return 协程
  */
-sky_coro_t *sky_coro_create(sky_coro_switcher_t *switcher, sky_coro_func_t func, void *data);
+sky_coro_t *sky_coro_create(sky_coro_func_t func, void *data);
 
 /**
  * 创建一个未指定函数的协程
- * @param switcher  协程切换器
  * @return 协程
  */
-sky_coro_t *sky_coro_new(sky_coro_switcher_t *switcher);
+sky_coro_t *sky_coro_new();
 
 /**
  * 协程配置函数
@@ -84,19 +73,18 @@ sky_isize_t sky_coro_resume_value(sky_coro_t *coro, sky_isize_t value);
 
 /**
  * 释放执行权
- * @param coro  协程
  * @param value 协程状态
  * @return 最终协程状态
  */
-sky_isize_t sky_coro_yield(sky_coro_t *coro, sky_isize_t value);
+sky_isize_t sky_coro_yield(sky_isize_t value);
+
+void sky_coro_exit(sky_isize_t value);
 
 /**
  * 销毁协程
  * @param coro 协程
  */
 void sky_coro_destroy(sky_coro_t *coro);
-
-#define sky_coro_exit()   __builtin_unreachable()
 
 /**
  * 协程分配内存，销毁时回收

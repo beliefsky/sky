@@ -37,7 +37,7 @@ typedef struct {
 } sky_mqtt_client_conf_t;
 
 
-sky_mqtt_client_t *sky_mqtt_client_create(sky_event_loop_t *loop, sky_coro_switcher_t *switcher, const sky_mqtt_client_conf_t *conf);
+sky_mqtt_client_t *sky_mqtt_client_create(sky_event_loop_t *loop, const sky_mqtt_client_conf_t *conf);
 
 sky_coro_t *sky_mqtt_client_coro(sky_mqtt_client_t *client);
 

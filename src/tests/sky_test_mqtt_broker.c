@@ -7,7 +7,7 @@
 #include <inet/mqtt/mqtt_server.h>
 #include <core/memory.h>
 
-static void create_server(sky_event_loop_t *ev_loop, sky_coro_switcher_t *switcher);
+static void create_server(sky_event_loop_t *ev_loop);
 
 int
 main() {
@@ -15,19 +15,16 @@ main() {
     setvbuf(stderr, null, _IOLBF, 0);
 
     sky_event_loop_t *ev_loop = sky_event_loop_create();
-    sky_coro_switcher_t *switcher = sky_coro_switcher_create();
-    create_server(ev_loop, switcher);
+    create_server(ev_loop);
     sky_event_loop_run(ev_loop);
     sky_event_loop_destroy(ev_loop);
-
-    sky_coro_switcher_destroy(switcher);
 
     return 0;
 }
 
 static void
-create_server(sky_event_loop_t *ev_loop, sky_coro_switcher_t *switcher) {
-    sky_mqtt_server_t *server = sky_mqtt_server_create(ev_loop, switcher);
+create_server(sky_event_loop_t *ev_loop) {
+    sky_mqtt_server_t *server = sky_mqtt_server_create(ev_loop);
 
     struct sockaddr_in v4_address = {
             .sin_family = AF_INET,

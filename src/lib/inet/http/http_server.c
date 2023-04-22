@@ -28,7 +28,6 @@ sky_http_server_create(sky_event_loop_t *ev_loop, const sky_http_conf_t *conf) {
     server = sky_palloc(pool, sizeof(sky_http_server_t));
     sky_tcp_ctx_init(&server->ctx);
 
-    server->switcher = sky_coro_switcher_create();
     server->pool = pool;
     server->ev_loop = ev_loop;
     server->conn_tmp = null;

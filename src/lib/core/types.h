@@ -80,6 +80,8 @@ __extension__ typedef __int128 sky_i128_t;
 __extension__ typedef unsigned __int128 sky_u128_t;
 #endif
 
+#define sky_thread __thread
+
 #ifdef SKY_HAVE_BUILTIN_BSWAP
 #define sky_swap_u16(_ll) __builtin_bswap16(_ll)
 #define sky_swap_u32(_ll) __builtin_bswap32(_ll)

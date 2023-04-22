@@ -11,9 +11,11 @@
 extern "C" {
 #endif
 
+typedef struct sky_http_client_ctx_s sky_http_client_ctx_t;
 typedef struct sky_http_client_s sky_http_client_t;
 typedef struct sky_http_client_req_s sky_http_client_req_t;
 typedef struct sky_http_client_res_s sky_http_client_res_t;
+
 typedef sky_bool_t (*sky_http_res_body_pt)(void *data, const sky_uchar_t *value, sky_usize_t len);
 
 struct sky_http_client_req_s {
@@ -50,12 +52,15 @@ typedef struct {
     sky_bool_t nodelay: 1;
 } sky_http_client_conf_t;
 
+sky_http_client_ctx_t *sky_http_client_ctx_create(sky_event_loop_t *loop, const sky_http_client_conf_t *conf);
+
+void sky_http_client_ctx_destroy(sky_http_client_ctx_t *ctx);
+
 sky_http_client_t *sky_http_client_create(
-        sky_event_loop_t *loop,
+        sky_http_client_ctx_t *ctx,
         sky_ev_t *event,
-        sky_coro_t *coro,
-        const sky_http_client_conf_t *conf
-        );
+        sky_coro_t *coro
+);
 
 sky_bool_t sky_http_client_req_init_len(
         sky_http_client_req_t *req,

@@ -39,7 +39,6 @@ typedef struct {
 
 struct sky_http_server_s {
     sky_tcp_ctx_t ctx;
-    sky_coro_switcher_t *switcher;
     sky_http_connection_t *conn_tmp;
     sky_pool_t *pool;
     sky_event_loop_t *ev_loop;

@@ -25,7 +25,6 @@ struct sky_mqtt_server_s {
     sky_hashmap_t session_manager;
     sky_tcp_ctx_t ctx;
     sky_event_loop_t *ev_loop;
-    sky_coro_switcher_t *switcher;
     sky_topic_tree_t *sub_tree;
     sky_mqtt_connect_t *conn_tmp;
 };
@@ -59,7 +58,7 @@ struct sky_mqtt_packet_s {
     sky_u32_t size;
 };
 
-sky_mqtt_server_t *sky_mqtt_server_create(sky_event_loop_t *ev_loop, sky_coro_switcher_t *switcher);
+sky_mqtt_server_t *sky_mqtt_server_create(sky_event_loop_t *ev_loop);
 
 sky_bool_t sky_mqtt_server_bind(sky_mqtt_server_t *server, sky_inet_addr_t *address, sky_u32_t address_len);
 

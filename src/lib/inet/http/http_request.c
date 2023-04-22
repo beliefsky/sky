@@ -702,7 +702,7 @@ http_module_run(sky_http_request_t *r) {
     sky_http_connection_t *conn = r->conn;
     sky_coro_t *coro = conn->coro;
     if (!coro) {
-        coro = sky_coro_create(conn->server->switcher, http_coro_process, conn);
+        coro = sky_coro_create(http_coro_process, conn);
         conn->coro = coro;
     }
     sky_tcp_set_cb(&conn->tcp, http_coro_run);
@@ -813,11 +813,10 @@ http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky_usize_t size) {
         if (sky_likely(!n)) {
             sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
             sky_event_timeout_expired(conn->server->ev_loop, &conn->req_tmp->timer, conn->server->keep_alive);
-            sky_coro_yield(conn->coro, SKY_CORO_MAY_RESUME);
+            sky_coro_yield(SKY_CORO_MAY_RESUME);
             continue;
         }
-        sky_coro_yield(conn->coro, SKY_CORO_ABORT);
-        sky_coro_exit();
+        sky_coro_exit(SKY_CORO_ABORT);
     }
 }
 
