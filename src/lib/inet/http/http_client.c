@@ -22,14 +22,8 @@
 
 #define IS_PRINTABLE_ASCII(_c) ((_c)-040u < 0137u)
 
-struct sky_http_client_ctx_s {
-    sky_tcp_ctx_t tcp_ctx;
-    sky_tcp_ctx_t tls_ctx;
-    sky_event_loop_t *loop;
-    sky_u32_t timeout;
-};
-
 struct sky_http_client_s {
+    sky_tcp_ctx_t ctx;
     sky_tcp_client_t *client;
     sky_coro_t *coro;
     sky_usize_t host_len;
@@ -91,43 +85,39 @@ static sky_bool_t find_char_fast(sky_uchar_t **buf, sky_usize_t buf_size,
 
 #endif
 
-sky_http_client_ctx_t *
-sky_http_client_ctx_create(sky_event_loop_t *loop, const sky_http_client_conf_t *conf) {
-    sky_http_client_ctx_t *ctx = sky_malloc(sizeof(sky_http_client_ctx_t));
-    sky_tcp_ctx_init(&ctx->tcp_ctx);
-    ctx->loop = loop;
-
-    if (!conf) {
-        ctx->timeout = 5;
-    } else {
-        ctx->timeout = conf->timeout ?: 5;
-    }
-
-    return ctx;
-}
-
-void
-sky_http_client_ctx_destroy(sky_http_client_ctx_t *ctx) {
-    sky_free(ctx);
-}
-
 sky_http_client_t *
-sky_http_client_create(sky_http_client_ctx_t *ctx, sky_ev_t *event) {
-    sky_http_client_t *client = sky_malloc(sizeof(sky_http_client_t));
-
-    const sky_tcp_client_conf_t conf = {
-            .ctx = &ctx->tcp_ctx,
-            .data = client,
-            .timeout = ctx->timeout
-    };
-
-    client->client = sky_tcp_client_create(ctx->loop, event, &conf);
-    if (sky_unlikely(!client->client)) {
-        sky_free(client);
+sky_http_client_create(
+        sky_event_loop_t *loop,
+        sky_ev_t *event,
+        const sky_http_client_conf_t *conf
+) {
+    sky_coro_t *coro = sky_coro_current();
+    if (sky_unlikely(!coro)) {
         return null;
     }
 
-    client->coro = sky_coro_current();
+    sky_http_client_t *client = sky_malloc(sizeof(sky_http_client_t));
+
+    sky_tcp_ctx_init(&client->ctx);
+    if (!conf) {
+        const sky_tcp_client_conf_t tcp_conf = {
+                .ctx = &client->ctx,
+                .data = client,
+                .timeout = 5
+        };
+
+        client->client = sky_tcp_client_create(loop, event, &tcp_conf);
+    } else {
+        const sky_tcp_client_conf_t tcp_conf = {
+                .ctx = &client->ctx,
+                .data = client,
+                .timeout = conf->timeout ?: 5
+        };
+
+        client->client = sky_tcp_client_create(loop, event, &tcp_conf);
+    }
+
+    client->coro = coro;
     client->host_len = 0;
     client->port = 0;
 
@@ -320,9 +310,6 @@ http_create_connect(sky_http_client_t *client, sky_http_client_req_t *req) {
     }
     sky_defer_cancel(client->coro, defer);
     freeaddrinfo(result);
-
-    if (req->is_ssl) {
-    }
 
     return flags;
 }
