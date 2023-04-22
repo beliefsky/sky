@@ -258,7 +258,6 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
     sky_tcp_client_t *client = sky_tcp_client_create(
             conn->server->ev_loop,
             sky_tcp_ev(&conn->tcp),
-            coro,
             &conf
     );
     sky_defer_add(coro, (sky_defer_func_t) sky_tcp_client_destroy, client);
