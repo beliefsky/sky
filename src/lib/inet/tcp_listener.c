@@ -48,8 +48,8 @@ static void tcp_timeout_cb(sky_timer_wheel_entry_t *timer);
 
 
 sky_tcp_listener_t *
-sky_tcp_listener_create(sky_event_loop_t *loop, sky_coro_switcher_t *switcher, const sky_tcp_listener_conf_t *conf) {
-    sky_coro_t *coro = sky_coro_new(switcher);
+sky_tcp_listener_create(sky_event_loop_t *loop, const sky_tcp_listener_conf_t *conf) {
+    sky_coro_t *coro = sky_coro_new();
     sky_tcp_listener_t *listener = sky_coro_malloc(coro, sizeof(sky_tcp_listener_t));
     sky_tcp_init(&listener->tcp, conf->ctx, sky_event_selector(loop));
     sky_timer_entry_init(&listener->timer, null);
@@ -104,7 +104,7 @@ sky_tcp_listener_bind(
 
     if (!empty) {
         do {
-            sky_coro_yield(coro, SKY_CORO_MAY_RESUME);
+            sky_coro_yield(SKY_CORO_MAY_RESUME);
         } while (!listener->main);
     }
 
@@ -142,7 +142,7 @@ sky_tcp_listener_write(sky_tcp_listener_writer_t *writer, const sky_uchar_t *dat
         }
         if (sky_likely(!n)) {
             sky_tcp_try_register(&client->tcp, SKY_EV_READ | SKY_EV_WRITE);
-            sky_coro_yield(writer->coro, SKY_CORO_MAY_RESUME);
+            sky_coro_yield(SKY_CORO_MAY_RESUME);
             if (sky_unlikely(!writer->client || !client->connected)) {
                 return 0;
             }
@@ -184,7 +184,7 @@ sky_tcp_listener_write_all(sky_tcp_listener_writer_t *writer, const sky_uchar_t 
         }
 
         sky_tcp_try_register(&client->tcp, SKY_EV_READ | SKY_EV_WRITE);
-        sky_coro_yield(writer->coro, SKY_CORO_MAY_RESUME);
+        sky_coro_yield(SKY_CORO_MAY_RESUME);
         if (sky_unlikely(!writer->client || !client->connected)) {
             return false;
         }
@@ -264,12 +264,11 @@ sky_tcp_listener_read(sky_tcp_listener_reader_t *reader, sky_uchar_t *data, sky_
 
         if (sky_likely(!n)) {
             sky_tcp_try_register(&listener->tcp, SKY_EV_READ | SKY_EV_WRITE);
-            sky_coro_yield(listener->coro, SKY_CORO_MAY_RESUME);
+            sky_coro_yield(SKY_CORO_MAY_RESUME);
             continue;
         }
 
-        sky_coro_yield(listener->coro, SKY_CORO_ABORT);
-        sky_coro_exit();
+        sky_coro_exit(SKY_CORO_ABORT);
     }
 }
 
@@ -296,12 +295,11 @@ sky_tcp_listener_read_all(sky_tcp_listener_reader_t *reader, sky_uchar_t *data, 
                 return true;
             }
         } else if (sky_unlikely(n < 0)) {
-            sky_coro_yield(listener->coro, SKY_CORO_ABORT);
-            sky_coro_exit();
+            sky_coro_exit(SKY_CORO_ABORT);
         }
 
         sky_tcp_try_register(&listener->tcp, SKY_EV_READ | SKY_EV_WRITE);
-        sky_coro_yield(listener->coro, SKY_CORO_MAY_RESUME);
+        sky_coro_yield(SKY_CORO_MAY_RESUME);
     }
 }
 

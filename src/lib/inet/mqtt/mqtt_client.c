@@ -44,7 +44,7 @@ static void mqtt_read_body(sky_mqtt_client_t *client, const sky_mqtt_head_t *hea
 
 
 sky_mqtt_client_t *
-sky_mqtt_client_create(sky_event_loop_t *loop, sky_coro_switcher_t *switcher, const sky_mqtt_client_conf_t *conf) {
+sky_mqtt_client_create(sky_event_loop_t *loop, const sky_mqtt_client_conf_t *conf) {
 
     sky_mqtt_client_t *client = sky_malloc(sizeof(sky_mqtt_client_t));
     sky_tcp_ctx_init(&client->ctx);
@@ -73,7 +73,7 @@ sky_mqtt_client_create(sky_event_loop_t *loop, sky_coro_switcher_t *switcher, co
             .data = client,
             .reconnect = true
     };
-    client->listener = sky_tcp_listener_create(loop, switcher, &listener_conf);
+    client->listener = sky_tcp_listener_create(loop, &listener_conf);
 
     return client;
 }
@@ -169,7 +169,7 @@ sky_mqtt_client_unsub(sky_mqtt_client_writer_t *writer, sky_mqtt_topic_t *topic,
     sky_uchar_t *stream = sky_palloc(client->writer_pool, alloc_size);
     const sky_u32_t size = sky_mqtt_unsubscribe_unpack(stream, packet_identifier, topic, topic_n);
     sky_tcp_listener_write_all(&writer->writer, stream, size);
-    sky_pool_reset(client->writer_pool);;
+    sky_pool_reset(client->writer_pool);
 
     return true;
 }

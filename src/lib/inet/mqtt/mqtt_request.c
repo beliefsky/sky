@@ -191,8 +191,7 @@ mqtt_read_head_pack(sky_mqtt_connect_t *conn, sky_mqtt_head_t *head) {
             return true;
         } else {
             if (sky_unlikely(flag == -1 || read_size >= 8)) {
-                sky_coro_yield(conn->coro, SKY_CORO_ABORT);
-                sky_coro_exit();
+                sky_coro_exit(SKY_CORO_ABORT);
             }
         }
     }
