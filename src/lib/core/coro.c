@@ -299,13 +299,23 @@ sky_coro_resume_value(sky_coro_t *coro, sky_isize_t value) {
 sky_inline sky_isize_t
 sky_coro_yield(sky_isize_t value) {
     sky_coro_t *current = thread_switcher.current;
+    if (sky_unlikely(!current)) {
+        sky_log_error("coro not run");
+        __builtin_unreachable();
+    }
 
     return coro_yield(current, value);
 }
 
-void sky_coro_exit(sky_isize_t value) {
+void
+sky_coro_exit(sky_isize_t value) {
     sky_coro_yield(value);
     __builtin_unreachable();
+}
+
+sky_coro_t *
+sky_coro_current() {
+    return thread_switcher.current;
 }
 
 void

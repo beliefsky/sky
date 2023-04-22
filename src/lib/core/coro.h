@@ -81,6 +81,12 @@ sky_isize_t sky_coro_yield(sky_isize_t value);
 void sky_coro_exit(sky_isize_t value);
 
 /**
+ * 获取当前的协程
+ * @return 协程
+ */
+sky_coro_t *sky_coro_current();
+
+/**
  * 销毁协程
  * @param coro 协程
  */
