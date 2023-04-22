@@ -73,6 +73,13 @@ elseif (SKY_HAVE_KQUEUE)
             )
 endif ()
 
+if (SKY_HAVE_SSL)
+    set(SOURCES
+            ${SOURCES}
+            inet/tls.c
+            )
+endif ()
+
 
 add_library(sky_static STATIC ${SOURCES})
 
@@ -212,7 +219,15 @@ install(FILES
         inet/inet.h
         inet/tcp.h
         inet/tcp_pool.h
+        inet/tcp_client.h
+        inet/tcp_listener.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/inet")
+
+if (SKY_HAVE_SSL)
+    install(FILES
+            inet/tls.h
+            DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/inet")
+endif ()
 
 install(FILES
         inet/postgresql/pgsql_pool.h

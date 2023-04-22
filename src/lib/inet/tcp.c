@@ -51,6 +51,7 @@ sky_tcp_ctx_init(sky_tcp_ctx_t *ctx) {
     ctx->read = tcp_connect_read;
     ctx->write = tcp_connect_write;
     ctx->sendfile = tcp_connect_sendfile;
+    ctx->ex_data = null;
 }
 
 void

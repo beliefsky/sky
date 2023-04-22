@@ -28,9 +28,10 @@ endif ()
 #
 # Find libraries
 #
-#check_include_file(openssl/ssl.h SKY_HAVE_OPENSSL)
+check_include_file(openssl/ssl.h SKY_HAVE_OPENSSL)
 if (SKY_HAVE_OPENSSL)
     find_package(OpenSSL QUIET)
+    set(SKY_HAVE_SSL 1)
     set(ADDITIONAL_LIBRARIES ${ADDITIONAL_LIBRARIES} ${OPENSSL_LIBRARIES})
 endif ()
 

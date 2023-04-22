@@ -25,6 +25,7 @@
 
 #cmakedefine SKY_HAVE_LIBUCONTEXT
 #cmakedefine SKY_HAVE_OPENSSL
+#cmakedefine SKY_HAVE_SSL
 
 #endif
 

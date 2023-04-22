@@ -37,11 +37,13 @@ struct sky_tcp_ctx_s {
     sky_tcp_read_pt read;
     sky_tcp_write_pt write;
     sky_tcp_sendfile_pt sendfile;
+    void *ex_data;
 };
 
 struct sky_tcp_s {
     sky_ev_t ev;
     sky_tcp_ctx_t *ctx;
+    void *ex_data;
     sky_bool_t closed: 1;
 };
 
@@ -85,6 +87,11 @@ sky_bool_t sky_tcp_option_defer_accept(sky_tcp_t *tcp);
 sky_bool_t sky_tcp_option_fast_open(sky_tcp_t *tcp, sky_i32_t n);
 
 sky_bool_t sky_tcp_option_no_push(sky_tcp_t *tcp, sky_bool_t open);
+
+static sky_inline sky_tcp_ctx_t *
+sky_tcp_get_ctx(sky_tcp_t *tcp) {
+    return tcp->ctx;
+}
 
 static sky_inline sky_ev_t *
 sky_tcp_ev(sky_tcp_t *tcp) {
