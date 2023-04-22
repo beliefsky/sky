@@ -101,7 +101,7 @@ static sky_isize_t
 tls_connect_read(sky_tcp_t *tcp, sky_uchar_t *data, sky_usize_t size) {
     SSL *ssl = tcp->ex_data;
 
-    const sky_i32_t n = SSL_read(ssl, data, sky_min(size, SKY_I32_MAX));
+    const sky_i32_t n = SSL_read(ssl, data, (sky_i32_t) sky_min(size, SKY_I32_MAX));
     if (n < 0) {
         return SSL_want_read(ssl) ? 0 : -1;
     }
@@ -113,7 +113,7 @@ static sky_isize_t
 tls_connect_write(sky_tcp_t *tcp, const sky_uchar_t *data, sky_usize_t size) {
     SSL *ssl = tcp->ex_data;
 
-    const sky_i32_t n = SSL_write(ssl, data, sky_min(size, SKY_I32_MAX));
+    const sky_i32_t n = SSL_write(ssl, data, (sky_i32_t) sky_min(size, SKY_I32_MAX));
     if (n < 0) {
         return SSL_want_write(ssl) ? 0 : -1;
     }
