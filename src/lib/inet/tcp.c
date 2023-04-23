@@ -91,6 +91,9 @@ sky_tcp_open(sky_tcp_t *tcp, sky_i32_t domain) {
 
 sky_bool_t
 sky_tcp_bind(sky_tcp_t *tcp, sky_inet_addr_t *addr, sky_usize_t addr_size) {
+    if (sky_unlikely(sky_tcp_is_closed(tcp))) {
+        return false;
+    }
     const sky_socket_t fd = sky_ev_get_fd(&tcp->ev);
 
     return bind(fd, addr, (socklen_t) addr_size) == 0;
@@ -98,6 +101,9 @@ sky_tcp_bind(sky_tcp_t *tcp, sky_inet_addr_t *addr, sky_usize_t addr_size) {
 
 sky_bool_t
 sky_tcp_listen(sky_tcp_t *server, sky_i32_t backlog) {
+    if (sky_unlikely(sky_tcp_is_closed(server))) {
+        return false;
+    }
     const sky_socket_t fd = sky_ev_get_fd(&server->ev);
 
     return listen(fd, backlog) == 0;
@@ -105,7 +111,7 @@ sky_tcp_listen(sky_tcp_t *server, sky_i32_t backlog) {
 
 sky_i8_t
 sky_tcp_accept(sky_tcp_t *server, sky_tcp_t *client) {
-    if (sky_unlikely(sky_ev_error(&server->ev))) {
+    if (sky_unlikely(sky_ev_error(&server->ev) || sky_tcp_is_closed(server))) {
         return -1;
     }
 
