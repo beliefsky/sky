@@ -32,10 +32,10 @@ set(SOURCES
         core/json.c
         core/timer_wheel.c
         core/process.c
-        safe/spsc_queue.c
-        safe/mpsc_queue.c
-        safe/mpmc_queue.c
-        safe/mpsc_ring_buf.c
+#        safe/spsc_queue.c
+#        safe/mpsc_queue.c
+#        safe/mpmc_queue.c
+#        safe/mpsc_ring_buf.c
         fs/file.c
         event/event_loop.c
         inet/tcp.c
@@ -200,13 +200,13 @@ install(FILES
         core/json.h
         core/timer_wheel.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/core")
-install(FILES
-        safe/atomic.h
-        safe/mpmc_queue.h
-        safe/mpsc_queue.h
-        safe/spsc_queue.h
-        safe/mpsc_ring_buf.h
-        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/safe")
+#install(FILES
+#        safe/atomic.h
+#        safe/mpmc_queue.h
+#        safe/mpsc_queue.h
+#        safe/spsc_queue.h
+#        safe/mpsc_ring_buf.h
+#        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/safe")
 
 install(FILES
         fs/file.h
