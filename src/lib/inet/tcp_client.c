@@ -79,7 +79,7 @@ sky_tcp_client_connect(sky_tcp_client_t *client, const sky_inet_addr_t *address,
         }
 
         sky_timer_wheel_unlink(&client->timer);
-        sky_tcp_is_closed(&client->tcp);
+        sky_tcp_close(&client->tcp);
 
         return false;
     }
