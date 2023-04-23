@@ -308,7 +308,7 @@ http_create_connect(sky_http_client_t *client, sky_http_client_req_t *req) {
     sky_defer_cancel(client->coro, defer);
     freeaddrinfo(result);
 
-    if (req->is_ssl) {
+    if (flags && req->is_ssl) {
 #ifdef SKY_HAVE_SSL
         flags = sky_tls_client_connect(&client->client);
 #else
