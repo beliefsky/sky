@@ -166,7 +166,7 @@ sky_http_client_req(sky_http_client_t *client, sky_http_client_req_t *req) {
     if (sky_unlikely(!client || !req->pool)) {
         return null;
     }
-    if (sky_tcp_client_is_connection(&client->client)) {
+    if (sky_tcp_client_is_connected(&client->client)) {
         sky_tcp_client_close(&client->client);
     }
     if (!http_create_connect(client, req)) {

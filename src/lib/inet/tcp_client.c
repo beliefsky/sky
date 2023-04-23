@@ -94,7 +94,7 @@ sky_tcp_client_close(sky_tcp_client_t *client) {
 }
 
 sky_inline sky_bool_t
-sky_tcp_client_is_connection(sky_tcp_client_t *client) {
+sky_tcp_client_is_connected(sky_tcp_client_t *client) {
     return client->defer && !sky_tcp_is_closed(&client->tcp);
 }
 
@@ -102,7 +102,7 @@ sky_usize_t
 sky_tcp_client_read(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t size) {
     sky_isize_t n;
 
-    if (sky_unlikely(!sky_tcp_client_is_connection(client) || !size)) {
+    if (sky_unlikely(!sky_tcp_client_is_connected(client) || !size)) {
         return 0;
     }
 
@@ -136,7 +136,7 @@ sky_bool_t
 sky_tcp_client_read_all(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t size) {
     sky_isize_t n;
 
-    if (sky_unlikely(!sky_tcp_client_is_connection(client))) {
+    if (sky_unlikely(!sky_tcp_client_is_connected(client))) {
         return false;
     }
     if (!size) {
@@ -177,7 +177,7 @@ sky_tcp_client_read_all(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t
 
 sky_isize_t
 sky_tcp_client_read_nowait(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t size) {
-    if (sky_unlikely(!sky_tcp_client_is_connection(client))) {
+    if (sky_unlikely(!sky_tcp_client_is_connected(client))) {
         return -1;
     }
 
@@ -205,7 +205,7 @@ sky_usize_t
 sky_tcp_client_write(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usize_t size) {
     sky_isize_t n;
 
-    if (sky_unlikely(!sky_tcp_client_is_connection(client))) {
+    if (sky_unlikely(!sky_tcp_client_is_connected(client))) {
         return 0;
     }
     if (!size) {
@@ -243,7 +243,7 @@ sky_bool_t
 sky_tcp_client_write_all(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usize_t size) {
     sky_isize_t n;
 
-    if (sky_unlikely(!sky_tcp_client_is_connection(client))) {
+    if (sky_unlikely(!sky_tcp_client_is_connected(client))) {
         return false;
     }
     if (!size) {
@@ -283,7 +283,7 @@ sky_tcp_client_write_all(sky_tcp_client_t *client, const sky_uchar_t *data, sky_
 
 sky_isize_t
 sky_tcp_client_write_nowait(sky_tcp_client_t *client, const sky_uchar_t *data, sky_usize_t size) {
-    if (sky_unlikely(!sky_tcp_client_is_connection(client))) {
+    if (sky_unlikely(!sky_tcp_client_is_connected(client))) {
         return -1;
     }
 
