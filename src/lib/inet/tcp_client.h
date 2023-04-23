@@ -49,7 +49,7 @@ sky_bool_t sky_tcp_client_connect(sky_tcp_client_t *client, const sky_inet_addr_
 
 void sky_tcp_client_close(sky_tcp_client_t *client);
 
-sky_bool_t sky_tcp_client_is_connection(sky_tcp_client_t *client);
+sky_bool_t sky_tcp_client_is_connected(sky_tcp_client_t *client);
 
 sky_usize_t sky_tcp_client_read(sky_tcp_client_t *client, sky_uchar_t *data, sky_usize_t size);
 
