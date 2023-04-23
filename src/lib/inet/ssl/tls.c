@@ -95,7 +95,7 @@ tls_connect_close(sky_tcp_t *tcp) {
     if (sky_unlikely(!ssl)) {
         return;
     }
-    SSL_shutdown(ssl);
+//    SSL_shutdown(ssl);
     SSL_free(ssl);
 }
 
