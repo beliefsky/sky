@@ -166,20 +166,13 @@ sky_http_client_req(sky_http_client_t *client, sky_http_client_req_t *req) {
     if (sky_unlikely(!client || !req->pool)) {
         return null;
     }
-    if (!sky_tcp_client_is_connection(&client->client) ||
-        !(client->port && req->port == client->port
-          && sky_str_equals2(&req->host_address, client->host, client->host_len))) {
-        if (!http_create_connect(client, req)) {
-            return null;
-        }
-        if (req->host_address.len > 64) {
-            client->port = 0;
-        } else {
-            client->host_len = req->host_address.len;
-            sky_memcpy(client->host, req->host_address.data, client->host_len);
-            client->port = req->port;
-        }
+    if (!sky_tcp_client_is_connection(&client->client)) {
+        sky_tcp_client_close(&client->client);
     }
+    if (!http_create_connect(client, req)) {
+        return null;
+    }
+
     if (sky_unlikely(!http_req_writer(client, req))) {
         sky_tcp_client_close(&client->client);
         return null;
@@ -206,9 +199,8 @@ sky_http_client_res_body_str(sky_http_client_res_t *res) {
 
     sky_str_t *result = !res->chunked ? http_res_content_body_str(res)
                                       : http_res_chunked_str(res);
-    if (sky_unlikely(!result)) {
-        sky_tcp_client_close(&res->client->client);
-    }
+
+    sky_tcp_client_close(&res->client->client);
 
     return result;
 }
@@ -226,9 +218,8 @@ sky_http_client_res_body_none(sky_http_client_res_t *res) {
 
     const sky_bool_t result = !res->chunked ? http_res_content_body_none(res)
                                             : http_res_chunked_none(res);
-    if (sky_unlikely(!result)) {
-        sky_tcp_client_close(&res->client->client);
-    }
+
+    sky_tcp_client_close(&res->client->client);
 
     return result;
 }
@@ -247,9 +238,8 @@ sky_http_client_res_body_read(sky_http_client_res_t *res, sky_http_res_body_pt f
     const sky_bool_t result = !res->chunked ? http_res_content_body_read(res, func, data)
                                             : http_res_chunked_read(res, func, data);
 
-    if (sky_unlikely(!result)) {
-        sky_tcp_client_close(&res->client->client);
-    }
+    sky_tcp_client_close(&res->client->client);
+
     return result;
 }
 

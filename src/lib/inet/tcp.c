@@ -153,7 +153,7 @@ sky_i8_t
 sky_tcp_connect(sky_tcp_t *tcp, const sky_inet_addr_t *addr, sky_usize_t addr_size) {
     const sky_socket_t fd = sky_ev_get_fd(&tcp->ev);
 
-    if (sky_unlikely(sky_ev_error(&tcp->ev))) {
+    if (sky_unlikely(sky_ev_error(&tcp->ev) || sky_tcp_is_closed(tcp))) {
         return -1;
     }
 
@@ -176,6 +176,10 @@ void
 sky_tcp_close(sky_tcp_t *tcp) {
     const sky_socket_t fd = sky_ev_get_fd(&tcp->ev);
 
+    if (sky_tcp_is_closed(tcp)) {
+        return;
+    }
+
     tcp->ev.fd = SKY_SOCKET_FD_NONE;
     tcp->closed = true;
     tcp->ctx->close(tcp);
@@ -185,7 +189,7 @@ sky_tcp_close(sky_tcp_t *tcp) {
 
 sky_isize_t
 sky_tcp_read(sky_tcp_t *tcp, sky_uchar_t *data, sky_usize_t size) {
-    if (sky_unlikely(sky_ev_error(&tcp->ev))) {
+    if (sky_unlikely(sky_ev_error(&tcp->ev) || sky_tcp_is_closed(tcp))) {
         return -1;
     }
 
@@ -210,7 +214,7 @@ sky_tcp_read(sky_tcp_t *tcp, sky_uchar_t *data, sky_usize_t size) {
 
 sky_isize_t
 sky_tcp_write(sky_tcp_t *tcp, const sky_uchar_t *data, sky_usize_t size) {
-    if (sky_unlikely(sky_ev_error(&tcp->ev))) {
+    if (sky_unlikely(sky_ev_error(&tcp->ev) || sky_tcp_is_closed(tcp))) {
         return -1;
     }
 
@@ -242,7 +246,7 @@ sky_tcp_sendfile(
         const sky_uchar_t *head,
         sky_usize_t head_size
 ) {
-    if (sky_unlikely(sky_ev_error(&tcp->ev))) {
+    if (sky_unlikely(sky_ev_error(&tcp->ev) || sky_tcp_is_closed(tcp))) {
         return -1;
     }
 
