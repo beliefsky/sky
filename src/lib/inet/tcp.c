@@ -150,6 +150,7 @@ sky_tcp_accept(sky_tcp_t *server, sky_tcp_t *client) {
     }
 #endif
 
+    client->closed = false;
     client->ev.fd = fd;
 
     return 1;
