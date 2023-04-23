@@ -28,7 +28,7 @@ sky_tls_client_connect(sky_tcp_client_t *client) {
         }
 
         sky_timer_wheel_unlink(&client->timer);
-        sky_tcp_is_closed(&client->tcp);
+        sky_tcp_close(&client->tcp);
 
         return false;
     }
