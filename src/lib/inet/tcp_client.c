@@ -52,7 +52,7 @@ sky_tcp_client_connect(sky_tcp_client_t *client, const sky_inet_addr_t *address)
         sky_tcp_close(&client->tcp);
     }
 
-    if (sky_unlikely(!sky_tcp_open(&client->tcp, address->addr->sa_family))) {
+    if (sky_unlikely(!sky_tcp_open(&client->tcp, sky_inet_addr_family(address)))) {
         return false;
     }
     if (sky_unlikely(client->options && !client->options(&client->tcp, client->data))) {
