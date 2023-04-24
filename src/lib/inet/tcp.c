@@ -355,7 +355,7 @@ tcp_connect_close(sky_tcp_t *tcp) {
 
 static sky_isize_t
 tcp_connect_read(sky_tcp_t *tcp, sky_uchar_t *data, sky_usize_t size) {
-    const sky_isize_t n = recv(sky_ev_get_fd(&tcp->ev), data, size, 0);
+    const sky_isize_t n = recv(sky_ev_get_fd(&tcp->ev), data, size, MSG_NOSIGNAL);
     if (n < 0) {
         return errno == EAGAIN ? 0 : -1;
     }
@@ -365,7 +365,7 @@ tcp_connect_read(sky_tcp_t *tcp, sky_uchar_t *data, sky_usize_t size) {
 
 static sky_inline sky_isize_t
 tcp_connect_write(sky_tcp_t *tcp, const sky_uchar_t *data, sky_usize_t size) {
-    const sky_isize_t n = send(sky_ev_get_fd(&tcp->ev), data, size, 0);
+    const sky_isize_t n = send(sky_ev_get_fd(&tcp->ev), data, size, MSG_NOSIGNAL);
     if (n < 0) {
         return errno == EAGAIN ? 0 : -1;
     }
