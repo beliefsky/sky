@@ -90,13 +90,13 @@ sky_tcp_open(sky_tcp_t *tcp, sky_i32_t domain) {
 }
 
 sky_bool_t
-sky_tcp_bind(sky_tcp_t *tcp, sky_inet_addr_t *addr, sky_usize_t addr_size) {
+sky_tcp_bind(sky_tcp_t *tcp, const sky_inet_addr_t *addr) {
     if (sky_unlikely(sky_tcp_is_closed(tcp))) {
         return false;
     }
     const sky_socket_t fd = sky_ev_get_fd(&tcp->ev);
 
-    return bind(fd, addr, (socklen_t) addr_size) == 0;
+    return bind(fd, addr->addr, addr->size) == 0;
 }
 
 sky_bool_t
@@ -157,14 +157,14 @@ sky_tcp_accept(sky_tcp_t *server, sky_tcp_t *client) {
 }
 
 sky_i8_t
-sky_tcp_connect(sky_tcp_t *tcp, const sky_inet_addr_t *addr, sky_usize_t addr_size) {
+sky_tcp_connect(sky_tcp_t *tcp, const sky_inet_addr_t *addr) {
     const sky_socket_t fd = sky_ev_get_fd(&tcp->ev);
 
     if (sky_unlikely(sky_ev_error(&tcp->ev) || sky_tcp_is_closed(tcp))) {
         return -1;
     }
 
-    if (connect(fd, addr, (sky_u32_t) addr_size) < 0) {
+    if (connect(fd, addr->addr, addr->size) < 0) {
         switch (errno) {
             case EALREADY:
             case EINPROGRESS:
@@ -355,7 +355,7 @@ tcp_connect_close(sky_tcp_t *tcp) {
 
 static sky_isize_t
 tcp_connect_read(sky_tcp_t *tcp, sky_uchar_t *data, sky_usize_t size) {
-    const sky_isize_t n = recv(sky_ev_get_fd(&tcp->ev), data, size, 0);
+    const sky_isize_t n = recv(sky_ev_get_fd(&tcp->ev), data, size, MSG_NOSIGNAL);
     if (n < 0) {
         return errno == EAGAIN ? 0 : -1;
     }
@@ -365,7 +365,7 @@ tcp_connect_read(sky_tcp_t *tcp, sky_uchar_t *data, sky_usize_t size) {
 
 static sky_inline sky_isize_t
 tcp_connect_write(sky_tcp_t *tcp, const sky_uchar_t *data, sky_usize_t size) {
-    const sky_isize_t n = send(sky_ev_get_fd(&tcp->ev), data, size, 0);
+    const sky_isize_t n = send(sky_ev_get_fd(&tcp->ev), data, size, MSG_NOSIGNAL);
     if (n < 0) {
         return errno == EAGAIN ? 0 : -1;
     }

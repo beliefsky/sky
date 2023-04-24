@@ -16,15 +16,14 @@ struct sky_tcp_listener_s {
     sky_timer_wheel_entry_t timer;
     sky_queue_t tasks;
     sky_tcp_listener_reader_t reader;
+    sky_inet_addr_t address;
     sky_event_loop_t *loop;
     sky_coro_t *coro;
     sky_tcp_listener_writer_t *current;
-    sky_inet_addr_t *address;
     void *data;
     sky_coro_func_t run;
     sky_tcp_listener_opts_pt options;
     sky_tcp_listener_close_pt close;
-    sky_u32_t address_len;
     sky_u32_t timeout;
     sky_bool_t reconnect: 1;
     sky_bool_t connected: 1;
@@ -53,7 +52,6 @@ sky_tcp_listener_create(sky_event_loop_t *loop, const sky_tcp_listener_conf_t *c
     sky_tcp_listener_t *listener = sky_coro_malloc(coro, sizeof(sky_tcp_listener_t));
     sky_tcp_init(&listener->tcp, conf->ctx, sky_event_selector(loop));
     sky_timer_entry_init(&listener->timer, null);
-    listener->address = sky_coro_malloc(coro, conf->address_len);
     listener->reader.listener = listener;
 
     sky_coro_set(coro, conf->run, &listener->reader);
@@ -62,7 +60,6 @@ sky_tcp_listener_create(sky_event_loop_t *loop, const sky_tcp_listener_conf_t *c
 
     listener->loop = loop;
     listener->coro = coro;
-    listener->address_len = conf->address_len;
     listener->timeout = conf->timeout ?: 5;
     listener->data = conf->data;
     listener->run = conf->run;
@@ -74,7 +71,8 @@ sky_tcp_listener_create(sky_event_loop_t *loop, const sky_tcp_listener_conf_t *c
     listener->main = false;
     listener->free = false;
 
-    sky_memcpy(listener->address, conf->address, conf->address_len);
+    sky_inet_addr_set_ptr(&listener->address, sky_coro_malloc(coro, sky_inet_addr_size(conf->address)));
+    sky_inet_addr_copy(&listener->address, conf->address);
 
     tcp_create_connection(listener);
 
@@ -318,7 +316,7 @@ static void
 tcp_create_connection(sky_tcp_listener_t *listener) {
     listener->timer.cb = tcp_timeout_cb;
 
-    if (sky_unlikely(!sky_tcp_open(&listener->tcp, listener->address->sa_family))) {
+    if (sky_unlikely(!sky_tcp_open(&listener->tcp, sky_inet_addr_family(&listener->address)))) {
         goto re_conn;
     }
 
@@ -345,10 +343,11 @@ static void
 tcp_connection(sky_tcp_t *conn) {
     sky_tcp_listener_t *listener = sky_type_convert(conn, sky_tcp_listener_t, tcp);
 
-    const sky_i8_t r = sky_tcp_connect(conn, listener->address, listener->address_len);
+    const sky_i8_t r = sky_tcp_connect(conn, &listener->address);
     if (r > 0) {
         sky_timer_wheel_unlink(&listener->timer);
         sky_tcp_set_cb(conn, tcp_run);
+        listener->connected = true;
         tcp_run(conn);
         return;
     }

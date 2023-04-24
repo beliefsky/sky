@@ -105,9 +105,10 @@ server_start(sky_event_loop_t *loop) {
                 .sin_addr.s_addr = INADDR_ANY,
                 .sin_port = sky_htons(1883)
         };
+        sky_inet_addr_t address;
+        sky_inet_addr_set(&address, &server_address_v4, sizeof(struct sockaddr_in));
 
-        if (sky_unlikely(
-                !sky_tcp_bind(&server->v4, (sky_inet_addr_t *) &server_address_v4, sizeof(struct sockaddr_in)))) {
+        if (sky_unlikely(!sky_tcp_bind(&server->v4, &address))) {
             sky_tcp_close(&server->v4);
             return;
         }
@@ -136,8 +137,10 @@ server_start(sky_event_loop_t *loop) {
                 .sin6_port = sky_htons(1883)
         };
 
-        if (sky_unlikely(
-                !sky_tcp_bind(&server->v6, (sky_inet_addr_t *) &server_address_v6, sizeof(struct sockaddr_in6)))) {
+        sky_inet_addr_t address;
+        sky_inet_addr_set(&address, &server_address_v6, sizeof(struct sockaddr_in6));
+
+        if (sky_unlikely(!sky_tcp_bind(&server->v6, &address))) {
             sky_tcp_close(&server->v6);
             return;
         }
@@ -265,14 +268,16 @@ tcp_proxy_process(sky_coro_t *coro, tcp_proxy_conn_t *conn) {
     sky_defer_add(coro, (sky_defer_func_t) sky_tcp_client_destroy, &client);
 
     sky_uchar_t mq_ip[] = {192, 168, 0, 15};
-    const struct sockaddr_in mqtt_address = {
+    struct sockaddr_in mqtt_address = {
             .sin_family = AF_INET,
             .sin_addr.s_addr = *(sky_u32_t *) mq_ip,
             .sin_port = sky_htons(18083)
     };
 
-    if (sky_unlikely(!sky_tcp_client_connect(&client, (const sky_inet_addr_t *) &mqtt_address,
-                                                sizeof(struct sockaddr_in)))) {
+    sky_inet_addr_t address;
+    sky_inet_addr_set(&address, &mqtt_address, sizeof(struct sockaddr_in));
+
+    if (sky_unlikely(!sky_tcp_client_connect(&client, &address))) {
         return SKY_CORO_ABORT;
     }
 

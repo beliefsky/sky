@@ -38,10 +38,12 @@ set(SOURCES
 #        safe/mpsc_ring_buf.c
         fs/file.c
         event/event_loop.c
+        inet/inet.c
         inet/tcp.c
         inet/tcp_pool.c
         inet/tcp_listener.c
         inet/tcp_client.c
+        inet/udp.c
         inet/postgresql/pgsql_pool.c
         inet/redis/redis_pool.c
         inet/http/http_server.c

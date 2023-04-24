@@ -45,7 +45,7 @@ sky_bool_t sky_tcp_client_create(
 
 void sky_tcp_client_destroy(sky_tcp_client_t *client);
 
-sky_bool_t sky_tcp_client_connect(sky_tcp_client_t *client, const sky_inet_addr_t *address, sky_u32_t address_len);
+sky_bool_t sky_tcp_client_connect(sky_tcp_client_t *client, const sky_inet_addr_t *address);
 
 void sky_tcp_client_close(sky_tcp_client_t *client);
 

@@ -40,7 +40,6 @@ struct sky_tcp_listener_conf_s {
     sky_coro_func_t run;
     sky_tcp_listener_opts_pt options;
     sky_tcp_listener_close_pt close;
-    sky_u32_t address_len;
     sky_u32_t timeout;
     sky_bool_t reconnect;
 };

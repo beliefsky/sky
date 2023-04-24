@@ -25,7 +25,7 @@ struct sky_mqtt_client_s {
     sky_u16_t packet_identifier;
     sky_u16_t keep_alive;
     sky_u32_t head_copy: 3;
-    sky_bool_t is_ok:1;
+    sky_bool_t is_ok: 1;
 };
 
 static sky_isize_t mqtt_handle(sky_coro_t *coro, sky_tcp_listener_reader_t *reader);
@@ -65,8 +65,6 @@ sky_mqtt_client_create(sky_event_loop_t *loop, const sky_mqtt_client_conf_t *con
 
     const sky_tcp_listener_conf_t listener_conf = {
             .ctx = &client->ctx,
-//            .keep_alive = conf->keep_alive,
-            .address_len = conf->address_len,
             .address = conf->address,
             .run = (sky_coro_func_t) mqtt_handle,
             .close = mqtt_closed_cb,
@@ -201,7 +199,6 @@ mqtt_handle(sky_coro_t *coro, sky_tcp_listener_reader_t *reader) {
 //            client->keep_alive >> 1,
 //            client->keep_alive >> 1
 //    );
-
 
     sky_mqtt_head_t head;
 

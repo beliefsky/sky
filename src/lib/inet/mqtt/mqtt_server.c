@@ -38,12 +38,12 @@ sky_mqtt_server_create(sky_event_loop_t *ev_loop) {
 }
 
 sky_bool_t
-sky_mqtt_server_bind(sky_mqtt_server_t *server, sky_inet_addr_t *address, sky_u32_t address_len) {
+sky_mqtt_server_bind(sky_mqtt_server_t *server, const sky_inet_addr_t *address) {
     mqtt_listener_t *listener = sky_malloc(sizeof(mqtt_listener_t));
 
     sky_tcp_init(&listener->tcp, &server->ctx, sky_event_selector(server->ev_loop));
 
-    if (sky_unlikely(!sky_tcp_open(&listener->tcp, address->sa_family))) {
+    if (sky_unlikely(!sky_tcp_open(&listener->tcp, sky_inet_addr_family(address)))) {
         sky_free(listener);
         return false;
     }
@@ -53,7 +53,7 @@ sky_mqtt_server_bind(sky_mqtt_server_t *server, sky_inet_addr_t *address, sky_u3
     sky_tcp_option_fast_open(&listener->tcp, 5);
     sky_tcp_option_defer_accept(&listener->tcp);
 
-    if (sky_unlikely(!sky_tcp_bind(&listener->tcp, address, address_len))) {
+    if (sky_unlikely(!sky_tcp_bind(&listener->tcp, address))) {
         sky_tcp_close(&listener->tcp);
         sky_free(listener);
         return false;
