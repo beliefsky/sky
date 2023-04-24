@@ -62,10 +62,12 @@ sky_tls_connect(sky_tcp_t *tls) {
     if (sky_unlikely(!ssl)) {
         return -1;
     }
-    if (SSL_connect(ssl) < 0) {
-        switch (SSL_want(ssl)) {
-            case SSL_READING:
-            case SSL_WRITING:
+    const sky_i32_t r = SSL_connect(ssl);
+
+    if (r < 0) {
+        switch (SSL_get_error(ssl, r)) {
+            case SSL_ERROR_WANT_READ:
+            case SSL_ERROR_WANT_WRITE:
                 return 0;
             default:
                 return -1;
@@ -82,10 +84,12 @@ sky_tls_accept(sky_tcp_t *tls) {
     if (sky_unlikely(!ssl)) {
         return -1;
     }
-    if (SSL_accept(ssl) < 0) {
-        switch (SSL_want(ssl)) {
-            case SSL_READING:
-            case SSL_WRITING:
+    const sky_i32_t r = SSL_accept(ssl);
+
+    if (r < 0) {
+        switch (SSL_get_error(ssl, r)) {
+            case SSL_ERROR_WANT_READ:
+            case SSL_ERROR_WANT_WRITE:
                 return 0;
             default:
                 return -1;
@@ -115,7 +119,7 @@ tls_connect_read(sky_tcp_t *tcp, sky_uchar_t *data, sky_usize_t size) {
     }
     const sky_i32_t n = SSL_read(ssl, data, (sky_i32_t) sky_min(size, SKY_I32_MAX));
     if (n < 0) {
-        return SSL_want_read(ssl) ? 0 : -1;
+        return SSL_get_error(ssl, n) == SSL_ERROR_WANT_READ ? 0 : -1;
     }
 
     return n;
@@ -130,7 +134,7 @@ tls_connect_write(sky_tcp_t *tcp, const sky_uchar_t *data, sky_usize_t size) {
     }
     const sky_i32_t n = SSL_write(ssl, data, (sky_i32_t) sky_min(size, SKY_I32_MAX));
     if (n < 0) {
-        return SSL_want_write(ssl) ? 0 : -1;
+        return SSL_get_error(ssl, n) == SSL_ERROR_WANT_WRITE ? 0 : -1;
     }
 
     return n;

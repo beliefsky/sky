@@ -32,9 +32,6 @@
 struct sky_http_client_s {
     sky_tcp_client_t client;
     sky_coro_t *coro;
-    sky_usize_t host_len;
-    sky_uchar_t host[64];
-    sky_u16_t port;
 };
 
 typedef enum {
@@ -116,8 +113,6 @@ sky_http_client_create(
     }
 
     client->coro = coro;
-    client->host_len = 0;
-    client->port = 0;
 
     return client;
 }
