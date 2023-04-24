@@ -7,6 +7,14 @@
 #include <errno.h>
 #include <unistd.h>
 
+#ifndef SKY_HAVE_ACCEPT4
+
+#include <fcntl.h>
+
+static sky_bool_t set_socket_nonblock(sky_socket_t fd);
+
+#endif
+
 static void udp_connect_close(sky_udp_t *udp);
 
 void
@@ -84,3 +92,34 @@ tcp_connect_write(sky_udp_t *udp, const sky_uchar_t *data, sky_usize_t size, con
 
     return n;
 }
+
+#ifndef SKY_HAVE_ACCEPT4
+
+static sky_bool_t
+set_socket_nonblock(sky_socket_t fd) {
+    sky_i32_t flags;
+
+    flags = fcntl(fd, F_GETFD);
+
+    if (sky_unlikely(flags < 0)) {
+        return false;
+    }
+
+    if (sky_unlikely(fcntl(fd, F_SETFD, flags | FD_CLOEXEC) < 0)) {
+        return false;
+    }
+
+    flags = fcntl(fd, F_GETFD);
+
+    if (sky_unlikely(flags < 0)) {
+        return false;
+    }
+
+    if (sky_unlikely(fcntl(fd, F_SETFD, flags | O_NONBLOCK) < 0)) {
+        return false;
+    }
+
+    return true;
+}
+
+#endif
