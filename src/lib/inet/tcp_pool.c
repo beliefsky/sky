@@ -9,7 +9,7 @@ struct sky_tcp_pool_s {
     sky_tcp_ctx_t ctx;
     sky_event_loop_t *ev_loop;
     sky_tcp_node_t *clients;
-    sky_inet_addr_t *address;
+    sky_inet_addr_t address;
     sky_tcp_pool_opts_pt options;
     sky_tcp_pool_conn_next next_func;
 
@@ -17,7 +17,6 @@ struct sky_tcp_pool_s {
 
     sky_u32_t keep_alive;
     sky_u32_t timeout;
-    sky_u32_t address_len;
     sky_u32_t conn_mask;
 };
 
@@ -55,7 +54,7 @@ sky_tcp_pool_create(sky_event_loop_t *ev_loop, const sky_tcp_pool_conf_t *conf) 
     sky_tcp_pool_t *conn_pool = sky_malloc(
             sizeof(sky_tcp_pool_t)
             + (sizeof(sky_tcp_node_t) * conn_n)
-            + conf->address_len
+            + sky_inet_addr_size(conf->address)
     );
     if (conf->ctx) {
         sky_memcpy(&conn_pool->ctx, conf->ctx, sizeof(sky_tcp_ctx_t));
@@ -63,9 +62,9 @@ sky_tcp_pool_create(sky_event_loop_t *ev_loop, const sky_tcp_pool_conf_t *conf) 
     sky_tcp_ctx_init(&conn_pool->ctx);
     conn_pool->ev_loop = ev_loop;
     conn_pool->clients = (sky_tcp_node_t *) (conn_pool + 1);
-    conn_pool->address = (sky_inet_addr_t *) (conn_pool->clients + conn_n);
-    conn_pool->address_len = conf->address_len;
-    sky_memcpy(conn_pool->address, conf->address, conn_pool->address_len);
+
+    sky_inet_addr_set_ptr(&conn_pool->address, (void *) (conn_pool->clients + conn_n));
+    sky_inet_addr_copy(&conn_pool->address, conf->address);
 
     conn_pool->conn_mask = conn_n - 1;
     conn_pool->options = conf->options;
@@ -418,7 +417,7 @@ tcp_connection(sky_tcp_session_t *session) {
     sky_tcp_pool_t *conn_pool = session->client->conn_pool;
     sky_tcp_t *tcp = &session->client->conn;
 
-    if (sky_unlikely(!sky_tcp_open(tcp, conn_pool->address->sa_family))) {
+    if (sky_unlikely(!sky_tcp_open(tcp, sky_inet_addr_family(&conn_pool->address)))) {
         return false;
     }
     if (sky_unlikely(conn_pool->options && !conn_pool->options(tcp, conn_pool->data))) {
@@ -430,7 +429,7 @@ tcp_connection(sky_tcp_session_t *session) {
     sky_event_timeout_set(conn_pool->ev_loop, &session->client->timer, conn_pool->timeout);
 
     for (;;) {
-        const sky_i8_t r = sky_tcp_connect(tcp, conn_pool->address, conn_pool->address_len);
+        const sky_i8_t r = sky_tcp_connect(tcp, &conn_pool->address);
         if (r > 0) {
             sky_timer_wheel_unlink(&session->client->timer);
             return true;

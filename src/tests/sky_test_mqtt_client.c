@@ -46,10 +46,12 @@ main() {
             .sin_addr.s_addr = *(sky_u32_t *) ip,
             .sin_port = sky_htons(1883)
     };
+    sky_inet_addr_t address;
+    sky_inet_addr_set(&address, &v4_address, sizeof(struct sockaddr_in));
+
     const sky_mqtt_client_conf_t mqtt_conf = {
             .client_id = sky_string("test_mqtt_client_11222"),
-            .address_len = sizeof(v4_address),
-            .address = (sky_inet_addr_t *) &v4_address,
+            .address = &address,
             .connected = mqtt_connected_cb,
             .msg_handle = mqtt_msg_cb,
             .closed = mqtt_close_cb

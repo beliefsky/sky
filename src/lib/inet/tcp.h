@@ -53,13 +53,13 @@ void sky_tcp_init(sky_tcp_t *tcp, sky_tcp_ctx_t *ctx, sky_selector_t *s);
 
 sky_bool_t sky_tcp_open(sky_tcp_t *tcp, sky_i32_t domain);
 
-sky_bool_t sky_tcp_bind(sky_tcp_t *tcp, sky_inet_addr_t *addr, sky_u32_t addr_size);
+sky_bool_t sky_tcp_bind(sky_tcp_t *tcp, const sky_inet_addr_t *addr);
 
 sky_bool_t sky_tcp_listen(sky_tcp_t *server, sky_i32_t backlog);
 
 sky_i8_t sky_tcp_accept(sky_tcp_t *server, sky_tcp_t *client);
 
-sky_i8_t sky_tcp_connect(sky_tcp_t *tcp, const sky_inet_addr_t *addr, sky_u32_t addr_size);
+sky_i8_t sky_tcp_connect(sky_tcp_t *tcp, const sky_inet_addr_t *addr);
 
 void sky_tcp_close(sky_tcp_t *tcp);
 

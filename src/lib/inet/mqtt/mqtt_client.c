@@ -65,8 +65,6 @@ sky_mqtt_client_create(sky_event_loop_t *loop, const sky_mqtt_client_conf_t *con
 
     const sky_tcp_listener_conf_t listener_conf = {
             .ctx = &client->ctx,
-//            .keep_alive = conf->keep_alive,
-            .address_len = conf->address_len,
             .address = conf->address,
             .run = (sky_coro_func_t) mqtt_handle,
             .close = mqtt_closed_cb,

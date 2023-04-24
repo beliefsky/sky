@@ -26,7 +26,6 @@ typedef struct {
     sky_str_t password;
     sky_str_t database;
     sky_u32_t connection_size;
-    sky_u32_t address_len;
     sky_inet_addr_t *address;
 } sky_pgsql_conf_t;
 
