@@ -347,6 +347,7 @@ tcp_connection(sky_tcp_t *conn) {
     if (r > 0) {
         sky_timer_wheel_unlink(&listener->timer);
         sky_tcp_set_cb(conn, tcp_run);
+        listener->connected = true;
         tcp_run(conn);
         return;
     }
