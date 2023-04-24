@@ -75,7 +75,7 @@ create_server() {
 
     const sky_http_file_conf_t file_config = {
             .prefix = sky_string(""),
-            .dir = sky_string("/mnt/d/private/sky/html/tree"),
+            .dir = sky_string("/mnt/d/private/sky/html"),
             .module = sky_array_push(&modules),
 //            .pre_run = http_index_router
     };
@@ -112,7 +112,11 @@ create_server() {
                 .sin_addr.s_addr = INADDR_ANY,
                 .sin_port = sky_htons(8080)
         };
-        sky_http_server_bind(server, (sky_inet_addr_t *) &http_address, sizeof(struct sockaddr_in));
+        sky_inet_addr_t address;
+        sky_inet_addr_set(&address, &http_address, sizeof(struct sockaddr_in));
+
+
+        sky_http_server_bind(server, &address);
     }
 
     {
@@ -122,7 +126,11 @@ create_server() {
                 .sin6_port = sky_htons(8080)
         };
 
-        sky_http_server_bind(server, (sky_inet_addr_t *) &http_address, sizeof(struct sockaddr_in6));
+        sky_inet_addr_t address;
+        sky_inet_addr_set(&address, &http_address, sizeof(struct sockaddr_in6));
+
+
+        sky_http_server_bind(server, &address);
     }
 
     sky_event_loop_run(ev_loop);

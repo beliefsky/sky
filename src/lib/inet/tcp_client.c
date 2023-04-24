@@ -44,7 +44,7 @@ sky_tcp_client_destroy(sky_tcp_client_t *client) {
 }
 
 sky_bool_t
-sky_tcp_client_connect(sky_tcp_client_t *client, const sky_inet_addr_t *address, sky_u32_t address_len) {
+sky_tcp_client_connect(sky_tcp_client_t *client, const sky_inet_addr_t *address) {
     if (sky_unlikely(!client->defer)) {
         return false;
     }
@@ -52,7 +52,7 @@ sky_tcp_client_connect(sky_tcp_client_t *client, const sky_inet_addr_t *address,
         sky_tcp_close(&client->tcp);
     }
 
-    if (sky_unlikely(!sky_tcp_open(&client->tcp, address->sa_family))) {
+    if (sky_unlikely(!sky_tcp_open(&client->tcp, address->addr->sa_family))) {
         return false;
     }
     if (sky_unlikely(client->options && !client->options(&client->tcp, client->data))) {
@@ -62,7 +62,7 @@ sky_tcp_client_connect(sky_tcp_client_t *client, const sky_inet_addr_t *address,
     sky_tcp_set_cb(&client->tcp, tcp_run);
     sky_event_timeout_set(client->loop, &client->timer, client->timeout);
     for (;;) {
-        const sky_i8_t r = sky_tcp_connect(&client->tcp, address, address_len);
+        const sky_i8_t r = sky_tcp_connect(&client->tcp, address);
         if (r > 0) {
             sky_timer_wheel_unlink(&client->timer);
             return true;

@@ -60,7 +60,7 @@ struct sky_mqtt_packet_s {
 
 sky_mqtt_server_t *sky_mqtt_server_create(sky_event_loop_t *ev_loop);
 
-sky_bool_t sky_mqtt_server_bind(sky_mqtt_server_t *server, sky_inet_addr_t *address, sky_u32_t address_len);
+sky_bool_t sky_mqtt_server_bind(sky_mqtt_server_t *server, const sky_inet_addr_t *address);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

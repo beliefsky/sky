@@ -25,7 +25,6 @@ typedef sky_tcp_pool_t sky_redis_pool_t;
 
 typedef struct {
     sky_u32_t connection_size;
-    sky_u32_t address_len;
     sky_inet_addr_t *address;
 } sky_redis_conf_t;
 

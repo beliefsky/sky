@@ -32,7 +32,6 @@ typedef struct {
 
     sky_u32_t keep_alive;
     sky_u32_t timeout;
-    sky_u32_t address_len;
     sky_u32_t connection_size;
 } sky_tcp_pool_conf_t;
 

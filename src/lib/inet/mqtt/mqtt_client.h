@@ -32,7 +32,6 @@ typedef struct {
     sky_mqtt_status_pt connected;
     sky_mqtt_status_pt closed;
     sky_mqtt_msg_pt msg_handle;
-    sky_u32_t address_len;
     sky_u16_t keep_alive;
 } sky_mqtt_client_conf_t;
 
