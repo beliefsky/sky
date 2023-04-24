@@ -252,7 +252,7 @@ http_create_connect(sky_http_client_t *client, sky_http_client_req_t *req) {
 
     const struct addrinfo hints = {
             .ai_family = AF_UNSPEC,
-            .ai_socktype = SOCK_DGRAM,
+            .ai_socktype = SOCK_STREAM,
     };
     struct addrinfo *result = null, *item;
 
