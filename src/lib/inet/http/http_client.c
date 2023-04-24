@@ -270,7 +270,7 @@ http_create_connect(sky_http_client_t *client, sky_http_client_req_t *req) {
                 tmp->sin_port = sky_htons(req->port);
 
                 sky_inet_addr_t address;
-                sky_inet_addr_set(&address, item, item->ai_addrlen);
+                sky_inet_addr_set(&address, tmp, sizeof(struct sockaddr_in));
 
                 flags = sky_tcp_client_connect(
                         &client->client,
@@ -283,7 +283,7 @@ http_create_connect(sky_http_client_t *client, sky_http_client_req_t *req) {
                 tmp->sin6_port = sky_htons(req->port);
 
                 sky_inet_addr_t address;
-                sky_inet_addr_set(&address, item, item->ai_addrlen);
+                sky_inet_addr_set(&address, tmp, sizeof(struct sockaddr_in6));
 
                 flags = sky_tcp_client_connect(
                         &client->client,
