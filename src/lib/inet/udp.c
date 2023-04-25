@@ -15,13 +15,23 @@ static sky_bool_t set_socket_nonblock(sky_socket_t fd);
 
 #endif
 
+static sky_isize_t udp_connect_read(sky_udp_t *udp, sky_inet_addr_t *addr, sky_uchar_t *data, sky_usize_t size);
+
+static sky_bool_t udp_connect_write(
+        sky_udp_t *udp,
+        const sky_inet_addr_t *addr,
+        const sky_uchar_t *data,
+        sky_usize_t size
+);
+
+
 static void udp_connect_close(sky_udp_t *udp);
 
 void
 sky_udp_ctx_init(sky_udp_ctx_t *ctx) {
     ctx->close = udp_connect_close;
-//    ctx->read = null;
-//    ctx->write = null;
+    ctx->read = udp_connect_read;
+    ctx->write = udp_connect_write;
     ctx->ex_data = null;
 }
 
@@ -67,13 +77,67 @@ sky_udp_bind(sky_udp_t *udp, const sky_inet_addr_t *addr) {
     return bind(fd, addr->addr, addr->size) == 0;
 }
 
+sky_isize_t
+sky_udp_read(sky_udp_t *udp, sky_inet_addr_t *addr, sky_uchar_t *data, sky_usize_t size) {
+    if (sky_unlikely(sky_ev_error(&udp->ev) || sky_udp_is_closed(udp))) {
+        return -1;
+    }
+
+    if (sky_unlikely(!size || !sky_ev_readable(&udp->ev))) {
+        return 0;
+    }
+
+    const sky_isize_t n = udp->ctx->read(udp, addr, data, size);
+    if (sky_likely(n > 0)) {
+        return n;
+    }
+
+    if (sky_likely(!n)) {
+        sky_ev_clean_read(&udp->ev);
+        return 0;
+    }
+
+    sky_ev_set_error(&udp->ev);
+
+    return -1;
+}
+
+sky_bool_t
+sky_udp_write(sky_udp_t *udp, const sky_inet_addr_t *addr, const sky_uchar_t *data, sky_usize_t size) {
+    if (sky_unlikely(sky_ev_error(&udp->ev) || sky_udp_is_closed(udp))) {
+        return false;
+    }
+
+    if (sky_unlikely(!size)) {
+        return true;
+    }
+
+    return udp->ctx->write(udp, addr, data, size);
+}
+
+
+void
+sky_udp_close(sky_udp_t *udp) {
+    const sky_socket_t fd = sky_ev_get_fd(&udp->ev);
+
+    if (sky_udp_is_closed(udp)) {
+        return;
+    }
+
+    udp->ev.fd = SKY_SOCKET_FD_NONE;
+    udp->closed = true;
+    udp->ctx->close(udp);
+    close(fd);
+    sky_udp_register_cancel(udp);
+}
+
 static void
 udp_connect_close(sky_udp_t *udp) {
     (void) udp;
 }
 
 static sky_isize_t
-tcp_connect_read(sky_udp_t *udp, sky_uchar_t *data, sky_usize_t size, sky_inet_addr_t *addr) {
+udp_connect_read(sky_udp_t *udp, sky_inet_addr_t *addr, sky_uchar_t *data, sky_usize_t size) {
     const sky_isize_t n = recvfrom(sky_ev_get_fd(&udp->ev), data, size, 0, addr->addr, &addr->size);
 
     if (n < 0) {
@@ -83,14 +147,11 @@ tcp_connect_read(sky_udp_t *udp, sky_uchar_t *data, sky_usize_t size, sky_inet_a
     return n;
 }
 
-static sky_inline sky_isize_t
-tcp_connect_write(sky_udp_t *udp, const sky_uchar_t *data, sky_usize_t size, const sky_inet_addr_t *addr) {
+static sky_bool_t
+udp_connect_write(sky_udp_t *udp, const sky_inet_addr_t *addr, const sky_uchar_t *data, sky_usize_t size) {
     const sky_isize_t n = sendto(sky_ev_get_fd(&udp->ev), data, size, 0, addr->addr, addr->size);
-    if (n < 0) {
-        return errno == EAGAIN ? 0 : -1;
-    }
 
-    return n;
+    return n > 0;
 }
 
 #ifndef SKY_HAVE_ACCEPT4
