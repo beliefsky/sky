@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 #include <core/memory.h>
 #include <core/string.h>
+#include <inet/dns/dns.h>
 
 static void
 test_read(sky_udp_t *udp) {
@@ -16,38 +17,43 @@ test_read(sky_udp_t *udp) {
 
     sky_uchar_t data[1520];
 
-    const sky_isize_t n = sky_udp_read(udp, &remote, data, 1520);
 
-    if (n > 0) {
-        data[n] = '\0';
-        sky_log_info("read: %ld -> %s", n, data);
+    for (;;) {
+        const sky_isize_t n = sky_udp_read(udp, &remote, data, 1520);
 
-        for (sky_isize_t i = 0; i < n; ++i) {
-            printf("%c", data[i]);
+        if (n > 0) {
+            data[n] = '\0';
+            sky_log_info("read: %ld -> %s", n, data);
+
+            for (sky_isize_t i = 0; i < n; ++i) {
+                printf("%c", data[i]);
+            }
+            printf("\n");
+
+            continue;
         }
-        printf("\n");
+        if (sky_likely(!n)) {
+            sky_log_warn("========== wait =============");
+            sky_udp_try_register(udp);
+            break;
+        }
 
-        return;
+        sky_log_error("read error");
+
+        sky_udp_close(udp);
+        sky_free(udp);
+
+        break;
     }
-    if (sky_likely(!n)) {
-        sky_log_warn("========== wait =============");
-        sky_udp_try_register(udp);
-        return;
-    }
-
-    sky_log_error("read error");
-
-    sky_udp_close(udp);
-    sky_free(udp);
 }
 
 static void
 test_write(sky_udp_t *udp) {
-    sky_uchar_t ip[4] = {192, 168, 0, 41};
+    sky_uchar_t ip[4] = {114,114, 114, 114};
     struct sockaddr_in remote_addr = {
             .sin_family = AF_INET,
             .sin_addr.s_addr = *(sky_u32_t *) ip,
-            .sin_port = sky_htons(5060)
+            .sin_port = sky_htons(53)
     };
 
     sky_inet_addr_t remote;
@@ -65,7 +71,38 @@ test_write(sky_udp_t *udp) {
                                 "User-Agent: IP Camera\r\n"
                                 "Content-Length: 0\r\n\r\n");
 
-    if (sky_unlikely(!sky_udp_write(udp, &remote, data.data, data.len))) {
+    sky_uchar_t tmp[512];
+
+    sky_dns_header_t header = {
+            .id = sky_htons(0xF7FB),
+            .flags = sky_htons(1 << 8),
+            .qd_count = sky_htons(1)
+    };
+
+    sky_memcpy16(tmp, &header);
+
+    sky_usize_t n = 12;
+    sky_uchar_t *p = tmp + n;
+
+    const sky_uchar_t domain[] = "\3www\5baidu\3com";
+
+    sky_memcpy(p, domain, sizeof(domain));
+    n += sizeof(domain);
+    p += sizeof(domain);
+
+
+    *(sky_u16_t *)p = sky_htons(1);
+    p += 2;
+    *(sky_u16_t *)p = sky_htons(1);
+    n +=4;
+
+    for (sky_usize_t i = 0; i < n; ++i) {
+        printf("%x  ", tmp[i]);
+    }
+    printf("\n");
+
+
+    if (sky_unlikely(!sky_udp_write(udp, &remote, tmp, n))) {
         sky_log_error("write fail");
     }
 }
@@ -81,21 +118,6 @@ create(sky_event_loop_t *loop, sky_udp_ctx_t *ctx) {
 
     if (sky_unlikely(!sky_udp_open(udp, AF_INET))) {
         sky_log_error("create udp fail");
-        sky_free(udp);
-        return;
-    }
-
-    struct sockaddr_in v4_addr = {
-            .sin_family = AF_INET,
-            .sin_addr.s_addr = INADDR_ANY,
-            .sin_port = sky_htons(8053)
-    };
-    sky_inet_addr_t addr;
-    sky_inet_addr_set(&addr, &v4_addr, sizeof(v4_addr));
-
-    if (sky_unlikely(!sky_udp_bind(udp, &addr))) {
-        sky_log_error("create udp fail");
-        sky_udp_close(udp);
         sky_free(udp);
         return;
     }

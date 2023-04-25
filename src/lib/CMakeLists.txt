@@ -54,6 +54,7 @@ set(SOURCES
         inet/http/module/http_module_dispatcher.c
         inet/http/http_client.c
         inet/http/http_url.c
+        inet/dns/dns.c
         inet/mqtt/mqtt_io_wrappers.c
         inet/mqtt/mqtt_protocol.c
         inet/mqtt/mqtt_subs.c
