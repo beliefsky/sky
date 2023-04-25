@@ -220,6 +220,7 @@ install(FILES
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/event")
 install(FILES
         inet/inet.h
+        inet/udp.h
         inet/tcp.h
         inet/tcp_pool.h
         inet/tcp_client.h
