@@ -15,9 +15,9 @@ static sky_bool_t set_socket_nonblock(sky_socket_t fd);
 
 #endif
 
-static sky_isize_t udp_connect_read(sky_udp_t *udp, sky_inet_addr_t *addr, sky_uchar_t *data, sky_usize_t size);
+static sky_isize_t udp_read(sky_udp_t *udp, sky_inet_addr_t *addr, sky_uchar_t *data, sky_usize_t size);
 
-static sky_bool_t udp_connect_write(
+static sky_bool_t udp_write(
         sky_udp_t *udp,
         const sky_inet_addr_t *addr,
         const sky_uchar_t *data,
@@ -25,13 +25,13 @@ static sky_bool_t udp_connect_write(
 );
 
 
-static void udp_connect_close(sky_udp_t *udp);
+static void udp_close(sky_udp_t *udp);
 
 void
 sky_udp_ctx_init(sky_udp_ctx_t *ctx) {
-    ctx->close = udp_connect_close;
-    ctx->read = udp_connect_read;
-    ctx->write = udp_connect_write;
+    ctx->close = udp_close;
+    ctx->read = udp_read;
+    ctx->write = udp_write;
     ctx->ex_data = null;
 }
 
@@ -132,12 +132,12 @@ sky_udp_close(sky_udp_t *udp) {
 }
 
 static void
-udp_connect_close(sky_udp_t *udp) {
+udp_close(sky_udp_t *udp) {
     (void) udp;
 }
 
 static sky_isize_t
-udp_connect_read(sky_udp_t *udp, sky_inet_addr_t *addr, sky_uchar_t *data, sky_usize_t size) {
+udp_read(sky_udp_t *udp, sky_inet_addr_t *addr, sky_uchar_t *data, sky_usize_t size) {
     const sky_isize_t n = recvfrom(sky_ev_get_fd(&udp->ev), data, size, 0, addr->addr, &addr->size);
 
     if (n < 0) {
@@ -148,7 +148,7 @@ udp_connect_read(sky_udp_t *udp, sky_inet_addr_t *addr, sky_uchar_t *data, sky_u
 }
 
 static sky_bool_t
-udp_connect_write(sky_udp_t *udp, const sky_inet_addr_t *addr, const sky_uchar_t *data, sky_usize_t size) {
+udp_write(sky_udp_t *udp, const sky_inet_addr_t *addr, const sky_uchar_t *data, sky_usize_t size) {
     const sky_isize_t n = sendto(sky_ev_get_fd(&udp->ev), data, size, 0, addr->addr, addr->size);
 
     return n > 0;

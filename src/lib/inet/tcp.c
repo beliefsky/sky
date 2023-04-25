@@ -30,13 +30,13 @@ static sky_bool_t set_socket_nonblock(sky_socket_t fd);
 
 #endif
 
-static void tcp_connect_close(sky_tcp_t *tcp);
+static void tcp_close(sky_tcp_t *tcp);
 
-static sky_isize_t tcp_connect_read(sky_tcp_t *tcp, sky_uchar_t *data, sky_usize_t size);
+static sky_isize_t tcp_read(sky_tcp_t *tcp, sky_uchar_t *data, sky_usize_t size);
 
-static sky_isize_t tcp_connect_write(sky_tcp_t *tcp, const sky_uchar_t *data, sky_usize_t size);
+static sky_isize_t tcp_write(sky_tcp_t *tcp, const sky_uchar_t *data, sky_usize_t size);
 
-static sky_isize_t tcp_connect_sendfile(
+static sky_isize_t tcp_sendfile(
         sky_tcp_t *tcp,
         sky_fs_t *fs,
         sky_i64_t *offset,
@@ -47,10 +47,10 @@ static sky_isize_t tcp_connect_sendfile(
 
 void
 sky_tcp_ctx_init(sky_tcp_ctx_t *ctx) {
-    ctx->close = tcp_connect_close;
-    ctx->read = tcp_connect_read;
-    ctx->write = tcp_connect_write;
-    ctx->sendfile = tcp_connect_sendfile;
+    ctx->close = tcp_close;
+    ctx->read = tcp_read;
+    ctx->write = tcp_write;
+    ctx->sendfile = tcp_sendfile;
     ctx->ex_data = null;
 }
 
@@ -349,12 +349,12 @@ sky_tcp_option_no_push(sky_tcp_t *tcp, sky_bool_t open) {
 }
 
 static void
-tcp_connect_close(sky_tcp_t *tcp) {
+tcp_close(sky_tcp_t *tcp) {
     (void) tcp;
 }
 
 static sky_isize_t
-tcp_connect_read(sky_tcp_t *tcp, sky_uchar_t *data, sky_usize_t size) {
+tcp_read(sky_tcp_t *tcp, sky_uchar_t *data, sky_usize_t size) {
     const sky_isize_t n = recv(sky_ev_get_fd(&tcp->ev), data, size, MSG_NOSIGNAL);
     if (n < 0) {
         return errno == EAGAIN ? 0 : -1;
@@ -364,7 +364,7 @@ tcp_connect_read(sky_tcp_t *tcp, sky_uchar_t *data, sky_usize_t size) {
 }
 
 static sky_inline sky_isize_t
-tcp_connect_write(sky_tcp_t *tcp, const sky_uchar_t *data, sky_usize_t size) {
+tcp_write(sky_tcp_t *tcp, const sky_uchar_t *data, sky_usize_t size) {
     const sky_isize_t n = send(sky_ev_get_fd(&tcp->ev), data, size, MSG_NOSIGNAL);
     if (n < 0) {
         return errno == EAGAIN ? 0 : -1;
@@ -374,7 +374,7 @@ tcp_connect_write(sky_tcp_t *tcp, const sky_uchar_t *data, sky_usize_t size) {
 }
 
 static sky_isize_t
-tcp_connect_sendfile(
+tcp_sendfile(
         sky_tcp_t *tcp,
         sky_fs_t *fs,
         sky_i64_t *offset,
