@@ -387,7 +387,7 @@ tcp_sendfile(
     sky_isize_t result = 0;
 
     if (head_size) {
-        result = tcp_connect_write(tcp, head, head_size);
+        result = tcp_write(tcp, head, head_size);
         if (!result) {
             return result;
         }
