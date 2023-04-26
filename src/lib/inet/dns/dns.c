@@ -57,8 +57,8 @@ void test(sky_dns_t *dns) {
     sky_dns_question_t question = {
             .name = domain,
             .name_len = sizeof(domain) -1,
-            .type = SKY_DNS_QUESTION_TYPE_A,
-            .clazz = SKY_DNS_QUESTION_CLAZZ_IN
+            .type = SKY_DNS_TYPE_A,
+            .clazz = SKY_DNS_CLAZZ_IN
     };
 
     sky_dns_packet_t packet = {
