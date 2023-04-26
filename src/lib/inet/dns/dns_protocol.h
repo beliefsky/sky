@@ -124,6 +124,10 @@ sky_u32_t sky_dns_encode_size(const sky_dns_packet_t *packet);
 
 sky_u32_t sky_dns_encode(const sky_dns_packet_t *packet, sky_uchar_t *buf);
 
+sky_bool_t sky_dns_decode_header(sky_dns_packet_t *packet, const sky_uchar_t *buf, sky_u32_t size);
+
+sky_bool_t sky_dns_decode_body(sky_dns_packet_t *packet, sky_uchar_t *buf, sky_u32_t size);
+
 
 #if defined(__cplusplus)
 } /* extern "C" { */
