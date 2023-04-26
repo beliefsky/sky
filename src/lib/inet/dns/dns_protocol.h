@@ -14,52 +14,52 @@ extern "C" {
 /**
  * IPV4地址
  */
-#define SKY_DNS_QUESTION_TYPE_A SKY_U16(1)
+#define SKY_DNS_TYPE_A SKY_U16(1)
 /**
  * 名字服务器
  */
-#define SKY_DNS_QUESTION_TYPE_NS SKY_U16(2)
+#define SKY_DNS_TYPE_NS SKY_U16(2)
 /**
  * 规范名称定义主机的正式名称的别名
  */
-#define SKY_DNS_QUESTION_TYPE_CNAME SKY_U16(5)
+#define SKY_DNS_TYPE_CNAME SKY_U16(5)
 /**
  * 开始授权标记一个区的开始
  */
-#define SKY_DNS_QUESTION_TYPE_SOA SKY_U16(6)
+#define SKY_DNS_TYPE_SOA SKY_U16(6)
 /**
  * 熟知服务定义主机提供的网络服务
  */
-#define SKY_DNS_QUESTION_TYPE_WKS SKY_U16(11)
+#define SKY_DNS_TYPE_WKS SKY_U16(11)
 /**
  * 指针把IP地址转化为域名
  */
-#define SKY_DNS_QUESTION_TYPE_PTR SKY_U16(12)
+#define SKY_DNS_TYPE_PTR SKY_U16(12)
 /**
  * 主机信息给出主机使用的硬件和操作系统的表述
  */
-#define SKY_DNS_QUESTION_TYPE_HINFO SKY_U16(13)
+#define SKY_DNS_TYPE_HINFO SKY_U16(13)
 /**
  * 邮件交换把邮件改变路由送到邮件服务器
  */
-#define SKY_DNS_QUESTION_TYPE_MX SKY_U16(15)
+#define SKY_DNS_TYPE_MX SKY_U16(15)
 /**
  * IPV6 地址
  */
-#define SKY_DNS_QUESTION_TYPE_AAAA SKY_U16(28)
+#define SKY_DNS_TYPE_AAAA SKY_U16(28)
 /**
  * 传送整个区的请求
  */
-#define SKY_DNS_QUESTION_TYPE_AXFR SKY_U16(252)
+#define SKY_DNS_TYPE_AXFR SKY_U16(252)
 /**
  * 对所有记录的请求
  */
-#define SKY_DNS_QUESTION_TYPE_ANY SKY_U16(255)
+#define SKY_DNS_TYPE_ANY SKY_U16(255)
 
 /**
  * Internet数据
  */
-#define SKY_DNS_QUESTION_CLAZZ_IN SKY_U16(1)
+#define SKY_DNS_CLAZZ_IN SKY_U16(1)
 
 
 typedef struct sky_dns_packet_s sky_dns_packet_t;
