@@ -82,7 +82,7 @@ void test(sky_dns_t *dns) {
     const sky_u32_t n = sky_dns_encode(&packet, tmp);
 
     for (sky_usize_t i = 0; i < n; ++i) {
-        printf("%x\t", tmp[i]);
+        printf("%d\t", tmp[i]);
     }
     printf("\n");
 
@@ -106,12 +106,12 @@ dns_read_process(sky_udp_t *udp) {
         if (n > 0) {
             data[n] = '\0';
             for (sky_isize_t i = 0; i < n; ++i) {
-                printf("%c  ", data[i]);
+                printf("%c\t", data[i]);
             }
             printf("\n");
 
             for (sky_isize_t i = 0; i < n; ++i) {
-                printf("%x\t", data[i]);
+                printf("%d\t", data[i]);
             }
             printf("\n");
 

@@ -66,8 +66,6 @@ typedef struct sky_dns_packet_s sky_dns_packet_t;
 typedef struct sky_dns_header_s sky_dns_header_t;
 typedef struct sky_dns_question_s sky_dns_question_t;
 typedef struct sky_dns_answer_s sky_dns_answer_t;
-typedef struct sky_dns_authority_s sky_dns_authority_t;
-typedef struct sky_dns_additional_s sky_dns_additional_t;
 
 
 struct sky_dns_header_s {
@@ -77,7 +75,7 @@ struct sky_dns_header_s {
      * |-- 1bit --|------ 4bit ------|-- 1bit --|-- 1bit --|-- 1bit --|
      * |--- QR ---|----- OPCODE -----|--- AA ---|--- TC ---|--- RD ---|
      * |-- 1bit --|----- 3bit -----|------------- 4bit ---------------|
-     * |--- RA ---|------- Z ------|------------- RCODE --------------|
+     * |--- RA ---|----- ZERO -----|------------- RCODE --------------|
      *
      * QR: 操作类型：0 查询报文，1 响应报文
      * OPCODE: 查询类型：0 标准查询，1反省查询，2服务器状态查询，3~15保留
@@ -85,7 +83,7 @@ struct sky_dns_header_s {
      * TC: 表示报文被截断，UDP传输是，应答总长度超过512byte,只返回报文的前512个字节内容
      * RD: 客户端希望域名解析方式：0迭代解析，1递归解析
      * RA: 域名解析服务器解析的方式：0迭代解析，1递归解析
-     * Z: 全部为0，保留未用
+     * ZERO: 全部为0，保留未用
      * RCODE: 相应类型：0无出错，1查询格式错，2服务器无效，3域名不存在，4查询没被执行，4查询被拒绝，6-16保留
      */
     sky_u16_t flags;
@@ -104,20 +102,21 @@ struct sky_dns_question_s {
 };
 
 struct sky_dns_answer_s {
-};
-
-struct sky_dns_authority_s {
-};
-
-struct sky_dns_additional_s {
+    sky_u16_t type;
+    sky_u16_t clazz;
+    sky_u16_t resource_len;
+    sky_u32_t ttl;
+    sky_u32_t name_len;
+    sky_uchar_t *name;
+    sky_uchar_t *resource;
 };
 
 struct sky_dns_packet_s {
     sky_dns_header_t header;
     sky_dns_question_t *questions;
     sky_dns_answer_t *answers;
-    sky_dns_authority_t *authorities;
-    sky_dns_additional_t *additional;
+    sky_dns_answer_t *authorities;
+    sky_dns_answer_t *additional;
 };
 
 sky_u32_t sky_dns_encode_size(const sky_dns_packet_t *packet);

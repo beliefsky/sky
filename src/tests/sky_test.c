@@ -13,10 +13,10 @@ main() {
 
     sky_event_loop_t *loop = sky_event_loop_create();
 
-    sky_uchar_t ip[4] = {8,8,8,8};
+    sky_uchar_t ip[4] = {8, 8, 8, 8};
     struct sockaddr_in v4_addr = {
             .sin_family = AF_INET,
-            .sin_addr.s_addr = *(sky_u32_t *)ip,
+            .sin_addr.s_addr = *(sky_u32_t *) ip,
             .sin_port = sky_htons(53)
     };
 
