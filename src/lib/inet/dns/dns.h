@@ -14,7 +14,7 @@ extern "C" {
 typedef struct sky_dns_s sky_dns_t;
 
 typedef struct {
-    sky_inet_addr_t *addr
+    sky_inet_addr_t *addr;
 } sky_dns_conf_t;
 
 sky_dns_t *sky_dns_create(sky_event_loop_t *loop, const sky_dns_conf_t *conf);
