@@ -135,7 +135,7 @@ sky_bool_t sky_dns_decode_body(sky_dns_packet_t *packet, sky_uchar_t *buf, sky_u
  */
 static sky_inline sky_u8_t
 sky_dns_flags_qr(sky_u16_t flags) {
-    return flags >> 15;
+    return (flags & SKY_U16(0x8000)) != 0;
 }
 
 /**
