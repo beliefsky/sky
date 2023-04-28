@@ -101,7 +101,7 @@ dns_read_process(sky_udp_t *udp) {
 
 
     for (;;) {
-        const sky_isize_t n = sky_udp_read(udp, &dns->remote, data, 1520);
+        const sky_isize_t n = sky_udp_read(udp, &dns->remote, data, 512);
 
         if (n > 0) {
             data[n] = '\0';
@@ -122,13 +122,24 @@ dns_read_process(sky_udp_t *udp) {
                 continue;
             }
             sky_log_info(
-                    "id: %d flags: %d qd: %d an: %d ns: %d ar: %d",
+                    "id: %d, flags: %d, qd: %d, an: %d, ns: %d, ar: %d",
                     packet.header.id,
                     packet.header.flags,
                     packet.header.qd_count,
                     packet.header.an_count,
                     packet.header.ns_count,
                     packet.header.ar_count
+            );
+
+            sky_log_info(
+                    "QR: %d OPCODE: %d AA: %d TC: %d RD: %d RA: %d RCODE: %d",
+                    sky_dns_flags_qr(packet.header.flags),
+                    sky_dns_flags_op_code(packet.header.flags),
+                    sky_dns_flags_aa(packet.header.flags),
+                    sky_dns_flags_tc(packet.header.flags),
+                    sky_dns_flags_rd(packet.header.flags),
+                    sky_dns_flags_ra(packet.header.flags),
+                    sky_dns_flags_r_code(packet.header.flags)
             );
 
             sky_dns_question_t qu[8];
