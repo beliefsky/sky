@@ -80,11 +80,11 @@ struct sky_dns_header_s {
      * QR: 操作类型：0 查询报文，1 响应报文
      * OPCODE: 查询类型：0 标准查询，1反省查询，2服务器状态查询，3~15保留
      * AA: 标识该域名解析服务器是授权回答该域的
-     * TC: 表示报文被截断，UDP传输是，应答总长度超过512byte,只返回报文的前512个字节内容
+     * TC: 表示报文被截断，UDP传输时，应答总长度超过512byte,只返回报文的前512个字节内容
      * RD: 客户端希望域名解析方式：0迭代解析，1递归解析
      * RA: 域名解析服务器解析的方式：0迭代解析，1递归解析
      * ZERO: 全部为0，保留未用
-     * RCODE: 相应类型：0无出错，1查询格式错，2服务器无效，3域名不存在，4查询没被执行，4查询被拒绝，6-16保留
+     * RCODE: 响应类型：0无出错，1查询格式错，2服务器无效，3域名不存在，4查询没被执行，4查询被拒绝，6-16保留
      */
     sky_u16_t flags;
 
@@ -127,6 +127,76 @@ sky_bool_t sky_dns_decode_header(sky_dns_packet_t *packet, const sky_uchar_t *bu
 
 sky_bool_t sky_dns_decode_body(sky_dns_packet_t *packet, sky_uchar_t *buf, sky_u32_t size);
 
+
+/**
+ * 操作类型
+ * @param flags header flags
+ * @return 0 查询报文，1 响应报文
+ */
+static sky_inline sky_u8_t
+sky_dns_flags_qr(sky_u16_t flags) {
+    return flags >> 15;
+}
+
+/**
+ * 查询类型
+ * @param flags header flags
+ * @return 0 标准查询，1反省查询，2服务器状态查询
+ */
+static sky_inline sky_u8_t
+sky_dns_flags_op_code(sky_u16_t flags) {
+    return (flags & SKY_U16(0x7800)) >> 11;
+}
+
+/**
+ * 标识该域名解析服务器是授权回答该域的
+ * @param flags header flags
+ * @return 该域名解析服务器是否授权回答该域的
+ */
+static sky_inline sky_bool_t
+sky_dns_flags_aa(sky_u16_t flags) {
+    return (flags & SKY_U16(0x400)) != 0;
+}
+
+/**
+ * 表示报文被截断，UDP传输时，应答总长度超过512byte,只返回报文的前512个字节内容
+ * @param flags header flags
+ * @return 是否截断
+ */
+static sky_inline sky_bool_t
+sky_dns_flags_tc(sky_u16_t flags) {
+    return (flags & SKY_U16(0x200)) != 0;
+}
+
+/**
+ * 客户端希望域名解析方式
+ * @param flags header flags
+ * @return 0迭代解析，1递归解析
+ */
+static sky_inline sky_u8_t
+sky_dns_flags_rd(sky_u16_t flags) {
+    return (flags & SKY_U16(0x100)) != 0;
+}
+
+/**
+ * 域名解析服务器解析的方式
+ * @param flags header flags
+ * @return 0迭代解析，1递归解析
+ */
+static sky_inline sky_u8_t
+sky_dns_flags_ra(sky_u16_t flags) {
+    return (flags & SKY_U16(0x80)) != 0;
+}
+
+/**
+ * 响应类型
+ * @param flags header flags
+ * @return 0无出错，1查询格式错，2服务器无效，3域名不存在，4查询没被执行，4查询被拒绝
+ */
+static sky_inline sky_u8_t
+sky_dns_flags_r_code(sky_u16_t flags) {
+    return flags & SKY_U16(0xF);
+}
 
 #if defined(__cplusplus)
 } /* extern "C" { */
