@@ -58,12 +58,6 @@ void test(sky_dns_t *dns) {
             {
                     .name = domain,
                     .name_len = sizeof(domain) - 1,
-                    .type = SKY_DNS_TYPE_A,
-                    .clazz = SKY_DNS_CLAZZ_IN
-            },
-            {
-                    .name = domain,
-                    .name_len = sizeof(domain) - 1,
                     .type = SKY_DNS_TYPE_AAAA,
                     .clazz = SKY_DNS_CLAZZ_IN
             }
@@ -103,26 +97,27 @@ dns_read_process(sky_udp_t *udp) {
     for (;;) {
         const sky_isize_t n = sky_udp_read(udp, &dns->remote, data, 512);
 
+        sky_log_warn("========== read size: %ld =============", n);
         if (n > 0) {
-            data[n] = '\0';
-            for (sky_isize_t i = 0; i < n; ++i) {
-                printf("%c\t", data[i]);
-            }
-            printf("\n");
-
-            for (sky_isize_t i = 0; i < n; ++i) {
-                printf("%d\t", data[i]);
-            }
-            printf("\n");
-
             sky_dns_packet_t packet;
             if (sky_unlikely(!sky_dns_decode_header(&packet, data, (sky_u32_t) n))) {
                 sky_log_warn("dns decode error");
-
                 continue;
             }
+            if (!sky_dns_flags_qr(packet.header.flags)) {
+                sky_log_info("这是请求类型, 暂时不支持");
+                continue;
+            }
+            {
+                const sky_u8_t r_code = sky_dns_flags_r_code(packet.header.flags);
+
+                if (sky_unlikely(r_code != 0)) {
+                    sky_log_warn("res error code: %d", r_code);
+                    continue;
+                }
+            }
             sky_log_info(
-                    "id: %d, flags: %d, qd: %d, an: %d, ns: %d, ar: %d",
+                    "header -> id: %d, flags: %d, qd: %d, an: %d, ns: %d, ar: %d",
                     packet.header.id,
                     packet.header.flags,
                     packet.header.qd_count,
@@ -132,7 +127,7 @@ dns_read_process(sky_udp_t *udp) {
             );
 
             sky_log_info(
-                    "QR: %d OPCODE: %d AA: %d TC: %d RD: %d RA: %d RCODE: %d",
+                    "header.flags -> QR: %d OPCODE: %d AA: %d TC: %d RD: %d RA: %d RCODE: %d",
                     sky_dns_flags_qr(packet.header.flags),
                     sky_dns_flags_op_code(packet.header.flags),
                     sky_dns_flags_aa(packet.header.flags),
@@ -142,25 +137,22 @@ dns_read_process(sky_udp_t *udp) {
                     sky_dns_flags_r_code(packet.header.flags)
             );
 
-            sky_dns_question_t qu[8];
+            sky_dns_question_t qu[4];
+            sky_dns_answer_t an[12];
             packet.questions = qu;
+            packet.answers = an;
+            packet.authorities = an + 4;
+            packet.additional = an + 8;
 
-            if (sky_unlikely(!sky_dns_decode_body(&packet, data, (sky_u32_t)n))) {
+            if (sky_unlikely(!sky_dns_decode_body(&packet, data, (sky_u32_t) n))) {
                 sky_log_warn("dns decode error");
 
                 continue;
-            }
-            {
-                sky_dns_question_t *question = packet.questions;
-                for (sky_u16_t  i = packet.header.qd_count; i > 0; --i, ++question) {
-                    sky_log_info("(%u) %s %d %d", question->name_len, question->name, question->type, question->clazz);
-                }
             }
 
             continue;
         }
         if (sky_likely(!n)) {
-            sky_log_warn("========== wait =============");
             sky_udp_try_register(udp);
             break;
         }
