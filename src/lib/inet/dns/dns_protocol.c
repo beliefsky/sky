@@ -40,27 +40,14 @@ static void print_name(const sky_uchar_t *buf, sky_u8_t n);
 static void print_buf(const sky_uchar_t *buf, sky_u32_t n);
 
 
-sky_u32_t
-sky_dns_encode_size(const sky_dns_packet_t *packet) {
+sky_i32_t
+sky_dns_encode(const sky_dns_packet_t *packet, sky_uchar_t *buf, sky_u32_t size) {
     sky_u32_t n = 12;
-
     sky_u16_t i;
-    {
-        const sky_dns_question_t *question = packet->questions;
-        for (i = packet->header.qd_count; i > 0; --i, ++question) {
-            n += 5;
-            n += question->name_len;
-        }
+
+    if (sky_unlikely(size < 12)) {
+        return -1;
     }
-
-    return n;
-}
-
-sky_u32_t
-sky_dns_encode(const sky_dns_packet_t *packet, sky_uchar_t *buf) {
-    sky_u32_t n = 12;
-    sky_u16_t i;
-
     {
         const sky_dns_header_t *header = &packet->header;
         *(sky_u16_t *) buf = sky_htons(header->id);
@@ -99,7 +86,7 @@ sky_dns_encode(const sky_dns_packet_t *packet, sky_uchar_t *buf) {
     }
 
 
-    return n;
+    return (sky_i32_t) n;
 }
 
 sky_bool_t
@@ -213,13 +200,13 @@ decode_answer(
         if (sky_unlikely(size < 10)) {
             return false;
         }
-        a->type =  sky_htons(*(sky_u16_t *) buf);
+        a->type = sky_htons(*(sky_u16_t *) buf);
         sky_log_info("answer type: %d", a->type);
         buf += 2;
-        a->clazz =  sky_htons(*(sky_u16_t *) buf);
+        a->clazz = sky_htons(*(sky_u16_t *) buf);
         sky_log_info("answer clazz: %d", a->clazz);
         buf += 2;
-        a->ttl =  sky_htonl(*(sky_u32_t *) buf);
+        a->ttl = sky_htonl(*(sky_u32_t *) buf);
         sky_log_info("answer ttl: %u", a->ttl);
         buf += 4;
 
@@ -238,22 +225,30 @@ decode_answer(
         size -= resource_len;
 
         switch (a->type) {
-            case 1:
+            case SKY_DNS_TYPE_A:
+                if (sky_unlikely(resource_len != 4)) {
+                    return false;
+                }
                 sky_log_info("%d.%d.%d.%d", resource[0], resource[1], resource[2], resource[3]);
                 break;
-            case 5: {
+            case SKY_DNS_TYPE_CNAME: {
                 if (sky_unlikely(!decode_name(ref->start, &resource, &resource_len, ref->size) || resource_len)) {
                     return false;
                 }
                 break;
             }
+            case SKY_DNS_TYPE_AAAA: {
+                if (sky_unlikely(resource_len != 16)) {
+                    return false;
+                }
+                sky_u16_t *tm= (sky_u16_t *)resource;
+                for (int i = 0; i < 8; ++i) {
+                    printf("%x:", tm[i]);
+                }
+                printf("\n");
+                break;
+            }
             default: {
-                if (sky_unlikely(!decode_name(ref->start, &resource, &resource_len, ref->size) || !resource_len)) {
-                    return false;
-                }
-                if (sky_unlikely(!decode_name(ref->start, &resource, &resource_len, ref->size) || !resource_len)) {
-                    return false;
-                }
                 print_buf(resource, resource_len);
 
                 break;

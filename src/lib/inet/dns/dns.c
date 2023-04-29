@@ -52,36 +52,50 @@ sky_dns_destroy(sky_dns_t *dns) {
 void test(sky_dns_t *dns) {
     sky_uchar_t tmp[512];
 
-    sky_uchar_t domain[] = "\3www\5baidu\3com";
+    sky_uchar_t domain[] = {
+            3, 'w', 'w', 'w',
+            8, 'b', 'i', 'l', 'i', 'b', 'i', 'l', 'i',
+            3, 'c', 'o', 'm',
+            0
+    };
 
     sky_dns_question_t question[] = {
             {
                     .name = domain,
                     .name_len = sizeof(domain) - 1,
+                    .type = SKY_DNS_TYPE_A,
+                    .clazz = SKY_DNS_CLAZZ_IN
+            },
+            {
+                    .name = domain,
+                    .name_len = sizeof(domain) - 1,
                     .type = SKY_DNS_TYPE_AAAA,
                     .clazz = SKY_DNS_CLAZZ_IN
-            }
-
+            },
     };
 
     sky_dns_packet_t packet = {
             .header = {
-                    .id = 0,
-                    .flags = 2 << 8,
+                    .id = 99,
+                    .flags = 1 << 8,
                     .qd_count = 1
             },
             .questions = question
     };
 
-    const sky_u32_t n = sky_dns_encode(&packet, tmp);
+    const sky_i32_t n = sky_dns_encode(&packet, tmp, 512);
+    if (n < 0) {
+        return;
+    }
 
-    for (sky_usize_t i = 0; i < n; ++i) {
+    for (sky_i32_t i = 0; i < n; ++i) {
         printf("%d\t", tmp[i]);
     }
     printf("\n");
 
 
-    if (sky_unlikely(!sky_udp_write(&dns->udp, &dns->address, tmp, n))) {
+
+    if (sky_unlikely(!sky_udp_write(&dns->udp, &dns->address, tmp, (sky_u32_t)n))) {
         sky_log_error("write fail");
     }
 }
@@ -107,14 +121,6 @@ dns_read_process(sky_udp_t *udp) {
             if (!sky_dns_flags_qr(packet.header.flags)) {
                 sky_log_info("这是请求类型, 暂时不支持");
                 continue;
-            }
-            {
-                const sky_u8_t r_code = sky_dns_flags_r_code(packet.header.flags);
-
-                if (sky_unlikely(r_code != 0)) {
-                    sky_log_warn("res error code: %d", r_code);
-                    continue;
-                }
             }
             sky_log_info(
                     "header -> id: %d, flags: %d, qd: %d, an: %d, ns: %d, ar: %d",

@@ -78,7 +78,7 @@ struct sky_dns_header_s {
      * |--- RA ---|----- ZERO -----|------------- RCODE --------------|
      *
      * QR: 操作类型：0 查询报文，1 响应报文
-     * OPCODE: 查询类型：0 标准查询，1反省查询，2服务器状态查询，3~15保留
+     * OPCODE: 查询类型：0 标准查询，1反向查询，2服务器状态查询，3~15保留
      * AA: 标识该域名解析服务器是授权回答该域的
      * TC: 表示报文被截断，UDP传输时，应答总长度超过512byte,只返回报文的前512个字节内容
      * RD: 客户端希望域名解析方式：0迭代解析，1递归解析
@@ -119,9 +119,8 @@ struct sky_dns_packet_s {
     sky_dns_answer_t *additional;
 };
 
-sky_u32_t sky_dns_encode_size(const sky_dns_packet_t *packet);
 
-sky_u32_t sky_dns_encode(const sky_dns_packet_t *packet, sky_uchar_t *buf);
+sky_i32_t sky_dns_encode(const sky_dns_packet_t *packet, sky_uchar_t *buf, sky_u32_t size);
 
 sky_bool_t sky_dns_decode_header(sky_dns_packet_t *packet, const sky_uchar_t *buf, sky_u32_t size);
 
