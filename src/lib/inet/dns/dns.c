@@ -67,13 +67,13 @@ void test(sky_dns_t *dns) {
     sky_dns_question_t question[] = {
             {
                     .name = domain,
-                    .name_len = sizeof(domain) - 1,
+                    .name_len = sizeof(domain),
                     .type = SKY_DNS_TYPE_A,
                     .clazz = SKY_DNS_CLAZZ_IN
             },
             {
                     .name = domain,
-                    .name_len = sizeof(domain) - 1,
+                    .name_len = sizeof(domain),
                     .type = SKY_DNS_TYPE_AAAA,
                     .clazz = SKY_DNS_CLAZZ_IN
             },
@@ -129,6 +129,15 @@ dns_read_process(sky_udp_t *udp) {
                 sky_log_warn("dns decode error");
                 sky_pool_reset(dns->pool);
                 continue;
+            }
+
+            for (sky_u32_t i = 0; i < packet.header.an_count; ++i) {
+                sky_dns_answer_t *an = packet.answers + i;
+                sky_log_info("%d %d -> %d", an->type, an->clazz, an->name_len);
+                if (an->type == SKY_DNS_TYPE_A) {
+                    sky_uchar_t *a = (sky_uchar_t *) &an->resource.ipv4;
+                    sky_log_info("%d.%d.%d.%d", a[0], a[1], a[2], a[3]);
+                }
             }
 
             sky_pool_reset(dns->pool);

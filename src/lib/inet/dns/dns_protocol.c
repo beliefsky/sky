@@ -45,6 +45,21 @@ static sky_bool_t dns_name_is_ptr(sky_u8_t v);
 
 static sky_u16_t dns_name_ptr_offset(sky_u16_t v);
 
+sky_u32_t sky_dns_encode_size(const sky_dns_packet_t *packet) {
+    sky_u16_t i;
+    sky_u32_t n = 12;
+    {
+        const sky_dns_question_t *question = packet->questions;
+        for (i = packet->header.qd_count; i > 0; --i, ++question) {
+            n += question->name_len;
+            n += 4;
+        }
+    }
+
+
+    return n;
+}
+
 sky_i32_t
 sky_dns_encode(const sky_dns_packet_t *packet, sky_uchar_t *buf, sky_u32_t size) {
     sky_u32_t n = 12;
@@ -75,10 +90,8 @@ sky_dns_encode(const sky_dns_packet_t *packet, sky_uchar_t *buf, sky_u32_t size)
         const sky_dns_question_t *question = packet->questions;
         for (i = packet->header.qd_count; i > 0; --i, ++question) {
             sky_memcpy(buf, question->name, question->name_len);
-
             buf += question->name_len;
             n += question->name_len;
-            *buf++ = '\0';
 
             *(sky_u16_t *) buf = sky_htons(question->type);
             buf += 2;
@@ -86,7 +99,7 @@ sky_dns_encode(const sky_dns_packet_t *packet, sky_uchar_t *buf, sky_u32_t size)
             buf += 2;
 
 
-            n += 5;
+            n += 4;
         }
     }
 
