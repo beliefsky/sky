@@ -125,6 +125,7 @@ struct sky_dns_packet_s {
     sky_dns_answer_t *additional;
 };
 
+sky_u32_t sky_dns_encode_size(const sky_dns_packet_t *packet);
 
 sky_i32_t sky_dns_encode(const sky_dns_packet_t *packet, sky_uchar_t *buf, sky_u32_t size);
 
