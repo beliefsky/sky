@@ -6,6 +6,7 @@
 #define SKY_DNS_PROTOCOL_H
 
 #include "../../core/types.h"
+#include "../../core/palloc.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -108,7 +109,12 @@ struct sky_dns_answer_s {
     sky_u32_t ttl;
     sky_u32_t name_len;
     sky_uchar_t *name;
-    sky_uchar_t *resource;
+
+    union {
+        sky_u32_t ipv4;
+        sky_uchar_t *ipv6;
+        sky_uchar_t *name;
+    } resource;
 };
 
 struct sky_dns_packet_s {
@@ -124,7 +130,7 @@ sky_i32_t sky_dns_encode(const sky_dns_packet_t *packet, sky_uchar_t *buf, sky_u
 
 sky_bool_t sky_dns_decode_header(sky_dns_packet_t *packet, const sky_uchar_t *buf, sky_u32_t size);
 
-sky_bool_t sky_dns_decode_body(sky_dns_packet_t *packet, sky_uchar_t *buf, sky_u32_t size);
+sky_bool_t sky_dns_decode_body(sky_dns_packet_t *packet, sky_pool_t *pool, const sky_uchar_t *buf, sky_u32_t size);
 
 
 /**
