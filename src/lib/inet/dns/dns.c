@@ -6,7 +6,6 @@
 #include "../udp.h"
 #include "../../core/log.h"
 #include "../../core/memory.h"
-#include "../../core/palloc.h"
 #include "dns_protocol.h"
 
 #define DNS_BUF_SIZE 512
@@ -105,6 +104,7 @@ void test(sky_dns_t *dns) {
     }
 }
 
+
 static void
 dns_read_process(sky_udp_t *udp) {
 
@@ -124,41 +124,8 @@ dns_read_process(sky_udp_t *udp) {
                 sky_log_info("这是请求类型, 暂时不支持");
                 continue;
             }
-            sky_log_info(
-                    "header -> id: %d, flags: %d, qd: %d, an: %d, ns: %d, ar: %d",
-                    packet.header.id,
-                    packet.header.flags,
-                    packet.header.qd_count,
-                    packet.header.an_count,
-                    packet.header.ns_count,
-                    packet.header.ar_count
-            );
 
-            sky_log_info(
-                    "header.flags -> QR: %d OPCODE: %d AA: %d TC: %d RD: %d RA: %d RCODE: %d",
-                    sky_dns_flags_qr(packet.header.flags),
-                    sky_dns_flags_op_code(packet.header.flags),
-                    sky_dns_flags_aa(packet.header.flags),
-                    sky_dns_flags_tc(packet.header.flags),
-                    sky_dns_flags_rd(packet.header.flags),
-                    sky_dns_flags_ra(packet.header.flags),
-                    sky_dns_flags_r_code(packet.header.flags)
-            );
-
-            if (packet.header.qd_count > 0) {
-                packet.questions = sky_pnalloc(dns->pool, sizeof(sky_dns_answer_t) * packet.header.qd_count);
-            }
-            if (packet.header.an_count > 0) {
-                packet.answers = sky_pnalloc(dns->pool, sizeof(sky_dns_answer_t) * packet.header.an_count);
-            }
-            if (packet.header.ns_count > 0) {
-                packet.authorities = sky_pnalloc(dns->pool, sizeof(sky_dns_answer_t) * packet.header.ns_count);
-            }
-            if (packet.header.ar_count > 0) {
-                packet.authorities = sky_pnalloc(dns->pool, sizeof(sky_dns_answer_t) * packet.header.ar_count);
-            }
-
-            if (sky_unlikely(!sky_dns_decode_body(&packet, dns->buf, (sky_u32_t) n))) {
+            if (sky_unlikely(!sky_dns_decode_body(&packet, dns->pool, dns->buf, (sky_u32_t) n))) {
                 sky_log_warn("dns decode error");
                 sky_pool_reset(dns->pool);
                 continue;
