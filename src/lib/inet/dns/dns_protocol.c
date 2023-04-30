@@ -210,7 +210,10 @@ decode_question(
         buf += 2;
 
         size -= 4;
-    } while (--qn > 0);
+
+        ++q;
+        --qn;
+    } while (qn > 0);
 
     *ref->buf_ref = buf;
     *ref->size_ref = size;
@@ -302,7 +305,9 @@ decode_answer(
                 break;
             }
         }
-    } while (--an > 0);
+        ++a;
+        --an;
+    } while (an > 0);
 
     *ref->buf_ref = buf;
     *ref->size_ref = size;
