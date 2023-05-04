@@ -13,6 +13,9 @@
 extern "C" {
 #endif
 
+#define SKY_TCP_STATUS_OPEN     SKY_U32(0X1)
+#define SKY_TCP_STATUS_CONNECT  SKY_U32(0X2)
+
 typedef struct sky_tcp_ctx_s sky_tcp_ctx_t;
 typedef struct sky_tcp_s sky_tcp_t;
 
@@ -44,7 +47,7 @@ struct sky_tcp_s {
     sky_ev_t ev;
     sky_tcp_ctx_t *ctx;
     void *ex_data;
-    sky_bool_t closed: 1;
+    sky_u32_t status;
 };
 
 void sky_tcp_ctx_init(sky_tcp_ctx_t *ctx);
@@ -128,8 +131,13 @@ sky_tcp_register_cancel(sky_tcp_t *tcp) {
 }
 
 static sky_inline sky_bool_t
-sky_tcp_is_closed(const sky_tcp_t *tcp) {
-    return tcp->closed;
+sky_tcp_is_open(const sky_tcp_t *tcp) {
+    return (tcp->status & SKY_TCP_STATUS_OPEN) != 0;
+}
+
+static sky_inline sky_bool_t
+sky_tcp_is_connect(const sky_tcp_t *tcp) {
+    return (tcp->status & SKY_TCP_STATUS_CONNECT) != 0;
 }
 
 
