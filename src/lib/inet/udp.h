@@ -11,6 +11,8 @@
 extern "C" {
 #endif
 
+#define SKY_UDP_STATUS_OPEN     SKY_U32(0X1)
+
 typedef struct sky_udp_ctx_s sky_udp_ctx_t;
 typedef struct sky_udp_s sky_udp_t;
 
@@ -36,7 +38,7 @@ struct sky_udp_s {
     sky_ev_t ev;
     sky_udp_ctx_t *ctx;
     void *ex_data;
-    sky_bool_t closed: 1;
+    sky_u32_t status;
 };
 
 void sky_udp_ctx_init(sky_udp_ctx_t *ctx);
@@ -93,8 +95,8 @@ sky_udp_register_cancel(sky_udp_t *udp) {
 }
 
 static sky_inline sky_bool_t
-sky_udp_is_closed(const sky_udp_t *udp) {
-    return udp->closed;
+sky_tcp_is_open(const sky_udp_t *udp) {
+    return (udp->status & SKY_UDP_STATUS_OPEN) != 0;
 }
 
 #if defined(__cplusplus)
