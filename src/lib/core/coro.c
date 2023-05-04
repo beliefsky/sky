@@ -309,7 +309,12 @@ sky_coro_yield(sky_isize_t value) {
 
 void
 sky_coro_exit(sky_isize_t value) {
-    sky_coro_yield(value);
+    sky_coro_t *current = thread_switcher.current;
+    if (sky_likely(current)) {
+        coro_yield(current, value);
+    } else {
+        sky_log_error("coro not run");
+    }
     __builtin_unreachable();
 }
 
