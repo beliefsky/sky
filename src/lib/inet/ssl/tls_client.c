@@ -21,7 +21,7 @@ sky_tls_client_connect(sky_tcp_client_t *client) {
             sky_tcp_try_register(&client->tcp, SKY_EV_READ | SKY_EV_WRITE);
             sky_event_timeout_expired(client->loop, &client->timer, client->timeout);
             sky_coro_yield(SKY_CORO_MAY_RESUME);
-            if (sky_unlikely(sky_tcp_is_closed(&client->tcp))) {
+            if (sky_unlikely(!sky_tcp_is_open(&client->tcp))) {
                 return false;
             }
             continue;

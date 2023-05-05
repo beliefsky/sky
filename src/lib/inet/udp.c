@@ -39,13 +39,13 @@ void
 sky_udp_init(sky_udp_t *udp, sky_udp_ctx_t *ctx, sky_selector_t *s) {
     udp->ctx = ctx;
     udp->ex_data = null;
-    udp->closed = true;
+    udp->status = SKY_U32(0);
     sky_ev_init(&udp->ev, s, null, SKY_SOCKET_FD_NONE);
 }
 
 sky_bool_t
 sky_udp_open(sky_udp_t *udp, sky_i32_t domain) {
-    if (sky_unlikely(!sky_udp_is_closed(udp))) {
+    if (sky_unlikely(sky_tcp_is_open(udp))) {
         return false;
     }
 #ifdef SKY_HAVE_ACCEPT4
@@ -65,13 +65,16 @@ sky_udp_open(sky_udp_t *udp, sky_i32_t domain) {
 #endif
 
     udp->ev.fd = fd;
-    udp->closed = false;
+    udp->status |= SKY_UDP_STATUS_OPEN;
 
     return true;
 }
 
 sky_bool_t
 sky_udp_bind(sky_udp_t *udp, const sky_inet_addr_t *addr) {
+    if (sky_unlikely(!sky_tcp_is_open(udp))) {
+        return false;
+    }
     const sky_socket_t fd = sky_ev_get_fd(&udp->ev);
 
     return bind(fd, addr->addr, addr->size) == 0;
@@ -79,7 +82,7 @@ sky_udp_bind(sky_udp_t *udp, const sky_inet_addr_t *addr) {
 
 sky_isize_t
 sky_udp_read(sky_udp_t *udp, sky_inet_addr_t *addr, sky_uchar_t *data, sky_usize_t size) {
-    if (sky_unlikely(sky_ev_error(&udp->ev) || sky_udp_is_closed(udp))) {
+    if (sky_unlikely(sky_ev_error(&udp->ev) || !sky_tcp_is_open(udp))) {
         return -1;
     }
 
@@ -104,7 +107,7 @@ sky_udp_read(sky_udp_t *udp, sky_inet_addr_t *addr, sky_uchar_t *data, sky_usize
 
 sky_bool_t
 sky_udp_write(sky_udp_t *udp, const sky_inet_addr_t *addr, const sky_uchar_t *data, sky_usize_t size) {
-    if (sky_unlikely(sky_ev_error(&udp->ev) || sky_udp_is_closed(udp))) {
+    if (sky_unlikely(sky_ev_error(&udp->ev) || !sky_tcp_is_open(udp))) {
         return false;
     }
 
@@ -120,13 +123,13 @@ void
 sky_udp_close(sky_udp_t *udp) {
     const sky_socket_t fd = sky_ev_get_fd(&udp->ev);
 
-    if (sky_udp_is_closed(udp)) {
+    if (!sky_tcp_is_open(udp)) {
         return;
     }
 
     udp->ev.fd = SKY_SOCKET_FD_NONE;
-    udp->closed = true;
     udp->ctx->close(udp);
+    udp->status = SKY_U32(0);
     close(fd);
     sky_udp_register_cancel(udp);
 }

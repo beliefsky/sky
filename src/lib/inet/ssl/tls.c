@@ -59,7 +59,7 @@ sky_i8_t
 sky_tls_connect(sky_tcp_t *tls) {
     SSL *ssl = tls->ex_data;
 
-    if (sky_unlikely(!ssl)) {
+    if (sky_unlikely(!ssl || !sky_tcp_is_connect(tls))) {
         return -1;
     }
     const sky_i32_t r = SSL_connect(ssl);
@@ -81,7 +81,7 @@ sky_i8_t
 sky_tls_accept(sky_tcp_t *tls) {
     SSL *ssl = tls->ex_data;
 
-    if (sky_unlikely(!ssl)) {
+    if (sky_unlikely(!ssl || !sky_tcp_is_connect(tls))) {
         return -1;
     }
     const sky_i32_t r = SSL_accept(ssl);
