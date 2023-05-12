@@ -45,7 +45,7 @@ sky_udp_init(sky_udp_t *udp, sky_udp_ctx_t *ctx, sky_selector_t *s) {
 
 sky_bool_t
 sky_udp_open(sky_udp_t *udp, sky_i32_t domain) {
-    if (sky_unlikely(sky_tcp_is_open(udp))) {
+    if (sky_unlikely(sky_udp_is_open(udp))) {
         return false;
     }
 #ifdef SKY_HAVE_ACCEPT4
@@ -72,7 +72,7 @@ sky_udp_open(sky_udp_t *udp, sky_i32_t domain) {
 
 sky_bool_t
 sky_udp_bind(sky_udp_t *udp, const sky_inet_addr_t *addr) {
-    if (sky_unlikely(!sky_tcp_is_open(udp))) {
+    if (sky_unlikely(!sky_udp_is_open(udp))) {
         return false;
     }
     const sky_socket_t fd = sky_ev_get_fd(&udp->ev);
@@ -82,7 +82,7 @@ sky_udp_bind(sky_udp_t *udp, const sky_inet_addr_t *addr) {
 
 sky_isize_t
 sky_udp_read(sky_udp_t *udp, sky_inet_addr_t *addr, sky_uchar_t *data, sky_usize_t size) {
-    if (sky_unlikely(sky_ev_error(&udp->ev) || !sky_tcp_is_open(udp))) {
+    if (sky_unlikely(sky_ev_error(&udp->ev) || !sky_udp_is_open(udp))) {
         return -1;
     }
 
@@ -107,7 +107,7 @@ sky_udp_read(sky_udp_t *udp, sky_inet_addr_t *addr, sky_uchar_t *data, sky_usize
 
 sky_bool_t
 sky_udp_write(sky_udp_t *udp, const sky_inet_addr_t *addr, const sky_uchar_t *data, sky_usize_t size) {
-    if (sky_unlikely(sky_ev_error(&udp->ev) || !sky_tcp_is_open(udp))) {
+    if (sky_unlikely(sky_ev_error(&udp->ev) || !sky_udp_is_open(udp))) {
         return false;
     }
 
@@ -123,7 +123,7 @@ void
 sky_udp_close(sky_udp_t *udp) {
     const sky_socket_t fd = sky_ev_get_fd(&udp->ev);
 
-    if (!sky_tcp_is_open(udp)) {
+    if (!sky_udp_is_open(udp)) {
         return;
     }
 

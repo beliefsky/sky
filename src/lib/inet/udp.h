@@ -95,7 +95,7 @@ sky_udp_register_cancel(sky_udp_t *udp) {
 }
 
 static sky_inline sky_bool_t
-sky_tcp_is_open(const sky_udp_t *udp) {
+sky_udp_is_open(const sky_udp_t *udp) {
     return (udp->status & SKY_UDP_STATUS_OPEN) != 0;
 }
 
