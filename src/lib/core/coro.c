@@ -492,14 +492,16 @@ sky_coro_malloc(sky_coro_t *coro, sky_u32_t size) {
 
 static sky_inline sky_isize_t
 coro_resume(sky_coro_t *coro) {
-    coro->parent = thread_switcher.current;
-    thread_switcher.current = coro;
+    coro_switcher_t *switcher = &thread_switcher;
+
+    coro->parent = switcher->current;
+    switcher->current = coro;
     if (!coro->parent) {
-        coro_swapcontext(&thread_switcher.caller, &coro->context);
-        thread_switcher.current = null;
+        coro_swapcontext(&switcher->caller, &coro->context);
+        switcher->current = null;
     } else {
         coro_swapcontext(&coro->parent->context, &coro->context);
-        thread_switcher.current = coro->parent;
+        switcher->current = coro->parent;
     }
 
     return coro->yield_value;
