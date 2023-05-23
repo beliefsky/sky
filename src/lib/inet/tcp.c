@@ -389,8 +389,11 @@ tcp_sendfile(
     sky_isize_t result = 0;
 
     if (head_size) {
-        result = tcp_write(tcp, head, head_size);
-        if (!result) {
+        result = send(sky_ev_get_fd(&tcp->ev), head, head_size, MSG_NOSIGNAL | MSG_MORE);
+        if (result < 0) {
+            return errno == EAGAIN ? 0 : -1;
+        }
+        if ((sky_usize_t) result < head_size) {
             return result;
         }
     }
