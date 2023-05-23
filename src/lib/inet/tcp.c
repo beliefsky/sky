@@ -357,7 +357,7 @@ tcp_close(sky_tcp_t *tcp) {
 
 static sky_isize_t
 tcp_read(sky_tcp_t *tcp, sky_uchar_t *data, sky_usize_t size) {
-    const sky_isize_t n = recv(sky_ev_get_fd(&tcp->ev), data, size, MSG_NOSIGNAL);
+    const sky_isize_t n = recv(sky_ev_get_fd(&tcp->ev), data, size, 0);
     if (n < 0) {
         return errno == EAGAIN ? 0 : -1;
     }
