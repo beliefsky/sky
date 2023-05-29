@@ -32,44 +32,57 @@ set(SOURCES
         core/json.c
         core/timer_wheel.c
         core/process.c
-        safe/spsc_queue.c
-        safe/mpsc_queue.c
-        safe/mpmc_queue.c
-        safe/mpsc_ring_buf.c
+#        safe/spsc_queue.c
+#        safe/mpsc_queue.c
+#        safe/mpmc_queue.c
+#        safe/mpsc_ring_buf.c
         fs/file.c
-        event/event_loop_common.c
-        net/un_inet.c
-        net/inet.c
-        net/tcp.c
-        net/tcp_server.c
-        net/tcp_pool.c
-        net/tcp_client.c
-        net/tcp_listener.c
-        net/tls/tls.c
-        net/postgresql/pgsql_pool.c
-        net/redis/redis_pool.c
-        net/http/http_request.c
-        net/http/http_response.c
-        net/http/http_parse.c
-        net/http/http_client.c
-        net/http/http_server.c
-        net/http/http_url.c
-        net/http/module/http_module_file.c
-        net/http/module/http_module_dispatcher.c
-        net/http/module/http_module_websocket.c
-        net/mqtt/mqtt_io_wrappers.c
-        net/mqtt/mqtt_protocol.c
-        net/mqtt/mqtt_subs.c
-        net/mqtt/mqtt_request.c
-        net/mqtt/mqtt_response.c
-        net/mqtt/mqtt_server.c
-        net/mqtt/mqtt_client.c
+        event/event_loop.c
+        inet/inet.c
+        inet/tcp.c
+        inet/tcp_pool.c
+        inet/tcp_listener.c
+        inet/tcp_client.c
+        inet/udp.c
+        inet/postgresql/pgsql_pool.c
+        inet/redis/redis_pool.c
+        inet/http/http_server.c
+        inet/http/http_request.c
+        inet/http/http_parse.c
+        inet/http/http_response.c
+        inet/http/module/http_module_file.c
+        inet/http/module/http_module_dispatcher.c
+        inet/http/http_client.c
+        inet/http/http_url.c
+        inet/dns/dns.c
+        inet/dns/dns_protocol.c
+        inet/mqtt/mqtt_io_wrappers.c
+        inet/mqtt/mqtt_protocol.c
+        inet/mqtt/mqtt_subs.c
+        inet/mqtt/mqtt_request.c
+        inet/mqtt/mqtt_response.c
+        inet/mqtt/mqtt_server.c
+        inet/mqtt/mqtt_client.c
         )
 
 if (SKY_HAVE_EPOLL)
-    set(SOURCES ${SOURCES} event/event_loop_epoll.c)
+    set(SOURCES
+            ${SOURCES}
+            event/selector_epoll.c
+            )
 elseif (SKY_HAVE_KQUEUE)
-    set(SOURCES ${SOURCES} event/event_loop_kqueue.c)
+    set(SOURCES
+            ${SOURCES}
+            event/selector_kqueue.c
+            )
+endif ()
+
+if (SKY_HAVE_SSL)
+    set(SOURCES
+            ${SOURCES}
+            inet/ssl/tls.c
+            inet/ssl/tls_client.c
+            )
 endif ()
 
 
@@ -191,61 +204,57 @@ install(FILES
         core/json.h
         core/timer_wheel.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/core")
-install(FILES
-        safe/atomic.h
-        safe/mpmc_queue.h
-        safe/mpsc_queue.h
-        safe/spsc_queue.h
-        safe/mpsc_ring_buf.h
-        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/safe")
+#install(FILES
+#        safe/atomic.h
+#        safe/mpmc_queue.h
+#        safe/mpsc_queue.h
+#        safe/spsc_queue.h
+#        safe/mpsc_ring_buf.h
+#        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/safe")
 
 install(FILES
         fs/file.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/fs")
 
 install(FILES
+        event/selector.h
         event/event_loop.h
         DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/event")
 install(FILES
-        net/un_inet.h
-        net/inet.h
-        net/tcp.h
-        net/tcp_server.h
-        net/tcp_pool.h
-        net/tcp_client.h
-        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net")
+        inet/inet.h
+        inet/udp.h
+        inet/tcp.h
+        inet/tcp_pool.h
+        inet/tcp_client.h
+        inet/tcp_listener.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/inet")
+
+if (SKY_HAVE_SSL)
+    install(FILES
+            inet/ssl/tls.h
+            inet/ssl/tls_client.h
+            DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/inet/ssl")
+endif ()
+
 install(FILES
-        net/tls/tls.h
-        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/tls")
+        inet/postgresql/pgsql_pool.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/inet/postgresql")
 install(FILES
-        net/postgresql/pgsql_pool.h
-        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/postgresql")
+        inet/redis/redis_pool.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/inet/redis")
 install(FILES
-        net/redis/redis_pool.h
-        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/redis")
+        inet/http/http_url.h
+        inet/http/http_parse.h
+        inet/http/http_request.h
+        inet/http/http_response.h
+        inet/http/http_server.h
+        inet/http/http_client.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/inet/http")
 install(FILES
-        net/http/http_url.h
-        net/http/http_parse.h
-        net/http/http_request.h
-        net/http/http_response.h
-        net/http/http_client.h
-        net/http/http_server.h
-        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/http")
+        inet/http/module/http_module_dispatcher.h
+        inet/http/module/http_module_file.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/inet/http/module")
 install(FILES
-        net/http/module/http_module_dispatcher.h
-        net/http/module/http_module_file.h
-        net/http/module/http_module_websocket.h
-        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/http/module")
-install(FILES
-        net/http/extend/http_extend_pgsql_pool.h
-        net/http/extend/http_extend_redis_pool.h
-        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/http/extend")
-install(FILES
-        net/mqtt/mqtt_io_wrappers.h
-        net/mqtt/mqtt_protocol.h
-        net/mqtt/mqtt_request.h
-        net/mqtt/mqtt_response.h
-        net/mqtt/mqtt_subs.h
-        net/mqtt/mqtt_server.h
-        net/mqtt/mqtt_client.h
-        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/net/mqtt")
+        inet/http/extend/http_extend_pgsql_pool.h
+        inet/http/extend/http_extend_redis_pool.h
+        DESTINATION "${CMAKE_INSTALL_FULL_INCLUDEDIR}/sky/inet/http/extend")

@@ -1,33 +1,39 @@
 //
 // Created by weijing on 18-2-8.
 //
-#include <core/types.h>
-#include <core/log.h>
-#include <core/process.h>
 #include <event/event_loop.h>
-
-
-static void test(void *data) {
-    sky_event_loop_t *ev_loop = sky_event_loop_create();
-    sky_event_loop_run(ev_loop);
-    sky_event_loop_destroy(ev_loop);
-}
+#include <core/log.h>
+#include <netinet/in.h>
+#include <inet/dns/dns.h>
 
 int
 main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
+    sky_event_loop_t *loop = sky_event_loop_create();
 
-    sky_i32_t pid = sky_process_fork();
-    if (pid > 0) {
-        sky_process_bind_cpu(0);
-        test(null);
-    } else if (pid == 0) {
-        sky_process_bind_cpu(1);
-        test(null);
-    }
+    sky_uchar_t ip[4] = {8, 8, 8, 8};
+    struct sockaddr_in v4_addr = {
+            .sin_family = AF_INET,
+            .sin_addr.s_addr = *(sky_u32_t *) ip,
+            .sin_port = sky_htons(53)
+    };
 
+    sky_inet_addr_t address;
+    sky_inet_addr_set(&address, &v4_addr, sizeof(v4_addr));
+
+    const sky_dns_conf_t conf = {
+            .addr = &address
+    };
+
+    sky_dns_t *dns = sky_dns_create(loop, &conf);
+
+    test(dns);
+
+    sky_event_loop_run(loop);
+    sky_dns_destroy(dns);
+    sky_event_loop_destroy(loop);
 
     return 0;
 }

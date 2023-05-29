@@ -80,6 +80,8 @@ __extension__ typedef __int128 sky_i128_t;
 __extension__ typedef unsigned __int128 sky_u128_t;
 #endif
 
+#define sky_thread __thread
+
 #ifdef SKY_HAVE_BUILTIN_BSWAP
 #define sky_swap_u16(_ll) __builtin_bswap16(_ll)
 #define sky_swap_u32(_ll) __builtin_bswap32(_ll)
@@ -115,8 +117,8 @@ __extension__ typedef unsigned __int128 sky_u128_t;
 
 #define sky_abs(_v)         (((_v) < 0) ? -(_v) : v)
 
-#define sky_max(_v1, _v2)   ((_v1) ^ (((_v1) ^ (_v2)) & -((_v1) < (_v2))))
-#define sky_min(_v1, _v2)   ((_v2) ^ (((_v1) ^ (_v2)) & -((_v1) < (_v2))))
+#define sky_max(_v1, _v2)   ((_v1) > (_v2) ? (_v1) : (_v2))
+#define sky_min(_v1, _v2)   ((_v1) > (_v2) ? (_v2) : (_v1))
 #define sky_swap(_a, _b)    (((_a) ^ (_b)) && ((_b) ^= (_a) ^= (_b), (_a) ^= (_b)))
 #define sky_two_avg(_a, _b) (((_a) & (_b)) + (((_a) ^ (_b)) >> 1))
 

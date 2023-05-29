@@ -4,10 +4,10 @@
 #include <netinet/in.h>
 #include <event/event_loop.h>
 #include <core/log.h>
-#include <net/mqtt/mqtt_server.h>
+#include <inet/mqtt/mqtt_server.h>
 #include <core/memory.h>
 
-static void create_server(sky_event_loop_t *ev_loop, sky_coro_switcher_t *switcher);
+static void create_server(sky_event_loop_t *ev_loop);
 
 int
 main() {
@@ -15,26 +15,27 @@ main() {
     setvbuf(stderr, null, _IOLBF, 0);
 
     sky_event_loop_t *ev_loop = sky_event_loop_create();
-    sky_coro_switcher_t *switcher = sky_malloc(sky_coro_switcher_size());
-    create_server(ev_loop, switcher);
+    create_server(ev_loop);
     sky_event_loop_run(ev_loop);
     sky_event_loop_destroy(ev_loop);
-
-    sky_free(switcher);
 
     return 0;
 }
 
 static void
-create_server(sky_event_loop_t *ev_loop, sky_coro_switcher_t *switcher) {
-    sky_mqtt_server_t *server = sky_mqtt_server_create(ev_loop, switcher);
+create_server(sky_event_loop_t *ev_loop) {
+    sky_mqtt_server_t *server = sky_mqtt_server_create(ev_loop);
 
     struct sockaddr_in v4_address = {
             .sin_family = AF_INET,
             .sin_addr.s_addr = INADDR_ANY,
             .sin_port = sky_htons(1883)
     };
-    sky_mqtt_server_bind(server, (sky_inet_addr_t *) &v4_address, sizeof(v4_address));
+    sky_inet_addr_t address;
+    sky_inet_addr_set(&address, &v4_address, sizeof(struct sockaddr_in));
+
+
+    sky_mqtt_server_bind(server, &address);
 
     struct sockaddr_in6 v6_address = {
             .sin6_family = AF_INET6,
@@ -42,5 +43,8 @@ create_server(sky_event_loop_t *ev_loop, sky_coro_switcher_t *switcher) {
             .sin6_port = sky_htons(1883)
     };
 
-    sky_mqtt_server_bind(server, (sky_inet_addr_t *) &v6_address, sizeof(v6_address));
+    sky_inet_addr_set(&address, &v6_address, sizeof(struct sockaddr_in6));
+
+
+    sky_mqtt_server_bind(server, &address);
 }
