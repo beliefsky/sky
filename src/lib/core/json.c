@@ -138,7 +138,7 @@
 #define CHAR_ENC_CPY_4  8 /* 4-byte UTF-8, copy. */
 #define CHAR_ENC_ESC_4  9 /* 4-byte UTF-8, escaped as '\uXXXX\uXXXX'. */
 
-#define repeat16(x) do { x x x x x x x x x x x x x x x x } while(0)
+#define repeat16(x) { x x x x x x x x x x x x x x x x }
 
 #define repeat4_incr(x)  { x(0) x(1) x(2) x(3) }
 #define repeat16_incr(x) { x(0) x(1) x(2) x(3) x(4) x(5) x(6) x(7) \
