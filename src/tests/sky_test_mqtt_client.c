@@ -5,7 +5,6 @@
 #include <stdio.h>
 #include <netinet/in.h>
 #include <core/log.h>
-#include <core/memory.h>
 
 static void
 mqtt_connected_cb(sky_mqtt_client_t *client) {
@@ -16,11 +15,7 @@ mqtt_connected_cb(sky_mqtt_client_t *client) {
 
     sky_log_info("connected");
 
-    sky_mqtt_client_writer_t writer;
-
-    sky_mqtt_client_bind(client, &writer, sky_mqtt_client_event(client), sky_mqtt_client_coro(client));
-    sky_mqtt_client_sub(&writer, &topic, 1);
-    sky_mqtt_client_unbind(&writer);
+    sky_mqtt_client_sub(client, &topic, 1);
 }
 
 static void
@@ -30,7 +25,7 @@ mqtt_close_cb(sky_mqtt_client_t *client) {
 
 static void
 mqtt_msg_cb(sky_mqtt_client_t *client, sky_mqtt_head_t *head, sky_mqtt_publish_msg_t *msg) {
-    sky_log_info("sub msg");
+    sky_log_info("%s", msg->topic.data);
 }
 
 int
