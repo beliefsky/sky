@@ -95,6 +95,7 @@ sky_mqtt_client_create(sky_event_loop_t *loop, const sky_mqtt_client_conf_t *con
     client->timeout = 5;
     client->write_size = 0;
     client->head_copy = 0;
+    client->reconnect = conf->reconnect;
     client->is_ok = false;
 
     sky_inet_addr_set_ptr(&client->address, client + 1);
@@ -257,7 +258,7 @@ mqtt_close(sky_mqtt_client_t *client) {
     if (client->closed) {
         client->closed(client);
     }
-    if (client->connected) {
+    if (client->reconnect) {
         client->timer.cb = tcp_reconnect_timer_cb;
         sky_event_timeout_set(client->loop, &client->timer, 5);
     }
