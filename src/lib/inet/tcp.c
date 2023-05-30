@@ -83,7 +83,7 @@ sky_tcp_open(sky_tcp_t *tcp, sky_i32_t domain) {
     }
 #endif
 
-    tcp->ev.fd = fd;
+    sky_ev_rebind(&tcp->ev, fd);
     tcp->status |= SKY_TCP_STATUS_OPEN;
 
     return true;

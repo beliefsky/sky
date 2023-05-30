@@ -58,6 +58,12 @@ sky_ev_init(sky_ev_t *ev, sky_selector_t *s, sky_ev_cb_pt cb, sky_socket_t fd) {
 }
 
 static sky_inline void
+sky_ev_rebind(sky_ev_t *ev, sky_socket_t fd) {
+    ev->fd = fd;
+    ev->status |= SKY_EV_NO_ERR | SKY_EV_READ | SKY_EV_WRITE;
+}
+
+static sky_inline void
 sky_ev_reset_cb(sky_ev_t *ev, sky_ev_cb_pt cb) {
     ev->cb = cb;
 }

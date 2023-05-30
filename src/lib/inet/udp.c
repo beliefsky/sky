@@ -64,7 +64,7 @@ sky_udp_open(sky_udp_t *udp, sky_i32_t domain) {
     }
 #endif
 
-    udp->ev.fd = fd;
+    sky_ev_rebind(&udp->ev, fd);
     udp->status |= SKY_UDP_STATUS_OPEN;
 
     return true;
