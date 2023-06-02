@@ -57,16 +57,6 @@ sky_memcpy8(void *dist, const void *src) {
 }
 
 static sky_inline void
-sky_memcpy16(void *dist, const void *src) {
-#ifdef HAVE_INT_128
-    *((sky_u128_t *) dist) = *((sky_u128_t *) src);
-#else
-    sky_memcpy8(dist, src);
-    sky_memcpy8(((sky_uchar_t *)dist) + 8, ((sky_uchar_t *)src) + 8);
-#endif
-}
-
-static sky_inline void
 sky_free(void *ptr) {
     free(ptr);
 }
