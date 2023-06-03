@@ -1,5 +1,5 @@
 //
-// Created by weijing on 17-11-9.
+// Created by beliefsky on 2023/6/3.
 //
 
 #ifndef SKY_RBTREE_H
@@ -11,67 +11,85 @@
 extern "C" {
 #endif
 
-typedef struct sky_rbtree_node_s sky_rbtree_node_t;
+
+typedef struct sky_rb_tree_s sky_rb_tree_t;
+typedef struct sky_rb_node_s sky_rb_node_t;
+
+struct sky_rb_node_s {
+    sky_rb_node_t *parent;
+    sky_rb_node_t *left;
+    sky_rb_node_t *right;
+    sky_bool_t color;
+};
+
+struct sky_rb_tree_s {
+    sky_rb_node_t sentinel;
+    sky_rb_node_t *root;
+};
+
+sky_rb_node_t *sky_rb_tree_prev(sky_rb_tree_t *tree, sky_rb_node_t *node);
+
+sky_rb_node_t *sky_rb_tree_next(sky_rb_tree_t *tree, sky_rb_node_t *node);
+
+sky_rb_node_t *sky_rb_tree_first(sky_rb_tree_t *tree);
+
+sky_rb_node_t *sky_rb_tree_last(sky_rb_tree_t *tree);
+
+void sky_rb_tree_link(sky_rb_tree_t *tree, sky_rb_node_t *node, sky_rb_node_t *parent);
+
+void sky_rb_tree_del(sky_rb_tree_t *tree, sky_rb_node_t *node);
+
+static sky_inline void
+sky_rb_tree_init(sky_rb_tree_t *tree) {
+    tree->sentinel.color = false;
+    tree->root = &tree->sentinel;
+}
+
+static sky_inline sky_bool_t
+sky_rb_tree_is_empty(const sky_rb_tree_t *tree) {
+    return tree->root == &tree->sentinel;
+}
 
 /**
-  * 红黑树
-**/
 
-struct sky_rbtree_node_s {
-    sky_usize_t key;                /*无符号整形的关键字*/
-    sky_rbtree_node_t *left;              /*左子节点*/
-    sky_rbtree_node_t *right;             /*右子节点*/
-    sky_rbtree_node_t *parent;            /*父节点*/
-    sky_uchar_t color;              /*节点的颜色，0表示黑色，1表示红色*/
-};
-
-typedef struct sky_rbtree_s sky_rbtree_t;
-
-/*如果不希望出现具有相同key关键字的不同节点再向红黑树添加时出现覆盖原节点的情况就需要实现自有的ngx_rbtree_insert_bt方法*/
-typedef void (*sky_rbtree_insert_pt)(sky_rbtree_node_t *root, sky_rbtree_node_t *node, sky_rbtree_node_t *sentinel);
-
-struct sky_rbtree_s {
-    sky_rbtree_node_t *root;          /*指向树的根节点*/
-    sky_rbtree_node_t *sentinel;      /*指向NIL哨兵节点*/
-    /**
-     * 表示红黑树添加元素的函数指针，它决定在添加新节点时的行为究竟是替换还是新增;
-     * 红黑树内部插入函数用于将待插入的节点放在合适的NIL叶子节点处
-    **/
-
-    sky_rbtree_insert_pt insert;
-};
-
-
-#define sky_rbtree_init(tree, s, i)   \
-    sky_rbtree_sentinel_init(s);    \
-    (tree)->root = s;               \
-    (tree)->sentinel = s;           \
-    (tree)->insert = i
-
-void sky_rbtree_insert(sky_rbtree_t *tree, sky_rbtree_node_t *node);
-
-void sky_rbtree_delete(sky_rbtree_t *tree, sky_rbtree_node_t *node);
-
-void sky_rbtree_insert_value(sky_rbtree_node_t *root, sky_rbtree_node_t *node, sky_rbtree_node_t *sentinel);
-
-sky_rbtree_node_t *sky_rbtree_next(sky_rbtree_t *tree, sky_rbtree_node_t *node);
-
-
-#define sky_rbt_red(node)               ((node)->color = 1)
-#define sky_rbt_black(node)             ((node)->color = 0)
-#define sky_rbt_is_red(node)            ((node)->color)
-#define sky_rbt_is_black(node)          (!sky_rbt_is_red(node))
-#define sky_rbt_copy_color(n1, n2)      ((n1)->color = (n2)->color)
-/* a sentinel must be black */
-#define sky_rbtree_sentinel_init(node)  sky_rbt_black(node)
-
-static sky_inline sky_rbtree_node_t*
-sky_rbtree_min(sky_rbtree_node_t *node, sky_rbtree_node_t *sentinel) {
-    while (node->left != sentinel) {
-        node = node->left;
+static void
+rb_tree_insert(sky_rb_tree_t *tree, sky_rb_node_t *node) {
+    if (sky_rb_tree_is_empty(tree)) {
+        sky_rb_tree_link(tree, node, null);
+        return;
     }
-    return node;
+
+    sky_rb_node_t **p, *temp = tree->root;
+
+    for (;;) {
+        p = cmp(node, temp) < 0 ? &temp->left : &temp->right;
+        if (*p == &tree->sentinel) {
+            *p = node;
+            sky_rb_tree_link(tree, node, temp);
+            return;
+        }
+        temp = *p;
+    }
 }
+
+sky_rb_node_t *
+rb_tree_get(sky_rb_tree_t *tree, sky_u32_t key) {
+    sky_rb_node_t *node = tree->root;
+    sky_i32 r;
+
+    while (node != &tree->sentinel) {
+        r = cmp(node, key);
+        if (!r) {
+          return node;
+        }
+
+        node = r > 0 ? node->left : node->right;
+    }
+
+    return null;
+}
+
+**/
 
 #if defined(__cplusplus)
 } /* extern "C" { */
