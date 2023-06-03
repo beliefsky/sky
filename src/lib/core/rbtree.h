@@ -50,6 +50,14 @@ sky_rb_tree_is_empty(const sky_rb_tree_t *tree) {
     return tree->root == &tree->sentinel;
 }
 
+static sky_inline void
+sky_rb_node_copy(sky_rb_node_t *dst, const sky_rb_node_t *src) {
+    dst->parent = src->parent;
+    dst->left = src->left;
+    dst->right = src->right;
+    dst->color = src->color;
+}
+
 /**
 
 static void
