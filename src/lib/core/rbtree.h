@@ -62,7 +62,7 @@ rb_tree_insert(sky_rb_tree_t *tree, sky_rb_node_t *node) {
     sky_rb_node_t **p, *temp = tree->root;
 
     for (;;) {
-        p = cmp(node, temp) > 0 ? &temp->left : &temp->right;
+        p = cmp(node, temp) < 0 ? &temp->left : &temp->right;
         if (*p == &tree->sentinel) {
             *p = node;
             sky_rb_tree_link(tree, node, temp);
