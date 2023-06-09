@@ -34,6 +34,7 @@ struct sky_mqtt_client_s {
     sky_mqtt_status_pt connected;
     sky_mqtt_status_pt closed;
     sky_mqtt_msg_pt msg_handle;
+    void *data;
     sky_uchar_t head_tmp[8];
     sky_u32_t body_read_n;
     sky_u32_t write_size;
@@ -89,6 +90,7 @@ sky_mqtt_client_create(sky_event_loop_t *loop, const sky_mqtt_client_conf_t *con
     client->connected = conf->connected;
     client->closed = conf->closed;
     client->msg_handle = conf->msg_handle;
+    client->data = conf->data;
     sky_queue_init(&client->packet);
     client->current_packet = null;
     client->reader_pool = sky_pool_create(8192);
@@ -108,6 +110,11 @@ sky_mqtt_client_create(sky_event_loop_t *loop, const sky_mqtt_client_conf_t *con
     tcp_create_connection(client);
 
     return client;
+}
+
+void *
+sky_mqtt_client_get_data(sky_mqtt_client_t *client) {
+    return client->data;
 }
 
 sky_bool_t
