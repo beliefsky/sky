@@ -1,31 +1,94 @@
 //
-// Created by weijing on 17-11-9.
+// Created by beliefsky on 2023/6/3.
 //
 
 #include "rbtree.h"
 
-static void sky_rbtree_left_rotate(sky_rbtree_node_t **root, sky_rbtree_node_t *sentinel, sky_rbtree_node_t *node);
+#define sky_rbt_red(_node)               ((_node)->color = true)
+#define sky_rbt_black(_node)             ((_node)->color = false)
+#define sky_rbt_is_red(_node)            ((_node)->color)
+#define sky_rbt_is_black(_node)          (!sky_rbt_is_red(_node))
+#define sky_rbt_copy_color(_n1, _n2)      ((_n1)->color = (_n2)->color)
 
-static void sky_rbtree_right_rotate(sky_rbtree_node_t **root, sky_rbtree_node_t *sentinel, sky_rbtree_node_t *node);
+static sky_rb_node_t *sky_rb_tree_min(const sky_rb_tree_t *tree, sky_rb_node_t *node);
+
+static sky_rb_node_t *sky_rb_tree_max(const sky_rb_tree_t *tree, sky_rb_node_t *node);
+
+static void rb_tree_left_rotate(sky_rb_node_t **root, const sky_rb_node_t *sentinel, sky_rb_node_t *node);
+
+static void rb_tree_right_rotate(sky_rb_node_t **root, const sky_rb_node_t *sentinel, sky_rb_node_t *node);
+
+sky_rb_node_t *
+sky_rb_tree_prev(sky_rb_tree_t *tree, sky_rb_node_t *node) {
+    sky_rb_node_t *root, *parent;
+
+    if (node->left != &tree->sentinel) {
+        return sky_rb_tree_max(tree, node->left);
+    }
+    root = tree->root;
+    for (;;) {
+        parent = node->parent;
+        if (node == root) {
+            return null;
+        }
+        if (node == parent->right) {
+            return parent;
+        }
+        node = parent;
+    }
+}
+
+sky_rb_node_t *
+sky_rb_tree_next(sky_rb_tree_t *tree, sky_rb_node_t *node) {
+    sky_rb_node_t *root, *parent;
+
+    if (node->right != &tree->sentinel) {
+        return sky_rb_tree_min(tree, node->right);
+    }
+    root = tree->root;
+    for (;;) {
+        parent = node->parent;
+        if (node == root) {
+            return null;
+        }
+        if (node == parent->left) {
+            return parent;
+        }
+        node = parent;
+    }
+}
+
+sky_rb_node_t *
+sky_rb_tree_first(sky_rb_tree_t *tree) {
+    if (sky_rb_tree_is_empty(tree)) {
+        return null;
+    }
+    return sky_rb_tree_min(tree, tree->root);
+}
+
+sky_rb_node_t *
+sky_rb_tree_last(sky_rb_tree_t *tree) {
+    if (sky_rb_tree_is_empty(tree)) {
+        return null;
+    }
+    return sky_rb_tree_max(tree, tree->root);
+}
 
 void
-sky_rbtree_insert(sky_rbtree_t *tree, sky_rbtree_node_t *node) {
-    sky_rbtree_node_t **root, *temp, *sentinel;
+sky_rb_tree_link(sky_rb_tree_t *tree, sky_rb_node_t *node, sky_rb_node_t *parent) {
+    sky_rb_node_t *temp;
 
-    /* a binary tree insert */
-    root = &tree->root;
-    sentinel = tree->sentinel;
-    if (*root == sentinel) {
-        node->parent = null;
-        node->left = sentinel;
-        node->right = sentinel;
+    node->parent = parent;
+    node->left = &tree->sentinel;
+    node->right = &tree->sentinel;
+    if (!parent) {
         sky_rbt_black(node);
-        *root = node;
+        tree->root = node;
         return;
     }
-    tree->insert(*root, node, sentinel);
-    /* re-balance tree */
-    while (node != *root && sky_rbt_is_red(node->parent)) {
+    sky_rbt_red(node);
+
+    while (node != tree->root && sky_rbt_is_red(node->parent)) {
         if (node->parent == node->parent->parent->left) {
             temp = node->parent->parent->right;
             if (sky_rbt_is_red(temp)) {
@@ -36,11 +99,11 @@ sky_rbtree_insert(sky_rbtree_t *tree, sky_rbtree_node_t *node) {
             } else {
                 if (node == node->parent->right) {
                     node = node->parent;
-                    sky_rbtree_left_rotate(root, sentinel, node);
+                    rb_tree_left_rotate(&tree->root, &tree->sentinel, node);
                 }
                 sky_rbt_black(node->parent);
                 sky_rbt_red(node->parent->parent);
-                sky_rbtree_right_rotate(root, sentinel, node->parent->parent);
+                rb_tree_right_rotate(&tree->root, &tree->sentinel, node->parent->parent);
             }
         } else {
             temp = node->parent->parent->left;
@@ -52,25 +115,26 @@ sky_rbtree_insert(sky_rbtree_t *tree, sky_rbtree_node_t *node) {
             } else {
                 if (node == node->parent->left) {
                     node = node->parent;
-                    sky_rbtree_right_rotate(root, sentinel, node);
+                    rb_tree_right_rotate(&tree->root, &tree->sentinel, node);
                 }
                 sky_rbt_black(node->parent);
                 sky_rbt_red(node->parent->parent);
-                sky_rbtree_left_rotate(root, sentinel, node->parent->parent);
+                rb_tree_left_rotate(&tree->root, &tree->sentinel, node->parent->parent);
             }
         }
     }
-    sky_rbt_black(*root);
+    sky_rbt_black(tree->root);
 }
 
+
 void
-sky_rbtree_delete(sky_rbtree_t *tree, sky_rbtree_node_t *node) {
-    sky_uchar_t red;
-    sky_rbtree_node_t **root, *sentinel, *subst, *temp, *w;
+sky_rb_tree_del(sky_rb_tree_t *tree, sky_rb_node_t *node) {
+    sky_bool_t red;
+    sky_rb_node_t **root, *sentinel, *subst, *temp, *w;
 
     /* a binary tree delete */
     root = &tree->root;
-    sentinel = tree->sentinel;
+    sentinel = &tree->sentinel;
     if (node->left == sentinel) {
         temp = node->right;
         subst = node;
@@ -78,17 +142,15 @@ sky_rbtree_delete(sky_rbtree_t *tree, sky_rbtree_node_t *node) {
         temp = node->left;
         subst = node;
     } else {
-        subst = sky_rbtree_min(node->right, sentinel);
+        subst = sky_rb_tree_min(tree, node->right);
         temp = subst->right;
     }
     if (subst == *root) {
         *root = temp;
         sky_rbt_black(temp);
-        /* DEBUG stuff */
         node->left = null;
         node->right = null;
         node->parent = null;
-        node->key = 0;
         return;
     }
     red = sky_rbt_is_red(subst);
@@ -122,11 +184,9 @@ sky_rbtree_delete(sky_rbtree_t *tree, sky_rbtree_node_t *node) {
             subst->right->parent = subst;
         }
     }
-    /* DEBUG stuff */
     node->left = null;
     node->right = null;
     node->parent = null;
-    node->key = 0;
     if (red) {
         return;
     }
@@ -137,7 +197,7 @@ sky_rbtree_delete(sky_rbtree_t *tree, sky_rbtree_node_t *node) {
             if (sky_rbt_is_red(w)) {
                 sky_rbt_black(w);
                 sky_rbt_red(temp->parent);
-                sky_rbtree_left_rotate(root, sentinel, temp->parent);
+                rb_tree_left_rotate(root, sentinel, temp->parent);
                 w = temp->parent->right;
             }
             if (sky_rbt_is_black(w->left) && sky_rbt_is_black(w->right)) {
@@ -147,13 +207,13 @@ sky_rbtree_delete(sky_rbtree_t *tree, sky_rbtree_node_t *node) {
                 if (sky_rbt_is_black(w->right)) {
                     sky_rbt_black(w->left);
                     sky_rbt_red(w);
-                    sky_rbtree_right_rotate(root, sentinel, w);
+                    rb_tree_right_rotate(root, sentinel, w);
                     w = temp->parent->right;
                 }
                 sky_rbt_copy_color(w, temp->parent);
                 sky_rbt_black(temp->parent);
                 sky_rbt_black(w->right);
-                sky_rbtree_left_rotate(root, sentinel, temp->parent);
+                rb_tree_left_rotate(root, sentinel, temp->parent);
                 temp = *root;
             }
         } else {
@@ -161,7 +221,7 @@ sky_rbtree_delete(sky_rbtree_t *tree, sky_rbtree_node_t *node) {
             if (sky_rbt_is_red(w)) {
                 sky_rbt_black(w);
                 sky_rbt_red(temp->parent);
-                sky_rbtree_right_rotate(root, sentinel, temp->parent);
+                rb_tree_right_rotate(root, sentinel, temp->parent);
                 w = temp->parent->left;
             }
             if (sky_rbt_is_black(w->left) && sky_rbt_is_black(w->right)) {
@@ -171,13 +231,13 @@ sky_rbtree_delete(sky_rbtree_t *tree, sky_rbtree_node_t *node) {
                 if (sky_rbt_is_black(w->left)) {
                     sky_rbt_black(w->right);
                     sky_rbt_red(w);
-                    sky_rbtree_left_rotate(root, sentinel, w);
+                    rb_tree_left_rotate(root, sentinel, w);
                     w = temp->parent->left;
                 }
                 sky_rbt_copy_color(w, temp->parent);
                 sky_rbt_black(temp->parent);
                 sky_rbt_black(w->left);
-                sky_rbtree_right_rotate(root, sentinel, temp->parent);
+                rb_tree_right_rotate(root, sentinel, temp->parent);
                 temp = *root;
             }
         }
@@ -185,51 +245,30 @@ sky_rbtree_delete(sky_rbtree_t *tree, sky_rbtree_node_t *node) {
     sky_rbt_black(temp);
 }
 
-void
-sky_rbtree_insert_value(sky_rbtree_node_t *temp, sky_rbtree_node_t *node, sky_rbtree_node_t *sentinel) {
-    sky_rbtree_node_t **p;
-
-    for (;;) {
-        p = (node->key < temp->key) ? &temp->left : &temp->right;
-        if (*p == sentinel) {
-            break;
-        }
-        temp = *p;
-    }
-    *p = node;
-    node->parent = temp;
-    node->left = sentinel;
-    node->right = sentinel;
-    sky_rbt_red(node);
-}
-
-sky_rbtree_node_t*
-sky_rbtree_next(sky_rbtree_t *tree, sky_rbtree_node_t *node) {
-    sky_rbtree_node_t *root, *sentinel, *parent;
-
-    sentinel = tree->sentinel;
-    if (node->right != sentinel) {
-        return sky_rbtree_min(node->right, sentinel);
-    }
-    root = tree->root;
-    for (;;) {
-        parent = node->parent;
-        if (node == root) {
-            return null;
-        }
-        if (node == parent->left) {
-            return parent;
-        }
-        node = parent;
-    }
-}
 
 //=============================================================
-static sky_inline void
-sky_rbtree_left_rotate(sky_rbtree_node_t **root, sky_rbtree_node_t *sentinel, sky_rbtree_node_t *node) {
-    sky_rbtree_node_t *temp;
 
-    temp = node->right;
+static sky_inline sky_rb_node_t *
+sky_rb_tree_min(const sky_rb_tree_t *tree, sky_rb_node_t *node) {
+    while (node->left != &tree->sentinel) {
+        node = node->left;
+    }
+    return node;
+}
+
+static sky_inline sky_rb_node_t *
+sky_rb_tree_max(const sky_rb_tree_t *tree, sky_rb_node_t *node) {
+    while (node->right != &tree->sentinel) {
+        node = node->right;
+    }
+    return node;
+}
+
+
+static sky_inline void
+rb_tree_left_rotate(sky_rb_node_t **root, const sky_rb_node_t *sentinel, sky_rb_node_t *node) {
+    sky_rb_node_t *temp = node->right;
+
     node->right = temp->left;
     if (temp->left != sentinel) {
         temp->left->parent = node;
@@ -247,10 +286,9 @@ sky_rbtree_left_rotate(sky_rbtree_node_t **root, sky_rbtree_node_t *sentinel, sk
 }
 
 static sky_inline void
-sky_rbtree_right_rotate(sky_rbtree_node_t **root, sky_rbtree_node_t *sentinel, sky_rbtree_node_t *node) {
-    sky_rbtree_node_t *temp;
+rb_tree_right_rotate(sky_rb_node_t **root, const sky_rb_node_t *sentinel, sky_rb_node_t *node) {
+    sky_rb_node_t *temp = node->left;
 
-    temp = node->left;
     node->left = temp->right;
     if (temp->right != sentinel) {
         temp->right->parent = node;

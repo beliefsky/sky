@@ -311,7 +311,8 @@ decode_answer(
                     return false;
                 }
                 a->resource.ipv6 = sky_palloc(ref->pool, 16);
-                sky_memcpy16(a->resource.ipv6, resource);
+                sky_memcpy8(a->resource.ipv6, resource);
+                sky_memcpy8(a->resource.ipv6 + 8, resource + 8);
                 break;
             }
             default: {

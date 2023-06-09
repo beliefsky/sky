@@ -34,6 +34,7 @@ struct sky_mqtt_client_s {
     sky_mqtt_status_pt connected;
     sky_mqtt_status_pt closed;
     sky_mqtt_msg_pt msg_handle;
+    void *data;
     sky_uchar_t head_tmp[8];
     sky_u32_t body_read_n;
     sky_u32_t write_size;
@@ -89,12 +90,14 @@ sky_mqtt_client_create(sky_event_loop_t *loop, const sky_mqtt_client_conf_t *con
     client->connected = conf->connected;
     client->closed = conf->closed;
     client->msg_handle = conf->msg_handle;
+    client->data = conf->data;
     sky_queue_init(&client->packet);
     client->current_packet = null;
     client->reader_pool = sky_pool_create(8192);
     client->timeout = 5;
     client->write_size = 0;
     client->head_copy = 0;
+    client->reconnect = conf->reconnect;
     client->is_ok = false;
 
     sky_inet_addr_set_ptr(&client->address, client + 1);
@@ -109,18 +112,16 @@ sky_mqtt_client_create(sky_event_loop_t *loop, const sky_mqtt_client_conf_t *con
     return client;
 }
 
-
-sky_ev_t *
-sky_mqtt_client_event(sky_mqtt_client_t *client) {
-    return sky_tcp_ev(&client->tcp);
+void *
+sky_mqtt_client_get_data(sky_mqtt_client_t *client) {
+    return client->data;
 }
-
 
 sky_bool_t
 sky_mqtt_client_pub(
         sky_mqtt_client_t *client,
-        sky_str_t *topic,
-        sky_str_t *payload,
+        const sky_str_t *topic,
+        const sky_str_t *payload,
         sky_u8_t qos,
         sky_bool_t retain,
         sky_bool_t dup
@@ -142,7 +143,7 @@ sky_mqtt_client_pub(
 }
 
 sky_bool_t
-sky_mqtt_client_sub(sky_mqtt_client_t *client, sky_mqtt_topic_t *topic, sky_u32_t topic_n) {
+sky_mqtt_client_sub(sky_mqtt_client_t *client, const sky_mqtt_topic_t *topic, sky_u32_t topic_n) {
     if (!client->is_ok) {
         return false;
     }
@@ -157,7 +158,7 @@ sky_mqtt_client_sub(sky_mqtt_client_t *client, sky_mqtt_topic_t *topic, sky_u32_
 }
 
 sky_bool_t
-sky_mqtt_client_unsub(sky_mqtt_client_t *client, sky_mqtt_topic_t *topic, sky_u32_t topic_n) {
+sky_mqtt_client_unsub(sky_mqtt_client_t *client, const sky_mqtt_topic_t *topic, sky_u32_t topic_n) {
     if (!client->is_ok) {
         return false;
     }
@@ -257,7 +258,7 @@ mqtt_close(sky_mqtt_client_t *client) {
     if (client->closed) {
         client->closed(client);
     }
-    if (client->connected) {
+    if (client->reconnect) {
         client->timer.cb = tcp_reconnect_timer_cb;
         sky_event_timeout_set(client->loop, &client->timer, 5);
     }
