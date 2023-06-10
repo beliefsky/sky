@@ -48,6 +48,8 @@ sky_u8_t sky_i64_to_str(sky_i64_t data, sky_uchar_t *out);
 
 sky_u8_t sky_u64_to_str(sky_u64_t data, sky_uchar_t *out);
 
+void sky_u32_to_hex_padding(sky_u32_t data, sky_uchar_t *out, sky_bool_t lower_alpha);
+
 sky_u8_t sky_u32_to_hex_str(sky_u32_t data, sky_uchar_t *out, sky_bool_t lower_alpha);
 
 sky_u8_t sky_u64_to_hex_str(sky_u64_t data, sky_uchar_t *out, sky_bool_t lower_alpha);
