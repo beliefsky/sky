@@ -309,7 +309,6 @@ sky_inline sky_u8_t
 sky_u32_to_str(sky_u32_t data, sky_uchar_t *out) {
     const sky_u8_t len = sky_u32_check_str_count(data);
     fast_number_to_str(data, len, out);
-    *(out + len) = '\0';
 
     return len;
 }
@@ -328,15 +327,14 @@ sky_u64_to_str(sky_u64_t data, sky_uchar_t *out) {
     if (data < SKY_U32_MAX) {
         const sky_u8_t len = sky_u32_check_str_count((sky_u32_t) data);
         fast_number_to_str(data, len, out);
-        *(out + len) = '\0';
         return len;
     }
     if (data < 10000000000) {
         if (sky_likely(data < 9999999999)) {
             fast_number_to_str(data, 10, out);
-            *(out + 10) = '\0';
         } else {
-            sky_memcpy(out, "9999999999", 11);
+            sky_memcpy8(out, "99999999");
+            sky_memcpy2(out + 8, "99");
         }
         return 10;
     }
@@ -349,9 +347,9 @@ sky_u64_to_str(sky_u64_t data, sky_uchar_t *out) {
     data %= 10000000000;
     if (sky_likely(data < 9999999999)) {
         fast_number_to_str(data, 10, out);
-        *(out + 10) = '\0';
     } else {
-        sky_memcpy(out, "9999999999", 11);
+        sky_memcpy8(out, "99999999");
+        sky_memcpy2(out + 8, "99");
     }
 
 
@@ -383,7 +381,6 @@ sky_u8_t
 sky_u32_to_hex_str(sky_u32_t data, sky_uchar_t *out, sky_bool_t lower_alpha) {
     if (!data) {
         *out++ = '0';
-        *out = '\0';
         return 1;
     }
     sky_u32_to_hex_padding(data, out, lower_alpha);
@@ -391,7 +388,6 @@ sky_u32_to_hex_str(sky_u32_t data, sky_uchar_t *out, sky_bool_t lower_alpha) {
     sky_i32_t n = 32 - sky_clz_u32(data);
     n = (n >> 2) + ((n & 3) != 0);
     sky_memmove(out, out + (8 - n), (sky_usize_t) n);
-    out[n] = '\0';
 
     return (sky_u8_t) n;
 }
@@ -412,7 +408,6 @@ sky_u64_to_hex_str(sky_u64_t data, sky_uchar_t *out, sky_bool_t lower_alpha) {
     out += n;
     x = (sky_u32_t) (data & 0xFFFFFFFF);
     sky_u32_to_hex_padding(x, out, lower_alpha);
-    out[8] = '\0';
     n += 8;
 
     return (sky_u8_t) n;
