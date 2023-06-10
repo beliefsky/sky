@@ -50,14 +50,6 @@ sky_rb_tree_is_empty(const sky_rb_tree_t *tree) {
     return tree->root == &tree->sentinel;
 }
 
-static sky_inline void
-sky_rb_node_copy(sky_rb_node_t *dst, const sky_rb_node_t *src) {
-    dst->parent = src->parent;
-    dst->left = src->left;
-    dst->right = src->right;
-    dst->color = src->color;
-}
-
 /**
 
 static void
@@ -83,7 +75,7 @@ rb_tree_insert(sky_rb_tree_t *tree, sky_rb_node_t *node) {
 sky_rb_node_t *
 rb_tree_get(sky_rb_tree_t *tree, sky_u32_t key) {
     sky_rb_node_t *node = tree->root;
-    sky_i32 r;
+    sky_i32_t r;
 
     while (node != &tree->sentinel) {
         r = cmp(node, key);
