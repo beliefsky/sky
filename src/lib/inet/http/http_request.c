@@ -626,10 +626,8 @@ http_line_read(sky_tcp_t *tcp) {
         }
 
         if (sky_likely(!n)) {
-            sky_event_loop_t *loop = conn->server->ev_loop;
-
             sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
-            sky_event_timeout_expired(loop, &r->timer, conn->server->keep_alive);
+            sky_event_timeout_expired(conn->server->ev_loop, &r->timer, conn->server->keep_alive);
 
             return;
         }
