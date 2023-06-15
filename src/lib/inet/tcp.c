@@ -393,13 +393,9 @@ tcp_sendfile(
         if (result < 0) {
             return errno == EAGAIN ? 0 : -1;
         }
-        if ((sky_usize_t) result < head_size) {
+        if (!size || (sky_usize_t) result < head_size) {
             return result;
         }
-    }
-
-    if (!size) {
-        return result;
     }
 
     const sky_i64_t n = sendfile(sky_ev_get_fd(&tcp->ev), fs->fd, offset, size);
