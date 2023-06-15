@@ -150,7 +150,7 @@ sky_tcp_accept(sky_tcp_t *server, sky_tcp_t *client) {
     }
 #endif
 
-    client->ev.fd = fd;
+    sky_ev_rebind(&client->ev, fd);
     client->status |= SKY_TCP_STATUS_OPEN | SKY_TCP_STATUS_CONNECT;
 
     return 1;
@@ -393,7 +393,7 @@ tcp_sendfile(
         if (result < 0) {
             return errno == EAGAIN ? 0 : -1;
         }
-        if ((sky_usize_t) result < head_size) {
+        if (!size || (sky_usize_t) result < head_size) {
             return result;
         }
     }

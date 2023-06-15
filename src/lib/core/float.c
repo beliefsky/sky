@@ -143,7 +143,6 @@ sky_f64_to_str_opts(sky_f64_t data, sky_uchar_t *out, sky_u32_t opts) {
 
     if (sky_unlikely(exp_raw == (1 << 11) - 1)) {
         sky_memcpy4(out, "null");
-        out[4] = '\0';
         return 4;
     }
 
@@ -176,7 +175,6 @@ sky_f64_to_str_opts(sky_f64_t data, sky_uchar_t *out, sky_u32_t opts) {
 
                 i = sky_u64_to_str(sig_dec, out);
                 i = f64_encode_trim(out, i);
-                out[i] = '\0';
 
                 return i + offset;
             }
@@ -189,13 +187,11 @@ sky_f64_to_str_opts(sky_f64_t data, sky_uchar_t *out, sky_u32_t opts) {
             i = f64_encode_trim(out, i);
             out += dot_pos;
             if (dot_pos >= i) {
-                *out = '\0';
                 return (sky_u8_t) dot_pos + sign;
             }
             const sky_u8_t j = (sky_u8_t) (i - dot_pos);
             sky_memmove(out + 1, out, j);
             *out = '.';
-            out[j + 1] = '\0';
 
             return i + sign + 1;
         }

@@ -40,9 +40,6 @@ sky_base64_decode(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t len) {
 #else
     const sky_usize_t size = chromium_base64_decode(dst, src, len);
 #endif
-    if (sky_likely(size != SKY_USIZE_MAX)) {
-        *(dst + size) = '\0';
-    }
 
     return size;
 }
@@ -173,7 +170,6 @@ chromium_base64_encode(sky_uchar_t *dest, const sky_uchar_t *str, sky_usize_t le
             *p++ = e2[(t2 & 0x0F) << 2];
             *p++ = '=';
     }
-    *p = '\0';
 
     return (sky_usize_t) (p - dest);
 }

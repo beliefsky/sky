@@ -12,8 +12,6 @@ static sky_u64_t num_3_4_str_pre(sky_u64_t x);
 
 static sky_u64_t num_5_8_str_pre(sky_u64_t x);
 
-static void u32_to_hex_str_padding(sky_u32_t data, sky_uchar_t *out, sky_bool_t lower_alpha);
-
 
 sky_inline sky_bool_t
 sky_str_len_to_i8(const sky_uchar_t *in, sky_usize_t in_len, sky_i8_t *out) {
@@ -311,7 +309,6 @@ sky_inline sky_u8_t
 sky_u32_to_str(sky_u32_t data, sky_uchar_t *out) {
     const sky_u8_t len = sky_u32_check_str_count(data);
     fast_number_to_str(data, len, out);
-    *(out + len) = '\0';
 
     return len;
 }
@@ -330,15 +327,14 @@ sky_u64_to_str(sky_u64_t data, sky_uchar_t *out) {
     if (data < SKY_U32_MAX) {
         const sky_u8_t len = sky_u32_check_str_count((sky_u32_t) data);
         fast_number_to_str(data, len, out);
-        *(out + len) = '\0';
         return len;
     }
     if (data < 10000000000) {
         if (sky_likely(data < 9999999999)) {
             fast_number_to_str(data, 10, out);
-            *(out + 10) = '\0';
         } else {
-            sky_memcpy(out, "9999999999", 11);
+            sky_memcpy8(out, "99999999");
+            sky_memcpy2(out + 8, "99");
         }
         return 10;
     }
@@ -351,9 +347,9 @@ sky_u64_to_str(sky_u64_t data, sky_uchar_t *out) {
     data %= 10000000000;
     if (sky_likely(data < 9999999999)) {
         fast_number_to_str(data, 10, out);
-        *(out + 10) = '\0';
     } else {
-        sky_memcpy(out, "9999999999", 11);
+        sky_memcpy8(out, "99999999");
+        sky_memcpy2(out + 8, "99");
     }
 
 
@@ -361,19 +357,37 @@ sky_u64_to_str(sky_u64_t data, sky_uchar_t *out) {
 
 }
 
+sky_inline void
+sky_u32_to_hex_padding(sky_u32_t data, sky_uchar_t *out, sky_bool_t lower_alpha) {
+    sky_u64_t x = data;
+    x = ((x & 0xFFFF) << 32) | ((x & 0xFFFF0000) >> 16);
+    x = ((x & 0x0000FF000000FF00) >> 8) | (x & 0x000000FF000000FF) << 16;
+    x = ((x & 0x00F000F000F000F0) >> 4) | (x & 0x000F000F000F000F) << 8;
+
+    const sky_u64_t mask = ((x + 0x0606060606060606) >> 4) & 0x0101010101010101;
+
+    x |= 0x3030303030303030;
+
+    const sky_u8_t table[] = {
+            0x07,
+            0x27
+    };
+    x += table[lower_alpha] * mask;
+
+    sky_memcpy8(out, &x);
+}
+
 sky_u8_t
 sky_u32_to_hex_str(sky_u32_t data, sky_uchar_t *out, sky_bool_t lower_alpha) {
     if (!data) {
         *out++ = '0';
-        *out = '\0';
         return 1;
     }
-    u32_to_hex_str_padding(data, out, lower_alpha);
+    sky_u32_to_hex_padding(data, out, lower_alpha);
 
     sky_i32_t n = 32 - sky_clz_u32(data);
     n = (n >> 2) + ((n & 3) != 0);
     sky_memmove(out, out + (8 - n), (sky_usize_t) n);
-    out[n] = '\0';
 
     return (sky_u8_t) n;
 }
@@ -386,15 +400,14 @@ sky_u64_to_hex_str(sky_u64_t data, sky_uchar_t *out, sky_bool_t lower_alpha) {
         x = (sky_u32_t) (data & 0xFFFFFFFF);
         return sky_u32_to_hex_str(x, out, lower_alpha);
     }
-    u32_to_hex_str_padding(x, out, lower_alpha);
+    sky_u32_to_hex_padding(x, out, lower_alpha);
     sky_i32_t n = 32 - sky_clz_u32(x);
     n = (n >> 2) + ((n & 3) != 0);
     sky_memmove(out, out + (8 - n), (sky_usize_t) n);
 
     out += n;
     x = (sky_u32_t) (data & 0xFFFFFFFF);
-    u32_to_hex_str_padding(x, out, lower_alpha);
-    out[8] = '\0';
+    sky_u32_to_hex_padding(x, out, lower_alpha);
     n += 8;
 
     return (sky_u8_t) n;
@@ -569,25 +582,5 @@ num_5_8_str_pre(sky_u64_t x) {
     ll |= 0x3030303030303030;
 
     return ll;
-}
-
-static sky_inline void
-u32_to_hex_str_padding(sky_u32_t data, sky_uchar_t *out, sky_bool_t lower_alpha) {
-    sky_u64_t x = data;
-    x = ((x & 0xFFFF) << 32) | ((x & 0xFFFF0000) >> 16);
-    x = ((x & 0x0000FF000000FF00) >> 8) | (x & 0x000000FF000000FF) << 16;
-    x = ((x & 0x00F000F000F000F0) >> 4) | (x & 0x000F000F000F000F) << 8;
-
-    const sky_u64_t mask = ((x + 0x0606060606060606) >> 4) & 0x0101010101010101;
-
-    x |= 0x3030303030303030;
-
-    const sky_u8_t table[] = {
-            0x07,
-            0x27
-    };
-    x += table[lower_alpha] * mask;
-
-    sky_memcpy8(out, &x);
 }
 
