@@ -380,14 +380,23 @@ sky_u32_to_hex_padding(sky_u32_t data, sky_uchar_t *out, sky_bool_t lower_alpha)
 sky_u8_t
 sky_u32_to_hex_str(sky_u32_t data, sky_uchar_t *out, sky_bool_t lower_alpha) {
     if (!data) {
-        *out++ = '0';
+        *out = '0';
         return 1;
     }
+
+
     sky_u32_to_hex_padding(data, out, lower_alpha);
 
     sky_i32_t n = 32 - sky_clz_u32(data);
     n = (n >> 2) + ((n & 3) != 0);
-    sky_memmove(out, out + (8 - n), (sky_usize_t) n);
+
+    sky_u64_t *tmp = (sky_u64_t *) out;
+
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+    *tmp >>= (8 - n) << 3;
+#else
+    *tmp <<= (8 - n) << 3;
+#endif
 
     return (sky_u8_t) n;
 }
@@ -403,7 +412,14 @@ sky_u64_to_hex_str(sky_u64_t data, sky_uchar_t *out, sky_bool_t lower_alpha) {
     sky_u32_to_hex_padding(x, out, lower_alpha);
     sky_i32_t n = 32 - sky_clz_u32(x);
     n = (n >> 2) + ((n & 3) != 0);
-    sky_memmove(out, out + (8 - n), (sky_usize_t) n);
+
+    sky_u64_t *tmp = (sky_u64_t *) out;
+
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+    *tmp >>= (8 - n) << 3;
+#else
+    *tmp <<= (8 - n) << 3;
+#endif
 
     out += n;
     x = (sky_u32_t) (data & 0xFFFFFFFF);
@@ -451,26 +467,26 @@ fast_number_to_str(sky_u64_t x, sky_u8_t len, sky_uchar_t *s) {
     switch (len) {
         case 1:
             *s = sky_num_to_uchar(x);
-            break;
+            return;
         case 2: {
             sky_u64_t ll = ((x * 103) >> 9) & 0x1E;
             x += ll * 3;
             ll = ((x & 0xF0) >> 4) | ((x & 0x0F) << 8);
             *(sky_u16_t *) s = (sky_u16_t) (ll | 0x3030);
-            break;
+            return;
         }
         case 3: {
             const sky_u64_t ll = num_3_4_str_pre(x);
             const sky_uchar_t *p = (sky_u8_t *) &ll;
             *(sky_u16_t *) s = *(sky_u16_t *) (p + 5);
             *(s + 2) = *(p + 7);
-            break;
+            return;
         }
         case 4: {
             const sky_u64_t ll = num_3_4_str_pre(x);
             const sky_uchar_t *p = (sky_u8_t *) &ll;
             *(sky_u32_t *) s = *(sky_u32_t *) (p + 4);
-            break;
+            return;
         }
         case 5: {
             const sky_u64_t ll = num_5_8_str_pre(x);
@@ -479,7 +495,7 @@ fast_number_to_str(sky_u64_t x, sky_u8_t len, sky_uchar_t *s) {
             s += 4;
             p += 4;
             *s = *p;
-            break;
+            return;
         }
         case 6: {
             const sky_u64_t ll = num_5_8_str_pre(x);
@@ -488,7 +504,7 @@ fast_number_to_str(sky_u64_t x, sky_u8_t len, sky_uchar_t *s) {
             s += 4;
             p += 4;
             *(sky_u16_t *) s = *(sky_u16_t *) p;
-            break;
+            return;
         }
         case 7: {
             const sky_u64_t ll = num_5_8_str_pre(x);
@@ -500,12 +516,12 @@ fast_number_to_str(sky_u64_t x, sky_u8_t len, sky_uchar_t *s) {
             s += 2;
             p += 2;
             *s = *p;
-            break;
+            return;
         }
         case 8: {
             const sky_u64_t ll = num_5_8_str_pre(x);
             *(sky_u64_t *) (s) = ll;
-            break;
+            return;
         }
         case 9: {
             sky_u64_t ll = (x * 0x55E63B89) >> 57;
@@ -513,7 +529,7 @@ fast_number_to_str(sky_u64_t x, sky_u8_t len, sky_uchar_t *s) {
             x -= (ll * 100000000);
             ll = num_5_8_str_pre(x);
             *(sky_u64_t *) (s) = ll;
-            break;
+            return;
         }
         case 10: {
             sky_u64_t tmp = (x * 0x55E63B89) >> 57;
@@ -526,10 +542,10 @@ fast_number_to_str(sky_u64_t x, sky_u8_t len, sky_uchar_t *s) {
             s += 2;
             ll = num_5_8_str_pre(x);
             *(sky_u64_t *) (s) = ll;
-            break;
+            return;
         }
         default:
-            break;
+            return;
     }
 }
 
