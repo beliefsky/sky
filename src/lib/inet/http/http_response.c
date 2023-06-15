@@ -361,7 +361,8 @@ http_send_file(
             http_write_wait(conn);
             continue;
         }
-        size -= header_len;
+        n -= (sky_isize_t) header_len;
+        size -= (sky_usize_t) n;
         if (!size) {
             return;
         }
