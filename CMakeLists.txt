@@ -2,7 +2,7 @@ project(sky C)
 cmake_minimum_required(VERSION 3.0)
 set(CMAKE_C_STANDARD 11)
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/src/cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 include(CheckCCompilerFlag)
 include(CheckCSourceCompiles)
@@ -163,12 +163,12 @@ endif ()
 # Generate sky_build_config.h
 #
 configure_file(
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/cmake/sky_build_config.h.cmake"
+        "${CMAKE_SOURCE_DIR}/cmake/sky_build_config.h.cmake"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/sky_build_config.h"
 )
 
 configure_file(
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/cmake/sky.pc.cmake"
+        "${CMAKE_SOURCE_DIR}/cmake/sky.pc.cmake"
         "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc"
 )
 
