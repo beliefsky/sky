@@ -168,9 +168,17 @@ configure_file(
 )
 
 configure_file(
+        "${CMAKE_SOURCE_DIR}/cmake/sky_build_config.h.cmake"
+        "${CMAKE_CURRENT_SOURCE_DIR}/include/sky_build_config.h"
+)
+
+configure_file(
         "${CMAKE_SOURCE_DIR}/cmake/sky.pc.cmake"
         "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc"
 )
 
 add_subdirectory(src)
+
+#add_subdirectory(lib)
+add_subdirectory(tests)
 

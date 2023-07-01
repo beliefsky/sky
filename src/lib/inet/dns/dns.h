@@ -6,6 +6,7 @@
 #define SKY_DNS_H
 
 #include "../../event/event_loop.h"
+#include "../../core/string.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -18,6 +19,8 @@ typedef struct {
 } sky_dns_conf_t;
 
 sky_dns_t *sky_dns_create(sky_event_loop_t *loop, const sky_dns_conf_t *conf);
+
+void sky_dns_get_ipv4_by_name(sky_dns_t *dns, const sky_str_t *name);
 
 void sky_dns_destroy(sky_dns_t *dns);
 

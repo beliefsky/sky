@@ -86,20 +86,20 @@ if (SKY_HAVE_SSL)
 endif ()
 
 
-add_library(sky_static STATIC ${SOURCES})
+add_library(sky_static_old STATIC ${SOURCES})
 
-target_link_libraries(sky_static)
+target_link_libraries(sky_static_old)
 
-set_target_properties(sky_static PROPERTIES
+set_target_properties(sky_static_old PROPERTIES
         OUTPUT_NAME sky CLEAN_DIRECT_OUTPUT 1)
-set_target_properties(sky_static PROPERTIES COMPILE_FLAGS "-fPIC")
+set_target_properties(sky_static_old PROPERTIES COMPILE_FLAGS "-fPIC")
 
 
 # Can't call add_library() without source files. Create an empty .c file,
 # then link with the static library just recently built.
-file(WRITE "${CMAKE_BINARY_DIR}/empty.c" "")
-add_library(sky_shared SHARED "${CMAKE_BINARY_DIR}/empty.c")
-target_link_libraries(sky_shared
+file(WRITE "${CMAKE_BINARY_DIR}/empty_old.c" "")
+add_library(sky_shared_old SHARED "${CMAKE_BINARY_DIR}/empty_old.c")
+target_link_libraries(sky_shared_old
         ${SKY_COMMON_LIBS}
         ${ADDITIONAL_LIBRARIES}
         )
@@ -109,7 +109,7 @@ target_link_libraries(sky_shared
 #	)
 #endif ()
 
-set_target_properties(sky_shared PROPERTIES
+set_target_properties(sky_shared_old PROPERTIES
         OUTPUT_NAME sky CLEAN_DIRECT_OUTPUT 1)
 
 include_directories(${CMAKE_BINARY_DIR})
@@ -162,7 +162,7 @@ else ()
     message(STATUS "Using built-in context switching routines for ${CMAKE_SYSTEM_PROCESSOR} processors")
 endif ()
 
-install(TARGETS sky_shared sky_static
+install(TARGETS sky_shared_old sky_static_old
         DESTINATION /usr/local/lib/sky
         )
 
