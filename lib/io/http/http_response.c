@@ -143,20 +143,13 @@ void
 http_response(sky_tcp_t *tcp) {
     sky_http_connection_t *conn = sky_type_convert(tcp, sky_http_connection_t, tcp);
 
-
     http_res_packet_t *packet;
     const sky_uchar_t *buf;
     sky_isize_t size;
 
-    if (sky_queue_empty(&conn->res_queue)) {
-        return;
-    }
-
-    do {
+    while (!sky_queue_empty(&conn->res_queue)) {
         packet = (http_res_packet_t *) sky_queue_next(&conn->res_queue);
-
         buf = packet->data + conn->write_size;
-
         for (;;) {
             size = sky_tcp_write(tcp, buf, packet->size - conn->write_size);
             if (size > 0) {
@@ -178,7 +171,7 @@ http_response(sky_tcp_t *tcp) {
         }
         conn->write_size = 0;
         sky_queue_remove(&packet->link);
-    } while (!sky_queue_empty(&conn->res_queue));
+    }
 
     sky_timer_wheel_unlink(&conn->timer);
     sky_http_server_request_t *req = conn->current_req;
