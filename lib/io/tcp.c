@@ -110,8 +110,10 @@ sky_tcp_accept(sky_tcp_t *server, sky_tcp_t *client) {
             case ECONNABORTED:
             case EPROTO:
             case EINTR:
+            case EMFILE: //文件数大多时，保证不中断
                 return 0;
             default:
+                sky_ev_set_error(&server->ev);
                 return -1;
 
         }
@@ -124,8 +126,10 @@ sky_tcp_accept(sky_tcp_t *server, sky_tcp_t *client) {
             case ECONNABORTED:
             case EPROTO:
             case EINTR:
+            case EMFILE: //文件数大多时，保证不中断
                 return 0;
             default:
+                sky_ev_set_error(&server->ev);
                 return -1;
 
         }
