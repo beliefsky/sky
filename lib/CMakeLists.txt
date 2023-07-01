@@ -9,18 +9,26 @@ set(SOURCES
         core/string.c
         core/palloc.c
         core/array.c
+        core/list.c
         core/timer_wheel.c
         core/base16.c
         core/base64.c
         core/crc32.c
         core/number.c
         core/float.c
+        core/date.c
+        core/string_buf.c
         core/json.c
+        core/buf.c
         io/tcp.c
         io/udp.c
         io/event_loop.c
         io/selector/epoll.c
         io/selector/kqueue.c
+        io/http/http_server.c
+        io/http/http_server_req.c
+        io/http/http_parse.c
+        io/http/http_response.c
         )
 
 
