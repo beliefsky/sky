@@ -37,7 +37,7 @@ sky_http_response_nobody(sky_http_server_request_t *r) {
 
     http_res_packet_t *packet = sky_palloc(r->pool, sizeof(http_res_packet_t));
     sky_queue_init_node(&packet->link);
-    sky_queue_insert_next(&conn->res_queue, &packet->link);
+    sky_queue_insert_prev(&conn->res_queue, &packet->link);
     packet->data = out.data;
     packet->size = out.len;
 
@@ -80,7 +80,7 @@ sky_http_response_static_len(sky_http_server_request_t *r, const sky_uchar_t *da
 
         http_res_packet_t *packet = sky_palloc(r->pool, sizeof(http_res_packet_t));
         sky_queue_init_node(&packet->link);
-        sky_queue_insert_next(&conn->res_queue, &packet->link);
+        sky_queue_insert_prev(&conn->res_queue, &packet->link);
         packet->data = out.data;
         packet->size = out.len;
 
@@ -103,7 +103,7 @@ sky_http_response_static_len(sky_http_server_request_t *r, const sky_uchar_t *da
 
         http_res_packet_t *packet = sky_palloc(r->pool, sizeof(http_res_packet_t));
         sky_queue_init_node(&packet->link);
-        sky_queue_insert_next(&conn->res_queue, &packet->link);
+        sky_queue_insert_prev(&conn->res_queue, &packet->link);
         packet->data = out.data;
         packet->size = out.len;
 
@@ -125,13 +125,13 @@ sky_http_response_static_len(sky_http_server_request_t *r, const sky_uchar_t *da
 
     http_res_packet_t *packet = sky_palloc(r->pool, sizeof(http_res_packet_t));
     sky_queue_init_node(&packet->link);
-    sky_queue_insert_next(&conn->res_queue, &packet->link);
+    sky_queue_insert_prev(&conn->res_queue, &packet->link);
     packet->data = out.data;
     packet->size = out.len;
 
     packet = sky_palloc(r->pool, sizeof(http_res_packet_t));
     sky_queue_init_node(&packet->link);
-    sky_queue_insert_next(&conn->res_queue, &packet->link);
+    sky_queue_insert_prev(&conn->res_queue, &packet->link);
     packet->data = data;
     packet->size = data_len;
 
