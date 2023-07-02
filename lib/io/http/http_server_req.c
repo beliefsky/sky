@@ -184,13 +184,7 @@ http_module_run(sky_http_server_request_t *r) {
     sky_tcp_set_cb(&r->conn->tcp, http_work_none);
 
     const sky_str_t *host = r->headers_in.host;
-    const sky_trie_t *host_trie;
-    if (!host) {
-        const sky_str_t tmp = sky_null_string;
-        host_trie = sky_trie_contains(r->conn->server->host_map, &tmp);
-    } else {
-        host_trie = sky_trie_contains(r->conn->server->host_map, host);
-    }
+    const sky_trie_t *host_trie = sky_trie_contains(r->conn->server->host_map, host);
     if (host_trie) {
         const sky_http_server_module_t *module = sky_trie_find(host_trie, &r->uri);
         if (module) {
