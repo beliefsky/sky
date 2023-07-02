@@ -50,7 +50,7 @@ sky_trie_put(sky_trie_t *trie, const sky_str_t *key, void *value) {
     sky_usize_t len, index;
 
     pre_node = &trie->root;
-    if (!key->len) {
+    if (!key || !key->len) {
         pre_node->value = value;
         return;
     }
@@ -126,7 +126,7 @@ sky_trie_find(const sky_trie_t *trie, const sky_str_t *key) {
     sky_usize_t len;
 
     node = &trie->root;
-    if (!key->len) {
+    if (!key || !key->len) {
         return node->value;
     }
     tmp_key = key->data;
@@ -167,7 +167,7 @@ sky_trie_contains(const sky_trie_t *trie, const sky_str_t *key) {
     sky_usize_t len;
 
     node = &trie->root;
-    if (!key->len) {
+    if (!key || !key->len) {
         return node->value;
     }
     tmp_key = key->data;
