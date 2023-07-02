@@ -10,14 +10,15 @@
 #include <io/tcp.h>
 #include <io/http/http_server.h>
 #include <core/buf.h>
+#include <core/trie.h>
 
 typedef struct http_res_packet_s http_res_packet_t;
 
 struct sky_http_server_s {
+    sky_uchar_t rfc_date[30];
+    sky_trie_t *host_map;
     sky_pool_t *pool;
     sky_time_t rfc_last;
-    sky_uchar_t rfc_date[30];
-
     sky_u32_t keep_alive;
     sky_u32_t timeout;
     sky_u32_t header_buf_size;
