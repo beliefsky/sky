@@ -182,13 +182,26 @@ static void
 http_module_run(sky_http_server_request_t *r) {
     sky_timer_wheel_unlink(&r->conn->timer);
     sky_tcp_set_cb(&r->conn->tcp, http_work_none);
-    if (!r->module) {
-        r->state = 404;
-        sky_str_set(&r->headers_out.content_type, "text/plain");
-        sky_http_response_static_len(r, sky_str_line("404 Not Found"));
-        return;
+
+    const sky_str_t *host = r->headers_in.host;
+    const sky_trie_t *host_trie;
+    if (!host) {
+        const sky_str_t tmp = sky_null_string;
+        host_trie = sky_trie_contains(r->conn->server->host_map, &tmp);
+    } else {
+        host_trie = sky_trie_contains(r->conn->server->host_map, host);
     }
-    r->module->run(r, r->module->module_data);
+    if (host_trie) {
+        const sky_http_server_module_t *module = sky_trie_find(host_trie, &r->uri);
+        if (module) {
+            module->run(r, module->module_data);
+            return;
+        }
+    }
+
+    r->state = 404;
+    sky_str_set(&r->headers_out.content_type, "text/plain");
+    sky_http_response_static_len(r, sky_str_line("404 Not Found"));
 }
 
 static void

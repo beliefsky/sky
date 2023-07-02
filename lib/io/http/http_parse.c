@@ -933,22 +933,9 @@ header_handle_run(sky_http_server_request_t *req, sky_http_server_header_t *h) {
     switch (h->key.len) {
         case 4: {
             if (sky_likely(sky_str4_cmp(p, 'h', 'o', 's', 't'))) { // Host
-//                req->headers_in.host = &h->val;
-//                sky_str_lower2(&h->val);
-//
-//                const sky_http_server_t *server = req->conn->server;
-//                const sky_trie_t *host_trie = sky_trie_contains(server->host_map, &h->val);
-//                if (!host_trie) {
-//                    host_trie = server->default_host;
-//                }
-//                if (host_trie) {
-//                    sky_http_module_t *module = (sky_http_module_t *) sky_trie_find(host_trie, &req->uri);
-//                    if (module && module->prefix.len) {
-//                        req->uri.len -= module->prefix.len;
-//                        req->uri.data += module->prefix.len;
-//                    }
-//                    req->headers_in.module = module;
-//                }
+                req->headers_in.host = &h->val;
+                sky_str_lower2(&h->val);
+                req->headers_in.host = &h->val;
             }
             break;
         }

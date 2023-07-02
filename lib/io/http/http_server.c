@@ -33,12 +33,36 @@ sky_http_server_create(const sky_http_server_conf_t *conf) {
         server->header_buf_size = conf->header_buf_size ?: 2047;
         server->header_buf_n = conf->header_buf_n ?: 4;
     }
+    server->host_map = sky_trie_create(server->pool);
 
     return server;
 }
 
 sky_bool_t
 sky_http_server_module_put(sky_http_server_t *server, sky_http_server_module_t *module) {
+    sky_trie_t *host_trie = sky_trie_contains(server->host_map, &module->host);
+    if (!host_trie) {
+        host_trie = sky_trie_create(server->pool);
+
+        sky_str_t tmp = {
+                .data = sky_palloc(server->pool, module->host.len),
+                .len = module->host.len
+        };
+        sky_memcpy(tmp.data, module->host.data, tmp.len);
+        sky_trie_put(server->host_map, &tmp, host_trie);
+    }
+    const sky_http_server_module_t *old = sky_trie_contains(host_trie, &module->prefix);
+    if (!old) {
+        sky_str_t tmp = {
+                .data = sky_palloc(server->pool, module->prefix.len),
+                .len = module->prefix.len
+        };
+        sky_memcpy(tmp.data, module->prefix.data, tmp.len);
+        sky_trie_put(host_trie, &tmp, module);
+
+        return true;
+    }
+
 
     return false;
 }

@@ -82,7 +82,6 @@ struct sky_http_server_request_s {
 
     sky_pool_t *pool;
     sky_http_connection_t *conn;
-    sky_http_server_module_t *module;
     sky_http_server_next_pt next;
     void *next_data;
 

@@ -20,6 +20,7 @@ set(SOURCES
         core/string_buf.c
         core/json.c
         core/buf.c
+        core/trie.c
         io/tcp.c
         io/udp.c
         io/event_loop.c
