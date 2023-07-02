@@ -15,12 +15,29 @@
 #define SKY_EV_INDEX_MASK   SKY_U32(0xFFFF0000)
 #define SKY_EV_STATUS_MASK  SKY_U32(0xFFFF)
 
+
+#ifndef OPEN_MAX
+
+#include <sys/param.h>
+
+#ifndef OPEN_MAX
+#ifdef NOFILE
+#define OPEN_MAX NOFILE
+#else
+#define OPEN_MAX 65535
+#endif
+#endif
+#endif
+
 struct sky_selector_s {
     sky_i32_t fd;
     sky_u32_t ev_n;
+    sky_i32_t max_event;
     sky_ev_t *evs[SKY_EVENT_MAX];
     struct kevent sys_evs[SKY_EVENT_MAX];
 };
+
+static sky_i32_t setup_open_file_count_limits();
 
 sky_api sky_selector_t *
 sky_selector_create() {
@@ -28,10 +45,13 @@ sky_selector_create() {
     if (sky_unlikely(fd < 0)) {
         return null;
     }
+    sky_i32_t max_event = setup_open_file_count_limits();
+    max_event = sky_min(max_event, 1024);
 
     sky_selector_t *s = sky_malloc(sizeof(sky_selector_t));
     s->fd = fd;
     s->ev_n = 0;
+    s->max_event = max_event;
 
     return s;
 }
@@ -59,7 +79,7 @@ sky_selector_select(sky_selector_t *s, sky_i32_t timeout) {
         tmp->tv_nsec = (timeout % 1000) * 1000;
     }
 
-    const sky_i32_t n = kevent(s->fd, null, 0, s->sys_evs, SKY_EVENT_MAX, tmp);
+    const sky_i32_t n = kevent(s->fd, null, 0, s->sys_evs, s->max_event, tmp);
     if (sky_unlikely(n < 0)) {
         s->ev_n = 0;
         switch (errno) {
@@ -220,6 +240,36 @@ sky_selector_cancel(sky_ev_t *ev) {
     ev->status |= SKY_EV_NO_REG | SKY_EV_NONE_INDEX;
 
     return true;
+}
+
+static sky_i32_t
+setup_open_file_count_limits() {
+    struct rlimit r;
+
+    if (getrlimit(RLIMIT_NOFILE, &r) < 0) {
+        sky_log_error("Could not obtain maximum number of file descriptors. Assuming %d", OPEN_MAX);
+        return OPEN_MAX;
+    }
+
+    if (r.rlim_max != r.rlim_cur) {
+        const rlim_t current = r.rlim_cur;
+
+        if (r.rlim_max == RLIM_INFINITY) {
+            r.rlim_cur = OPEN_MAX;
+        } else if (r.rlim_cur < r.rlim_max) {
+            r.rlim_cur = r.rlim_max;
+        } else {
+            /* Shouldn't happen, so just return the current value. */
+            return (sky_i32_t) r.rlim_cur;
+        }
+
+        if (setrlimit(RLIMIT_NOFILE, &r) < 0) {
+            sky_log_error("Could not raise maximum number of file descriptors to %lu. Leaving at %lu", r.rlim_max,
+                          current);
+            r.rlim_cur = current;
+        }
+    }
+    return (sky_i32_t) r.rlim_cur;
 }
 
 #endif
