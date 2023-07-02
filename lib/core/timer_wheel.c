@@ -199,7 +199,7 @@ void
 sky_timer_wheel_expired(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky_u64_t at) {
     at = sky_max(at, ctx->last_run);
 
-    if (!sky_queue_linked(&entry->link) || at == entry->expire_at) {
+    if (sky_unlikely(!sky_queue_linked(&entry->link) || at == entry->expire_at)) {
         return;
     }
     sky_queue_remove(&entry->link);

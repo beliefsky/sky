@@ -188,6 +188,7 @@ http_module_run(sky_http_server_request_t *r) {
         sky_http_response_static_len(r, sky_str_line("404 Not Found"));
         return;
     }
+    r->module->run(r, r->module->module_data);
 }
 
 static void
