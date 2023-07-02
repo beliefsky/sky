@@ -5,7 +5,7 @@
 #include <core/array.h>
 #include <core/memory.h>
 
-sky_bool_t
+sky_api sky_bool_t
 sky_array_init(sky_array_t *array, sky_u32_t n, sky_usize_t size) {
     array->nelts = 0;
     array->size = size;
@@ -16,7 +16,7 @@ sky_array_init(sky_array_t *array, sky_u32_t n, sky_usize_t size) {
     return array->elts != null;
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_array_init2(sky_array_t *array, sky_pool_t *pool, sky_u32_t n, sky_usize_t size) {
     array->nelts = 0;
     array->size = size;
@@ -27,7 +27,7 @@ sky_array_init2(sky_array_t *array, sky_pool_t *pool, sky_u32_t n, sky_usize_t s
     return array->elts != null;
 }
 
-void *
+sky_api void *
 sky_array_push(sky_array_t *a) {
     if (a->nelts == a->nalloc) {
         const sky_usize_t total = a->size * a->nalloc;
@@ -49,7 +49,7 @@ sky_array_push(sky_array_t *a) {
 }
 
 
-void *
+sky_api void *
 sky_array_push_n(sky_array_t *a, sky_u32_t n) {
     if ((a->nelts + n) > a->nalloc) {
         const sky_u32_t max = sky_max(n, a->nalloc);
@@ -74,7 +74,7 @@ sky_array_push_n(sky_array_t *a, sky_u32_t n) {
     return elt;
 }
 
-void
+sky_api void
 sky_array_destroy(sky_array_t *a) {
 
     if (a->pool != null) {

@@ -4,7 +4,7 @@
 
 #include <core/list.h>
 
-sky_list_t *
+sky_api sky_list_t *
 sky_list_create(sky_pool_t *pool, sky_u32_t n, sky_usize_t size) {
     sky_list_t *list = sky_palloc(pool, sizeof(sky_list_t));
     if (sky_unlikely(!list)) {
@@ -16,7 +16,7 @@ sky_list_create(sky_pool_t *pool, sky_u32_t n, sky_usize_t size) {
     return list;
 }
 
-void *
+sky_api void *
 sky_list_push(sky_list_t *l) {
     sky_list_part_t *last = l->last;
 

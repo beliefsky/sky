@@ -42,13 +42,13 @@ static sky_isize_t tcp_sendfile(
 );
 
 
-void
+sky_api void
 sky_tcp_init(sky_tcp_t *tcp, sky_selector_t *s) {
     sky_ev_init(&tcp->ev, s, null, SKY_SOCKET_FD_NONE);
     tcp->status = SKY_U32(0);
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_tcp_open(sky_tcp_t *tcp, sky_i32_t domain) {
     if (sky_unlikely(sky_tcp_is_open(tcp))) {
         return false;
@@ -75,7 +75,7 @@ sky_tcp_open(sky_tcp_t *tcp, sky_i32_t domain) {
     return true;
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_tcp_bind(sky_tcp_t *tcp, const sky_inet_addr_t *addr) {
     if (sky_unlikely(!sky_tcp_is_open(tcp))) {
         return false;
@@ -85,7 +85,7 @@ sky_tcp_bind(sky_tcp_t *tcp, const sky_inet_addr_t *addr) {
     return bind(fd, addr->addr, addr->size) == 0;
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_tcp_listen(sky_tcp_t *server, sky_i32_t backlog) {
     if (sky_unlikely(!sky_tcp_is_open(server))) {
         return false;
@@ -95,7 +95,7 @@ sky_tcp_listen(sky_tcp_t *server, sky_i32_t backlog) {
     return listen(fd, backlog) == 0;
 }
 
-sky_i8_t
+sky_api sky_i8_t
 sky_tcp_accept(sky_tcp_t *server, sky_tcp_t *client) {
     if (sky_unlikely(sky_ev_error(&server->ev) || !sky_tcp_is_open(server))) {
         return -1;
@@ -146,7 +146,7 @@ sky_tcp_accept(sky_tcp_t *server, sky_tcp_t *client) {
     return 1;
 }
 
-sky_i8_t
+sky_api sky_i8_t
 sky_tcp_connect(sky_tcp_t *tcp, const sky_inet_addr_t *addr) {
     const sky_socket_t fd = sky_ev_get_fd(&tcp->ev);
 
@@ -171,7 +171,7 @@ sky_tcp_connect(sky_tcp_t *tcp, const sky_inet_addr_t *addr) {
     return 1;
 }
 
-void
+sky_api void
 sky_tcp_close(sky_tcp_t *tcp) {
     const sky_socket_t fd = sky_ev_get_fd(&tcp->ev);
 
@@ -184,7 +184,7 @@ sky_tcp_close(sky_tcp_t *tcp) {
     sky_tcp_register_cancel(tcp);
 }
 
-sky_isize_t
+sky_api sky_isize_t
 sky_tcp_read(sky_tcp_t *tcp, sky_uchar_t *data, sky_usize_t size) {
     if (sky_unlikely(sky_ev_error(&tcp->ev) || !sky_tcp_is_connect(tcp))) {
         return -1;
@@ -207,7 +207,7 @@ sky_tcp_read(sky_tcp_t *tcp, sky_uchar_t *data, sky_usize_t size) {
     return -1;
 }
 
-sky_isize_t
+sky_api sky_isize_t
 sky_tcp_write(sky_tcp_t *tcp, const sky_uchar_t *data, sky_usize_t size) {
     if (sky_unlikely(sky_ev_error(&tcp->ev) || !sky_tcp_is_connect(tcp))) {
         return -1;
@@ -230,7 +230,7 @@ sky_tcp_write(sky_tcp_t *tcp, const sky_uchar_t *data, sky_usize_t size) {
     return -1;
 }
 
-sky_isize_t
+sky_api sky_isize_t
 sky_tcp_sendfile(
         sky_tcp_t *tcp,
         sky_fs_t *fs,
@@ -262,7 +262,7 @@ sky_tcp_sendfile(
     return -1;
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_tcp_option_reuse_addr(sky_tcp_t *tcp) {
     const sky_socket_t fd = sky_ev_get_fd(&tcp->ev);
     const sky_i32_t opt = 1;
@@ -270,7 +270,7 @@ sky_tcp_option_reuse_addr(sky_tcp_t *tcp) {
     return 0 == setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_i32_t));
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_tcp_option_reuse_port(sky_tcp_t *tcp) {
     const sky_socket_t fd = sky_ev_get_fd(&tcp->ev);
     const sky_i32_t opt = 1;
@@ -284,7 +284,7 @@ sky_tcp_option_reuse_port(sky_tcp_t *tcp) {
 #endif
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_tcp_option_no_delay(sky_tcp_t *tcp) {
 #ifdef TCP_NODELAY
     const sky_socket_t fd = sky_ev_get_fd(&tcp->ev);
@@ -296,7 +296,7 @@ sky_tcp_option_no_delay(sky_tcp_t *tcp) {
 #endif
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_tcp_option_defer_accept(sky_tcp_t *tcp) {
 #ifdef TCP_DEFER_ACCEPT
     const sky_socket_t fd = sky_ev_get_fd(&tcp->ev);
@@ -308,7 +308,7 @@ sky_tcp_option_defer_accept(sky_tcp_t *tcp) {
 #endif
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_tcp_option_fast_open(sky_tcp_t *tcp, sky_i32_t n) {
 #ifdef TCP_FASTOPEN
     const sky_socket_t fd = sky_ev_get_fd(&tcp->ev);
@@ -319,7 +319,7 @@ sky_tcp_option_fast_open(sky_tcp_t *tcp, sky_i32_t n) {
 #endif
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_tcp_option_no_push(sky_tcp_t *tcp, sky_bool_t open) {
     const sky_socket_t opt = open;
     const sky_socket_t fd = sky_ev_get_fd(&tcp->ev);

@@ -7,7 +7,7 @@
 #include <core/date.h>
 #include "http_server_common.h"
 
-void http_response(sky_tcp_t *tcp);
+static void http_response(sky_tcp_t *tcp);
 
 static void http_header_write_pre(sky_http_server_request_t *r, sky_str_buf_t *buf);
 
@@ -18,7 +18,7 @@ static void http_write_timeout(sky_timer_wheel_entry_t *timer);
 static void status_msg_get(sky_u32_t status, sky_str_t *out);
 
 
-void
+sky_api void
 sky_http_response_nobody(sky_http_server_request_t *r) {
     if (sky_unlikely(r->response)) {
         return;
@@ -47,7 +47,7 @@ sky_http_response_nobody(sky_http_server_request_t *r) {
     http_response(&conn->tcp);
 }
 
-void
+sky_api void
 sky_http_response_static(sky_http_server_request_t *r, const sky_str_t *data) {
     if (!data) {
         sky_http_response_static_len(r, null, 0);
@@ -56,7 +56,7 @@ sky_http_response_static(sky_http_server_request_t *r, const sky_str_t *data) {
     }
 }
 
-void
+sky_api void
 sky_http_response_static_len(sky_http_server_request_t *r, const sky_uchar_t *data, sky_usize_t data_len) {
     if (sky_unlikely(r->response)) {
         return;
@@ -137,7 +137,7 @@ sky_http_response_static_len(sky_http_server_request_t *r, const sky_uchar_t *da
     http_response(&conn->tcp);
 }
 
-void
+static void
 http_response(sky_tcp_t *tcp) {
     sky_http_connection_t *conn = sky_type_convert(tcp, sky_http_connection_t, tcp);
 

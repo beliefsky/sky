@@ -47,7 +47,7 @@ static sky_bool_t mem_equals10(const sky_uchar_t *a, const sky_uchar_t *b);
 
 #endif
 
-void
+sky_api void
 sky_str_len_replace_char(sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t old_ch, sky_uchar_t new_ch) {
 #ifdef __SSE2__
     if (src_len >= 16) {
@@ -77,17 +77,17 @@ sky_str_len_replace_char(sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t old_
     }
 }
 
-sky_inline sky_uchar_t *
+sky_api sky_uchar_t *
 sky_str_len_find_char(const sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t ch) {
     return memchr(src, ch, src_len);
 }
 
-sky_inline sky_i32_t
+sky_api sky_i32_t
 sky_str_len_unsafe_cmp(const sky_uchar_t *s1, const sky_uchar_t *s2, sky_usize_t len) {
     return memcmp(s1, s2, len);
 }
 
-void
+sky_api void
 sky_str_lower(const sky_uchar_t *src, sky_uchar_t *dst, sky_usize_t n) {
     static const sky_uchar_t tolower_map[256] = {
             0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
@@ -132,7 +132,7 @@ sky_str_lower(const sky_uchar_t *src, sky_uchar_t *dst, sky_usize_t n) {
     }
 }
 
-sky_uchar_t *
+sky_api sky_uchar_t *
 sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *sub, sky_usize_t sub_len) {
     if (src_len < sub_len) {
         return null;

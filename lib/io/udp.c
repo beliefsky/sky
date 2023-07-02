@@ -18,14 +18,14 @@ static sky_bool_t set_socket_nonblock(sky_socket_t fd);
 #endif
 
 
-void
+sky_api void
 sky_udp_init(sky_udp_t *udp, sky_selector_t *s) {
     sky_ev_init(&udp->ev, s, null, SKY_SOCKET_FD_NONE);
     udp->status = SKY_U32(0);
 
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_udp_open(sky_udp_t *udp, sky_i32_t domain) {
     if (sky_unlikely(sky_udp_is_open(udp))) {
         return false;
@@ -52,7 +52,7 @@ sky_udp_open(sky_udp_t *udp, sky_i32_t domain) {
     return true;
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_udp_bind(sky_udp_t *udp, const sky_inet_addr_t *addr) {
     if (sky_unlikely(!sky_udp_is_open(udp))) {
         return false;
@@ -62,7 +62,7 @@ sky_udp_bind(sky_udp_t *udp, const sky_inet_addr_t *addr) {
     return bind(fd, addr->addr, addr->size) == 0;
 }
 
-sky_isize_t
+sky_api sky_isize_t
 sky_udp_read(sky_udp_t *udp, sky_inet_addr_t *addr, sky_uchar_t *data, sky_usize_t size) {
     if (sky_unlikely(sky_ev_error(&udp->ev) || !sky_udp_is_open(udp))) {
         return -1;
@@ -86,7 +86,7 @@ sky_udp_read(sky_udp_t *udp, sky_inet_addr_t *addr, sky_uchar_t *data, sky_usize
     return -1;
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_udp_write(sky_udp_t *udp, const sky_inet_addr_t *addr, const sky_uchar_t *data, sky_usize_t size) {
     if (sky_unlikely(sky_ev_error(&udp->ev) || !sky_udp_is_open(udp))) {
         return false;
@@ -101,7 +101,7 @@ sky_udp_write(sky_udp_t *udp, const sky_inet_addr_t *addr, const sky_uchar_t *da
 }
 
 
-void
+sky_api void
 sky_udp_close(sky_udp_t *udp) {
     if (sky_udp_is_open(udp)) {
         close(sky_ev_get_fd(&udp->ev));

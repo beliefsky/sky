@@ -717,7 +717,7 @@ parse_url_code(sky_http_server_request_t *r, sky_uchar_t *post, const sky_uchar_
                 }
                 *(post++) = '\0';
 
-                sky_http_url_decode(&r->uri);
+                http_url_decode(&r->uri);
 
                 r->state = sw_http;
                 r->req_pos = null;
@@ -736,7 +736,7 @@ parse_url_code(sky_http_server_request_t *r, sky_uchar_t *post, const sky_uchar_
                 }
                 *(post++) = '\0';
 
-                sky_http_url_decode(&r->uri);
+                http_url_decode(&r->uri);
 
                 r->state = sw_args;
                 r->req_pos = post;

@@ -8,15 +8,15 @@
  */
 #define SKY_MAX_ALLOC_FROM_POOL  SKY_USIZE(4095)
 
-static void *sky_palloc_small(sky_pool_t *pool, sky_usize_t size);
+static void *palloc_small(sky_pool_t *pool, sky_usize_t size);
 
-static void *sky_palloc_small_align(sky_pool_t *pool, sky_usize_t size);
+static void *palloc_small_align(sky_pool_t *pool, sky_usize_t size);
 
-static void *sky_palloc_block(sky_pool_t *pool, sky_usize_t size);
+static void *palloc_block(sky_pool_t *pool, sky_usize_t size);
 
-static void *sky_palloc_large(sky_pool_t *pool, sky_usize_t size);
+static void *palloc_large(sky_pool_t *pool, sky_usize_t size);
 
-sky_pool_t *
+sky_api sky_pool_t *
 sky_pool_create(sky_usize_t size) {
     sky_pool_t *p;
 
@@ -38,7 +38,7 @@ sky_pool_create(sky_usize_t size) {
     return p;
 }
 
-void
+sky_api void
 sky_pool_destroy(sky_pool_t *pool) {
     sky_pool_t *p, *n;
     sky_pool_large_t *l;
@@ -57,7 +57,7 @@ sky_pool_destroy(sky_pool_t *pool) {
     }
 }
 
-void
+sky_api void
 sky_pool_reset(sky_pool_t *pool) {
     for (sky_pool_large_t *l = pool->large; l; l = l->next) {
         if (sky_likely(l->alloc)) {
@@ -72,17 +72,17 @@ sky_pool_reset(sky_pool_t *pool) {
     pool->large = null;
 }
 
-sky_inline void *
+sky_api void *
 sky_palloc(sky_pool_t *pool, sky_usize_t size) {
-    return size <= pool->max ? sky_palloc_small_align(pool, size) : sky_palloc_large(pool, size);
+    return size <= pool->max ? palloc_small_align(pool, size) : palloc_large(pool, size);
 }
 
-sky_inline void *
+sky_api void *
 sky_pnalloc(sky_pool_t *pool, sky_usize_t size) {
-    return size <= pool->max ? sky_palloc_small(pool, size) : sky_palloc_large(pool, size);
+    return size <= pool->max ? palloc_small(pool, size) : palloc_large(pool, size);
 }
 
-void *
+sky_api void *
 sky_pcalloc(sky_pool_t *pool, sky_usize_t size) {
     void *p = sky_palloc(pool, size);
     if (sky_likely(p)) {
@@ -91,7 +91,7 @@ sky_pcalloc(sky_pool_t *pool, sky_usize_t size) {
     return p;
 }
 
-void *
+sky_api void *
 sky_prealloc(sky_pool_t *pool, void *ptr, sky_usize_t ptr_size, sky_usize_t size) {
     const sky_uchar_t *end = (const sky_uchar_t *) ptr + ptr_size;
     sky_pool_t *p = pool->current;
@@ -135,7 +135,7 @@ sky_prealloc(sky_pool_t *pool, void *ptr, sky_usize_t ptr_size, sky_usize_t size
 }
 
 
-void
+sky_api void
 sky_pfree(sky_pool_t *pool, const void *ptr, sky_usize_t size) {
     const sky_uchar_t *end = (const sky_uchar_t *) ptr + size;
     sky_pool_t *p = pool->current;
@@ -155,7 +155,7 @@ sky_pfree(sky_pool_t *pool, const void *ptr, sky_usize_t size) {
 
 
 static sky_inline void *
-sky_palloc_small(sky_pool_t *pool, sky_usize_t size) {
+palloc_small(sky_pool_t *pool, sky_usize_t size) {
     sky_pool_t *p;
     sky_uchar_t *m;
 
@@ -170,11 +170,11 @@ sky_palloc_small(sky_pool_t *pool, sky_usize_t size) {
         p = p->d.next;
     } while (p);
 
-    return sky_palloc_block(pool, size);
+    return palloc_block(pool, size);
 }
 
 static sky_inline void *
-sky_palloc_small_align(sky_pool_t *pool, sky_usize_t size) {
+palloc_small_align(sky_pool_t *pool, sky_usize_t size) {
     sky_pool_t *p;
     sky_uchar_t *m;
 
@@ -189,11 +189,11 @@ sky_palloc_small_align(sky_pool_t *pool, sky_usize_t size) {
         p = p->d.next;
     } while (p);
 
-    return sky_palloc_block(pool, size);
+    return palloc_block(pool, size);
 }
 
 static void *
-sky_palloc_block(sky_pool_t *pool, sky_usize_t size) {
+palloc_block(sky_pool_t *pool, sky_usize_t size) {
     sky_uchar_t *m;
     sky_usize_t p_size;
     sky_pool_t *p, *new;
@@ -223,7 +223,7 @@ sky_palloc_block(sky_pool_t *pool, sky_usize_t size) {
 }
 
 static void *
-sky_palloc_large(sky_pool_t *pool, sky_usize_t size) {
+palloc_large(sky_pool_t *pool, sky_usize_t size) {
     void *p;
     sky_pool_large_t *large;
     sky_u8_t n;
@@ -242,7 +242,7 @@ sky_palloc_large(sky_pool_t *pool, sky_usize_t size) {
             break;
         }
     }
-    large = sky_palloc_small_align(pool, sizeof(sky_pool_large_t));
+    large = palloc_small_align(pool, sizeof(sky_pool_large_t));
     if (sky_unlikely(!large)) {
         sky_free(p);
         return null;

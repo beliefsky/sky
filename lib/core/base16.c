@@ -14,7 +14,8 @@
 
 #endif
 
-sky_usize_t sky_base16_encode(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t len) {
+sky_api sky_usize_t
+sky_base16_encode(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t len) {
     const sky_usize_t result = sky_base16_encoded_length(len);
 
 #ifdef __AVX2__
@@ -82,7 +83,7 @@ sky_usize_t sky_base16_encode(sky_uchar_t *dst, const sky_uchar_t *src, sky_usiz
     return result;
 }
 
-sky_usize_t
+sky_api sky_usize_t
 sky_base16_encode_upper(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t len) {
     const sky_usize_t result = sky_base16_encoded_length(len);
 

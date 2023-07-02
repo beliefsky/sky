@@ -21,7 +21,8 @@ static void http_read_timeout(sky_timer_wheel_entry_t *timer);
 
 static void http_read_error(sky_http_connection_t *conn);
 
-void sky_http_server_req_finish(sky_http_server_request_t *r) {
+sky_api void
+sky_http_server_req_finish(sky_http_server_request_t *r) {
     sky_http_connection_t *conn = r->conn;
 
     if (sky_unlikely(!r->response)) {
@@ -182,7 +183,6 @@ static void
 http_module_run(sky_http_server_request_t *r) {
     sky_timer_wheel_unlink(&r->conn->timer);
     sky_tcp_set_cb(&r->conn->tcp, http_work_none);
-
 
     const sky_trie_t *const host_trie = sky_trie_contains(r->conn->server->host_map, r->headers_in.host);
     if (host_trie) {
