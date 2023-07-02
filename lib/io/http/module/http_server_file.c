@@ -77,6 +77,7 @@ sky_http_server_file_create(const sky_http_server_file_conf_t *conf) {
     data->prefix = &module->prefix;
     data->pool = pool;
     data->pre_run = conf->pre_run;
+    data->run_data = conf->run_data;
 
     module->module_data = data;
 

@@ -31,6 +31,7 @@ set(SOURCES
         io/http/http_parse.c
         io/http/http_response.c
         io/http/module/http_server_file.c
+        io/http/module/http_server_dispatcher.c
         )
 
 
