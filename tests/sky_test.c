@@ -3,7 +3,7 @@
 //
 #include <io/event_loop.h>
 #include <core/log.h>
-#include <io/http/http_server.h>
+#include <io/http/http_server_file.h>
 #include <netinet/in.h>
 
 int
@@ -11,10 +11,19 @@ main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
-    sky_event_loop_t *loop = sky_event_loop_create();
 
     sky_http_server_t *server = sky_http_server_create(null);
 
+    const sky_http_server_file_conf_t conf = {
+            .host = sky_null_string,
+            .prefix = sky_null_string,
+            .dir = sky_string("/home/beliefsky"),
+    };
+
+    sky_http_server_module_t *module = sky_http_server_file_create(&conf);
+    sky_http_server_module_put(server, module);
+
+    sky_event_loop_t *loop = sky_event_loop_create();
     {
         struct sockaddr_in http_address = {
                 .sin_family = AF_INET,
