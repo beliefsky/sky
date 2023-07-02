@@ -5,7 +5,7 @@
 #include <io/event_loop.h>
 #include <core/memory.h>
 
-sky_event_loop_t *
+sky_api sky_event_loop_t *
 sky_event_loop_create() {
     struct sigaction sa;
 
@@ -22,7 +22,7 @@ sky_event_loop_create() {
     return loop;
 }
 
-void
+sky_api void
 sky_event_loop_run(sky_event_loop_t *loop) {
     sky_i32_t timeout;
     sky_u64_t next_time;
@@ -44,7 +44,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
     }
 }
 
-void
+sky_api void
 sky_event_loop_destroy(sky_event_loop_t *loop) {
     sky_timer_wheel_destroy(loop->timer_ctx);
     sky_selector_destroy(loop->selector);

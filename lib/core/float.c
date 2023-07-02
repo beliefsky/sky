@@ -20,7 +20,7 @@ static void f64_bin_to_dec(sky_u64_t sig_raw, sky_u32_t exp_raw,
 static sky_u8_t f64_encode_trim(const sky_uchar_t *src, sky_u8_t len);
 
 
-sky_bool_t
+sky_api sky_bool_t
 sky_str_len_to_f64_opts(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *out, sky_u32_t opts) {
     if (sky_unlikely(!in_len)) {
         return false;
@@ -133,7 +133,7 @@ sky_str_len_to_f64_opts(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *ou
 }
 
 
-sky_u8_t
+sky_api sky_u8_t
 sky_f64_to_str_opts(sky_f64_t data, sky_uchar_t *out, sky_u32_t opts) {
     const sky_u64_t raw = *((sky_u64_t *) &data);
     const sky_u64_t sig_raw = raw & SKY_U64(0x000FFFFFFFFFFFFF);

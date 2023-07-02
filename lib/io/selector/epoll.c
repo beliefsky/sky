@@ -24,7 +24,7 @@ struct sky_selector_s {
     struct epoll_event sys_evs[SKY_EVENT_MAX];
 };
 
-sky_selector_t *
+sky_api sky_selector_t *
 sky_selector_create() {
     const sky_i32_t fd = epoll_create1(EPOLL_CLOEXEC);
     if (sky_unlikely(fd < 0)) {
@@ -38,7 +38,7 @@ sky_selector_create() {
     return s;
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_selector_select(sky_selector_t *s, sky_i32_t timeout) {
     if (sky_unlikely(s->ev_n > 0)) {
         return true;
@@ -79,7 +79,7 @@ sky_selector_select(sky_selector_t *s, sky_i32_t timeout) {
     return true;
 }
 
-void
+sky_api void
 sky_selector_run(sky_selector_t *s) {
     if (sky_unlikely(!s->ev_n)) {
         return;
@@ -99,14 +99,14 @@ sky_selector_run(sky_selector_t *s) {
     s->ev_n = 0;
 }
 
-void
+sky_api void
 sky_selector_destroy(sky_selector_t *s) {
     close(s->fd);
     s->fd = -1;
     sky_free(s);
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_selector_register(sky_ev_t *ev, sky_u32_t flags) {
     if (sky_unlikely(sky_ev_reg(ev) || ev->fd < 0 || !(flags & (SKY_EV_READ | SKY_EV_WRITE)))) {
         return false;
@@ -136,7 +136,7 @@ sky_selector_register(sky_ev_t *ev, sky_u32_t flags) {
     return true;
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_selector_update(sky_ev_t *ev, sky_u32_t flags) {
     if (sky_unlikely(!sky_ev_reg(ev) || ev->fd < 0 || !(flags & (SKY_EV_READ | SKY_EV_WRITE)))) {
         return false;
@@ -165,7 +165,7 @@ sky_selector_update(sky_ev_t *ev, sky_u32_t flags) {
     return true;
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_selector_cancel(sky_ev_t *ev) {
     if (sky_unlikely(!sky_ev_reg(ev))) {
         return true;

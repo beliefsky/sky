@@ -13,7 +13,7 @@ static sky_u64_t num_3_4_str_pre(sky_u64_t x);
 static sky_u64_t num_5_8_str_pre(sky_u64_t x);
 
 
-sky_inline sky_bool_t
+sky_api sky_bool_t
 sky_str_len_to_i8(const sky_uchar_t *in, sky_usize_t in_len, sky_i8_t *out) {
     sky_u64_t mask;
 
@@ -38,7 +38,7 @@ sky_str_len_to_i8(const sky_uchar_t *in, sky_usize_t in_len, sky_i8_t *out) {
 }
 
 
-sky_inline sky_bool_t
+sky_api sky_bool_t
 sky_str_len_to_u8(const sky_uchar_t *in, sky_usize_t in_len, sky_u8_t *out) {
     sky_u64_t mask;
 
@@ -55,7 +55,7 @@ sky_str_len_to_u8(const sky_uchar_t *in, sky_usize_t in_len, sky_u8_t *out) {
 }
 
 
-sky_inline sky_bool_t
+sky_api sky_bool_t
 sky_str_len_to_i16(const sky_uchar_t *in, sky_usize_t in_len, sky_i16_t *out) {
     sky_u64_t mask;
     if (sky_unlikely(in_len == 0 || in_len > 6)) {
@@ -79,7 +79,7 @@ sky_str_len_to_i16(const sky_uchar_t *in, sky_usize_t in_len, sky_i16_t *out) {
     return true;
 }
 
-sky_inline sky_bool_t
+sky_api sky_bool_t
 sky_str_len_to_u16(const sky_uchar_t *in, sky_usize_t in_len, sky_u16_t *out) {
     sky_u64_t mask;
 
@@ -95,7 +95,7 @@ sky_str_len_to_u16(const sky_uchar_t *in, sky_usize_t in_len, sky_u16_t *out) {
     return true;
 }
 
-sky_inline sky_bool_t
+sky_api sky_bool_t
 sky_str_len_to_i32(const sky_uchar_t *in, sky_usize_t in_len, sky_i32_t *out) {
     sky_u64_t mask;
 
@@ -161,7 +161,7 @@ sky_str_len_to_i32(const sky_uchar_t *in, sky_usize_t in_len, sky_i32_t *out) {
     return true;
 }
 
-sky_inline sky_bool_t
+sky_api sky_bool_t
 sky_str_len_to_u32(const sky_uchar_t *in, sky_usize_t in_len, sky_u32_t *out) {
     sky_u64_t mask;
 
@@ -191,7 +191,7 @@ sky_str_len_to_u32(const sky_uchar_t *in, sky_usize_t in_len, sky_u32_t *out) {
     return true;
 }
 
-sky_inline sky_bool_t
+sky_api sky_bool_t
 sky_str_len_to_i64(const sky_uchar_t *in, sky_usize_t in_len, sky_i64_t *out) {
     if (*in == '-') {
         if (sky_likely(sky_str_len_to_u64(in + 1, in_len - 1, (sky_u64_t *) out))) {
@@ -203,7 +203,7 @@ sky_str_len_to_i64(const sky_uchar_t *in, sky_usize_t in_len, sky_i64_t *out) {
     return sky_str_len_to_u64(in, in_len, (sky_u64_t *) out);
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_str_len_to_u64(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out) {
     sky_u64_t mask;
     if (sky_unlikely(!in_len || in_len > 20)) {
@@ -245,7 +245,7 @@ sky_str_len_to_u64(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out) {
     return true;
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_hex_str_len_to_u32(const sky_uchar_t *in, sky_usize_t in_len, sky_u32_t *out) {
     if (sky_unlikely(!in_len || in_len > 8)) {
         return false;
@@ -269,7 +269,7 @@ sky_hex_str_len_to_u32(const sky_uchar_t *in, sky_usize_t in_len, sky_u32_t *out
     return true;
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_hex_str_len_to_u64(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out) {
     if (sky_unlikely(!in_len || in_len > 16)) {
         return false;
@@ -294,7 +294,7 @@ sky_hex_str_len_to_u64(const sky_uchar_t *in, sky_usize_t in_len, sky_u64_t *out
 }
 
 
-sky_u8_t
+sky_api sky_u8_t
 sky_i32_to_str(sky_i32_t data, sky_uchar_t *out) {
     if (data < 0) {
         *(out++) = '-';
@@ -305,7 +305,7 @@ sky_i32_to_str(sky_i32_t data, sky_uchar_t *out) {
     return sky_u32_to_str((sky_u32_t) data, out);
 }
 
-sky_inline sky_u8_t
+sky_api sky_u8_t
 sky_u32_to_str(sky_u32_t data, sky_uchar_t *out) {
     const sky_u8_t len = sky_u32_check_str_count(data);
     fast_number_to_str(data, len, out);
@@ -313,7 +313,7 @@ sky_u32_to_str(sky_u32_t data, sky_uchar_t *out) {
     return len;
 }
 
-sky_u8_t
+sky_api sky_u8_t
 sky_i64_to_str(sky_i64_t data, sky_uchar_t *out) {
     if (data < 0) {
         *(out++) = '-';
@@ -322,7 +322,7 @@ sky_i64_to_str(sky_i64_t data, sky_uchar_t *out) {
     return sky_u64_to_str((sky_u64_t) data, out);
 }
 
-sky_inline sky_u8_t
+sky_api sky_u8_t
 sky_u64_to_str(sky_u64_t data, sky_uchar_t *out) {
     if (data < SKY_U32_MAX) {
         const sky_u8_t len = sky_u32_check_str_count((sky_u32_t) data);
@@ -357,7 +357,7 @@ sky_u64_to_str(sky_u64_t data, sky_uchar_t *out) {
 
 }
 
-sky_inline void
+sky_api void
 sky_u32_to_hex_padding(sky_u32_t data, sky_uchar_t *out, sky_bool_t lower_alpha) {
     sky_u64_t x = data;
     x = ((x & 0xFFFF) << 32) | ((x & 0xFFFF0000) >> 16);
@@ -377,7 +377,7 @@ sky_u32_to_hex_padding(sky_u32_t data, sky_uchar_t *out, sky_bool_t lower_alpha)
     sky_memcpy8(out, &x);
 }
 
-sky_u8_t
+sky_api sky_u8_t
 sky_u32_to_hex_str(sky_u32_t data, sky_uchar_t *out, sky_bool_t lower_alpha) {
     if (!data) {
         *out = '0';
@@ -402,7 +402,7 @@ sky_u32_to_hex_str(sky_u32_t data, sky_uchar_t *out, sky_bool_t lower_alpha) {
 }
 
 
-sky_u8_t
+sky_api sky_u8_t
 sky_u64_to_hex_str(sky_u64_t data, sky_uchar_t *out, sky_bool_t lower_alpha) {
     sky_u32_t x = (sky_u32_t) (data >> 32);
     if (!x) {
@@ -429,7 +429,7 @@ sky_u64_to_hex_str(sky_u64_t data, sky_uchar_t *out, sky_bool_t lower_alpha) {
     return (sky_u8_t) n;
 }
 
-sky_inline sky_u8_t
+sky_api sky_u8_t
 sky_u32_check_str_count(sky_u32_t x) {
     static const sky_u64_t table[] = {
             4294967296, 8589934582, 8589934582, 8589934582, 12884901788,

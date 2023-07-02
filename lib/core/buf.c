@@ -6,7 +6,7 @@
 #include <core/memory.h>
 #include <core/log.h>
 
-sky_inline sky_bool_t
+sky_api sky_bool_t
 sky_buf_init(sky_buf_t *buf, sky_pool_t *pool, sky_usize_t size) {
     buf->start = sky_pnalloc(pool, size + 1);
     if (sky_unlikely(!buf->start)) {
@@ -21,7 +21,7 @@ sky_buf_init(sky_buf_t *buf, sky_pool_t *pool, sky_usize_t size) {
     return true;
 }
 
-sky_buf_t *
+sky_api sky_buf_t *
 sky_buf_create(sky_pool_t *pool, sky_usize_t size) {
     sky_buf_t *buf;
 
@@ -33,7 +33,7 @@ sky_buf_create(sky_pool_t *pool, sky_usize_t size) {
     return sky_unlikely(!sky_buf_init(buf, pool, size)) ? null : buf;
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_buf_rebuild(sky_buf_t *buf, sky_usize_t size) {
     if (sky_unlikely(buf->pos > buf->end || buf->pos > buf->last)) {
         sky_log_error("buf out of memory: %d %d", buf->pos > buf->end, buf->pos > buf->last);
@@ -74,7 +74,8 @@ sky_buf_rebuild(sky_buf_t *buf, sky_usize_t size) {
     return true;
 }
 
-void sky_buf_destroy(sky_buf_t *buf) {
+sky_api void
+sky_buf_destroy(sky_buf_t *buf) {
     const sky_usize_t total = (sky_usize_t) (buf->end - buf->start);
 
     sky_pfree(buf->pool, buf->start, total + 1);

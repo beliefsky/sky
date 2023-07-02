@@ -61,7 +61,7 @@ static sky_u32_t crc32_sse(sky_u32_t crc, const sky_uchar_t *p, sky_usize_t len)
  * Pass 0 in the previous_crc32 parameter as an initial value unless continuing to update a running crc in a subsequent
  * call
  */
-sky_u32_t
+sky_api sky_u32_t
 sky_crc32_update(sky_u32_t crc, const sky_uchar_t *p, sky_usize_t len) {
 
 #if defined(__SSE4_1__) && defined(__PCLMUL__)
@@ -96,7 +96,7 @@ sky_crc32_update(sky_u32_t crc, const sky_uchar_t *p, sky_usize_t len) {
  * Pass 0 in the previous_crc32c parameter as an initial value unless continuing to update a running crc in a subsequent
  * call
  */
-sky_u32_t
+sky_api sky_u32_t
 sky_crc32c_update(sky_u32_t crc, const sky_uchar_t *p, sky_usize_t len) {
 #ifdef __SSE4_1__
     const sky_usize_t *temp = (sky_usize_t *) p;

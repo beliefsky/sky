@@ -15,7 +15,7 @@ typedef struct {
 
 static void http_server_accept(sky_tcp_t *tcp);
 
-sky_http_server_t *
+sky_api sky_http_server_t *
 sky_http_server_create(const sky_http_server_conf_t *conf) {
     sky_pool_t *pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
     sky_http_server_t *server = sky_palloc(pool, sizeof(sky_http_server_t));
@@ -38,7 +38,7 @@ sky_http_server_create(const sky_http_server_conf_t *conf) {
     return server;
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_http_server_module_put(sky_http_server_t *server, sky_http_server_module_t *module) {
     sky_trie_t *host_trie = sky_trie_contains(server->host_map, &module->host);
     if (!host_trie) {
@@ -67,7 +67,7 @@ sky_http_server_module_put(sky_http_server_t *server, sky_http_server_module_t *
     return false;
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *ev_loop, const sky_inet_addr_t *addr) {
     http_listener_t *listener = sky_palloc(server->pool, sizeof(http_listener_t));
     sky_tcp_init(&listener->tcp, sky_event_selector(ev_loop));
