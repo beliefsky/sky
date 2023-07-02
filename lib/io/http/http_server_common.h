@@ -13,6 +13,7 @@
 #include <core/trie.h>
 
 typedef struct http_res_packet_s http_res_packet_t;
+typedef sky_i8_t (*http_response_packet_pt)(sky_http_connection_t *conn, http_res_packet_t *packet);
 
 struct sky_http_server_s {
     sky_uchar_t rfc_date[30];
@@ -59,8 +60,18 @@ struct sky_http_server_multipart_s {
 
 struct http_res_packet_s {
     sky_queue_t link;
-    const sky_uchar_t *data;
-    sky_usize_t size;
+    http_response_packet_pt run;
+
+    union {
+        struct {
+            const sky_uchar_t *data;
+            sky_usize_t size;
+        };
+        struct {
+            const sky_uchar_t *header;
+            sky_usize_t header_len;
+        };
+    } buf;
 };
 
 #endif //SKY_HTTP_SERVER_COMMON_H

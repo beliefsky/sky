@@ -33,7 +33,9 @@ typedef struct sky_http_server_multipart_ctx_s sky_http_server_multipart_ctx_t;
 typedef struct sky_http_server_multipart_s sky_http_server_multipart_t;
 
 typedef sky_bool_t (*sky_http_server_multipart_body_pt)(void *data, const sky_uchar_t *value, sky_usize_t len);
+
 typedef void (*sky_http_server_module_run_pt)(sky_http_server_request_t *r, void *module_data);
+
 typedef void (*sky_http_server_next_pt)(sky_http_server_request_t *r, void *data);
 
 struct sky_http_server_conf_s {
@@ -96,7 +98,7 @@ struct sky_http_server_request_s {
 struct sky_http_server_header_s {
     sky_str_t key;
     sky_str_t val;
-} ;
+};
 
 
 sky_http_server_t *sky_http_server_create(const sky_http_server_conf_t *conf);
@@ -110,6 +112,14 @@ void sky_http_response_nobody(sky_http_server_request_t *r);
 void sky_http_response_static(sky_http_server_request_t *r, const sky_str_t *data);
 
 void sky_http_response_static_len(sky_http_server_request_t *r, const sky_uchar_t *data, sky_usize_t data_len);
+
+void sky_http_response_file(
+        sky_http_server_request_t *r,
+        sky_socket_t fd,
+        sky_i64_t offset,
+        sky_usize_t size,
+        sky_usize_t file_size
+);
 
 
 void sky_http_server_req_finish(sky_http_server_request_t *r);
