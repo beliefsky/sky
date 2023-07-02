@@ -202,10 +202,8 @@ sky_timer_wheel_expired(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, 
     if (!sky_queue_linked(&entry->link) || at == entry->expire_at) {
         return;
     }
-
-    entry->expire_at = at;
     sky_queue_remove(&entry->link);
-
+    entry->expire_at = at;
     link_timer(ctx, entry);
 }
 
