@@ -30,7 +30,6 @@ struct sky_http_mapper_s {
 typedef struct {
     sky_str_t host;
     sky_str_t prefix;
-    sky_str_t dir;
     sky_bool_t (*pre_run)(sky_http_server_request_t *req, void *data);
     void *run_data;
     sky_http_mapper_t *mappers;

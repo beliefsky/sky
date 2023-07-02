@@ -39,6 +39,7 @@ sky_http_server_dispatcher_create(const sky_http_server_dispatcher_conf_t *conf)
     http_module_dispatcher_t *data = sky_palloc(pool, sizeof(http_module_dispatcher_t));
     data->prefix = &module->prefix;
     data->pool = pool;
+    data->mappers = sky_trie_create(pool);
     data->pre_run = conf->pre_run;
     data->run_data = conf->run_data;
 
