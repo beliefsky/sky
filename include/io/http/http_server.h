@@ -46,6 +46,8 @@ struct sky_http_server_conf_s {
 struct sky_http_server_module_s {
     sky_str_t host;
     sky_str_t prefix;
+    sky_http_server_module_run_pt run;
+    void *module_data;
 };
 
 struct sky_http_server_request_s {
