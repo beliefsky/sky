@@ -21,6 +21,7 @@ set(SOURCES
         core/json.c
         core/buf.c
         core/trie.c
+        io/inet.c
         io/tcp.c
         io/udp.c
         io/event_loop.c
@@ -32,6 +33,7 @@ set(SOURCES
         io/http/http_response.c
         io/http/module/http_server_file.c
         io/http/module/http_server_dispatcher.c
+        io/postgres/client.c
         )
 
 
