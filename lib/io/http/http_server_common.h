@@ -10,6 +10,7 @@
 #include <io/tcp.h>
 #include <io/http/http_server.h>
 #include <core/buf.h>
+#include <core/string_out_stream.h>
 #include <core/trie.h>
 
 typedef struct http_res_packet_s http_res_packet_t;
@@ -30,6 +31,7 @@ struct sky_http_connection_s {
     sky_tcp_t tcp;
     sky_timer_wheel_entry_t timer;
     sky_queue_t res_queue;
+    sky_str_out_stream_t stream;
     sky_event_loop_t *ev_loop;
     sky_http_server_t *server;
     sky_http_server_request_t *current_req;
