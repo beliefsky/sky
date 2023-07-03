@@ -464,7 +464,7 @@ http_out_stream_flush(void *data, sky_uchar_t *const buf, sky_usize_t size) {
     sky_usize_t total = sky_str_out_stream_total(&conn->stream);
     http_res_packet_t *packet;
     sky_uchar_t *tmp;
-    if (!queue) {
+    if (queue == &conn->res_free) {
         packet = sky_palloc(req->pool, sizeof(http_res_packet_t));
         sky_queue_init_node(&packet->link);
 
