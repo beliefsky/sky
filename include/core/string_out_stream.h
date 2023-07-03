@@ -13,7 +13,7 @@ extern "C" {
 
 typedef struct sky_str_out_stream_s sky_str_out_stream_t;
 
-typedef void (*sky_str_out_stream_pt)(void *data, const sky_uchar_t *buf, sky_usize_t size);
+typedef void (*sky_str_out_stream_pt)(void *data, sky_uchar_t *buf, sky_usize_t size);
 
 struct sky_str_out_stream_s {
     sky_uchar_t *start;
@@ -40,7 +40,6 @@ sky_bool_t sky_str_out_stream_init_with_buff(
         sky_uchar_t *buff,
         sky_usize_t n
 );
-
 
 
 void sky_str_out_stream_destroy(sky_str_out_stream_t *stream);
@@ -90,7 +89,7 @@ sky_str_out_stream_reset(sky_str_out_stream_t *stream) {
     stream->post = stream->start;
 }
 
-static sky_inline const sky_uchar_t *
+static sky_inline sky_uchar_t *
 sky_str_out_stream_data(const sky_str_out_stream_t *stream) {
     return stream->start;
 }
