@@ -92,6 +92,7 @@ struct sky_http_server_request_s {
     sky_bool_t keep_alive: 1;
     sky_bool_t read_request_body: 1;
     sky_bool_t response: 1;
+    sky_bool_t end: 1;
     sky_bool_t chunked: 1;
 };
 
@@ -121,9 +122,18 @@ void sky_http_response_file(
         sky_usize_t file_size
 );
 
+void sky_http_response_chunked_start(sky_http_server_request_t *r);
+
+void sky_http_response_chunked_write(sky_http_server_request_t *r, const sky_str_t *buf);
+
+void sky_http_response_chunked_write_len(sky_http_server_request_t *r, const sky_uchar_t *buf, sky_usize_t buf_len);
+
+void sky_http_response_chunked_flush(sky_http_server_request_t *r);
+
+void sky_http_response_chunked_end(sky_http_server_request_t *r);
+
 
 void sky_http_server_req_finish(sky_http_server_request_t *r);
-
 
 static sky_inline void
 sky_http_server_req_next(sky_http_server_request_t *r, sky_http_server_next_pt next, void *data) {
