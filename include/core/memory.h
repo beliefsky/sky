@@ -33,13 +33,14 @@ extern "C" {
  * sky_memzero使用的是memset原型，memset使用汇编进行编写
  */
 #define sky_memzero(_ptr, _size)        memset(_ptr,0,_size)
-#define sky_memcpy(_dest, _src, _n)     memcpy(_dest, _src, _n)
+//#define sky_memcpy(_dest, _src, _n)     memcpy(_dest, _src, _n)
 #define sky_memmove(_dest, _src, _n)    memmove(_dest, _src, _n)
 
 #define sky_memmove2(_dist, _src) sky_memcpy2(_dist, _src)
 #define sky_memmove4(_dist, _src) sky_memcpy4(_dist, _src)
 #define sky_memmove8(_dist, _src) sky_memcpy8(_dist, _src)
 
+void sky_memcpy(void *dst, const void *src, sky_usize_t n);
 
 static sky_inline void
 sky_memcpy2(void *dist, const void *src) {

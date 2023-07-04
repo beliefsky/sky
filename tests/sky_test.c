@@ -6,11 +6,67 @@
 #include <io/http/http_server_file.h>
 #include <io/http/http_server_dispatcher.h>
 #include <netinet/in.h>
+#include <core/memory.h>
 
 int
 main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
+
+    const sky_uchar_t src[] = "jeiueiqueiqeuqieuiqueiqueiqhsjhdweujwiuuuuuuuuuuuuuu"
+                              "uuuuuuuuuussssssssssssssssssssssssssssssssjjjjjjjjjjj"
+                              "jjjjjjjweyuweywusssssssssssjehueyrkskweoihsdwuueywbwuy"
+                              "uuuuuuuuuussssssssssssssssssssssssssssssssjjjjjjjjjjj"
+                              "jjjjjjjweyuweywusssssssssssjehueyrkskweoihsdwuueywbwuy"
+                              "uuuuuuuuuussssssssssssssssssssssssssssssssjjjjjjjjjjj"
+                              "jjjjjjjweyuweywusssssssssssjehueyrkskweoihsdwuueywbwuy"
+                              "uuuuuuuuuussssssssssssssssssssssssssssssssjjjjjjjjjjj"
+                              "jjjjjjjweyuweywusssssssssssjehueyrkskweoihsdwuueywbwuy"
+                              "uuuuuuuuuussssssssssssssssssssssssssssssssjjjjjjjjjjj"
+                              "jjjjjjjweyuweywusssssssssssjehueyrkskweoihsdwuueywbwuy"
+                              "uuuuuuuuuussssssssssssssssssssssssssssssssjjjjjjjjjjj"
+                              "jjjjjjjweyuweywusssssssssssjehueyrkskweoihsdwuueywbwuy"
+                              "uqeyqlsdlwoieownsjwieiwenddssssssssssssssssssssddddddddddddd";
+    sky_uchar_t out[sizeof(src)];
+
+    sky_log_info("%lu", sizeof(src));
+
+    {
+        const sky_i64_t start = time(null);
+
+        for (int i = 0; i < 1000000000; ++i) {
+            memcpy(out, src + 1, sizeof(src) - 1);
+        }
+
+        const sky_i64_t end = time(null);
+
+        sky_log_info("===========> %ld s", end - start);
+    }
+    {
+        const sky_i64_t start = time(null);
+
+        for (int i = 0; i < 1000000000; ++i) {
+            sky_memcpy(out, src + 1, sizeof(src) - 1);
+        }
+
+        const sky_i64_t end = time(null);
+
+        sky_log_info("===========> %ld s", end - start);
+    }
+    {
+        const sky_i64_t start = time(null);
+
+        for (int i = 0; i < 1000000000; ++i) {
+            sky_memcpy(out, src, sizeof(src) - 1);
+        }
+
+        const sky_i64_t end = time(null);
+
+        sky_log_info("===========> %ld s", end - start);
+    }
+
+
+    return 0;
 
 
     sky_http_server_t *server = sky_http_server_create(null);
@@ -66,3 +122,4 @@ main() {
 
     return 0;
 }
+
