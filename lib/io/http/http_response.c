@@ -263,6 +263,11 @@ http_response(sky_tcp_t *tcp) {
         } else {
             req->next(req, req->next_data);
         }
+        return;
+    }
+
+    if (req->chunked && req->next) {
+        req->next(req, req->next_data);
     }
 }
 
@@ -483,7 +488,7 @@ http_out_stream_flush(void *data, sky_uchar_t *const buf, sky_usize_t size) {
         const sky_usize_t pre_total = packet->total;
         tmp = packet->data;
 
-        packet->total = sky_str_out_stream_size(&conn->stream) > 0 ? total: 0;
+        packet->total = sky_str_out_stream_size(&conn->stream) > 0 ? total : 0;
         if (!req->end && packet->total) {
             if (!pre_total) {
                 tmp = sky_palloc(req->pool, total);
