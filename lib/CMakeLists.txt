@@ -31,7 +31,7 @@ set(SOURCES
         io/http/http_server.c
         io/http/http_server_req.c
         io/http/http_parse.c
-        io/http/http_response.c
+        io/http/http_server_res.c
         io/http/module/http_server_file.c
         io/http/module/http_server_dispatcher.c
         io/postgres/client.c
