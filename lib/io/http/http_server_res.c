@@ -273,9 +273,7 @@ http_response(sky_tcp_t *tcp) {
 
 static void
 http_header_write_pre(sky_http_server_request_t *r, sky_str_out_stream_t *stream) {
-    if (!r->state) {
-        r->state = 200;
-    }
+    r->state = r->state ?: 200;
 
     sky_str_out_stream_write_str(stream, &r->version_name);
     sky_str_out_stream_write_uchar(stream, ' ');
