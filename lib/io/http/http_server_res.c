@@ -30,7 +30,7 @@ static sky_i8_t http_response_file(sky_http_connection_t *conn, http_res_packet_
 
 static void http_write_timeout(sky_timer_wheel_entry_t *timer);
 
-static void http_out_stream_flush(void *data, sky_uchar_t *buf, sky_usize_t size);
+static void http_out_stream_flush(void *data, const sky_uchar_t *buf, sky_usize_t size);
 
 static void status_msg_get(sky_u32_t status, sky_str_t *out);
 
@@ -458,7 +458,7 @@ http_write_timeout(sky_timer_wheel_entry_t *timer) {
 }
 
 static void
-http_out_stream_flush(void *data, sky_uchar_t *const buf, sky_usize_t size) {
+http_out_stream_flush(void *data, const sky_uchar_t *const buf, sky_usize_t size) {
     sky_http_connection_t *const conn = data;
     sky_http_server_request_t *const req = conn->current_req;
 
@@ -471,7 +471,7 @@ http_out_stream_flush(void *data, sky_uchar_t *const buf, sky_usize_t size) {
         packet = sky_palloc(req->pool, sizeof(http_res_packet_t));
         sky_queue_init_node(&packet->link);
 
-        packet->total = sky_str_out_stream_size(&conn->stream) > 0 ? total : 0;
+        packet->total = sky_str_out_stream_data(&conn->stream) == data ? total : 0;
 
         if (!req->end && packet->total) {
             tmp = sky_palloc(req->pool, total);
@@ -501,7 +501,7 @@ http_out_stream_flush(void *data, sky_uchar_t *const buf, sky_usize_t size) {
     }
     sky_queue_insert_prev(&conn->res_queue, &packet->link);
     packet->run = http_response_str;
-    packet->data = buf;
+    packet->data = (sky_uchar_t *) buf;
     packet->size = size;
 
     if (total) {

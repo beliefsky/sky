@@ -268,8 +268,8 @@ sky_api void
 sky_str_out_stream_flush(sky_str_out_stream_t *stream) {
     const sky_usize_t size = sky_str_out_stream_size(stream);
     if (sky_likely(size)) {
-        stream->callback(stream->data, stream->start, size);
         stream->post = stream->start;
+        stream->callback(stream->data, stream->start, size);
     }
 }
 
