@@ -13,7 +13,7 @@ extern "C" {
 
 typedef struct sky_str_out_stream_s sky_str_out_stream_t;
 
-typedef void (*sky_str_out_stream_pt)(void *data, sky_uchar_t *buf, sky_usize_t size);
+typedef void (*sky_str_out_stream_pt)(void *data, const sky_uchar_t *buf, sky_usize_t size);
 
 struct sky_str_out_stream_s {
     sky_uchar_t *start;
