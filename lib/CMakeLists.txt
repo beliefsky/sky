@@ -22,8 +22,6 @@ set(SOURCES
         core/json.c
         core/buf.c
         core/trie.c
-        core/memory/memcpy_default.c
-        core/memory/memcpy_sse2.c
         io/inet.c
         io/tcp.c
         io/udp.c
