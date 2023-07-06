@@ -15,7 +15,7 @@ struct sky_timer_wheel_s {
     sky_u32_t num_wheels;
     sky_u64_t last_run;
     sky_u64_t max_ticks;
-    sky_queue_t wheels[1][TIMER_WHEEL_SLOTS];
+    sky_queue_t wheels[][TIMER_WHEEL_SLOTS];
 };
 
 static sky_bool_t cascade_all(sky_timer_wheel_t *ctx, sky_usize_t wheel);
