@@ -157,7 +157,7 @@ sky_selector_register(sky_ev_t *ev, sky_u32_t flags) {
     }
 
     if ((flags & SKY_EV_WRITE) != 0) {
-        EV_SET(&events[n++], ev->fd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
+        EV_SET(&events[n++], ev->fd, EVFILT_WRITE, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
     }
 
     kevent(ev->s->fd, events, n, null, 0, null);
