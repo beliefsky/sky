@@ -32,7 +32,7 @@ sky_list_t *sky_list_create(sky_pool_t *pool, sky_u32_t n, sky_usize_t size);
 
 // sky_list_init是初始化了一个已有的链表
 static sky_inline sky_bool_t
-sky_list_init(sky_list_t *list, sky_pool_t *pool, sky_u32_t n, sky_usize_t size) {
+sky_list_init(sky_list_t *const list, sky_pool_t *const pool, const sky_u32_t n, const sky_usize_t size) {
     list->part.elts = sky_palloc(pool, n * size);   //从内存池申请空间后，让elts指向可用空间
     if (sky_unlikely(!list->part.elts)) {
         return false;

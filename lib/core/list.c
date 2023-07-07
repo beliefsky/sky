@@ -5,8 +5,8 @@
 #include <core/list.h>
 
 sky_api sky_list_t *
-sky_list_create(sky_pool_t *pool, sky_u32_t n, sky_usize_t size) {
-    sky_list_t *list = sky_palloc(pool, sizeof(sky_list_t));
+sky_list_create(sky_pool_t *const pool, const sky_u32_t n, const sky_usize_t size) {
+    sky_list_t *const list = sky_palloc(pool, sizeof(sky_list_t));
     if (sky_unlikely(!list)) {
         return null;
     }
@@ -17,7 +17,7 @@ sky_list_create(sky_pool_t *pool, sky_u32_t n, sky_usize_t size) {
 }
 
 sky_api void *
-sky_list_push(sky_list_t *l) {
+sky_list_push(sky_list_t *const l) {
     sky_list_part_t *last = l->last;
 
 
@@ -36,7 +36,7 @@ sky_list_push(sky_list_t *l) {
         l->last->next = last;
         l->last = last;
     }
-    void *elt = (sky_uchar_t *) last->elts + l->size * last->nelts;
+    void *const elt = (sky_uchar_t *) last->elts + l->size * last->nelts;
 
     last->nelts++;
 
