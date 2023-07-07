@@ -15,6 +15,7 @@ extern "C" {
 
 
 typedef struct sky_udp_s sky_udp_t;
+
 typedef void (*sky_udp_cb_pt)(sky_udp_t *udp);
 
 
@@ -41,27 +42,27 @@ sky_bool_t sky_udp_option_reuse_addr(const sky_udp_t *tcp);
 sky_bool_t sky_udp_option_reuse_port(const sky_udp_t *tcp);
 
 static sky_inline sky_ev_t *
-sky_udp_ev(sky_udp_t *udp) {
+sky_udp_ev(sky_udp_t *const udp) {
     return &udp->ev;
 }
 
 static sky_inline sky_socket_t
-sky_udp_fd(const sky_udp_t *udp) {
+sky_udp_fd(const sky_udp_t *const udp) {
     return sky_ev_get_fd(&udp->ev);
 }
 
 static sky_inline void
-sky_udp_set_cb(sky_udp_t *udp, sky_udp_cb_pt cb) {
+sky_udp_set_cb(sky_udp_t *const udp, const sky_udp_cb_pt cb) {
     sky_ev_reset_cb(&udp->ev, (sky_ev_cb_pt) cb);
 }
 
 static sky_inline sky_bool_t
-sky_udp_register(sky_udp_t *udp) {
+sky_udp_register(sky_udp_t *const udp) {
     return sky_selector_register(&udp->ev, SKY_EV_READ);
 }
 
 static sky_inline sky_bool_t
-sky_udp_try_register(sky_udp_t *udp) {
+sky_udp_try_register(sky_udp_t *const udp) {
     if (sky_ev_reg(&udp->ev)) {
         return true;
     }
@@ -69,17 +70,17 @@ sky_udp_try_register(sky_udp_t *udp) {
 }
 
 static sky_inline sky_bool_t
-sky_udp_register_update(sky_udp_t *udp) {
+sky_udp_register_update(sky_udp_t *const udp) {
     return sky_selector_update(&udp->ev, SKY_EV_READ);
 }
 
 static sky_inline sky_bool_t
-sky_udp_register_cancel(sky_udp_t *udp) {
+sky_udp_register_cancel(sky_udp_t *const udp) {
     return sky_selector_cancel(&udp->ev);
 }
 
 static sky_inline sky_bool_t
-sky_udp_is_open(const sky_udp_t *udp) {
+sky_udp_is_open(const sky_udp_t *const udp) {
     return (udp->status & SKY_UDP_STATUS_OPEN) != 0;
 }
 
