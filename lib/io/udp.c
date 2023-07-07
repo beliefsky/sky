@@ -122,7 +122,7 @@ sky_udp_close(sky_udp_t *const udp) {
 }
 
 sky_bool_t
-sky_tcp_option_reuse_addr(const sky_udp_t *const tcp) {
+sky_udp_option_reuse_addr(const sky_udp_t *const tcp) {
     const sky_socket_t fd = sky_ev_get_fd(&tcp->ev);
     const sky_i32_t opt = 1;
 
@@ -130,7 +130,7 @@ sky_tcp_option_reuse_addr(const sky_udp_t *const tcp) {
 }
 
 sky_bool_t
-sky_tcp_option_reuse_port(const sky_udp_t *tcp) {
+sky_udp_option_reuse_port(const sky_udp_t *tcp) {
     const sky_socket_t fd = sky_ev_get_fd(&tcp->ev);
     const sky_i32_t opt = 1;
 
