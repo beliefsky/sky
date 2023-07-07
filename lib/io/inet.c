@@ -6,7 +6,7 @@
 
 
 void
-sky_inet_addr_copy(sky_inet_addr_t *dst, const sky_inet_addr_t *src) {
+sky_inet_addr_copy(sky_inet_addr_t *const dst, const sky_inet_addr_t *const src) {
     dst->size = src->size;
     sky_memcpy(dst->addr, src->addr, src->size);
 }
