@@ -236,19 +236,14 @@ cascade_all(sky_timer_wheel_t *const ctx, sky_usize_t wheel) {
 
 static sky_inline void
 link_timer(sky_timer_wheel_t *const ctx, sky_timer_wheel_entry_t *const entry) {
-    sky_usize_t wheel, slot;
-    sky_u64_t wheel_abs, tmp;
-    sky_queue_t *queue;
-
-    tmp = ctx->last_run + ctx->max_ticks;
-    wheel_abs = sky_min(entry->expire_at, tmp);
+    sky_u64_t tmp = ctx->last_run + ctx->max_ticks;
+    const sky_u64_t wheel_abs = sky_min(entry->expire_at, tmp);
     tmp = wheel_abs - ctx->last_run;
 
-    wheel = (sky_usize_t) (tmp == 0 ? 0 : ((63 - sky_clz_u64(tmp)) / TIMER_WHEEL_BITS));
+    const sky_usize_t wheel = (const sky_usize_t) (tmp == 0 ? 0 : ((63 - sky_clz_u64(tmp)) / TIMER_WHEEL_BITS));
+    const sky_usize_t slot = timer_slot(wheel, wheel_abs);
 
-    slot = timer_slot(wheel, wheel_abs);
-
-    queue = &ctx->wheels[wheel][slot];
+    sky_queue_t *const queue = &ctx->wheels[wheel][slot];
 
     sky_queue_insert_prev(queue, &entry->link);
 }
