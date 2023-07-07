@@ -43,23 +43,23 @@ struct sky_inet_addr_s {
 void sky_inet_addr_copy(sky_inet_addr_t *dst, const sky_inet_addr_t *src);
 
 static sky_inline sky_u32_t
-sky_inet_addr_size(const sky_inet_addr_t *addr) {
+sky_inet_addr_size(const sky_inet_addr_t *const addr) {
     return addr->size;
 }
 
 static sky_inline void
-sky_inet_addr_set(sky_inet_addr_t *addr, void *ptr, sky_u32_t size) {
+sky_inet_addr_set(sky_inet_addr_t *const addr, void *const ptr, const sky_u32_t size) {
     addr->size = size;
     addr->addr = ptr;
 }
 
 static sky_inline void
-sky_inet_addr_set_ptr(sky_inet_addr_t *addr, void *ptr) {
+sky_inet_addr_set_ptr(sky_inet_addr_t *const addr, void *const ptr) {
     addr->addr = ptr;
 }
 
 static sky_inline sky_i32_t
-sky_inet_addr_family(const sky_inet_addr_t *addr) {
+sky_inet_addr_family(const sky_inet_addr_t *const addr) {
     return addr->addr->sa_family;
 }
 
