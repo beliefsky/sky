@@ -36,9 +36,9 @@ sky_bool_t sky_udp_write(sky_udp_t *udp, const sky_inet_addr_t *addr, const sky_
 
 void sky_udp_close(sky_udp_t *udp);
 
-sky_bool_t sky_tcp_option_reuse_addr(const sky_udp_t *tcp);
+sky_bool_t sky_udp_option_reuse_addr(const sky_udp_t *tcp);
 
-sky_bool_t sky_tcp_option_reuse_port(const sky_udp_t *tcp);
+sky_bool_t sky_udp_option_reuse_port(const sky_udp_t *tcp);
 
 static sky_inline sky_ev_t *
 sky_udp_ev(sky_udp_t *udp) {
