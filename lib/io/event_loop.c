@@ -23,7 +23,7 @@ sky_event_loop_create() {
 }
 
 sky_api void
-sky_event_loop_run(sky_event_loop_t *loop) {
+sky_event_loop_run(sky_event_loop_t *const loop) {
     sky_i32_t timeout;
     sky_u64_t next_time;
 
@@ -45,7 +45,7 @@ sky_event_loop_run(sky_event_loop_t *loop) {
 }
 
 sky_api void
-sky_event_loop_destroy(sky_event_loop_t *loop) {
+sky_event_loop_destroy(sky_event_loop_t *const loop) {
     sky_timer_wheel_destroy(loop->timer_ctx);
     sky_selector_destroy(loop->selector);
     sky_free(loop);

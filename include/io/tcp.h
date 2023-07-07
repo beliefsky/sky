@@ -31,9 +31,9 @@ void sky_tcp_init(sky_tcp_t *tcp, sky_selector_t *s);
 
 sky_bool_t sky_tcp_open(sky_tcp_t *tcp, sky_i32_t domain);
 
-sky_bool_t sky_tcp_bind(sky_tcp_t *tcp, const sky_inet_addr_t *addr);
+sky_bool_t sky_tcp_bind(const sky_tcp_t *tcp, const sky_inet_addr_t *addr);
 
-sky_bool_t sky_tcp_listen(sky_tcp_t *server, sky_i32_t backlog);
+sky_bool_t sky_tcp_listen(const sky_tcp_t *server, sky_i32_t backlog);
 
 sky_i8_t sky_tcp_accept(sky_tcp_t *server, sky_tcp_t *client);
 
@@ -54,41 +54,41 @@ sky_isize_t sky_tcp_sendfile(
         sky_usize_t head_size
 );
 
-sky_bool_t sky_tcp_option_reuse_addr(sky_tcp_t *tcp);
+sky_bool_t sky_tcp_option_reuse_addr(const sky_tcp_t *tcp);
 
-sky_bool_t sky_tcp_option_reuse_port(sky_tcp_t *tcp);
+sky_bool_t sky_tcp_option_reuse_port(const sky_tcp_t *tcp);
 
-sky_bool_t sky_tcp_option_no_delay(sky_tcp_t *tcp);
+sky_bool_t sky_tcp_option_no_delay(const sky_tcp_t *tcp);
 
-sky_bool_t sky_tcp_option_defer_accept(sky_tcp_t *tcp);
+sky_bool_t sky_tcp_option_defer_accept(const sky_tcp_t *tcp);
 
-sky_bool_t sky_tcp_option_fast_open(sky_tcp_t *tcp, sky_i32_t n);
+sky_bool_t sky_tcp_option_fast_open(const sky_tcp_t *tcp, sky_i32_t n);
 
-sky_bool_t sky_tcp_option_no_push(sky_tcp_t *tcp, sky_bool_t open);
+sky_bool_t sky_tcp_option_no_push(const sky_tcp_t *tcp, sky_bool_t open);
 
 
 static sky_inline sky_ev_t *
-sky_tcp_ev(sky_tcp_t *tcp) {
+sky_tcp_ev(sky_tcp_t *const tcp) {
     return &tcp->ev;
 }
 
 static sky_inline sky_socket_t
-sky_tcp_fd(sky_tcp_t *tcp) {
+sky_tcp_fd(const sky_tcp_t *const tcp) {
     return sky_ev_get_fd(&tcp->ev);
 }
 
 static sky_inline void
-sky_tcp_set_cb(sky_tcp_t *tcp, sky_tcp_cb_pt cb) {
+sky_tcp_set_cb(sky_tcp_t *const tcp, const sky_tcp_cb_pt cb) {
     sky_ev_reset_cb(&tcp->ev, (sky_ev_cb_pt) cb);
 }
 
 static sky_inline sky_bool_t
-sky_tcp_register(sky_tcp_t *tcp, sky_u32_t flags) {
+sky_tcp_register(sky_tcp_t *const tcp, const sky_u32_t flags) {
     return sky_selector_register(&tcp->ev, flags);
 }
 
 static sky_inline sky_bool_t
-sky_tcp_try_register(sky_tcp_t *tcp, sky_u32_t flags) {
+sky_tcp_try_register(sky_tcp_t *const tcp, const sky_u32_t flags) {
     if (sky_ev_reg(&tcp->ev)) {
         return true;
     }
@@ -96,22 +96,22 @@ sky_tcp_try_register(sky_tcp_t *tcp, sky_u32_t flags) {
 }
 
 static sky_inline sky_bool_t
-sky_tcp_register_update(sky_tcp_t *tcp, sky_u32_t flags) {
+sky_tcp_register_update(sky_tcp_t *const tcp, const sky_u32_t flags) {
     return sky_selector_update(&tcp->ev, flags);
 }
 
 static sky_inline sky_bool_t
-sky_tcp_register_cancel(sky_tcp_t *tcp) {
+sky_tcp_register_cancel(sky_tcp_t *const tcp) {
     return sky_selector_cancel(&tcp->ev);
 }
 
 static sky_inline sky_bool_t
-sky_tcp_is_open(const sky_tcp_t *tcp) {
+sky_tcp_is_open(const sky_tcp_t *const tcp) {
     return (tcp->status & SKY_TCP_STATUS_OPEN) != 0;
 }
 
 static sky_inline sky_bool_t
-sky_tcp_is_connect(const sky_tcp_t *tcp) {
+sky_tcp_is_connect(const sky_tcp_t *const tcp) {
     return (tcp->status & SKY_TCP_STATUS_CONNECT) != 0;
 }
 
