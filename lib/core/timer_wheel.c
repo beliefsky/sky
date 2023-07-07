@@ -24,19 +24,19 @@ static void link_timer(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry);
 
 
 sky_api sky_timer_wheel_t *
-sky_timer_wheel_create(sky_u32_t num_wheels, sky_u64_t now) {
-    sky_timer_wheel_t *ctx;
-    sky_queue_t *queue;
-    sky_usize_t i, j;
-
-
+sky_timer_wheel_create(sky_u32_t num_wheels, const sky_u64_t now) {
     num_wheels = sky_max(num_wheels, SKY_U32(2));
 
-    ctx = sky_malloc(sky_offset_of(sky_timer_wheel_t, wheels) + sizeof(ctx->wheels[0]) * num_wheels);
+    sky_timer_wheel_t *const ctx = sky_malloc(
+            sky_offset_of(sky_timer_wheel_t, wheels)
+            + sizeof(ctx->wheels[0]) * num_wheels
+    );
     ctx->last_run = now;
     ctx->max_ticks = (SKY_U64(1) << (TIMER_WHEEL_BITS * (num_wheels - 1))) * (TIMER_WHEEL_SLOTS - 1);
     ctx->num_wheels = num_wheels;
 
+    sky_usize_t i, j;
+    sky_queue_t *queue;
     for (i = 0; i < ctx->num_wheels; ++i) {
         for (j = 0; j < TIMER_WHEEL_SLOTS; ++j) {
             queue = &ctx->wheels[i][j];
@@ -48,13 +48,12 @@ sky_timer_wheel_create(sky_u32_t num_wheels, sky_u64_t now) {
 }
 
 sky_api void
-sky_timer_wheel_destroy(sky_timer_wheel_t *ctx) {
+sky_timer_wheel_destroy(sky_timer_wheel_t *const ctx) {
     sky_usize_t i, j;
     sky_queue_t *queue, *node;
 
     for (i = 0; i < ctx->num_wheels; ++i) {
         for (j = 0; j < TIMER_WHEEL_SLOTS; ++j) {
-
             queue = &ctx->wheels[i][j];
             while (!sky_queue_empty(queue)) {
                 node = sky_queue_next(queue);
@@ -66,7 +65,7 @@ sky_timer_wheel_destroy(sky_timer_wheel_t *ctx) {
 }
 
 sky_api sky_u64_t
-sky_timer_wheel_wake_at(sky_timer_wheel_t *ctx) {
+sky_timer_wheel_wake_at(sky_timer_wheel_t *const ctx) {
     sky_usize_t wheel, slot, slot_base, si;
     sky_u64_t at = ctx->last_run, at_incr;
     sky_queue_t *queue;
@@ -115,7 +114,7 @@ sky_timer_wheel_wake_at(sky_timer_wheel_t *ctx) {
 }
 
 sky_api void
-sky_timer_wheel_get_expired(sky_timer_wheel_t *ctx, sky_queue_t *result, sky_u64_t now) {
+sky_timer_wheel_get_expired(sky_timer_wheel_t *const ctx, sky_queue_t *const result, const sky_u64_t now) {
     sky_usize_t wheel = 0, slot, slot_start;
     sky_queue_t *queue, *tmp;
     sky_timer_wheel_entry_t *entry;
@@ -167,7 +166,7 @@ sky_timer_wheel_get_expired(sky_timer_wheel_t *ctx, sky_queue_t *result, sky_u64
 }
 
 sky_api void
-sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_u64_t now) {
+sky_timer_wheel_run(sky_timer_wheel_t *const ctx, const sky_u64_t now) {
     sky_timer_wheel_entry_t *entry;
 
     sky_queue_t *tmp, queue;
@@ -183,7 +182,7 @@ sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_u64_t now) {
 }
 
 sky_api void
-sky_timer_wheel_link(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky_u64_t at) {
+sky_timer_wheel_link(sky_timer_wheel_t *const ctx, sky_timer_wheel_entry_t *const entry, sky_u64_t at) {
     at = sky_max(at, ctx->last_run);
 
     if (sky_unlikely(sky_queue_linked(&entry->link))) {
@@ -197,7 +196,7 @@ sky_timer_wheel_link(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky
 }
 
 sky_api void
-sky_timer_wheel_expired(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky_u64_t at) {
+sky_timer_wheel_expired(sky_timer_wheel_t *const ctx, sky_timer_wheel_entry_t *const entry, sky_u64_t at) {
     at = sky_max(at, ctx->last_run);
 
     if (sky_unlikely(!sky_queue_linked(&entry->link) || at == entry->expire_at)) {
@@ -209,7 +208,7 @@ sky_timer_wheel_expired(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, 
 }
 
 static sky_inline sky_bool_t
-cascade_all(sky_timer_wheel_t *ctx, sky_usize_t wheel) {
+cascade_all(sky_timer_wheel_t *const ctx, sky_usize_t wheel) {
     sky_bool_t cascaded = false;
     sky_usize_t slot;
     sky_queue_t *queue, *tmp;
@@ -236,7 +235,7 @@ cascade_all(sky_timer_wheel_t *ctx, sky_usize_t wheel) {
 }
 
 static sky_inline void
-link_timer(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry) {
+link_timer(sky_timer_wheel_t *const ctx, sky_timer_wheel_entry_t *const entry) {
     sky_usize_t wheel, slot;
     sky_u64_t wheel_abs, tmp;
     sky_queue_t *queue;
