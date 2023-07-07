@@ -29,7 +29,7 @@ struct sky_queue_iterator_s {
 
 
 static sky_inline void
-sky_queue_init(sky_queue_t * const queue) {
+sky_queue_init(sky_queue_t *const queue) {
     queue->prev = queue;
     queue->next = queue;
 }
