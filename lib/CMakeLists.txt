@@ -14,14 +14,17 @@ set(SOURCES
         core/base16.c
         core/base64.c
         core/crc32.c
-        core/number.c
-        core/float.c
         core/date.c
         core/string_buf.c
         core/string_out_stream.c
         core/json.c
         core/buf.c
         core/trie.c
+        core/member/str_to_int.c
+        core/member/int_to_str.c
+        core/member/str_to_float.c
+        core/member/float_to_str.c
+        core/hex.c
         io/inet.c
         io/tcp.c
         io/udp.c

@@ -4,7 +4,7 @@
 
 #include <io/http/http_server.h>
 #include <core/string_out_stream.h>
-#include <core/number.h>
+#include <core/hex.h>
 #include <core/date.h>
 #include "http_server_common.h"
 

@@ -5,7 +5,6 @@
 #include <core/string_out_stream.h>
 #include <core/memory.h>
 #include <core/number.h>
-#include <core/float.h>
 #include <core/log.h>
 
 
