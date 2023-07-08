@@ -20,10 +20,10 @@ set(SOURCES
         core/json.c
         core/buf.c
         core/trie.c
-        core/member/str_to_int.c
-        core/member/int_to_str.c
-        core/member/str_to_float.c
-        core/member/float_to_str.c
+        core/number/str_to_int.c
+        core/number/int_to_str.c
+        core/number/str_to_float.c
+        core/number/float_to_str.c
         core/hex.c
         io/inet.c
         io/tcp.c
