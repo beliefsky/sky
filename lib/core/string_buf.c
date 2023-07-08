@@ -5,7 +5,6 @@
 #include <core/string_buf.h>
 #include <core/memory.h>
 #include <core/number.h>
-#include <core/float.h>
 #include <core/log.h>
 
 static sky_bool_t str_buf_append(sky_str_buf_t *buf, sky_usize_t size);

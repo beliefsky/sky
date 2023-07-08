@@ -5,7 +5,6 @@
 #include <core/json.h>
 #include <core/number.h>
 #include <core/log.h>
-#include <core/float.h>
 
 #define SKY_JSON_PADDING_SIZE 4
 
