@@ -2,8 +2,8 @@
 // Created by beliefsky on 2023/7/8.
 //
 
-#ifndef SKY_NEMBER_COMMON_H
-#define SKY_NEMBER_COMMON_H
+#ifndef SKY_NUMBER_COMMON_H
+#define SKY_NUMBER_COMMON_H
 
 #include <core/number.h>
 
@@ -102,4 +102,4 @@ u32_power_ten(const sky_usize_t n) {
     return table[n];
 }
 
-#endif //SKY_NEMBER_COMMON_H
+#endif //SKY_NUMBER_COMMON_H
