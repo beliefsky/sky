@@ -5,6 +5,7 @@
 #include <core/json.h>
 #include <core/number.h>
 #include <core/log.h>
+#include "number/number_common.h"
 
 #define SKY_JSON_PADDING_SIZE 4
 
@@ -272,10 +273,6 @@ static sky_f64_t f64_pow10_table(sky_i32_t i);
 static void pow10_table_get_sig(sky_i32_t exp10, sky_u64_t *hi, sky_u64_t *lo);
 
 static void pow10_table_get_exp(sky_i32_t exp10, sky_i32_t *exp2);
-
-static void u128_mul(sky_u64_t a, sky_u64_t b, sky_u64_t *hi, sky_u64_t *lo);
-
-static void u128_mul_add(sky_u64_t a, sky_u64_t b, sky_u64_t c, sky_u64_t *hi, sky_u64_t *lo);
 
 static void bigint_add_u64(bigint_t *big, sky_u64_t val);
 
@@ -3382,45 +3379,6 @@ pow10_table_get_exp(sky_i32_t exp10, sky_i32_t *exp2) {
     /* e2 = floor(log2(pow(10, e))) - 64 + 1 */
     /*    = floor(e * log2(10) - 63)         */
     *exp2 = (exp10 * 217706 - 4128768) >> 16;
-}
-
-static sky_inline void
-u128_mul(sky_u64_t a, sky_u64_t b, sky_u64_t *hi, sky_u64_t *lo) {
-#ifdef HAVE_INT_128
-    sky_u128_t m = (sky_u128_t) a * b;
-    *hi = (sky_u64_t) (m >> 64);
-    *lo = (sky_u64_t) (m);
-
-#else
-    const sky_u32_t a0 = (sky_u32_t)(a), a1 = (sky_u32_t)(a >> 32);
-    const sky_u32_t b0 = (sky_u32_t)(b), b1 = (sky_u32_t)(b >> 32);
-    const sky_u64_t p00 = (sky_u64_t)a0 * b0, p01 = (sky_u64_t)a0 * b1;
-    const sky_u64_t p10 = (sky_u64_t)a1 * b0, p11 = (sky_u64_t)a1 * b1;
-    const sky_u64_t m0 = p01 + (p00 >> 32);
-    const sky_u32_t m00 = (sky_u32_t)(m0), m01 = (sky_u32_t)(m0 >> 32);
-    const sky_u64_t m1 = p10 + m00;
-    const sky_u32_t m10 = (sky_u32_t)(m1), m11 = (sky_u32_t)(m1 >> 32);
-    *hi = p11 + m01 + m11;
-    *lo = ((sky_u64_t)m10 << 32) | (sky_u32_t)p00;
-#endif
-}
-
-/** Multiplies two 64-bit unsigned integers and add a value (a * b + c),
-    returns the 128-bit result as 'hi' and 'lo'. */
-static sky_inline void
-u128_mul_add(sky_u64_t a, sky_u64_t b, sky_u64_t c, sky_u64_t *hi, sky_u64_t *lo) {
-#ifdef HAVE_INT_128
-    sky_u128_t m = (sky_u128_t) a * b + c;
-    *hi = (sky_u64_t) (m >> 64);
-    *lo = (sky_u64_t) (m);
-#else
-    sky_u64_t h, l, t;
-    u128_mul(a, b, &h, &l);
-    t = l + c;
-    h += (sky_u64_t)(((t < l) | (t < c)));
-    *hi = h;
-    *lo = t;
-#endif
 }
 
 /**
