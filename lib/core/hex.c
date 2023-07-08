@@ -128,6 +128,6 @@ sky_u32_to_hex_padding(const sky_u32_t data, sky_uchar_t *const out, const sky_b
 
 sky_api void
 sky_u64_to_hex_padding(const sky_u64_t data, sky_uchar_t *const out, const sky_bool_t lower) {
-    sky_u32_to_hex_padding(data >> 32, out, lower);
+    sky_u32_to_hex_padding((sky_u32_t) (data >> 32), out, lower);
     sky_u32_to_hex_padding(data & SKY_U32(0xFFFFFFFF), out + 8, lower);
 }

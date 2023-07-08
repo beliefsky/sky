@@ -61,6 +61,15 @@ sky_usize_to_hex_str(const sky_usize_t data, sky_uchar_t *const out, const sky_b
 #endif
 }
 
+static sky_inline void
+sky_usize_to_hex_padding(const sky_u64_t data, sky_uchar_t *const out, const sky_bool_t lower) {
+#if SKY_USIZE_MAX == SKY_U64_MAX
+    sky_u64_to_hex_padding(data, out, lower);
+#else
+    sky_u32_to_hex_padding(data, out, lower);
+#endif
+}
+
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif
