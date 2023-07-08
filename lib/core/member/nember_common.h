@@ -19,9 +19,9 @@
  */
 static sky_inline sky_u32_t
 fast_str_parse_u32(sky_u64_t mask) {
-    mask = (mask & 0x0F0F0F0F0F0F0F0F) * 2561 >> 8;
-    mask = (mask & 0x00FF00FF00FF00FF) * 6553601 >> 16;
-    return (sky_u32_t) ((mask & 0x0000FFFF0000FFFF) * 42949672960001 >> 32);
+    mask = (mask & SKY_U64(0x0F0F0F0F0F0F0F0F)) * 2561 >> 8;
+    mask = (mask & SKY_U64(0x00FF00FF00FF00FF)) * 6553601 >> 16;
+    return (sky_u32_t) ((mask & SKY_U64(0x0000FFFF0000FFFF)) * 42949672960001 >> 32);
 }
 
 static sky_inline sky_u64_t

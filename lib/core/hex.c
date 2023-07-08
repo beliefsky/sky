@@ -82,7 +82,7 @@ sky_api sky_u8_t
 sky_u64_to_hex_str(const sky_u64_t data, sky_uchar_t *out, const sky_bool_t lower) {
     sky_u32_t x = (sky_u32_t) (data >> 32);
     if (!x) {
-        x = (sky_u32_t) (data & 0xFFFFFFFF);
+        x = (sky_u32_t) (data & SKY_U32(0xFFFFFFFF));
         return sky_u32_to_hex_str(x, out, lower);
     }
     sky_u32_to_hex_padding(x, out, lower);
@@ -98,7 +98,7 @@ sky_u64_to_hex_str(const sky_u64_t data, sky_uchar_t *out, const sky_bool_t lowe
 #endif
 
     out += n;
-    x = (sky_u32_t) (data & 0xFFFFFFFF);
+    x = (sky_u32_t) (data & SKY_U32(0xFFFFFFFF));
     sky_u32_to_hex_padding(x, out, lower);
     n += 8;
 
@@ -109,13 +109,13 @@ sky_u64_to_hex_str(const sky_u64_t data, sky_uchar_t *out, const sky_bool_t lowe
 sky_api void
 sky_u32_to_hex_padding(const sky_u32_t data, sky_uchar_t *const out, const sky_bool_t lower) {
     sky_u64_t x = data;
-    x = ((x & 0xFFFF) << 32) | ((x & 0xFFFF0000) >> 16);
-    x = ((x & 0x0000FF000000FF00) >> 8) | (x & 0x000000FF000000FF) << 16;
-    x = ((x & 0x00F000F000F000F0) >> 4) | (x & 0x000F000F000F000F) << 8;
+    x = ((x & SKY_U64(0xFFFF)) << 32) | ((x & SKY_U64(0xFFFF0000)) >> 16);
+    x = ((x & SKY_U64(0x0000FF000000FF00)) >> 8) | (x & SKY_U64(0x000000FF000000FF)) << 16;
+    x = ((x & SKY_U64(0x00F000F000F000F0)) >> 4) | (x & SKY_U64(0x000F000F000F000F)) << 8;
 
-    const sky_u64_t mask = ((x + 0x0606060606060606) >> 4) & 0x0101010101010101;
+    const sky_u64_t mask = ((x + SKY_U64(0x0606060606060606)) >> 4) & SKY_U64(0x0101010101010101);
 
-    x |= 0x3030303030303030;
+    x |= SKY_U64(0x3030303030303030);
 
     const sky_u8_t table[] = {
             0x07,
