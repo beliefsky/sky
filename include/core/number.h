@@ -20,6 +20,28 @@ extern "C" {
     ((((_mask) + 0x0606060606060606) & 0xF0F0F0F0F0F0F0F0) >> 4)) == \
     0x3333333333333333)
 
+#define sky_str_len_to_number(_in, _len, _out) _Generic((_out), \
+    sky_i8_t *: sky_str_len_to_i8,                              \
+    sky_u8_t *: sky_str_len_to_u8,                              \
+    sky_i16_t *: sky_str_len_to_i16,                            \
+    sky_u16_t *: sky_str_len_to_u16,                            \
+    sky_i32_t *: sky_str_len_to_i32,                            \
+    sky_u32_t *: sky_str_len_to_u32,                            \
+    sky_i64_t *: sky_str_len_to_i64,                            \
+    sky_u64_t *: sky_str_len_to_u16                             \
+)(_in, _len, _out)
+
+#define sky_str_to_number(_in, _out) _Generic((_out), \
+    sky_i8_t *: sky_str_to_i8,                        \
+    sky_u8_t *: sky_str_to_u8,                        \
+    sky_i16_t *: sky_str_to_i16,                      \
+    sky_u16_t *: sky_str_to_u16,                      \
+    sky_i32_t *: sky_str_to_i32,                      \
+    sky_u32_t *: sky_str_to_u32,                      \
+    sky_i64_t *: sky_str_to_i64,                      \
+    sky_u64_t *: sky_str_to_u16                       \
+)(_in, _out)
+
 sky_bool_t sky_str_len_to_i8(const sky_uchar_t *in, sky_usize_t in_len, sky_i8_t *out);
 
 sky_bool_t sky_str_len_to_u8(const sky_uchar_t *in, sky_usize_t in_len, sky_u8_t *out);
