@@ -6,7 +6,6 @@
 #define SKY_TYPES_H
 
 #include "../sky_build_config.h"
-#include <stdint.h>
 #include <time.h>
 
 #if defined(__cplusplus)
@@ -16,7 +15,7 @@ extern "C" {
 #define true    1
 #define false   0
 
-#define sky_offset_of(_TYPE, _MEMBER) __builtin_offsetof (_TYPE, _MEMBER)
+#define sky_offset_of(_TYPE, _MEMBER) __builtin_offsetof(_TYPE, _MEMBER)
 #ifdef _MSC_VER
 #define sky_inline      __forceinline
 #define sky_api __declspec(dllexport)
@@ -35,52 +34,67 @@ extern "C" {
 
 #define null    (void *)0
 
-#define SKY_I8_MAX INT8_MAX
-#define SKY_U8_MAX UINT8_MAX
-#define SKY_I16_MAX INT16_MAX
-#define SKY_U16_MAX UINT16_MAX
-#define SKY_I32_MAX INT32_MAX
-#define SKY_U32_MAX UINT32_MAX
-#define SKY_I64_MAX INT64_MAX
-#define SKY_U64_MAX UINT64_MAX
-#define SKY_ISIZE_MAX INTMAX_MAX
-#define SKY_USIZE_MAX UINTMAX_MAX
+#define SKY_I8(_c)      _c
+#define SKY_U8(_c)      _c
+#define SKY_I16(_c)     _c
+#define SKY_U16(_c)     _c
+#define SKY_I32(_c)     _c
+#define SKY_U32(_c)     _c ## U
 
-#define SKY_I8(_c)  INT8_C(_c)
-#define SKY_U8(_c)  UINT8_C(_c)
-#define SKY_I16(_c)  INT16_C(_c)
-#define SKY_U16(_c)  UINT16_C(_c)
-#define SKY_I32(_c)  INT32_C(_c)
-#define SKY_U32(_c)  UINT32_C(_c)
-#define SKY_I64(_c)  INT64_C(_c)
-#define SKY_U64(_c)  UINT64_C(_c)
-#define SKY_ISIZE(_c)  INTMAX_C(_c)
-#define SKY_USIZE(_c)  UINTMAX_C(_c)
+#if __WORDSIZE == 64
+#define SKY_I64(_c)     _c ## L
+#define SKY_U64(_c)     _c ## UL
+#define SKY_ISIZE(_c)   SKY_I64(_c)
+#define SKY_USIZE(_c)   SKY_U64(_c)
+#else
+#define SKY_I64(_c)     _c ## LL
+#define SKY_U64(_c)     _c ## ULL
+#define SKY_ISIZE(_c)   SKY_I32(_c)
+#define SKY_USIZE(_c)   SKY_U32(_c)
+#endif
+
+#define SKY_I8_MAX      SKY_I8(127)
+#define SKY_U8_MAX      SKY_U8(255)
+#define SKY_I16_MAX     SKY_I16(32767)
+#define SKY_U16_MAX     SKY_U16(65535)
+#define SKY_I32_MAX     SKY_I32(2147483647)
+#define SKY_U32_MAX     SKY_U32(4294967295)
+#define SKY_I64_MAX     SKY_I64(9223372036854775807)
+#define SKY_U64_MAX     SKY_U64(18446744073709551615)
+#if __WORDSIZE == 64
+#define SKY_ISIZE_MAX   SKY_I64_MAX
+#define SKY_USIZE_MAX   SKY_U64_MAX
+#else
+#define SKY_ISIZE_MAX   SKY_I32_MAX
+#define SKY_USIZE_MAX   SKY_32_MAX
+#endif
 
 
 typedef _Bool sky_bool_t;
-typedef char sky_char_t;              /*-128 ~ +127*/
-typedef unsigned char sky_uchar_t;    /*0 ~ 255*/
-typedef int8_t sky_i8_t;              /*-128 ~ +127*/
-typedef uint8_t sky_u8_t;             /*0 ~ 255*/
-typedef int16_t sky_i16_t;            /*-32768 ~ + 32767*/
-typedef uint16_t sky_u16_t;           /*0 ~ 65536*/
-typedef int32_t sky_i32_t;            /*-2147483648 ~ +2147483647*/
-typedef uint32_t sky_u32_t;           /*0 ~ 4294967295*/
-typedef int64_t sky_i64_t;            /*-9223372036854775808 ~ +9223372036854775807*/
-typedef uint64_t sky_u64_t;           /*0 ~ 18446744073709551615*/
-typedef intptr_t sky_isize_t;
-typedef uintptr_t sky_usize_t;
+typedef signed char sky_char_t;             /*-128 ~ +127*/
+typedef unsigned char sky_uchar_t;          /*0 ~ 255*/
+typedef signed char sky_i8_t;               /*-128 ~ +127*/
+typedef unsigned char sky_u8_t;             /*0 ~ 255*/
+typedef signed short sky_i16_t;             /*-32768 ~ + 32767*/
+typedef unsigned short sky_u16_t;           /*0 ~ 65536*/
+typedef signed int sky_i32_t;               /*-2147483648 ~ +2147483647*/
+typedef unsigned int sky_u32_t;             /*0 ~ 4294967295*/
+#if __WORDSIZE == 64
+typedef signed long int sky_i64_t;          /*-9223372036854775808 ~ +9223372036854775807*/
+typedef unsigned long int sky_u64_t;        /*0 ~ 18446744073709551615*/
+typedef signed long int sky_isize_t;
+typedef unsigned long int sky_usize_t;
+#elif
+typedef signed long long int sky_i64_t;     /*-9223372036854775808 ~ +9223372036854775807*/
+typedef unsigned long long int sky_u64_t;   /*0 ~ 18446744073709551615*/
+typedef signed int sky_isize_t;
+typedef unsigned int sky_usize_t;
+#endif
 typedef time_t sky_time_t;
 
 typedef float sky_f32_t;
 typedef double sky_f64_t;
 
-#ifdef __SIZEOF_INT128__
-#define HAVE_INT_128
-__extension__ typedef __int128 sky_i128_t;
-__extension__ typedef unsigned __int128 sky_u128_t;
-#endif
 
 #define sky_thread __thread
 

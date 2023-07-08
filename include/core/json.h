@@ -225,8 +225,8 @@ sky_json_unsafe_is_uint(const sky_json_val_t *val) {
 
 static sky_inline sky_bool_t
 sky_json_unsafe_is_int(const sky_json_val_t *val) {
-    const uint8_t mask = SKY_JSON_TAG_MASK & (~SKY_JSON_SUBTYPE_INT);
-    const uint8_t patt = SKY_JSON_TYPE_NUM | SKY_JSON_SUBTYPE_UINT;
+    const sky_u8_t mask = SKY_JSON_TAG_MASK & (~SKY_JSON_SUBTYPE_INT);
+    const sky_u8_t patt = SKY_JSON_TYPE_NUM | SKY_JSON_SUBTYPE_UINT;
 
     return (sky_json_unsafe_get_tag(val) & mask) == patt;
 }
@@ -271,7 +271,7 @@ sky_json_unsafe_get_next(const sky_json_val_t *val) {
     const sky_bool_t is_ctn = sky_json_unsafe_is_ctn(val);
     const sky_usize_t ctn_ofs = val->uni.ofs;
     const sky_usize_t ofs = (is_ctn ? ctn_ofs : sizeof(sky_json_val_t));
-    return (sky_json_val_t *) ((uint8_t *) val + ofs);
+    return (sky_json_val_t *) ((sky_u8_t *) val + ofs);
 }
 
 static sky_inline void
@@ -341,7 +341,7 @@ sky_json_unsafe_set_type(sky_json_val_t *val, sky_u8_t type, sky_u8_t subtype) {
 static sky_inline void
 sky_json_unsafe_set_len(sky_json_val_t *val, sky_usize_t len) {
     sky_u64_t tag = val->tag & SKY_JSON_TAG_MASK;
-    tag |= (uint64_t) len << SKY_JSON_TAG_BIT;
+    tag |= (sky_u64_t) len << SKY_JSON_TAG_BIT;
     val->tag = tag;
 }
 
