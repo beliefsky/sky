@@ -1,7 +1,7 @@
 //
 // Created by beliefsky on 2023/7/8.
 //
-#include <core/number.h>
+#include "number_common.h"
 
 static sky_u8_t u32_check_str_count(sky_u32_t x);
 
@@ -142,7 +142,7 @@ static sky_inline void
 fast_number_to_str(sky_u64_t x, const sky_u8_t len, sky_uchar_t *__restrict s) {
     switch (len) {
         case 1:
-            *s = sky_num_to_uchar(x);
+            *s = num_to_uchar(x);
             return;
         case 2: {
             sky_u64_t ll = ((x * 103) >> 9) & 0x1E;
@@ -201,7 +201,7 @@ fast_number_to_str(sky_u64_t x, const sky_u8_t len, sky_uchar_t *__restrict s) {
         }
         case 9: {
             sky_u64_t ll = (x * 0x55E63B89) >> 57;
-            *s++ = sky_num_to_uchar(ll);
+            *s++ = num_to_uchar(ll);
             x -= (ll * 100000000);
             ll = num_5_8_str_pre(x);
             *(sky_u64_t *) (s) = ll;

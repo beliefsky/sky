@@ -38,7 +38,7 @@ sky_str_len_to_f64(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *const o
     for (;;) {
         if (in_len < 8) {
             mask = fast_str_parse_mask(in, in_len);
-            if (!sky_fast_str_check_number(mask)) {
+            if (!fast_str_check_number(mask)) {
                 break;
             }
             i = i * u32_power_ten(in_len) + fast_str_parse_u32(mask);
@@ -47,7 +47,7 @@ sky_str_len_to_f64(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *const o
             return true;
         }
         mask = fast_str_parse_mask8(in);
-        if (!sky_fast_str_check_number(mask)) {
+        if (!fast_str_check_number(mask)) {
             break;
         }
         i = i * u32_power_ten(8) + fast_str_parse_u32(mask);
@@ -82,7 +82,7 @@ sky_str_len_to_f64(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *const o
         for (;;) {
             if (in_len < 8) {
                 mask = fast_str_parse_mask(in, in_len);
-                if (!sky_fast_str_check_number(mask)) {
+                if (!fast_str_check_number(mask)) {
                     break;
                 }
                 i = i * u32_power_ten(in_len) + fast_str_parse_u32(mask);
@@ -91,7 +91,7 @@ sky_str_len_to_f64(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *const o
                 return compute_float_64(i, power_ten, negative, out);
             }
             mask = fast_str_parse_mask8(in);
-            if (!sky_fast_str_check_number(mask)) {
+            if (!fast_str_check_number(mask)) {
                 break;
             }
             i = i * u32_power_ten(8) + fast_str_parse_u32(mask);

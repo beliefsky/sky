@@ -4,7 +4,7 @@
 
 #include <core/date.h>
 #include <core/memory.h>
-#include <core/number.h>
+#include "number/number_common.h"
 
 
 sky_api sky_u8_t
@@ -173,7 +173,7 @@ sky_date_to_rfc_str(time_t time, sky_uchar_t *src) {
     *(src++) = ' ';
     if (tm.tm_mday < 10) {
         *(src++) = '0';
-        *(src++) = sky_num_to_uchar(tm.tm_mday);
+        *(src++) = num_to_uchar(tm.tm_mday);
     } else {
         src += sky_u8_to_str((sky_u8_t) tm.tm_mday, src);
     }

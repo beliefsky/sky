@@ -50,6 +50,14 @@ u128_mul_add(const sky_u64_t a, const sky_u64_t b, const sky_u64_t c, sky_u64_t 
 #endif
 }
 
+#define num_to_uchar(_n)    ((sky_uchar_t)((_n) | 0x30))
+
+
+#define fast_str_check_number(_mask) \
+    ((((_mask) & 0xF0F0F0F0F0F0F0F0) |   \
+    ((((_mask) + 0x0606060606060606) & 0xF0F0F0F0F0F0F0F0) >> 4)) == \
+    0x3333333333333333)
+
 /**
  * 将8个字节及以内字符串转成int
  * @param chars 待转换的字符

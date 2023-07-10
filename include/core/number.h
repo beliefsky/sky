@@ -12,14 +12,6 @@
 extern "C" {
 #endif
 
-#define sky_num_to_uchar(_n)    ((sky_uchar_t)((_n) | 0x30))
-
-
-#define sky_fast_str_check_number(_mask) \
-    ((((_mask) & 0xF0F0F0F0F0F0F0F0) |   \
-    ((((_mask) + 0x0606060606060606) & 0xF0F0F0F0F0F0F0F0) >> 4)) == \
-    0x3333333333333333)
-
 #define sky_str_len_to_num(_in, _len, _out) _Generic((_out), \
     sky_i8_t *: sky_str_len_to_i8,                           \
     sky_u8_t *: sky_str_len_to_u8,                           \
