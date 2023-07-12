@@ -568,7 +568,7 @@ advance_token(sky_uchar_t *buf, const sky_uchar_t *const end) {
     }
 #endif
 
-    for (;;) {
+    do {
         if (*buf == ' ') {
             return (buf - start);
         }
@@ -578,10 +578,9 @@ advance_token(sky_uchar_t *buf, const sky_uchar_t *const end) {
             }
         }
         ++buf;
-        if (buf == end) {
-            return -1;
-        }
-    }
+    } while (buf != end);
+
+    return -1;
 }
 
 static sky_inline sky_isize_t
@@ -903,7 +902,8 @@ parse_token(sky_uchar_t *buf, const sky_uchar_t *const end, const sky_uchar_t ne
         return -1;
     }
 #endif
-    for (;;) {
+
+    do {
         if (*buf == next_char) {
             return (buf - start);
         }
@@ -911,10 +911,9 @@ parse_token(sky_uchar_t *buf, const sky_uchar_t *const end, const sky_uchar_t ne
             return -2;
         }
         ++buf;
-        if (buf == end) {
-            return -1;
-        }
-    }
+    } while (buf != end);
+
+    return -1;
 }
 
 
