@@ -80,47 +80,44 @@ http_line_read(sky_tcp_t *const tcp) {
     sky_http_server_request_t *const r = conn->current_req;
     sky_buf_t *const buf = conn->buf;
 
-    for (;;) {
-        n = sky_tcp_read(&conn->tcp, buf->last, (sky_usize_t) (buf->end - buf->last));
-        if (n > 0) {
-            buf->last += n;
+    again:
+    n = sky_tcp_read(&conn->tcp, buf->last, (sky_usize_t) (buf->end - buf->last));
+    if (n > 0) {
+        buf->last += n;
 
-            i = http_request_line_parse(r, buf);
+        i = http_request_line_parse(r, buf);
+        if (i > 0) {
+            i = http_request_header_parse(r, buf);
             if (i > 0) {
-                { // try read body
-                    i = http_request_header_parse(r, buf);
-                    if (i > 0) {
-                        http_module_run(r);
-                        return;
-                    }
-                    if (sky_unlikely(i < 0)) {
-                        break;
-                    }
-                }
-
-                sky_tcp_set_cb(tcp, http_header_read);
-                http_header_read(tcp);
-
+                http_module_run(r);
                 return;
             }
-            if (sky_unlikely(i < 0 || buf->last >= buf->end)) {
-                break;
+            if (sky_unlikely(i < 0)) {
+                goto error;
             }
-            continue;
-        }
 
-        if (sky_likely(!n)) {
-            sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
-            if (sky_timer_linked(&conn->timer)) {
-                sky_event_timeout_expired(conn->ev_loop, &conn->timer, conn->server->timeout);
-            } else {
-                sky_event_timeout_set(conn->ev_loop, &conn->timer, conn->server->keep_alive);
-            }
+            sky_tcp_set_cb(tcp, http_header_read);
+            http_header_read(tcp);
+
             return;
         }
-        break;
+        if (sky_unlikely(i < 0 || buf->last >= buf->end)) {
+            goto error;
+        }
+        goto again;
     }
 
+    if (sky_likely(!n)) {
+        sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
+        if (sky_timer_linked(&conn->timer)) {
+            sky_event_timeout_expired(conn->ev_loop, &conn->timer, conn->server->timeout);
+        } else {
+            sky_event_timeout_set(conn->ev_loop, &conn->timer, conn->server->keep_alive);
+        }
+        return;
+    }
+
+    error:
     http_read_error(conn);
 }
 
@@ -134,47 +131,45 @@ http_header_read(sky_tcp_t *const tcp) {
     const sky_http_server_t *const server = conn->server;
     sky_http_server_request_t *const r = conn->current_req;
     sky_buf_t *const buf = conn->buf;
-
-    for (;;) {
-        if (sky_unlikely(buf->last == buf->end)) {
-            if (sky_likely(--conn->free_buf_n == 0)) {
-                break;
-            }
-            if (r->req_pos) {
-                n = (sky_u32_t) (buf->pos - r->req_pos);
-                buf->pos -= n;
-                sky_buf_rebuild(buf, server->header_buf_size);
-                r->req_pos = buf->pos;
-                buf->pos += n;
-            } else {
-                sky_buf_rebuild(buf, server->header_buf_size);
-            }
+    
+    again:
+    if (sky_unlikely(buf->last == buf->end)) {
+        if (sky_likely(--conn->free_buf_n == 0)) {
+            goto error;
         }
-
-        n = sky_tcp_read(&conn->tcp, buf->last, (sky_usize_t) (buf->end - buf->last));
-        if (n > 0) {
-            buf->last += n;
-            i = http_request_header_parse(r, buf);
-            if (i == 1) {
-                http_module_run(r);
-                return;
-            }
-            if (sky_unlikely(i < 0)) {
-                break;
-            }
-            continue;
+        if (r->req_pos) {
+            n = (sky_u32_t) (buf->pos - r->req_pos);
+            buf->pos -= n;
+            sky_buf_rebuild(buf, server->header_buf_size);
+            r->req_pos = buf->pos;
+            buf->pos += n;
+        } else {
+            sky_buf_rebuild(buf, server->header_buf_size);
         }
-
-        if (sky_likely(!n)) {
-            sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
-            sky_event_timeout_set(conn->ev_loop, &conn->timer, conn->server->timeout);
-
-            return;
-        }
-
-        break;
     }
 
+    n = sky_tcp_read(&conn->tcp, buf->last, (sky_usize_t) (buf->end - buf->last));
+    if (n > 0) {
+        buf->last += n;
+        i = http_request_header_parse(r, buf);
+        if (i == 1) {
+            http_module_run(r);
+            return;
+        }
+        if (sky_unlikely(i < 0)) {
+            goto error;
+        }
+        goto again;
+    }
+
+    if (sky_likely(!n)) {
+        sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
+        sky_event_timeout_set(conn->ev_loop, &conn->timer, conn->server->timeout);
+
+        return;
+    }
+
+    error:
     http_read_error(conn);
 }
 
