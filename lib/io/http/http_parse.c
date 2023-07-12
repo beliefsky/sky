@@ -51,29 +51,25 @@ static sky_bool_t find_char_fast(sky_uchar_t **buf, sky_usize_t buf_size,
 #endif
 
 sky_i8_t
-http_request_line_parse(sky_http_server_request_t *r, sky_buf_t *b) {
-    parse_state_t state;
+http_request_line_parse(sky_http_server_request_t *r, sky_buf_t *const b) {
+    parse_state_t state = (parse_state_t) r->state;
+    sky_uchar_t *p = b->pos;
+    sky_uchar_t *const end = b->last;
     sky_isize_t index;
-    sky_uchar_t *p, *end;
-
-    state = (parse_state_t) r->state;
-    p = b->pos;
-    end = b->last;
 
     for (;;) {
         switch (state) {
             case sw_start: {
-                for (;;) {
-                    if (p == end) {
-                        goto again;
-                    } else if (*p == ' ') {
-                        ++p;
-                        continue;
-                    }
-                    r->req_pos = p;
-                    state = sw_method;
-                    break;
+                sw_start:
+
+                if (p == end) {
+                    goto again;
+                } else if (*p == ' ') {
+                    ++p;
+                    goto sw_start;
                 }
+                r->req_pos = p;
+                state = sw_method;
             }
             case sw_method: {
                 index = parse_token(p, end, ' ');
@@ -256,17 +252,16 @@ http_request_header_parse(sky_http_server_request_t *r, sky_buf_t *b) {
                 state = sw_header_value_first;
             }
             case sw_header_value_first: {
-                for (;;) {
-                    if (sky_unlikely(p == end)) {
-                        goto again;
-                    }
-                    if (*p != ' ') {
-                        r->req_pos = p++;
-                        state = sw_header_value;
-                        break;
-                    }
-                    ++p;
+                sw_header_value_first:
+                if (sky_unlikely(p == end)) {
+                    goto again;
                 }
+                if (*p == ' ') {
+                    ++p;
+                    goto sw_header_value_first;
+                }
+                r->req_pos = p++;
+                state = sw_header_value;
             }
             case sw_header_value: {
                 index = find_header_line(p, end);
