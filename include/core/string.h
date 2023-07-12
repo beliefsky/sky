@@ -99,17 +99,7 @@ typedef struct {
 #define sky_str_null(str)   (str)->len = 0; (str)->data = null
 
 //将src的前n个字符转换成小写存放在dst字符串当中
-void sky_str_lower(const sky_uchar_t *src, sky_uchar_t *dst, sky_usize_t n);
-
-static sky_inline void
-sky_str_lower2(sky_str_t *str) {
-    sky_str_lower(str->data, str->data, str->len);
-}
-
-static sky_inline sky_bool_t
-sky_str_is_null(const sky_str_t *str) {
-    return !str || !str->len;
-}
+void sky_str_lower(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t n);
 
 void sky_str_len_replace_char(sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t old_ch, sky_uchar_t new_ch);
 
@@ -117,104 +107,169 @@ sky_uchar_t *sky_str_len_find_char(const sky_uchar_t *src, sky_usize_t src_len, 
 
 sky_i32_t sky_str_len_unsafe_cmp(const sky_uchar_t *s1, const sky_uchar_t *s2, sky_usize_t len);
 
+sky_uchar_t *sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *sub, sky_usize_t sub_len);
+
+
 static sky_inline void
-sky_str_replace_char(sky_str_t *src, sky_uchar_t old_ch, sky_uchar_t new_ch) {
+sky_str_lower2(sky_str_t *const str) {
+    sky_str_lower(str->data, str->data, str->len);
+}
+
+static sky_inline sky_bool_t
+sky_str_is_null(const sky_str_t *const str) {
+    return !str || !str->len;
+}
+
+
+static sky_inline void
+sky_str_replace_char(
+        sky_str_t *const src,
+        const sky_uchar_t old_ch,
+        const sky_uchar_t new_ch
+) {
     sky_str_len_replace_char(src->data, src->len, old_ch, new_ch);
 }
 
 static sky_inline sky_bool_t
-sky_str_len_unsafe_equals(const sky_uchar_t *s1, const sky_uchar_t *s2, sky_usize_t len) {
+sky_str_len_unsafe_equals(
+        const sky_uchar_t *const s1,
+        const sky_uchar_t *const s2,
+        const sky_usize_t len
+) {
     return sky_str_len_unsafe_cmp(s1, s2, len) == 0;
 }
 
 static sky_inline sky_bool_t
-sky_str_len_equals(const sky_uchar_t *s1, sky_usize_t s1_len,
-                   const sky_uchar_t *s2, sky_usize_t s2_len) {
-    return s1_len == s2_len && sky_str_len_unsafe_equals(s1, s2, s2_len);
+sky_str_len_equals(
+        const sky_uchar_t *const s1,
+        const sky_usize_t s1_len,
+        const sky_uchar_t *const s2,
+        const sky_usize_t s2_len
+) {
+    return s1_len == s2_len
+           && sky_str_len_unsafe_equals(s1, s2, s2_len);
 }
 
 static sky_inline sky_bool_t
-sky_str_equals(const sky_str_t *s1, const sky_str_t *s2) {
+sky_str_equals(const sky_str_t *const s1, const sky_str_t *const s2) {
     return sky_str_len_equals(s1->data, s1->len, s2->data, s2->len);
 }
 
 static sky_inline sky_bool_t
-sky_str_equals2(const sky_str_t *s1, const sky_uchar_t *s2, sky_usize_t s2_len) {
+sky_str_equals2(const sky_str_t *const s1, const sky_uchar_t *const s2, const sky_usize_t s2_len) {
     return sky_str_len_equals(s1->data, s1->len, s2, s2_len);
 }
 
 static sky_inline sky_i32_t
-sky_str_len_cmp(const sky_uchar_t *s1, sky_usize_t s1_len, const sky_uchar_t *s2, sky_usize_t s2_len) {
-    return s1_len != s2_len ? (sky_i32_t) (s1_len - s2_len) : sky_str_len_unsafe_cmp(s1, s2, s2_len);
+sky_str_len_cmp(
+        const sky_uchar_t *const s1,
+        const sky_usize_t s1_len,
+        const sky_uchar_t *const s2,
+        const sky_usize_t s2_len
+) {
+    return s1_len != s2_len
+           ? (sky_i32_t) (s1_len - s2_len)
+           : sky_str_len_unsafe_cmp(s1, s2, s2_len);
 }
 
 static sky_inline sky_i32_t
-sky_str_cmp(const sky_str_t *s1, const sky_str_t *s2) {
+sky_str_cmp(const sky_str_t *const s1, const sky_str_t *const s2) {
     return sky_str_len_cmp(s1->data, s1->len, s2->data, s2->len);
 }
 
 static sky_inline sky_i32_t
-sky_str_cmp2(const sky_str_t *s1, const sky_uchar_t *s2, sky_usize_t s2_len) {
+sky_str_cmp2(
+        const sky_str_t *const s1,
+        const sky_uchar_t *const s2,
+        const sky_usize_t s2_len
+) {
     return sky_str_len_cmp(s1->data, s1->len, s2, s2_len);
 }
 
 static sky_inline sky_bool_t
-sky_str_len_unsafe_starts_with(const sky_uchar_t *src, const sky_uchar_t *prefix, sky_usize_t prefix_len) {
+sky_str_len_unsafe_starts_with(
+        const sky_uchar_t *const src,
+        const sky_uchar_t *const prefix,
+        const sky_usize_t prefix_len
+) {
     return sky_str_len_unsafe_equals(src, prefix, prefix_len);
 }
 
 static sky_inline sky_bool_t
-sky_str_len_starts_with(const sky_uchar_t *src, sky_usize_t src_len,
-                        const sky_uchar_t *prefix, sky_usize_t prefix_len) {
-    return src_len >= prefix_len && sky_str_len_unsafe_equals(src, prefix, prefix_len);
+sky_str_len_starts_with(
+        const sky_uchar_t *const src,
+        const sky_usize_t src_len,
+        const sky_uchar_t *const prefix,
+        const sky_usize_t prefix_len
+) {
+    return src_len >= prefix_len
+           && sky_str_len_unsafe_equals(src, prefix, prefix_len);
 }
 
 static sky_inline sky_bool_t
-sky_str_starts_with(const sky_str_t *src, const sky_uchar_t *prefix, sky_usize_t prefix_len) {
-    return src && sky_str_len_starts_with(src->data, src->len, prefix, prefix_len);
+sky_str_starts_with(
+        const sky_str_t *const src,
+        const sky_uchar_t *const prefix,
+        const sky_usize_t prefix_len
+) {
+    return src
+           && sky_str_len_starts_with(src->data, src->len, prefix, prefix_len);
 }
 
 static sky_inline sky_bool_t
-sky_str_len_end_with(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *prefix, sky_usize_t prefix_len) {
-    return src_len >= prefix_len && sky_str_len_unsafe_equals(src + (src_len - prefix_len), prefix, prefix_len);
+sky_str_len_end_with(
+        const sky_uchar_t *const src,
+        const sky_usize_t src_len,
+        const sky_uchar_t *const prefix,
+        const sky_usize_t prefix_len
+) {
+    return src_len >= prefix_len
+           && sky_str_len_unsafe_equals(src + (src_len - prefix_len), prefix, prefix_len);
 }
 
 static sky_inline sky_bool_t
-sky_str_end_with(const sky_str_t *src, const sky_uchar_t *prefix, sky_usize_t prefix_len) {
+sky_str_end_with(
+        const sky_str_t *const src,
+        const sky_uchar_t *const prefix,
+        const sky_usize_t prefix_len
+) {
     return src && sky_str_len_end_with(src->data, src->len, prefix, prefix_len);
 }
 
-sky_uchar_t *sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *sub, sky_usize_t sub_len);
-
 static sky_inline sky_uchar_t *
-sky_str_find(const sky_str_t *src, const sky_uchar_t *sub, sky_usize_t sub_len) {
+sky_str_find(const sky_str_t *const src, const sky_uchar_t *const sub, const sky_usize_t sub_len) {
     return sky_str_len_find(src->data, src->len, sub, sub_len);
 }
 
 static sky_inline sky_isize_t
-sky_str_len_index(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t *sub, sky_usize_t sub_len) {
-    const sky_uchar_t *p = sky_str_len_find(src, src_len, sub, sub_len);
+sky_str_len_index(
+        const sky_uchar_t *const src,
+        const sky_usize_t src_len,
+        const sky_uchar_t *const sub,
+        const sky_usize_t sub_len
+) {
+    const sky_uchar_t *const p = sky_str_len_find(src, src_len, sub, sub_len);
     return !p ? -1 : (p - src);
 }
 
 static sky_inline sky_isize_t
-sky_str_index(const sky_str_t *src, const sky_uchar_t *sub, sky_usize_t sub_len) {
+sky_str_index(const sky_str_t *const src, const sky_uchar_t *const sub, const sky_usize_t sub_len) {
     return sky_str_len_index(src->data, src->len, sub, sub_len);
 }
 
 static sky_inline sky_uchar_t *
-sky_str_find_char(const sky_str_t *src, sky_uchar_t ch) {
+sky_str_find_char(const sky_str_t *const src, const sky_uchar_t ch) {
     return sky_str_len_find_char(src->data, src->len, ch);
 }
 
 static sky_inline sky_isize_t
-sky_str_len_index_char(const sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t ch) {
-    const sky_uchar_t *p = sky_str_len_find_char(src, src_len, ch);
+sky_str_len_index_char(const sky_uchar_t *const src, const sky_usize_t src_len, const sky_uchar_t ch) {
+    const sky_uchar_t *const p = sky_str_len_find_char(src, src_len, ch);
     return !p ? -1 : (p - src);
 }
 
 static sky_inline sky_isize_t
-sky_str_index_char(const sky_str_t *src, sky_uchar_t ch) {
+sky_str_index_char(const sky_str_t *const src, const sky_uchar_t ch) {
     return sky_str_len_index_char(src->data, src->len, ch);
 }
 

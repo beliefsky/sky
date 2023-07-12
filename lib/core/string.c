@@ -23,9 +23,9 @@
 
 #endif
 
-typedef sky_bool_t (*mem_equals_pt)(const sky_uchar_t *a, const sky_uchar_t *b);
-
 #ifndef SKY_HAVE_STD_GNU
+
+typedef sky_bool_t (*mem_equals_pt)(const sky_uchar_t *a, const sky_uchar_t *b);
 
 static sky_bool_t mem_always_true(const sky_uchar_t *a, const sky_uchar_t *b);
 
@@ -48,7 +48,12 @@ static sky_bool_t mem_equals10(const sky_uchar_t *a, const sky_uchar_t *b);
 #endif
 
 sky_api void
-sky_str_len_replace_char(sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t old_ch, sky_uchar_t new_ch) {
+sky_str_len_replace_char(
+        sky_uchar_t *src,
+        sky_usize_t src_len,
+        const sky_uchar_t old_ch,
+        const sky_uchar_t new_ch
+) {
 #ifdef __SSE2__
     if (src_len >= 16) {
         const __m128i slash = _mm_set1_epi8((sky_char_t) old_ch);
@@ -78,17 +83,17 @@ sky_str_len_replace_char(sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t old_
 }
 
 sky_api sky_uchar_t *
-sky_str_len_find_char(const sky_uchar_t *src, sky_usize_t src_len, sky_uchar_t ch) {
+sky_str_len_find_char(const sky_uchar_t *const src, const sky_usize_t src_len, const sky_uchar_t ch) {
     return memchr(src, ch, src_len);
 }
 
 sky_api sky_i32_t
-sky_str_len_unsafe_cmp(const sky_uchar_t *s1, const sky_uchar_t *s2, sky_usize_t len) {
+sky_str_len_unsafe_cmp(const sky_uchar_t *const s1, const sky_uchar_t *const s2, const sky_usize_t len) {
     return memcmp(s1, s2, len);
 }
 
 sky_api void
-sky_str_lower(const sky_uchar_t *src, sky_uchar_t *dst, sky_usize_t n) {
+sky_str_lower(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t n) {
     static const sky_uchar_t tolower_map[256] = {
             0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
             0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
@@ -527,57 +532,57 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
 }
 
 #ifndef SKY_HAVE_STD_GNU
-static sky_bool_t
-mem_always_true(const sky_uchar_t *a, const sky_uchar_t *b) {
+static sky_inline sky_bool_t
+mem_always_true(const sky_uchar_t *const a, const sky_uchar_t *const b) {
     (void) a;
     (void) b;
 
     return true;
 }
 
-static sky_bool_t
-mem_equals1(const sky_uchar_t *a, const sky_uchar_t *b) {
+static sky_inline sky_bool_t
+mem_equals1(const sky_uchar_t *const a, const sky_uchar_t *const b) {
     return a[0] == b[0];
 }
 
-static sky_bool_t
-mem_equals2(const sky_uchar_t *a, const sky_uchar_t *b) {
+static sky_inline sky_bool_t
+mem_equals2(const sky_uchar_t *const a, const sky_uchar_t *const b) {
 
     return (*(sky_u16_t *) a) == (*(sky_u16_t *) b);
 }
 
-static sky_bool_t
-mem_equals4(const sky_uchar_t *a, const sky_uchar_t *b) {
+static sky_inline sky_bool_t
+mem_equals4(const sky_uchar_t *const a, const sky_uchar_t *const b) {
 
     return (*(sky_u32_t *) a) == (*(sky_u32_t *) b);
 }
 
-static sky_bool_t
-mem_equals5(const sky_uchar_t *a, const sky_uchar_t *b) {
+static sky_inline sky_bool_t
+mem_equals5(const sky_uchar_t *const a, const sky_uchar_t *const b) {
 
     return (((*(sky_u64_t *) a) ^ (*(sky_u64_t *) b)) & 0x000000ffffffffffLU) == 0;
 }
 
-static sky_bool_t
-mem_equals6(const sky_uchar_t *a, const sky_uchar_t *b) {
+static sky_inline sky_bool_t
+mem_equals6(const sky_uchar_t *const a, const sky_uchar_t *const b) {
 
     return (((*(sky_u64_t *) a) ^ (*(sky_u64_t *) b)) & 0x0000ffffffffffffLU) == 0;
 }
 
-static sky_bool_t
-mem_equals8(const sky_uchar_t *a, const sky_uchar_t *b) {
+static sky_inline sky_bool_t
+mem_equals8(const sky_uchar_t *const a, const sky_uchar_t *const b) {
 
     return (*(sky_u64_t *) a) == (*(sky_u64_t *) b);
 }
 
-static sky_bool_t
-mem_equals9(const sky_uchar_t *a, const sky_uchar_t *b) {
+static sky_inline sky_bool_t
+mem_equals9(const sky_uchar_t *const a, const sky_uchar_t *const b) {
 
     return ((*(sky_u64_t *) a) == (*(sky_u64_t *) b)) & (a[8] == b[8]);
 }
 
-static sky_bool_t
-mem_equals10(const sky_uchar_t *a, const sky_uchar_t *b) {
+static sky_inline sky_bool_t
+mem_equals10(const sky_uchar_t *const a, const sky_uchar_t *const b) {
 
     return ((*(sky_u64_t *) a) == (*(sky_u64_t *) b))
            & ((*(sky_u16_t *) (a + 8)) == (*(sky_u16_t *) (b + 8)));

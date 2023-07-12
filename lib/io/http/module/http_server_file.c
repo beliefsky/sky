@@ -127,7 +127,7 @@ http_run_handler(sky_http_server_request_t *r, void *data) {
                 .len = r->exten.len,
                 .data = sky_palloc(r->pool, sizeof(r->exten.len) + 1)
         };
-        sky_str_lower(r->exten.data, lower.data, lower.len);
+        sky_str_lower(lower.data, r->exten.data, lower.len);
         lower.data[lower.len] = '\0';
 
         if (!http_mime_type_get(&lower, &mime_type)) {
