@@ -443,7 +443,7 @@ http_multipart_header_parse(sky_http_server_multipart_t *r, sky_buf_t *b) {
 
 
 sky_bool_t
-http_url_decode(sky_str_t *str) {
+http_url_decode(sky_str_t *const str) {
     sky_uchar_t *s, *p, ch;
 
     p = sky_str_find_char(str, '%');
@@ -498,10 +498,8 @@ http_url_decode(sky_str_t *str) {
 
 
 static sky_inline sky_bool_t
-http_method_identify(sky_http_server_request_t *r) {
-    sky_uchar_t *m;
-
-    m = r->method_name.data;
+http_method_identify(sky_http_server_request_t *const r) {
+    const sky_uchar_t *m = r->method_name.data;
 
     if (sky_unlikely(r->method_name.len < 3)) {
         return false;
@@ -554,7 +552,7 @@ http_method_identify(sky_http_server_request_t *r) {
 }
 
 static sky_inline sky_isize_t
-advance_token(sky_uchar_t *buf, const sky_uchar_t *end) {
+advance_token(sky_uchar_t *buf, const sky_uchar_t *const end) {
     sky_uchar_t *start = buf;
 #ifdef __SSE4_1__
 
@@ -588,7 +586,7 @@ advance_token(sky_uchar_t *buf, const sky_uchar_t *end) {
 }
 
 static sky_inline sky_isize_t
-parse_url_no_code(sky_http_server_request_t *r, sky_uchar_t *post, const sky_uchar_t *end) {
+parse_url_no_code(sky_http_server_request_t *const r, sky_uchar_t *post, const sky_uchar_t *const end) {
     sky_uchar_t *start = post;
 #ifdef __SSE4_1__
     static const sky_uchar_t sky_align(16) ranges[16] = "\000\040"
@@ -691,7 +689,7 @@ parse_url_no_code(sky_http_server_request_t *r, sky_uchar_t *post, const sky_uch
 
 
 static sky_inline sky_isize_t
-parse_url_code(sky_http_server_request_t *r, sky_uchar_t *post, const sky_uchar_t *end) {
+parse_url_code(sky_http_server_request_t *const r, sky_uchar_t *post, const sky_uchar_t *const end) {
     sky_uchar_t *start = post;
 #ifdef __SSE4_1__
     static const sky_uchar_t sky_align(16) ranges[16] = "\000\040"
@@ -796,7 +794,7 @@ parse_url_code(sky_http_server_request_t *r, sky_uchar_t *post, const sky_uchar_
 
 
 static sky_inline sky_isize_t
-find_header_line(sky_uchar_t *post, const sky_uchar_t *end) {
+find_header_line(sky_uchar_t *post, const sky_uchar_t *const end) {
     sky_uchar_t *start = post;
 #ifdef __SSE4_1__
     static const sky_uchar_t sky_align(16) ranges[16] = "\0\010"    /* allow HT */
@@ -873,7 +871,7 @@ find_header_line(sky_uchar_t *post, const sky_uchar_t *end) {
 
 
 static sky_isize_t
-parse_token(sky_uchar_t *buf, const sky_uchar_t *end, sky_uchar_t next_char) {
+parse_token(sky_uchar_t *buf, const sky_uchar_t *const end, const sky_uchar_t next_char) {
     static const sky_uchar_t token_char_map[] =
             "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0"
             "\0\1\0\1\1\1\1\1\0\0\1\1\0\1\1\0\1\1\1\1\1\1\1\1\1\1\0\0\0\0\0\0"
@@ -922,7 +920,7 @@ parse_token(sky_uchar_t *buf, const sky_uchar_t *end, sky_uchar_t next_char) {
 
 
 static sky_inline sky_bool_t
-header_handle_run(sky_http_server_request_t *req, sky_http_server_header_t *h) {
+header_handle_run(sky_http_server_request_t *const req, sky_http_server_header_t *const h) {
     const sky_uchar_t *p = h->key.data;
 
     switch (h->key.len) {
