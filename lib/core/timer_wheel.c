@@ -240,7 +240,7 @@ link_timer(sky_timer_wheel_t *const ctx, sky_timer_wheel_entry_t *const entry) {
     const sky_u64_t wheel_abs = sky_min(entry->expire_at, tmp);
     tmp = wheel_abs - ctx->last_run;
 
-    const sky_usize_t wheel = (const sky_usize_t) (tmp == 0 ? 0 : ((63 - sky_clz_u64(tmp)) / TIMER_WHEEL_BITS));
+    const sky_usize_t wheel = (sky_usize_t) (tmp == 0 ? 0 : ((63 - sky_clz_u64(tmp)) / TIMER_WHEEL_BITS));
     const sky_usize_t slot = timer_slot(wheel, wheel_abs);
 
     sky_queue_t *const queue = &ctx->wheels[wheel][slot];
