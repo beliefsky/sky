@@ -36,18 +36,23 @@ void sky_timer_wheel_link(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry
 void sky_timer_wheel_expired(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry, sky_u64_t at);
 
 static sky_inline void
-sky_timer_entry_init(sky_timer_wheel_entry_t *entry, sky_timer_wheel_pt cb) {
+sky_timer_entry_init(sky_timer_wheel_entry_t *const entry, const sky_timer_wheel_pt cb) {
     sky_queue_init_node(&entry->link);
     entry->cb = cb;
 }
 
+static sky_inline void
+sky_timer_set_cb(sky_timer_wheel_entry_t *const entry, const sky_timer_wheel_pt cb) {
+    entry->cb = cb;
+}
+
 static sky_inline sky_bool_t
-sky_timer_linked(sky_timer_wheel_entry_t *entry) {
+sky_timer_linked(sky_timer_wheel_entry_t *const entry) {
     return sky_queue_linked(&entry->link);
 }
 
 static sky_inline void
-sky_timer_wheel_unlink(sky_timer_wheel_entry_t *entry) {
+sky_timer_wheel_unlink(sky_timer_wheel_entry_t *const entry) {
     if (sky_likely(sky_queue_linked(&entry->link))) {
         sky_queue_remove(&entry->link);
     }
