@@ -121,10 +121,8 @@ fast_str_parse_mask(const sky_uchar_t *const chars, const sky_usize_t len) {
             dst[7] = chars[6];
             break;
         }
-        case 8:
-            return *(sky_u64_t *) chars;
         default:
-            break;
+            return *(sky_u64_t *) chars;
     }
 
     return val;
