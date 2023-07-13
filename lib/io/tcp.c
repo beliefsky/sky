@@ -196,6 +196,9 @@ sky_tcp_read(sky_tcp_t *const tcp, sky_uchar_t *const data, const sky_usize_t si
 
     const sky_isize_t n = recv(sky_ev_get_fd(&tcp->ev), data, size, 0);
     if (sky_likely(n > 0)) {
+        if ((sky_usize_t) n < size) {
+            sky_ev_clean_read(&tcp->ev);
+        }
         return n;
     }
     if (sky_likely(errno == EAGAIN)) {
@@ -219,6 +222,9 @@ sky_tcp_write(sky_tcp_t *const tcp, const sky_uchar_t *const data, const sky_usi
 
     const sky_isize_t n = send(sky_ev_get_fd(&tcp->ev), data, size, MSG_NOSIGNAL);
     if (sky_likely(n > 0)) {
+        if ((sky_usize_t) n < size) {
+            sky_ev_clean_write(&tcp->ev);
+        }
         return n;
     }
     if (errno == EAGAIN) {
@@ -249,6 +255,9 @@ sky_tcp_sendfile(
 
     const sky_isize_t n = tcp_sendfile(tcp, fs, offset, size, head, head_size);
     if (sky_likely(n > 0)) {
+        if ((sky_usize_t) n < (head_size + size)) {
+            sky_ev_clean_write(&tcp->ev);
+        }
         return n;
     }
 
@@ -341,7 +350,7 @@ tcp_sendfile(
         sky_fs_t *const fs,
         sky_i64_t *const offset,
         const sky_usize_t size,
-        const sky_uchar_t * const head,
+        const sky_uchar_t *const head,
         const sky_usize_t head_size
 ) {
 #if defined(__linux__)
