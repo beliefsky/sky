@@ -71,7 +71,7 @@ extern "C" {
 
 
 typedef _Bool sky_bool_t;
-typedef signed char sky_char_t;             /*-128 ~ +127*/
+typedef char sky_char_t;                    /*-128 ~ +127*/
 typedef unsigned char sky_uchar_t;          /*0 ~ 255*/
 typedef signed char sky_i8_t;               /*-128 ~ +127*/
 typedef unsigned char sky_u8_t;             /*0 ~ 255*/
