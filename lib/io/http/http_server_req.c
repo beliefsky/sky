@@ -24,17 +24,8 @@ sky_api void
 sky_http_server_req_finish(sky_http_server_request_t *const r) {
     sky_http_connection_t *const conn = r->conn;
 
-    if (sky_unlikely(!r->response)) {
-        r->next = null;
-        sky_http_response_static_len(r, null, 0);
-        return;
-    }
-
-
-    if (!r->keep_alive) {
-        sky_tcp_close(&conn->tcp);
-        sky_pool_destroy(r->pool);
-        sky_free(conn);
+    if (!r->keep_alive || sky_tcp_is_open(&conn->tcp)) {
+        http_read_error(conn);
     } else {
         sky_pool_t *pool = r->pool;
         sky_pool_reset(pool);
@@ -60,8 +51,6 @@ http_request_set(sky_http_connection_t *const conn, sky_pool_t *const pool) {
     sky_list_init(&r->headers_in.headers, pool, 16, sizeof(sky_http_server_header_t));
 
     sky_timer_entry_init(&conn->timer, http_read_timeout);
-    sky_queue_init(&conn->res_queue);
-    sky_queue_init(&conn->res_free);
     conn->current_req = r;
     conn->buf = sky_buf_create(pool, server->header_buf_size);
     conn->write_size = 0;
@@ -131,7 +120,7 @@ http_header_read(sky_tcp_t *const tcp) {
     const sky_http_server_t *const server = conn->server;
     sky_http_server_request_t *const r = conn->current_req;
     sky_buf_t *const buf = conn->buf;
-    
+
     again:
     if (sky_unlikely(buf->last == buf->end)) {
         if (sky_likely(--conn->free_buf_n == 0)) {
@@ -205,7 +194,7 @@ http_module_run(sky_http_server_request_t *const r) {
     no_module:
     r->state = 404;
     sky_str_set(&r->headers_out.content_type, "text/plain");
-    sky_http_response_static_len(r, sky_str_line("404 Not Found"));
+    sky_http_response_static_len(r, sky_str_line("404 Not Found"), null, null);
 }
 
 static void

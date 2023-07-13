@@ -88,7 +88,12 @@ create_server(sky_event_loop_t *ev_loop) {
 
 
 static SKY_HTTP_MAPPER_HANDLER(hello_world) {
-    sky_http_response_static_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\"}"));
+    sky_http_response_static_len(
+            req,
+            sky_str_line("{\"status\": 200, \"msg\": \"success\"}"),
+            null,
+            null
+    );
 //    sky_http_response_chunked_start(req);
 //    sky_http_response_chunked_write_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\"}"));
 //    sky_http_response_chunked_end(req);
@@ -100,7 +105,12 @@ body_cb(sky_http_server_request_t *req, void *data) {
 
     sky_log_info("end");
 
-    sky_http_response_static_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\"}"));
+    sky_http_response_static_len(
+            req,
+            sky_str_line("{\"status\": 200, \"msg\": \"success\"}"),
+            null,
+            null
+    );
 }
 
 static SKY_HTTP_MAPPER_HANDLER(put_data) {

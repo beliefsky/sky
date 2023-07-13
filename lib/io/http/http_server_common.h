@@ -13,6 +13,8 @@
 #include <core/string_out_stream.h>
 #include <core/trie.h>
 
+typedef struct http_str_packet_s http_str_packet_t;
+
 typedef struct http_res_packet_s http_res_packet_t;
 
 typedef sky_i8_t (*http_response_packet_pt)(sky_http_connection_t *conn, http_res_packet_t *packet);
@@ -31,8 +33,6 @@ struct sky_http_server_s {
 struct sky_http_connection_s {
     sky_tcp_t tcp;
     sky_timer_wheel_entry_t timer;
-    sky_queue_t res_queue;
-    sky_queue_t res_free;
     sky_str_out_stream_t stream;
     sky_event_loop_t *ev_loop;
     sky_http_server_t *server;
@@ -44,7 +44,13 @@ struct sky_http_connection_s {
         sky_http_server_next_str_pt read_body_str;
         sky_http_server_next_read_pt read_body_cb;
     };
+    sky_http_server_next_pt write_next;
     void *read_body_cb_data;
+    void *write_next_cb_data;
+
+    union {
+        sky_queue_t write_str_queue;
+    };
 
     sky_usize_t write_size;
     sky_u8_t free_buf_n;
@@ -68,6 +74,13 @@ struct sky_http_server_multipart_s {
     sky_str_t *content_type;
     sky_str_t *content_disposition;
 };
+
+struct http_str_packet_s {
+    sky_queue_t link;
+    const sky_uchar_t *data;
+    sky_usize_t size;
+};
+
 
 struct http_res_packet_s {
     sky_queue_t link;
