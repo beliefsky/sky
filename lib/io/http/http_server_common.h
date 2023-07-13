@@ -39,6 +39,13 @@ struct sky_http_connection_s {
     sky_http_server_request_t *current_req;
     sky_buf_t *buf;
 
+    union {
+        sky_http_server_next_pt read_body_none;
+        sky_http_server_next_str_pt read_body_str;
+        sky_http_server_next_read_pt read_body_cb;
+    };
+    void *read_body_cb_data;
+
     sky_usize_t write_size;
     sky_u8_t free_buf_n;
 };

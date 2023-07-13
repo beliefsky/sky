@@ -32,11 +32,18 @@ typedef struct sky_http_server_header_s sky_http_server_header_t;
 typedef struct sky_http_server_multipart_ctx_s sky_http_server_multipart_ctx_t;
 typedef struct sky_http_server_multipart_s sky_http_server_multipart_t;
 
-typedef sky_bool_t (*sky_http_server_multipart_body_pt)(void *data, const sky_uchar_t *value, sky_usize_t len);
-
 typedef void (*sky_http_server_module_run_pt)(sky_http_server_request_t *r, void *module_data);
 
 typedef void (*sky_http_server_next_pt)(sky_http_server_request_t *r, void *data);
+
+typedef void (*sky_http_server_next_str_pt)(sky_http_server_request_t *r, sky_str_t *body, void *data);
+
+typedef void (*sky_http_server_next_read_pt)(
+        sky_http_server_request_t *r,
+        sky_uchar_t *body,
+        sky_usize_t len,
+        void *data
+);
 
 struct sky_http_server_conf_s {
     sky_u32_t keep_alive;
@@ -107,6 +114,12 @@ sky_http_server_t *sky_http_server_create(const sky_http_server_conf_t *conf);
 sky_bool_t sky_http_server_module_put(sky_http_server_t *server, sky_http_server_module_t *module);
 
 sky_bool_t sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *ev_loop, const sky_inet_addr_t *addr);
+
+void sky_http_req_body_none(sky_http_server_request_t *r, sky_http_server_next_pt call, void *data);
+
+void sky_http_req_body_str(sky_http_server_request_t *r, sky_http_server_next_str_pt call, void *data);
+
+void sky_http_req_body_read(sky_http_server_request_t *r, sky_http_server_next_read_pt call, void *data);
 
 void sky_http_response_nobody(sky_http_server_request_t *r);
 

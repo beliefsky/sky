@@ -53,7 +53,7 @@ sky_http_response_nobody(sky_http_server_request_t *r) {
             2048
     );
     sky_tcp_set_cb(&conn->tcp, http_response);
-    sky_timer_entry_init(&conn->timer, http_write_timeout);
+    sky_timer_set_cb(&conn->timer, http_write_timeout);
 
     http_header_write_pre(r, stream);
     http_header_write_ex(r, stream);
@@ -88,7 +88,7 @@ sky_http_response_static_len(sky_http_server_request_t *r, const sky_uchar_t *da
             4096
     );
     sky_tcp_set_cb(&conn->tcp, http_response);
-    sky_timer_entry_init(&conn->timer, http_write_timeout);
+    sky_timer_set_cb(&conn->timer, http_write_timeout);
     http_header_write_pre(r, stream);
     if (!data_len) {
         sky_str_out_stream_write_str_len(stream, sky_str_line("Content-Length: 0\r\n"));
@@ -129,7 +129,7 @@ sky_http_response_file(
             2048
     );
     sky_tcp_set_cb(&conn->tcp, http_response);
-    sky_timer_entry_init(&conn->timer, http_write_timeout);
+    sky_timer_set_cb(&conn->timer, http_write_timeout);
     http_header_write_pre(r, stream);
 
     sky_str_out_stream_write_str_len(stream, sky_str_line("Content-Length: "));
@@ -181,7 +181,7 @@ sky_http_response_chunked_start(sky_http_server_request_t *r) {
             4096
     );
     sky_tcp_set_cb(&conn->tcp, http_response);
-    sky_timer_entry_init(&conn->timer, http_write_timeout);
+    sky_timer_set_cb(&conn->timer, http_write_timeout);
 
     http_header_write_pre(r, stream);
     sky_str_out_stream_write_str_len(stream, sky_str_line("Transfer-Encoding: chunked\r\n"));
