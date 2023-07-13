@@ -25,12 +25,12 @@ sky_http_server_create(const sky_http_server_conf_t *conf) {
     if (!conf) {
         server->keep_alive = 75;
         server->timeout = 30;
-        server->header_buf_size = 2047;
+        server->header_buf_size = 2048;
         server->header_buf_n = 4;
     } else {
         server->keep_alive = conf->keep_alive ?: 75;
         server->timeout = conf->timeout ?: 30;
-        server->header_buf_size = conf->header_buf_size ?: 2047;
+        server->header_buf_size = conf->header_buf_size ?: 2048;
         server->header_buf_n = conf->header_buf_n ?: 4;
     }
     server->host_map = sky_trie_create(server->pool);

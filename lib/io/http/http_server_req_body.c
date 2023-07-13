@@ -48,8 +48,8 @@ sky_http_req_body_none(
     r->headers_in.content_length_n = size;
 
     const sky_usize_t free_n = (sky_usize_t) (tmp->end - tmp->pos);
-    if (free_n < size && free_n < SKY_USIZE(4095)) {
-        sky_buf_rebuild(tmp, sky_min(size, SKY_USIZE(4095)));
+    if (free_n < size && free_n < SKY_USIZE(4096)) {
+        sky_buf_rebuild(tmp, sky_min(size, SKY_USIZE(4096)));
     }
 
     sky_tcp_set_cb(&conn->tcp, http_body_read_none);
@@ -131,8 +131,8 @@ sky_http_req_body_read(
     r->headers_in.content_length_n = size;
 
     const sky_usize_t free_n = (sky_usize_t) (tmp->end - tmp->pos);
-    if (free_n < size && free_n < SKY_USIZE(4095)) {
-        sky_buf_rebuild(tmp, sky_min(size, SKY_USIZE(4095)));
+    if (free_n < size && free_n < SKY_USIZE(4096)) {
+        sky_buf_rebuild(tmp, sky_min(size, SKY_USIZE(4096)));
     }
 
     sky_tcp_set_cb(&conn->tcp, http_body_read_cb);
