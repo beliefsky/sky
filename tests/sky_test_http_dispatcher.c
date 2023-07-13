@@ -12,6 +12,7 @@
 #include <core/json.h>
 #include <core/date.h>
 #include <unistd.h>
+#include <core/log.h>
 
 static sky_bool_t create_server(sky_event_loop_t *ev_loop);
 
@@ -23,6 +24,8 @@ static sky_bool_t create_server(sky_event_loop_t *ev_loop);
 //static SKY_HTTP_MAPPER_HANDLER(upload_test);
 
 static SKY_HTTP_MAPPER_HANDLER(hello_world);
+
+static SKY_HTTP_MAPPER_HANDLER(put_data);
 
 
 int
@@ -46,7 +49,8 @@ create_server(sky_event_loop_t *ev_loop) {
     const sky_http_mapper_t mappers[] = {
             {
                     .path = sky_string("/hello"),
-                    .get = hello_world
+                    .get = hello_world,
+                    .post = put_data
             },
     };
 
@@ -84,12 +88,25 @@ create_server(sky_event_loop_t *ev_loop) {
 
 
 static SKY_HTTP_MAPPER_HANDLER(hello_world) {
-    sky_http_response_static_len(req,  sky_str_line("{\"status\": 200, \"msg\": \"success\"}"));
+    sky_http_response_static_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\"}"));
 //    sky_http_response_chunked_start(req);
 //    sky_http_response_chunked_write_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\"}"));
 //    sky_http_response_chunked_end(req);
 }
 
+static void
+body_cb(sky_http_server_request_t *req, void *data) {
+    (void) data;
+
+    sky_log_info("end");
+
+    sky_http_response_static_len(req, sky_str_line("{\"status\": 200, \"msg\": \"success\"}"));
+}
+
+static SKY_HTTP_MAPPER_HANDLER(put_data) {
+    sky_log_info("start-> %s vs %lu", req->headers_in.content_length->data, req->headers_in.content_length_n);
+    sky_http_req_body_none(req, body_cb, null);
+}
 
 
 
