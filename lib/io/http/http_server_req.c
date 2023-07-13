@@ -24,7 +24,7 @@ sky_api void
 sky_http_server_req_finish(sky_http_server_request_t *const r) {
     sky_http_connection_t *const conn = r->conn;
 
-    if (!r->keep_alive || sky_tcp_is_open(&conn->tcp)) {
+    if (!r->keep_alive || !sky_tcp_is_open(&conn->tcp)) {
         http_read_error(conn);
     } else {
         sky_pool_t *pool = r->pool;
