@@ -85,22 +85,22 @@ void sky_str_out_stream_write_f64(sky_str_out_stream_t *stream, sky_f64_t num);
 void sky_str_out_stream_flush(sky_str_out_stream_t *stream);
 
 static sky_inline void
-sky_str_out_stream_reset(sky_str_out_stream_t *stream) {
+sky_str_out_stream_reset(sky_str_out_stream_t *const stream) {
     stream->post = stream->start;
 }
 
 static sky_inline sky_uchar_t *
-sky_str_out_stream_data(const sky_str_out_stream_t *stream) {
+sky_str_out_stream_data(const sky_str_out_stream_t *const stream) {
     return stream->start;
 }
 
 static sky_inline sky_usize_t
-sky_str_out_stream_size(const sky_str_out_stream_t *stream) {
+sky_str_out_stream_size(const sky_str_out_stream_t *const stream) {
     return (sky_usize_t) (stream->post - stream->start);
 }
 
 static sky_inline sky_usize_t
-sky_str_out_stream_total(const sky_str_out_stream_t *stream) {
+sky_str_out_stream_total(const sky_str_out_stream_t *const stream) {
     return stream->total;
 }
 

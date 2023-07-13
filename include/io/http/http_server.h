@@ -91,8 +91,6 @@ struct sky_http_server_request_s {
 
     sky_pool_t *pool;
     sky_http_connection_t *conn;
-    sky_http_server_next_pt next;
-    void *next_data;
 
     sky_u32_t state: 9;
     sky_u8_t method: 7;
@@ -121,19 +119,34 @@ void sky_http_req_body_str(sky_http_server_request_t *r, sky_http_server_next_st
 
 void sky_http_req_body_read(sky_http_server_request_t *r, sky_http_server_next_read_pt call, void *data);
 
-void sky_http_response_nobody(sky_http_server_request_t *r);
+void sky_http_response_nobody(sky_http_server_request_t *r, sky_http_server_next_pt call, void *cb_data);
 
-void sky_http_response_static(sky_http_server_request_t *r, const sky_str_t *data);
+void sky_http_response_static(
+        sky_http_server_request_t *r,
+        const sky_str_t *data,
+        sky_http_server_next_pt call,
+        void *cb_data
+);
 
-void sky_http_response_static_len(sky_http_server_request_t *r, const sky_uchar_t *data, sky_usize_t data_len);
+void sky_http_response_static_len(
+        sky_http_server_request_t *r,
+        const sky_uchar_t *data,
+        sky_usize_t data_len,
+        sky_http_server_next_pt call,
+        void *cb_data
+);
 
 void sky_http_response_file(
         sky_http_server_request_t *r,
         sky_socket_t fd,
         sky_i64_t offset,
         sky_usize_t size,
-        sky_usize_t file_size
+        sky_usize_t file_size,
+        sky_http_server_next_pt call,
+        void *cb_data
 );
+
+/*
 
 void sky_http_response_chunked_start(sky_http_server_request_t *r);
 
@@ -145,14 +158,10 @@ void sky_http_response_chunked_flush(sky_http_server_request_t *r);
 
 void sky_http_response_chunked_end(sky_http_server_request_t *r);
 
+ */
+
 
 void sky_http_server_req_finish(sky_http_server_request_t *r);
-
-static sky_inline void
-sky_http_server_req_next(sky_http_server_request_t *r, sky_http_server_next_pt next, void *data) {
-    r->next = next;
-    r->next_data = data;
-}
 
 #if defined(__cplusplus)
 } /* extern "C" { */

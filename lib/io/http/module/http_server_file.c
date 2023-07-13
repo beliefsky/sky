@@ -17,7 +17,10 @@
     _msg                                                                \
     "</title></head>\n<body bgcolor=\"white\">\n<center><h1>"           \
     _msg                                                                \
-    "</h1></center>\n<hr><center>sky</center>\n</body>\n</html>"))
+    "</h1></center>\n<hr><center>sky</center>\n</body>\n</html>"),      \
+    null,                                                               \
+    null                                                                \
+    )
 
 
 typedef struct {
@@ -183,7 +186,7 @@ http_run_handler(sky_http_server_request_t *r, void *data) {
 
         r->state = 304;
 
-        sky_http_response_nobody(r);
+        sky_http_response_nobody(r, null, null);
         return;
     }
     header->val.data = sky_palloc(r->pool, 30);
@@ -200,14 +203,14 @@ http_run_handler(sky_http_server_request_t *r, void *data) {
     }
     file->fd = fd;
 
-    sky_http_server_req_next(r, http_response_next, file);
-
     sky_http_response_file(
             r,
             fd,
             file->left,
             (sky_usize_t) (file->right - file->left + 1),
-            (sky_usize_t) stat_buf.st_size
+            (sky_usize_t) stat_buf.st_size,
+            http_response_next,
+            file
     );
 }
 
