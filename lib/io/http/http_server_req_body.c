@@ -154,7 +154,6 @@ http_body_read_none(sky_tcp_t *const tcp) {
     again:
     n = sky_tcp_read(tcp, buf->pos, sky_min(free_n, size));
 
-//    sky_log_info("%lu -> %lu/%ld", size, sky_min(free_n, size), n);
     if (n > 0) {
         size -= (sky_usize_t) n;
         if (!size) {

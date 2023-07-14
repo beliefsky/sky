@@ -14,10 +14,7 @@
 #include <core/trie.h>
 
 typedef struct http_str_packet_s http_str_packet_t;
-
-typedef struct http_res_packet_s http_res_packet_t;
-
-typedef sky_i8_t (*http_response_packet_pt)(sky_http_connection_t *conn, http_res_packet_t *packet);
+typedef struct http_file_packet_s http_file_packet_t;
 
 struct sky_http_server_s {
     sky_uchar_t rfc_date[30];
@@ -49,6 +46,7 @@ struct sky_http_connection_s {
 
     union {
         http_str_packet_t *write_str_queue;
+        http_file_packet_t *write_file;
     };
     sky_u8_t free_buf_n;
 };
@@ -78,13 +76,11 @@ struct http_str_packet_s {
     sky_str_t buf[];
 };
 
-
-struct http_res_packet_s {
-    sky_queue_t link;
-    http_response_packet_pt run;
-    sky_uchar_t *data;
+struct http_file_packet_s {
+    sky_str_t buf;
+    sky_i64_t offset;
     sky_usize_t size;
-    sky_usize_t total;
+    sky_fs_t fs;
 };
 
 #endif //SKY_HTTP_SERVER_COMMON_H
