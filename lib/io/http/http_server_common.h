@@ -10,7 +10,6 @@
 #include <io/tcp.h>
 #include <io/http/http_server.h>
 #include <core/buf.h>
-#include <core/string_out_stream.h>
 #include <core/trie.h>
 
 typedef struct http_str_packet_s http_str_packet_t;

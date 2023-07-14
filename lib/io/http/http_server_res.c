@@ -122,7 +122,11 @@ sky_http_response_static_len(
 
         sky_str_buf_init2(&buf, r->pool, SKY_USIZE(2048) + data_len);
         http_header_write_pre(r, &buf);
-        sky_str_buf_append_str_len(&buf, sky_str_line("Content-Length: 0\r\n"));
+
+        sky_str_buf_append_str_len(&buf, sky_str_line("Content-Length: "));
+        sky_str_buf_append_u64(&buf, data_len);
+        sky_str_buf_append_two_uchar(&buf, '\r', '\n');
+
         http_header_write_ex(r, &buf);
         sky_str_buf_append_str_len(&buf, data, data_len);
 
@@ -134,7 +138,11 @@ sky_http_response_static_len(
 
         sky_str_buf_init2(&buf, r->pool, SKY_USIZE(2048));
         http_header_write_pre(r, &buf);
-        sky_str_buf_append_str_len(&buf, sky_str_line("Content-Length: 0\r\n"));
+
+        sky_str_buf_append_str_len(&buf, sky_str_line("Content-Length: "));
+        sky_str_buf_append_u64(&buf, data_len);
+        sky_str_buf_append_two_uchar(&buf, '\r', '\n');
+
         http_header_write_ex(r, &buf);
         sky_str_buf_build(&buf, packet->buf);
 
