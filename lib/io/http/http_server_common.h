@@ -33,7 +33,6 @@ struct sky_http_server_s {
 struct sky_http_connection_s {
     sky_tcp_t tcp;
     sky_timer_wheel_entry_t timer;
-    sky_str_out_stream_t stream;
     sky_event_loop_t *ev_loop;
     sky_http_server_t *server;
     sky_http_server_request_t *current_req;
@@ -49,10 +48,8 @@ struct sky_http_connection_s {
     void *write_next_cb_data;
 
     union {
-        sky_queue_t write_str_queue;
+        http_str_packet_t *write_str_queue;
     };
-
-    sky_usize_t write_size;
     sky_u8_t free_buf_n;
 };
 
@@ -76,9 +73,9 @@ struct sky_http_server_multipart_s {
 };
 
 struct http_str_packet_s {
-    sky_queue_t link;
-    const sky_uchar_t *data;
-    sky_usize_t size;
+    sky_u32_t num;
+    sky_u32_t read;
+    sky_str_t buf[];
 };
 
 
