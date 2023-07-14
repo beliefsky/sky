@@ -996,7 +996,7 @@ header_handle_run(sky_http_server_request_t *const req, sky_http_server_header_t
                 if (sky_likely(!req->headers_in.content_length)) {
                     req->headers_in.content_length = &h->val;
 
-                    return sky_str_to_u64(&h->val, &req->headers_in.content_length_n);
+                    return sky_str_to_usize(&h->val, &req->headers_in.content_length_n);
                 }
             }
             break;
