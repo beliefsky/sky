@@ -41,7 +41,7 @@ sky_http_response_nobody(
     conn->write_next = call;
     conn->write_next_cb_data = cb_data;
 
-    http_str_packet_t *packet = sky_palloc(r->pool, sizeof(http_str_packet_t) + sizeof(sky_str_t));
+    http_str_packet_t *const packet = sky_palloc(r->pool, sizeof(http_str_packet_t) + sizeof(sky_str_t));
     packet->num = 1;
     packet->read = 0;
 
@@ -52,6 +52,7 @@ sky_http_response_nobody(
 
     sky_str_buf_build(&buf, packet->buf);
 
+    conn->write_str_queue = packet;
     sky_timer_set_cb(&conn->timer, http_write_timeout);
     if (r->keep_alive) {
         sky_tcp_set_cb(&conn->tcp, http_keepalive_response_str);
@@ -97,10 +98,11 @@ sky_http_response_static_len(
     conn->write_next = call;
     conn->write_next_cb_data = cb_data;
 
+    http_str_packet_t * packet;
     sky_str_buf_t buf;
 
     if (!data_len) {
-        http_str_packet_t *packet = sky_palloc(r->pool, sizeof(http_str_packet_t) + sizeof(sky_str_t));
+        packet = sky_palloc(r->pool, sizeof(http_str_packet_t) + sizeof(sky_str_t));
         packet->num = 1;
         packet->read = 0;
 
@@ -110,7 +112,7 @@ sky_http_response_static_len(
         http_header_write_ex(r, &buf);
         sky_str_buf_build(&buf, packet->buf);
     } else if (data_len < SKY_USIZE(2048)) {
-        http_str_packet_t *packet = sky_palloc(r->pool, sizeof(http_str_packet_t) + sizeof(sky_str_t));
+        packet = sky_palloc(r->pool, sizeof(http_str_packet_t) + sizeof(sky_str_t));
         packet->num = 1;
         packet->read = 0;
 
@@ -122,7 +124,7 @@ sky_http_response_static_len(
 
         sky_str_buf_build(&buf, packet->buf);
     } else {
-        http_str_packet_t *packet = sky_palloc(r->pool, sizeof(http_str_packet_t) + (sizeof(sky_str_t) << 1));
+        packet = sky_palloc(r->pool, sizeof(http_str_packet_t) + (sizeof(sky_str_t) << 1));
         packet->num = 2;
         packet->read = 0;
 
@@ -136,6 +138,7 @@ sky_http_response_static_len(
         packet->buf[1].len = data_len;
     }
 
+    conn->write_str_queue = packet;
     sky_timer_set_cb(&conn->timer, http_write_timeout);
     if (r->keep_alive) {
         sky_tcp_set_cb(&conn->tcp, http_keepalive_response_str);
