@@ -53,7 +53,6 @@ http_request_set(sky_http_connection_t *const conn, sky_pool_t *const pool) {
     sky_timer_entry_init(&conn->timer, http_read_timeout);
     conn->current_req = r;
     conn->buf = sky_buf_create(pool, server->header_buf_size);
-    conn->write_size = 0;
     conn->free_buf_n = server->header_buf_n;
 
     sky_tcp_set_cb(&conn->tcp, http_line_read);
