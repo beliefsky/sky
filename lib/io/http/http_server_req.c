@@ -24,7 +24,18 @@ sky_api void
 sky_http_server_req_finish(sky_http_server_request_t *const r) {
     sky_http_connection_t *const conn = r->conn;
 
-    if (!r->keep_alive || !sky_tcp_is_open(&conn->tcp)) {
+    if (sky_unlikely(!sky_tcp_is_open(&conn->tcp))) {
+        http_read_error(conn);
+        return;
+    }
+    if (sky_unlikely(!r->response)) { //如果未响应则响应空数据
+        sky_http_response_static_len(r, null, 0, null, null);
+        return;
+    }
+
+    // 此处req body 未读取完成时需要继续读取
+
+    if (!r->keep_alive) {
         http_read_error(conn);
     } else {
         sky_pool_t *pool = r->pool;
