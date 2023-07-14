@@ -60,9 +60,9 @@ static sky_bool_t http_header_range(http_file_t *file, const sky_str_t *value);
 
 
 sky_api sky_http_server_module_t *
-sky_http_server_file_create(const sky_http_server_file_conf_t *conf) {
-    sky_pool_t *pool = sky_pool_create(2048);
-    sky_http_server_module_t *module = sky_palloc(pool, sizeof(sky_http_server_module_t));
+sky_http_server_file_create(const sky_http_server_file_conf_t *const conf) {
+    sky_pool_t *const pool = sky_pool_create(2048);
+    sky_http_server_module_t *const module = sky_palloc(pool, sizeof(sky_http_server_module_t));
     module->host.data = sky_palloc(pool, conf->host.len);
     module->host.len = conf->host.len;
     sky_memcpy(module->host.data, conf->host.data, conf->host.len);
@@ -71,7 +71,7 @@ sky_http_server_file_create(const sky_http_server_file_conf_t *conf) {
     sky_memcpy(module->prefix.data, conf->prefix.data, conf->prefix.len);
     module->run = http_run_handler;
 
-    http_module_file_t *data = sky_palloc(pool, sizeof(http_module_file_t));
+    http_module_file_t *const data = sky_palloc(pool, sizeof(http_module_file_t));
     sky_str_set(&data->default_mime_type.val, "application/octet-stream");
     data->default_mime_type.binary = true;
     data->path.data = sky_palloc(pool, conf->dir.len);
@@ -97,14 +97,6 @@ static void
 http_run_handler(sky_http_server_request_t *const r, void *const data) {
     const http_module_file_t *const module_file = data;
 
-    struct stat stat_buf;
-    sky_i64_t mtime;
-    http_file_t *file;
-    http_mime_type_t mime_type;
-    sky_http_server_header_t *header;
-    sky_char_t *path;
-    sky_i32_t fd;
-
     r->uri.data += module_file->prefix->len;
     r->uri.len -= module_file->prefix->len;
     if (sky_unlikely(!r->uri.len)) {
@@ -123,6 +115,7 @@ http_run_handler(sky_http_server_request_t *const r, void *const data) {
         }
     }
 
+    http_mime_type_t mime_type;
     if (!r->exten.len) {
         mime_type = module_file->default_mime_type;
     } else {
@@ -139,7 +132,7 @@ http_run_handler(sky_http_server_request_t *const r, void *const data) {
     }
 
 
-    file = sky_pcalloc(r->pool, sizeof(http_file_t));
+    http_file_t *const file = sky_pcalloc(r->pool, sizeof(http_file_t));
 
     if (r->headers_in.if_modified_since) {
         file->modified = true;
@@ -154,15 +147,17 @@ http_run_handler(sky_http_server_request_t *const r, void *const data) {
             sky_rfc_str_to_date(r->headers_in.if_range, &file->range_time);
         }
     }
-    path = sky_palloc(r->pool, module_file->path.len + r->uri.len + 1);
+
+    sky_char_t *const path = sky_palloc(r->pool, module_file->path.len + r->uri.len + 1);
     sky_memcpy(path, module_file->path.data, module_file->path.len);
     sky_memcpy(path + module_file->path.len, r->uri.data, r->uri.len + 1);
-    fd = open(path, O_RDONLY | O_NONBLOCK | O_CLOEXEC);
+
+    const sky_i32_t fd = open(path, O_RDONLY | O_NONBLOCK | O_CLOEXEC);
     if (fd < 0) {
         http_error_page(r, 404, "404 Not Found");
         return;
     }
-
+    struct stat stat_buf;
     fstat(fd, &stat_buf);
     if (sky_unlikely(S_ISDIR(stat_buf.st_mode))) {
         close(fd);
@@ -171,13 +166,13 @@ http_run_handler(sky_http_server_request_t *const r, void *const data) {
     }
 
 #if defined(__APPLE__)
-    mtime = stat_buf.st_mtimespec.tv_sec;
+    const sky_i64_t mtime = stat_buf.st_mtimespec.tv_sec;
 #else
-    mtime = stat_buf.st_mtim.tv_sec;
+    const sky_i64_t mtime = stat_buf.st_mtim.tv_sec;
 #endif
 
     r->headers_out.content_type = mime_type.val;
-    header = sky_list_push(&r->headers_out.headers);
+    sky_http_server_header_t *const header = sky_list_push(&r->headers_out.headers);
     sky_str_set(&header->key, "Last-Modified");
 
     if (file->modified && file->modified_time == mtime) {
@@ -216,7 +211,7 @@ http_run_handler(sky_http_server_request_t *const r, void *const data) {
 
 static void
 http_response_next(sky_http_server_request_t *const r, void *const data) {
-    http_file_t *file = data;
+    http_file_t *const file = data;
 
     close(file->fd);
 
