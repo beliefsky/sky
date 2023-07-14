@@ -56,7 +56,7 @@ static void http_response_next(sky_http_server_request_t *r, void *data);
 
 static sky_bool_t http_mime_type_get(const sky_str_t *exten, http_mime_type_t *type);
 
-static sky_bool_t http_header_range(http_file_t *file, sky_str_t *value);
+static sky_bool_t http_header_range(http_file_t *file, const sky_str_t *value);
 
 
 sky_api sky_http_server_module_t *
@@ -88,14 +88,14 @@ sky_http_server_file_create(const sky_http_server_file_conf_t *conf) {
 }
 
 sky_api void
-sky_http_server_file_destroy(sky_http_server_module_t *server_file) {
+sky_http_server_file_destroy(sky_http_server_module_t *const server_file) {
     http_module_file_t *data = server_file->module_data;
     sky_pool_destroy(data->pool);
 }
 
 static void
-http_run_handler(sky_http_server_request_t *r, void *data) {
-    http_module_file_t *module_file = data;
+http_run_handler(sky_http_server_request_t *const r, void *const data) {
+    const http_module_file_t *const module_file = data;
 
     struct stat stat_buf;
     sky_i64_t mtime;
@@ -215,7 +215,7 @@ http_run_handler(sky_http_server_request_t *r, void *data) {
 }
 
 static void
-http_response_next(sky_http_server_request_t *r, void *data) {
+http_response_next(sky_http_server_request_t *const r, void *const data) {
     http_file_t *file = data;
 
     close(file->fd);
@@ -224,7 +224,7 @@ http_response_next(sky_http_server_request_t *r, void *data) {
 }
 
 static sky_bool_t
-http_header_range(http_file_t *file, sky_str_t *value) {
+http_header_range(http_file_t *const file, const sky_str_t *const value) {
     sky_isize_t index;
     sky_usize_t size;
     sky_uchar_t *start;
@@ -261,7 +261,7 @@ http_header_range(http_file_t *file, sky_str_t *value) {
 
 
 static sky_inline sky_bool_t
-http_mime_type_get(const sky_str_t *exten, http_mime_type_t *type) {
+http_mime_type_get(const sky_str_t *const exten, http_mime_type_t *const type) {
 #define mine_set(_type, _b)         \
     sky_str_set(&type->val, _type);  \
     type->binary = (_b)
