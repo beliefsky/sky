@@ -78,7 +78,7 @@ struct sky_http_server_request_s {
         sky_str_t *range;
         sky_str_t *if_range;
 
-        sky_u64_t content_length_n;
+        sky_usize_t content_length_n;
     } headers_in;
 
     struct {
