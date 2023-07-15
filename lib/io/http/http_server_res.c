@@ -435,6 +435,7 @@ http_response_file(sky_tcp_t *const tcp) {
             conn->write_next(conn->current_req, conn->write_next_cb_data);
             return;
         }
+        goto again;
     }
     if (sky_likely(!n)) {
         sky_event_timeout_set(conn->ev_loop, &conn->timer, conn->server->timeout);
