@@ -32,15 +32,6 @@ static sky_bool_t set_socket_nonblock(sky_socket_t fd);
 
 #endif
 
-static sky_isize_t tcp_sendfile(
-        sky_tcp_t *tcp,
-        sky_fs_t *fs,
-        sky_i64_t *offset,
-        sky_usize_t size,
-        const sky_uchar_t *head,
-        sky_usize_t head_size
-);
-
 
 sky_api void
 sky_tcp_init(sky_tcp_t *const tcp, sky_selector_t *const s) {
@@ -227,7 +218,7 @@ sky_tcp_write(sky_tcp_t *const tcp, const sky_uchar_t *const data, const sky_usi
         }
         return n;
     }
-    if (errno == EAGAIN) {
+    if (sky_likely(errno == EAGAIN)) {
         sky_ev_clean_write(&tcp->ev);
         return 0;
     }
@@ -253,22 +244,213 @@ sky_tcp_sendfile(
         return 0;
     }
 
-    const sky_isize_t n = tcp_sendfile(tcp, fs, offset, size, head, head_size);
+#if defined(__linux__)
+
+    sky_isize_t head_read = 0;
+    if (head_size) {
+        if (sky_unlikely(!size)) {
+            head_read = send(sky_ev_get_fd(&tcp->ev), head, head_size, MSG_NOSIGNAL);
+            if (sky_likely(head_read > 0)) {
+                if ((sky_usize_t) head_read < head_size) {
+                    sky_ev_clean_write(&tcp->ev);
+                }
+                return head_read;
+            }
+            if (sky_likely(errno == EAGAIN)) {
+                sky_ev_clean_write(&tcp->ev);
+                return 0;
+            }
+            sky_ev_set_error(&tcp->ev);
+            return -1;
+        }
+        head_read = send(sky_ev_get_fd(&tcp->ev), head, head_size, MSG_NOSIGNAL | MSG_MORE);
+        if (sky_likely(head_read > 0)) {
+            if ((sky_usize_t) head_read < head_size) {
+                sky_ev_clean_write(&tcp->ev);
+                return head_read;
+            }
+        } else if (sky_likely(errno == EAGAIN)) {
+            sky_ev_clean_write(&tcp->ev);
+            return 0;
+        } else {
+            sky_ev_set_error(&tcp->ev);
+            return -1;
+        }
+    }
+
+    const sky_isize_t n = sendfile(sky_ev_get_fd(&tcp->ev), fs->fd, offset, size);
     if (sky_likely(n > 0)) {
-        if ((sky_usize_t) n < (head_size + size)) {
+        if ((sky_usize_t) n < size) {
             sky_ev_clean_write(&tcp->ev);
         }
-        return n;
+        return head_read + n;
     }
 
-    if (sky_likely(!n)) {
+    if (sky_likely(errno == EAGAIN)) {
         sky_ev_clean_write(&tcp->ev);
-        return 0;
+        return head_read;
     }
-
     sky_ev_set_error(&tcp->ev);
 
     return -1;
+
+#elif defined(__FreeBSD__)
+    sky_i64_t write_n;
+
+    if (head_size) {
+        if (sky_unlikely(!size)) {
+            const sky_isize_t n = send(sky_ev_get_fd(&tcp->ev), head, head_size, MSG_NOSIGNAL);
+            if (sky_likely(n > 0)) {
+                if ((sky_usize_t) n < head_size) {
+                    sky_ev_clean_write(&tcp->ev);
+                }
+                return n;
+            }
+            if (sky_likely(errno == EAGAIN)) {
+                sky_ev_clean_write(&tcp->ev);
+                return 0;
+            }
+            sky_ev_set_error(&tcp->ev);
+            return -1;
+        }
+
+        struct iovec vec = {
+                .iov_base = (void *) head,
+                .iov_len = head_size
+        };
+        struct sf_hdtr headers = {
+                .headers = &vec,
+                .hdr_cnt = 1
+        };
+
+        const sky_i32_t r = sendfile(fs->fd, sky_ev_get_fd(&tcp->ev), *offset, size, &headers, &write_n, SF_MNOWAIT);
+        if (r > 0) {
+            if (write_n < (sky_i64_t) head_size) {
+                sky_ev_clean_write(&tcp->ev);
+                return (sky_isize_t) write_n;
+            }
+            const sky_usize_t file_read = (sky_usize_t) (write_n - (sky_i64_t) head_size);
+            *offset += (sky_i64_t) file_read;
+
+            if (file_read < size) {
+                sky_ev_clean_write(&tcp->ev);
+            }
+            return (sky_isize_t) write_n;
+        }
+
+        switch (errno) {
+            case EAGAIN:
+            case EBUSY:
+            case EINTR:
+                sky_ev_clean_write(&tcp->ev);
+                return 0;
+            default:
+                sky_ev_set_error(&tcp->ev);
+                return -1;
+        }
+    }
+    const sky_i32_t r = sendfile(fs->fd, sky_ev_get_fd(&tcp->ev), *offset, size, null, &write_n, SF_MNOWAIT);
+    if (r > 0) {
+        *offset += write_n;
+
+        if ((sky_usize_t) write_n < size) {
+            sky_ev_clean_write(&tcp->ev);
+        }
+        return (sky_isize_t) write_n;
+    }
+    switch (errno) {
+        case EAGAIN:
+        case EBUSY:
+        case EINTR:
+            sky_ev_clean_write(&tcp->ev);
+            return 0;
+        default:
+            sky_ev_set_error(&tcp->ev);
+            return -1;
+    }
+
+
+#elif defined(__APPLE__)
+    if (head_size) {
+        if (sky_unlikely(!size)) {
+            const sky_isize_t n = send(sky_ev_get_fd(&tcp->ev), head, head_size, MSG_NOSIGNAL);
+            if (sky_likely(n > 0)) {
+                if ((sky_usize_t) n < head_size) {
+                    sky_ev_clean_write(&tcp->ev);
+                }
+                return n;
+            }
+            if (sky_likely(errno == EAGAIN)) {
+                sky_ev_clean_write(&tcp->ev);
+                return 0;
+            }
+            sky_ev_set_error(&tcp->ev);
+            return -1;
+        }
+
+        struct iovec vec = {
+                .iov_base = (void *) head,
+                .iov_len = head_size
+        };
+        struct sf_hdtr headers = {
+                .headers = &vec,
+                .hdr_cnt = 1
+        };
+
+        sky_i64_t write_n = (sky_i64_t)size;
+        const sky_i32_t r = sendfile(fs->fd, sky_ev_get_fd(&tcp->ev), *offset, &write_n, &headers, 0);
+        if (r > 0) {
+            if (write_n < (sky_i64_t) head_size) {
+                sky_ev_clean_write(&tcp->ev);
+                return (sky_isize_t) write_n;
+            }
+            const sky_usize_t file_read = (sky_usize_t) (write_n - (sky_i64_t) head_size);
+            *offset += (sky_i64_t) file_read;
+
+            if (file_read < size) {
+                sky_ev_clean_write(&tcp->ev);
+            }
+            return (sky_isize_t) write_n;
+        }
+
+        switch (errno) {
+            case EAGAIN:
+            case EBUSY:
+            case EINTR:
+                sky_ev_clean_write(&tcp->ev);
+                return 0;
+            default:
+                sky_ev_set_error(&tcp->ev);
+                return -1;
+        }
+    }
+
+    sky_i64_t write_n = (sky_i64_t) size;
+    const sky_i32_t r = sendfile(fs->fd, sky_ev_get_fd(&tcp->ev), *offset, &write_n, null, 0);;
+    if (r > 0) {
+        *offset += write_n;
+
+        if ((sky_usize_t) write_n < size) {
+            sky_ev_clean_write(&tcp->ev);
+        }
+        return (sky_isize_t) write_n;
+    }
+    switch (errno) {
+        case EAGAIN:
+        case EBUSY:
+        case EINTR:
+            sky_ev_clean_write(&tcp->ev);
+            return 0;
+        default:
+            sky_ev_set_error(&tcp->ev);
+            return -1;
+    }
+
+#else
+
+#error not support sendfile.
+
+#endif
 }
 
 sky_api sky_bool_t
@@ -343,118 +525,6 @@ sky_tcp_option_no_push(const sky_tcp_t *const tcp, const sky_bool_t open) {
 
 }
 
-
-static sky_isize_t
-tcp_sendfile(
-        sky_tcp_t *const tcp,
-        sky_fs_t *const fs,
-        sky_i64_t *const offset,
-        const sky_usize_t size,
-        const sky_uchar_t *const head,
-        const sky_usize_t head_size
-) {
-#if defined(__linux__)
-
-    sky_isize_t result = 0;
-
-    if (head_size) {
-        result = send(sky_ev_get_fd(&tcp->ev), head, head_size, MSG_NOSIGNAL | MSG_MORE);
-        if (result < 0) {
-            return errno == EAGAIN ? 0 : -1;
-        }
-        if (!size || (sky_usize_t) result < head_size) {
-            return result;
-        }
-    }
-
-    const sky_i64_t n = sendfile(sky_ev_get_fd(&tcp->ev), fs->fd, offset, size);
-    if (n < 0) {
-        return errno == EAGAIN ? result : -1;
-    }
-    result += n;
-
-    return result;
-
-#elif defined(__FreeBSD__)
-
-    sky_i64_t write_n;
-    sky_i32_t r;
-
-    if (!head_size) {
-        r = sendfile(fs->fd, sky_ev_get_fd(&tcp->ev), *offset, size, null, &write_n, SF_MNOWAIT);
-    } else {
-        struct iovec vec = {
-                .iov_base = (void *) head,
-                .iov_len = head_size
-        };
-        struct sf_hdtr headers = {
-                .headers = &vec,
-                .hdr_cnt = 1
-        };
-
-        r = sendfile(fs->fd, sky_ev_get_fd(&tcp->ev), *offset, size, &headers, &write_n, SF_MNOWAIT);
-    }
-
-    if (r > 0) {
-        if (write_n > (sky_i64_t) head_size) {
-            *offset += write_n - (sky_i64_t) head_size;
-        }
-
-        return (sky_isize_t) write_n;
-    }
-
-    switch (errno) {
-        case EAGAIN:
-        case EBUSY:
-        case EINTR:
-            return 0;
-        default:
-            return -1;
-    }
-
-#elif defined(__APPLE__)
-
-    sky_i64_t write_n = (sky_i64_t)size;
-    sky_i32_t r;
-
-    if (!head_size) {
-        r = sendfile(fs->fd, sky_ev_get_fd(&tcp->ev), *offset, &write_n, null, 0);
-    } else {
-        struct iovec vec = {
-                .iov_base = (void *) head,
-                .iov_len = head_size
-        };
-        struct sf_hdtr headers = {
-                .headers = &vec,
-                .hdr_cnt = 1
-        };
-
-        r = sendfile(fs->fd, sky_ev_get_fd(&tcp->ev), *offset, &write_n, &headers, 0);
-    }
-
-    if (r > 0) {
-        if (write_n > (sky_i64_t) head_size) {
-            *offset += write_n - (sky_i64_t) head_size;
-        }
-
-        return (sky_isize_t) write_n;
-    }
-
-    switch (errno) {
-        case EAGAIN:
-        case EBUSY:
-        case EINTR:
-            return 0;
-        default:
-            return -1;
-    }
-
-#else
-
-#error not support sendfile.
-
-#endif
-}
 
 #ifndef SKY_HAVE_ACCEPT4
 
