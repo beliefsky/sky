@@ -385,7 +385,6 @@ http_keepalive_response_file(sky_tcp_t *const tcp) {
             buf->data += buf->len;
             buf->len = 0;
             n -= (sky_isize_t) buf->len;
-            packet->size -= (sky_usize_t) n;
         }
         packet->size -= (sky_usize_t) n;
 
@@ -424,11 +423,11 @@ http_response_file(sky_tcp_t *const tcp) {
                 buf->len -= (sky_usize_t) n;
                 goto again;
             }
+            buf->data += buf->len;
+            buf->len = 0;
             n -= (sky_isize_t) buf->len;
-            packet->size -= (sky_usize_t) n;
-        } else {
-            packet->size -= (sky_usize_t) n;
         }
+        packet->size -= (sky_usize_t) n;
 
         if (!packet->size) {
             sky_timer_wheel_unlink(&conn->timer);
