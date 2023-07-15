@@ -72,7 +72,7 @@ sky_http_response_static(
         sky_http_server_request_t *const r,
         const sky_str_t *const data,
         const sky_http_server_next_pt call,
-        void *cb_data
+        void *const cb_data
 ) {
 
     if (!data) {
@@ -164,13 +164,13 @@ sky_http_response_static_len(
 
 sky_api void
 sky_http_response_file(
-        sky_http_server_request_t *r,
-        sky_socket_t fd,
-        sky_i64_t offset,
-        sky_usize_t size,
-        sky_usize_t file_size,
+        sky_http_server_request_t *const r,
+        const sky_socket_t fd,
+        const sky_i64_t offset,
+        const sky_usize_t size,
+        const sky_usize_t file_size,
         sky_http_server_next_pt call,
-        void *cb_data
+        void *const cb_data
 ) {
     call = call ?: http_res_default_cb;
 

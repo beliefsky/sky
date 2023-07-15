@@ -133,7 +133,7 @@ http_header_read(sky_tcp_t *const tcp) {
 
     again:
     if (sky_unlikely(buf->last == buf->end)) {
-        if (sky_likely(--conn->free_buf_n == 0)) {
+        if (sky_unlikely(--conn->free_buf_n == 0)) {
             goto error;
         }
         if (r->req_pos) {

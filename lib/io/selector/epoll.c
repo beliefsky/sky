@@ -82,7 +82,7 @@ sky_selector_select(sky_selector_t *const s, const sky_i32_t timeout) {
         return true;
     }
 
-    struct epoll_event *event = s->sys_evs;
+    const struct epoll_event *event = s->sys_evs;
     sky_ev_t *ev;
 
     for (sky_u32_t i = 0; i < s->ev_n; ++event, ++i) {
@@ -107,7 +107,7 @@ sky_selector_run(sky_selector_t *const s) {
         return;
     }
 
-    sky_ev_t *ev, **ev_ref = s->evs;
+    sky_ev_t *ev, *const *ev_ref = s->evs;
 
     for (sky_u32_t i = s->ev_n; i > 0; ++ev_ref, --i) {
         ev = *ev_ref;
