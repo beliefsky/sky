@@ -16,22 +16,24 @@ typedef struct {
 static void http_server_accept(sky_tcp_t *tcp);
 
 sky_api sky_http_server_t *
-sky_http_server_create(const sky_http_server_conf_t *conf) {
-    sky_pool_t *pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
-    sky_http_server_t *server = sky_palloc(pool, sizeof(sky_http_server_t));
+sky_http_server_create(const sky_http_server_conf_t *const conf) {
+    sky_pool_t *const pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
+    sky_http_server_t *const server = sky_palloc(pool, sizeof(sky_http_server_t));
     server->pool = pool;
     server->rfc_last = 0;
 
     if (!conf) {
-        server->keep_alive = 75;
-        server->timeout = 30;
-        server->header_buf_size = 2048;
-        server->header_buf_n = 4;
+        server->body_str_max = SKY_USIZE(1048576);
+        server->keep_alive = SKY_U32(75);
+        server->timeout = SKY_U32(30);
+        server->header_buf_size = SKY_U32(2048);
+        server->header_buf_n = SKY_U8(4);
     } else {
-        server->keep_alive = conf->keep_alive ?: 75;
-        server->timeout = conf->timeout ?: 30;
-        server->header_buf_size = conf->header_buf_size ?: 2048;
-        server->header_buf_n = conf->header_buf_n ?: 4;
+        server->body_str_max = conf->body_str_max ?: SKY_USIZE(1048576);
+        server->keep_alive = conf->keep_alive ?: SKY_U32(75);
+        server->timeout = conf->timeout ?: SKY_U32(30);
+        server->header_buf_size = conf->header_buf_size ?: SKY_U32(2048);
+        server->header_buf_n = conf->header_buf_n ?: SKY_U8(4);
     }
     server->host_map = sky_trie_create(server->pool);
 
@@ -39,7 +41,7 @@ sky_http_server_create(const sky_http_server_conf_t *conf) {
 }
 
 sky_api sky_bool_t
-sky_http_server_module_put(sky_http_server_t *server, sky_http_server_module_t *module) {
+sky_http_server_module_put(sky_http_server_t *const server, sky_http_server_module_t *const module) {
     sky_trie_t *host_trie = sky_trie_contains(server->host_map, &module->host);
     if (!host_trie) {
         host_trie = sky_trie_create(server->pool);
@@ -51,7 +53,7 @@ sky_http_server_module_put(sky_http_server_t *server, sky_http_server_module_t *
         sky_memcpy(tmp.data, module->host.data, tmp.len);
         sky_trie_put(server->host_map, &tmp, host_trie);
     }
-    const sky_http_server_module_t *old = sky_trie_contains(host_trie, &module->prefix);
+    const sky_http_server_module_t *const old = sky_trie_contains(host_trie, &module->prefix);
     if (!old) {
         sky_str_t tmp = {
                 .data = sky_palloc(server->pool, module->prefix.len),
@@ -68,8 +70,12 @@ sky_http_server_module_put(sky_http_server_t *server, sky_http_server_module_t *
 }
 
 sky_api sky_bool_t
-sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *ev_loop, const sky_inet_addr_t *addr) {
-    http_listener_t *listener = sky_palloc(server->pool, sizeof(http_listener_t));
+sky_http_server_bind(
+        sky_http_server_t *const server,
+        sky_event_loop_t *const ev_loop,
+        const sky_inet_addr_t *const addr
+) {
+    http_listener_t *const listener = sky_palloc(server->pool, sizeof(http_listener_t));
     sky_tcp_init(&listener->tcp, sky_event_selector(ev_loop));
     listener->ev_loop = ev_loop;
     listener->server = server;
@@ -110,8 +116,8 @@ sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *ev_loop, const
 }
 
 static void
-http_server_accept(sky_tcp_t *tcp) {
-    http_listener_t *l = sky_type_convert(tcp, http_listener_t, tcp);
+http_server_accept(sky_tcp_t *const tcp) {
+    http_listener_t *const l = sky_type_convert(tcp, http_listener_t, tcp);
 
     sky_http_connection_t *conn = l->conn_tmp;
     if (!conn) {
