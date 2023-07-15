@@ -382,9 +382,10 @@ http_keepalive_response_file(sky_tcp_t *const tcp) {
                 buf->len -= (sky_usize_t) n;
                 goto again;
             }
+            n -= (sky_isize_t) buf->len;
+
             buf->data += buf->len;
             buf->len = 0;
-            n -= (sky_isize_t) buf->len;
         }
         packet->size -= (sky_usize_t) n;
 
@@ -423,9 +424,10 @@ http_response_file(sky_tcp_t *const tcp) {
                 buf->len -= (sky_usize_t) n;
                 goto again;
             }
+            n -= (sky_isize_t) buf->len;
+
             buf->data += buf->len;
             buf->len = 0;
-            n -= (sky_isize_t) buf->len;
         }
         packet->size -= (sky_usize_t) n;
 
