@@ -46,6 +46,7 @@ typedef void (*sky_http_server_next_read_pt)(
 );
 
 struct sky_http_server_conf_s {
+    sky_usize_t body_str_max;
     sky_u32_t keep_alive;
     sky_u32_t timeout;
     sky_u32_t header_buf_size;
