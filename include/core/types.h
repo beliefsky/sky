@@ -5,7 +5,7 @@
 #ifndef SKY_TYPES_H
 #define SKY_TYPES_H
 
-#include "inttypes.h"
+#include <inttypes.h>
 #include "../sky_build_config.h"
 
 #if defined(__cplusplus)
