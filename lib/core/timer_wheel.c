@@ -66,7 +66,7 @@ sky_timer_wheel_destroy(sky_timer_wheel_t *const ctx) {
 
 sky_api sky_u64_t
 sky_timer_wheel_wake_at(const sky_timer_wheel_t *const ctx) {
-    sky_usize_t wheel, slot, slot_base, si;
+    sky_u32_t wheel, slot, slot_base, si;
     sky_u64_t at = ctx->last_run, at_incr;
     const sky_queue_t *queue;
 
@@ -115,7 +115,7 @@ sky_timer_wheel_wake_at(const sky_timer_wheel_t *const ctx) {
 
 sky_api void
 sky_timer_wheel_get_expired(sky_timer_wheel_t *const ctx, sky_queue_t *const result, const sky_u64_t now) {
-    sky_usize_t wheel = 0, slot, slot_start;
+    sky_u32_t wheel = 0, slot, slot_start;
     sky_queue_t *queue, *tmp;
     sky_timer_wheel_entry_t *entry;
 
@@ -210,7 +210,7 @@ sky_timer_wheel_expired(sky_timer_wheel_t *const ctx, sky_timer_wheel_entry_t *c
 static sky_inline sky_bool_t
 cascade_all(sky_timer_wheel_t *const ctx, sky_usize_t wheel) {
     sky_bool_t cascaded = false;
-    sky_usize_t slot;
+    sky_u32_t slot;
     sky_queue_t *queue, *tmp;
     sky_timer_wheel_entry_t *entry;
 
