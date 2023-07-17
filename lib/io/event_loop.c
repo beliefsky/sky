@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <io/event_loop.h>
 #include <core/memory.h>
+#include <time.h>
 
 sky_api sky_event_loop_t *
 sky_event_loop_create() {
