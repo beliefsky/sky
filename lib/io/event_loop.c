@@ -1,19 +1,12 @@
 //
 // Created by edz on 2021/11/29.
 //
-#include <signal.h>
 #include <io/event_loop.h>
 #include <core/memory.h>
 #include <time.h>
 
 sky_api sky_event_loop_t *
 sky_event_loop_create() {
-    struct sigaction sa;
-
-    sky_memzero(&sa, sizeof(struct sigaction));
-    sa.sa_handler = SIG_IGN;
-    sigaction(SIGPIPE, &sa, null);
-
 
     sky_event_loop_t *loop = sky_malloc(sizeof(sky_event_loop_t));
     loop->now = time(null);

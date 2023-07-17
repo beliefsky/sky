@@ -8,6 +8,7 @@
 #include <core/log.h>
 #include <sys/resource.h>
 #include <sys/event.h>
+#include <signal.h>
 #include <unistd.h>
 #include <errno.h>
 
