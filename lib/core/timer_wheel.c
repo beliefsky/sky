@@ -65,10 +65,10 @@ sky_timer_wheel_destroy(sky_timer_wheel_t *const ctx) {
 }
 
 sky_api sky_u64_t
-sky_timer_wheel_wake_at(sky_timer_wheel_t *const ctx) {
+sky_timer_wheel_wake_at(const sky_timer_wheel_t *const ctx) {
     sky_usize_t wheel, slot, slot_base, si;
     sky_u64_t at = ctx->last_run, at_incr;
-    sky_queue_t *queue;
+    const sky_queue_t *queue;
 
 
     for (wheel = 0; wheel < ctx->num_wheels; ++wheel) {
