@@ -122,7 +122,7 @@ sky_selector_run(sky_selector_t *const s) {
     if (sky_unlikely(!s->ev_n)) {
         return;
     }
-    sky_ev_t *ev, **ev_ref = s->evs;
+    sky_ev_t *ev, *const *ev_ref = s->evs;
 
     for (sky_u32_t i = s->ev_n; i > 0; ++ev_ref, --i) {
         ev = *ev_ref;
