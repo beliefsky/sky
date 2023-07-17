@@ -84,6 +84,7 @@ sky_http_req_body_str(
     sky_http_connection_t *const conn = r->conn;
     const sky_usize_t size = r->headers_in.content_length_n;
     if (sky_unlikely(size > conn->server->body_str_max)) { // body过大先响应异常，再丢弃body
+        r->error = true;
         http_body_str_cb_t *const cb_data = sky_palloc(r->pool, sizeof(http_body_str_cb_t));
         cb_data->call = call;
         cb_data->data = data;
@@ -194,8 +195,9 @@ http_body_read_none(sky_tcp_t *const tcp) {
 
     sky_timer_wheel_unlink(&conn->timer);
     sky_tcp_close(&conn->tcp);
-    req->headers_in.content_length_n = 0;
     sky_buf_rebuild(conn->buf, 0);
+    req->headers_in.content_length_n = 0;
+    req->error = true;
     conn->read_body_none(req, conn->read_body_cb_data);
 }
 
@@ -238,8 +240,9 @@ http_body_read_str(sky_tcp_t *const tcp) {
 
     sky_timer_wheel_unlink(&conn->timer);
     sky_tcp_close(&conn->tcp);
-    req->headers_in.content_length_n = 0;
     sky_buf_rebuild(conn->buf, 0);
+    req->headers_in.content_length_n = 0;
+    req->error = true;
     conn->read_body_str(req, null, conn->read_body_cb_data);
 }
 
@@ -278,8 +281,9 @@ http_body_read_cb(sky_tcp_t *const tcp) {
 
     sky_timer_wheel_unlink(&conn->timer);
     sky_tcp_close(&conn->tcp);
-    req->headers_in.content_length_n = 0;
     sky_buf_rebuild(conn->buf, 0);
+    req->headers_in.content_length_n = 0;
+    req->error = true;
     conn->read_body_cb(req, null, 0, conn->read_body_cb_data);
 }
 
@@ -294,8 +298,9 @@ http_read_body_none_timeout(sky_timer_wheel_entry_t *const entry) {
     sky_http_server_request_t *const req = conn->current_req;
 
     sky_tcp_close(&conn->tcp);
-    req->headers_in.content_length_n = 0;
     sky_buf_rebuild(conn->buf, 0);
+    req->headers_in.content_length_n = 0;
+    req->error = true;
     conn->read_body_none(req, conn->read_body_cb_data);
 }
 
@@ -305,8 +310,9 @@ http_read_body_str_timeout(sky_timer_wheel_entry_t *const entry) {
     sky_http_server_request_t *const req = conn->current_req;
 
     sky_tcp_close(&conn->tcp);
-    req->headers_in.content_length_n = 0;
     sky_buf_rebuild(conn->buf, 0);
+    req->headers_in.content_length_n = 0;
+    req->error = true;
     conn->read_body_str(req, null, conn->read_body_cb_data);
 }
 
@@ -316,8 +322,9 @@ http_read_body_cb_timeout(sky_timer_wheel_entry_t *const entry) {
     sky_http_server_request_t *const req = conn->current_req;
 
     sky_tcp_close(&conn->tcp);
-    req->headers_in.content_length_n = 0;
     sky_buf_rebuild(conn->buf, 0);
+    req->headers_in.content_length_n = 0;
+    req->error = true;
     conn->read_body_cb(req, null, 0, conn->read_body_cb_data);
 }
 

@@ -105,6 +105,11 @@ body_cb(sky_http_server_request_t *req, void *data) {
 
     sky_log_info("end");
 
+    if (sky_unlikely(sky_http_server_req_error(req))) {
+        sky_http_server_req_finish(req);
+        return;
+    }
+
     sky_http_response_static_len(
             req,
             sky_str_line("{\"status\": 200, \"msg\": \"success\"}"),
