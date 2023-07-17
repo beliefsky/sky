@@ -16,7 +16,6 @@ set(SOURCES
         core/crc32.c
         core/date.c
         core/string_buf.c
-        core/string_out_stream.c
         core/json.c
         core/buf.c
         core/trie.c
@@ -38,7 +37,6 @@ set(SOURCES
         io/http/http_server_res.c
         io/http/module/http_server_file.c
         io/http/module/http_server_dispatcher.c
-        io/postgres/client.c
         )
 
 

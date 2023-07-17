@@ -5,8 +5,8 @@
 #ifndef SKY_TYPES_H
 #define SKY_TYPES_H
 
+#include <inttypes.h>
 #include "../sky_build_config.h"
-#include <time.h>
 
 #if defined(__cplusplus)
 extern "C" {
@@ -82,15 +82,15 @@ typedef unsigned int sky_u32_t;             /*0 ~ 4294967295*/
 #if __WORDSIZE == 64
 typedef signed long int sky_i64_t;          /*-9223372036854775808 ~ +9223372036854775807*/
 typedef unsigned long int sky_u64_t;        /*0 ~ 18446744073709551615*/
-typedef signed long int sky_isize_t;
-typedef unsigned long int sky_usize_t;
-#elif
+typedef sky_i64_t sky_isize_t;
+typedef sky_u64_t sky_usize_t;
+#else
 typedef signed long long int sky_i64_t;     /*-9223372036854775808 ~ +9223372036854775807*/
 typedef unsigned long long int sky_u64_t;   /*0 ~ 18446744073709551615*/
-typedef signed int sky_isize_t;
-typedef unsigned int sky_usize_t;
+typedef sky_i32_t sky_isize_t;
+typedef sky_u32_t sky_usize_t;
 #endif
-typedef time_t sky_time_t;
+typedef sky_i64_t sky_time_t;
 
 typedef float sky_f32_t;
 typedef double sky_f64_t;

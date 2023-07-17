@@ -25,7 +25,7 @@ sky_timer_wheel_t *sky_timer_wheel_create(sky_u32_t num_wheels, sky_u64_t now);
 
 void sky_timer_wheel_destroy(sky_timer_wheel_t *ctx);
 
-sky_u64_t sky_timer_wheel_wake_at(sky_timer_wheel_t *ctx);
+sky_u64_t sky_timer_wheel_wake_at(const sky_timer_wheel_t *ctx);
 
 void sky_timer_wheel_get_expired(sky_timer_wheel_t *ctx, sky_queue_t *result, sky_u64_t now);
 
@@ -47,7 +47,7 @@ sky_timer_set_cb(sky_timer_wheel_entry_t *const entry, const sky_timer_wheel_pt 
 }
 
 static sky_inline sky_bool_t
-sky_timer_linked(sky_timer_wheel_entry_t *const entry) {
+sky_timer_linked(const sky_timer_wheel_entry_t *const entry) {
     return sky_queue_linked(&entry->link);
 }
 

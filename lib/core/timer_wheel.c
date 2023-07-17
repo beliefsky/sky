@@ -18,7 +18,7 @@ struct sky_timer_wheel_s {
     sky_queue_t wheels[][TIMER_WHEEL_SLOTS];
 };
 
-static sky_bool_t cascade_all(sky_timer_wheel_t *ctx, sky_usize_t wheel);
+static sky_bool_t cascade_all(sky_timer_wheel_t *ctx, sky_u32_t wheel);
 
 static void link_timer(sky_timer_wheel_t *ctx, sky_timer_wheel_entry_t *entry);
 
@@ -35,7 +35,7 @@ sky_timer_wheel_create(sky_u32_t num_wheels, const sky_u64_t now) {
     ctx->max_ticks = (SKY_U64(1) << (TIMER_WHEEL_BITS * (num_wheels - 1))) * (TIMER_WHEEL_SLOTS - 1);
     ctx->num_wheels = num_wheels;
 
-    sky_usize_t i, j;
+    sky_u32_t i, j;
     sky_queue_t *queue;
     for (i = 0; i < ctx->num_wheels; ++i) {
         for (j = 0; j < TIMER_WHEEL_SLOTS; ++j) {
@@ -49,7 +49,7 @@ sky_timer_wheel_create(sky_u32_t num_wheels, const sky_u64_t now) {
 
 sky_api void
 sky_timer_wheel_destroy(sky_timer_wheel_t *const ctx) {
-    sky_usize_t i, j;
+    sky_u32_t i, j;
     sky_queue_t *queue, *node;
 
     for (i = 0; i < ctx->num_wheels; ++i) {
@@ -65,10 +65,10 @@ sky_timer_wheel_destroy(sky_timer_wheel_t *const ctx) {
 }
 
 sky_api sky_u64_t
-sky_timer_wheel_wake_at(sky_timer_wheel_t *const ctx) {
-    sky_usize_t wheel, slot, slot_base, si;
+sky_timer_wheel_wake_at(const sky_timer_wheel_t *const ctx) {
+    sky_u32_t wheel, slot, slot_base, si;
     sky_u64_t at = ctx->last_run, at_incr;
-    sky_queue_t *queue;
+    const sky_queue_t *queue;
 
 
     for (wheel = 0; wheel < ctx->num_wheels; ++wheel) {
@@ -115,7 +115,7 @@ sky_timer_wheel_wake_at(sky_timer_wheel_t *const ctx) {
 
 sky_api void
 sky_timer_wheel_get_expired(sky_timer_wheel_t *const ctx, sky_queue_t *const result, const sky_u64_t now) {
-    sky_usize_t wheel = 0, slot, slot_start;
+    sky_u32_t wheel = 0, slot, slot_start;
     sky_queue_t *queue, *tmp;
     sky_timer_wheel_entry_t *entry;
 
@@ -208,9 +208,9 @@ sky_timer_wheel_expired(sky_timer_wheel_t *const ctx, sky_timer_wheel_entry_t *c
 }
 
 static sky_inline sky_bool_t
-cascade_all(sky_timer_wheel_t *const ctx, sky_usize_t wheel) {
+cascade_all(sky_timer_wheel_t *const ctx, sky_u32_t wheel) {
     sky_bool_t cascaded = false;
-    sky_usize_t slot;
+    sky_u32_t slot;
     sky_queue_t *queue, *tmp;
     sky_timer_wheel_entry_t *entry;
 
@@ -240,8 +240,8 @@ link_timer(sky_timer_wheel_t *const ctx, sky_timer_wheel_entry_t *const entry) {
     const sky_u64_t wheel_abs = sky_min(entry->expire_at, tmp);
     tmp = wheel_abs - ctx->last_run;
 
-    const sky_usize_t wheel = (sky_usize_t) (tmp == 0 ? 0 : ((63 - sky_clz_u64(tmp)) / TIMER_WHEEL_BITS));
-    const sky_usize_t slot = timer_slot(wheel, wheel_abs);
+    const sky_u32_t wheel = (sky_u32_t) (tmp == 0 ? 0 : ((63 - sky_clz_u64(tmp)) / TIMER_WHEEL_BITS));
+    const sky_u32_t slot = timer_slot(wheel, wheel_abs);
 
     sky_queue_t *const queue = &ctx->wheels[wheel][slot];
 

@@ -5,6 +5,7 @@
 #ifdef SKY_HAVE_KQUEUE
 
 #include <core/memory.h>
+#include <core/log.h>
 #include <sys/resource.h>
 #include <sys/event.h>
 #include <time.h>
@@ -42,6 +43,12 @@ static sky_i32_t setup_open_file_count_limits();
 
 sky_api sky_selector_t *
 sky_selector_create() {
+    struct sigaction sa;
+
+    sky_memzero(&sa, sizeof(struct sigaction));
+    sa.sa_handler = SIG_IGN;
+    sigaction(SIGPIPE, &sa, null);
+
     const sky_i32_t fd = kqueue();
     if (sky_unlikely(fd < 0)) {
         return null;
@@ -123,7 +130,7 @@ sky_selector_run(sky_selector_t *const s) {
     if (sky_unlikely(!s->ev_n)) {
         return;
     }
-    sky_ev_t *ev, **ev_ref = s->evs;
+    sky_ev_t *ev, *const *ev_ref = s->evs;
 
     for (sky_u32_t i = s->ev_n; i > 0; ++ev_ref, --i) {
         ev = *ev_ref;
