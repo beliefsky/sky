@@ -16,7 +16,6 @@ set(SOURCES
         core/crc32.c
         core/date.c
         core/string_buf.c
-        core/string_out_stream.c
         core/json.c
         core/buf.c
         core/trie.c
