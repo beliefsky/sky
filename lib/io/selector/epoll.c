@@ -8,10 +8,10 @@
 
 #include <core/memory.h>
 #include <core/log.h>
+#include <sys/resource.h>
 #include <sys/epoll.h>
 #include <unistd.h>
 #include <errno.h>
-#include <sys/resource.h>
 
 #define SKY_EVENT_MAX       1024
 #define SKY_EV_NONE_INDEX   SKY_U32(0x80000000)
@@ -44,6 +44,12 @@ static sky_i32_t setup_open_file_count_limits();
 
 sky_api sky_selector_t *
 sky_selector_create() {
+    struct sigaction sa;
+
+    sky_memzero(&sa, sizeof(struct sigaction));
+    sa.sa_handler = SIG_IGN;
+    sigaction(SIGPIPE, &sa, null);
+
     const sky_i32_t fd = epoll_create1(EPOLL_CLOEXEC);
     if (sky_unlikely(fd < 0)) {
         return null;
