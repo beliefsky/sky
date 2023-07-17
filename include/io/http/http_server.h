@@ -97,6 +97,7 @@ struct sky_http_server_request_s {
     sky_u8_t method: 7;
     sky_bool_t keep_alive: 1;
     sky_bool_t read_request_body: 1;
+    sky_bool_t error: 1;
     sky_bool_t response: 1;
     sky_bool_t chunked: 1;
 };
@@ -162,6 +163,12 @@ void sky_http_response_chunked_end(sky_http_server_request_t *r);
 
 
 void sky_http_server_req_finish(sky_http_server_request_t *r);
+
+
+static sky_inline sky_bool_t
+sky_http_server_req_error(const sky_http_server_request_t *const r) {
+    return r->error;
+}
 
 #if defined(__cplusplus)
 } /* extern "C" { */
