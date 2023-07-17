@@ -7,6 +7,7 @@
 #include <core/memory.h>
 #include <sys/resource.h>
 #include <sys/event.h>
+#include <time.h>
 #include <unistd.h>
 #include <errno.h>
 
