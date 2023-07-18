@@ -89,10 +89,7 @@ sky_tcp_register(sky_tcp_t *const tcp, const sky_u32_t flags) {
 
 static sky_inline sky_bool_t
 sky_tcp_try_register(sky_tcp_t *const tcp, const sky_u32_t flags) {
-    if (sky_ev_reg(&tcp->ev)) {
-        return true;
-    }
-    return sky_selector_register(&tcp->ev, flags);
+    return sky_ev_reg(&tcp->ev) || sky_selector_register(&tcp->ev, flags);
 }
 
 static sky_inline sky_bool_t

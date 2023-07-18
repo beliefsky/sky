@@ -63,10 +63,7 @@ sky_udp_register(sky_udp_t *const udp) {
 
 static sky_inline sky_bool_t
 sky_udp_try_register(sky_udp_t *const udp) {
-    if (sky_ev_reg(&udp->ev)) {
-        return true;
-    }
-    return sky_selector_register(&udp->ev, SKY_EV_READ);
+    return sky_ev_reg(&udp->ev) || sky_selector_register(&udp->ev, SKY_EV_READ);
 }
 
 static sky_inline sky_bool_t
