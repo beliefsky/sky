@@ -161,70 +161,70 @@ struct sky_json_mut_val_s {
 /* ============================= unsafe json api ========================= */
 
 static sky_inline sky_u8_t
-sky_json_unsafe_get_type(const sky_json_val_t *val) {
+sky_json_unsafe_get_type(const sky_json_val_t *const val) {
     return (sky_u8_t) val->tag & SKY_JSON_TYPE_MASK;
 }
 
 static sky_inline sky_u8_t
-sky_json_unsafe_get_subtype(const sky_json_val_t *val) {
+sky_json_unsafe_get_subtype(const sky_json_val_t *const val) {
     return (sky_u8_t) val->tag & SKY_JSON_SUBTYPE_MASK;
 }
 
 static sky_inline sky_u8_t
-sky_json_unsafe_get_tag(const sky_json_val_t *val) {
+sky_json_unsafe_get_tag(const sky_json_val_t *const val) {
     return (sky_u8_t) val->tag & SKY_JSON_TAG_MASK;
 }
 
 
 static sky_inline sky_bool_t
-sky_json_unsafe_is_raw(const sky_json_val_t *val) {
+sky_json_unsafe_is_raw(const sky_json_val_t *const val) {
     return sky_json_unsafe_get_type(val) == SKY_JSON_TYPE_RAW;
 }
 
 static sky_inline sky_bool_t
-sky_json_unsafe_is_null(const sky_json_val_t *val) {
+sky_json_unsafe_is_null(const sky_json_val_t *const val) {
     return sky_json_unsafe_get_type(val) == SKY_JSON_TYPE_NULL;
 }
 
 static sky_inline sky_bool_t
-sky_json_unsafe_is_bool(const sky_json_val_t *val) {
+sky_json_unsafe_is_bool(const sky_json_val_t *const val) {
     return sky_json_unsafe_get_type(val) == SKY_JSON_TYPE_BOOL;
 }
 
 static sky_inline sky_bool_t
-sky_json_unsafe_is_num(const sky_json_val_t *val) {
+sky_json_unsafe_is_num(const sky_json_val_t *const val) {
     return sky_json_unsafe_get_type(val) == SKY_JSON_TYPE_NUM;
 }
 
 static sky_inline sky_bool_t
-sky_json_unsafe_is_str(const sky_json_val_t *val) {
+sky_json_unsafe_is_str(const sky_json_val_t *const val) {
     return sky_json_unsafe_get_type(val) == SKY_JSON_TYPE_STR;
 }
 
 static sky_inline sky_bool_t
-sky_json_unsafe_is_arr(const sky_json_val_t *val) {
+sky_json_unsafe_is_arr(const sky_json_val_t *const val) {
     return sky_json_unsafe_get_type(val) == SKY_JSON_TYPE_ARR;
 }
 
 static sky_inline sky_bool_t
-sky_json_unsafe_is_obj(const sky_json_val_t *val) {
+sky_json_unsafe_is_obj(const sky_json_val_t *const val) {
     return sky_json_unsafe_get_type(val) == SKY_JSON_TYPE_OBJ;
 }
 
 static sky_inline sky_bool_t
-sky_json_unsafe_is_ctn(const sky_json_val_t *val) {
+sky_json_unsafe_is_ctn(const sky_json_val_t *const val) {
     const sky_u8_t mask = SKY_JSON_TYPE_ARR & SKY_JSON_TYPE_OBJ;
     return (sky_json_unsafe_get_tag(val) & mask) == mask;
 };
 
 static sky_inline sky_bool_t
-sky_json_unsafe_is_uint(const sky_json_val_t *val) {
+sky_json_unsafe_is_uint(const sky_json_val_t *const val) {
     const sky_u8_t patt = SKY_JSON_TYPE_NUM | SKY_JSON_SUBTYPE_UINT;
     return sky_json_unsafe_get_tag(val) == patt;
 }
 
 static sky_inline sky_bool_t
-sky_json_unsafe_is_int(const sky_json_val_t *val) {
+sky_json_unsafe_is_int(const sky_json_val_t *const val) {
     const sky_u8_t mask = SKY_JSON_TAG_MASK & (~SKY_JSON_SUBTYPE_INT);
     const sky_u8_t patt = SKY_JSON_TYPE_NUM | SKY_JSON_SUBTYPE_UINT;
 
@@ -232,42 +232,42 @@ sky_json_unsafe_is_int(const sky_json_val_t *val) {
 }
 
 static sky_inline sky_bool_t
-sky_json_unsafe_is_real(const sky_json_val_t *val) {
+sky_json_unsafe_is_real(const sky_json_val_t *const val) {
     const sky_u8_t patt = SKY_JSON_TYPE_NUM | SKY_JSON_SUBTYPE_REAL;
     return sky_json_unsafe_get_tag(val) == patt;
 }
 
 static sky_inline sky_bool_t
-sky_json_unsafe_is_true(const sky_json_val_t *val) {
+sky_json_unsafe_is_true(const sky_json_val_t *const val) {
     const sky_u8_t patt = SKY_JSON_TYPE_BOOL | SKY_JSON_SUBTYPE_TRUE;
     return sky_json_unsafe_get_tag(val) == patt;
 }
 
 static sky_inline sky_bool_t
-sky_json_unsafe_is_false(const sky_json_val_t *val) {
+sky_json_unsafe_is_false(const sky_json_val_t *const val) {
     const sky_u8_t patt = SKY_JSON_TYPE_BOOL | SKY_JSON_SUBTYPE_FALSE;
     return sky_json_unsafe_get_tag(val) == patt;
 }
 
 static sky_inline sky_bool_t
-sky_json_unsafe_arr_is_flat(const sky_json_val_t *val) {
+sky_json_unsafe_arr_is_flat(const sky_json_val_t *const val) {
     const sky_usize_t ofs = val->uni.ofs;
     const sky_usize_t len = (sky_usize_t) (val->tag >> SKY_JSON_TAG_BIT);
     return len * sizeof(sky_json_val_t) + sizeof(sky_json_val_t) == ofs;
 }
 
 static sky_inline sky_usize_t
-sky_json_unsafe_get_len(const sky_json_val_t *val) {
+sky_json_unsafe_get_len(const sky_json_val_t *const val) {
     return (sky_usize_t) (val->tag >> SKY_JSON_TAG_BIT);
 }
 
 static sky_inline sky_json_val_t *
-sky_json_unsafe_get_first(sky_json_val_t *ctn) {
+sky_json_unsafe_get_first(sky_json_val_t *const ctn) {
     return ctn + 1;
 }
 
 static sky_inline sky_json_val_t *
-sky_json_unsafe_get_next(const sky_json_val_t *val) {
+sky_json_unsafe_get_next(const sky_json_val_t *const val) {
     const sky_bool_t is_ctn = sky_json_unsafe_is_ctn(val);
     const sky_usize_t ctn_ofs = val->uni.ofs;
     const sky_usize_t ofs = (is_ctn ? ctn_ofs : sizeof(sky_json_val_t));
@@ -275,13 +275,13 @@ sky_json_unsafe_get_next(const sky_json_val_t *val) {
 }
 
 static sky_inline void
-sky_json_unsafe_get_str_out(const sky_json_val_t *val, sky_str_t *dst) {
+sky_json_unsafe_get_str_out(const sky_json_val_t *const val, sky_str_t *const dst) {
     dst->len = sky_json_unsafe_get_len(val);
     dst->data = val->uni.str;
 }
 
 static sky_inline sky_str_t
-sky_json_unsafe_get_str(const sky_json_val_t *val) {
+sky_json_unsafe_get_str(const sky_json_val_t *const val) {
     const sky_str_t str = {
             .len = sky_json_unsafe_get_len(val),
             .data = val->uni.str
@@ -291,13 +291,13 @@ sky_json_unsafe_get_str(const sky_json_val_t *val) {
 }
 
 static sky_inline void
-sky_json_unsafe_get_raw_out(const sky_json_val_t *val, sky_str_t *dst) {
+sky_json_unsafe_get_raw_out(const sky_json_val_t *const val, sky_str_t *const dst) {
     dst->len = sky_json_unsafe_get_len(val);
     dst->data = val->uni.str;
 }
 
 static sky_inline sky_str_t
-sky_json_unsafe_get_raw(const sky_json_val_t *val) {
+sky_json_unsafe_get_raw(const sky_json_val_t *const val) {
     const sky_str_t str = {
             .len = sky_json_unsafe_get_len(val),
             .data = val->uni.str
@@ -308,101 +308,101 @@ sky_json_unsafe_get_raw(const sky_json_val_t *val) {
 
 
 static sky_inline sky_bool_t
-sky_json_unsafe_get_bool(const sky_json_val_t *val) {
+sky_json_unsafe_get_bool(const sky_json_val_t *const val) {
     return (sky_bool_t) ((sky_json_unsafe_get_tag(val) & SKY_JSON_SUBTYPE_MASK) >> SKY_JSON_TYPE_BIT);
 }
 
 static sky_inline sky_u64_t
-sky_json_unsafe_get_uint(const sky_json_val_t *val) {
+sky_json_unsafe_get_uint(const sky_json_val_t *const val) {
     return val->uni.u64;
 }
 
 static sky_inline sky_i64_t
-sky_json_unsafe_get_int(const sky_json_val_t *val) {
+sky_json_unsafe_get_int(const sky_json_val_t *const val) {
     return val->uni.i64;
 }
 
 static sky_inline sky_f64_t
-sky_json_unsafe_get_real(const sky_json_val_t *val) {
+sky_json_unsafe_get_real(const sky_json_val_t *const val) {
     return val->uni.f64;
 }
 
 static sky_inline void
-sky_json_unsafe_set_tag(sky_json_val_t *val, sky_u8_t tag) {
+sky_json_unsafe_set_tag(sky_json_val_t *const val, const sky_u8_t tag) {
     val->tag = (val->tag & (~(sky_u64_t) SKY_JSON_TAG_MASK)) | (sky_u64_t) tag;
 }
 
 static sky_inline void
-sky_json_unsafe_set_type(sky_json_val_t *val, sky_u8_t type, sky_u8_t subtype) {
+sky_json_unsafe_set_type(sky_json_val_t *const val, const sky_u8_t type, const sky_u8_t subtype) {
     const sky_u8_t tag = (type | subtype);
     sky_json_unsafe_set_tag(val, tag);
 }
 
 static sky_inline void
-sky_json_unsafe_set_len(sky_json_val_t *val, sky_usize_t len) {
+sky_json_unsafe_set_len(sky_json_val_t *const val, const sky_usize_t len) {
     sky_u64_t tag = val->tag & SKY_JSON_TAG_MASK;
     tag |= (sky_u64_t) len << SKY_JSON_TAG_BIT;
     val->tag = tag;
 }
 
 static sky_inline void
-sky_json_unsafe_set_raw_len(sky_json_val_t *val, sky_uchar_t *str_data, sky_usize_t str_len) {
+sky_json_unsafe_set_raw_len(sky_json_val_t *const val, sky_uchar_t *const data, const sky_usize_t len) {
     sky_json_unsafe_set_type(val, SKY_JSON_TYPE_RAW, SKY_JSON_SUBTYPE_NONE);
-    sky_json_unsafe_set_len(val, str_len);
-    val->uni.str = str_data;
+    sky_json_unsafe_set_len(val, len);
+    val->uni.str = data;
 }
 
 static sky_inline void
-sky_json_unsafe_set_raw(sky_json_val_t *val, sky_str_t *str) {
+sky_json_unsafe_set_raw(sky_json_val_t *const val, sky_str_t *const str) {
     sky_json_unsafe_set_raw_len(val, str->data, str->len);
 }
 
 static sky_inline void
-sky_json_unsafe_set_str_len(sky_json_val_t *val, sky_uchar_t *str_data, sky_usize_t str_len) {
+sky_json_unsafe_set_str_len(sky_json_val_t *const val, sky_uchar_t *const data, const sky_usize_t len) {
     sky_json_unsafe_set_type(val, SKY_JSON_TYPE_STR, SKY_JSON_SUBTYPE_NONE);
-    sky_json_unsafe_set_len(val, str_len);
-    val->uni.str = str_data;
+    sky_json_unsafe_set_len(val, len);
+    val->uni.str = data;
 }
 
 static sky_inline void
-sky_json_unsafe_set_str(sky_json_val_t *val, sky_str_t *str) {
+sky_json_unsafe_set_str(sky_json_val_t *const val, sky_str_t *const str) {
     sky_json_unsafe_set_str_len(val, str->data, str->len);
 }
 
 static sky_inline void
-sky_json_unsafe_set_null(sky_json_val_t *val) {
+sky_json_unsafe_set_null(sky_json_val_t *const val) {
     sky_json_unsafe_set_type(val, SKY_JSON_TYPE_NULL, SKY_JSON_SUBTYPE_NONE);
     sky_json_unsafe_set_len(val, 0);
 }
 
 static sky_inline void
-sky_json_unsafe_set_bool(sky_json_val_t *val, sky_bool_t v) {
+sky_json_unsafe_set_bool(sky_json_val_t *const val, const sky_bool_t v) {
     sky_json_unsafe_set_type(val, SKY_JSON_TYPE_BOOL, v ? SKY_JSON_SUBTYPE_TRUE : SKY_JSON_SUBTYPE_FALSE);
     sky_json_unsafe_set_len(val, 0);
 }
 
 static sky_inline void
-sky_json_unsafe_set_int(sky_json_val_t *val, sky_i64_t v) {
+sky_json_unsafe_set_int(sky_json_val_t *const val, const sky_i64_t v) {
     sky_json_unsafe_set_type(val, SKY_JSON_TYPE_NUM, SKY_JSON_SUBTYPE_INT);
     sky_json_unsafe_set_len(val, 0);
     val->uni.i64 = v;
 }
 
 static sky_inline void
-sky_json_unsafe_set_uint(sky_json_val_t *val, sky_u64_t v) {
+sky_json_unsafe_set_uint(sky_json_val_t *const val, const sky_u64_t v) {
     sky_json_unsafe_set_type(val, SKY_JSON_TYPE_NUM, SKY_JSON_SUBTYPE_UINT);
     sky_json_unsafe_set_len(val, 0);
     val->uni.u64 = v;
 }
 
 static sky_inline void
-sky_json_unsafe_set_arr(sky_json_val_t *val, sky_usize_t n) {
+sky_json_unsafe_set_arr(sky_json_val_t *const val, const sky_usize_t n) {
     sky_json_unsafe_set_type(val, SKY_JSON_TYPE_ARR, SKY_JSON_SUBTYPE_REAL);
     sky_json_unsafe_set_len(val, n);
 }
 
 static sky_inline void
-sky_json_unsafe_set_obj(sky_json_val_t *val, sky_usize_t n) {
+sky_json_unsafe_set_obj(sky_json_val_t *const val, const sky_usize_t n) {
     sky_json_unsafe_set_type(val, SKY_JSON_TYPE_OBJ, SKY_JSON_SUBTYPE_REAL);
     sky_json_unsafe_set_len(val, n);
 }
@@ -420,130 +420,128 @@ sky_json_val_t *sky_json_arr_get(sky_json_val_t *arr, sky_usize_t idx);
 void sky_json_doc_free(sky_json_doc_t *doc);
 
 static sky_inline sky_json_doc_t *
-sky_json_read(const sky_str_t *str, sky_u32_t opts) {
+sky_json_read(const sky_str_t *const str, sky_u32_t opts) {
     opts &= ~SKY_JSON_READ_IN_SITU; /* const string cannot be modified */
 
     return sky_json_read_opts(str, opts);
 }
 
 static sky_inline sky_str_t *
-sky_json_write_opts(const sky_json_doc_t *doc, sky_u32_t opts) {
+sky_json_write_opts(const sky_json_doc_t *const doc, const sky_u32_t opts) {
     const sky_json_val_t *root = sky_likely(doc) ? doc->root : null;
 
     return sky_json_val_write_opts(root, opts);
 }
 
 static sky_inline sky_str_t *
-sky_json_write(const sky_json_doc_t *doc, sky_u32_t opts) {
+sky_json_write(const sky_json_doc_t *const doc, const sky_u32_t opts) {
     return sky_json_write_opts(doc, opts);
 }
 
 
 static sky_inline sky_json_val_t *
-sky_json_doc_get_root(sky_json_doc_t *doc) {
+sky_json_doc_get_root(sky_json_doc_t *const doc) {
     return sky_likely(doc) ? doc->root : null;
 }
 
 
 static sky_inline sky_u8_t
-sky_json_get_type(const sky_json_val_t *val) {
+sky_json_get_type(const sky_json_val_t *const val) {
     return sky_likely(val) ? sky_json_unsafe_get_type(val) : SKY_JSON_TYPE_NONE;
 }
 
 static sky_inline sky_u8_t
-sky_json_get_subtype(const sky_json_val_t *val) {
+sky_json_get_subtype(const sky_json_val_t *const val) {
     return sky_likely(val) ? sky_json_unsafe_get_subtype(val) : SKY_JSON_SUBTYPE_NONE;
 }
 
 static sky_inline sky_bool_t
-sky_json_is_raw(const sky_json_val_t *val) {
+sky_json_is_raw(const sky_json_val_t *const val) {
     return val && sky_json_unsafe_is_raw(val);
 }
 
 static sky_inline sky_bool_t
-sky_json_is_null(const sky_json_val_t *val) {
+sky_json_is_null(const sky_json_val_t *const val) {
     return val && sky_json_unsafe_is_null(val);
 }
 
 static sky_inline sky_bool_t
-sky_json_is_bool(const sky_json_val_t *val) {
+sky_json_is_bool(const sky_json_val_t *const val) {
     return val && sky_json_unsafe_is_bool(val);
 }
 
 static sky_inline sky_bool_t
-sky_json_is_num(const sky_json_val_t *val) {
+sky_json_is_num(const sky_json_val_t *const val) {
     return val && sky_json_unsafe_is_num(val);
 }
 
 static sky_inline sky_bool_t
-sky_json_is_str(const sky_json_val_t *val) {
+sky_json_is_str(const sky_json_val_t *const val) {
     return val && sky_json_unsafe_is_str(val);
 }
 
 static sky_inline sky_bool_t
-sky_json_is_arr(const sky_json_val_t *val) {
+sky_json_is_arr(const sky_json_val_t *const val) {
     return val && sky_json_unsafe_is_arr(val);
 }
 
 static sky_inline sky_bool_t
-sky_json_is_obj(const sky_json_val_t *val) {
+sky_json_is_obj(const sky_json_val_t *const val) {
     return val && sky_json_unsafe_is_obj(val);
 }
 
 static sky_inline sky_bool_t
-sky_json_is_ctn(const sky_json_val_t *val) {
+sky_json_is_ctn(const sky_json_val_t *const val) {
     return val && sky_json_unsafe_is_ctn(val);
 }
 
 static sky_inline sky_bool_t
-sky_json_is_unit(const sky_json_val_t *val) {
+sky_json_is_unit(const sky_json_val_t *const val) {
     return val && sky_json_unsafe_is_uint(val);
 }
 
 static sky_inline sky_bool_t
-sky_json_is_int(const sky_json_val_t *val) {
+sky_json_is_int(const sky_json_val_t *const val) {
     return val && sky_json_unsafe_is_int(val);
 }
 
 static sky_inline sky_bool_t
-sky_json_is_real(const sky_json_val_t *val) {
+sky_json_is_real(const sky_json_val_t *const val) {
     return val && sky_json_unsafe_is_real(val);
 }
 
 static sky_inline sky_bool_t
-sky_json_is_true(const sky_json_val_t *val) {
+sky_json_is_true(const sky_json_val_t *const val) {
     return val && sky_json_unsafe_is_true(val);
 }
 
 static sky_inline sky_bool_t
-sky_json_is_false(const sky_json_val_t *val) {
+sky_json_is_false(const sky_json_val_t *const val) {
     return val && sky_json_unsafe_is_false(val);
 }
 
 
 static sky_inline sky_usize_t
-sky_json_obj_size(const sky_json_val_t *obj) {
+sky_json_obj_size(const sky_json_val_t *const obj) {
     return sky_likely(sky_json_unsafe_is_obj(obj)) ? sky_json_unsafe_get_len(obj) : 0;
 }
 
 
 static sky_inline sky_usize_t
-sky_json_arr_size(const sky_json_val_t *arr) {
+sky_json_arr_size(const sky_json_val_t *const arr) {
     return sky_likely(sky_json_unsafe_is_arr(arr)) ? sky_json_unsafe_get_len(arr) : 0;
 }
 
 static sky_inline sky_json_val_t *
-sky_json_arr_get_first(sky_json_val_t *arr) {
-    if (sky_likely(sky_json_is_arr((arr)))) {
-        if (sky_likely(sky_json_unsafe_get_len(arr) > 0)) {
-            return sky_json_unsafe_get_first(arr);
-        }
+sky_json_arr_get_first(sky_json_val_t *const arr) {
+    if (sky_likely(sky_json_is_arr(arr) && sky_json_unsafe_get_len(arr) > 0)) {
+        return sky_json_unsafe_get_first(arr);
     }
     return null;
 }
 
 static sky_inline void
-sky_json_get_str_out(const sky_json_val_t *val, sky_str_t *dst) {
+sky_json_get_str_out(const sky_json_val_t *const val, sky_str_t *const dst) {
     if (sky_likely(sky_json_is_str(val))) {
         sky_json_unsafe_get_str_out(val, dst);
     } else {
@@ -552,7 +550,7 @@ sky_json_get_str_out(const sky_json_val_t *val, sky_str_t *dst) {
 }
 
 static sky_inline sky_str_t
-sky_json_get_str(const sky_json_val_t *val) {
+sky_json_get_str(const sky_json_val_t *const val) {
     if (sky_likely(sky_json_is_str(val))) {
         return sky_json_unsafe_get_str(val);
     } else {
@@ -563,7 +561,7 @@ sky_json_get_str(const sky_json_val_t *val) {
 }
 
 static sky_inline void
-sky_json_get_raw_out(const sky_json_val_t *val, sky_str_t *dst) {
+sky_json_get_raw_out(const sky_json_val_t *const val, sky_str_t *const dst) {
     if (sky_likely(sky_json_is_str(val))) {
         sky_json_unsafe_get_raw_out(val, dst);
     } else {
@@ -572,7 +570,7 @@ sky_json_get_raw_out(const sky_json_val_t *val, sky_str_t *dst) {
 }
 
 static sky_inline sky_str_t
-sky_json_get_raw(const sky_json_val_t *val) {
+sky_json_get_raw(const sky_json_val_t *const val) {
     if (sky_likely(sky_json_is_raw(val))) {
         return sky_json_unsafe_get_raw(val);
     } else {
@@ -583,22 +581,22 @@ sky_json_get_raw(const sky_json_val_t *val) {
 }
 
 static sky_inline sky_bool_t
-sky_json_get_bool(const sky_json_val_t *val) {
+sky_json_get_bool(const sky_json_val_t *const val) {
     return sky_likely(sky_json_is_bool(val)) ? sky_json_unsafe_get_bool(val) : false;
 }
 
 static sky_inline sky_u64_t
-sky_json_get_uint(const sky_json_val_t *val) {
+sky_json_get_uint(const sky_json_val_t *const val) {
     return sky_likely(sky_json_is_unit(val)) ? sky_json_unsafe_get_uint(val) : 0;
 }
 
 static sky_inline sky_i64_t
-sky_json_get_int(const sky_json_val_t *val) {
+sky_json_get_int(const sky_json_val_t *const val) {
     return sky_likely(sky_json_is_int(val)) ? sky_json_unsafe_get_int(val) : 0;
 }
 
 static sky_inline sky_f64_t
-sky_json_get_real(const sky_json_val_t *val) {
+sky_json_get_real(const sky_json_val_t *const val) {
     return sky_likely(sky_json_is_raw(val)) ? sky_json_unsafe_get_real(val) : 0.0;
 }
 
@@ -656,14 +654,14 @@ sky_uchar_t *sky_json_mut_unsafe_str_cpy(sky_json_mut_doc_t *doc, const sky_ucha
 
 static sky_inline void
 sky_json_mut_unsafe_obj_add(
-        sky_json_mut_val_t *obj,
-        sky_json_mut_val_t *key,
-        sky_json_mut_val_t *val,
-        sky_usize_t len
+        sky_json_mut_val_t *const obj,
+        sky_json_mut_val_t *const key,
+        sky_json_mut_val_t *const val,
+        const sky_usize_t len
 ) {
     if (sky_likely(len)) {
-        sky_json_mut_val_t *prev_val = ((sky_json_mut_val_t *) obj->val.uni.ptr)->next;
-        sky_json_mut_val_t *next_key = prev_val->next;
+        sky_json_mut_val_t *const prev_val = ((sky_json_mut_val_t *) obj->val.uni.ptr)->next;
+        sky_json_mut_val_t *const next_key = prev_val->next;
         prev_val->next = key;
         val->next = next_key;
     } else {
@@ -689,79 +687,79 @@ void sky_json_mut_doc_free(sky_json_mut_doc_t *doc);
 
 
 static sky_inline sky_str_t *
-sky_json_mut_write(const sky_json_mut_doc_t *doc, sky_u32_t opts) {
+sky_json_mut_write(const sky_json_mut_doc_t *const doc, const sky_u32_t opts) {
     return sky_json_mut_write_opts(doc, opts);
 }
 
 static sky_inline sky_bool_t
-sky_json_mut_is_raw(const sky_json_mut_val_t *val) {
+sky_json_mut_is_raw(const sky_json_mut_val_t *const val) {
     return val && sky_json_unsafe_is_raw(&val->val);
 }
 
 static sky_inline sky_bool_t
-sky_json_mut_is_null(const sky_json_mut_val_t *val) {
+sky_json_mut_is_null(const sky_json_mut_val_t *const val) {
     return val && sky_json_unsafe_is_null(&val->val);
 }
 
 static sky_inline sky_bool_t
-sky_json_mut_is_bool(const sky_json_mut_val_t *val) {
+sky_json_mut_is_bool(const sky_json_mut_val_t *const val) {
     return val && sky_json_unsafe_is_bool(&val->val);
 }
 
 static sky_inline sky_bool_t
-sky_json_mut_is_num(const sky_json_mut_val_t *val) {
+sky_json_mut_is_num(const sky_json_mut_val_t *const val) {
     return val && sky_json_unsafe_is_num(&val->val);
 }
 
 static sky_inline sky_bool_t
-sky_json_mut_is_str(const sky_json_mut_val_t *val) {
+sky_json_mut_is_str(const sky_json_mut_val_t *const val) {
     return val && sky_json_unsafe_is_str(&val->val);
 }
 
 static sky_inline sky_bool_t
-sky_json_mut_is_arr(const sky_json_mut_val_t *val) {
+sky_json_mut_is_arr(const sky_json_mut_val_t *const val) {
     return val && sky_json_unsafe_is_arr(&val->val);
 }
 
 static sky_inline sky_bool_t
-sky_json_mut_is_obj(const sky_json_mut_val_t *val) {
+sky_json_mut_is_obj(const sky_json_mut_val_t *const val) {
     return val && sky_json_unsafe_is_obj(&val->val);
 }
 
 static sky_inline sky_bool_t
-sky_json_mut_is_ctn(const sky_json_mut_val_t *val) {
+sky_json_mut_is_ctn(const sky_json_mut_val_t *const val) {
     return val && sky_json_unsafe_is_ctn(&val->val);
 }
 
 static sky_inline sky_bool_t
-sky_json_mut_is_unit(const sky_json_mut_val_t *val) {
+sky_json_mut_is_unit(const sky_json_mut_val_t *const val) {
     return val && sky_json_unsafe_is_uint(&val->val);
 }
 
 static sky_inline sky_bool_t
-sky_json_mut_is_int(const sky_json_mut_val_t *val) {
+sky_json_mut_is_int(const sky_json_mut_val_t *const val) {
     return val && sky_json_unsafe_is_int(&val->val);
 }
 
 static sky_inline sky_bool_t
-sky_json_mut_is_real(const sky_json_mut_val_t *val) {
+sky_json_mut_is_real(const sky_json_mut_val_t *const val) {
     return val && sky_json_unsafe_is_real(&val->val);
 }
 
 static sky_inline sky_bool_t
-sky_json_mut_is_true(const sky_json_mut_val_t *val) {
+sky_json_mut_is_true(const sky_json_mut_val_t *const val) {
     return val && sky_json_unsafe_is_true(&val->val);
 }
 
 static sky_inline sky_bool_t
-sky_json_mut_is_false(const sky_json_mut_val_t *val) {
+sky_json_mut_is_false(const sky_json_mut_val_t *const val) {
     return val && sky_json_unsafe_is_false(&val->val);
 }
 
 static sky_inline sky_json_mut_val_t *
-sky_json_mut_obj(sky_json_mut_doc_t *doc) {
+sky_json_mut_obj(sky_json_mut_doc_t *const doc) {
     if (sky_likely(doc)) {
-        sky_json_mut_val_t *val = sky_json_mut_unsafe_val(doc, 1);
+        sky_json_mut_val_t *const val = sky_json_mut_unsafe_val(doc, 1);
         if (sky_likely(val)) {
             val->val.tag = SKY_JSON_TYPE_OBJ | SKY_JSON_SUBTYPE_NONE;
             return val;
@@ -771,9 +769,9 @@ sky_json_mut_obj(sky_json_mut_doc_t *doc) {
 }
 
 static sky_inline sky_json_mut_val_t *
-sky_json_mut_arr(sky_json_mut_doc_t *doc) {
+sky_json_mut_arr(sky_json_mut_doc_t *const doc) {
     if (sky_likely(doc)) {
-        sky_json_mut_val_t *val = sky_json_mut_unsafe_val(doc, 1);
+        sky_json_mut_val_t *const val = sky_json_mut_unsafe_val(doc, 1);
         if (sky_likely(val)) {
             val->val.tag = SKY_JSON_TYPE_ARR | SKY_JSON_SUBTYPE_NONE;
             return val;
@@ -783,9 +781,9 @@ sky_json_mut_arr(sky_json_mut_doc_t *doc) {
 }
 
 static sky_inline sky_json_mut_val_t *
-sky_json_mut_null(sky_json_mut_doc_t *doc) {
+sky_json_mut_null(sky_json_mut_doc_t *const doc) {
     if (sky_likely(doc)) {
-        sky_json_mut_val_t *val = sky_json_mut_unsafe_val(doc, 1);
+        sky_json_mut_val_t *const val = sky_json_mut_unsafe_val(doc, 1);
         if (sky_likely(val)) {
             val->val.tag = SKY_JSON_TYPE_NULL | SKY_JSON_SUBTYPE_NONE;
             return val;
@@ -795,9 +793,9 @@ sky_json_mut_null(sky_json_mut_doc_t *doc) {
 }
 
 static sky_inline sky_json_mut_val_t *
-sky_json_mut_true(sky_json_mut_doc_t *doc) {
+sky_json_mut_true(sky_json_mut_doc_t *const doc) {
     if (sky_likely(doc)) {
-        sky_json_mut_val_t *val = sky_json_mut_unsafe_val(doc, 1);
+        sky_json_mut_val_t *const val = sky_json_mut_unsafe_val(doc, 1);
         if (sky_likely(val)) {
             val->val.tag = SKY_JSON_TYPE_BOOL | SKY_JSON_SUBTYPE_TRUE;
             return val;
@@ -807,9 +805,9 @@ sky_json_mut_true(sky_json_mut_doc_t *doc) {
 }
 
 static sky_inline sky_json_mut_val_t *
-sky_json_mut_false(sky_json_mut_doc_t *doc) {
+sky_json_mut_false(sky_json_mut_doc_t *const doc) {
     if (sky_likely(doc)) {
-        sky_json_mut_val_t *val = sky_json_mut_unsafe_val(doc, 1);
+        sky_json_mut_val_t *const val = sky_json_mut_unsafe_val(doc, 1);
         if (sky_likely(val)) {
             val->val.tag = SKY_JSON_TYPE_BOOL | SKY_JSON_SUBTYPE_FALSE;
             return val;
@@ -819,9 +817,9 @@ sky_json_mut_false(sky_json_mut_doc_t *doc) {
 }
 
 static sky_inline sky_json_mut_val_t *
-sky_json_mut_bool(sky_json_mut_doc_t *doc, sky_bool_t value) {
+sky_json_mut_bool(sky_json_mut_doc_t *const doc, const sky_bool_t value) {
     if (sky_likely(doc)) {
-        sky_json_mut_val_t *val = sky_json_mut_unsafe_val(doc, 1);
+        sky_json_mut_val_t *const val = sky_json_mut_unsafe_val(doc, 1);
         if (sky_likely(val)) {
             val->val.tag = SKY_JSON_TYPE_BOOL | (sky_u8_t) ((sky_u8_t) value << 3);
             return val;
@@ -831,9 +829,9 @@ sky_json_mut_bool(sky_json_mut_doc_t *doc, sky_bool_t value) {
 }
 
 static sky_inline sky_json_mut_val_t *
-sky_json_mut_int(sky_json_mut_doc_t *doc, sky_i64_t value) {
+sky_json_mut_int(sky_json_mut_doc_t *const doc, const sky_i64_t value) {
     if (sky_likely(doc)) {
-        sky_json_mut_val_t *val = sky_json_mut_unsafe_val(doc, 1);
+        sky_json_mut_val_t *const val = sky_json_mut_unsafe_val(doc, 1);
         if (sky_likely(val)) {
             val->val.tag = SKY_JSON_TYPE_NUM | SKY_JSON_SUBTYPE_INT;
             val->val.uni.i64 = value;
@@ -844,9 +842,9 @@ sky_json_mut_int(sky_json_mut_doc_t *doc, sky_i64_t value) {
 }
 
 static sky_inline sky_json_mut_val_t *
-sky_json_mut_uint(sky_json_mut_doc_t *doc, sky_u64_t value) {
+sky_json_mut_uint(sky_json_mut_doc_t *const doc, const sky_u64_t value) {
     if (sky_likely(doc)) {
-        sky_json_mut_val_t *val = sky_json_mut_unsafe_val(doc, 1);
+        sky_json_mut_val_t *const val = sky_json_mut_unsafe_val(doc, 1);
         if (sky_likely(val)) {
             val->val.tag = SKY_JSON_TYPE_NUM | SKY_JSON_SUBTYPE_UINT;
             val->val.uni.u64 = value;
@@ -857,9 +855,9 @@ sky_json_mut_uint(sky_json_mut_doc_t *doc, sky_u64_t value) {
 }
 
 static sky_inline sky_json_mut_val_t *
-sky_json_mut_real(sky_json_mut_doc_t *doc, sky_f64_t value) {
+sky_json_mut_real(sky_json_mut_doc_t *const doc, const sky_f64_t value) {
     if (sky_likely(doc)) {
-        sky_json_mut_val_t *val = sky_json_mut_unsafe_val(doc, 1);
+        sky_json_mut_val_t *const val = sky_json_mut_unsafe_val(doc, 1);
         if (sky_likely(val)) {
             val->val.tag = SKY_JSON_TYPE_NUM | SKY_JSON_SUBTYPE_REAL;
             val->val.uni.f64 = value;
@@ -870,9 +868,9 @@ sky_json_mut_real(sky_json_mut_doc_t *doc, sky_f64_t value) {
 }
 
 static sky_inline sky_json_mut_val_t *
-sky_json_mut_raw_len(sky_json_mut_doc_t *doc, sky_uchar_t *data, sky_usize_t len) {
+sky_json_mut_raw_len(sky_json_mut_doc_t *const doc, sky_uchar_t *const data, const sky_usize_t len) {
     if (sky_likely(doc)) {
-        sky_json_mut_val_t *val = sky_json_mut_unsafe_val(doc, 1);
+        sky_json_mut_val_t *const val = sky_json_mut_unsafe_val(doc, 1);
         if (sky_likely(val)) {
             val->val.tag = ((sky_u64_t) len << SKY_JSON_TAG_BIT) | SKY_JSON_TYPE_RAW;
             val->val.uni.str = data;
@@ -884,18 +882,15 @@ sky_json_mut_raw_len(sky_json_mut_doc_t *doc, sky_uchar_t *data, sky_usize_t len
 }
 
 static sky_inline sky_json_mut_val_t *
-sky_json_mut_raw(sky_json_mut_doc_t *doc, sky_str_t *value) {
-    if (sky_likely(value)) {
-        return sky_json_mut_raw_len(doc, value->data, value->len);
-    }
-    return sky_json_mut_null(doc);
+sky_json_mut_raw(sky_json_mut_doc_t *const doc, const sky_str_t *const value) {
+    return sky_likely(value) ? sky_json_mut_raw_len(doc, value->data, value->len) : sky_json_mut_null(doc);
 }
 
 static sky_inline sky_json_mut_val_t *
-sky_json_mut_raw_len_cpy(sky_json_mut_doc_t *doc, sky_uchar_t *data, sky_usize_t len) {
+sky_json_mut_raw_len_cpy(sky_json_mut_doc_t *const doc, const sky_uchar_t *const data, const sky_usize_t len) {
     if (sky_likely(doc)) {
-        sky_json_mut_val_t *val = sky_json_mut_unsafe_val(doc, 1);
-        sky_uchar_t *new_value = sky_json_mut_unsafe_str_cpy(doc, data, len);
+        sky_json_mut_val_t *const val = sky_json_mut_unsafe_val(doc, 1);
+        sky_uchar_t *const new_value = sky_json_mut_unsafe_str_cpy(doc, data, len);
         if (sky_likely(val && new_value)) {
             val->val.tag = ((sky_u64_t) len << SKY_JSON_TAG_BIT) | SKY_JSON_TYPE_RAW;
             val->val.uni.str = new_value;
@@ -907,18 +902,15 @@ sky_json_mut_raw_len_cpy(sky_json_mut_doc_t *doc, sky_uchar_t *data, sky_usize_t
 }
 
 static sky_inline sky_json_mut_val_t *
-sky_json_mut_raw_cpy(sky_json_mut_doc_t *doc, sky_str_t *value) {
-    if (sky_likely(value)) {
-        return sky_json_mut_raw_len_cpy(doc, value->data, value->len);
-    }
-    return sky_json_mut_null(doc);
+sky_json_mut_raw_cpy(sky_json_mut_doc_t *const doc, const sky_str_t *const value) {
+    return sky_likely(value) ? sky_json_mut_raw_len_cpy(doc, value->data, value->len) : sky_json_mut_null(doc);
 }
 
 
 static sky_inline sky_json_mut_val_t *
-sky_json_mut_str_len(sky_json_mut_doc_t *doc, sky_uchar_t *data, sky_usize_t len) {
+sky_json_mut_str_len(sky_json_mut_doc_t *const doc, sky_uchar_t *const data, const sky_usize_t len) {
     if (sky_likely(doc)) {
-        sky_json_mut_val_t *val = sky_json_mut_unsafe_val(doc, 1);
+        sky_json_mut_val_t *const val = sky_json_mut_unsafe_val(doc, 1);
         if (sky_likely(val)) {
             val->val.tag = ((sky_u64_t) len << SKY_JSON_TAG_BIT) | SKY_JSON_TYPE_STR;
             val->val.uni.str = data;
@@ -930,18 +922,15 @@ sky_json_mut_str_len(sky_json_mut_doc_t *doc, sky_uchar_t *data, sky_usize_t len
 }
 
 static sky_inline sky_json_mut_val_t *
-sky_json_mut_str(sky_json_mut_doc_t *doc, sky_str_t *value) {
-    if (sky_likely(value)) {
-        return sky_json_mut_str_len(doc, value->data, value->len);
-    }
-    return sky_json_mut_null(doc);
+sky_json_mut_str(sky_json_mut_doc_t *const doc, const sky_str_t *const value) {
+    return sky_likely(value) ? sky_json_mut_str_len(doc, value->data, value->len) : sky_json_mut_null(doc);
 }
 
 static sky_inline sky_json_mut_val_t *
-sky_json_mut_str_len_cpy(sky_json_mut_doc_t *doc, sky_uchar_t *data, sky_usize_t len) {
+sky_json_mut_str_len_cpy(sky_json_mut_doc_t *const doc, const sky_uchar_t *const data, const sky_usize_t len) {
     if (sky_likely(doc)) {
-        sky_json_mut_val_t *val = sky_json_mut_unsafe_val(doc, 1);
-        sky_uchar_t *new_value = sky_json_mut_unsafe_str_cpy(doc, data, len);
+        sky_json_mut_val_t *const val = sky_json_mut_unsafe_val(doc, 1);
+        sky_uchar_t *const new_value = sky_json_mut_unsafe_str_cpy(doc, data, len);
         if (sky_likely(val && new_value)) {
             val->val.tag = ((sky_u64_t) len << SKY_JSON_TAG_BIT) | SKY_JSON_TYPE_STR;
             val->val.uni.str = new_value;
@@ -953,41 +942,38 @@ sky_json_mut_str_len_cpy(sky_json_mut_doc_t *doc, sky_uchar_t *data, sky_usize_t
 }
 
 static sky_inline sky_json_mut_val_t *
-sky_json_mut_str_cpy(sky_json_mut_doc_t *doc, sky_str_t *value) {
-    if (sky_likely(value)) {
-        return sky_json_mut_str_len_cpy(doc, value->data, value->len);
-    }
-    return sky_json_mut_null(doc);
+sky_json_mut_str_cpy(sky_json_mut_doc_t *const doc, const sky_str_t *const value) {
+    return sky_likely(value) ? sky_json_mut_str_len_cpy(doc, value->data, value->len) : sky_json_mut_null(doc);
 }
 
 
 #define sky_json_mut_obj_add_func(_func) do { \
         if (sky_likely(doc && sky_json_mut_is_obj(obj) && key_len)) { \
-            sky_json_mut_val_t *key = sky_json_mut_unsafe_val(doc, 2);\
-            if (sky_likely(key)) {           \
-                const sky_usize_t len = sky_json_unsafe_get_len(&obj->val); \
-                sky_json_mut_val_t *val = key + 1;                    \
-                key->val.tag = SKY_JSON_TYPE_STR | SKY_JSON_SUBTYPE_NONE;   \
-                key->val.tag |= (sky_u64_t)key_len << SKY_JSON_TAG_BIT;     \
+            sky_json_mut_val_t *const key = sky_json_mut_unsafe_val(doc, 2); \
+            if (sky_likely(key)) {            \
+                const sky_usize_t len = sky_json_unsafe_get_len(&obj->val);  \
+                sky_json_mut_val_t * val = key + 1;                   \
+                key->val.tag = SKY_JSON_TYPE_STR | SKY_JSON_SUBTYPE_NONE;    \
+                key->val.tag |= (sky_u64_t)key_len << SKY_JSON_TAG_BIT;      \
                 key->val.uni.str = key_data;  \
                 _func                         \
                 sky_json_mut_unsafe_obj_add(obj, key, val, len);      \
-                return true;                 \
-            }                                \
-        }                                    \
-        return false;                        \
+                return true;                  \
+            }                                 \
+        }                                     \
+        return false;                         \
     } while(0)
 
 #define sky_json_mut_obj_add_func2(_func) do { \
         if (sky_likely(doc && sky_json_mut_is_obj(obj) && key_len)) { \
-            sky_json_mut_val_t *key = sky_json_mut_unsafe_val(doc, 2);\
-            if (sky_likely(key)) {           \
-                const sky_usize_t len = sky_json_unsafe_get_len(&obj->val); \
-                sky_json_mut_val_t *val = key + 1;                    \
-                key->val.tag = SKY_JSON_TYPE_STR | SKY_JSON_SUBTYPE_NONE;   \
-                key->val.tag |= (sky_u64_t)key_len << SKY_JSON_TAG_BIT;     \
-                key->val.uni.str = key_data;  \
-                _func                         \
+            sky_json_mut_val_t *const key = sky_json_mut_unsafe_val(doc, 2); \
+            if (sky_likely(key)) {             \
+                const sky_usize_t len = sky_json_unsafe_get_len(&obj->val);  \
+                sky_json_mut_val_t * val = key + 1;                   \
+                key->val.tag = SKY_JSON_TYPE_STR | SKY_JSON_SUBTYPE_NONE;    \
+                key->val.tag |= (sky_u64_t)key_len << SKY_JSON_TAG_BIT;      \
+                key->val.uni.str = key_data;   \
+                _func                          \
                 sky_json_mut_unsafe_obj_add(obj, key, val, len);      \
                 return val;                    \
             }                                  \
@@ -997,11 +983,11 @@ sky_json_mut_str_cpy(sky_json_mut_doc_t *doc, sky_str_t *value) {
 
 static sky_inline sky_bool_t
 sky_json_mut_obj_add_val(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *obj,
-        sky_uchar_t *key_data,
-        sky_usize_t key_len,
-        sky_json_mut_val_t *value
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const obj,
+        sky_uchar_t *const key_data,
+        const sky_usize_t key_len,
+        sky_json_mut_val_t *const value
 ) {
     if (sky_unlikely(!value)) {
         return false;
@@ -1015,10 +1001,10 @@ sky_json_mut_obj_add_val(
 
 static sky_inline sky_json_mut_val_t *
 sky_json_mut_obj_add_obj(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *obj,
-        sky_uchar_t *key_data,
-        sky_usize_t key_len
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const obj,
+        sky_uchar_t *const key_data,
+        const sky_usize_t key_len
 ) {
     sky_json_mut_obj_add_func2(
             {
@@ -1029,10 +1015,10 @@ sky_json_mut_obj_add_obj(
 
 static sky_inline sky_json_mut_val_t *
 sky_json_mut_obj_add_arr(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *obj,
-        sky_uchar_t *key_data,
-        sky_usize_t key_len
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const obj,
+        sky_uchar_t *const key_data,
+        const sky_usize_t key_len
 ) {
     sky_json_mut_obj_add_func2(
             {
@@ -1044,22 +1030,24 @@ sky_json_mut_obj_add_arr(
 
 static sky_inline sky_bool_t
 sky_json_mut_obj_add_null(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *obj,
-        sky_uchar_t *key_data,
-        sky_usize_t key_len
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const obj,
+        sky_uchar_t *const key_data,
+        const sky_usize_t key_len
 ) {
-    sky_json_mut_obj_add_func({
-                                  val->val.tag = SKY_JSON_TYPE_NULL | SKY_JSON_SUBTYPE_NONE;
-                              });
+    sky_json_mut_obj_add_func(
+            {
+                val->val.tag = SKY_JSON_TYPE_NULL | SKY_JSON_SUBTYPE_NONE;
+            }
+    );
 }
 
 static sky_inline sky_bool_t
 sky_json_mut_obj_add_true(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *obj,
-        sky_uchar_t *key_data,
-        sky_usize_t key_len
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const obj,
+        sky_uchar_t *const key_data,
+        const sky_usize_t key_len
 ) {
     sky_json_mut_obj_add_func(
             {
@@ -1070,10 +1058,10 @@ sky_json_mut_obj_add_true(
 
 static sky_inline sky_bool_t
 sky_json_mut_obj_add_false(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *obj,
-        sky_uchar_t *key_data,
-        sky_usize_t key_len
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const obj,
+        sky_uchar_t *const key_data,
+        const sky_usize_t key_len
 ) {
     sky_json_mut_obj_add_func(
             {
@@ -1084,11 +1072,11 @@ sky_json_mut_obj_add_false(
 
 static sky_inline sky_bool_t
 sky_json_mut_obj_add_bool(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *obj,
-        sky_uchar_t *key_data,
-        sky_usize_t key_len,
-        sky_bool_t value
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const obj,
+        sky_uchar_t *const key_data,
+        const sky_usize_t key_len,
+        const sky_bool_t value
 ) {
     sky_json_mut_obj_add_func(
             {
@@ -1100,11 +1088,11 @@ sky_json_mut_obj_add_bool(
 
 static sky_inline sky_bool_t
 sky_json_mut_obj_add_uint(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *obj,
-        sky_uchar_t *key_data,
-        sky_usize_t key_len,
-        sky_u64_t value
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const obj,
+        sky_uchar_t *const key_data,
+        const sky_usize_t key_len,
+        const sky_u64_t value
 ) {
     sky_json_mut_obj_add_func(
             {
@@ -1116,11 +1104,11 @@ sky_json_mut_obj_add_uint(
 
 static sky_inline sky_bool_t
 sky_json_mut_obj_add_int(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *obj,
-        sky_uchar_t *key_data,
-        sky_usize_t key_len,
-        sky_i64_t value
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const obj,
+        sky_uchar_t *const key_data,
+        const sky_usize_t key_len,
+        const sky_i64_t value
 ) {
     sky_json_mut_obj_add_func(
             {
@@ -1132,11 +1120,11 @@ sky_json_mut_obj_add_int(
 
 static sky_inline sky_bool_t
 sky_json_mut_obj_add_real(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *obj,
-        sky_uchar_t *key_data,
-        sky_usize_t key_len,
-        sky_f64_t value
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const obj,
+        sky_uchar_t *const key_data,
+        const sky_usize_t key_len,
+        const sky_f64_t value
 ) {
     sky_json_mut_obj_add_func(
             {
@@ -1148,12 +1136,12 @@ sky_json_mut_obj_add_real(
 
 static sky_inline sky_bool_t
 sky_json_mut_obj_add_str_len(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *obj,
-        sky_uchar_t *key_data,
-        sky_usize_t key_len,
-        sky_uchar_t *value_data,
-        sky_usize_t value_len
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const obj,
+        sky_uchar_t *const key_data,
+        const sky_usize_t key_len,
+        sky_uchar_t *const value_data,
+        const sky_usize_t value_len
 ) {
     sky_json_mut_obj_add_func(
             {
@@ -1165,26 +1153,25 @@ sky_json_mut_obj_add_str_len(
 
 static sky_inline sky_bool_t
 sky_json_mut_obj_add_str(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *obj,
-        sky_uchar_t *key_data,
-        sky_usize_t key_len,
-        sky_str_t *value
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const obj,
+        sky_uchar_t *const key_data,
+        const sky_usize_t key_len,
+        const sky_str_t *const value
 ) {
-    if (sky_unlikely(!value)) {
-        return sky_json_mut_obj_add_null(doc, obj, key_data, key_len);
-    }
-    return sky_json_mut_obj_add_str_len(doc, obj, key_data, key_len, value->data, value->len);
+    return sky_likely(value)
+           ? sky_json_mut_obj_add_str_len(doc, obj, key_data, key_len, value->data, value->len)
+           : sky_json_mut_obj_add_null(doc, obj, key_data, key_len);
 }
 
 static sky_inline sky_bool_t
 sky_json_mut_obj_add_str_len_cpy(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *obj,
-        sky_uchar_t *key_data,
-        sky_usize_t key_len,
-        sky_uchar_t *value_data,
-        sky_usize_t value_len
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const obj,
+        sky_uchar_t *const key_data,
+        const sky_usize_t key_len,
+        const sky_uchar_t *const value_data,
+        const sky_usize_t value_len
 ) {
     sky_json_mut_obj_add_func(
             {
@@ -1199,26 +1186,25 @@ sky_json_mut_obj_add_str_len_cpy(
 
 static sky_inline sky_bool_t
 sky_json_mut_obj_add_str_cpy(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *obj,
-        sky_uchar_t *key_data,
-        sky_usize_t key_len,
-        sky_str_t *value
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const obj,
+        sky_uchar_t *const key_data,
+        const sky_usize_t key_len,
+        const sky_str_t *const value
 ) {
-    if (sky_unlikely(!value)) {
-        return sky_json_mut_obj_add_null(doc, obj, key_data, key_len);
-    }
-    return sky_json_mut_obj_add_str_len_cpy(doc, obj, key_data, key_len, value->data, value->len);
+    return sky_likely(value)
+           ? sky_json_mut_obj_add_str_len_cpy(doc, obj, key_data, key_len, value->data, value->len)
+           : sky_json_mut_obj_add_null(doc, obj, key_data, key_len);
 }
 
 static sky_inline sky_bool_t
 sky_json_mut_obj_add_raw_len(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *obj,
-        sky_uchar_t *key_data,
-        sky_usize_t key_len,
-        sky_uchar_t *value_data,
-        sky_usize_t value_len
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const obj,
+        sky_uchar_t *const key_data,
+        const sky_usize_t key_len,
+        sky_uchar_t *const value_data,
+        const sky_usize_t value_len
 ) {
     sky_json_mut_obj_add_func(
             {
@@ -1230,26 +1216,25 @@ sky_json_mut_obj_add_raw_len(
 
 static sky_inline sky_bool_t
 sky_json_mut_obj_add_raw(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *obj,
-        sky_uchar_t *key_data,
-        sky_usize_t key_len,
-        sky_str_t *value
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const obj,
+        sky_uchar_t *const key_data,
+        const sky_usize_t key_len,
+        const sky_str_t *const value
 ) {
-    if (sky_unlikely(!value)) {
-        return sky_json_mut_obj_add_null(doc, obj, key_data, key_len);
-    }
-    return sky_json_mut_obj_add_raw_len(doc, obj, key_data, key_len, value->data, value->len);
+    return sky_likely(value)
+           ? sky_json_mut_obj_add_raw_len(doc, obj, key_data, key_len, value->data, value->len)
+           : sky_json_mut_obj_add_null(doc, obj, key_data, key_len);
 }
 
 static sky_inline sky_bool_t
 sky_json_mut_obj_add_raw_len_cpy(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *obj,
-        sky_uchar_t *key_data,
-        sky_usize_t key_len,
-        sky_uchar_t *value_data,
-        sky_usize_t value_len
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const obj,
+        sky_uchar_t *const key_data,
+        const sky_usize_t key_len,
+        const sky_uchar_t *const value_data,
+        const sky_usize_t value_len
 ) {
     sky_json_mut_obj_add_func(
             {
@@ -1264,16 +1249,15 @@ sky_json_mut_obj_add_raw_len_cpy(
 
 static sky_inline sky_bool_t
 sky_json_mut_obj_add_raw_cpy(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *obj,
-        sky_uchar_t *key_data,
-        sky_usize_t key_len,
-        sky_str_t *value
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const obj,
+        sky_uchar_t *const key_data,
+        const sky_usize_t key_len,
+        const sky_str_t *const value
 ) {
-    if (sky_unlikely(!value)) {
-        return sky_json_mut_obj_add_null(doc, obj, key_data, key_len);
-    }
-    return sky_json_mut_obj_add_raw_len_cpy(doc, obj, key_data, key_len, value->data, value->len);
+    return sky_likely(value)
+           ? sky_json_mut_obj_add_raw_len_cpy(doc, obj, key_data, key_len, value->data, value->len)
+           : sky_json_mut_obj_add_null(doc, obj, key_data, key_len);
 }
 
 #undef sky_json_mut_obj_add_func
@@ -1281,15 +1265,15 @@ sky_json_mut_obj_add_raw_cpy(
 
 
 static sky_inline sky_bool_t
-sky_json_mut_arr_append(sky_json_mut_val_t *arr, sky_json_mut_val_t *val) {
+sky_json_mut_arr_append(sky_json_mut_val_t *const arr, sky_json_mut_val_t *const val) {
     if (sky_likely(sky_json_mut_is_arr(arr) && val)) {
         const sky_usize_t len = sky_json_unsafe_get_len(&arr->val);
         sky_json_unsafe_set_len(&arr->val, len + 1);
         if (len == 0) {
             val->next = val;
         } else {
-            sky_json_mut_val_t *prev = ((sky_json_mut_val_t *) arr->val.uni.ptr);
-            sky_json_mut_val_t *next = prev->next;
+            sky_json_mut_val_t *const prev = ((sky_json_mut_val_t *) arr->val.uni.ptr);
+            sky_json_mut_val_t *const next = prev->next;
             prev->next = val;
             val->next = next;
         }
@@ -1300,81 +1284,81 @@ sky_json_mut_arr_append(sky_json_mut_val_t *arr, sky_json_mut_val_t *val) {
 }
 
 static sky_inline sky_json_mut_val_t *
-sky_json_mut_arr_add_obj(sky_json_mut_doc_t *doc, sky_json_mut_val_t *arr) {
+sky_json_mut_arr_add_obj(sky_json_mut_doc_t *const doc, sky_json_mut_val_t *const arr) {
     if (sky_likely(doc && sky_json_mut_is_arr(arr))) {
-        sky_json_mut_val_t *val = sky_json_mut_obj(doc);
+        sky_json_mut_val_t *const val = sky_json_mut_obj(doc);
         return sky_likely(sky_json_mut_arr_append(arr, val)) ? val : null;
     }
     return false;
 }
 
 static sky_inline sky_json_mut_val_t *
-sky_json_mut_arr_add_arr(sky_json_mut_doc_t *doc, sky_json_mut_val_t *arr) {
+sky_json_mut_arr_add_arr(sky_json_mut_doc_t *const doc, sky_json_mut_val_t *const arr) {
     if (sky_likely(doc && sky_json_mut_is_arr(arr))) {
-        sky_json_mut_val_t *val = sky_json_mut_arr(doc);
+        sky_json_mut_val_t *const val = sky_json_mut_arr(doc);
         return sky_likely(sky_json_mut_arr_append(arr, val)) ? val : null;
     }
     return false;
 }
 
 static sky_inline sky_bool_t
-sky_json_mut_arr_add_null(sky_json_mut_doc_t *doc, sky_json_mut_val_t *arr) {
+sky_json_mut_arr_add_null(sky_json_mut_doc_t *const doc, sky_json_mut_val_t *const arr) {
     if (sky_likely(doc && sky_json_mut_is_arr(arr))) {
-        sky_json_mut_val_t *val = sky_json_mut_null(doc);
+        sky_json_mut_val_t *const val = sky_json_mut_null(doc);
         return sky_json_mut_arr_append(arr, val);
     }
     return false;
 }
 
 static sky_inline sky_bool_t
-sky_json_mut_arr_add_true(sky_json_mut_doc_t *doc, sky_json_mut_val_t *arr) {
+sky_json_mut_arr_add_true(sky_json_mut_doc_t *const doc, sky_json_mut_val_t *const arr) {
     if (sky_likely(doc && sky_json_mut_is_arr(arr))) {
-        sky_json_mut_val_t *val = sky_json_mut_true(doc);
+        sky_json_mut_val_t *const val = sky_json_mut_true(doc);
         return sky_json_mut_arr_append(arr, val);
     }
     return false;
 }
 
 static sky_inline sky_bool_t
-sky_json_mut_arr_add_false(sky_json_mut_doc_t *doc, sky_json_mut_val_t *arr) {
+sky_json_mut_arr_add_false(sky_json_mut_doc_t *const doc, sky_json_mut_val_t *const arr) {
     if (sky_likely(doc && sky_json_mut_is_arr(arr))) {
-        sky_json_mut_val_t *val = sky_json_mut_false(doc);
+        sky_json_mut_val_t *const val = sky_json_mut_false(doc);
         return sky_json_mut_arr_append(arr, val);
     }
     return false;
 }
 
 static sky_inline sky_bool_t
-sky_json_mut_arr_add_bool(sky_json_mut_doc_t *doc, sky_json_mut_val_t *arr, sky_bool_t value) {
+sky_json_mut_arr_add_bool(sky_json_mut_doc_t *const doc, sky_json_mut_val_t *const arr, const sky_bool_t value) {
     if (sky_likely(doc && sky_json_mut_is_arr(arr))) {
-        sky_json_mut_val_t *val = sky_json_mut_bool(doc, value);
+        sky_json_mut_val_t *const val = sky_json_mut_bool(doc, value);
         return sky_json_mut_arr_append(arr, val);
     }
     return false;
 }
 
 static sky_inline sky_bool_t
-sky_json_mut_arr_add_uint(sky_json_mut_doc_t *doc, sky_json_mut_val_t *arr, sky_u64_t value) {
+sky_json_mut_arr_add_uint(sky_json_mut_doc_t *const doc, sky_json_mut_val_t *const arr, const sky_u64_t value) {
     if (sky_likely(doc && sky_json_mut_is_arr(arr))) {
-        sky_json_mut_val_t *val = sky_json_mut_uint(doc, value);
+        sky_json_mut_val_t *const val = sky_json_mut_uint(doc, value);
         return sky_json_mut_arr_append(arr, val);
     }
     return false;
 }
 
 static sky_inline sky_bool_t
-sky_json_mut_arr_add_int(sky_json_mut_doc_t *doc, sky_json_mut_val_t *arr, sky_i64_t value) {
+sky_json_mut_arr_add_int(sky_json_mut_doc_t *const doc, sky_json_mut_val_t *const arr, const sky_i64_t value) {
     if (sky_likely(doc && sky_json_mut_is_arr(arr))) {
-        sky_json_mut_val_t *val = sky_json_mut_int(doc, value);
+        sky_json_mut_val_t *const val = sky_json_mut_int(doc, value);
         return sky_json_mut_arr_append(arr, val);
     }
     return false;
 }
 
 static sky_inline sky_bool_t
-sky_json_mut_arr_add_real(sky_json_mut_doc_t *doc, sky_json_mut_val_t *arr, sky_f64_t value) {
+sky_json_mut_arr_add_real(sky_json_mut_doc_t *const doc, sky_json_mut_val_t *const arr, const sky_f64_t value) {
     if (sky_likely(doc && sky_json_mut_is_arr(arr))) {
-        sky_json_mut_val_t *val = sky_json_mut_real(doc, value);
+        sky_json_mut_val_t *const val = sky_json_mut_real(doc, value);
         return sky_json_mut_arr_append(arr, val);
     }
     return false;
@@ -1382,13 +1366,13 @@ sky_json_mut_arr_add_real(sky_json_mut_doc_t *doc, sky_json_mut_val_t *arr, sky_
 
 static sky_inline sky_bool_t
 sky_json_mut_arr_add_str_len(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *arr,
-        sky_uchar_t *value_data,
-        sky_usize_t value_len
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const arr,
+        sky_uchar_t *const value_data,
+        const sky_usize_t value_len
 ) {
     if (sky_likely(doc && sky_json_mut_is_arr(arr))) {
-        sky_json_mut_val_t *val = sky_json_mut_str_len(doc, value_data, value_len);
+        sky_json_mut_val_t *const val = sky_json_mut_str_len(doc, value_data, value_len);
         return sky_json_mut_arr_append(arr, val);
     }
     return false;
@@ -1396,25 +1380,24 @@ sky_json_mut_arr_add_str_len(
 
 static sky_inline sky_bool_t
 sky_json_mut_arr_add_str(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *arr,
-        sky_str_t *value
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const arr,
+        const sky_str_t *const value
 ) {
-    if (sky_unlikely(!value)) {
-        return sky_json_mut_arr_add_null(doc, arr);
-    }
-    return sky_json_mut_arr_add_str_len(doc, arr, value->data, value->len);
+    return sky_likely(value)
+           ? sky_json_mut_arr_add_str_len(doc, arr, value->data, value->len)
+           : sky_json_mut_arr_add_null(doc, arr);
 }
 
 static sky_inline sky_bool_t
 sky_json_mut_arr_add_str_len_cpy(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *arr,
-        sky_uchar_t *value_data,
-        sky_usize_t value_len
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const arr,
+        const sky_uchar_t *const value_data,
+        const sky_usize_t value_len
 ) {
     if (sky_likely(doc && sky_json_mut_is_arr(arr))) {
-        sky_json_mut_val_t *val = sky_json_mut_str_len_cpy(doc, value_data, value_len);
+        sky_json_mut_val_t *const val = sky_json_mut_str_len_cpy(doc, value_data, value_len);
         return sky_json_mut_arr_append(arr, val);
     }
     return false;
@@ -1422,22 +1405,21 @@ sky_json_mut_arr_add_str_len_cpy(
 
 static sky_inline sky_bool_t
 sky_json_mut_arr_add_str_cpy(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *arr,
-        sky_str_t *value
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const arr,
+        const sky_str_t *const value
 ) {
-    if (sky_unlikely(!value)) {
-        return sky_json_mut_arr_add_null(doc, arr);
-    }
-    return sky_json_mut_arr_add_str_len_cpy(doc, arr, value->data, value->len);
+    return sky_likely(value)
+           ? sky_json_mut_arr_add_str_len_cpy(doc, arr, value->data, value->len)
+           : sky_json_mut_arr_add_null(doc, arr);
 }
 
 static sky_inline sky_bool_t
 sky_json_mut_arr_add_raw_len(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *arr,
-        sky_uchar_t *value_data,
-        sky_usize_t value_len
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const arr,
+        sky_uchar_t *const value_data,
+        const sky_usize_t value_len
 ) {
     if (sky_likely(doc && sky_json_mut_is_arr(arr))) {
         sky_json_mut_val_t *val = sky_json_mut_raw_len(doc, value_data, value_len);
@@ -1448,25 +1430,24 @@ sky_json_mut_arr_add_raw_len(
 
 static sky_inline sky_bool_t
 sky_json_mut_arr_add_raw(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *arr,
-        sky_str_t *value
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const arr,
+        const sky_str_t *const value
 ) {
-    if (sky_unlikely(!value)) {
-        return sky_json_mut_arr_add_null(doc, arr);
-    }
-    return sky_json_mut_arr_add_raw_len(doc, arr, value->data, value->len);
+    return sky_likely(value)
+           ? sky_json_mut_arr_add_raw_len(doc, arr, value->data, value->len)
+           : sky_json_mut_arr_add_null(doc, arr);
 }
 
 static sky_inline sky_bool_t
 sky_json_mut_arr_add_raw_len_cpy(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *arr,
-        sky_uchar_t *value_data,
-        sky_usize_t value_len
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const arr,
+        const sky_uchar_t *const value_data,
+        const sky_usize_t value_len
 ) {
     if (sky_likely(doc && sky_json_mut_is_arr(arr))) {
-        sky_json_mut_val_t *val = sky_json_mut_raw_len_cpy(doc, value_data, value_len);
+        sky_json_mut_val_t *const val = sky_json_mut_raw_len_cpy(doc, value_data, value_len);
         return sky_json_mut_arr_append(arr, val);
     }
     return false;
@@ -1474,14 +1455,13 @@ sky_json_mut_arr_add_raw_len_cpy(
 
 static sky_inline sky_bool_t
 sky_json_mut_arr_add_raw_cpy(
-        sky_json_mut_doc_t *doc,
-        sky_json_mut_val_t *arr,
-        sky_str_t *value
+        sky_json_mut_doc_t *const doc,
+        sky_json_mut_val_t *const arr,
+        const sky_str_t *const value
 ) {
-    if (sky_unlikely(!value)) {
-        return sky_json_mut_arr_add_null(doc, arr);
-    }
-    return sky_json_mut_arr_add_raw_len_cpy(doc, arr, value->data, value->len);
+    return sky_likely(value)
+           ? sky_json_mut_arr_add_raw_len_cpy(doc, arr, value->data, value->len)
+           : sky_json_mut_arr_add_null(doc, arr);
 }
 
 
