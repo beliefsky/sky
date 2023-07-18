@@ -8,7 +8,7 @@
 sky_api sky_event_loop_t *
 sky_event_loop_create() {
 
-    sky_event_loop_t *loop = sky_malloc(sizeof(sky_event_loop_t));
+    sky_event_loop_t *const loop = sky_malloc(sizeof(sky_event_loop_t));
     loop->now = time(null);
     loop->timer_ctx = sky_timer_wheel_create(TIMER_WHEEL_DEFAULT_NUM, (sky_u64_t) loop->now);
     loop->selector = sky_selector_create();
