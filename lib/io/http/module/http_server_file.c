@@ -211,7 +211,7 @@ http_run_handler(sky_http_server_request_t *const r, void *const data) {
 
 static void
 http_response_next(sky_http_server_request_t *const r, void *const data) {
-    http_file_t *const file = data;
+    const http_file_t *const file = data;
 
     close(file->fd);
 
