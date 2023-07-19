@@ -29,7 +29,7 @@ sky_usize_t sky_base64_decode(sky_uchar_t *dst, const sky_uchar_t *src, sky_usiz
 
 
 static sky_inline sky_bool_t
-sky_base64_decode_success(sky_usize_t len) {
+sky_base64_decode_success(const sky_usize_t len) {
     return len != SKY_USIZE_MAX;
 }
 

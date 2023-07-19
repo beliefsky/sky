@@ -111,7 +111,7 @@ sky_uchar_t *sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const
 
 
 static sky_inline void
-sky_str_lower2(sky_str_t *const str) {
+sky_str_lower2(const sky_str_t *const str) {
     sky_str_lower(str->data, str->data, str->len);
 }
 
@@ -123,7 +123,7 @@ sky_str_is_null(const sky_str_t *const str) {
 
 static sky_inline void
 sky_str_replace_char(
-        sky_str_t *const src,
+        const sky_str_t *const src,
         const sky_uchar_t old_ch,
         const sky_uchar_t new_ch
 ) {

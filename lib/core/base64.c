@@ -5,9 +5,9 @@
 
 #include <core/base64.h>
 
-static sky_usize_t chromium_base64_encode(sky_uchar_t *dest, const sky_uchar_t *str, sky_usize_t len);
+static sky_usize_t chromium_base64_encode(sky_uchar_t *dst, const sky_uchar_t *str, sky_usize_t len);
 
-static sky_usize_t chromium_base64_decode(sky_uchar_t *dest, const sky_uchar_t *src, sky_usize_t len);
+static sky_usize_t chromium_base64_decode(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t len);
 
 #ifdef __AVX2__
 
@@ -19,7 +19,7 @@ static sky_usize_t fast_avx2_base64_decode(sky_uchar_t *out, const sky_uchar_t *
 #endif
 
 sky_api sky_usize_t
-sky_base64_encode(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t len) {
+sky_base64_encode(sky_uchar_t *dst, const sky_uchar_t *const src, const sky_usize_t len) {
     if (sky_unlikely(!len)) {
         return 0;
     }
@@ -31,21 +31,19 @@ sky_base64_encode(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t len) {
 }
 
 sky_api sky_usize_t
-sky_base64_decode(sky_uchar_t *dst, const sky_uchar_t *src, sky_usize_t len) {
+sky_base64_decode(sky_uchar_t *const dst, const sky_uchar_t *const src, const sky_usize_t len) {
     if (sky_unlikely(!len)) {
         return 0;
     }
 #ifdef __AVX2__
-    const sky_usize_t size = fast_avx2_base64_decode(dst, src, len);
+    return fast_avx2_base64_decode(dst, src, len);
 #else
-    const sky_usize_t size = chromium_base64_decode(dst, src, len);
+    return chromium_base64_decode(dst, src, len);
 #endif
-
-    return size;
 }
 
 static sky_usize_t
-chromium_base64_encode(sky_uchar_t *dest, const sky_uchar_t *str, sky_usize_t len) {
+chromium_base64_encode(sky_uchar_t *const dst, const sky_uchar_t *const str, const sky_usize_t len) {
     static const sky_uchar_t e0[256] = {
             'A', 'A', 'A', 'A', 'B', 'B', 'B', 'B', 'C', 'C',
             'C', 'C', 'D', 'D', 'D', 'D', 'E', 'E', 'E', 'E',
@@ -135,7 +133,7 @@ chromium_base64_encode(sky_uchar_t *dest, const sky_uchar_t *str, sky_usize_t le
 
 
     sky_usize_t i = 0;
-    sky_uchar_t *p = dest;
+    sky_uchar_t *p = dst;
 
     /* unsigned here is important! */
     sky_uchar_t t1, t2, t3;
@@ -171,11 +169,11 @@ chromium_base64_encode(sky_uchar_t *dest, const sky_uchar_t *str, sky_usize_t le
             *p++ = '=';
     }
 
-    return (sky_usize_t) (p - dest);
+    return (sky_usize_t) (p - dst);
 }
 
 static sky_usize_t
-chromium_base64_decode(sky_uchar_t *dest, const sky_uchar_t *src, sky_usize_t len) {
+chromium_base64_decode(sky_uchar_t *const dst, const sky_uchar_t *const src, sky_usize_t len) {
     static const sky_u32_t d0[256] = {
             0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
             0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff, 0x01ffffff,
@@ -381,10 +379,10 @@ chromium_base64_decode(sky_uchar_t *dest, const sky_uchar_t *src, sky_usize_t le
 #define BAD_CHAR 0x01FFFFFF
 
     sky_usize_t i;
-    sky_u32_t leftover = (sky_u32_t) (len & 3);
-    sky_usize_t chunks = (len >> 2) - (leftover == 0);
+    const sky_u32_t leftover = (sky_u32_t) (len & 3);
+    const sky_usize_t chunks = (len >> 2) - (leftover == 0);
 
-    sky_uchar_t *p = dest;
+    sky_uchar_t *p = dst;
     sky_u32_t x = 0;
     const sky_uchar_t *y = src;
     for (i = 0; i < chunks; ++i, y += 4) {

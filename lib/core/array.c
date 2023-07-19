@@ -6,7 +6,7 @@
 #include <core/memory.h>
 
 sky_api sky_bool_t
-sky_array_init(sky_array_t *array, sky_u32_t n, sky_usize_t size) {
+sky_array_init(sky_array_t *const array, const sky_u32_t n, const sky_usize_t size) {
     array->nelts = 0;
     array->size = size;
     array->nalloc = n;
@@ -17,7 +17,7 @@ sky_array_init(sky_array_t *array, sky_u32_t n, sky_usize_t size) {
 }
 
 sky_api sky_bool_t
-sky_array_init2(sky_array_t *array, sky_pool_t *pool, sky_u32_t n, sky_usize_t size) {
+sky_array_init2(sky_array_t *const array, sky_pool_t *const pool, const sky_u32_t n, const sky_usize_t size) {
     array->nelts = 0;
     array->size = size;
     array->nalloc = n;
@@ -28,13 +28,13 @@ sky_array_init2(sky_array_t *array, sky_pool_t *pool, sky_u32_t n, sky_usize_t s
 }
 
 sky_api void *
-sky_array_push(sky_array_t *a) {
+sky_array_push(sky_array_t *const a) {
     if (a->nelts == a->nalloc) {
         const sky_usize_t total = a->size * a->nalloc;
         const sky_usize_t re_size = total << 1;
         a->nalloc <<= 1;
 
-        void *new_ptr = a->pool != null ? sky_prealloc(a->pool, a->elts, total, re_size)
+        void *const new_ptr = a->pool != null ? sky_prealloc(a->pool, a->elts, total, re_size)
                                         : sky_realloc(a->elts, re_size);
         if (sky_unlikely(!new_ptr)) {
             return null;
@@ -42,7 +42,7 @@ sky_array_push(sky_array_t *a) {
         a->elts = new_ptr;
     }
 
-    void *elt = (sky_uchar_t *) a->elts + (a->size * a->nelts);
+    void *const elt = (sky_uchar_t *) a->elts + (a->size * a->nelts);
     a->nelts++;
 
     return elt;
@@ -50,7 +50,7 @@ sky_array_push(sky_array_t *a) {
 
 
 sky_api void *
-sky_array_push_n(sky_array_t *a, sky_u32_t n) {
+sky_array_push_n(sky_array_t *const a, const sky_u32_t n) {
     if ((a->nelts + n) > a->nalloc) {
         const sky_u32_t max = sky_max(n, a->nalloc);
         const sky_usize_t total = a->size * a->nalloc;
@@ -59,7 +59,7 @@ sky_array_push_n(sky_array_t *a, sky_u32_t n) {
 
         const sky_usize_t re_size = a->size * a->nalloc;
 
-        void *new_ptr = a->pool != null ? sky_prealloc(a->pool, a->elts, total, re_size)
+        void *const new_ptr = a->pool != null ? sky_prealloc(a->pool, a->elts, total, re_size)
                                   : sky_realloc(a->elts, re_size);
 
         if (sky_unlikely(!new_ptr)) {
@@ -68,14 +68,14 @@ sky_array_push_n(sky_array_t *a, sky_u32_t n) {
         a->elts = new_ptr;
     }
 
-    void *elt = (sky_uchar_t *) a->elts + (a->size * a->nelts);
+    void *const elt = (sky_uchar_t *) a->elts + (a->size * a->nelts);
     a->nelts += n;
 
     return elt;
 }
 
 sky_api void
-sky_array_destroy(sky_array_t *a) {
+sky_array_destroy(sky_array_t *const a) {
 
     if (a->pool != null) {
         const sky_usize_t total = a->size * a->nalloc;
