@@ -68,22 +68,14 @@ sky_tcp_open(sky_tcp_t *const tcp, const sky_i32_t domain) {
 
 sky_api sky_bool_t
 sky_tcp_bind(const sky_tcp_t *const tcp, const sky_inet_addr_t *const addr) {
-    if (sky_unlikely(!sky_tcp_is_open(tcp))) {
-        return false;
-    }
-    const sky_socket_t fd = sky_ev_get_fd(&tcp->ev);
-
-    return bind(fd, addr->addr, addr->size) == 0;
+    return sky_tcp_is_open(tcp)
+           && bind(sky_ev_get_fd(&tcp->ev), addr->addr, addr->size) == 0;
 }
 
 sky_api sky_bool_t
 sky_tcp_listen(const sky_tcp_t *const server, const sky_i32_t backlog) {
-    if (sky_unlikely(!sky_tcp_is_open(server))) {
-        return false;
-    }
-    const sky_socket_t fd = sky_ev_get_fd(&server->ev);
-
-    return listen(fd, backlog) == 0;
+    return sky_tcp_is_open(server)
+           && listen(sky_ev_get_fd(&server->ev), backlog) == 0;
 }
 
 sky_api sky_i8_t

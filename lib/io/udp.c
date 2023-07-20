@@ -54,12 +54,8 @@ sky_udp_open(sky_udp_t *const udp, const sky_i32_t domain) {
 
 sky_api sky_bool_t
 sky_udp_bind(const sky_udp_t *const udp, const sky_inet_addr_t *const addr) {
-    if (sky_unlikely(!sky_udp_is_open(udp))) {
-        return false;
-    }
-    const sky_socket_t fd = sky_ev_get_fd(&udp->ev);
-
-    return bind(fd, addr->addr, addr->size) == 0;
+    return sky_udp_is_open(udp)
+           && bind(sky_ev_get_fd(&udp->ev), addr->addr, addr->size) == 0;
 }
 
 sky_api sky_isize_t
