@@ -85,6 +85,8 @@ pgsql_auth_read(sky_tcp_t *const tcp) {
 
     read_again:
     n = sky_tcp_read(tcp, buf->last, (sky_usize_t) (buf->end - buf->last));
+
+    sky_log_info("====read ==>%ld / %ld", n, buf->end - buf->last);
     if (n > 0) {
         buf->last += n;
 
@@ -211,6 +213,7 @@ pgsql_password(
         const sky_usize_t size
 ) {
     auth_packet_t *const packet = conn->data;
+    packet->size = 0;
 
     if (auth_type != 5) {
         sky_buf_destroy(&packet->buf);
@@ -245,7 +248,7 @@ pgsql_password(
     sky_uchar_t *p = packet->buf.pos;
 
     *(p++) = 'p';
-    *((sky_u32_t *) p) = sky_htonl(40);
+    *((sky_u32_t *) p) = sky_htonl(SKY_U32(40));
     p += 4;
     sky_memcpy(p, "md5", 3);
     p += 3;
@@ -254,6 +257,7 @@ pgsql_password(
 
     packet->buf.last += 41;
 
+    sky_log_info("%s", packet->buf.pos + 5);
 
     sky_tcp_set_cb(&conn->tcp, pgsql_password_send);
     pgsql_password_send(&conn->tcp);
@@ -264,7 +268,6 @@ pgsql_password_send(sky_tcp_t *const tcp) {
     sky_pgsql_conn_t *const conn = sky_type_convert(tcp, sky_pgsql_conn_t, tcp);
     auth_packet_t *const packet = conn->data;
     sky_buf_t *const buf = &packet->buf;
-
 
     sky_isize_t n;
 

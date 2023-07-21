@@ -77,6 +77,7 @@ sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *c
     *ptr++ = '\0';
     *ptr++ = '\0';
 
+    sky_memcpy(ptr, conf->password.data, conf->password.len);
     pool->password.data = ptr;
     pool->password.len = conf->password.len;
 

@@ -8,7 +8,7 @@
 static const sky_uchar_t *sky_md5_body(sky_md5_t *ctx, const sky_uchar_t *data, sky_usize_t size);
 
 
-void
+sky_api void
 sky_md5_init(sky_md5_t *const ctx) {
     ctx->a = 0x67452301;
     ctx->b = 0xefcdab89;
@@ -19,7 +19,7 @@ sky_md5_init(sky_md5_t *const ctx) {
 }
 
 
-void
+sky_api void
 sky_md5_update(sky_md5_t *const ctx, const sky_uchar_t *data, sky_usize_t size) {
     const sky_usize_t used = (sky_usize_t) (ctx->bytes & 0x3f);
     ctx->bytes += size;
@@ -46,7 +46,7 @@ sky_md5_update(sky_md5_t *const ctx, const sky_uchar_t *data, sky_usize_t size) 
 }
 
 
-void
+sky_api void
 sky_md5_final(sky_md5_t *const ctx, sky_uchar_t result[16]) {
     sky_usize_t used = (sky_usize_t) (ctx->bytes & 0x3f);
     ctx->buffer[used++] = 0x80;
