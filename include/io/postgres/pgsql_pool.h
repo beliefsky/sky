@@ -9,11 +9,23 @@
 extern "C" {
 #endif
 
+#include "../../core/string.h"
+#include "../event_loop.h"
+
 typedef struct sky_pgsql_pool_s sky_pgsql_pool_t;
 typedef struct sky_pgsql_conn_s sky_pgsql_conn_t;
+
 typedef void (*sky_pgsql_conn_pt)(sky_pgsql_conn_t *conn, void *data);
 
-sky_pgsql_pool_t *sky_pgsql_pool_create();
+typedef struct {
+    sky_str_t username;
+    sky_str_t password;
+    sky_str_t database;
+    sky_u32_t connection_size;
+    sky_inet_addr_t address;
+} sky_pgsql_conf_t;
+
+sky_pgsql_pool_t *sky_pgsql_pool_create(sky_event_loop_t *ev_loop, const sky_pgsql_conf_t *conf);
 
 void sky_pgsql_pool_get(sky_pgsql_pool_t *pool, sky_pgsql_conn_pt cb, void *data);
 

@@ -7,43 +7,80 @@
 
 #define BLOCK_TASK_N 1024
 
-typedef struct {
-    sky_queue_t link;
-    sky_pgsql_conn_pt cb;
-    void *data;
-} pgsql_task_t;
+static void pgsql_connect_next(sky_pgsql_conn_t *conn);
 
-typedef struct {
-    sky_queue_t link;
-    sky_usize_t free_num;
-    pgsql_task_t tasks[];
-} pgsql_block_t;
+static void pgsql_connection(sky_tcp_t *tcp);
 
-
-struct sky_pgsql_pool_s {
-    sky_queue_t free_conns;
-    sky_queue_t tasks;
-    sky_queue_t free_tasks;
-    sky_queue_t blocks;
-    pgsql_block_t *current_block;
-
-    sky_u32_t conn_num;
-    sky_u32_t conn_min;
-    sky_u32_t conn_max;
-};
-
-
-static pgsql_task_t *pgsql_task_get(sky_pgsql_pool_t * pool);
+static pgsql_task_t *pgsql_task_get(sky_pgsql_pool_t *pool);
 
 
 sky_pgsql_pool_t *
-sky_pgsql_pool_create() {
-    sky_pgsql_pool_t *const pool = sky_malloc(sizeof(sky_pgsql_pool_t));
+sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *conf) {
+    const sky_u32_t conn_num = conf->connection_size ?: 8;
+
+    const sky_u32_t info_size = (sky_u32_t) (SKY_USIZE(11)
+                                             + sizeof("user")
+                                             + sizeof("database")
+                                             + conf->username.len
+                                             + conf->database.len);
+
+    const sky_usize_t alloc_size = sizeof(sky_pgsql_pool_t)
+                                   + (sizeof(sky_pgsql_conn_t) * conn_num)
+                                   + sky_inet_addr_size(&conf->address)
+                                   + info_size
+                                   + conf->password.len;
+
+    sky_uchar_t *ptr = sky_malloc(alloc_size);
+
+    sky_pgsql_pool_t *const pool = (sky_pgsql_pool_t *) (ptr);
     sky_queue_init(&pool->free_conns);
     sky_queue_init(&pool->tasks);
     sky_queue_init(&pool->free_tasks);
     sky_queue_init(&pool->blocks);
     pool->current_block = null;
+    pool->ev_loop = ev_loop;
+    pool->conn_n = conn_num;
+
+    ptr += sizeof(sky_pgsql_pool_t);
+
+    sky_pgsql_conn_t *conn = (sky_pgsql_conn_t *) ptr;
+    for (sky_u32_t i = conn_num; i > 0; --i, ++conn) {
+        sky_queue_init_node(&conn->link);
+        sky_queue_insert_prev(&pool->free_conns, &conn->link);
+        sky_tcp_init(&conn->tcp, sky_event_selector(ev_loop));
+        conn->pool = pool;
+    }
+    ptr += sizeof(sky_pgsql_conn_t) * conn_num;
+    sky_inet_addr_set_ptr(&pool->address, ptr);
+    sky_inet_addr_copy(&pool->address, &conf->address);
+
+    ptr += sky_inet_addr_size(&conf->address);
+
+    pool->connect_info.len = alloc_size;
+    pool->connect_info.data = ptr;
+
+    *((sky_u32_t *) ptr) = sky_htonl(info_size);
+    ptr += 4;
+    *((sky_u32_t *) ptr) = 3 << 8; // version
+    ptr += 4;
+
+    sky_memcpy(ptr, "user", sizeof("user"));
+    ptr += sizeof("user");
+    sky_memcpy(ptr, conf->username.data, conf->username.len);
+    pool->username.data = ptr;
+    pool->username.len = conf->username.len;
+    ptr += conf->username.len;
+    *ptr++ = '\0';
+    sky_memcpy(ptr, "database", sizeof("database"));
+    ptr += sizeof("database");
+    sky_memcpy(ptr, conf->database.data, conf->database.len);
+    ptr += conf->database.len;
+    *ptr++ = '\0';
+    *ptr++ = '\0';
+
+    pool->password.data = ptr;
+    pool->password.len = conf->password.len;
+
 
     return pool;
 }
@@ -51,20 +88,23 @@ sky_pgsql_pool_create() {
 void
 sky_pgsql_pool_get(sky_pgsql_pool_t *pool, sky_pgsql_conn_pt cb, void *data) {
     sky_queue_t *const item = sky_queue_next(&pool->free_conns);
-    if (item != &pool->free_conns) {
-        sky_queue_remove(item);
-        sky_pgsql_conn_t *const conn = sky_type_convert(item, sky_pgsql_conn_t, link);
-        cb(conn, data);
+    if (item == &pool->free_conns) {
+        pgsql_task_t *const task = pgsql_task_get(pool);
+        if (sky_unlikely(!task)) {
+            cb(null, data);
+            return;
+        }
+        task->cb = cb;
+        task->data = data;
+        sky_queue_insert_prev(&pool->tasks, &task->link);
         return;
     }
-    pgsql_task_t *const task = pgsql_task_get(pool);
-    if (sky_unlikely(!task)) {
-        cb(null, data);
-        return;
-    }
-    task->cb = cb;
-    task->data = data;
-    sky_queue_insert_prev(&pool->tasks, &task->link);
+    sky_queue_remove(item);
+    sky_pgsql_conn_t *const conn = sky_type_convert(item, sky_pgsql_conn_t, link);
+    conn->conn_cb = cb;
+    conn->cb_data = data;
+
+    pgsql_connect_next(conn);
 }
 
 void
@@ -80,7 +120,22 @@ sky_pgsql_conn_release(sky_pgsql_conn_t *const conn) {
 
     pgsql_task_t *const task = sky_type_convert(item, pgsql_task_t, link);
     sky_queue_insert_prev(&pool->free_tasks, &task->link);
-    task->cb(conn, task->data);
+
+    conn->conn_cb = task->cb;
+    conn->cb_data = task->data;
+
+    pgsql_connect_next(conn);
+}
+
+static sky_inline void
+pgsql_connect_next(sky_pgsql_conn_t *const conn) {
+    if (sky_tcp_is_open(&conn->tcp)
+        || !sky_tcp_open(&conn->tcp, sky_inet_addr_family(&conn->pool->address))) {
+        conn->conn_cb(conn, conn->cb_data);
+        return;
+    }
+    sky_tcp_set_cb(&conn->tcp, pgsql_connection);
+    pgsql_connection(&conn->tcp);
 }
 
 static sky_inline pgsql_task_t *
@@ -104,4 +159,22 @@ pgsql_task_get(sky_pgsql_pool_t *const pool) {
     }
 
     return block->tasks + (--block->free_num);
+}
+
+static void
+pgsql_connection(sky_tcp_t *const tcp) {
+    sky_pgsql_conn_t *const conn = sky_type_convert(tcp, sky_pgsql_conn_t, tcp);
+
+    const sky_i8_t r = sky_tcp_connect(tcp, &conn->pool->address);
+    if (r > 0) {
+        pgsql_auth(conn);
+        return;
+    }
+    if (sky_unlikely(!r)) {
+        sky_tcp_try_register(tcp, SKY_EV_READ | SKY_EV_WRITE);
+        return;
+    }
+
+    sky_tcp_close(tcp);
+    conn->conn_cb(conn, conn->cb_data);
 }

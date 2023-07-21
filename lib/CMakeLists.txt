@@ -38,6 +38,7 @@ set(SOURCES
         io/http/module/http_server_file.c
         io/http/module/http_server_dispatcher.c
         io/postgres/pgsql_pool.c
+        io/postgres/pgsql_auth.c
         )
 
 
