@@ -289,7 +289,9 @@ http_body_read_cb(sky_tcp_t *const tcp) {
 
 static void
 http_work_none(sky_tcp_t *const tcp) {
-    (void) tcp;
+    if (sky_ev_error(sky_tcp_ev(tcp))) {
+        sky_tcp_close(tcp);
+    }
 }
 
 static void
