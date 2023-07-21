@@ -14,6 +14,7 @@ set(SOURCES
         core/base16.c
         core/base64.c
         core/crc32.c
+        core/md5.c
         core/date.c
         core/string_buf.c
         core/json.c

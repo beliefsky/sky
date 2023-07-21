@@ -12,18 +12,20 @@
 struct sky_pgsql_conn_s {
     sky_tcp_t tcp;
     sky_queue_t link;
-    sky_pgsql_pool_t *pool;
+    sky_pgsql_pool_t *pg_pool;
     sky_usize_t offset;
-
+    sky_pool_t *current_pool;
     union {
         sky_pgsql_conn_pt conn_cb;
     };
-
     void *cb_data;
+
+    void *data;
 };
 
 typedef struct {
     sky_queue_t link;
+    sky_pool_t *pool;
     sky_pgsql_conn_pt cb;
     void *data;
 } pgsql_task_t;
@@ -46,7 +48,6 @@ struct sky_pgsql_pool_s {
     sky_str_t connect_info;
     pgsql_block_t *current_block;
     sky_event_loop_t *ev_loop;
-    sky_u32_t conn_n;
 };
 
 void pgsql_auth(sky_pgsql_conn_t *conn);

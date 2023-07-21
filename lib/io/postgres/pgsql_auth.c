@@ -2,30 +2,66 @@
 // Created by weijing on 2023/7/21.
 //
 #include "pgsql_common.h"
+#include <core/log.h>
+#include <core/buf.h>
+#include <core/md5.h>
+#include <core/base16.h>
+#include <core/memory.h>
 
-static void pgsql_write_connect_info(sky_tcp_t * tcp);
+typedef enum {
+    START = 0,
+    AUTH,
+    STRING,
+    KEY_DATA,
+    ERROR
+
+} auth_status_t;
+
+
+typedef struct {
+    sky_buf_t buf;
+    sky_usize_t size;
+    auth_status_t status;
+} auth_packet_t;
+
+static void pgsql_connect_info_send(sky_tcp_t *tcp);
+
+static void pgsql_auth_read(sky_tcp_t *tcp);
+
+static void pgsql_password(sky_pgsql_conn_t *conn, sky_u32_t auth_type, sky_uchar_t *data, sky_usize_t size);
+
+static void pgsql_password_send(sky_tcp_t *tcp);
+
+static void pgsql_none_work(sky_tcp_t *tcp);
 
 void
 pgsql_auth(sky_pgsql_conn_t *const conn) {
     conn->offset = 0;
 
-    sky_tcp_set_cb(&conn->tcp, pgsql_write_connect_info);
-    pgsql_write_connect_info(&conn->tcp);
+    sky_tcp_set_cb(&conn->tcp, pgsql_connect_info_send);
+    pgsql_connect_info_send(&conn->tcp);
 }
 
 
 static void
-pgsql_write_connect_info(sky_tcp_t *const tcp) {
+pgsql_connect_info_send(sky_tcp_t *const tcp) {
     sky_pgsql_conn_t *const conn = sky_type_convert(tcp, sky_pgsql_conn_t, tcp);
-    const sky_str_t *const info = &conn->pool->connect_info;
+    const sky_str_t *const conn_info = &conn->pg_pool->connect_info;
 
     sky_isize_t n;
 
     again:
-    n = sky_tcp_write(tcp, info->data + conn->offset, info->len - conn->offset);
+    n = sky_tcp_write(tcp, conn_info->data + conn->offset, conn_info->len - conn->offset);
     if (n > 0) {
         conn->offset += (sky_usize_t) n;
-        if (conn->offset >= info->len) {
+        if (conn->offset >= conn_info->len) {
+            auth_packet_t *const packet = sky_palloc(conn->current_pool, sizeof(auth_packet_t));
+            sky_buf_init(&packet->buf, conn->current_pool, 1024);
+            packet->size = 0;
+            packet->status = START;
+            conn->data = packet;
+            sky_tcp_set_cb(tcp, pgsql_auth_read);
+            pgsql_auth_read(tcp);
             return;
         }
         goto again;
@@ -37,4 +73,225 @@ pgsql_write_connect_info(sky_tcp_t *const tcp) {
 
     sky_tcp_close(tcp);
     conn->conn_cb(conn, conn->cb_data);
+}
+
+static void
+pgsql_auth_read(sky_tcp_t *const tcp) {
+    sky_pgsql_conn_t *const conn = sky_type_convert(tcp, sky_pgsql_conn_t, tcp);
+    auth_packet_t *const packet = conn->data;
+    sky_buf_t *const buf = &packet->buf;
+
+    sky_isize_t n;
+
+    read_again:
+    n = sky_tcp_read(tcp, buf->last, (sky_usize_t) (buf->end - buf->last));
+    if (n > 0) {
+        buf->last += n;
+
+        switch_again:
+        switch (packet->status) {
+            case START: {
+                if ((sky_usize_t) (buf->last - buf->pos) < SKY_USIZE(5)) {
+                    break;
+                }
+                switch (*(buf->pos++)) {
+                    case 'R':
+                        packet->status = AUTH;
+                        break;
+                    case 'S':
+                        packet->status = STRING;
+                        break;
+                    case 'K':
+                        packet->status = KEY_DATA;
+                        break;
+                    case 'E':
+                        packet->status = ERROR;
+                        break;
+                    default:
+                        sky_log_error("auth error %c", *(buf->pos - 1));
+                        for (sky_uchar_t *p = buf->pos; p != buf->last; ++p) {
+                            printf("%c", *p);
+                        }
+                        printf("\n\n");
+                        goto error;
+                }
+                packet->size = sky_ntohl(*((sky_u32_t *) buf->pos));
+                buf->pos += 4;
+                if (sky_unlikely(packet->size < 4)) {
+                    goto error;
+                }
+                packet->size -= 4;
+                goto switch_again;
+            }
+            case AUTH: {
+                if ((sky_usize_t) (buf->last - buf->pos) < packet->size) {
+                    break;
+                }
+                const sky_u32_t type = sky_ntohl(*((sky_u32_t *) buf->pos));
+                buf->pos += 4;
+                packet->size -= 4;
+                packet->status = START;
+                if (!type) {
+                    goto switch_again;
+                }
+                pgsql_password(conn, type, buf->pos, packet->size);
+                return;
+            }
+            case STRING: {
+                if ((sky_usize_t) (buf->last - buf->pos) < packet->size) {
+                    break;
+                }
+//                    for (p = buf.pos; p != buf.last; ++p) {
+//                        if (*p == 0) {
+//                            break;
+//                        }
+//                    }
+//                    sky_log_info("%s : %s", buf.pos, ++p);
+                buf->pos += packet->size;
+                packet->status = START;
+                goto switch_again;
+            }
+            case KEY_DATA: {
+                if ((sky_usize_t) (buf->last - buf->pos) < packet->size) {
+                    break;
+                }
+                if (packet->size != 8) {
+                    goto error;
+                }
+//                    conn->process_id = sky_ntohl(*((sky_u32_t *) buf.pos));
+                buf->pos += 4;
+//                    conn->process_key = sky_ntohl(*((sky_u32_t *) buf.pos));
+                buf->pos += 4;
+                sky_buf_destroy(buf);
+
+                sky_tcp_set_cb(tcp, pgsql_none_work);
+                conn->conn_cb(conn, conn->cb_data);
+                return;
+            }
+            case ERROR: {
+                if ((sky_usize_t) (buf->last - buf->pos) < packet->size) {
+                    break;
+                }
+                sky_uchar_t *const p = buf->pos;
+                for (sky_usize_t i = 0; i < packet->size; ++i) {
+                    if (p[i] == '\0') {
+                        p[i] = ' ';
+                    }
+                }
+                sky_log_error("%s", p);
+                goto error;
+            }
+
+            default:
+                goto error;
+        }
+
+        if (!packet->size || (sky_usize_t) (buf->end - buf->pos) <= packet->size) {
+            sky_buf_rebuild(buf, sky_max(packet->size, SKY_USIZE(1024)));
+        }
+        goto read_again;
+    }
+
+    if (sky_likely(!n)) {
+        sky_tcp_try_register(tcp, SKY_EV_READ | SKY_EV_WRITE);
+        return;
+    }
+
+    error:
+    sky_buf_destroy(buf);
+    sky_tcp_close(tcp);
+    conn->conn_cb(conn, conn->cb_data);
+}
+
+static sky_inline void
+pgsql_password(
+        sky_pgsql_conn_t *const conn,
+        const sky_u32_t auth_type,
+        sky_uchar_t *const data,
+        const sky_usize_t size
+) {
+    auth_packet_t *const packet = conn->data;
+
+    if (auth_type != 5) {
+        sky_buf_destroy(&packet->buf);
+        sky_tcp_close(&conn->tcp);
+
+        sky_log_error("auth type %u not support", auth_type);
+        conn->conn_cb(conn, conn->cb_data);
+    }
+    const sky_pgsql_pool_t *const pg_pool = conn->pg_pool;
+
+    sky_md5_t ctx;
+    sky_md5_init(&ctx);
+    sky_md5_update(&ctx, pg_pool->password.data, pg_pool->password.len);
+    sky_md5_update(&ctx, pg_pool->username.data, pg_pool->username.len);
+
+    sky_uchar_t bin[16];
+    sky_md5_final(&ctx, bin);
+
+    sky_uchar_t hex[32];
+    sky_base16_encode(hex, bin, 16);
+
+    sky_md5_init(&ctx);
+    sky_md5_update(&ctx, hex, 32);
+    sky_md5_update(&ctx, data, size);
+    sky_md5_final(&ctx, bin);
+
+    sky_buf_reset(&packet->buf);
+
+    if (sky_unlikely((sky_usize_t) (packet->buf.end - packet->buf.last) < 41)) {
+        sky_buf_rebuild(&packet->buf, 1024);
+    }
+    sky_uchar_t *p = packet->buf.pos;
+
+    *(p++) = 'p';
+    *((sky_u32_t *) p) = sky_htonl(40);
+    p += 4;
+    sky_memcpy(p, "md5", 3);
+    p += 3;
+    p += sky_base16_encode(p, bin, 16);
+    *p = '\0';
+
+    packet->buf.last += 41;
+
+
+    sky_tcp_set_cb(&conn->tcp, pgsql_password_send);
+    pgsql_password_send(&conn->tcp);
+}
+
+static void
+pgsql_password_send(sky_tcp_t *const tcp) {
+    sky_pgsql_conn_t *const conn = sky_type_convert(tcp, sky_pgsql_conn_t, tcp);
+    auth_packet_t *const packet = conn->data;
+    sky_buf_t *const buf = &packet->buf;
+
+
+    sky_isize_t n;
+
+    again:
+    n = sky_tcp_write(tcp, buf->pos, (sky_usize_t) (buf->last - buf->pos));
+    if (n > 0) {
+        buf->pos += n;
+        if (buf->pos >= buf->last) {
+            sky_buf_reset(buf);
+            sky_tcp_set_cb(tcp, pgsql_auth_read);
+            pgsql_auth_read(tcp);
+            return;
+        }
+        goto again;
+    }
+    if (sky_likely(!n)) {
+        sky_tcp_try_register(tcp, SKY_EV_READ | SKY_EV_WRITE);
+        return;
+    }
+
+    sky_tcp_close(tcp);
+    conn->conn_cb(conn, conn->cb_data);
+}
+
+static void
+pgsql_none_work(sky_tcp_t *const tcp) {
+    if (sky_unlikely(sky_ev_error(&tcp->ev))) {
+        sky_tcp_close(tcp);
+    }
 }

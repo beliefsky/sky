@@ -39,7 +39,6 @@ sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *c
     sky_queue_init(&pool->blocks);
     pool->current_block = null;
     pool->ev_loop = ev_loop;
-    pool->conn_n = conn_num;
 
     ptr += sizeof(sky_pgsql_pool_t);
 
@@ -48,7 +47,7 @@ sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *c
         sky_queue_init_node(&conn->link);
         sky_queue_insert_prev(&pool->free_conns, &conn->link);
         sky_tcp_init(&conn->tcp, sky_event_selector(ev_loop));
-        conn->pool = pool;
+        conn->pg_pool = pool;
     }
     ptr += sizeof(sky_pgsql_conn_t) * conn_num;
     sky_inet_addr_set_ptr(&pool->address, ptr);
@@ -86,21 +85,23 @@ sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *c
 }
 
 void
-sky_pgsql_pool_get(sky_pgsql_pool_t *pool, sky_pgsql_conn_pt cb, void *data) {
-    sky_queue_t *const item = sky_queue_next(&pool->free_conns);
-    if (item == &pool->free_conns) {
-        pgsql_task_t *const task = pgsql_task_get(pool);
+sky_pgsql_pool_get(sky_pgsql_pool_t *pg_pool,  sky_pool_t *const pool, sky_pgsql_conn_pt cb, void *data) {
+    sky_queue_t *const item = sky_queue_next(&pg_pool->free_conns);
+    if (item == &pg_pool->free_conns) {
+        pgsql_task_t *const task = pgsql_task_get(pg_pool);
         if (sky_unlikely(!task)) {
             cb(null, data);
             return;
         }
+        task->pool = pool;
         task->cb = cb;
         task->data = data;
-        sky_queue_insert_prev(&pool->tasks, &task->link);
+        sky_queue_insert_prev(&pg_pool->tasks, &task->link);
         return;
     }
     sky_queue_remove(item);
     sky_pgsql_conn_t *const conn = sky_type_convert(item, sky_pgsql_conn_t, link);
+    conn->current_pool = pool;
     conn->conn_cb = cb;
     conn->cb_data = data;
 
@@ -109,7 +110,10 @@ sky_pgsql_pool_get(sky_pgsql_pool_t *pool, sky_pgsql_conn_pt cb, void *data) {
 
 void
 sky_pgsql_conn_release(sky_pgsql_conn_t *const conn) {
-    sky_pgsql_pool_t *const pool = conn->pool;
+    if (sky_unlikely(!conn)) {
+        return;
+    }
+    sky_pgsql_pool_t *const pool = conn->pg_pool;
     sky_queue_t *const item = sky_queue_next(&pool->tasks);
     if (item == &pool->tasks) {
         // 此处需要加入回收列队
@@ -120,7 +124,7 @@ sky_pgsql_conn_release(sky_pgsql_conn_t *const conn) {
 
     pgsql_task_t *const task = sky_type_convert(item, pgsql_task_t, link);
     sky_queue_insert_prev(&pool->free_tasks, &task->link);
-
+    conn->current_pool = task->pool;
     conn->conn_cb = task->cb;
     conn->cb_data = task->data;
 
@@ -130,7 +134,7 @@ sky_pgsql_conn_release(sky_pgsql_conn_t *const conn) {
 static sky_inline void
 pgsql_connect_next(sky_pgsql_conn_t *const conn) {
     if (sky_tcp_is_open(&conn->tcp)
-        || !sky_tcp_open(&conn->tcp, sky_inet_addr_family(&conn->pool->address))) {
+        || !sky_tcp_open(&conn->tcp, sky_inet_addr_family(&conn->pg_pool->address))) {
         conn->conn_cb(conn, conn->cb_data);
         return;
     }
@@ -165,7 +169,7 @@ static void
 pgsql_connection(sky_tcp_t *const tcp) {
     sky_pgsql_conn_t *const conn = sky_type_convert(tcp, sky_pgsql_conn_t, tcp);
 
-    const sky_i8_t r = sky_tcp_connect(tcp, &conn->pool->address);
+    const sky_i8_t r = sky_tcp_connect(tcp, &conn->pg_pool->address);
     if (r > 0) {
         pgsql_auth(conn);
         return;
