@@ -122,14 +122,14 @@ void sky_http_req_body_read(sky_http_server_request_t *r, sky_http_server_next_r
 
 void sky_http_response_nobody(sky_http_server_request_t *r, sky_http_server_next_pt call, void *cb_data);
 
-void sky_http_response_static(
+void sky_http_response_str(
         sky_http_server_request_t *r,
         const sky_str_t *data,
         sky_http_server_next_pt call,
         void *cb_data
 );
 
-void sky_http_response_static_len(
+void sky_http_response_str_len(
         sky_http_server_request_t *r,
         const sky_uchar_t *data,
         sky_usize_t data_len,

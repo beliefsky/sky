@@ -34,6 +34,7 @@ set(SOURCES
         io/selector/epoll.c
         io/selector/kqueue.c
         io/http/http_server.c
+        io/http/http_server_wait.c
         io/http/http_server_req.c
         io/http/http_server_req_body.c
         io/http/http_parse.c
