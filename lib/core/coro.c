@@ -4,7 +4,6 @@
 
 #include <stdlib.h>
 #include <core/coro.h>
-#include <core/queue.h>
 #include <core/memory.h>
 #include <core/log.h>
 
@@ -66,7 +65,7 @@ struct coro_block_s {
 
 struct sky_coro_s {
     sky_coro_context_t context;
-    sky_isize_t yield_value;
+    sky_usize_t yield_value;
 //===================================
     sky_coro_t *parent;
     coro_block_t *block;
@@ -76,9 +75,9 @@ struct sky_coro_s {
     sky_uchar_t stack[];
 };
 
-static sky_isize_t coro_resume(sky_coro_t *coro);
+static sky_usize_t coro_resume(sky_coro_t *coro);
 
-static sky_isize_t coro_yield(sky_coro_t *coro, sky_isize_t value);
+static sky_usize_t coro_yield(sky_coro_t *coro, sky_usize_t value);
 
 static void mem_block_add(sky_coro_t *coro);
 
@@ -240,7 +239,7 @@ sky_coro_set(sky_coro_t *const coro, const sky_coro_func_t func, void *const dat
 }
 
 
-sky_api sky_isize_t
+sky_api sky_usize_t
 sky_coro_resume(sky_coro_t *const coro) {
 #ifdef STACK_PTR
     if (sky_unlikely(coro->context[STACK_PTR] > (sky_usize_t) (coro->stack + CORO_STACK_MIN))) {
@@ -251,8 +250,8 @@ sky_coro_resume(sky_coro_t *const coro) {
     return coro_resume(coro);
 }
 
-sky_api sky_isize_t
-sky_coro_resume_value(sky_coro_t *const coro, const sky_isize_t value) {
+sky_api sky_usize_t
+sky_coro_resume_value(sky_coro_t *const coro, const sky_usize_t value) {
 #ifdef STACK_PTR
     if (sky_unlikely(coro->context[STACK_PTR] > (sky_usize_t) (coro->stack + CORO_STACK_MIN))) {
         sky_log_error("sky_coro_resume out of stack");
@@ -264,8 +263,8 @@ sky_coro_resume_value(sky_coro_t *const coro, const sky_isize_t value) {
     return coro_resume(coro);
 }
 
-sky_api sky_isize_t
-sky_coro_yield(const sky_isize_t value) {
+sky_api sky_usize_t
+sky_coro_yield(const sky_usize_t value) {
     sky_coro_t *current = thread_switcher.current;
     if (sky_unlikely(!current)) {
         sky_log_error("coro not run");
@@ -273,17 +272,6 @@ sky_coro_yield(const sky_isize_t value) {
     }
 
     return coro_yield(current, value);
-}
-
-sky_api void
-sky_coro_exit(const sky_isize_t value) {
-    sky_coro_t *const current = thread_switcher.current;
-    if (sky_likely(current)) {
-        coro_yield(current, value);
-    } else {
-        sky_log_error("coro not run");
-    }
-    __builtin_unreachable();
 }
 
 sky_api sky_coro_t *
@@ -320,7 +308,7 @@ sky_coro_malloc(sky_coro_t *const coro, const sky_u32_t size) {
     return ptr;
 }
 
-static sky_inline sky_isize_t
+static sky_inline sky_usize_t
 coro_resume(sky_coro_t *const coro) {
     coro_switcher_t *const switcher = &thread_switcher;
 
@@ -337,8 +325,8 @@ coro_resume(sky_coro_t *const coro) {
     return coro->yield_value;
 }
 
-static sky_inline sky_isize_t
-coro_yield(sky_coro_t *const coro, const sky_isize_t value) {
+static sky_inline sky_usize_t
+coro_yield(sky_coro_t *const coro, const sky_usize_t value) {
     coro->yield_value = value;
 
     if (!coro->parent) {
