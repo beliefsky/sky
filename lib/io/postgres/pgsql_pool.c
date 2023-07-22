@@ -14,7 +14,7 @@ static void pgsql_connection(sky_tcp_t *tcp);
 static pgsql_task_t *pgsql_task_get(sky_pgsql_pool_t *pool);
 
 
-sky_pgsql_pool_t *
+sky_api sky_pgsql_pool_t *
 sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *conf) {
     const sky_u32_t conn_num = conf->connection_size ?: 8;
 
@@ -55,7 +55,7 @@ sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *c
 
     ptr += sky_inet_addr_size(&conf->address);
 
-    pool->connect_info.len = alloc_size;
+    pool->connect_info.len = info_size;
     pool->connect_info.data = ptr;
 
     *((sky_u32_t *) ptr) = sky_htonl(info_size);
@@ -85,7 +85,7 @@ sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *c
     return pool;
 }
 
-void
+sky_api void
 sky_pgsql_pool_get(sky_pgsql_pool_t *pg_pool,  sky_pool_t *const pool, sky_pgsql_conn_pt cb, void *data) {
     sky_queue_t *const item = sky_queue_next(&pg_pool->free_conns);
     if (item == &pg_pool->free_conns) {
@@ -109,7 +109,7 @@ sky_pgsql_pool_get(sky_pgsql_pool_t *pg_pool,  sky_pool_t *const pool, sky_pgsql
     pgsql_connect_next(conn);
 }
 
-void
+sky_api void
 sky_pgsql_conn_release(sky_pgsql_conn_t *const conn) {
     if (sky_unlikely(!conn)) {
         return;
@@ -139,6 +139,8 @@ pgsql_connect_next(sky_pgsql_conn_t *const conn) {
         conn->conn_cb(conn, conn->cb_data);
         return;
     }
+    sky_tcp_option_no_delay(&conn->tcp);
+
     sky_tcp_set_cb(&conn->tcp, pgsql_connection);
     pgsql_connection(&conn->tcp);
 }

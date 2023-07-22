@@ -85,8 +85,6 @@ pgsql_auth_read(sky_tcp_t *const tcp) {
 
     read_again:
     n = sky_tcp_read(tcp, buf->last, (sky_usize_t) (buf->end - buf->last));
-
-    sky_log_info("====read ==>%ld / %ld", n, buf->end - buf->last);
     if (n > 0) {
         buf->last += n;
 
@@ -256,8 +254,6 @@ pgsql_password(
     *p = '\0';
 
     packet->buf.last += 41;
-
-    sky_log_info("%s", packet->buf.pos + 5);
 
     sky_tcp_set_cb(&conn->tcp, pgsql_password_send);
     pgsql_password_send(&conn->tcp);
