@@ -29,6 +29,7 @@ set(SOURCES
         io/inet.c
         io/tcp.c
         io/udp.c
+        io/sync_wait.c
         io/event_loop.c
         io/selector/epoll.c
         io/selector/kqueue.c
@@ -40,6 +41,7 @@ set(SOURCES
         io/http/module/http_server_file.c
         io/http/module/http_server_dispatcher.c
         io/postgres/pgsql_pool.c
+        io/postgres/pgsql_pool_wait.c
         io/postgres/pgsql_auth.c
         io/postgres/pgsql_exec.c
         )
