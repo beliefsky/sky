@@ -96,7 +96,7 @@ http_run_handler_next(sky_http_server_request_t *r, const http_module_dispatcher
     sky_str_set(&r->headers_out.content_type, "application/json");
     if (!handler) {
         r->state = 404;
-        sky_http_response_static_len(
+        sky_http_response_str_len(
                 r,
                 sky_str_line("{\"errcode\": 404, \"errmsg\": \"404 Not Found\"}"),
                 null,
@@ -119,7 +119,7 @@ http_run_handler_next(sky_http_server_request_t *r, const http_module_dispatcher
             break;
         default:
             r->state = 405;
-            sky_http_response_static_len(
+            sky_http_response_str_len(
                     r,
                     sky_str_line("{\"errcode\": 405, \"errmsg\": \"405 Method Not Allowed\"}"),
                     null,
@@ -130,7 +130,7 @@ http_run_handler_next(sky_http_server_request_t *r, const http_module_dispatcher
 
     if (!(*handler)) {
         r->state = 405;
-        sky_http_response_static_len(
+        sky_http_response_str_len(
                 r,
                 sky_str_line("{\"errcode\": 405, \"errmsg\": \"405 Method Not Allowed\"}"),
                 null,

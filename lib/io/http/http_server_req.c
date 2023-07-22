@@ -29,7 +29,7 @@ sky_http_server_req_finish(sky_http_server_request_t *const r) {
         return;
     }
     if (sky_unlikely(!r->response)) { //如果未响应则响应空数据
-        sky_http_response_static_len(r, null, 0, null, null);
+        sky_http_response_str_len(r, null, 0, null, null);
         return;
     }
 
@@ -204,7 +204,7 @@ http_module_run(sky_http_server_request_t *const r) {
     no_module:
     r->state = 404;
     sky_str_set(&r->headers_out.content_type, "text/plain");
-    sky_http_response_static_len(r, sky_str_line("404 Not Found"), null, null);
+    sky_http_response_str_len(r, sky_str_line("404 Not Found"), null, null);
 }
 
 static void

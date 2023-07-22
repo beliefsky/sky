@@ -13,7 +13,7 @@
 #define http_error_page(_r, _status, _msg)                              \
     (_r)->state = _status;                                              \
     sky_str_set(&(_r)->headers_out.content_type, "text/html");          \
-    sky_http_response_static_len(r,sky_str_line("<html>\n<head><title>" \
+    sky_http_response_str_len(r,sky_str_line("<html>\n<head><title>" \
     _msg                                                                \
     "</title></head>\n<body bgcolor=\"white\">\n<center><h1>"           \
     _msg                                                                \

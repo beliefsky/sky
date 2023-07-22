@@ -333,7 +333,7 @@ http_read_body_cb_timeout(sky_timer_wheel_entry_t *const entry) {
 static void
 http_body_str_too_large(sky_http_server_request_t *const r, void *const data) {
     r->state = 413;
-    sky_http_response_static_len(
+    sky_http_response_str_len(
             r,
             sky_str_line("413 Request Entity Too Large"),
             http_body_read_none_to_str,

@@ -88,7 +88,7 @@ create_server(sky_event_loop_t *ev_loop) {
 
 
 static SKY_HTTP_MAPPER_HANDLER(hello_world) {
-    sky_http_response_static_len(
+    sky_http_response_str_len(
             req,
             sky_str_line("{\"status\": 200, \"msg\": \"success\"}"),
             null,
@@ -110,7 +110,7 @@ body_cb(sky_http_server_request_t *req, void *data) {
         return;
     }
 
-    sky_http_response_static_len(
+    sky_http_response_str_len(
             req,
             sky_str_line("{\"status\": 200, \"msg\": \"success\"}"),
             null,
