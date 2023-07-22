@@ -32,31 +32,32 @@ sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *c
 
     sky_uchar_t *ptr = sky_malloc(alloc_size);
 
-    sky_pgsql_pool_t *const pool = (sky_pgsql_pool_t *) (ptr);
-    sky_queue_init(&pool->free_conns);
-    sky_queue_init(&pool->tasks);
-    sky_queue_init(&pool->free_tasks);
-    sky_queue_init(&pool->blocks);
-    pool->current_block = null;
-    pool->ev_loop = ev_loop;
+    sky_pgsql_pool_t *const pg_pool = (sky_pgsql_pool_t *) (ptr);
+    sky_queue_init(&pg_pool->free_conns);
+    sky_queue_init(&pg_pool->tasks);
+    sky_queue_init(&pg_pool->free_tasks);
+    sky_queue_init(&pg_pool->blocks);
+    pg_pool->current_block = null;
+    pg_pool->ev_loop = ev_loop;
+    pg_pool->conn_num = conn_num;
 
     ptr += sizeof(sky_pgsql_pool_t);
 
     sky_pgsql_conn_t *conn = (sky_pgsql_conn_t *) ptr;
     for (sky_u32_t i = conn_num; i > 0; --i, ++conn) {
         sky_queue_init_node(&conn->link);
-        sky_queue_insert_prev(&pool->free_conns, &conn->link);
+        sky_queue_insert_prev(&pg_pool->free_conns, &conn->link);
         sky_tcp_init(&conn->tcp, sky_event_selector(ev_loop));
-        conn->pg_pool = pool;
+        conn->pg_pool = pg_pool;
     }
     ptr += sizeof(sky_pgsql_conn_t) * conn_num;
-    sky_inet_addr_set_ptr(&pool->address, ptr);
-    sky_inet_addr_copy(&pool->address, &conf->address);
+    sky_inet_addr_set_ptr(&pg_pool->address, ptr);
+    sky_inet_addr_copy(&pg_pool->address, &conf->address);
 
     ptr += sky_inet_addr_size(&conf->address);
 
-    pool->connect_info.len = info_size;
-    pool->connect_info.data = ptr;
+    pg_pool->connect_info.len = info_size;
+    pg_pool->connect_info.data = ptr;
 
     *((sky_u32_t *) ptr) = sky_htonl(info_size);
     ptr += 4;
@@ -66,8 +67,8 @@ sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *c
     sky_memcpy(ptr, "user", sizeof("user"));
     ptr += sizeof("user");
     sky_memcpy(ptr, conf->username.data, conf->username.len);
-    pool->username.data = ptr;
-    pool->username.len = conf->username.len;
+    pg_pool->username.data = ptr;
+    pg_pool->username.len = conf->username.len;
     ptr += conf->username.len;
     *ptr++ = '\0';
     sky_memcpy(ptr, "database", sizeof("database"));
@@ -78,11 +79,11 @@ sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *c
     *ptr++ = '\0';
 
     sky_memcpy(ptr, conf->password.data, conf->password.len);
-    pool->password.data = ptr;
-    pool->password.len = conf->password.len;
+    pg_pool->password.data = ptr;
+    pg_pool->password.len = conf->password.len;
 
 
-    return pool;
+    return pg_pool;
 }
 
 sky_api void
@@ -130,6 +131,33 @@ sky_pgsql_conn_release(sky_pgsql_conn_t *const conn) {
     conn->cb_data = task->data;
 
     pgsql_connect_next(conn);
+}
+
+sky_api void
+sky_pgsql_pool_destroy(sky_pgsql_pool_t *pg_pool) {
+    sky_queue_t *item;
+    pgsql_task_t *task;
+    while (!sky_queue_empty(&pg_pool->tasks)) {
+        item = sky_queue_next(&pg_pool->tasks);
+        sky_queue_remove(item);
+        task = sky_type_convert(item, pgsql_task_t, link);
+        task->cb(null, task->data);
+    }
+
+    pgsql_block_t *block;
+    while (!sky_queue_empty(&pg_pool->blocks)) {
+        item = sky_queue_next(&pg_pool->blocks);
+        sky_queue_remove(item);
+        block = sky_type_convert(item, pgsql_block_t, link);
+        sky_free(block);
+    }
+
+    sky_pgsql_conn_t *conn = (sky_pgsql_conn_t *)(pg_pool + 1);
+    for (sky_u32_t i = pg_pool->conn_num; i > 0; --i, ++conn) {
+        sky_tcp_close(&conn->tcp);
+    }
+
+    sky_free(pg_pool);
 }
 
 static sky_inline void

@@ -48,6 +48,7 @@ struct sky_pgsql_pool_s {
     sky_str_t connect_info;
     pgsql_block_t *current_block;
     sky_event_loop_t *ev_loop;
+    sky_u32_t conn_num;
 };
 
 void pgsql_auth(sky_pgsql_conn_t *conn);

@@ -32,6 +32,8 @@ void sky_pgsql_pool_get(sky_pgsql_pool_t *pg_pool, sky_pool_t *pool, sky_pgsql_c
 
 void sky_pgsql_conn_release(sky_pgsql_conn_t *conn);
 
+void sky_pgsql_pool_destroy(sky_pgsql_pool_t *pg_pool);
+
 
 #if defined(__cplusplus)
 } /* extern "C" { */
