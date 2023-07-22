@@ -42,7 +42,7 @@ sky_sync_wait_resume(sky_sync_wait_t *const sync_wait, void *att_data) {
         return;
     }
 
-    if (sky_coro_resume(sync_wait->coro) == SKY_CORO_FINISHED) {
+    if (sky_coro_resume(sync_wait->coro) != SKY_CORO_MAY_RESUME) {
         sky_coro_destroy(sync_wait->coro);
     }
 }

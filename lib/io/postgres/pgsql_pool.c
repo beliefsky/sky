@@ -15,6 +15,8 @@ static void pgsql_connection(sky_tcp_t *tcp);
 
 static void pgsql_pool_destroy(sky_pgsql_pool_t *pg_pool);
 
+static void pgsql_pool_gc(sky_timer_wheel_entry_t *timer);
+
 
 sky_api sky_pgsql_pool_t *
 sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *conf) {
@@ -39,6 +41,7 @@ sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *c
     sky_queue_init(&pg_pool->tasks);
     sky_queue_init(&pg_pool->free_tasks);
     sky_queue_init(&pg_pool->blocks);
+    sky_timer_entry_init(&pg_pool->timer, pgsql_pool_gc);
     pg_pool->current_block = null;
     pg_pool->ev_loop = ev_loop;
     pg_pool->conn_num = conn_num;
@@ -110,6 +113,9 @@ sky_pgsql_pool_get(sky_pgsql_pool_t *pg_pool, sky_pool_t *const pool, sky_pgsql_
         return;
     }
     --pg_pool->free_conn_num;
+    if (!pg_pool->free_conn_num) {
+        sky_timer_wheel_unlink(&pg_pool->timer);
+    }
 
     sky_queue_remove(item);
     sky_pgsql_conn_t *const conn = sky_type_convert(item, sky_pgsql_conn_t, link);
@@ -128,12 +134,15 @@ sky_pgsql_conn_release(sky_pgsql_conn_t *const conn) {
     sky_pgsql_pool_t *const pg_pool = conn->pg_pool;
     sky_queue_t *const item = sky_queue_next(&pg_pool->tasks);
     if (item == &pg_pool->tasks) {
+        sky_queue_insert_next(&pg_pool->free_conns, &conn->link);
         ++pg_pool->free_conn_num;
 
-        sky_queue_insert_next(&pg_pool->free_conns, &conn->link);
-        if (sky_unlikely(pg_pool->destroy && pg_pool->free_conn_num >= pg_pool->conn_num)) {
-            pgsql_pool_destroy(pg_pool);
-            return;
+        if (pg_pool->free_conn_num >= pg_pool->conn_num) {
+            if (sky_likely(!pg_pool->destroy)) {
+                sky_event_timeout_set(pg_pool->ev_loop, &pg_pool->timer, 30);
+            } else {
+                pgsql_pool_destroy(pg_pool);
+            }
         }
         return;
     }
@@ -226,6 +235,26 @@ pgsql_pool_destroy(sky_pgsql_pool_t *const pg_pool) {
     for (sky_u32_t i = pg_pool->conn_num; i > 0; --i, ++conn) {
         sky_tcp_close(&conn->tcp);
     }
+    sky_timer_wheel_unlink(&pg_pool->timer);
 
     sky_free(pg_pool);
+}
+
+static void
+pgsql_pool_gc(sky_timer_wheel_entry_t *const timer) {
+    sky_pgsql_pool_t *const pg_pool = sky_type_convert(timer, sky_pgsql_pool_t, timer);
+    if (sky_unlikely(pg_pool->free_conn_num < pg_pool->conn_num)) {
+        return;
+    }
+
+    sky_queue_t *item;
+    pgsql_block_t *block;
+    while (!sky_queue_empty(&pg_pool->blocks)) {
+        item = sky_queue_next(&pg_pool->blocks);
+        sky_queue_remove(item);
+        block = sky_type_convert(item, pgsql_block_t, link);
+        sky_free(block);
+    }
+    pg_pool->current_block = null;
+    sky_queue_init(&pg_pool->free_tasks);
 }

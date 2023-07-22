@@ -46,7 +46,7 @@ main() {
                     .addr = (struct sockaddr *) &pg_address
             },
             .username = sky_string("postgres"),
-            .password = sky_string("123456"),
+            .password = sky_string("lyx518516"),
             .database = sky_string("beliefsky_test"),
     };
 

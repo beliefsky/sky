@@ -12,6 +12,7 @@
 struct sky_pgsql_conn_s {
     sky_tcp_t tcp;
     sky_queue_t link;
+    sky_timer_wheel_entry_t timer;
     sky_pgsql_pool_t *pg_pool;
     sky_usize_t offset;
     sky_pool_t *current_pool;
@@ -44,6 +45,7 @@ struct sky_pgsql_pool_s {
     sky_queue_t free_tasks;
     sky_queue_t blocks;
     sky_inet_addr_t address;
+    sky_timer_wheel_entry_t timer;
     sky_str_t username;
     sky_str_t password;
     sky_str_t connect_info;
@@ -51,7 +53,7 @@ struct sky_pgsql_pool_s {
     sky_event_loop_t *ev_loop;
     sky_u32_t conn_num;
     sky_u32_t free_conn_num;
-    sky_bool_t destroy:1;
+    sky_bool_t destroy;
 };
 
 void pgsql_auth(sky_pgsql_conn_t *conn);
