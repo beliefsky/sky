@@ -178,7 +178,7 @@ pgsql_auth_read(sky_tcp_t *const tcp) {
                         p[i] = ' ';
                     }
                 }
-                sky_log_error("%s", p);
+                sky_log_error("%.*s", packet->size, p);
                 goto error;
             }
 
