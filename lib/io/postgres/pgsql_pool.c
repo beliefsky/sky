@@ -42,7 +42,7 @@ sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *c
     pg_pool->current_block = null;
     pg_pool->ev_loop = ev_loop;
     pg_pool->conn_num = conn_num;
-    pg_pool->destroy = true;
+    pg_pool->destroy = false;
 
     ptr += sizeof(sky_pgsql_pool_t);
 
