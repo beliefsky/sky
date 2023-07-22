@@ -17,6 +17,10 @@ static void pgsql_pool_destroy(sky_pgsql_pool_t *pg_pool);
 
 static void pgsql_pool_gc(sky_timer_wheel_entry_t *timer);
 
+static void pgsql_conn_keepalive_timeout(sky_timer_wheel_entry_t * timer);
+
+static void pgsql_connect_timeout(sky_timer_wheel_entry_t * timer);
+
 
 sky_api sky_pgsql_pool_t *
 sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *conf) {
@@ -46,15 +50,18 @@ sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *c
     pg_pool->ev_loop = ev_loop;
     pg_pool->conn_num = conn_num;
     pg_pool->free_conn_num = conn_num;
+    pg_pool->timeout = conf->timeout ?: 10;
+    pg_pool->keepalive = conf->keepalive ?: 180;
     pg_pool->destroy = false;
 
     ptr += sizeof(sky_pgsql_pool_t);
 
     sky_pgsql_conn_t *conn = (sky_pgsql_conn_t *) ptr;
     for (sky_u32_t i = conn_num; i > 0; --i, ++conn) {
+        sky_tcp_init(&conn->tcp, sky_event_selector(ev_loop));
         sky_queue_init_node(&conn->link);
         sky_queue_insert_prev(&pg_pool->free_conns, &conn->link);
-        sky_tcp_init(&conn->tcp, sky_event_selector(ev_loop));
+        sky_timer_entry_init(&conn->timer, pgsql_conn_keepalive_timeout);
         conn->pg_pool = pg_pool;
     }
     ptr += sizeof(sky_pgsql_conn_t) * conn_num;
@@ -119,6 +126,7 @@ sky_pgsql_pool_get(sky_pgsql_pool_t *pg_pool, sky_pool_t *const pool, sky_pgsql_
 
     sky_queue_remove(item);
     sky_pgsql_conn_t *const conn = sky_type_convert(item, sky_pgsql_conn_t, link);
+    sky_timer_wheel_unlink(&conn->timer);
     conn->current_pool = pool;
     conn->conn_cb = cb;
     conn->cb_data = data;
@@ -135,6 +143,9 @@ sky_pgsql_conn_release(sky_pgsql_conn_t *const conn) {
     sky_queue_t *const item = sky_queue_next(&pg_pool->tasks);
     if (item == &pg_pool->tasks) {
         sky_queue_insert_next(&pg_pool->free_conns, &conn->link);
+        sky_timer_set_cb(&conn->timer, pgsql_conn_keepalive_timeout);
+        sky_event_timeout_set(pg_pool->ev_loop, &conn->timer, pg_pool->keepalive);
+
         ++pg_pool->free_conn_num;
 
         if (pg_pool->free_conn_num >= pg_pool->conn_num) {
@@ -168,13 +179,17 @@ sky_pgsql_pool_destroy(sky_pgsql_pool_t *const pg_pool) {
 
 static sky_inline void
 pgsql_connect_next(sky_pgsql_conn_t *const conn) {
+    sky_pgsql_pool_t *const pg_pool = conn->pg_pool;
+
     if (sky_tcp_is_open(&conn->tcp)
-        || !sky_tcp_open(&conn->tcp, sky_inet_addr_family(&conn->pg_pool->address))) {
+        || !sky_tcp_open(&conn->tcp, sky_inet_addr_family(&pg_pool->address))) {
         conn->conn_cb(conn, conn->cb_data);
         return;
     }
     sky_tcp_option_no_delay(&conn->tcp);
 
+    sky_timer_set_cb(&conn->timer, pgsql_connect_timeout);
+    sky_event_timeout_set(pg_pool->ev_loop, &conn->timer, pg_pool->timeout);
     sky_tcp_set_cb(&conn->tcp, pgsql_connection);
     pgsql_connection(&conn->tcp);
 }
@@ -217,6 +232,7 @@ pgsql_connection(sky_tcp_t *const tcp) {
     }
 
     sky_tcp_close(tcp);
+    sky_timer_wheel_unlink(&conn->timer);
     conn->conn_cb(conn, conn->cb_data);
 }
 
@@ -234,6 +250,7 @@ pgsql_pool_destroy(sky_pgsql_pool_t *const pg_pool) {
     sky_pgsql_conn_t *conn = (sky_pgsql_conn_t *) (pg_pool + 1);
     for (sky_u32_t i = pg_pool->conn_num; i > 0; --i, ++conn) {
         sky_tcp_close(&conn->tcp);
+        sky_timer_wheel_unlink(&conn->timer);
     }
     sky_timer_wheel_unlink(&pg_pool->timer);
 
@@ -257,4 +274,19 @@ pgsql_pool_gc(sky_timer_wheel_entry_t *const timer) {
     }
     pg_pool->current_block = null;
     sky_queue_init(&pg_pool->free_tasks);
+}
+
+static void
+pgsql_conn_keepalive_timeout(sky_timer_wheel_entry_t *const timer) {
+    sky_pgsql_conn_t *const conn = sky_type_convert(timer, sky_pgsql_conn_t, timer);
+
+    sky_tcp_close(&conn->tcp);
+}
+
+static void
+pgsql_connect_timeout(sky_timer_wheel_entry_t *const timer) {
+    sky_pgsql_conn_t *const conn = sky_type_convert(timer, sky_pgsql_conn_t, timer);
+    sky_tcp_close(&conn->tcp);
+
+    conn->conn_cb(conn, conn->cb_data);
 }

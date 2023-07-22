@@ -36,7 +36,7 @@ static void pgsql_exec_send(sky_tcp_t *tcp);
 
 static void pgsql_exec_read(sky_tcp_t *tcp);
 
-static void pgsql_none_work(sky_tcp_t * tcp);
+static void pgsql_none_work(sky_tcp_t *tcp);
 
 static sky_pgsql_type_t get_type_by_oid(sky_usize_t oid);
 
@@ -67,6 +67,8 @@ static sky_u32_t array_serialize_size(const sky_pgsql_array_t *array, sky_pgsql_
 static sky_uchar_t *array_serialize(const sky_pgsql_array_t *array, sky_uchar_t *p, sky_pgsql_type_t type);
 
 static sky_pgsql_array_t *array_deserialize(sky_pool_t *pool, sky_uchar_t *p, sky_pgsql_type_t type);
+
+static void pgsql_exec_timeout(sky_timer_wheel_entry_t *timer);
 
 
 sky_api void
@@ -103,6 +105,7 @@ pgsql_exec_encode(
             'S', 0, 0, 0, 4
     };
 
+    const sky_pgsql_pool_t *const pg_pool = conn->pg_pool;
     pgsql_packet_t *const packet = sky_palloc(conn->current_pool, sizeof(pgsql_packet_t));
     conn->data = packet;
 
@@ -125,6 +128,8 @@ pgsql_exec_encode(
         sky_memcpy(buf->last, SQL_TEMP, 40);
         buf->last += 40;
 
+        sky_timer_set_cb(&conn->timer, pgsql_exec_timeout);
+        sky_event_timeout_set(pg_pool->ev_loop, &conn->timer, pg_pool->timeout);
         sky_tcp_set_cb(&conn->tcp, pgsql_exec_send);
         pgsql_exec_send(&conn->tcp);
         return;
@@ -173,6 +178,8 @@ pgsql_exec_encode(
     sky_memcpy(buf->last, SQL_TEMP + 14, 26);
     buf->last += 26;
 
+    sky_timer_set_cb(&conn->timer, pgsql_exec_timeout);
+    sky_event_timeout_set(pg_pool->ev_loop, &conn->timer, pg_pool->timeout);
     sky_tcp_set_cb(&conn->tcp, pgsql_exec_send);
     pgsql_exec_send(&conn->tcp);
 }
@@ -180,6 +187,7 @@ pgsql_exec_encode(
 static void
 pgsql_exec_send(sky_tcp_t *const tcp) {
     sky_pgsql_conn_t *const conn = sky_type_convert(tcp, sky_pgsql_conn_t, tcp);
+    const sky_pgsql_pool_t *const pg_pool = conn->pg_pool;
     pgsql_packet_t *const packet = conn->data;
     sky_buf_t *const buf = &packet->buf;
 
@@ -200,6 +208,7 @@ pgsql_exec_send(sky_tcp_t *const tcp) {
             packet->status = START;
             packet->size = 0;
 
+            sky_event_timeout_expired(pg_pool->ev_loop, &conn->timer, pg_pool->timeout);
             sky_tcp_set_cb(tcp, pgsql_exec_read);
             pgsql_exec_read(tcp);
             return;
@@ -212,6 +221,8 @@ pgsql_exec_send(sky_tcp_t *const tcp) {
     }
 
     sky_tcp_close(tcp);
+    sky_buf_destroy(buf);
+    sky_timer_wheel_unlink(&conn->timer);
     conn->exec_cb(conn, null, conn->cb_data);
 }
 
@@ -352,6 +363,7 @@ pgsql_exec_read(sky_tcp_t *const tcp) {
 //                    sky_log_info("READY(%d): %s", size, buf.pos);
                 buf->pos += packet->size;
                 sky_buf_rebuild(buf, 0);
+                sky_timer_wheel_unlink(&conn->timer);
                 sky_tcp_set_cb(tcp, pgsql_none_work);
                 conn->exec_cb(conn, result, conn->cb_data);
                 return;
@@ -367,6 +379,7 @@ pgsql_exec_read(sky_tcp_t *const tcp) {
                 sky_log_error("%s", ch);
 
                 sky_buf_destroy(buf);
+                sky_timer_wheel_unlink(&conn->timer);
                 sky_tcp_set_cb(tcp, pgsql_none_work);
                 conn->exec_cb(conn, null, conn->cb_data);
                 return;
@@ -388,8 +401,9 @@ pgsql_exec_read(sky_tcp_t *const tcp) {
     }
 
     error:
-    sky_buf_destroy(buf);
     sky_tcp_close(tcp);
+    sky_buf_destroy(buf);
+    sky_timer_wheel_unlink(&conn->timer);
     conn->exec_cb(conn, null, conn->cb_data);
 }
 
@@ -1278,7 +1292,7 @@ encode_data_size(const sky_pgsql_type_t *type, sky_pgsql_data_t *data, sky_u16_t
                 size += (sky_u32_t) data->len;
                 break;
             default:
-                size += (sky_u32_t)data->len + 6;
+                size += (sky_u32_t) data->len + 6;
         }
     }
     return size;
@@ -1419,4 +1433,13 @@ encode_data(
     *last_ptr = last;
 
     return true;
+}
+
+static void
+pgsql_exec_timeout(sky_timer_wheel_entry_t *const timer) {
+    sky_pgsql_conn_t *const conn = sky_type_convert(timer, sky_pgsql_conn_t, timer);
+    pgsql_packet_t *const packet = conn->data;
+    sky_tcp_close(&conn->tcp);
+    sky_buf_destroy(&packet->buf);
+    conn->exec_cb(conn, null, conn->cb_data);
 }

@@ -53,6 +53,8 @@ struct sky_pgsql_pool_s {
     sky_event_loop_t *ev_loop;
     sky_u32_t conn_num;
     sky_u32_t free_conn_num;
+    sky_u32_t timeout;
+    sky_u32_t keepalive;
     sky_bool_t destroy;
 };
 
