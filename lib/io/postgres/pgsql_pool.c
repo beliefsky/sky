@@ -125,9 +125,7 @@ sky_pgsql_conn_release(sky_pgsql_conn_t *const conn) {
     sky_pgsql_pool_t *const pg_pool = conn->pg_pool;
     sky_queue_t *const item = sky_queue_next(&pg_pool->tasks);
     if (item == &pg_pool->tasks) {
-        // 此处需要加入回收列队
         sky_queue_insert_next(&pg_pool->free_conns, &conn->link);
-
         if (sky_unlikely(pg_pool->destroy)) {
             pgsql_pool_destroy(pg_pool);
             return;
