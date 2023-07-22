@@ -17,6 +17,7 @@ struct sky_pgsql_conn_s {
     sky_pool_t *current_pool;
     union {
         sky_pgsql_conn_pt conn_cb;
+        sky_pgsql_exec_pt exec_cb;
     };
     void *cb_data;
 

@@ -20,7 +20,7 @@ typedef enum {
 
 typedef struct {
     sky_buf_t buf;
-    sky_usize_t size;
+    sky_u32_t size;
     auth_status_t status;
 } auth_packet_t;
 
@@ -28,7 +28,7 @@ static void pgsql_connect_info_send(sky_tcp_t *tcp);
 
 static void pgsql_auth_read(sky_tcp_t *tcp);
 
-static void pgsql_password(sky_pgsql_conn_t *conn, sky_u32_t auth_type, sky_uchar_t *data, sky_usize_t size);
+static void pgsql_password(sky_pgsql_conn_t *conn, const sky_uchar_t *data, sky_u32_t size, sky_u32_t auth_type);
 
 static void pgsql_password_send(sky_tcp_t *tcp);
 
@@ -91,7 +91,7 @@ pgsql_auth_read(sky_tcp_t *const tcp) {
         switch_again:
         switch (packet->status) {
             case START: {
-                if ((sky_usize_t) (buf->last - buf->pos) < SKY_USIZE(5)) {
+                if ((sky_u32_t) (buf->last - buf->pos) < SKY_U32(5)) {
                     break;
                 }
                 switch (*(buf->pos++)) {
@@ -124,7 +124,7 @@ pgsql_auth_read(sky_tcp_t *const tcp) {
                 goto switch_again;
             }
             case AUTH: {
-                if ((sky_usize_t) (buf->last - buf->pos) < packet->size) {
+                if ((sky_u32_t) (buf->last - buf->pos) < packet->size) {
                     break;
                 }
                 const sky_u32_t type = sky_ntohl(*((sky_u32_t *) buf->pos));
@@ -134,11 +134,11 @@ pgsql_auth_read(sky_tcp_t *const tcp) {
                 if (!type) {
                     goto switch_again;
                 }
-                pgsql_password(conn, type, buf->pos, packet->size);
+                pgsql_password(conn, buf->pos, packet->size, type);
                 return;
             }
             case STRING: {
-                if ((sky_usize_t) (buf->last - buf->pos) < packet->size) {
+                if ((sky_u32_t) (buf->last - buf->pos) < packet->size) {
                     break;
                 }
 //                    for (p = buf.pos; p != buf.last; ++p) {
@@ -152,7 +152,7 @@ pgsql_auth_read(sky_tcp_t *const tcp) {
                 goto switch_again;
             }
             case KEY_DATA: {
-                if ((sky_usize_t) (buf->last - buf->pos) < packet->size) {
+                if ((sky_u32_t) (buf->last - buf->pos) < packet->size) {
                     break;
                 }
                 if (packet->size != 8) {
@@ -169,11 +169,11 @@ pgsql_auth_read(sky_tcp_t *const tcp) {
                 return;
             }
             case ERROR: {
-                if ((sky_usize_t) (buf->last - buf->pos) < packet->size) {
+                if ((sky_u32_t) (buf->last - buf->pos) < packet->size) {
                     break;
                 }
                 sky_uchar_t *const p = buf->pos;
-                for (sky_usize_t i = 0; i < packet->size; ++i) {
+                for (sky_u32_t i = 0; i < packet->size; ++i) {
                     if (p[i] == '\0') {
                         p[i] = ' ';
                     }
@@ -186,8 +186,8 @@ pgsql_auth_read(sky_tcp_t *const tcp) {
                 goto error;
         }
 
-        if (!packet->size || (sky_usize_t) (buf->end - buf->pos) <= packet->size) {
-            sky_buf_rebuild(buf, sky_max(packet->size, SKY_USIZE(1024)));
+        if (!packet->size || (sky_u32_t) (buf->end - buf->pos) <= packet->size) {
+            sky_buf_rebuild(buf, sky_max(packet->size, SKY_U32(1024)));
         }
         goto read_again;
     }
@@ -206,9 +206,9 @@ pgsql_auth_read(sky_tcp_t *const tcp) {
 static sky_inline void
 pgsql_password(
         sky_pgsql_conn_t *const conn,
-        const sky_u32_t auth_type,
-        sky_uchar_t *const data,
-        const sky_usize_t size
+        const sky_uchar_t *const data,
+        const sky_u32_t size,
+        const sky_u32_t auth_type
 ) {
     auth_packet_t *const packet = conn->data;
     packet->size = 0;

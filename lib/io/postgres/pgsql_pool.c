@@ -144,7 +144,7 @@ sky_pgsql_conn_release(sky_pgsql_conn_t *const conn) {
 }
 
 sky_api void
-sky_pgsql_pool_destroy(sky_pgsql_pool_t *pg_pool) {
+sky_pgsql_pool_destroy(sky_pgsql_pool_t *const pg_pool) {
     pg_pool->destroy = true;
 
     if (sky_queue_empty(&pg_pool->tasks)) {
