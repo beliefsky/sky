@@ -1303,7 +1303,7 @@ encode_data(
         sky_pgsql_type_t *type,
         sky_pgsql_data_t *data,
         sky_u16_t param_len,
-        sky_uchar_t **ptr,
+        sky_uchar_t **const ptr,
         sky_uchar_t **last_ptr
 ) {
     sky_uchar_t *p = *ptr;
