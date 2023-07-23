@@ -115,11 +115,7 @@ else ()
     message(STATUS "Using built-in context switching routines for ${CMAKE_SYSTEM_PROCESSOR} processors")
 endif ()
 
-install(TARGETS sky_shared sky_static
-        DESTINATION /usr/local/lib/sky
-        )
+install(TARGETS sky_shared sky_static DESTINATION lib)
 
-set(CMAKE_INSTALL_FULL_INCLUDEDIR "/usr/local/include")
-
-install(DIRECTORY include DESTINATION /usr/local/include/sky)
+install(DIRECTORY ../include/ DESTINATION include/sky)
 
