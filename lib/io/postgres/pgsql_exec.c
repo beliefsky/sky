@@ -290,7 +290,7 @@ pgsql_exec_read(sky_tcp_t *const tcp) {
                 }
                 result->lines = sky_ntohs(*((sky_u16_t *) buf->pos));
                 buf->pos += 2;
-                if (sky_unlikely(result->lines == 0)) {
+                if (sky_unlikely(!result->lines)) {
                     packet->status = START;
                     goto switch_again;
                 }
