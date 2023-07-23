@@ -7,7 +7,7 @@ static void pgsql_connect_cb(sky_pgsql_conn_t *conn, void *data);
 
 static void pgsql_exec_cb(sky_pgsql_conn_t *conn, sky_pgsql_result_t *result, void *data);
 
-sky_pgsql_conn_t *
+sky_api sky_pgsql_conn_t *
 sky_pgsql_pool_wait_get(
         sky_pgsql_pool_t *const pg_pool,
         sky_pool_t *const pool,
@@ -19,7 +19,7 @@ sky_pgsql_pool_wait_get(
     return sky_sync_wait_yield(wait);
 }
 
-sky_pgsql_result_t *
+sky_api sky_pgsql_result_t *
 sky_pgsql_wait_exec(
         sky_pgsql_conn_t *const conn,
         sky_sync_wait_t *const wait,
