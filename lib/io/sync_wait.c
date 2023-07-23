@@ -48,7 +48,7 @@ sky_sync_wait_resume(sky_sync_wait_t *const sync_wait, void *att_data) {
 }
 
 sky_api void
-sky_sync_wait_yield_before(sky_sync_wait_t *wait) {
+sky_sync_wait_yield_before(sky_sync_wait_t *const wait) {
     wait->wait = true;
 }
 
