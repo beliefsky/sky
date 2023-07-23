@@ -114,6 +114,8 @@ sky_bool_t sky_http_server_module_put(sky_http_server_t *server, sky_http_server
 
 sky_bool_t sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *ev_loop, const sky_inet_addr_t *addr);
 
+sky_bool_t sky_http_url_decode(sky_str_t *str);
+
 void sky_http_req_body_none(sky_http_server_request_t *r, sky_http_server_next_pt call, void *data);
 
 void sky_http_req_body_str(sky_http_server_request_t *r, sky_http_server_next_str_pt call, void *data);

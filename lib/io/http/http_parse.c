@@ -445,8 +445,8 @@ http_multipart_header_parse(sky_http_server_multipart_t *r, sky_buf_t *b) {
 }
 
 
-sky_bool_t
-http_url_decode(sky_str_t *const str) {
+sky_api sky_bool_t
+sky_http_url_decode(sky_str_t *const str) {
     sky_uchar_t *s, *p, ch;
 
     p = sky_str_find_char(str, '%');
@@ -772,7 +772,7 @@ parse_url_code(sky_http_server_request_t *const r, sky_uchar_t *post, const sky_
                 }
                 *(post++) = '\0';
 
-                http_url_decode(&r->uri);
+                sky_http_url_decode(&r->uri);
 
                 r->state = sw_http;
                 r->req_pos = null;
@@ -792,7 +792,7 @@ parse_url_code(sky_http_server_request_t *const r, sky_uchar_t *post, const sky_
                 }
                 *(post++) = '\0';
 
-                http_url_decode(&r->uri);
+                sky_http_url_decode(&r->uri);
 
                 r->state = sw_args;
                 r->req_pos = post;
