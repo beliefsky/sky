@@ -176,7 +176,7 @@ asm(".text\n\t"
 
 sky_inline sky_coro_t *
 sky_coro_create(const sky_coro_func_t func, void *const data) {
-    sky_coro_t *coro = sky_coro_new();
+    sky_coro_t *const coro = sky_coro_new();
     if (sky_unlikely(!coro)) {
         return null;
     }
@@ -281,8 +281,7 @@ sky_coro_current() {
 
 sky_api void
 sky_coro_destroy(sky_coro_t *const coro) {
-    coro_block_t *block;
-    for (block = coro->block; block; block = block->next) {
+    for (coro_block_t *block = coro->block; block; block = block->next) {
         sky_free(block);
     }
     sky_free(coro);
@@ -341,7 +340,7 @@ coro_yield(sky_coro_t *const coro, const sky_usize_t value) {
 
 static sky_inline void
 mem_block_add(sky_coro_t *const coro) {
-    coro_block_t *block = sky_malloc(PAGE_SIZE);
+    coro_block_t *const block = sky_malloc(PAGE_SIZE);
     block->next = coro->block;
     coro->block = block;
 

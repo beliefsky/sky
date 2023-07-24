@@ -29,7 +29,7 @@ sky_array_init2(sky_array_t *const array, sky_pool_t *const pool, const sky_u32_
 
 sky_api void *
 sky_array_push(sky_array_t *const a) {
-    if (a->nelts == a->nalloc) {
+    if (sky_unlikely(a->nelts == a->nalloc)) {
         const sky_usize_t total = a->size * a->nalloc;
         const sky_usize_t re_size = total << 1;
         a->nalloc <<= 1;
@@ -51,7 +51,7 @@ sky_array_push(sky_array_t *const a) {
 
 sky_api void *
 sky_array_push_n(sky_array_t *const a, const sky_u32_t n) {
-    if ((a->nelts + n) > a->nalloc) {
+    if (sky_unlikely((a->nelts + n) > a->nalloc)) {
         const sky_u32_t max = sky_max(n, a->nalloc);
         const sky_usize_t total = a->size * a->nalloc;
 
