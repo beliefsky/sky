@@ -33,10 +33,11 @@ main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
-    const sky_uchar_t ip[] = {192, 168, 31, 10};
+//    const sky_uchar_t ip[] = {192, 168, 31, 10};
     struct sockaddr_in pg_address = {
             .sin_family = AF_INET,
-            .sin_addr.s_addr = *(sky_u32_t *)ip,
+            .sin_addr.s_addr = INADDR_ANY,
+//            .sin_addr.s_addr = *(sky_u32_t *)ip,
             .sin_port = sky_htons(5432)
     };
 
