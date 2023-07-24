@@ -72,12 +72,12 @@ sky_str_buf_reset(sky_str_buf_t *buf) {
 }
 
 static sky_inline sky_usize_t
-sky_str_buf_size(const sky_str_buf_t *buf) {
+sky_str_buf_size(const sky_str_buf_t *const buf) {
     return (sky_usize_t) (buf->post - buf->start);
 }
 
 static sky_inline sky_bool_t
-sky_str_buf_fail(const sky_str_buf_t *buf) {
+sky_str_buf_fail(const sky_str_buf_t *const buf) {
     return buf->fail;
 }
 
