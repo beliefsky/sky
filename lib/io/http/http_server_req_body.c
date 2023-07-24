@@ -62,11 +62,10 @@ sky_http_req_body_none(
         sky_buf_rebuild(tmp, sky_min(size, SKY_USIZE(4096)));
     }
 
-    sky_tcp_set_cb(&conn->tcp, http_body_read_none);
     sky_timer_set_cb(&conn->timer, http_read_body_none_timeout);
     conn->read_body_none = call;
     conn->read_body_cb_data = data;
-    http_body_read_none(&conn->tcp);
+    sky_tcp_set_cb_and_run(&conn->tcp, http_body_read_none);
 }
 
 sky_api void
@@ -113,11 +112,10 @@ sky_http_req_body_str(
     sky_buf_rebuild(conn->buf, size);
     r->headers_in.content_length_n = size - read_n;
 
-    sky_tcp_set_cb(&conn->tcp, http_body_read_str);
     sky_timer_set_cb(&conn->timer, http_read_body_str_timeout);
     conn->read_body_str = call;
     conn->read_body_cb_data = data;
-    http_body_read_str(&conn->tcp);
+    sky_tcp_set_cb_and_run(&conn->tcp, http_body_read_str);
 }
 
 sky_api void
@@ -153,11 +151,11 @@ sky_http_req_body_read(
         sky_buf_rebuild(tmp, sky_min(size, SKY_USIZE(4096)));
     }
 
-    sky_tcp_set_cb(&conn->tcp, http_body_read_cb);
+
     sky_timer_set_cb(&conn->timer, http_read_body_cb_timeout);
     conn->read_body_cb = call;
     conn->read_body_cb_data = data;
-    http_body_read_cb(&conn->tcp);
+    sky_tcp_set_cb_and_run(&conn->tcp, http_body_read_cb);
 }
 
 static void

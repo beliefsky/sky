@@ -82,6 +82,12 @@ sky_tcp_set_cb(sky_tcp_t *const tcp, const sky_tcp_cb_pt cb) {
     sky_ev_reset_cb(&tcp->ev, (sky_ev_cb_pt) cb);
 }
 
+static sky_inline void
+sky_tcp_set_cb_and_run(sky_tcp_t *const tcp, const sky_tcp_cb_pt cb) {
+    sky_ev_reset_cb(&tcp->ev, (sky_ev_cb_pt) cb);
+    cb(tcp);
+}
+
 static sky_inline sky_bool_t
 sky_tcp_register(sky_tcp_t *const tcp, const sky_u32_t flags) {
     return sky_selector_register(&tcp->ev, flags);

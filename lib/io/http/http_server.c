@@ -108,10 +108,7 @@ sky_http_server_bind(
         sky_pfree(server->pool, listener, sizeof(http_listener_t));
         return false;
     }
-
-    sky_tcp_set_cb(&listener->tcp, http_server_accept);
-    http_server_accept(&listener->tcp);
-
+    sky_tcp_set_cb_and_run(&listener->tcp, http_server_accept);
     return true;
 }
 

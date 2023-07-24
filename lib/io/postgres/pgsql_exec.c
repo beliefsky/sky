@@ -130,8 +130,7 @@ pgsql_exec_encode(
 
         sky_timer_set_cb(&conn->timer, pgsql_exec_timeout);
         sky_event_timeout_set(pg_pool->ev_loop, &conn->timer, pg_pool->timeout);
-        sky_tcp_set_cb(&conn->tcp, pgsql_exec_send);
-        pgsql_exec_send(&conn->tcp);
+        sky_tcp_set_cb_and_run(&conn->tcp, pgsql_exec_send);
         return;
     }
 
@@ -180,8 +179,7 @@ pgsql_exec_encode(
 
     sky_timer_set_cb(&conn->timer, pgsql_exec_timeout);
     sky_event_timeout_set(pg_pool->ev_loop, &conn->timer, pg_pool->timeout);
-    sky_tcp_set_cb(&conn->tcp, pgsql_exec_send);
-    pgsql_exec_send(&conn->tcp);
+    sky_tcp_set_cb_and_run(&conn->tcp, pgsql_exec_send);
 }
 
 static void
@@ -209,8 +207,7 @@ pgsql_exec_send(sky_tcp_t *const tcp) {
             packet->size = 0;
 
             sky_event_timeout_expired(pg_pool->ev_loop, &conn->timer, pg_pool->timeout);
-            sky_tcp_set_cb(tcp, pgsql_exec_read);
-            pgsql_exec_read(tcp);
+            sky_tcp_set_cb_and_run(tcp, pgsql_exec_read);
             return;
         }
         goto again;
