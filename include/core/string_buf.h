@@ -67,7 +67,7 @@ void sky_str_buf_append_f64(sky_str_buf_t *buf, sky_f64_t num);
 sky_bool_t sky_str_buf_build(sky_str_buf_t *buf, sky_str_t *out);
 
 static sky_inline void
-sky_str_buf_reset(sky_str_buf_t *buf) {
+sky_str_buf_reset(sky_str_buf_t *const buf) {
     buf->post = buf->start;
 }
 

@@ -8,7 +8,7 @@
 
 
 sky_api sky_u8_t
-sky_time_to_str(sky_u32_t secs, sky_uchar_t *out) {
+sky_time_to_str(const sky_u32_t secs, sky_uchar_t *const out) {
     if (sky_unlikely(secs > 86400)) {
         return 0;
     }
@@ -17,7 +17,7 @@ sky_time_to_str(sky_u32_t secs, sky_uchar_t *out) {
     sky_u64_t xrem = secs - (hours * 3600);
 
     // divide by 60 to calculate minutes
-    sky_u64_t mins = (xrem * 0x889) >> 17;
+    const sky_u64_t mins = (xrem * 0x889) >> 17;
     xrem = xrem - (mins * 60);
 
     // position hours, minutes, and seconds in one var
@@ -44,14 +44,13 @@ sky_time_to_str(sky_u32_t secs, sky_uchar_t *out) {
 
 
 sky_api sky_bool_t
-sky_rfc_str_to_date(sky_str_t *in, time_t *out) {
+sky_rfc_str_to_date(const sky_str_t *const in, time_t *const out) {
     struct tm tm;
-    sky_uchar_t *value;
 
     if (sky_unlikely(in->len != 29)) {
         return false;
     }
-    value = in->data;
+    sky_uchar_t *value = in->data;
 
     switch (sky_str4_switch(value)) {
         case sky_str4_num('S', 'u', 'n', ','):
@@ -161,10 +160,8 @@ sky_date_to_rfc_str(time_t time, sky_uchar_t *src) {
     static const sky_char_t week_days[] = "Sun,Mon,Tue,Wed,Thu,Fri,Sat,";
     static const sky_char_t months[] = "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec ";
     struct tm tm;
-    sky_u32_t day_of_time;
 
-
-    day_of_time = (sky_u32_t) (time % 86400);
+    const sky_u32_t day_of_time = (sky_u32_t) (time % 86400);
     if (sky_unlikely(!gmtime_r(&time, &tm))) {
         return 0;
     }
