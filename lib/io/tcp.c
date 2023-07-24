@@ -119,6 +119,7 @@ sky_tcp_accept(sky_tcp_t *const server, sky_tcp_t *const client) {
     }
     if (sky_unlikely(!set_socket_nonblock(fd))) {
         close(fd);
+        sky_ev_set_error(&server->ev);
         return -1;
     }
 #endif
@@ -145,6 +146,7 @@ sky_tcp_connect(sky_tcp_t *const tcp, const sky_inet_addr_t *const addr) {
             case EISCONN:
                 break;
             default:
+                sky_ev_set_error(&tcp->ev);
                 return -1;
         }
     }
