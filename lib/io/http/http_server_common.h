@@ -53,21 +53,11 @@ struct sky_http_connection_s {
 
 struct sky_http_server_multipart_ctx_s {
     sky_str_t boundary;
-    sky_u64_t need_read;
     sky_http_server_request_t *req;
-    sky_http_server_multipart_t *current;
-    sky_u32_t status;
-};
-
-struct sky_http_server_multipart_s {
-    sky_u32_t state;
-    sky_list_t headers;
-    sky_str_t header_name;
-    sky_uchar_t *req_pos;
-
-    sky_http_server_multipart_ctx_t *ctx;
-    sky_str_t *content_type;
-    sky_str_t *content_disposition;
+    union {
+        sky_http_server_multipart_pt multipart_cb;
+    };
+    void *cb_data;
 };
 
 struct http_str_packet_s {

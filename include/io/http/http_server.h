@@ -40,7 +40,32 @@ typedef void (*sky_http_server_next_str_pt)(sky_http_server_request_t *r, sky_st
 
 typedef void (*sky_http_server_next_read_pt)(
         sky_http_server_request_t *r,
-        sky_uchar_t *body,
+        const sky_uchar_t *body,
+        sky_usize_t len,
+        void *data
+);
+
+typedef void (*sky_http_server_multipart_pt)(
+        sky_http_server_multipart_ctx_t *ctx,
+        sky_http_server_multipart_t *m,
+        sky_http_server_request_t *req,
+        void *data
+);
+
+
+typedef void (*sky_http_server_multipart_str_pt)(
+        sky_http_server_multipart_ctx_t *ctx,
+        sky_http_server_multipart_t *m,
+        sky_http_server_request_t *req,
+        sky_str_t *body,
+        void *data
+);
+
+typedef void (*sky_http_server_multipart_read_pt)(
+        sky_http_server_multipart_ctx_t *ctx,
+        sky_http_server_multipart_t *m,
+        sky_http_server_request_t *req,
+        const sky_uchar_t *body,
         sky_usize_t len,
         void *data
 );
@@ -107,6 +132,17 @@ struct sky_http_server_header_s {
     sky_str_t val;
 };
 
+struct sky_http_server_multipart_s {
+    sky_u32_t state;
+    sky_list_t headers;
+    sky_str_t header_name;
+    sky_uchar_t *req_pos;
+
+    sky_http_server_multipart_ctx_t *ctx;
+    sky_str_t *content_type;
+    sky_str_t *content_disposition;
+};
+
 
 sky_http_server_t *sky_http_server_create(const sky_http_server_conf_t *conf);
 
@@ -121,6 +157,17 @@ void sky_http_req_body_none(sky_http_server_request_t *r, sky_http_server_next_p
 void sky_http_req_body_str(sky_http_server_request_t *r, sky_http_server_next_str_pt call, void *data);
 
 void sky_http_req_body_read(sky_http_server_request_t *r, sky_http_server_next_read_pt call, void *data);
+
+sky_http_server_multipart_ctx_t *sky_http_multipart_ctx_create(sky_http_server_request_t *r);
+
+void sky_http_multipart_next(sky_http_server_multipart_ctx_t *ctx, sky_http_server_multipart_pt call, void *data);
+
+void sky_http_multipart_body_none(sky_http_server_multipart_t *m, sky_http_server_multipart_pt call, void *data);
+
+void sky_http_multipart_body_str(sky_http_server_multipart_t *m, sky_http_server_multipart_str_pt call, void *data);
+
+void sky_http_multipart_body_read(sky_http_server_multipart_t *m, sky_http_server_multipart_read_pt call, void *data);
+
 
 void sky_http_response_nobody(sky_http_server_request_t *r, sky_http_server_next_pt call, void *cb_data);
 
