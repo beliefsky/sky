@@ -51,16 +51,6 @@ struct sky_http_connection_s {
     sky_u8_t free_buf_n;
 };
 
-struct sky_http_server_multipart_ctx_s {
-    sky_str_t boundary;
-    sky_http_server_request_t *req;
-    union {
-        sky_http_server_multipart_pt multipart_cb;
-    };
-    void *cb_data;
-    sky_bool_t end;
-};
-
 struct http_str_packet_s {
     sky_u32_t num;
     sky_u32_t read;

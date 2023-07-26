@@ -26,9 +26,9 @@ void sky_http_req_body_wait_read(
         void *data
 );
 
-void sky_http_response_wait_nobody(sky_http_server_request_t *r, sky_sync_wait_t *wait);
+sky_http_server_multipart_t *sky_http_req_body_wait_multipart(sky_http_server_request_t *r, sky_sync_wait_t *wait);
 
-sky_http_server_multipart_t *sky_http_multipart_wait_next(sky_http_server_multipart_ctx_t *ctx, sky_sync_wait_t *wait);
+sky_http_server_multipart_t *sky_http_multipart_wait_next(sky_http_server_multipart_t *m, sky_sync_wait_t *wait);
 
 void sky_http_multipart_body_wait_none(sky_http_server_multipart_t *m, sky_sync_wait_t *wait);
 
@@ -40,6 +40,9 @@ void sky_http_multipart_body_wait_read(
         sky_http_server_wait_read call,
         void *data
 );
+
+
+void sky_http_response_wait_nobody(sky_http_server_request_t *r, sky_sync_wait_t *wait);
 
 
 void sky_http_response_wait_str(

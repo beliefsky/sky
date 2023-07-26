@@ -21,31 +21,27 @@ static void http_read_cb(
 );
 
 static void http_multipart_next_cb(
-        sky_http_server_multipart_ctx_t *ctx,
-        sky_http_server_multipart_t *m,
         sky_http_server_request_t *req,
+        sky_http_server_multipart_t *m,
         void *data
 );
 
 static void http_multipart_none_cb(
-        sky_http_server_multipart_ctx_t *ctx,
-        sky_http_server_multipart_t *m,
         sky_http_server_request_t *req,
+        sky_http_server_multipart_t *m,
         void *data
 );
 
 static void http_multipart_str_cb(
-        sky_http_server_multipart_ctx_t *ctx,
-        sky_http_server_multipart_t *m,
         sky_http_server_request_t *req,
+        sky_http_server_multipart_t *m,
         sky_str_t *body,
         void *data
 );
 
 static void http_multipart_read_cb(
-        sky_http_server_multipart_ctx_t *ctx,
-        sky_http_server_multipart_t *m,
         sky_http_server_request_t *req,
+        sky_http_server_multipart_t *m,
         const sky_uchar_t *body,
         sky_usize_t len,
         void *data
@@ -86,19 +82,18 @@ sky_http_req_body_wait_read(
     sky_sync_wait_yield(wait);
 }
 
-
-sky_api void
-sky_http_response_wait_nobody(sky_http_server_request_t *const r, sky_sync_wait_t *const wait) {
+sky_http_server_multipart_t *
+sky_http_req_body_wait_multipart(sky_http_server_request_t *const r, sky_sync_wait_t *const wait) {
     sky_sync_wait_yield_before(wait);
-    sky_http_response_nobody(r, http_none_cb, wait);
+    sky_http_req_body_multipart(r, http_multipart_next_cb, wait);
 
-    sky_sync_wait_yield(wait);
+    return sky_sync_wait_yield(wait);
 }
 
-sky_api sky_http_server_multipart_t *
-sky_http_multipart_wait_next(sky_http_server_multipart_ctx_t *ctx, sky_sync_wait_t *wait) {
+sky_http_server_multipart_t *
+sky_http_multipart_wait_next(sky_http_server_multipart_t *m, sky_sync_wait_t *wait) {
     sky_sync_wait_yield_before(wait);
-    sky_http_multipart_next(ctx, http_multipart_next_cb, wait);
+    sky_http_multipart_next(m, http_multipart_next_cb, wait);
 
     return sky_sync_wait_yield(wait);
 }
@@ -134,6 +129,15 @@ sky_http_multipart_body_wait_read(
 
     sky_sync_wait_yield_before(wait);
     sky_http_multipart_body_read(m, http_multipart_read_cb, &read_data);
+
+    sky_sync_wait_yield(wait);
+}
+
+
+sky_api void
+sky_http_response_wait_nobody(sky_http_server_request_t *const r, sky_sync_wait_t *const wait) {
+    sky_sync_wait_yield_before(wait);
+    sky_http_response_nobody(r, http_none_cb, wait);
 
     sky_sync_wait_yield(wait);
 }
@@ -212,12 +216,10 @@ http_read_cb(
 
 static void
 http_multipart_next_cb(
-        sky_http_server_multipart_ctx_t *const ctx,
-        sky_http_server_multipart_t *const m,
         sky_http_server_request_t *const req,
+        sky_http_server_multipart_t *const m,
         void *const data
 ) {
-    (void) ctx;
     (void) req;
 
     sky_sync_wait_t *wait = data;
@@ -226,12 +228,10 @@ http_multipart_next_cb(
 
 static void
 http_multipart_none_cb(
-        sky_http_server_multipart_ctx_t *const ctx,
-        sky_http_server_multipart_t *const m,
         sky_http_server_request_t *const req,
+        sky_http_server_multipart_t *const m,
         void *const data
 ) {
-    (void) ctx;
     (void) m;
     (void) req;
 
@@ -241,13 +241,11 @@ http_multipart_none_cb(
 
 static void
 http_multipart_str_cb(
-        sky_http_server_multipart_ctx_t *const ctx,
-        sky_http_server_multipart_t *const m,
         sky_http_server_request_t *const req,
+        sky_http_server_multipart_t *const m,
         sky_str_t *const body,
         void *const data
 ) {
-    (void) ctx;
     (void) m;
     (void) req;
 
@@ -257,14 +255,12 @@ http_multipart_str_cb(
 
 static void
 http_multipart_read_cb(
-        sky_http_server_multipart_ctx_t *const ctx,
-        sky_http_server_multipart_t *const m,
         sky_http_server_request_t *const req,
+        sky_http_server_multipart_t *const m,
         const sky_uchar_t *const body,
         const sky_usize_t len,
         void *const data
 ) {
-    (void) ctx;
     (void) m;
     (void) req;
 
