@@ -258,7 +258,7 @@ http_body_read_cb(sky_tcp_t *const tcp) {
     n = sky_tcp_read(tcp, buf->pos, sky_min(free_n, size));
     if (n > 0) {
         size -= (sky_usize_t) n;
-        conn->read_body_cb(req, buf->pos, (sky_usize_t) buf->pos, conn->read_body_cb_data);
+        conn->read_body_cb(req, buf->pos, (sky_usize_t) n, conn->read_body_cb_data);
         if (!size) {
             sky_timer_wheel_unlink(&conn->timer);
             sky_tcp_set_cb(tcp, http_work_none);
