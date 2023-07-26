@@ -17,6 +17,8 @@ typedef void (*sky_sync_wait_pt)(sky_sync_wait_t *wait, void *data);
 
 sky_bool_t sky_sync_wait_create(sky_sync_wait_pt cb, void *data);
 
+sky_bool_t sky_sync_wait_create_with_stack(sky_sync_wait_pt cb, void *data, sky_usize_t stack_size);
+
 void sky_sync_wait_resume(sky_sync_wait_t *sync_wait, void *att_data);
 
 void sky_sync_wait_yield_before(sky_sync_wait_t *wait);

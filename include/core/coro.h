@@ -27,10 +27,26 @@ typedef sky_usize_t (*sky_coro_func_t)(sky_coro_t *coro, void *data);
 sky_coro_t *sky_coro_create(sky_coro_func_t func, void *data);
 
 /**
+ * 创建协程
+ * @param func      异步函数
+ * @param data      异步函数参数
+ * @param stack_size 指定协程栈分配的内存大小
+ * @return 协程
+ */
+sky_coro_t *sky_coro_create_with_stack(sky_coro_func_t func, void *data, sky_usize_t stack_size);
+
+/**
  * 创建一个未指定函数的协程
  * @return 协程
  */
 sky_coro_t *sky_coro_new();
+
+/**
+ * 创建一个未指定函数的协程
+ * @param stack_size 指定协程栈分配的内存大小
+ * @return 协程
+ */
+sky_coro_t *sky_coro_new_with_stack(sky_usize_t stack_size);
 
 /**
  * 协程配置函数

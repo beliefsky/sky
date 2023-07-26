@@ -7,19 +7,8 @@
 #include <core/memory.h>
 #include <core/log.h>
 
-
-#if !defined(SIGSTKSZ) || SIGSTKSZ < 8192
-
-#define CORE_BLOCK_SIZE 32768
-
-#else
-
-#define CORE_BLOCK_SIZE SIGSTKSZ
-
-#endif
-
+#define CORO_DEFAULT_STACK_SIZE 14336
 #define PAGE_SIZE 2048
-#define CORO_STACK_MIN (CORE_BLOCK_SIZE - PAGE_SIZE)
 
 #if defined(__MACH__)
 #define ASM_SYMBOL(name_) "_" #name_
@@ -34,9 +23,9 @@
 
 typedef sky_usize_t sky_coro_context_t[10];
 
-#elif defined(__i386__)
+#elif defined(__aarch64__)
 
-typedef sky_usize_t sky_coro_context_t[7];
+typedef sky_usize_t coro_context[22];
 
 #elif defined(SKY_HAVE_LIBUCONTEXT)
 
@@ -72,7 +61,8 @@ struct sky_coro_s {
     sky_uchar_t *ptr;
     sky_usize_t ptr_size;
 
-    sky_uchar_t stack[];
+    sky_uchar_t *stack;
+    sky_usize_t stack_size;
 };
 
 static sky_usize_t coro_resume(sky_coro_t *coro);
@@ -119,35 +109,42 @@ asm(
         "movq    64(%rsi),%rcx\n\t"
         "movq    56(%rsi),%rsi\n\t"
         "jmpq    *%rcx\n\t");
-#elif defined(__i386__)
+
+#elif defined(__aarch64__)
 
 void __attribute__((noinline, visibility("internal")))
 coro_swapcontext(sky_coro_context_t *current, sky_coro_context_t *other);
 
-asm(
-        ".text\n\t"
-        ".p2align 5\n\t"
-        ASM_ROUTINE(coro_swapcontext)
-        "movl   0x4(%esp),%eax\n\t"
-        "movl   %ecx,0x1c(%eax)\n\t" /* ECX */
-        "movl   %ebx,0x0(%eax)\n\t"  /* EBX */
-        "movl   %esi,0x4(%eax)\n\t"  /* ESI */
-        "movl   %edi,0x8(%eax)\n\t"  /* EDI */
-        "movl   %ebp,0xc(%eax)\n\t"  /* EBP */
-        "movl   (%esp),%ecx\n\t"
-        "movl   %ecx,0x14(%eax)\n\t" /* EIP */
-        "leal   0x4(%esp),%ecx\n\t"
-        "movl   %ecx,0x18(%eax)\n\t" /* ESP */
-        "movl   8(%esp),%eax\n\t"
-        "movl   0x14(%eax),%ecx\n\t" /* EIP (1) */
-        "movl   0x18(%eax),%esp\n\t" /* ESP */
-        "pushl  %ecx\n\t"            /* EIP (2) */
-        "movl   0x0(%eax),%ebx\n\t"  /* EBX */
-        "movl   0x4(%eax),%esi\n\t"  /* ESI */
-        "movl   0x8(%eax),%edi\n\t"  /* EDI */
-        "movl   0xc(%eax),%ebp\n\t"  /* EBP */
-        "movl   0x1c(%eax),%ecx\n\t" /* ECX */
-        "ret\n\t");
+asm(".text\n\t"
+    ".p2align 5\n\t"
+    ASM_ROUTINE(coro_swapcontext)
+    "mov x10, sp\n\t"
+    "mov x11, x30\n\t"
+    "stp x8, x9, [x0, #(1*16)]\n\t"
+    "stp x10, x11, [x0, #(2*16)]\n\t"
+    "stp x12, x13, [x0, #(3*16)]\n\t"
+    "stp x14, x15, [x0, #(4*16)]\n\t"
+    "stp x19, x20, [x0, #(5*16)]\n\t"
+    "stp x21, x22, [x0, #(6*16)]\n\t"
+    "stp x23, x24, [x0, #(7*16)]\n\t"
+    "stp x25, x26, [x0, #(8*16)]\n\t"
+    "stp x27, x28, [x0, #(9*16)]\n\t"
+    "stp x29, x30, [x0, #(10*16)]\n\t"
+    "stp x0, x1, [x0, #(0*16)]\n\t"
+    "ldp x8, x9, [x1, #(1*16)]\n\t"
+    "ldp x10, x11, [x1, #(2*16)]\n\t"
+    "ldp x12, x13, [x1, #(3*16)]\n\t"
+    "ldp x14, x15, [x1, #(4*16)]\n\t"
+    "ldp x19, x20, [x1, #(5*16)]\n\t"
+    "ldp x21, x22, [x1, #(6*16)]\n\t"
+    "ldp x23, x24, [x1, #(7*16)]\n\t"
+    "ldp x25, x26, [x1, #(8*16)]\n\t"
+    "ldp x27, x28, [x1, #(9*16)]\n\t"
+    "ldp x29, x30, [x1, #(10*16)]\n\t"
+    "ldp x0, x1, [x1, #(0*16)]\n\t"
+    "mov sp, x10\n\t"
+    "br x11\n\t");
+
 #elif defined(SKY_HAVE_LIBUCONTEXT)
 #define coro_swapcontext(cur, oth) sky_swapcontext(cur, oth)
 #else
@@ -161,8 +158,6 @@ coro_entry_point(sky_coro_t *const coro, const sky_coro_func_t func, void *const
 
 #ifdef __x86_64__
 
-/* See comment in coro_reset() for an explanation of why this routine is
- * necessary. */
 void __attribute__((visibility("internal"))) coro_entry_point_x86_64();
 
 asm(".text\n\t"
@@ -171,12 +166,30 @@ asm(".text\n\t"
     "mov %r15, %rdx\n\t"
     "jmp " ASM_SYMBOL(coro_entry_point) "\n\t"
         );
+
+#elif defined(__aarch64__)
+
+void __attribute__((visibility("internal"))) coro_entry_point_arm64();
+
+asm(".text\n\t"
+    ".p2align 5\n\t"
+    ASM_ROUTINE(coro_entry_point_arm64)
+    "mov x2, x28\n\t"
+    "bl " ASM_SYMBOL(coro_entry_point) "\n\t"
+);
+
 #endif
 
 
-sky_inline sky_coro_t *
+sky_api sky_coro_t *
 sky_coro_create(const sky_coro_func_t func, void *const data) {
-    sky_coro_t *const coro = sky_coro_new();
+    return sky_coro_create_with_stack(func, data, CORO_DEFAULT_STACK_SIZE);
+}
+
+
+sky_api sky_coro_t *
+sky_coro_create_with_stack(sky_coro_func_t func, void *data, const sky_usize_t stack_size) {
+    sky_coro_t *const coro = sky_coro_new_with_stack(stack_size);
     if (sky_unlikely(!coro)) {
         return null;
     }
@@ -188,14 +201,26 @@ sky_coro_create(const sky_coro_func_t func, void *const data) {
 
 sky_api sky_coro_t *
 sky_coro_new() {
-    sky_coro_t *const coro = sky_malloc(CORE_BLOCK_SIZE);
-    if (sky_unlikely(!coro)) {
+    return sky_coro_new_with_stack(CORO_DEFAULT_STACK_SIZE);
+}
+
+sky_api sky_coro_t *
+sky_coro_new_with_stack(sky_usize_t stack_size) {
+    stack_size = (stack_size + SKY_USIZE(63)) & ~SKY_USIZE(63); // 64字节对齐
+
+    sky_uchar_t *ptr = sky_malloc(stack_size + PAGE_SIZE);
+    if (sky_unlikely(!ptr)) {
         return null;
     }
-
+    sky_coro_t *const coro = (sky_coro_t *) ptr;
+    ptr += sizeof(sky_coro_t);
     coro->block = null;
-    coro->ptr = (sky_uchar_t *) (coro + 1) + CORO_STACK_MIN + 16;
+    coro->ptr = ptr;
     coro->ptr_size = PAGE_SIZE - sizeof(sky_coro_t) - 16;
+    ptr += coro->ptr_size + 16;
+    coro->stack = ptr;
+    coro->stack_size = stack_size;
+
 
     return coro;
 }
@@ -205,31 +230,30 @@ sky_coro_set(sky_coro_t *const coro, const sky_coro_func_t func, void *const dat
     sky_uchar_t *stack = coro->stack;
 
 #if defined(__x86_64__)
-    const sky_usize_t rsp = (sky_usize_t) stack + CORO_STACK_MIN;
 
     coro->context[5 /* R15 */] = (sky_usize_t) data;
     coro->context[6 /* RDI */] = (sky_usize_t) coro;
     coro->context[7 /* RSI */] = (sky_usize_t) func;
     coro->context[8 /* RIP */] = (sky_usize_t) coro_entry_point_x86_64;
+
+    const sky_usize_t rsp = (sky_usize_t) stack + coro->stack_size;
 #define STACK_PTR 9
     coro->context[STACK_PTR /* RSP */] = (rsp & ~SKY_USIZE(0xF)) - SKY_USIZE(0x8);
-#elif defined(__i386__)
-    stack = (sky_uchar_t *) ((sky_usize_t) ((stack + CORO_STACK_MIN) - (3 * sizeof(sky_usize_t))) & (sky_usize_t) ~0x3);
 
-    sky_usize_t *argp = (sky_usize_t *) stack;
-    *argp++ = 0;
-    *argp++ = (sky_usize_t) coro;
-    *argp++ = (sky_usize_t) func;
-    *argp = (sky_usize_t) data;
+#elif defined(__aarch64__)
+    coro->context[19/* x28 */] = (sky_usize_t)data;
+    coro->context[0 /* x0  */] = (sky_usize_t)coro;
+    coro->context[1 /* x1  */] = (sky_usize_t)func;
+    coro->context[5 /* lr  */] = (sky_usize_t)coro_entry_point_arm64;
 
-    coro->context[5 /* EIP */] = (sky_usize_t) coro_entry_point;
-#define STACK_PTR 6
-    coro->context[STACK_PTR /* ESP */] = (sky_usize_t) stack;
+    const sky_usize_t rsp = (sky_usize_t)stack + coro->stack_size;
+#define STACK_PTR 4
+    coro->context[STACK_PTR] = rsp & ~SKY_USIZE(0xF);
 
 #elif defined(SKY_HAVE_LIBUCONTEXT)
     sky_getcontext(&coro->context);
     coro->context.uc_stack.ss_sp = stack;
-    coro->context.uc_stack.ss_size = CORO_STACK_MIN;
+    coro->context.uc_stack.ss_size = coro->stack_size;
     coro->context.uc_stack.ss_flags = 0;
     coro->context.uc_link = null;
 
@@ -242,7 +266,7 @@ sky_coro_set(sky_coro_t *const coro, const sky_coro_func_t func, void *const dat
 sky_api sky_usize_t
 sky_coro_resume(sky_coro_t *const coro) {
 #ifdef STACK_PTR
-    if (sky_unlikely(coro->context[STACK_PTR] > (sky_usize_t) (coro->stack + CORO_STACK_MIN))) {
+    if (sky_unlikely(coro->context[STACK_PTR] > (sky_usize_t) (coro->stack + coro->stack_size))) {
         sky_log_error("sky_coro_resume out of stack");
         abort();
     }
@@ -253,7 +277,7 @@ sky_coro_resume(sky_coro_t *const coro) {
 sky_api sky_usize_t
 sky_coro_resume_value(sky_coro_t *const coro, const sky_usize_t value) {
 #ifdef STACK_PTR
-    if (sky_unlikely(coro->context[STACK_PTR] > (sky_usize_t) (coro->stack + CORO_STACK_MIN))) {
+    if (sky_unlikely(coro->context[STACK_PTR] > (sky_usize_t) (coro->stack + coro->stack_size))) {
         sky_log_error("sky_coro_resume out of stack");
         abort();
     }
@@ -265,7 +289,7 @@ sky_coro_resume_value(sky_coro_t *const coro, const sky_usize_t value) {
 
 sky_api sky_usize_t
 sky_coro_yield(const sky_usize_t value) {
-    sky_coro_t *current = thread_switcher.current;
+    sky_coro_t *const current = thread_switcher.current;
     if (sky_unlikely(!current)) {
         sky_log_error("coro not run");
         __builtin_unreachable();
@@ -300,7 +324,7 @@ sky_coro_malloc(sky_coro_t *const coro, const sky_u32_t size) {
         }
         mem_block_add(coro);
     }
-    sky_uchar_t *ptr = coro->ptr;
+    sky_uchar_t *const ptr = coro->ptr;
     coro->ptr += size;
     coro->ptr_size -= size;
 
