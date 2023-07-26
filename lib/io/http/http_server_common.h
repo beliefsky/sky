@@ -58,6 +58,7 @@ struct sky_http_server_multipart_ctx_s {
         sky_http_server_multipart_pt multipart_cb;
     };
     void *cb_data;
+    sky_bool_t end;
 };
 
 struct http_str_packet_s {

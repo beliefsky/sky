@@ -133,7 +133,6 @@ struct sky_http_server_header_s {
 };
 
 struct sky_http_server_multipart_s {
-    sky_u32_t state;
     sky_list_t headers;
     sky_str_t header_name;
     sky_uchar_t *req_pos;
@@ -141,6 +140,8 @@ struct sky_http_server_multipart_s {
     sky_http_server_multipart_ctx_t *ctx;
     sky_str_t *content_type;
     sky_str_t *content_disposition;
+
+    sky_u32_t state;
 };
 
 
