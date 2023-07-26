@@ -141,6 +141,7 @@ sky_http_req_body_read(
         sky_buf_rebuild(tmp, 0);
 
         call(r, tmp->pos, size, data);
+        call(r, null, 0, data);
         return;
     }
     size -= read_n;

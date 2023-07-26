@@ -55,7 +55,7 @@ static sky_bool_t find_char_fast(
 #endif
 
 sky_i8_t
-http_request_line_parse(sky_http_server_request_t *r, sky_buf_t *const b) {
+http_request_line_parse(sky_http_server_request_t *const r, sky_buf_t *const b) {
     parse_state_t state = (parse_state_t) r->state;
     sky_uchar_t *p = b->pos;
     sky_uchar_t *const end = b->last;
@@ -206,22 +206,18 @@ http_request_line_parse(sky_http_server_request_t *r, sky_buf_t *const b) {
 }
 
 sky_i8_t
-http_request_header_parse(sky_http_server_request_t *r, sky_buf_t *b) {
-    parse_state_t state;
-    sky_isize_t index;
-    sky_uchar_t ch, *p, *end;
-    sky_http_server_header_t *h;
+http_request_header_parse(sky_http_server_request_t *const r, sky_buf_t *const b) {
+    parse_state_t state = (parse_state_t) r->state;
+    sky_uchar_t *p = b->pos;
+    sky_uchar_t *const end = b->last;
 
-    state = (parse_state_t) r->state;
-    p = b->pos;
-    end = b->last;
+    sky_http_server_header_t *h;
+    sky_isize_t index;
+    sky_uchar_t ch;
 
     switch (state) {
         case sw_start: {
             sw_start:
-            if (sky_unlikely(p == end)) {
-                goto again;
-            }
             if (sky_unlikely(p == end)) {
                 goto again;
             }
@@ -325,35 +321,33 @@ http_request_header_parse(sky_http_server_request_t *r, sky_buf_t *b) {
 }
 
 sky_i8_t
-http_multipart_header_parse(sky_http_server_multipart_t *r, sky_buf_t *b) {
-    parse_state_t state;
-    sky_isize_t index;
-    sky_uchar_t ch, *p, *end;
-    sky_http_server_header_t *h;
+http_multipart_header_parse(sky_http_server_multipart_t *const r, sky_buf_t *const b) {
+    parse_state_t state = (parse_state_t) r->state;
+    sky_uchar_t *p = b->pos;
+    sky_uchar_t *const end = b->last;
 
-    state = (parse_state_t) r->state;
-    p = b->pos;
-    end = b->last;
+    sky_http_server_header_t *h;
+    sky_isize_t index;
+    sky_uchar_t ch;
 
     for (;;) {
         switch (state) {
             case sw_start: {
-                for (;;) {
-
-                    if (sky_unlikely(p == end)) {
-                        goto again;
-                    }
-                    ch = *p;
-                    if (ch == '\n') {
-                        ++p;
-                        goto done;
-                    } else if (ch != '\r') {
-                        r->req_pos = p++;
-                        state = sw_header_name;
-                        break;
-                    }
-                    ++p;
+                sw_start:
+                if (sky_unlikely(p == end)) {
+                    goto again;
                 }
+
+                ch = *p;
+                if (ch == '\n') {
+                    ++p;
+                    goto done;
+                } else if (ch == '\r') {
+                    ++p;
+                    goto sw_start;
+                }
+                r->req_pos = p++;
+                state = sw_header_name;
             }
             case sw_header_name: {
                 index = parse_token(p, end, ':');
@@ -370,21 +364,20 @@ http_multipart_header_parse(sky_http_server_multipart_t *r, sky_buf_t *b) {
                 r->header_name.data = r->req_pos;
                 r->header_name.len = (sky_usize_t) (p - r->req_pos);
                 *(p++) = '\0';
-                state = sw_header_value_first;
                 r->req_pos = null;
+                state = sw_header_value_first;
             }
             case sw_header_value_first: {
-                for (;;) {
-                    if (sky_unlikely(p == end)) {
-                        goto again;
-                    }
-                    if (*p != ' ') {
-                        r->req_pos = p++;
-                        state = sw_header_value;
-                        break;
-                    }
-                    ++p;
+                sw_header_value_first:
+                if (sky_unlikely(p == end)) {
+                    goto again;
                 }
+                if (*p == ' ') {
+                    ++p;
+                    goto sw_header_value_first;
+                }
+                r->req_pos = p++;
+                state = sw_header_value;
             }
             case sw_header_value: {
                 index = find_header_line(p, end);
@@ -428,7 +421,7 @@ http_multipart_header_parse(sky_http_server_multipart_t *r, sky_buf_t *b) {
                 }
                 ++p;
                 state = sw_start;
-                break;
+                goto sw_start;
             }
             default:
                 return -1;
@@ -472,13 +465,13 @@ sky_http_url_decode(sky_str_t *const str) {
 
         ch = *(p++);
         if (ch >= '0' && ch <= '9') {
-            *(s++) += (sky_uchar_t)(ch - '0');
+            *(s++) += (sky_uchar_t) (ch - '0');
         } else {
             ch |= 0x20U;
             if (sky_unlikely(ch < 'a' || ch > 'f')) {
                 return false;
             }
-            *(s++) += (sky_uchar_t)(ch - 'a' + 10);
+            *(s++) += (sky_uchar_t) (ch - 'a' + 10);
         }
 
         for (;;) {
