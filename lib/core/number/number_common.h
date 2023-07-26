@@ -110,8 +110,8 @@ fast_str_parse_mask(const sky_uchar_t *const chars, const sky_usize_t len) {
         }
         case 6: {
             sky_uchar_t *const dst = (sky_uchar_t *) &val;
-            sky_memcpy4(dst + 4, chars);
-            sky_memcpy2(dst + 2, chars + 4);
+            sky_memcpy4(dst + 2, chars);
+            sky_memcpy2(dst + 6, chars + 4);
             break;
         }
         case 7: {

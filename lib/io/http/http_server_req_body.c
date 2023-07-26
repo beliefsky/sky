@@ -144,6 +144,8 @@ sky_http_req_body_read(
         call(r, null, 0, data);
         return;
     }
+    call(r, tmp->pos, read_n, data);
+
     size -= read_n;
     r->headers_in.content_length_n = size;
 
