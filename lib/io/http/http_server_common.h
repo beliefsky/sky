@@ -39,10 +39,12 @@ struct sky_http_connection_s {
         sky_http_server_next_pt read_body_none;
         sky_http_server_next_str_pt read_body_str;
         sky_http_server_next_read_pt read_body_cb;
+        sky_http_server_multipart_pt read_multipart_next;
+
+        sky_http_server_next_pt write_next;
     };
-    sky_http_server_next_pt write_next;
-    void *read_body_cb_data;
-    void *write_next_cb_data;
+
+    void *cb_data;
 
     union {
         http_str_packet_t *write_str_queue;

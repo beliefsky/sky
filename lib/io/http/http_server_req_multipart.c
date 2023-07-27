@@ -22,8 +22,25 @@ sky_http_req_body_multipart(
         call(r, null, data);
         return;
     }
-    r->read_request_body = true;
 
+    const sky_str_t *const content_type = r->headers_in.content_type;
+    if (sky_unlikely(!content_type || !sky_str_starts_with(content_type, sky_str_line("multipart/form-data;")))) {
+        call(r, null, data);
+        return;
+    }
+    const sky_uchar_t *boundary = content_type->data + (sizeof("multipart/form-data;") - 1);
+    while (*boundary == ' ') {
+        ++boundary;
+    }
+    sky_usize_t boundary_len = content_type->len - (sky_usize_t) (boundary - content_type->data);
+    if (sky_unlikely(!sky_str_len_starts_with(boundary, boundary_len, sky_str_line("boundary=")))) {
+        call(r, null, data);
+        return;
+    }
+    boundary += sizeof("boundary=") - 1;
+    boundary_len -= sizeof("boundary=") - 1;
+
+    r->read_request_body = true;
 
 }
 
@@ -73,7 +90,7 @@ static void
 http_multipart_header_read(sky_tcp_t *const tcp) {
     sky_http_connection_t *const conn = sky_type_convert(tcp, sky_http_connection_t, tcp);
     sky_http_server_request_t *const req = conn->current_req;
-    sky_http_server_multipart_t *const multipart = conn->read_body_cb_data;
+    sky_http_server_multipart_t *const multipart = conn->cb_data;
     sky_buf_t *const buf = conn->buf;
 
     sky_isize_t n;
@@ -121,7 +138,7 @@ static void
 multipart_header_cb_timeout(sky_timer_wheel_entry_t *const entry) {
     sky_http_connection_t *const conn = sky_type_convert(entry, sky_http_connection_t, timer);
     sky_http_server_request_t *const req = conn->current_req;
-    sky_http_server_multipart_t *const multipart = conn->read_body_cb_data;
+    sky_http_server_multipart_t *const multipart = conn->cb_data;
 
 
     sky_tcp_close(&conn->tcp);
