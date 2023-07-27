@@ -1,5 +1,5 @@
 //
-// Created by weijing on 17-11-29.
+// Created by beliefsky on 17-11-29.
 //
 
 #ifndef SKY_TYPES_H

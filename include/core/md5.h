@@ -1,5 +1,5 @@
 //
-// Created by weijing on 18-9-18.
+// Created by beliefsky on 18-9-18.
 //
 
 #ifndef SKY_MD5_H

@@ -1,5 +1,5 @@
 //
-// Created by weijing on 17-11-9.
+// Created by beliefsky on 17-11-9.
 //
 
 #ifndef SKY_QUEUE_H

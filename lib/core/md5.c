@@ -1,5 +1,5 @@
 //
-// Created by weijing on 18-9-18.
+// Created by beliefsky on 18-9-18.
 //
 
 #include <core/md5.h>

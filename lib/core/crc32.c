@@ -1,5 +1,5 @@
 //
-// Created by weijing on 2020/8/30.
+// Created by beliefsky on 2020/8/30.
 //
 #include <core/crc32.h>
 

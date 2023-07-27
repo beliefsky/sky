@@ -1,5 +1,5 @@
 //
-// Created by weijing on 17-11-10.
+// Created by beliefsky on 17-11-10.
 //
 
 #include <core/list.h>

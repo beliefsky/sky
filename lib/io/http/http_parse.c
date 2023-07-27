@@ -1,5 +1,5 @@
 //
-// Created by weijing on 18-2-23.
+// Created by beliefsky on 18-2-23.
 //
 #include "http_parse.h"
 #include <core/number.h>

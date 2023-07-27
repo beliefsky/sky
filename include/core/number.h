@@ -1,5 +1,5 @@
 //
-// Created by weijing on 18-10-9.
+// Created by beliefsky on 18-10-9.
 //
 
 #ifndef SKY_NUMBER_H

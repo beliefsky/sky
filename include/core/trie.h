@@ -1,5 +1,5 @@
 //
-// Created by weijing on 2019/11/14.
+// Created by beliefsky on 2019/11/14.
 //
 
 #ifndef SKY_TRIE_H

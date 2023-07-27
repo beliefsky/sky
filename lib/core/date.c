@@ -1,5 +1,5 @@
 //
-// Created by weijing on 18-8-3.
+// Created by beliefsky on 18-8-3.
 //
 
 #include <core/date.h>

@@ -1,5 +1,5 @@
 //
-// Created by weijing on 2020/5/11.
+// Created by beliefsky on 2020/5/11.
 //
 
 #ifndef SKY_STRING_BUF_H

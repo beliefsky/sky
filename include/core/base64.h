@@ -1,5 +1,5 @@
 //
-// Created by weijing on 17-12-5.
+// Created by beliefsky on 17-12-5.
 //
 
 #ifndef SKY_BASE64_H
