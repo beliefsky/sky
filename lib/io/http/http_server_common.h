@@ -36,12 +36,10 @@ struct sky_http_connection_s {
     sky_buf_t *buf;
 
     union {
-        sky_http_server_next_pt read_body_none;
-        sky_http_server_next_str_pt read_body_str;
-        sky_http_server_next_read_pt read_body_cb;
-        sky_http_server_multipart_pt read_multipart_next;
-
-        sky_http_server_next_pt write_next;
+        sky_http_server_next_pt next_cb;
+        sky_http_server_next_str_pt next_str_cb;
+        sky_http_server_next_read_pt next_read_cb;
+        sky_http_server_multipart_pt next_multipart_cb;
     };
 
     void *cb_data;

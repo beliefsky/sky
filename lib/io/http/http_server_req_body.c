@@ -63,7 +63,7 @@ sky_http_req_body_none(
     }
 
     sky_timer_set_cb(&conn->timer, http_read_body_none_timeout);
-    conn->read_body_none = call;
+    conn->next_cb = call;
     conn->cb_data = data;
     sky_tcp_set_cb_and_run(&conn->tcp, http_body_read_none);
 }
@@ -113,7 +113,7 @@ sky_http_req_body_str(
     r->headers_in.content_length_n = size - read_n;
 
     sky_timer_set_cb(&conn->timer, http_read_body_str_timeout);
-    conn->read_body_str = call;
+    conn->next_str_cb = call;
     conn->cb_data = data;
     sky_tcp_set_cb_and_run(&conn->tcp, http_body_read_str);
 }
@@ -156,7 +156,7 @@ sky_http_req_body_read(
 
 
     sky_timer_set_cb(&conn->timer, http_read_body_cb_timeout);
-    conn->read_body_cb = call;
+    conn->next_read_cb = call;
     conn->cb_data = data;
     sky_tcp_set_cb_and_run(&conn->tcp, http_body_read_cb);
 }
@@ -180,7 +180,7 @@ http_body_read_none(sky_tcp_t *const tcp) {
             sky_tcp_set_cb(tcp, http_work_none);
             req->headers_in.content_length_n = 0;
             sky_buf_rebuild(conn->buf, 0);
-            conn->read_body_none(req, conn->cb_data);
+            conn->next_cb(req, conn->cb_data);
             return;
         }
         goto again;
@@ -199,7 +199,7 @@ http_body_read_none(sky_tcp_t *const tcp) {
     sky_buf_rebuild(conn->buf, 0);
     req->headers_in.content_length_n = 0;
     req->error = true;
-    conn->read_body_none(req, conn->cb_data);
+    conn->next_cb(req, conn->cb_data);
 }
 
 static void
@@ -226,7 +226,7 @@ http_body_read_str(sky_tcp_t *const tcp) {
             sky_timer_wheel_unlink(&conn->timer);
             sky_tcp_set_cb(tcp, http_work_none);
             req->headers_in.content_length_n = 0;
-            conn->read_body_str(req, body, conn->cb_data);
+            conn->next_str_cb(req, body, conn->cb_data);
             return;
         }
         goto again;
@@ -244,7 +244,7 @@ http_body_read_str(sky_tcp_t *const tcp) {
     sky_buf_rebuild(conn->buf, 0);
     req->headers_in.content_length_n = 0;
     req->error = true;
-    conn->read_body_str(req, null, conn->cb_data);
+    conn->next_str_cb(req, null, conn->cb_data);
 }
 
 static void
@@ -260,13 +260,13 @@ http_body_read_cb(sky_tcp_t *const tcp) {
     n = sky_tcp_read(tcp, buf->pos, sky_min(free_n, size));
     if (n > 0) {
         size -= (sky_usize_t) n;
-        conn->read_body_cb(req, buf->pos, (sky_usize_t) n, conn->cb_data);
+        conn->next_read_cb(req, buf->pos, (sky_usize_t) n, conn->cb_data);
         if (!size) {
             sky_timer_wheel_unlink(&conn->timer);
             sky_tcp_set_cb(tcp, http_work_none);
             req->headers_in.content_length_n = 0;
             sky_buf_rebuild(conn->buf, 0);
-            conn->read_body_cb(req, null, 0, conn->cb_data);
+            conn->next_read_cb(req, null, 0, conn->cb_data);
             return;
         }
         goto again;
@@ -285,7 +285,7 @@ http_body_read_cb(sky_tcp_t *const tcp) {
     sky_buf_rebuild(conn->buf, 0);
     req->headers_in.content_length_n = 0;
     req->error = true;
-    conn->read_body_cb(req, null, 0, conn->cb_data);
+    conn->next_read_cb(req, null, 0, conn->cb_data);
 }
 
 static void
@@ -304,7 +304,7 @@ http_read_body_none_timeout(sky_timer_wheel_entry_t *const entry) {
     sky_buf_rebuild(conn->buf, 0);
     req->headers_in.content_length_n = 0;
     req->error = true;
-    conn->read_body_none(req, conn->cb_data);
+    conn->next_cb(req, conn->cb_data);
 }
 
 static void
@@ -316,7 +316,7 @@ http_read_body_str_timeout(sky_timer_wheel_entry_t *const entry) {
     sky_buf_rebuild(conn->buf, 0);
     req->headers_in.content_length_n = 0;
     req->error = true;
-    conn->read_body_str(req, null, conn->cb_data);
+    conn->next_str_cb(req, null, conn->cb_data);
 }
 
 static void
@@ -328,7 +328,7 @@ http_read_body_cb_timeout(sky_timer_wheel_entry_t *const entry) {
     sky_buf_rebuild(conn->buf, 0);
     req->headers_in.content_length_n = 0;
     req->error = true;
-    conn->read_body_cb(req, null, 0, conn->cb_data);
+    conn->next_read_cb(req, null, 0, conn->cb_data);
 }
 
 static void
