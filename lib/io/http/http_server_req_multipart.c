@@ -42,6 +42,10 @@ sky_http_req_body_multipart(
 
     r->read_request_body = true;
 
+    sky_http_connection_t *conn = r->conn;
+
+    conn->next_multipart_cb = call;
+    conn->cb_data = data;
 }
 
 sky_api void
@@ -129,7 +133,7 @@ http_multipart_header_read(sky_tcp_t *const tcp) {
 
 static void
 http_work_none(sky_tcp_t *const tcp) {
-    if (sky_ev_error(sky_tcp_ev(tcp))) {
+    if (sky_unlikely(sky_ev_error(sky_tcp_ev(tcp)))) {
         sky_tcp_close(tcp);
     }
 }
