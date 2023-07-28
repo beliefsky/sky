@@ -24,9 +24,9 @@ static void http_run_handler_next(sky_http_server_request_t *r, const http_modul
 
 
 sky_api sky_http_server_module_t *
-sky_http_server_dispatcher_create(const sky_http_server_dispatcher_conf_t *conf) {
-    sky_pool_t *pool = sky_pool_create(4096);
-    sky_http_server_module_t *module = sky_palloc(pool, sizeof(sky_http_server_module_t));
+sky_http_server_dispatcher_create(const sky_http_server_dispatcher_conf_t *const conf) {
+    sky_pool_t *const pool = sky_pool_create(4096);
+    sky_http_server_module_t *const module = sky_palloc(pool, sizeof(sky_http_server_module_t));
     module->host.data = sky_palloc(pool, conf->host.len);
     module->host.len = conf->host.len;
     sky_memcpy(module->host.data, conf->host.data, conf->host.len);
@@ -36,7 +36,7 @@ sky_http_server_dispatcher_create(const sky_http_server_dispatcher_conf_t *conf)
     module->run = conf->pre_run ? http_run_handler_with_pre : http_run_handler;
 
 
-    http_module_dispatcher_t *data = sky_palloc(pool, sizeof(http_module_dispatcher_t));
+    http_module_dispatcher_t *const data = sky_palloc(pool, sizeof(http_module_dispatcher_t));
     data->prefix = &module->prefix;
     data->pool = pool;
     data->mappers = sky_trie_create(pool);
@@ -64,14 +64,14 @@ sky_http_server_dispatcher_create(const sky_http_server_dispatcher_conf_t *conf)
 }
 
 sky_api void
-sky_http_server_dispatcher_destroy(sky_http_server_module_t *server_dispatcher) {
-    http_module_dispatcher_t *data = server_dispatcher->module_data;
+sky_http_server_dispatcher_destroy(sky_http_server_module_t *const server_dispatcher) {
+    http_module_dispatcher_t *const data = server_dispatcher->module_data;
     sky_pool_destroy(data->pool);
 }
 
 static void
-http_run_handler_with_pre(sky_http_server_request_t *r, void *data) {
-    const http_module_dispatcher_t *dispatcher = data;
+http_run_handler_with_pre(sky_http_server_request_t *const r, void *const data) {
+    const http_module_dispatcher_t *const dispatcher = data;
     r->uri.data += dispatcher->prefix->len;
     r->uri.len -= dispatcher->prefix->len;
 
@@ -81,8 +81,8 @@ http_run_handler_with_pre(sky_http_server_request_t *r, void *data) {
 }
 
 static void
-http_run_handler(sky_http_server_request_t *r, void *data) {
-    const http_module_dispatcher_t *dispatcher = data;
+http_run_handler(sky_http_server_request_t *const r, void *const data) {
+    const http_module_dispatcher_t *const dispatcher = data;
     r->uri.data += dispatcher->prefix->len;
     r->uri.len -= dispatcher->prefix->len;
 
@@ -90,7 +90,7 @@ http_run_handler(sky_http_server_request_t *r, void *data) {
 }
 
 static void
-http_run_handler_next(sky_http_server_request_t *r, const http_module_dispatcher_t *dispatcher) {
+http_run_handler_next(sky_http_server_request_t *const r, const http_module_dispatcher_t *const dispatcher) {
     const sky_http_mapper_pt *handler = sky_trie_contains(dispatcher->mappers, &r->uri);
 
     sky_str_set(&r->headers_out.content_type, "application/json");
