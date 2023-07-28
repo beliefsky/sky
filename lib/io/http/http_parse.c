@@ -1007,8 +1007,8 @@ header_handle_run(sky_http_server_request_t *const req, sky_http_server_header_t
 }
 
 static sky_inline sky_bool_t
-multipart_header_handle_run(sky_http_server_multipart_t *r, sky_http_server_header_t *h) {
-    const sky_uchar_t *p = h->key.data;
+multipart_header_handle_run(sky_http_server_multipart_t *const r, sky_http_server_header_t *const h) {
+    const sky_uchar_t *const p = h->key.data;
 
     switch (h->key.len) {
         case 12: {
