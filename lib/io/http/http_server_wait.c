@@ -91,7 +91,7 @@ sky_http_req_body_wait_multipart(sky_http_server_request_t *const r, sky_sync_wa
 }
 
 sky_http_server_multipart_t *
-sky_http_multipart_wait_next(sky_http_server_multipart_t *m, sky_sync_wait_t *wait) {
+sky_http_multipart_wait_next(sky_http_server_multipart_t *const m, sky_sync_wait_t *const wait) {
     sky_sync_wait_yield_before(wait);
     sky_http_multipart_next(m, http_multipart_next_cb, wait);
 
@@ -99,7 +99,7 @@ sky_http_multipart_wait_next(sky_http_server_multipart_t *m, sky_sync_wait_t *wa
 }
 
 sky_api void
-sky_http_multipart_body_wait_none(sky_http_server_multipart_t *m, sky_sync_wait_t *wait) {
+sky_http_multipart_body_wait_none(sky_http_server_multipart_t *const m, sky_sync_wait_t *const wait) {
     sky_sync_wait_yield_before(wait);
     sky_http_multipart_body_none(m, http_multipart_none_cb, wait);
 
@@ -107,7 +107,7 @@ sky_http_multipart_body_wait_none(sky_http_server_multipart_t *m, sky_sync_wait_
 }
 
 sky_api sky_str_t *
-sky_http_multipart_body_wait_str(sky_http_server_multipart_t *m, sky_sync_wait_t *wait) {
+sky_http_multipart_body_wait_str(sky_http_server_multipart_t *const m, sky_sync_wait_t *const wait) {
     sky_sync_wait_yield_before(wait);
     sky_http_multipart_body_str(m, http_multipart_str_cb, wait);
 
@@ -116,10 +116,10 @@ sky_http_multipart_body_wait_str(sky_http_server_multipart_t *m, sky_sync_wait_t
 
 sky_api void
 sky_http_multipart_body_wait_read(
-        sky_http_server_multipart_t *m,
-        sky_sync_wait_t *wait,
-        sky_http_server_wait_read call,
-        void *data
+        sky_http_server_multipart_t *const m,
+        sky_sync_wait_t *const wait,
+        const sky_http_server_wait_read call,
+        void *const data
 ) {
     http_read_data_t read_data = {
             .call = call,
@@ -185,14 +185,14 @@ sky_http_response_wait_file(
 static void
 http_none_cb(sky_http_server_request_t *const r, void *const data) {
     (void) r;
-    sky_sync_wait_t *wait = data;
+    sky_sync_wait_t *const wait = data;
     sky_sync_wait_resume(wait, null);
 }
 
 static void
 http_str_cb(sky_http_server_request_t *const r, sky_str_t *const result, void *const data) {
     (void) r;
-    sky_sync_wait_t *wait = data;
+    sky_sync_wait_t *const wait = data;
     sky_sync_wait_resume(wait, result);
 }
 
@@ -222,7 +222,7 @@ http_multipart_next_cb(
 ) {
     (void) req;
 
-    sky_sync_wait_t *wait = data;
+    sky_sync_wait_t *const wait = data;
     sky_sync_wait_resume(wait, m);
 }
 
@@ -235,7 +235,7 @@ http_multipart_none_cb(
     (void) m;
     (void) req;
 
-    sky_sync_wait_t *wait = data;
+    sky_sync_wait_t *const wait = data;
     sky_sync_wait_resume(wait, null);
 }
 
@@ -249,7 +249,7 @@ http_multipart_str_cb(
     (void) m;
     (void) req;
 
-    sky_sync_wait_t *wait = data;
+    sky_sync_wait_t *const wait = data;
     sky_sync_wait_resume(wait, body);
 }
 

@@ -5,7 +5,7 @@
 #include "pgsql_common.h"
 #include <core/memory.h>
 
-#define BLOCK_TASK_N 1024
+#define BLOCK_TASK_N 256
 
 static void pgsql_connect_next(sky_pgsql_conn_t *conn);
 
@@ -23,7 +23,7 @@ static void pgsql_connect_timeout(sky_timer_wheel_entry_t * timer);
 
 
 sky_api sky_pgsql_pool_t *
-sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *conf) {
+sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *const conf) {
     const sky_u32_t conn_num = conf->connection_size ?: 8;
 
     const sky_u32_t info_size = (sky_u32_t) (SKY_USIZE(11)
@@ -101,7 +101,7 @@ sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *c
 }
 
 sky_api void
-sky_pgsql_pool_get(sky_pgsql_pool_t *pg_pool, sky_pool_t *const pool, sky_pgsql_conn_pt cb, void *data) {
+sky_pgsql_pool_get(sky_pgsql_pool_t *const pg_pool, sky_pool_t *const pool, sky_pgsql_conn_pt cb, void *data) {
     if (sky_unlikely(pg_pool->destroy)) {
         cb(null, data);
         return;

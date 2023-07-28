@@ -35,13 +35,13 @@ sky_pgsql_wait_exec(
 
 static void
 pgsql_connect_cb(sky_pgsql_conn_t *const conn, void *const data) {
-    sky_sync_wait_t *wait = data;
+    sky_sync_wait_t *const wait = data;
     sky_sync_wait_resume(wait, conn);
 }
 
 static void
 pgsql_exec_cb(sky_pgsql_conn_t *const conn, sky_pgsql_result_t *const result, void *const data) {
     (void) conn;
-    sky_sync_wait_t *wait = data;
+    sky_sync_wait_t *const wait = data;
     sky_sync_wait_resume(wait, result);
 }
