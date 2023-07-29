@@ -45,4 +45,7 @@ struct sky_http_connection_s {
     sky_u8_t free_buf_n;
 };
 
+
+void http_server_request_process(sky_http_connection_t *conn);
+
 #endif //SKY_HTTP_SERVER_COMMON_H

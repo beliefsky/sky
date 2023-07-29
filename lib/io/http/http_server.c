@@ -1,10 +1,9 @@
 //
 // Created by beliefsky on 2023/7/1.
 //
-#include <io/http/http_server.h>
 #include <io/tcp.h>
 #include <core/memory.h>
-#include "http_server_req.h"
+#include "http_server_common.h"
 
 typedef struct {
     sky_tcp_t tcp;
