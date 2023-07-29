@@ -2,9 +2,9 @@
 // Created by beliefsky on 2023/3/24.
 //
 
-#include <io/selector.h>
+#include "common.h"
 
-#ifdef SKY_HAVE_EPOLL
+#ifdef SELECTOR_USE_EPOLL
 
 #include <core/memory.h>
 #include <core/log.h>

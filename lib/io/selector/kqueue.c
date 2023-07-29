@@ -1,8 +1,8 @@
 //
 // Created by beliefsky on 2023/3/24.
 //
-#include <io/selector.h>
-#ifdef SKY_HAVE_KQUEUE
+#include "common.h"
+#ifdef SELECTOR_USE_KQUEUE
 
 #include <core/memory.h>
 #include <core/log.h>
