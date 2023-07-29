@@ -61,7 +61,7 @@ http_request_set(sky_http_connection_t *const conn, sky_pool_t *const pool) {
     sky_list_init(&r->headers_out.headers, pool, 16, sizeof(sky_http_server_header_t));
     sky_list_init(&r->headers_in.headers, pool, 16, sizeof(sky_http_server_header_t));
 
-    sky_timer_entry_init(&conn->timer, http_read_timeout);
+    sky_timer_set_cb(&conn->timer, http_read_timeout);
     conn->current_req = r;
     conn->buf = sky_buf_create(pool, server->header_buf_size);
     conn->free_buf_n = server->header_buf_n;
