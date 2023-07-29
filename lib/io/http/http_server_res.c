@@ -191,19 +191,8 @@ sky_http_response_file(
     }
     r->response = true;
 
-    http_file_packet_t *const packet = sky_palloc(r->pool, sizeof(http_file_packet_t));
-    packet->offset = offset;
-    packet->size = size;
-    packet->cb_data = cb_data;
-    packet->fs.fd = fd;
-
-    sky_http_connection_t *const conn = r->conn;
-    conn->next_cb = call;
-    conn->cb_data = packet;
-
     sky_str_buf_t buf;
     sky_str_buf_init2(&buf, r->pool, 2048);
-
 
     http_header_write_pre(r, &buf);
     sky_str_buf_append_str_len(&buf, sky_str_line("Content-Length: "));
@@ -220,7 +209,41 @@ sky_http_response_file(
         sky_str_buf_append_two_uchar(&buf, '\r', '\n');
     }
     http_header_write_ex(r, &buf);
-    sky_str_buf_build(&buf, &packet->buf);
+
+    sky_str_t result;
+    sky_str_buf_build(&buf, &result);
+
+    if (sky_unlikely(!size)) {
+        http_str_packet_t *const packet = sky_palloc(r->pool, sizeof(http_str_packet_t) + sizeof(sky_str_t));
+        packet->num = 1;
+        packet->read = 0;
+        packet->cb_data = cb_data;
+        packet->buf[0] = result;
+
+        sky_http_connection_t *const conn = r->conn;
+        conn->next_cb = call;
+        conn->cb_data = packet;
+
+        sky_timer_set_cb(&conn->timer, http_write_str_timeout);
+        if (r->keep_alive) {
+            sky_tcp_set_cb_and_run(&conn->tcp, http_keepalive_response_str);
+        } else {
+            sky_tcp_set_cb_and_run(&conn->tcp, http_response_str);
+        }
+        return;
+    }
+
+
+    http_file_packet_t *const packet = sky_palloc(r->pool, sizeof(http_file_packet_t));
+    packet->buf = result;
+    packet->offset = offset;
+    packet->size = size;
+    packet->cb_data = cb_data;
+    packet->fs.fd = fd;
+
+    sky_http_connection_t *const conn = r->conn;
+    conn->next_cb = call;
+    conn->cb_data = packet;
 
     sky_timer_set_cb(&conn->timer, http_write_file_timeout);
     if (r->keep_alive) {
