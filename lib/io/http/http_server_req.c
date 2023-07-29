@@ -51,7 +51,7 @@ http_server_request_process(sky_http_connection_t *const conn) {
     http_request_set(conn, pool);
 }
 
-static void
+static sky_inline void
 http_request_set(sky_http_connection_t *const conn, sky_pool_t *const pool) {
     sky_http_server_t *const server = conn->server;
     sky_http_server_request_t *const r = sky_pcalloc(pool, sizeof(sky_http_server_request_t));
@@ -182,7 +182,7 @@ http_header_read(sky_tcp_t *const tcp) {
 }
 
 
-static void
+static sky_inline void
 http_module_run(sky_http_server_request_t *const r) {
     sky_timer_wheel_unlink(&r->conn->timer);
     sky_tcp_set_cb(&r->conn->tcp, http_work_none);
