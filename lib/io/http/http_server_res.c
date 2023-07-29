@@ -74,11 +74,7 @@ sky_http_response_nobody(
     sky_str_buf_build(&buf, packet->buf);
 
     sky_timer_set_cb(&conn->timer, http_write_str_timeout);
-    if (r->keep_alive) {
-        sky_tcp_set_cb_and_run(&conn->tcp, http_keepalive_response_str);
-    } else {
-        sky_tcp_set_cb_and_run(&conn->tcp, http_response_str);
-    }
+    sky_tcp_set_cb_and_run(&conn->tcp,r->keep_alive ? http_keepalive_response_str : http_response_str);
 }
 
 sky_api void
@@ -165,11 +161,7 @@ sky_http_response_str_len(
 
 
     sky_timer_set_cb(&conn->timer, http_write_str_timeout);
-    if (r->keep_alive) {
-        sky_tcp_set_cb_and_run(&conn->tcp, http_keepalive_response_str);
-    } else {
-        sky_tcp_set_cb_and_run(&conn->tcp, http_response_str);
-    }
+    sky_tcp_set_cb_and_run(&conn->tcp,r->keep_alive ? http_keepalive_response_str : http_response_str);
 }
 
 
@@ -225,11 +217,7 @@ sky_http_response_file(
         conn->cb_data = packet;
 
         sky_timer_set_cb(&conn->timer, http_write_str_timeout);
-        if (r->keep_alive) {
-            sky_tcp_set_cb_and_run(&conn->tcp, http_keepalive_response_str);
-        } else {
-            sky_tcp_set_cb_and_run(&conn->tcp, http_response_str);
-        }
+        sky_tcp_set_cb_and_run(&conn->tcp,r->keep_alive ? http_keepalive_response_str : http_response_str);
         return;
     }
 
@@ -246,11 +234,7 @@ sky_http_response_file(
     conn->cb_data = packet;
 
     sky_timer_set_cb(&conn->timer, http_write_file_timeout);
-    if (r->keep_alive) {
-        sky_tcp_set_cb_and_run(&conn->tcp, http_keepalive_response_file);
-    } else {
-        sky_tcp_set_cb_and_run(&conn->tcp, http_response_file);
-    }
+    sky_tcp_set_cb_and_run(&conn->tcp,r->keep_alive ? http_keepalive_response_file : http_response_file);
 }
 
 
