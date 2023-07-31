@@ -9,7 +9,7 @@
 typedef struct {
     sky_http_server_multipart_pt call;
     void *cb_data;
-} error_packet_t;
+} multipart_cb_t;
 
 typedef struct {
     sky_http_server_request_t *req;
@@ -28,6 +28,8 @@ static void http_multipart_process(multipart_packet_t *packet, sky_http_server_r
 static void http_multipart_header_read(sky_tcp_t *tcp);
 
 static void http_multipart_body_none(sky_tcp_t *tcp);
+
+static void multipart_next_before_read_cb(sky_http_server_request_t *req, sky_http_server_multipart_t *m, void *data);
 
 static void http_work_none(sky_tcp_t *tcp);
 
@@ -51,7 +53,7 @@ sky_http_req_body_multipart(
     const sky_str_t *const content_type = r->headers_in.content_type;
     if (sky_unlikely(!content_type || !sky_str_starts_with(content_type, sky_str_line("multipart/form-data;")))) {
         r->read_request_body = false;
-        error_packet_t *const error = sky_palloc(r->pool, sizeof(error_packet_t));
+        multipart_cb_t *const error = sky_palloc(r->pool, sizeof(multipart_cb_t));
         error->call = call;
         error->cb_data = data;
         sky_http_req_body_none(r, multipart_error_cb, error);
@@ -64,7 +66,7 @@ sky_http_req_body_multipart(
     sky_usize_t boundary_len = content_type->len - (sky_usize_t) (boundary - content_type->data);
     if (sky_unlikely(!sky_str_len_starts_with(boundary, boundary_len, sky_str_line("boundary=")))) {
         r->read_request_body = false;
-        error_packet_t *const error = sky_palloc(r->pool, sizeof(error_packet_t));
+        multipart_cb_t *const error = sky_palloc(r->pool, sizeof(multipart_cb_t));
         error->call = call;
         error->cb_data = data;
         sky_http_req_body_none(r, multipart_error_cb, error);
@@ -144,24 +146,23 @@ sky_http_multipart_next(
         void *const data
 ) {
     multipart_packet_t *const packet = m->read_packet;
+
     if (packet->end) {
         call(packet->req, null, data);
         return;
     }
-    if (packet->need_read_body) {
-        sky_log_error("multipart body need read");
-        // 先读取未读完的multipart body 数据
+    if (packet->need_read_body) { // 如果上个multipart未读取内容，应自动丢弃，这里应做处理
+        multipart_cb_t *const tmp = sky_palloc(packet->req->pool, sizeof(multipart_cb_t));
+        tmp->call = call;
+        tmp->cb_data = data;
+        sky_http_multipart_body_none(m, multipart_next_before_read_cb, data);
         return;
     }
-
     packet->cb_data = data;
 
     sky_http_connection_t *const conn = packet->req->conn;
-
     conn->next_multipart_cb = call;
     conn->cb_data = packet;
-
-    // 如果上个multipart未读取内容，应自动丢弃，这里应做处理
 
     http_multipart_process(packet, packet->req);
 }
@@ -175,6 +176,12 @@ sky_http_multipart_body_none(
 ) {
     multipart_packet_t *const packet = m->read_packet;
     sky_http_server_request_t *const req = packet->req;
+
+    if (sky_unlikely(!packet->need_read_body)) {
+        call(req, m, data);
+        return;
+    }
+
     sky_buf_t *const buf = req->conn->buf;
 
     const sky_usize_t read_n = (sky_usize_t) (buf->last - buf->pos);
@@ -482,6 +489,23 @@ http_multipart_body_none(sky_tcp_t *const tcp) {
 }
 
 static void
+multipart_next_before_read_cb(
+        sky_http_server_request_t *const req,
+        sky_http_server_multipart_t *const m,
+        void *const data
+) {
+    const multipart_cb_t *const tmp = data;
+    multipart_packet_t *const packet = m->read_packet;
+    packet->cb_data = tmp->cb_data;
+
+    sky_http_connection_t *const conn = req->conn;
+    conn->next_multipart_cb = tmp->cb_data;
+    conn->cb_data = packet;
+
+    http_multipart_process(packet, packet->req);
+}
+
+static void
 http_work_none(sky_tcp_t *const tcp) {
     if (sky_unlikely(sky_ev_error(sky_tcp_ev(tcp)))) {
         sky_tcp_close(tcp);
@@ -490,7 +514,7 @@ http_work_none(sky_tcp_t *const tcp) {
 
 static void
 multipart_error_cb(sky_http_server_request_t *const r, void *const data) {
-    const error_packet_t *const error = data;
+    const multipart_cb_t *const error = data;
     error->call(r, null, error->cb_data);
 }
 
