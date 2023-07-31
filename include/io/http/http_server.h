@@ -131,6 +131,7 @@ struct sky_http_server_header_s {
 struct sky_http_server_multipart_s {
     sky_list_t headers;
     sky_str_t header_name;
+    void *read_packet;
     sky_uchar_t *req_pos;
 
     sky_str_t *content_type;
