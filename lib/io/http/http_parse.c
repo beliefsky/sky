@@ -1001,10 +1001,7 @@ header_handle_run(sky_http_server_request_t *const req, sky_http_server_header_t
                     p += 8;
                     if (sky_str8_cmp(p, '-', 'e', 'n', 'c', 'o', 'd', 'i', 'n') && p[8] == 'g') {
                         req->headers_in.transfer_encoding = &h->val;
-
-                        const sky_uchar_t *const v = h->val.data;
-
-                        return h->val.len == 7 && sky_str8_cmp(p, 'c', 'h', 'u', 'n', 'k', 'e', 'd', '\0');
+                        return h->val.len == 7 && sky_str8_cmp(h->val.data, 'c', 'h', 'u', 'n', 'k', 'e', 'd', '\0');
                     }
                     return true;
                 }
