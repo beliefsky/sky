@@ -938,28 +938,25 @@ header_handle_run(sky_http_server_request_t *const req, sky_http_server_header_t
     const sky_uchar_t *p = h->key.data;
 
     switch (h->key.len) {
-        case 4: {
+        case 4:
             if (sky_likely(sky_str4_cmp(p, 'h', 'o', 's', 't'))) { // Host
                 req->headers_in.host = &h->val;
                 sky_str_lower2(&h->val);
                 req->headers_in.host = &h->val;
             }
             return true;
-        }
-        case 5: {
+        case 5:
             if (sky_likely(sky_str4_cmp(p, 'r', 'a', 'n', 'g') && p[4] == 'e')) { // Range
                 //
                 req->headers_in.range = &h->val;
             }
             return true;
-        }
-        case 8: {
+        case 8:
             if (sky_likely(sky_str8_cmp(p, 'i', 'f', '-', 'r', 'a', 'n', 'g', 'e'))) { // If-Range
                 req->headers_in.if_range = &h->val;
             }
             return true;
-        }
-        case 10: {
+        case 10:
             if (sky_str8_cmp(p, 'c', 'o', 'n', 'n', 'e', 'c', 't', 'i') && sky_str2_cmp(p + 8, 'o', 'n')) {
                 req->headers_in.connection = &h->val;
 
@@ -976,15 +973,13 @@ header_handle_run(sky_http_server_request_t *const req, sky_http_server_header_t
                 }
             }
             return true;
-        }
-        case 12: {
+        case 12:
             if (sky_str8_cmp(p, 'c', 'o', 'n', 't', 'e', 'n', 't', '-')
                 && sky_str4_cmp(p + 8, 't', 'y', 'p', 'e')) {
                 req->headers_in.content_type = &h->val;
             }
             return true;
-        }
-        case 14: {
+        case 14:
             if (sky_str8_cmp(p, 'c', 'o', 'n', 't', 'e', 'n', 't', '-')
                 && sky_str4_cmp(p + 8, 'l', 'e', 'n', 'g')
                 && sky_str2_cmp(p + 12, 't', 'h')) {
@@ -993,8 +988,7 @@ header_handle_run(sky_http_server_request_t *const req, sky_http_server_header_t
                 return sky_str_to_usize(&h->val, &req->headers_in.content_length_n);
             }
             return true;
-        }
-        case 17: {
+        case 17:
             switch (sky_str8_switch(p)) {
                 case sky_str8_num('i', 'f', '-', 'm', 'o', 'd', 'i', 'f'): {
                     p += 8;
@@ -1017,7 +1011,6 @@ header_handle_run(sky_http_server_request_t *const req, sky_http_server_header_t
                 default:
                     return true;
             }
-        }
         default:
             return true;
     }
@@ -1028,22 +1021,19 @@ multipart_header_handle_run(sky_http_server_multipart_t *const r, sky_http_serve
     const sky_uchar_t *const p = h->key.data;
 
     switch (h->key.len) {
-        case 12: {
+        case 12:
             if (sky_str8_cmp(p, 'c', 'o', 'n', 't', 'e', 'n', 't', '-')
                 && sky_str4_cmp(p + 8, 't', 'y', 'p', 'e')) {
                 r->content_type = &h->val;
             }
-
             return true;
-        }
-        case 19: {
+        case 19:
             if (sky_str8_cmp(p, 'c', 'o', 'n', 't', 'e', 'n', 't', '-')
                 && sky_str8_cmp(p + 8, 'd', 'i', 's', 'p', 'o', 's', 'i', 't')
                 && sky_str4_cmp(p + 16, 'i', 'o', 'n', '\0')) {
                 r->content_disposition = &h->val;
             }
             return true;
-        }
         default:
             return true;
     }
