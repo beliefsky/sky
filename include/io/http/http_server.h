@@ -97,6 +97,7 @@ struct sky_http_server_request_s {
         sky_str_t *if_modified_since;
         sky_str_t *content_type;
         sky_str_t *content_length;
+        sky_str_t *transfer_encoding;
         sky_str_t *range;
         sky_str_t *if_range;
 
