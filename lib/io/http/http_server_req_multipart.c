@@ -222,10 +222,17 @@ sky_http_multipart_body_none(
             call(req, m, data);
             return;
         }
+        if (sky_unlikely(read_n > req->headers_in.content_length_n)) {
+            goto error;
+        }
         const sky_usize_t size = read_n - (packet->boundary_len + 4);
         sky_memmove(buf->pos, buf->pos + size, packet->boundary_len + 4);
         buf->last -= size;
         req->headers_in.content_length_n -= size;
+
+        if (sky_unlikely(req->headers_in.content_length_n < (packet->boundary_len + 4))) {
+            goto error;
+        }
     }
 
     const sky_usize_t min_size = sky_min(req->headers_in.content_length_n, SKY_USIZE(4096));
@@ -242,6 +249,7 @@ sky_http_multipart_body_none(
     sky_buf_rebuild(buf, 0);
     req->headers_in.content_length_n = 0;
     req->error = true;
+    packet->end = true;
     call(req, m, data);
 }
 
@@ -485,7 +493,8 @@ http_multipart_body_none(sky_tcp_t *const tcp) {
     sky_buf_rebuild(conn->buf, 0);
     req->headers_in.content_length_n = 0;
     req->error = true;
-    conn->next_multipart_cb(req, null, packet->cb_data);
+    packet->end = true;
+    conn->next_multipart_cb(req, packet->current, packet->cb_data);
 }
 
 static void
