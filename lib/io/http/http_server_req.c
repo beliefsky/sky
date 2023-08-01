@@ -14,11 +14,14 @@ static void http_header_read(sky_tcp_t *tcp);
 
 static void http_module_run(sky_http_server_request_t *r);
 
+static void http_server_req_finish(sky_http_server_request_t *r, void *data);
+
 static void http_work_none(sky_tcp_t *tcp);
 
 static void http_read_timeout(sky_timer_wheel_entry_t *timer);
 
 static void http_read_error(sky_http_connection_t *conn);
+
 
 sky_api void
 sky_http_server_req_finish(sky_http_server_request_t *const r) {
@@ -32,16 +35,12 @@ sky_http_server_req_finish(sky_http_server_request_t *const r) {
         sky_http_response_str_len(r, null, 0, null, null);
         return;
     }
-
-    // 此处req body 未读取完成时需要继续读取
-
-    if (!r->keep_alive) {
-        http_read_error(conn);
-    } else {
-        sky_pool_t *pool = r->pool;
-        sky_pool_reset(pool);
-        http_request_set(conn, pool);
+    if (!r->read_request_body) {
+        sky_http_req_body_none(r, http_server_req_finish, null);
+        return;
     }
+
+    http_server_req_finish(r, null);
 }
 
 void
@@ -214,6 +213,21 @@ http_module_run(sky_http_server_request_t *const r) {
     r->state = 404;
     sky_str_set(&r->headers_out.content_type, "text/plain");
     sky_http_response_str_len(r, sky_str_line("404 Not Found"), null, null);
+}
+
+static sky_inline void
+http_server_req_finish(sky_http_server_request_t *const r, void *const data) {
+    (void) data;
+
+    sky_http_connection_t *const conn = r->conn;
+
+    if (!r->keep_alive || !sky_tcp_is_open(&conn->tcp)) {
+        http_read_error(conn);
+        return;
+    }
+    sky_pool_t *const pool = r->pool;
+    sky_pool_reset(pool);
+    http_request_set(conn, pool);
 }
 
 static void
