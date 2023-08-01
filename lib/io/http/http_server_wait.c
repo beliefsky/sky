@@ -82,7 +82,7 @@ sky_http_req_body_wait_read(
     sky_sync_wait_yield(wait);
 }
 
-sky_http_server_multipart_t *
+sky_api sky_http_server_multipart_t *
 sky_http_req_body_wait_multipart(sky_http_server_request_t *const r, sky_sync_wait_t *const wait) {
     sky_sync_wait_yield_before(wait);
     sky_http_req_body_multipart(r, http_multipart_next_cb, wait);
@@ -90,7 +90,7 @@ sky_http_req_body_wait_multipart(sky_http_server_request_t *const r, sky_sync_wa
     return sky_sync_wait_yield(wait);
 }
 
-sky_http_server_multipart_t *
+sky_api sky_http_server_multipart_t *
 sky_http_multipart_wait_next(sky_http_server_multipart_t *const m, sky_sync_wait_t *const wait) {
     sky_sync_wait_yield_before(wait);
     sky_http_multipart_next(m, http_multipart_next_cb, wait);
@@ -106,7 +106,7 @@ sky_http_multipart_body_wait_none(sky_http_server_multipart_t *const m, sky_sync
     sky_sync_wait_yield(wait);
 }
 
-sky_api sky_str_t *
+sky_str_t *
 sky_http_multipart_body_wait_str(sky_http_server_multipart_t *const m, sky_sync_wait_t *const wait) {
     sky_sync_wait_yield_before(wait);
     sky_http_multipart_body_str(m, http_multipart_str_cb, wait);
