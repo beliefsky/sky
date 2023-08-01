@@ -50,4 +50,17 @@ struct sky_http_connection_s {
 
 void http_server_request_process(sky_http_connection_t *conn);
 
+void http_req_body_length_none(sky_http_server_request_t *r, sky_http_server_next_pt call, void *data);
+
+void http_req_body_length_str(sky_http_server_request_t *r, sky_http_server_next_str_pt call, void *data);
+
+void http_req_body_length_read(sky_http_server_request_t *r, sky_http_server_next_read_pt call, void *data);
+
+void http_req_body_chunked_none(sky_http_server_request_t *r, sky_http_server_next_pt call, void *data);
+
+void http_req_body_chunked_str(sky_http_server_request_t *r, sky_http_server_next_str_pt call, void *data);
+
+void http_req_body_chunked_read(sky_http_server_request_t *r, sky_http_server_next_read_pt call, void *data);
+
+
 #endif //SKY_HTTP_SERVER_COMMON_H
