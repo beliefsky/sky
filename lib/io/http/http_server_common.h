@@ -38,6 +38,8 @@ struct sky_http_connection_s {
         sky_http_server_next_str_pt next_str_cb;
         sky_http_server_next_read_pt next_read_cb;
         sky_http_server_multipart_pt next_multipart_cb;
+        sky_http_server_multipart_str_pt next_multipart_str_cb;
+        sky_http_server_multipart_read_pt next_multipart_read_cb;
     };
 
     void *cb_data;
