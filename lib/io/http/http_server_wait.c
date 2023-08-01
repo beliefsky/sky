@@ -211,7 +211,7 @@ http_read_cb(
         sky_sync_wait_resume(read_data->wait, null);
         return;
     }
-    read_data->call(body, len, data);
+    read_data->call(body, len, read_data->data);
 }
 
 static void
@@ -264,10 +264,11 @@ http_multipart_read_cb(
     (void) m;
     (void) req;
 
+
     http_read_data_t *const read_data = data;
     if (!len) {
         sky_sync_wait_resume(read_data->wait, null);
         return;
     }
-    read_data->call(body, len, data);
+    read_data->call(body, len, read_data->data);
 }
