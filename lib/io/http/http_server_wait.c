@@ -106,7 +106,7 @@ sky_http_multipart_body_wait_none(sky_http_server_multipart_t *const m, sky_sync
     sky_sync_wait_yield(wait);
 }
 
-sky_str_t *
+sky_api sky_str_t *
 sky_http_multipart_body_wait_str(sky_http_server_multipart_t *const m, sky_sync_wait_t *const wait) {
     sky_sync_wait_yield_before(wait);
     sky_http_multipart_body_str(m, http_multipart_str_cb, wait);
