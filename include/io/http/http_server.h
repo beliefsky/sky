@@ -133,7 +133,10 @@ struct sky_http_server_multipart_s {
     sky_list_t headers;
     sky_str_t header_name;
     void *read_packet;
-    sky_uchar_t *req_pos;
+    union {
+        sky_uchar_t *req_pos;
+        sky_usize_t read_offset;
+    };
 
     sky_str_t *content_type;
     sky_str_t *content_disposition;

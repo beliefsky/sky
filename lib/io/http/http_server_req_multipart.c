@@ -29,6 +29,8 @@ static void http_multipart_header_read(sky_tcp_t *tcp);
 
 static void http_multipart_body_none(sky_tcp_t *tcp);
 
+static void http_multipart_body_str(sky_tcp_t *tcp);
+
 static void http_multipart_body_read(sky_tcp_t *tcp);
 
 static void multipart_next_before_read_cb(sky_http_server_request_t *req, sky_http_server_multipart_t *m, void *data);
@@ -40,6 +42,8 @@ static void multipart_error_cb(sky_http_server_request_t *r, void *data);
 static void multipart_next_timeout(sky_timer_wheel_entry_t *entry);
 
 static void multipart_body_none_timeout(sky_timer_wheel_entry_t *entry);
+
+static void multipart_body_str_timeout(sky_timer_wheel_entry_t *entry);
 
 static void multipart_body_read_timeout(sky_timer_wheel_entry_t *entry);
 
@@ -161,7 +165,7 @@ sky_http_multipart_next(
         multipart_cb_t *const tmp = sky_palloc(packet->req->pool, sizeof(multipart_cb_t));
         tmp->call = call;
         tmp->cb_data = data;
-        sky_http_multipart_body_none(m, multipart_next_before_read_cb, data);
+        sky_http_multipart_body_none(m, multipart_next_before_read_cb, tmp);
         return;
     }
     packet->cb_data = data;
@@ -268,7 +272,89 @@ sky_http_multipart_body_str(
         const sky_http_server_multipart_str_pt call,
         void *const data
 ) {
+    multipart_packet_t *const packet = m->read_packet;
+    sky_http_server_request_t *const req = packet->req;
 
+    if (sky_unlikely(!packet->need_read_body)) {
+        call(req, m, null, data);
+        return;
+    }
+    m->read_offset = 0;
+
+    sky_http_connection_t *const conn = req->conn;
+    sky_buf_t *const buf = conn->buf;
+
+    const sky_usize_t read_n = (sky_usize_t) (buf->last - buf->pos);
+    if (read_n >= (packet->boundary_len + 4)) {
+        const sky_uchar_t *p = sky_str_len_find(
+                buf->pos,
+                read_n,
+                packet->boundary,
+                packet->boundary_len
+        );
+        if (p && sky_str4_cmp(p - 4, '\r', '\n', '-', '-')) {
+            const sky_str_t body = {
+                    .data = buf->pos,
+                    .len = (sky_usize_t) (p - 4 - buf->pos)
+            };
+
+            p += packet->boundary_len;
+            req->headers_in.content_length_n -= (sky_usize_t) (p - buf->pos);
+            if (sky_str4_cmp(p, '-', '-', '\r', '\n')) { // all multipart end
+                req->headers_in.content_length_n -= 4;
+                p += 4;
+                buf->pos += (sky_usize_t) (p - buf->pos);
+
+                packet->end = true;
+                packet->need_read_body = false;
+                sky_buf_rebuild(buf, 0);
+
+                body.data[body.len] = '\0';
+                sky_str_t *const str = sky_palloc(req->pool, sizeof(sky_str_t));
+                *str = body;
+                call(req, m, str, data);
+                return;
+            }
+            if (sky_unlikely(!sky_str2_cmp(p, '\r', '\n'))) { // current multipart end
+                goto error;
+            }
+            req->headers_in.content_length_n -= 2;
+            p += 2;
+            buf->pos += (sky_usize_t) (p - buf->pos);
+
+            packet->need_read_body = false;
+            body.data[body.len] = '\0';
+            sky_str_t *const str = sky_palloc(req->pool, sizeof(sky_str_t));
+            *str = body;
+            call(req, m, str, data);
+            return;
+        }
+        if (sky_unlikely(read_n > req->headers_in.content_length_n)) {
+            goto error;
+        }
+        m->read_offset = read_n - (packet->boundary_len + 4);
+    }
+    const sky_usize_t re_size = m->read_offset << 1;
+    sky_usize_t min_size = sky_min(req->headers_in.content_length_n, SKY_USIZE(4096));
+    min_size = sky_max(re_size, min_size);
+    if (sky_unlikely((sky_usize_t) (buf->end - buf->pos) < min_size)) { // 保证读取内存能容纳
+        sky_buf_rebuild(buf, min_size);
+    }
+    packet->cb_data = data;
+    conn->next_multipart_str_cb = call;
+
+    sky_timer_set_cb(&conn->timer, multipart_body_str_timeout);
+    sky_tcp_set_cb_and_run(&conn->tcp, http_multipart_body_str);
+
+    return;
+
+    error:
+    sky_tcp_close(&conn->tcp);
+    sky_buf_rebuild(buf, 0);
+    req->headers_in.content_length_n = 0;
+    req->error = true;
+    packet->end = true;
+    call(req, m, null, data);
 }
 
 sky_api void
@@ -590,6 +676,11 @@ http_multipart_body_none(sky_tcp_t *const tcp) {
 }
 
 static void
+http_multipart_body_str(sky_tcp_t *tcp) {
+
+}
+
+static void
 http_multipart_body_read(sky_tcp_t *const tcp) {
     sky_http_connection_t *const conn = sky_type_convert(tcp, sky_http_connection_t, tcp);
     sky_http_server_request_t *const req = conn->current_req;
@@ -695,10 +786,15 @@ multipart_next_before_read_cb(
 ) {
     const multipart_cb_t *const tmp = data;
     multipart_packet_t *const packet = m->read_packet;
+    if (packet->end) {
+        tmp->call(packet->req, null, tmp->cb_data);
+        return;
+    }
+
     packet->cb_data = tmp->cb_data;
 
     sky_http_connection_t *const conn = req->conn;
-    conn->next_multipart_cb = tmp->cb_data;
+    conn->next_multipart_cb = tmp->call;
     conn->cb_data = packet;
 
     http_multipart_process(packet, packet->req);
@@ -744,6 +840,21 @@ multipart_body_none_timeout(sky_timer_wheel_entry_t *const entry) {
     req->error = true;
 
     conn->next_multipart_cb(req, packet->current, packet->cb_data);
+}
+
+static void
+multipart_body_str_timeout(sky_timer_wheel_entry_t *const entry) {
+    sky_http_connection_t *const conn = sky_type_convert(entry, sky_http_connection_t, timer);
+    sky_http_server_request_t *const req = conn->current_req;
+    multipart_packet_t *const packet = conn->cb_data;
+    packet->end = true;
+
+    sky_tcp_close(&conn->tcp);
+    sky_buf_rebuild(conn->buf, 0);
+    req->headers_in.content_length_n = 0;
+    req->error = true;
+
+    conn->next_multipart_str_cb(req, packet->current, null, packet->cb_data);
 }
 
 static void
