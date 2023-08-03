@@ -32,8 +32,14 @@ extern "C" {
 #define SKY_SOCKET_FD_NONE (-1)
 
 typedef sky_i32_t sky_socket_t;
+typedef struct sky_io_vec_s sky_io_vec_t;
 typedef struct sky_inet_addr_s sky_inet_addr_t;
 
+
+struct sky_io_vec_s {
+    sky_uchar_t *buf;
+    sky_usize_t size;
+};
 
 struct sky_inet_addr_s {
     sky_u32_t size;

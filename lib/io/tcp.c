@@ -196,6 +196,50 @@ sky_tcp_read(sky_tcp_t *const tcp, sky_uchar_t *const data, const sky_usize_t si
 }
 
 sky_api sky_isize_t
+sky_tcp_read_v(sky_tcp_t *const tcp, sky_io_vec_t *const vec, const sky_usize_t num) {
+    if (sky_unlikely(sky_ev_error(&tcp->ev) || !sky_tcp_is_connect(tcp))) {
+        return -1;
+    }
+
+    if (sky_unlikely(!num || !sky_ev_readable(&tcp->ev))) {
+        return 0;
+    }
+    const sky_io_vec_t *item = vec;
+    sky_usize_t size = 0;
+    sky_usize_t i = num;
+    do {
+        size += item->size;
+        --i;
+        ++item;
+    } while (i > 0);
+
+    if (sky_unlikely(!size)) {
+        return 0;
+    }
+
+    struct msghdr msg = {
+            .msg_iov = (struct iovec *) vec,
+            .msg_iovlen = num
+    };
+
+    const sky_isize_t n = recvmsg(sky_ev_get_fd(&tcp->ev), &msg, 0);
+
+    if (sky_likely(n > 0)) {
+        if ((sky_usize_t) n < size) {
+            sky_ev_clean_read(&tcp->ev);
+        }
+        return n;
+    }
+    if (sky_likely(errno == EAGAIN)) {
+        sky_ev_clean_read(&tcp->ev);
+        return 0;
+    }
+    sky_ev_set_error(&tcp->ev);
+
+    return -1;
+}
+
+sky_api sky_isize_t
 sky_tcp_write(sky_tcp_t *const tcp, const sky_uchar_t *const data, const sky_usize_t size) {
     if (sky_unlikely(sky_ev_error(&tcp->ev) || !sky_tcp_is_connect(tcp))) {
         return -1;
@@ -206,6 +250,49 @@ sky_tcp_write(sky_tcp_t *const tcp, const sky_uchar_t *const data, const sky_usi
     }
 
     const sky_isize_t n = send(sky_ev_get_fd(&tcp->ev), data, size, MSG_NOSIGNAL);
+    if (sky_likely(n > 0)) {
+        if ((sky_usize_t) n < size) {
+            sky_ev_clean_write(&tcp->ev);
+        }
+        return n;
+    }
+    if (sky_likely(errno == EAGAIN)) {
+        sky_ev_clean_write(&tcp->ev);
+        return 0;
+    }
+    sky_ev_set_error(&tcp->ev);
+
+    return -1;
+}
+
+sky_api sky_isize_t
+sky_tcp_write_v(sky_tcp_t *tcp, const sky_io_vec_t *vec, sky_usize_t num) {
+    if (sky_unlikely(sky_ev_error(&tcp->ev) || !sky_tcp_is_connect(tcp))) {
+        return -1;
+    }
+    if (sky_unlikely(!num || !sky_ev_writable(&tcp->ev))) {
+        return 0;
+    }
+    const sky_io_vec_t *item = vec;
+    sky_usize_t size = 0;
+    sky_usize_t i = num;
+    do {
+        size += item->size;
+        --i;
+        ++item;
+    } while (i > 0);
+
+    if (sky_unlikely(!size)) {
+        return 0;
+    }
+
+    const struct msghdr msg = {
+            .msg_iov = (struct iovec *) vec,
+            .msg_iovlen = num
+    };
+
+    const sky_isize_t n = sendmsg(sky_ev_get_fd(&tcp->ev), &msg, MSG_NOSIGNAL);
+
     if (sky_likely(n > 0)) {
         if ((sky_usize_t) n < size) {
             sky_ev_clean_write(&tcp->ev);
