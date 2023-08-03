@@ -87,6 +87,52 @@ sky_udp_read(
     return -1;
 }
 
+sky_api sky_isize_t
+sky_udp_read_v(sky_udp_t *udp, sky_inet_addr_t *addr, sky_io_vec_t *vec, sky_usize_t num) {
+    if (sky_unlikely(sky_ev_error(&udp->ev) || !sky_udp_is_open(udp))) {
+        return -1;
+    }
+
+    if (sky_unlikely(!num || !sky_ev_readable(&udp->ev))) {
+        return 0;
+    }
+    const sky_io_vec_t *item = vec;
+    sky_usize_t size = 0;
+    sky_usize_t i = num;
+    do {
+        size += item->size;
+        --i;
+        ++item;
+    } while (i > 0);
+
+    if (sky_unlikely(!size)) {
+        return 0;
+    }
+
+    struct msghdr msg = {
+            .msg_name = addr->addr,
+            .msg_iov = (struct iovec *) vec,
+            .msg_iovlen = num
+    };
+    const sky_isize_t n = recvmsg(sky_ev_get_fd(&udp->ev), &msg, 0);
+
+    if (sky_likely(n > 0)) {
+        addr->size = msg.msg_namelen;
+
+        if ((sky_usize_t) n < size) {
+            sky_ev_clean_read(&udp->ev);
+        }
+        return n;
+    }
+    if (sky_likely(errno == EAGAIN)) {
+        sky_ev_clean_read(&udp->ev);
+        return 0;
+    }
+    sky_ev_set_error(&udp->ev);
+
+    return -1;
+}
+
 sky_api sky_bool_t
 sky_udp_write(
         sky_udp_t *const udp,
@@ -99,6 +145,43 @@ sky_udp_write(
     }
 
     if (sky_unlikely(!size || sendto(sky_ev_get_fd(&udp->ev), data, size, 0, addr->addr, addr->size) > 0)) {
+        return true;
+    }
+    sky_ev_set_error(&udp->ev);
+
+    return false;
+}
+
+sky_api sky_bool_t
+sky_udp_write_v(sky_udp_t *udp, const sky_inet_addr_t *addr, sky_io_vec_t *vec, sky_usize_t num) {
+    if (sky_unlikely(sky_ev_error(&udp->ev) || !sky_udp_is_open(udp))) {
+        return false;
+    }
+    if (sky_unlikely(!num)) {
+        return true;
+    }
+
+    const sky_io_vec_t *item = vec;
+    sky_usize_t size = 0;
+    sky_usize_t i = num;
+    do {
+        size += item->size;
+        --i;
+        ++item;
+    } while (i > 0);
+
+    if (sky_unlikely(!size)) {
+        return true;
+    }
+
+    const struct msghdr msg = {
+            .msg_name = addr->addr,
+            .msg_controllen = addr->size,
+            .msg_iov = (struct iovec *) vec,
+            .msg_iovlen = num
+    };
+
+    if (sky_unlikely(sendmsg(sky_ev_get_fd(&udp->ev), &msg, MSG_NOSIGNAL) > 0)) {
         return true;
     }
     sky_ev_set_error(&udp->ev);
