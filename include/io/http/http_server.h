@@ -30,7 +30,6 @@ typedef struct sky_http_connection_s sky_http_connection_t;
 typedef struct sky_http_server_request_s sky_http_server_request_t;
 typedef struct sky_http_server_header_s sky_http_server_header_t;
 typedef struct sky_http_server_multipart_s sky_http_server_multipart_t;
-typedef struct sky_http_server_writer_s sky_http_server_writer_t;
 
 typedef void (*sky_http_server_module_run_pt)(sky_http_server_request_t *r, void *module_data);
 
@@ -67,11 +66,6 @@ typedef void (*sky_http_server_multipart_read_pt)(
         void *data
 );
 
-typedef void (*sky_http_server_writer_pt)(
-        sky_http_server_request_t *r,
-        sky_http_server_writer_t *writer,
-        void *data
-);
 
 
 struct sky_http_server_conf_s {
@@ -192,16 +186,6 @@ void sky_http_response_str_len(
         const sky_uchar_t *data,
         sky_usize_t data_len,
         sky_http_server_next_pt call,
-        void *cb_data
-);
-
-void sky_http_response_writer(sky_http_server_request_t *r, sky_http_server_writer_pt call, void *cb_data);
-
-void sky_http_server_writer_send(
-        sky_http_server_writer_t *writer,
-        const sky_uchar_t *data,
-        sky_usize_t size,
-        sky_http_server_writer_pt call,
         void *cb_data
 );
 

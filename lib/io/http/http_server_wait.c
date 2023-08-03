@@ -47,13 +47,6 @@ static void http_multipart_read_cb(
         void *data
 );
 
-static void http_writer_cb(
-        sky_http_server_request_t *req,
-        sky_http_server_writer_t *writer,
-        void *data
-);
-
-
 sky_api void
 sky_http_req_body_wait_none(sky_http_server_request_t *const r, sky_sync_wait_t *const wait) {
     sky_sync_wait_yield_before(wait);
@@ -174,27 +167,6 @@ sky_http_response_wait_str_len(
     sky_sync_wait_yield(wait);
 }
 
-sky_api sky_http_server_writer_t *
-sky_http_response_wait_writer(sky_http_server_request_t *r, sky_sync_wait_t *wait) {
-    sky_sync_wait_yield_before(wait);
-    sky_http_response_writer(r, http_writer_cb, wait);
-
-    return sky_sync_wait_yield(wait);
-}
-
-sky_api sky_bool_t
-sky_http_writer_wait_send(
-        sky_http_server_writer_t *writer,
-        sky_sync_wait_t *wait,
-        const sky_uchar_t *data,
-        sky_usize_t data_len
-) {
-    sky_sync_wait_yield_before(wait);
-    sky_http_server_writer_send(writer, data, data_len, http_writer_cb, wait);
-
-    return null != sky_sync_wait_yield(wait);
-}
-
 
 sky_api void
 sky_http_response_wait_file(
@@ -300,16 +272,4 @@ http_multipart_read_cb(
         return;
     }
     read_data->call(body, len, read_data->data);
-}
-
-static void
-http_writer_cb(
-        sky_http_server_request_t *const req,
-        sky_http_server_writer_t *const writer,
-        void *const data
-) {
-    (void) req;
-
-    sky_sync_wait_t *const wait = data;
-    sky_sync_wait_resume(wait, writer);
 }

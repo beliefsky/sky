@@ -58,15 +58,6 @@ void sky_http_response_wait_str_len(
         sky_usize_t data_len
 );
 
-sky_http_server_writer_t *sky_http_response_wait_writer(sky_http_server_request_t *r, sky_sync_wait_t *wait);
-
-sky_bool_t sky_http_writer_wait_send(
-        sky_http_server_writer_t *writer,
-        sky_sync_wait_t *wait,
-        const sky_uchar_t *data,
-        sky_usize_t data_len
-);
-
 void sky_http_response_wait_file(
         sky_http_server_request_t *r,
         sky_sync_wait_t *wait,

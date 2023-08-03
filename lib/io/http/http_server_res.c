@@ -7,12 +7,6 @@
 #include <core/date.h>
 #include "http_server_common.h"
 
-struct sky_http_server_writer_s {
-    sky_str_t buf;
-    sky_http_connection_t *conn;
-    void *cb_data;
-    sky_u32_t ev_flag;
-};
 
 typedef struct {
     sky_u32_t num;
@@ -41,15 +35,11 @@ static void http_response_file(sky_tcp_t *tcp);
 
 static void http_response_str(sky_tcp_t *tcp);
 
-static void http_response_writer(sky_tcp_t * tcp);
-
 static void http_response_none(sky_tcp_t *tcp);
 
 static void http_write_str_timeout(sky_timer_wheel_entry_t *timer);
 
 static void http_write_file_timeout(sky_timer_wheel_entry_t *timer);
-
-static void http_write_writer_timeout(sky_timer_wheel_entry_t *timer);
 
 static void status_msg_get(sky_u32_t status, sky_str_t *out);
 
@@ -173,56 +163,6 @@ sky_http_response_str_len(
 
     sky_timer_set_cb(&conn->timer, http_write_str_timeout);
     sky_tcp_set_cb_and_run(&conn->tcp, http_response_str);
-}
-
-sky_api void
-sky_http_response_writer(
-        sky_http_server_request_t *const r,
-        const sky_http_server_writer_pt call,
-        void *const cb_data
-) {
-    if (sky_unlikely(r->response)) {
-        call(r, null, cb_data);
-        return;
-    }
-    r->response = true;
-
-    sky_http_server_writer_t *const writer = sky_palloc(r->pool, sizeof(sky_http_server_writer_t));
-    writer->conn = r->conn;
-    writer->cb_data = cb_data;
-    writer->ev_flag = r->keep_alive ? (SKY_EV_READ | SKY_EV_WRITE) : SKY_EV_WRITE;
-
-    sky_str_buf_t buf;
-    sky_str_buf_init2(&buf, r->pool, SKY_USIZE(2048));
-    http_header_write_pre(r, &buf);
-    http_header_write_ex(r, &buf);
-    sky_str_buf_build(&buf, &writer->buf);
-
-    sky_http_connection_t *const conn = r->conn;
-    conn->next_writer_cb = call;
-    conn->cb_data = writer;
-
-
-    sky_timer_set_cb(&conn->timer, http_write_writer_timeout);
-    sky_tcp_set_cb_and_run(&conn->tcp, http_response_writer);
-}
-
-sky_api void
-sky_http_server_writer_send(
-        sky_http_server_writer_t *const writer,
-        const sky_uchar_t *const data,
-        const sky_usize_t size,
-        const sky_http_server_writer_pt call,
-        void *const cb_data
-) {
-    writer->buf.data = (sky_uchar_t *)data;
-    writer->buf.len = size;
-    writer->cb_data = cb_data;
-
-    sky_http_connection_t *const conn = writer->conn;
-    conn->next_writer_cb = call;
-
-    sky_tcp_set_cb_and_run(&conn->tcp, http_response_writer);
 }
 
 
@@ -397,37 +337,6 @@ http_response_str(sky_tcp_t *const tcp) {
     }
 }
 
-static void
-http_response_writer(sky_tcp_t *const tcp) {
-    sky_http_connection_t *const conn = sky_type_convert(tcp, sky_http_connection_t, tcp);
-    sky_http_server_writer_t *const writer = conn->cb_data;
-    sky_str_t *const buf = &writer->buf;
-    sky_isize_t n;
-
-    again:
-    n = sky_tcp_write(tcp, buf->data, buf->len);
-    if (n > 0) {
-        buf->data += n;
-        buf->len -= (sky_usize_t) n;
-        if (!buf->len) {
-            sky_tcp_set_cb(tcp, http_response_none);
-            sky_timer_wheel_unlink(&conn->timer);
-            conn->next_writer_cb(conn->current_req, writer, writer->cb_data);
-            return;
-        }
-        goto again;
-    }
-    if (sky_likely(!n)) {
-        sky_event_timeout_set(conn->ev_loop, &conn->timer, conn->server->timeout);
-        sky_tcp_try_register(tcp, writer->ev_flag);
-        return;
-    }
-
-    sky_timer_wheel_unlink(&conn->timer);
-    sky_tcp_close(tcp);
-    conn->next_writer_cb(conn->current_req, null, writer->cb_data);
-}
-
 
 static void
 http_response_file(sky_tcp_t *const tcp) {
@@ -494,15 +403,6 @@ http_write_file_timeout(sky_timer_wheel_entry_t *const timer) {
     sky_tcp_close(&conn->tcp);
 
     conn->next_cb(conn->current_req, packet->cb_data);
-}
-
-static sky_inline void
-http_write_writer_timeout(sky_timer_wheel_entry_t *const timer) {
-    sky_http_connection_t *const conn = sky_type_convert(timer, sky_http_connection_t, timer);
-    sky_http_server_writer_t *const packet = conn->cb_data;
-    sky_tcp_close(&conn->tcp);
-
-    conn->next_writer_cb(conn->current_req, null, packet->cb_data);
 }
 
 static void
