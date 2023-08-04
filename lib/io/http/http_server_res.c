@@ -118,66 +118,58 @@ sky_http_response_str_len(
 
     sky_str_buf_t buf;
 
-    if (data_len > SKY_USIZE(1024)) {
-        http_vec_packet_t *const packet = sky_palloc(
-                r->pool,
-                sizeof(http_vec_packet_t) + (sizeof(sky_io_vec_t) << 1)
-        );
-        packet->read = 0;
-        packet->num = 2;
+    if (!data_len) {
+        http_str_packet_t *const packet = sky_palloc(r->pool, sizeof(http_str_packet_t));
         packet->ev_flag = r->keep_alive ? (SKY_EV_READ | SKY_EV_WRITE) : SKY_EV_WRITE;
         packet->cb_data = cb_data;
 
         sky_str_buf_init2(&buf, r->pool, SKY_USIZE(2048));
         http_header_write_pre(r, &buf);
-
-        sky_str_buf_append_str_len(&buf, sky_str_line("Content-Length: "));
-        sky_str_buf_append_u64(&buf, data_len);
-        sky_str_buf_append_two_uchar(&buf, '\r', '\n');
-
+        sky_str_buf_append_str_len(&buf, sky_str_line("Content-Length: 0\r\n"));
         http_header_write_ex(r, &buf);
-
-        sky_str_t result;
-        sky_str_buf_build(&buf, &result);
-        packet->vec[0].buf = result.data;
-        packet->vec[0].size = result.len;
-        packet->vec[1].buf = (sky_uchar_t *) data;
-        packet->vec[1].size = data_len;
+        sky_str_buf_build(&buf, &packet->buf);
 
         sky_http_connection_t *const conn = r->conn;
         conn->next_cb = call;
         conn->cb_data = packet;
 
-        sky_timer_set_cb(&conn->timer, http_write_vec_timeout);
-        sky_tcp_set_cb_and_run(&conn->tcp, http_response_vec);
+        sky_timer_set_cb(&conn->timer, http_write_str_timeout);
+        sky_tcp_set_cb_and_run(&conn->tcp, http_response_str);
+
         return;
     }
-    http_str_packet_t *const packet = sky_palloc(r->pool, sizeof(http_str_packet_t));
+
+    http_vec_packet_t *const packet = sky_palloc(
+            r->pool,
+            sizeof(http_vec_packet_t) + (sizeof(sky_io_vec_t) << 1)
+    );
+    packet->read = 0;
+    packet->num = 2;
     packet->ev_flag = r->keep_alive ? (SKY_EV_READ | SKY_EV_WRITE) : SKY_EV_WRITE;
     packet->cb_data = cb_data;
 
-    sky_str_buf_init2(&buf, r->pool, SKY_USIZE(2048) + data_len);
+    sky_str_buf_init2(&buf, r->pool, SKY_USIZE(2048));
     http_header_write_pre(r, &buf);
-    if (!data_len) {
-        sky_str_buf_append_str_len(&buf, sky_str_line("Content-Length: 0\r\n"));
 
-        http_header_write_ex(r, &buf);
-    } else {
-        sky_str_buf_append_str_len(&buf, sky_str_line("Content-Length: "));
-        sky_str_buf_append_u64(&buf, data_len);
-        sky_str_buf_append_two_uchar(&buf, '\r', '\n');
+    sky_str_buf_append_str_len(&buf, sky_str_line("Content-Length: "));
+    sky_str_buf_append_u64(&buf, data_len);
+    sky_str_buf_append_two_uchar(&buf, '\r', '\n');
 
-        http_header_write_ex(r, &buf);
-        sky_str_buf_append_str_len(&buf, data, data_len);
-    }
-    sky_str_buf_build(&buf, &packet->buf);
+    http_header_write_ex(r, &buf);
+
+    sky_str_t result;
+    sky_str_buf_build(&buf, &result);
+    packet->vec[0].buf = result.data;
+    packet->vec[0].size = result.len;
+    packet->vec[1].buf = (sky_uchar_t *) data;
+    packet->vec[1].size = data_len;
 
     sky_http_connection_t *const conn = r->conn;
     conn->next_cb = call;
     conn->cb_data = packet;
 
-    sky_timer_set_cb(&conn->timer, http_write_str_timeout);
-    sky_tcp_set_cb_and_run(&conn->tcp, http_response_str);
+    sky_timer_set_cb(&conn->timer, http_write_vec_timeout);
+    sky_tcp_set_cb_and_run(&conn->tcp, http_response_vec);
 }
 
 
@@ -355,18 +347,19 @@ http_response_vec(sky_tcp_t *const tcp) {
     if (n > 0) {
         next_vec:
         if ((sky_usize_t) n < vec->size) {
-            vec->size -= (sky_usize_t)n;
+            vec->size -= (sky_usize_t) n;
             vec->buf += n;
             goto again;
         }
-        packet->read = ++num;
-        if (num == packet->num) {
+        ++packet->read;
+        --num;
+        if (!num) {
             sky_tcp_set_cb(tcp, http_response_none);
             sky_timer_wheel_unlink(&conn->timer);
             conn->next_cb(conn->current_req, packet->cb_data);
             return;
         }
-        n -= (sky_isize_t)vec->size;
+        n -= (sky_isize_t) vec->size;
         ++vec;
         goto next_vec;
     }
