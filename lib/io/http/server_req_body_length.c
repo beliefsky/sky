@@ -40,6 +40,7 @@ http_req_body_length_none(
     if (read_n >= size) {
         r->headers_in.content_length_n = 0;
         r->read_request_body = true;
+        tmp->pos += size;
         sky_buf_rebuild(tmp, 0);
 
         call(r, data);
@@ -81,15 +82,14 @@ http_req_body_length_str(
     const sky_usize_t read_n = (sky_usize_t) (tmp->last - tmp->pos);
 
     if (read_n >= size) {
+        r->headers_in.content_length_n = 0;
+
         sky_str_t *body = sky_palloc(r->pool, sizeof(sky_str_t));
         body->data = tmp->pos;
-        body->data[size] = '\0';
         body->len = size;
         tmp->pos += size;
 
-        r->headers_in.content_length_n = 0;
         sky_buf_rebuild(tmp, 0);
-
         call(r, body, data);
         return;
     }
@@ -109,26 +109,26 @@ http_req_body_length_read(
         void *const data
 ) {
     sky_http_connection_t *const conn = r->conn;
-    sky_buf_t *const tmp = conn->buf;
+    sky_buf_t *const buf = conn->buf;
 
-    const sky_usize_t read_n = (sky_usize_t) (tmp->last - tmp->pos);
+    const sky_usize_t read_n = (sky_usize_t) (buf->last - buf->pos);
     sky_usize_t size = r->headers_in.content_length_n;
     if (read_n >= size) {
         r->headers_in.content_length_n = 0;
-        sky_buf_rebuild(tmp, 0);
-
-        call(r, tmp->pos, size, data);
+        call(r, buf->pos, size, data);
+        buf->pos += size;
+        sky_buf_rebuild(buf, 0);
         call(r, null, 0, data);
         return;
     }
-    call(r, tmp->pos, read_n, data);
+    call(r, buf->pos, read_n, data);
 
     size -= read_n;
     r->headers_in.content_length_n = size;
 
-    const sky_usize_t free_n = (sky_usize_t) (tmp->end - tmp->pos);
+    const sky_usize_t free_n = (sky_usize_t) (buf->end - buf->pos);
     if (free_n < size && free_n < SKY_USIZE(4096)) {
-        sky_buf_rebuild(tmp, sky_min(size, SKY_USIZE(4096)));
+        sky_buf_rebuild(buf, sky_min(size, SKY_USIZE(4096)));
     }
 
 
@@ -156,6 +156,7 @@ http_body_read_none(sky_tcp_t *const tcp) {
             sky_timer_wheel_unlink(&conn->timer);
             sky_tcp_set_cb(tcp, http_work_none);
             req->headers_in.content_length_n = 0;
+            buf->last = buf->pos;
             sky_buf_rebuild(conn->buf, 0);
             conn->next_cb(req, conn->cb_data);
             return;
@@ -242,6 +243,7 @@ http_body_read_cb(sky_tcp_t *const tcp) {
             sky_timer_wheel_unlink(&conn->timer);
             sky_tcp_set_cb(tcp, http_work_none);
             req->headers_in.content_length_n = 0;
+            buf->last = buf->pos;
             sky_buf_rebuild(conn->buf, 0);
             conn->next_read_cb(req, null, 0, conn->cb_data);
             return;
