@@ -158,7 +158,7 @@ http_request_line_parse(sky_http_server_request_t *const r, sky_buf_t *const b) 
 
             if (sky_likely(sky_str4_cmp(p, '/', '1', '.', '1'))) {
                 r->keep_alive = true;
-            } else if (!sky_str4_cmp(p, '/', '1', '.', '0')) {
+            } else if (sky_unlikely(!sky_str4_cmp(p, '/', '1', '.', '0'))) {
                 return -1;
             }
             p += 4;
