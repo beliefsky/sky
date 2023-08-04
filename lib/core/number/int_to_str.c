@@ -12,7 +12,7 @@ static sky_u64_t num_3_4_str_pre(sky_u64_t x);
 static sky_u64_t num_5_8_str_pre(sky_u64_t x);
 
 sky_api sky_u8_t
-sky_i8_to_str(const sky_i8_t data, sky_uchar_t *__restrict out) {
+sky_i8_to_str(const sky_i8_t data, sky_uchar_t * out) {
     if (data < 0) {
         *(out++) = '-';
         const sky_u32_t tmp = (sky_u32_t) (~data + 1);
@@ -23,7 +23,7 @@ sky_i8_to_str(const sky_i8_t data, sky_uchar_t *__restrict out) {
 }
 
 sky_api sky_u8_t
-sky_u8_to_str(const sky_u8_t data, sky_uchar_t *const __restrict out) {
+sky_u8_to_str(const sky_u8_t data, sky_uchar_t *const  out) {
     const sky_u8_t len = u32_check_str_count(data);
     fast_number_to_str(data, len, out);
 
@@ -31,7 +31,7 @@ sky_u8_to_str(const sky_u8_t data, sky_uchar_t *const __restrict out) {
 }
 
 sky_api sky_u8_t
-sky_i16_to_str(const sky_i16_t data, sky_uchar_t *__restrict out) {
+sky_i16_to_str(const sky_i16_t data, sky_uchar_t * out) {
     if (data < 0) {
         *(out++) = '-';
         const sky_u32_t tmp = (sky_u32_t) (~data + 1);
@@ -42,7 +42,7 @@ sky_i16_to_str(const sky_i16_t data, sky_uchar_t *__restrict out) {
 }
 
 sky_api sky_u8_t
-sky_u16_to_str(const sky_u16_t data, sky_uchar_t *const __restrict out) {
+sky_u16_to_str(const sky_u16_t data, sky_uchar_t *const  out) {
     const sky_u8_t len = u32_check_str_count(data);
     fast_number_to_str(data, len, out);
 
@@ -51,7 +51,7 @@ sky_u16_to_str(const sky_u16_t data, sky_uchar_t *const __restrict out) {
 
 
 sky_api sky_u8_t
-sky_i32_to_str(const sky_i32_t data, sky_uchar_t * __restrict out) {
+sky_i32_to_str(const sky_i32_t data, sky_uchar_t *  out) {
     if (data < 0) {
         *(out++) = '-';
         const sky_u32_t tmp = (sky_u32_t) (~data + 1);
@@ -62,7 +62,7 @@ sky_i32_to_str(const sky_i32_t data, sky_uchar_t * __restrict out) {
 }
 
 sky_api sky_u8_t
-sky_u32_to_str(const sky_u32_t data, sky_uchar_t *const __restrict out) {
+sky_u32_to_str(const sky_u32_t data, sky_uchar_t *const  out) {
     const sky_u8_t len = u32_check_str_count(data);
     fast_number_to_str(data, len, out);
 
@@ -70,7 +70,7 @@ sky_u32_to_str(const sky_u32_t data, sky_uchar_t *const __restrict out) {
 }
 
 sky_api sky_u8_t
-sky_i64_to_str(const sky_i64_t data, sky_uchar_t *__restrict out) {
+sky_i64_to_str(const sky_i64_t data, sky_uchar_t * out) {
     if (data < 0) {
         *(out++) = '-';
         return (sky_u8_t) (sky_u64_to_str((sky_u64_t) (~data + 1), out) + 1);
@@ -79,7 +79,7 @@ sky_i64_to_str(const sky_i64_t data, sky_uchar_t *__restrict out) {
 }
 
 sky_api sky_u8_t
-sky_u64_to_str(sky_u64_t data, sky_uchar_t *__restrict out) {
+sky_u64_to_str(sky_u64_t data, sky_uchar_t * out) {
     if (data < SKY_U32_MAX) {
         const sky_u8_t len = u32_check_str_count((sky_u32_t) data);
         fast_number_to_str(data, len, out);
@@ -139,7 +139,7 @@ u32_check_str_count(const sky_u32_t x) {
  * @param s 输出字符串
  */
 static sky_inline void
-fast_number_to_str(sky_u64_t x, const sky_u8_t len, sky_uchar_t *__restrict s) {
+fast_number_to_str(sky_u64_t x, const sky_u8_t len, sky_uchar_t * s) {
     switch (len) {
         case 1:
             *s = num_to_uchar(x);
