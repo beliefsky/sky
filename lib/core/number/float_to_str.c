@@ -23,7 +23,8 @@ sky_f32_to_str(sky_f32_t data, sky_uchar_t *out) {
 
 sky_api sky_u8_t
 sky_f64_to_str(sky_f64_t data, sky_uchar_t *out) {
-    const sky_u64_t raw = *((sky_u64_t *) &data);
+    sky_u64_t raw;
+    sky_memcpy8(&raw, &data);
     const sky_u64_t sig_raw = raw & SKY_U64(0x000FFFFFFFFFFFFF);
     const sky_u32_t exp_raw = (raw & SKY_U64(0x7FF0000000000000)) >> 52;
     const sky_bool_t sign = raw >> 63;

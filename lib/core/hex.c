@@ -16,11 +16,11 @@ sky_hex_str_len_to_u32(const sky_uchar_t *in, const sky_usize_t in_len, sky_u32_
         result <<= 4;
 
         if (*in >= '0' && *in <= '9') {
-            result += *in - '0';
+            result += (sky_u32_t)(*in - '0');
         } else if (*in >= 'A' && *in <= 'F') {
-            result += *in - 'A' + 10;
+            result += (sky_u32_t)(*in - 'A') + 10;
         } else if (*in >= 'a' && *in <= 'f') {
-            result += *in - 'a' + 10;
+            result += (sky_u32_t)(*in - 'a') + 10;
         } else {
             return false;
         }

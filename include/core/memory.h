@@ -41,17 +41,17 @@ extern "C" {
 #define sky_memmove8(_dist, _src) sky_memcpy8(_dist, _src)
 
 static sky_inline void
-sky_memcpy2(void *const dist, const void *src) {
+sky_memcpy2(void *const dist, const void *const src) {
     *((sky_u16_t *) dist) = *((sky_u16_t *) src);
 }
 
 static sky_inline void
-sky_memcpy4(void *const dist, const void *src) {
+sky_memcpy4(void *const dist, const void *const src) {
     *((sky_u32_t *) dist) = *((sky_u32_t *) src);
 }
 
 static sky_inline void
-sky_memcpy8(void *const dist, const void *src) {
+sky_memcpy8(void *const dist, const void *const src) {
     *((sky_u64_t *) dist) = *((sky_u64_t *) src);
 }
 

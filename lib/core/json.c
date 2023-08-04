@@ -2020,7 +2020,7 @@ read_number(sky_uchar_t **ptr, sky_uchar_t **pre, sky_json_val_t *val, sky_bool_
         }
         /* begin with 0 */
         if (sky_likely(!digit_is_digit_or_fp(*++cur))) {
-            return_i64(SKY_U64(0));
+            return_i64(0);
         }
         if (sky_likely(*cur == '.')) {
             dot_pos = cur++;
