@@ -56,6 +56,7 @@ http_request_set(sky_http_connection_t *const conn, sky_pool_t *const pool) {
     sky_http_server_request_t *const r = sky_pcalloc(pool, sizeof(sky_http_server_request_t));
     r->pool = pool;
     r->conn = conn;
+    r->read_request_body = true;
 
     sky_list_init(&r->headers_out.headers, pool, 16, sizeof(sky_http_server_header_t));
     sky_list_init(&r->headers_in.headers, pool, 16, sizeof(sky_http_server_header_t));
