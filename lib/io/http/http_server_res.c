@@ -116,13 +116,12 @@ sky_http_response_str_len(
     }
     r->response = true;
 
-    sky_str_buf_t buf;
-
     if (!data_len) {
         http_str_packet_t *const packet = sky_palloc(r->pool, sizeof(http_str_packet_t));
         packet->ev_flag = r->keep_alive ? (SKY_EV_READ | SKY_EV_WRITE) : SKY_EV_WRITE;
         packet->cb_data = cb_data;
 
+        sky_str_buf_t buf;
         sky_str_buf_init2(&buf, r->pool, SKY_USIZE(2048));
         http_header_write_pre(r, &buf);
         sky_str_buf_append_str_len(&buf, sky_str_line("Content-Length: 0\r\n"));
@@ -148,13 +147,12 @@ sky_http_response_str_len(
     packet->ev_flag = r->keep_alive ? (SKY_EV_READ | SKY_EV_WRITE) : SKY_EV_WRITE;
     packet->cb_data = cb_data;
 
+    sky_str_buf_t buf;
     sky_str_buf_init2(&buf, r->pool, SKY_USIZE(2048));
     http_header_write_pre(r, &buf);
-
     sky_str_buf_append_str_len(&buf, sky_str_line("Content-Length: "));
     sky_str_buf_append_u64(&buf, data_len);
     sky_str_buf_append_two_uchar(&buf, '\r', '\n');
-
     http_header_write_ex(r, &buf);
 
     sky_str_t result;
