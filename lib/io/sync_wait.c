@@ -33,7 +33,7 @@ sky_sync_wait_create(const sky_sync_wait_pt cb, void *const data) {
     return true;
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_sync_wait_create_with_stack(const sky_sync_wait_pt cb, void *const data, const sky_usize_t stack_size) {
     sky_coro_t *const coro = sky_coro_new_with_stack(stack_size);
     if (sky_unlikely(!coro)) {
