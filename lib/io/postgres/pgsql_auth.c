@@ -211,6 +211,7 @@ pgsql_auth_read(sky_tcp_t *const tcp) {
     error:
     sky_buf_destroy(buf);
     sky_timer_wheel_unlink(&conn->timer);
+    sky_tcp_close(&conn->tcp);
     conn->conn_cb(conn, conn->cb_data);
 }
 
