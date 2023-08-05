@@ -225,14 +225,6 @@ http_server_req_finish(sky_http_server_request_t *r, void *const data) {
         http_read_error(conn);
         return;
     }
-    sky_buf_t *const old_buf = conn->buf;
-    if (old_buf->pos == old_buf->last) {
-        sky_pool_t *const pool = r->pool;
-        sky_pool_reset(pool);
-        http_server_request_set(conn, pool, conn->server->header_buf_size);
-        sky_tcp_set_cb_and_run(&conn->tcp, http_line_read);
-        return;
-    }
     sky_timer_set_cb(&conn->timer, http_next_req);
     sky_event_timeout_set(conn->ev_loop, &conn->timer, 0); //不直接调用， 防止 http pipeline递归导致栈溢出
 }
@@ -259,6 +251,14 @@ http_next_req(sky_timer_wheel_entry_t *const timer) {
     sky_http_connection_t *const conn = sky_type_convert(timer, sky_http_connection_t, timer);
     sky_http_server_request_t *r = conn->current_req;
     sky_buf_t *const old_buf = conn->buf;
+
+    if (old_buf->pos == old_buf->last) {
+        sky_pool_t *const pool = r->pool;
+        sky_pool_reset(pool);
+        http_server_request_set(conn, pool, conn->server->header_buf_size);
+        sky_tcp_set_cb_and_run(&conn->tcp, http_line_read);
+        return;
+    }
 
     const sky_u32_t read_n = (sky_u32_t) (old_buf->last - old_buf->pos);
     sky_usize_t buf_size = conn->server->header_buf_size;
