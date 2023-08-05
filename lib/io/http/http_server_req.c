@@ -8,7 +8,13 @@
 
 static void http_server_request_set(sky_http_connection_t *conn, sky_pool_t *pool, sky_usize_t buf_size);
 
-static void http_line_read(sky_tcp_t *tcp);
+static sky_i8_t http_line_process(sky_http_connection_t *conn, sky_http_server_request_t *r, sky_buf_t *buf);
+
+static void http_line_next(sky_http_connection_t *conn, sky_http_server_request_t *r, sky_buf_t *buf);
+
+static void http_line_cb(sky_tcp_t *tcp);
+
+static sky_i8_t http_header_process(sky_http_connection_t *conn, sky_http_server_request_t *r, sky_buf_t *buf);
 
 static void http_header_read(sky_tcp_t *tcp);
 
@@ -49,8 +55,8 @@ void
 http_server_request_process(sky_http_connection_t *const conn) {
     sky_pool_t *const pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
     http_server_request_set(conn, pool, conn->server->header_buf_size);
-    sky_tcp_set_cb(&conn->tcp, http_line_read);
-    http_line_read(&conn->tcp);
+    sky_tcp_set_cb(&conn->tcp, http_line_cb);
+    http_line_cb(&conn->tcp);
 }
 
 static sky_inline void
@@ -69,13 +75,8 @@ http_server_request_set(sky_http_connection_t *const conn, sky_pool_t *const poo
     conn->free_buf_n = server->header_buf_n;
 }
 
-
-static void
-http_line_read(sky_tcp_t *const tcp) {
-    sky_http_connection_t *const conn = sky_type_convert(tcp, sky_http_connection_t, tcp);
-    sky_http_server_request_t *const r = conn->current_req;
-    sky_buf_t *const buf = conn->buf;
-
+static sky_i8_t
+http_line_process(sky_http_connection_t *const conn, sky_http_server_request_t *const r, sky_buf_t *const buf) {
     sky_isize_t n;
     sky_i8_t i;
 
@@ -86,31 +87,7 @@ http_line_read(sky_tcp_t *const tcp) {
 
         i = http_request_line_parse(r, buf);
         if (i > 0) {
-            i = http_request_header_parse(r, buf);
-            if (i > 0) {
-                http_module_run(r);
-                return;
-            }
-            if (sky_unlikely(i < 0)) {
-                goto error;
-            }
-            if (sky_unlikely(buf->last == buf->end)) {
-                if (sky_unlikely(--conn->free_buf_n == 0)) {
-                    goto error;
-                }
-                if (r->req_pos) {
-                    n = (sky_u32_t) (buf->pos - r->req_pos);
-                    buf->pos -= n;
-                    sky_buf_rebuild(buf, conn->server->header_buf_size);
-                    r->req_pos = buf->pos;
-                    buf->pos += n;
-                } else {
-                    sky_buf_rebuild(buf, conn->server->header_buf_size);
-                }
-            }
-            sky_tcp_set_cb(tcp, http_header_read);
-            http_header_read(tcp);
-            return;
+            return 1;
         }
         if (sky_unlikely(i < 0 || buf->last >= buf->end)) {
             goto error;
@@ -125,20 +102,56 @@ http_line_read(sky_tcp_t *const tcp) {
         } else {
             sky_event_timeout_set(conn->ev_loop, &conn->timer, conn->server->keep_alive);
         }
+        return 0;
+    }
+
+    error:
+    http_read_error(conn);
+    return -1;
+}
+
+static void
+http_line_next(sky_http_connection_t *const conn, sky_http_server_request_t *const r, sky_buf_t *const buf) {
+    sky_i8_t i = http_request_header_parse(r, buf);
+    if (i > 0) {
+        http_module_run(r);
         return;
     }
+    if (sky_unlikely(i < 0)) {
+        goto error;
+    }
+    if (sky_unlikely(buf->last == buf->end)) {
+        if (sky_unlikely(--conn->free_buf_n == 0)) {
+            goto error;
+        }
+        if (r->req_pos) {
+            const sky_u32_t n = (sky_u32_t) (buf->pos - r->req_pos);
+            buf->pos -= n;
+            sky_buf_rebuild(buf, conn->server->header_buf_size);
+            r->req_pos = buf->pos;
+            buf->pos += n;
+        } else {
+            sky_buf_rebuild(buf, conn->server->header_buf_size);
+        }
+    }
+    sky_tcp_set_cb(&conn->tcp, http_header_read);
+    http_header_read(&conn->tcp);
+    return;
 
     error:
     http_read_error(conn);
 }
 
-
 static void
-http_header_read(sky_tcp_t *const tcp) {
+http_line_cb(sky_tcp_t *const tcp) {
     sky_http_connection_t *const conn = sky_type_convert(tcp, sky_http_connection_t, tcp);
-    sky_http_server_request_t *const r = conn->current_req;
-    sky_buf_t *const buf = conn->buf;
+    if (http_line_process(conn, conn->current_req, conn->buf) == 1) {
+        http_line_next(conn, conn->current_req, conn->buf);
+    }
+}
 
+static sky_i8_t
+http_header_process(sky_http_connection_t *const conn, sky_http_server_request_t *const r, sky_buf_t *const buf) {
     sky_isize_t n;
     sky_i8_t i;
 
@@ -148,8 +161,7 @@ http_header_read(sky_tcp_t *const tcp) {
         buf->last += n;
         i = http_request_header_parse(r, buf);
         if (i == 1) {
-            http_module_run(r);
-            return;
+            return 1;
         }
         if (sky_unlikely(i < 0)) {
             goto error;
@@ -176,11 +188,22 @@ http_header_read(sky_tcp_t *const tcp) {
         sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
         sky_event_timeout_set(conn->ev_loop, &conn->timer, conn->server->timeout);
 
-        return;
+        return 0;
     }
 
     error:
     http_read_error(conn);
+    return -1;
+}
+
+
+static void
+http_header_read(sky_tcp_t *const tcp) {
+    sky_http_connection_t *const conn = sky_type_convert(tcp, sky_http_connection_t, tcp);
+
+    if (http_header_process(conn, conn->current_req, conn->buf) == 1) {
+        http_module_run(conn->current_req);
+    }
 }
 
 
@@ -258,8 +281,8 @@ http_next_req(sky_timer_wheel_entry_t *const timer) {
         sky_pool_t *const pool = r->pool;
         sky_pool_reset(pool);
         http_server_request_set(conn, pool, conn->server->header_buf_size);
-        sky_tcp_set_cb(&conn->tcp, http_line_read);
-        http_line_read(&conn->tcp);
+        sky_tcp_set_cb(&conn->tcp, http_line_cb);
+        http_line_cb(&conn->tcp);
         return;
     }
 
@@ -308,8 +331,8 @@ http_next_req(sky_timer_wheel_entry_t *const timer) {
     if (sky_unlikely(i < 0 || buf->last >= buf->end)) {
         goto error;
     }
-    sky_tcp_set_cb(&conn->tcp, http_line_read);
-    http_line_read(&conn->tcp);
+    sky_tcp_set_cb(&conn->tcp, http_line_cb);
+    http_line_cb(&conn->tcp);
 
     return;
 
