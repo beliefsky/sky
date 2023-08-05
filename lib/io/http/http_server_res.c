@@ -82,7 +82,8 @@ sky_http_response_nobody(
     sky_str_buf_build(&buf, &packet->buf);
 
     sky_timer_set_cb(&conn->timer, http_write_str_timeout);
-    sky_tcp_set_cb_and_run(&conn->tcp, http_response_str);
+    sky_tcp_set_cb(&conn->tcp, http_response_str);
+    http_response_str(&conn->tcp);
 }
 
 sky_api void
@@ -133,7 +134,8 @@ sky_http_response_str_len(
         conn->cb_data = packet;
 
         sky_timer_set_cb(&conn->timer, http_write_str_timeout);
-        sky_tcp_set_cb_and_run(&conn->tcp, http_response_str);
+        sky_tcp_set_cb(&conn->tcp, http_response_str);
+        http_response_str(&conn->tcp);
 
         return;
     }
@@ -167,7 +169,8 @@ sky_http_response_str_len(
     conn->cb_data = packet;
 
     sky_timer_set_cb(&conn->timer, http_write_vec_timeout);
-    sky_tcp_set_cb_and_run(&conn->tcp, http_response_vec);
+    sky_tcp_set_cb(&conn->tcp, http_response_vec);
+    http_response_vec(&conn->tcp);
 }
 
 
@@ -222,7 +225,8 @@ sky_http_response_file(
         conn->cb_data = packet;
 
         sky_timer_set_cb(&conn->timer, http_write_str_timeout);
-        sky_tcp_set_cb_and_run(&conn->tcp, http_response_str);
+        sky_tcp_set_cb(&conn->tcp, http_response_str);
+        http_response_str(&conn->tcp);
         return;
     }
 
@@ -240,7 +244,8 @@ sky_http_response_file(
     conn->cb_data = packet;
 
     sky_timer_set_cb(&conn->timer, http_write_file_timeout);
-    sky_tcp_set_cb_and_run(&conn->tcp, http_response_file);
+    sky_tcp_set_cb(&conn->tcp, http_response_file);
+    http_response_file(&conn->tcp);
 }
 
 

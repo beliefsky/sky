@@ -49,7 +49,8 @@ void
 http_server_request_process(sky_http_connection_t *const conn) {
     sky_pool_t *const pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
     http_server_request_set(conn, pool, conn->server->header_buf_size);
-    sky_tcp_set_cb_and_run(&conn->tcp, http_line_read);
+    sky_tcp_set_cb(&conn->tcp, http_line_read);
+    http_line_read(&conn->tcp);
 }
 
 static sky_inline void
@@ -107,7 +108,8 @@ http_line_read(sky_tcp_t *const tcp) {
                     sky_buf_rebuild(buf, conn->server->header_buf_size);
                 }
             }
-            sky_tcp_set_cb_and_run(tcp, http_header_read);
+            sky_tcp_set_cb(tcp, http_header_read);
+            http_header_read(tcp);
             return;
         }
         if (sky_unlikely(i < 0 || buf->last >= buf->end)) {
@@ -256,7 +258,8 @@ http_next_req(sky_timer_wheel_entry_t *const timer) {
         sky_pool_t *const pool = r->pool;
         sky_pool_reset(pool);
         http_server_request_set(conn, pool, conn->server->header_buf_size);
-        sky_tcp_set_cb_and_run(&conn->tcp, http_line_read);
+        sky_tcp_set_cb(&conn->tcp, http_line_read);
+        http_line_read(&conn->tcp);
         return;
     }
 
@@ -298,13 +301,15 @@ http_next_req(sky_timer_wheel_entry_t *const timer) {
                 sky_buf_rebuild(buf, conn->server->header_buf_size);
             }
         }
-        sky_tcp_set_cb_and_run(&conn->tcp, http_header_read);
+        sky_tcp_set_cb(&conn->tcp, http_header_read);
+        http_header_read(&conn->tcp);
         return;
     }
     if (sky_unlikely(i < 0 || buf->last >= buf->end)) {
         goto error;
     }
-    sky_tcp_set_cb_and_run(&conn->tcp, http_line_read);
+    sky_tcp_set_cb(&conn->tcp, http_line_read);
+    http_line_read(&conn->tcp);
 
     return;
 

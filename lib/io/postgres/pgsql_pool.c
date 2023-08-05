@@ -167,7 +167,8 @@ pgsql_connect_next(sky_pgsql_conn_t *const conn) {
 
     sky_timer_set_cb(&conn->timer, pgsql_connect_timeout);
     sky_event_timeout_set(pg_pool->ev_loop, &conn->timer, pg_pool->timeout);
-    sky_tcp_set_cb_and_run(&conn->tcp, pgsql_connection);
+    sky_tcp_set_cb(&conn->tcp, pgsql_connection);
+    pgsql_connection(&conn->tcp);
 }
 
 static void

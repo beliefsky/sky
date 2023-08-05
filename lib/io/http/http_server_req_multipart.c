@@ -116,7 +116,8 @@ sky_http_req_body_multipart(
         conn->next_multipart_cb = call;
         conn->cb_data = packet;
         sky_timer_set_cb(&conn->timer, multipart_next_timeout);
-        sky_tcp_set_cb_and_run(&conn->tcp, http_multipart_boundary_start);
+        sky_tcp_set_cb(&conn->tcp, http_multipart_boundary_start);
+        http_multipart_boundary_start(&conn->tcp);
         return;
     }
 
@@ -255,7 +256,8 @@ sky_http_multipart_body_none(
     conn->next_multipart_cb = call;
 
     sky_timer_set_cb(&conn->timer, multipart_body_none_timeout);
-    sky_tcp_set_cb_and_run(&conn->tcp, http_multipart_body_none);
+    sky_tcp_set_cb(&conn->tcp, http_multipart_body_none);
+    http_multipart_body_none(&conn->tcp);
 
     return;
 
@@ -346,7 +348,8 @@ sky_http_multipart_body_str(
     conn->next_multipart_str_cb = call;
 
     sky_timer_set_cb(&conn->timer, multipart_body_str_timeout);
-    sky_tcp_set_cb_and_run(&conn->tcp, http_multipart_body_str);
+    sky_tcp_set_cb(&conn->tcp, http_multipart_body_str);
+    http_multipart_body_str(&conn->tcp);
 
     return;
 
@@ -438,7 +441,8 @@ sky_http_multipart_body_read(
     conn->next_multipart_read_cb = call;
 
     sky_timer_set_cb(&conn->timer, multipart_body_read_timeout);
-    sky_tcp_set_cb_and_run(&conn->tcp, http_multipart_body_read);
+    sky_tcp_set_cb(&conn->tcp, http_multipart_body_read);
+    http_multipart_body_read(&conn->tcp);
 
     return;
 
@@ -538,7 +542,8 @@ http_multipart_process(multipart_packet_t *const packet, sky_http_server_request
         return;
     }
 
-    sky_tcp_set_cb_and_run(&conn->tcp, http_multipart_header_read);
+    sky_tcp_set_cb(&conn->tcp, http_multipart_header_read);
+    http_multipart_header_read(&conn->tcp);
 
 }
 
@@ -760,7 +765,8 @@ http_multipart_body_str(sky_tcp_t *tcp) {
             if (m->read_offset > conn->server->header_buf_size) {
                 sky_memmove(buf->pos, buf->pos + m->read_offset, packet->boundary_len + 4);
                 buf->last -= m->read_offset;
-                sky_tcp_set_cb_and_run(&conn->tcp, http_multipart_body_str_none);
+                sky_tcp_set_cb(&conn->tcp, http_multipart_body_str_none);
+                http_multipart_body_str_none(&conn->tcp);
                 return;
             }
             sky_usize_t re_size = m->read_offset << 1;

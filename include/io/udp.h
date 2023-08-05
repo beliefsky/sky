@@ -60,12 +60,6 @@ sky_udp_set_cb(sky_udp_t *const udp, const sky_udp_cb_pt cb) {
     sky_ev_reset_cb(&udp->ev, (sky_ev_cb_pt) cb);
 }
 
-static sky_inline void
-sky_udp_set_cb_and_run(sky_udp_t *const udp, const sky_udp_cb_pt cb) {
-    sky_ev_reset_cb(&udp->ev, (sky_ev_cb_pt) cb);
-    cb(udp);
-}
-
 static sky_inline sky_bool_t
 sky_udp_register(sky_udp_t *const udp) {
     return sky_selector_register(&udp->ev, SKY_EV_READ);

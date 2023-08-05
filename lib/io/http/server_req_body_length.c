@@ -57,7 +57,8 @@ http_req_body_length_none(
     sky_timer_set_cb(&conn->timer, http_read_body_none_timeout);
     conn->next_cb = call;
     conn->cb_data = data;
-    sky_tcp_set_cb_and_run(&conn->tcp, http_body_read_none);
+    sky_tcp_set_cb(&conn->tcp, http_body_read_none);
+    http_body_read_none(&conn->tcp);
 }
 
 void
@@ -99,7 +100,8 @@ http_req_body_length_str(
     sky_timer_set_cb(&conn->timer, http_read_body_str_timeout);
     conn->next_str_cb = call;
     conn->cb_data = data;
-    sky_tcp_set_cb_and_run(&conn->tcp, http_body_read_str);
+    sky_tcp_set_cb(&conn->tcp, http_body_read_str);
+    http_body_read_str(&conn->tcp);
 }
 
 void
@@ -135,7 +137,8 @@ http_req_body_length_read(
     sky_timer_set_cb(&conn->timer, http_read_body_cb_timeout);
     conn->next_read_cb = call;
     conn->cb_data = data;
-    sky_tcp_set_cb_and_run(&conn->tcp, http_body_read_cb);
+    sky_tcp_set_cb(&conn->tcp, http_body_read_cb);
+    http_body_read_cb(&conn->tcp);
 }
 
 static void

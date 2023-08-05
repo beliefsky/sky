@@ -44,7 +44,8 @@ pgsql_auth(sky_pgsql_conn_t *const conn) {
     conn->offset = 0;
     sky_timer_set_cb(&conn->timer, pgsql_send_info_timeout);
     sky_event_timeout_expired(pg_pool->ev_loop, &conn->timer, pg_pool->timeout);
-    sky_tcp_set_cb_and_run(&conn->tcp, pgsql_connect_info_send);;
+    sky_tcp_set_cb(&conn->tcp, pgsql_connect_info_send);
+    pgsql_connect_info_send(&conn->tcp);
 }
 
 
@@ -68,7 +69,8 @@ pgsql_connect_info_send(sky_tcp_t *const tcp) {
             conn->data = packet;
             sky_timer_set_cb(&conn->timer, pgsql_auth_timeout);
             sky_event_timeout_expired(pg_pool->ev_loop, &conn->timer, pg_pool->timeout);
-            sky_tcp_set_cb_and_run(tcp, pgsql_auth_read);
+            sky_tcp_set_cb(tcp, pgsql_auth_read);
+            pgsql_auth_read(tcp);
             return;
         }
         goto again;
@@ -266,7 +268,8 @@ pgsql_password(
     packet->buf.last += 41;
 
     sky_event_timeout_expired(pg_pool->ev_loop, &conn->timer, pg_pool->timeout);
-    sky_tcp_set_cb_and_run(&conn->tcp, pgsql_password_send);
+    sky_tcp_set_cb(&conn->tcp, pgsql_password_send);
+    pgsql_password_send(&conn->tcp);
 }
 
 static void
@@ -283,7 +286,8 @@ pgsql_password_send(sky_tcp_t *const tcp) {
         buf->pos += n;
         if (buf->pos >= buf->last) {
             sky_buf_reset(buf);
-            sky_tcp_set_cb_and_run(tcp, pgsql_auth_read);
+            sky_tcp_set_cb(tcp, pgsql_auth_read);
+            pgsql_auth_read(tcp);
             return;
         }
         goto again;
