@@ -43,8 +43,10 @@ struct sky_http_connection_s {
     };
 
     void *cb_data;
+    sky_u8_t *main_status;
 
     sky_u8_t free_buf_n;
+    sky_bool_t main_func;
 };
 
 
