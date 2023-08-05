@@ -110,7 +110,7 @@ http_server_request_next(sky_http_connection_t *const conn) {
     }
 
     const sky_u32_t read_n = (sky_u32_t) (old_buf->last - old_buf->pos);
-    sky_usize_t buf_size = conn->server->header_buf_size;
+    sky_u32_t buf_size = conn->server->header_buf_size;
     buf_size = sky_max(buf_size, read_n);
 
     sky_pool_t *const pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);

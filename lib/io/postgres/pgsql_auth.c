@@ -231,6 +231,7 @@ pgsql_password(
 
         sky_log_error("auth type %u not support", auth_type);
         conn->conn_cb(conn, conn->cb_data);
+        return;
     }
     const sky_pgsql_pool_t *const pg_pool = conn->pg_pool;
 
