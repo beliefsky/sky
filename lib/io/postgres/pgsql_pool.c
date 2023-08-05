@@ -221,7 +221,6 @@ pgsql_pool_destroy(sky_pgsql_pool_t *const pg_pool) {
 static void
 pgsql_conn_keepalive_timeout(sky_timer_wheel_entry_t *const timer) {
     sky_pgsql_conn_t *const conn = sky_type_convert(timer, sky_pgsql_conn_t, timer);
-
     sky_tcp_close(&conn->tcp);
 }
 
@@ -229,6 +228,5 @@ static void
 pgsql_connect_timeout(sky_timer_wheel_entry_t *const timer) {
     sky_pgsql_conn_t *const conn = sky_type_convert(timer, sky_pgsql_conn_t, timer);
     sky_tcp_close(&conn->tcp);
-
     conn->conn_cb(conn, conn->cb_data);
 }

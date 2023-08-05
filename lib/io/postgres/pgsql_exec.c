@@ -25,7 +25,7 @@ typedef struct {
     sky_u32_t size;
 } pgsql_packet_t;
 
-static void pgsql_exec_encode(
+static sky_bool_t pgsql_exec_encode(
         sky_pgsql_conn_t *conn,
         const sky_str_t *cmd,
         sky_pgsql_params_t *params,
@@ -80,17 +80,24 @@ sky_pgsql_exec(
         sky_pgsql_params_t *const params,
         const sky_u16_t param_len
 ) {
-    if (sky_unlikely(!conn || !sky_tcp_is_open(&conn->tcp))) {
+    if (sky_unlikely(!conn
+                     || !sky_tcp_is_open(&conn->tcp)
+                     || !pgsql_exec_encode(conn, cmd, params, param_len))) {
         cb(conn, null, data);
         return;
     }
     conn->exec_cb = cb;
     conn->cb_data = data;
 
-    pgsql_exec_encode(conn, cmd, params, param_len);
+    const sky_pgsql_pool_t *const pg_pool = conn->pg_pool;
+
+    sky_timer_set_cb(&conn->timer, pgsql_exec_timeout);
+    sky_event_timeout_set(pg_pool->ev_loop, &conn->timer, pg_pool->timeout);
+    sky_tcp_set_cb(&conn->tcp, pgsql_exec_send);
+    pgsql_exec_send(&conn->tcp);
 }
 
-static void
+static sky_bool_t
 pgsql_exec_encode(
         sky_pgsql_conn_t *const conn,
         const sky_str_t *const cmd,
@@ -105,46 +112,36 @@ pgsql_exec_encode(
             'S', 0, 0, 0, 4
     };
 
-    const sky_pgsql_pool_t *const pg_pool = conn->pg_pool;
     pgsql_packet_t *const packet = sky_palloc(conn->current_pool, sizeof(pgsql_packet_t));
     conn->data = packet;
 
     if (!param_len) {
         sky_u32_t size = (sky_u32_t) cmd->len + 46;
-        sky_buf_init(&packet->buf, conn->current_pool, size);
         sky_buf_t *const buf = &packet->buf;
+        sky_buf_init(&packet->buf, conn->current_pool, size);
 
         *(buf->last++) = 'P';
-
         size = (sky_u32_t) cmd->len + 8;
         *((sky_u32_t *) buf->last) = sky_htonl(size);
         buf->last += 4;
-
         *(buf->last++) = '\0';
-
         sky_memcpy(buf->last, cmd->data, cmd->len);
         buf->last += cmd->len;
-
         sky_memcpy(buf->last, SQL_TEMP, 40);
         buf->last += 40;
 
-        sky_timer_set_cb(&conn->timer, pgsql_exec_timeout);
-        sky_event_timeout_set(pg_pool->ev_loop, &conn->timer, pg_pool->timeout);
-        sky_tcp_set_cb(&conn->tcp, pgsql_exec_send);
-        pgsql_exec_send(&conn->tcp);
-        return;
+        return true;
     }
 
     if (sky_unlikely(!params || params->alloc_n < param_len)) {
         sky_log_error("params is null or  out of size");
-        conn->exec_cb(conn, null, conn->cb_data);
-        return;
+        return false;
     }
     sky_u32_t size = 14;
     size += encode_data_size(params->types, params->values, param_len);
 
-    sky_buf_init(&packet->buf, conn->current_pool, cmd->len + size + 32);
     sky_buf_t *const buf = &packet->buf;
+    sky_buf_init(buf, conn->current_pool, cmd->len + size + 32);
 
     *(buf->last++) = 'P';
     *((sky_u32_t *) buf->last) = sky_htonl((sky_u32_t) cmd->len + 8);
@@ -152,7 +149,6 @@ pgsql_exec_encode(
     *(buf->last++) = '\0';
     sky_memcpy(buf->last, cmd->data, cmd->len);
     buf->last += cmd->len;
-
     sky_memcpy4(buf->last, SQL_TEMP);
     buf->last += 4;
     *((sky_u32_t *) buf->last) = sky_htonl(size);
@@ -171,17 +167,12 @@ pgsql_exec_encode(
 
     if (sky_unlikely(!encode_data(params->types, params->values, param_len, &p, &buf->last))) {
         sky_buf_destroy(buf);
-        conn->exec_cb(conn, null, conn->cb_data);
-        return;
+        return false;
     }
-
     sky_memcpy(buf->last, SQL_TEMP + 14, 26);
     buf->last += 26;
 
-    sky_timer_set_cb(&conn->timer, pgsql_exec_timeout);
-    sky_event_timeout_set(pg_pool->ev_loop, &conn->timer, pg_pool->timeout);
-    sky_tcp_set_cb(&conn->tcp, pgsql_exec_send);
-    pgsql_exec_send(&conn->tcp);
+    return true;
 }
 
 static void
@@ -198,8 +189,8 @@ pgsql_exec_send(sky_tcp_t *const tcp) {
     if (n > 0) {
         buf->pos += n;
         if (buf->pos >= buf->last) {
-            sky_buf_destroy(buf);
-            sky_buf_init(buf, conn->current_pool, 1024);
+            sky_buf_reset(buf);
+            sky_buf_rebuild(buf, 1024);
             packet->result.desc = null;
             packet->result.data = null;
             packet->result.rows = 0;
@@ -376,7 +367,7 @@ pgsql_exec_read(sky_tcp_t *const tcp) {
                 buf->pos += packet->size;
                 sky_str_len_replace_char(ch, packet->size, '\0', ' ');
 
-                sky_log_error("%.*s", packet->size,ch);
+                sky_log_error("%.*s", packet->size, ch);
 
                 sky_buf_destroy(buf);
                 sky_timer_wheel_unlink(&conn->timer);
@@ -1300,7 +1291,7 @@ encode_data(
         sky_pgsql_data_t *data,
         sky_u16_t param_len,
         sky_uchar_t **const ptr,
-        sky_uchar_t ** const last_ptr
+        sky_uchar_t **const last_ptr
 ) {
     sky_uchar_t *p = *ptr;
     sky_uchar_t *last = *last_ptr;
