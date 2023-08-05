@@ -96,7 +96,7 @@ sky_prealloc(sky_pool_t *const pool, void *const ptr, const sky_usize_t ptr_size
     sky_pool_t *const p = pool->current;
 
     if (end == p->d.last) {
-        if (size <= ptr_size) {
+        if (size < ptr_size) {
             p->d.last = ptr + size;
             return ptr;
         }
