@@ -122,7 +122,7 @@ sky_pgsql_pool_get(sky_pgsql_pool_t *const pg_pool, sky_pool_t *const pool, sky_
 
 sky_api void
 sky_pgsql_conn_release(sky_pgsql_conn_t *const conn) {
-    if ((!conn || conn->main_func)) {
+    if (!conn || conn->main_func) {
         return;
     }
     sky_pgsql_pool_t *const pg_pool = conn->pg_pool;
