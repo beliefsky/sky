@@ -122,7 +122,11 @@ sky_pgsql_pool_get(sky_pgsql_pool_t *const pg_pool, sky_pool_t *const pool, sky_
 
 sky_api void
 sky_pgsql_conn_release(sky_pgsql_conn_t *const conn) {
-    if (!conn || conn->main_func) {
+    if (sky_unlikely(!conn)) {
+        return;
+    }
+    if (conn->main_func) {
+        conn->main_func = false;
         return;
     }
     sky_pgsql_pool_t *const pg_pool = conn->pg_pool;
@@ -172,8 +176,7 @@ static sky_inline void
 pgsql_connect_next(sky_pgsql_conn_t *const conn) {
     sky_pgsql_pool_t *const pg_pool = conn->pg_pool;
 
-    if (sky_tcp_is_open(&conn->tcp)
-        || !sky_tcp_open(&conn->tcp, sky_inet_addr_family(&pg_pool->address))) {
+    if (sky_tcp_is_open(&conn->tcp) || !sky_tcp_open(&conn->tcp, sky_inet_addr_family(&pg_pool->address))) {
         conn->conn_cb(conn, conn->cb_data);
         return;
     }
