@@ -12,9 +12,11 @@ static void pgsql_connection(sky_tcp_t *tcp);
 
 static void pgsql_pool_destroy(sky_pgsql_pool_t *pg_pool);
 
-static void pgsql_conn_keepalive_timeout(sky_timer_wheel_entry_t * timer);
+static void pgsql_conn_keepalive_timeout(sky_timer_wheel_entry_t *timer);
 
-static void pgsql_connect_timeout(sky_timer_wheel_entry_t * timer);
+static void pgsql_connect_timeout(sky_timer_wheel_entry_t *timer);
+
+static void pgsql_task_next(sky_timer_wheel_entry_t *timer);
 
 
 sky_api sky_pgsql_pool_t *
@@ -125,8 +127,7 @@ sky_pgsql_conn_release(sky_pgsql_conn_t *const conn) {
         return;
     }
     sky_pgsql_pool_t *const pg_pool = conn->pg_pool;
-    sky_queue_t *const item = sky_queue_next(&pg_pool->tasks);
-    if (item == &pg_pool->tasks) {
+    if (sky_queue_empty(&pg_pool->tasks)) {
         sky_queue_insert_next(&pg_pool->free_conns, &conn->link);
         sky_timer_set_cb(&conn->timer, pgsql_conn_keepalive_timeout);
         sky_event_timeout_set(pg_pool->ev_loop, &conn->timer, pg_pool->keepalive);
@@ -140,14 +141,8 @@ sky_pgsql_conn_release(sky_pgsql_conn_t *const conn) {
         }
         return;
     }
-    sky_queue_remove(item);
-
-    pgsql_task_t *const task = sky_type_convert(item, pgsql_task_t, link);
-    conn->current_pool = task->pool;
-    conn->conn_cb = task->cb;
-    conn->cb_data = task->data;
-
-    pgsql_connect_next(conn);
+    sky_timer_set_cb(&conn->timer, pgsql_task_next);
+    sky_event_timeout_set(pg_pool->ev_loop, &conn->timer, 0);
 }
 
 sky_api void
@@ -218,4 +213,20 @@ pgsql_connect_timeout(sky_timer_wheel_entry_t *const timer) {
     sky_tcp_close(&conn->tcp);
 
     conn->conn_cb(conn, conn->cb_data);
+}
+
+static void
+pgsql_task_next(sky_timer_wheel_entry_t *const timer) {
+    sky_pgsql_conn_t *const conn = sky_type_convert(timer, sky_pgsql_conn_t, timer);
+    sky_pgsql_pool_t *const pg_pool = conn->pg_pool;
+    sky_queue_t *const item = sky_queue_next(&pg_pool->tasks);
+
+    sky_queue_remove(item);
+
+    pgsql_task_t *const task = sky_type_convert(item, pgsql_task_t, link);
+    conn->current_pool = task->pool;
+    conn->conn_cb = task->cb;
+    conn->cb_data = task->data;
+
+    pgsql_connect_next(conn);
 }
