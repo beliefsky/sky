@@ -88,6 +88,10 @@ sky_pcalloc(sky_pool_t *const pool, const sky_usize_t size) {
 
 sky_api void *
 sky_prealloc(sky_pool_t *const pool, void *const ptr, const sky_usize_t ptr_size, const sky_usize_t size) {
+    if (ptr_size == size) {
+        return ptr;
+    }
+
     const sky_uchar_t *const end = (const sky_uchar_t *) ptr + ptr_size;
     sky_pool_t *const p = pool->current;
 
@@ -114,10 +118,10 @@ sky_prealloc(sky_pool_t *const pool, void *const ptr, const sky_usize_t ptr_size
                 return l->alloc;
             }
         }
-        if (size <= ptr_size) {
+        if (size < ptr_size) {
             return ptr;
         }
-    } else if (size <= ptr_size) {
+    } else if (size < ptr_size) {
         return ptr;
     }
 
