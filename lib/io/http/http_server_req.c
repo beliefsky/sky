@@ -282,7 +282,6 @@ http_header_process(sky_http_connection_t *const conn, sky_http_server_request_t
     if (sky_likely(!n)) {
         sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
         sky_event_timeout_set(conn->ev_loop, &conn->timer, conn->server->timeout);
-
         return 0;
     }
 
@@ -346,6 +345,7 @@ http_server_req_finish(sky_http_server_request_t *r, void *const data) {
         return;
     }
     if (conn->main_func) {
+        conn->main_func = false;
         *conn->main_status = MAIN_STATUS_END;
         return;
     }
@@ -367,6 +367,7 @@ http_read_timeout(sky_timer_wheel_entry_t *const timer) {
     sky_pool_destroy(conn->current_req->pool);
     sky_tcp_close(&conn->tcp);
     if (conn->main_func) {
+        conn->main_func = false;
         *conn->main_status = MAIN_STATUS_DESTROY;
     }
     sky_free(conn);
@@ -378,6 +379,7 @@ http_conn_free(sky_http_connection_t *const conn) {
     sky_tcp_close(&conn->tcp);
     sky_pool_destroy(conn->current_req->pool);
     if (conn->main_func) {
+        conn->main_func = false;
         *conn->main_status = MAIN_STATUS_DESTROY;
     }
     sky_free(conn);

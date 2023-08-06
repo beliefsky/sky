@@ -329,11 +329,12 @@ http_response_str(sky_tcp_t *const tcp) {
     if (sky_likely(!n)) {
         sky_event_timeout_set(conn->ev_loop, &conn->timer, conn->server->timeout);
         sky_tcp_try_register(tcp, packet->ev_flag);
-    } else {
-        sky_timer_wheel_unlink(&conn->timer);
-        sky_tcp_close(tcp);
-        conn->next_cb(conn->current_req, packet->cb_data);
+        return;
     }
+
+    sky_timer_wheel_unlink(&conn->timer);
+    sky_tcp_close(tcp);
+    conn->next_cb(conn->current_req, packet->cb_data);
 }
 
 static void
