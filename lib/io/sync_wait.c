@@ -103,7 +103,7 @@ coro_process(sky_coro_t *const coro, void *const data) {
 
     sky_sync_wait_t *const wait = data;
 
-    wait->cb(wait, wait->data);
+    wait->call(wait, wait->data);
 
     return SKY_CORO_FINISHED;
 }
