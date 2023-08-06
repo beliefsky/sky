@@ -23,7 +23,6 @@ struct sky_pgsql_conn_s {
     void *cb_data;
 
     void *data;
-    sky_bool_t main_func;
 };
 
 typedef struct {

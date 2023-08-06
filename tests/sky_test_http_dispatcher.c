@@ -155,7 +155,7 @@ pgsql_test_wait(sky_sync_wait_t *const wait, void *const data) {
 
 
 static SKY_HTTP_MAPPER_HANDLER(pgsql_test) {
-    sky_sync_wait_create(pgsql_test_wait, (sky_sync_wait_finish_pt) sky_http_server_req_finish, req);
+    sky_sync_wait_create(pgsql_test_wait, req);
 }
 
 static void

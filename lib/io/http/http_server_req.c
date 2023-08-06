@@ -6,13 +6,8 @@
 #include "http_parse.h"
 #include <core/memory.h>
 
-#define MAIN_STATUS_START   0
-#define MAIN_STATUS_END     1
-#define MAIN_STATUS_DESTROY 2
 
 static void http_server_request_set(sky_http_connection_t *conn, sky_pool_t *pool, sky_usize_t buf_size);
-
-static void http_server_request_next(sky_http_connection_t *conn);
 
 static sky_i8_t http_line_process(sky_http_connection_t *conn, sky_http_server_request_t *r, sky_buf_t *buf);
 
@@ -31,6 +26,8 @@ static void http_server_req_finish(sky_http_server_request_t *r, void *data);
 static void http_work_none(sky_tcp_t *tcp);
 
 static void http_read_timeout(sky_timer_wheel_entry_t *timer);
+
+static void http_server_request_next(sky_timer_wheel_entry_t *timer);
 
 static void http_conn_free(sky_http_connection_t *conn);
 
@@ -60,98 +57,8 @@ http_server_request_process(sky_http_connection_t *const conn) {
     sky_pool_t *const pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
     http_server_request_set(conn, pool, conn->server->header_buf_size);
 
-    sky_u8_t status = MAIN_STATUS_START;
-    conn->main_func = true;
-    conn->main_status = &status;
     sky_tcp_set_cb(&conn->tcp, http_line_cb);
     http_line_cb(&conn->tcp);
-
-    switch (status) {
-        case MAIN_STATUS_START:
-            conn->main_func = false;
-            break;
-        case MAIN_STATUS_END:
-            http_server_request_next(conn);
-            break;
-        default:
-            break;
-
-    }
-}
-
-static void
-http_server_request_next(sky_http_connection_t *const conn) {
-    sky_u8_t status;
-    conn->main_status = &status;
-
-    next_req:
-
-    conn->main_func = true;
-    status = MAIN_STATUS_START;
-
-    sky_http_server_request_t *r = conn->current_req;
-    sky_buf_t *const old_buf = conn->buf;
-
-    if (old_buf->pos == old_buf->last) {
-        sky_pool_t *const pool = r->pool;
-        sky_pool_reset(pool);
-        http_server_request_set(conn, pool, conn->server->header_buf_size);
-        sky_tcp_set_cb(&conn->tcp, http_line_cb);
-        http_line_cb(&conn->tcp);
-        switch (status) {
-            case MAIN_STATUS_START:
-                conn->main_func = false;
-                return;
-            case MAIN_STATUS_END:
-                goto next_req;
-            default:
-                return;
-        }
-    }
-
-    const sky_u32_t read_n = (sky_u32_t) (old_buf->last - old_buf->pos);
-    sky_u32_t buf_size = conn->server->header_buf_size;
-    buf_size = sky_max(buf_size, read_n);
-
-    sky_pool_t *const pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
-    http_server_request_set(conn, pool, buf_size);
-    sky_memcpy(conn->buf->pos, old_buf->pos, read_n);
-    conn->buf->last += read_n;
-    sky_pool_destroy(r->pool);
-
-    r = conn->current_req;
-    sky_buf_t *const buf = conn->buf;
-
-    sky_i8_t i = http_request_line_parse(r, buf);
-    if (i > 0) {
-        http_line_next(conn, r, buf);
-        switch (status) {
-            case MAIN_STATUS_START:
-                conn->main_func = false;
-                return;
-            case MAIN_STATUS_END:
-                goto next_req;
-            default:
-                return;
-        }
-    }
-    if (sky_unlikely(i < 0 || buf->last >= buf->end)) {
-        goto error;
-    }
-    sky_tcp_set_cb(&conn->tcp, http_line_cb);
-    http_line_cb(&conn->tcp);
-    switch (status) {
-        case MAIN_STATUS_START:
-            conn->main_func = false;
-            return;
-        case MAIN_STATUS_END:
-            goto next_req;
-        default:
-            return;
-    }
-
-    error:
-    http_conn_free(conn);
 }
 
 static sky_inline void
@@ -344,12 +251,9 @@ http_server_req_finish(sky_http_server_request_t *r, void *const data) {
         http_conn_free(conn);
         return;
     }
-    if (conn->main_func) {
-        conn->main_func = false;
-        *conn->main_status = MAIN_STATUS_END;
-        return;
-    }
-    http_server_request_next(conn);
+
+    sky_timer_set_cb(&conn->timer, http_server_request_next);
+    sky_event_timeout_set(conn->ev_loop, &conn->timer, 0);
 }
 
 static void
@@ -366,11 +270,51 @@ http_read_timeout(sky_timer_wheel_entry_t *const timer) {
 
     sky_pool_destroy(conn->current_req->pool);
     sky_tcp_close(&conn->tcp);
-    if (conn->main_func) {
-        conn->main_func = false;
-        *conn->main_status = MAIN_STATUS_DESTROY;
-    }
     sky_free(conn);
+}
+
+static void
+http_server_request_next(sky_timer_wheel_entry_t *const timer) {
+    sky_http_connection_t *const conn = sky_type_convert(timer, sky_http_connection_t, timer);
+    sky_http_server_request_t *r = conn->current_req;
+    sky_buf_t *const old_buf = conn->buf;
+
+    if (old_buf->pos == old_buf->last) {
+        sky_pool_t *const pool = r->pool;
+        sky_pool_reset(pool);
+        http_server_request_set(conn, pool, conn->server->header_buf_size);
+        sky_tcp_set_cb(&conn->tcp, http_line_cb);
+        http_line_cb(&conn->tcp);
+        return;
+    }
+
+    const sky_u32_t read_n = (sky_u32_t) (old_buf->last - old_buf->pos);
+    sky_u32_t buf_size = conn->server->header_buf_size;
+    buf_size = sky_max(buf_size, read_n);
+
+    sky_pool_t *const pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
+    http_server_request_set(conn, pool, buf_size);
+    sky_memcpy(conn->buf->pos, old_buf->pos, read_n);
+    conn->buf->last += read_n;
+    sky_pool_destroy(r->pool);
+
+    r = conn->current_req;
+    sky_buf_t *const buf = conn->buf;
+
+    sky_i8_t i = http_request_line_parse(r, buf);
+    if (i > 0) {
+        http_line_next(conn, r, buf);
+        return;
+    }
+    if (sky_unlikely(i < 0 || buf->last >= buf->end)) {
+        goto error;
+    }
+    sky_tcp_set_cb(&conn->tcp, http_line_cb);
+    http_line_cb(&conn->tcp);
+    return;
+
+    error:
+    http_conn_free(conn);
 }
 
 static sky_inline void
@@ -378,9 +322,5 @@ http_conn_free(sky_http_connection_t *const conn) {
     sky_timer_wheel_unlink(&conn->timer);
     sky_tcp_close(&conn->tcp);
     sky_pool_destroy(conn->current_req->pool);
-    if (conn->main_func) {
-        conn->main_func = false;
-        *conn->main_status = MAIN_STATUS_DESTROY;
-    }
     sky_free(conn);
 }
