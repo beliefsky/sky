@@ -53,16 +53,16 @@ sky_sync_wait_create_with_stack(const sky_sync_wait_pt cb, void *const data, con
 }
 
 sky_api void
-sky_sync_wait_resume(sky_sync_wait_t *const sync_wait, void *const att_data) {
-    sync_wait->att_data = att_data;
+sky_sync_wait_resume(sky_sync_wait_t *const wait, void *const att_data) {
+    wait->att_data = att_data;
 
-    if (sync_wait->wait) {
-        sync_wait->wait = false;
+    if (wait->wait) {
+        wait->wait = false;
         return;
     }
 
-    if (sky_coro_resume(sync_wait->coro) != SKY_CORO_MAY_RESUME) {
-        sky_coro_destroy(sync_wait->coro);
+    if (sky_coro_resume(wait->coro) != SKY_CORO_MAY_RESUME) {
+        sky_coro_destroy(wait->coro);
     }
 }
 
@@ -73,12 +73,12 @@ sky_sync_wait_yield_before(sky_sync_wait_t *const wait) {
 
 
 sky_api void *
-sky_sync_wait_yield(sky_sync_wait_t *const sync_wait) {
-    if (sync_wait->wait) {
-        sync_wait->wait = false;
+sky_sync_wait_yield(sky_sync_wait_t *const wait) {
+    if (wait->wait) {
+        wait->wait = false;
         sky_coro_yield(SKY_CORO_MAY_RESUME);
     }
-    return sync_wait->att_data;
+    return wait->att_data;
 }
 
 static sky_usize_t
