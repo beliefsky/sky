@@ -5,8 +5,9 @@
 #include <core/coro.h>
 
 struct sky_sync_wait_s {
+    sky_sync_wait_pt call;
+    sky_sync_wait_finish_pt finish;
     sky_coro_t *coro;
-    sky_sync_wait_pt cb;
     void *data;
     void *att_data;
     sky_bool_t wait;
@@ -14,16 +15,18 @@ struct sky_sync_wait_s {
 
 static sky_usize_t coro_process(sky_coro_t *coro, void *data);
 
+
 sky_api sky_bool_t
-sky_sync_wait_create(const sky_sync_wait_pt cb, void *const data) {
+sky_sync_wait_create(const sky_sync_wait_pt cb, const sky_sync_wait_finish_pt finish, void *const data) {
     sky_coro_t *const coro = sky_coro_new();
     if (sky_unlikely(!coro)) {
         return false;
     }
 
     sky_sync_wait_t *const wait = sky_coro_malloc(coro, sizeof(sky_sync_wait_t));
+    wait->call = cb;
+    wait->finish = finish;
     wait->coro = coro;
-    wait->cb = cb;
     wait->data = data;
     wait->wait = false;
 
@@ -34,15 +37,21 @@ sky_sync_wait_create(const sky_sync_wait_pt cb, void *const data) {
 }
 
 sky_api sky_bool_t
-sky_sync_wait_create_with_stack(const sky_sync_wait_pt cb, void *const data, const sky_usize_t stack_size) {
+sky_sync_wait_create_with_stack(
+        const sky_sync_wait_pt cb,
+        const sky_sync_wait_finish_pt finish,
+        void *const data,
+        const sky_usize_t stack_size
+) {
     sky_coro_t *const coro = sky_coro_new_with_stack(stack_size);
     if (sky_unlikely(!coro)) {
         return false;
     }
 
     sky_sync_wait_t *const wait = sky_coro_malloc(coro, sizeof(sky_sync_wait_t));
+    wait->call = cb;
+    wait->finish = finish;
     wait->coro = coro;
-    wait->cb = cb;
     wait->data = data;
     wait->wait = false;
 
@@ -62,7 +71,14 @@ sky_sync_wait_resume(sky_sync_wait_t *const wait, void *const att_data) {
     }
 
     if (sky_coro_resume(wait->coro) != SKY_CORO_MAY_RESUME) {
+        const sky_sync_wait_finish_pt finish = wait->finish;
+        if (finish) {
+            sky_coro_destroy(wait->coro);
+            return;
+        }
+        void *const data = wait->data;
         sky_coro_destroy(wait->coro);
+        finish(data);
     }
 }
 
