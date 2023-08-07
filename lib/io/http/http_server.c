@@ -93,7 +93,7 @@ sky_http_server_bind(
         return false;
     }
     sky_tcp_option_no_delay(&listener->tcp);
-    sky_tcp_option_fast_open(&listener->tcp, 5);
+    sky_tcp_option_fast_open(&listener->tcp, 3);
     sky_tcp_option_defer_accept(&listener->tcp);
 
     if (sky_unlikely(!sky_tcp_bind(&listener->tcp, addr))) {
