@@ -25,6 +25,8 @@ static void http_read_body_str_cb(
         void *data
 );
 
+static void http_body_str_too_large(sky_http_server_request_t *r, void *data);
+
 static void http_read_body_none_timeout(sky_timer_wheel_entry_t *entry);
 
 static void http_read_body_read_timeout(sky_timer_wheel_entry_t *entry);
@@ -539,7 +541,18 @@ http_read_body_str_cb(
     str_read_packet *const packet = data;
 
     if (!size) {
-        if (packet->read_none || sky_http_server_req_error(r)) {
+        if (packet->read_none) {
+            sky_str_buf_destroy(&packet->buf);
+            r->state = 413;
+            sky_http_response_str_len(
+                    r,
+                    sky_str_line("413 Request Entity Too Large"),
+                    http_body_str_too_large,
+                    packet
+            );
+            return;
+        }
+        if (sky_http_server_req_error(r)) {
             sky_str_buf_destroy(&packet->buf);
             packet->call(r, null, packet->cb_data);
             return;
@@ -558,6 +571,13 @@ http_read_body_str_cb(
         return;
     }
     sky_str_buf_append_str_len(&packet->buf, buf, size);
+}
+
+static void
+http_body_str_too_large(sky_http_server_request_t *const r, void *const data) {
+    str_read_packet *const packet = data;
+
+    packet->call(r, null, packet->cb_data);
 }
 
 static void
