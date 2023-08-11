@@ -127,7 +127,7 @@ http_req_body_chunked_str(
     str_read_packet *const packet = sky_palloc(r->pool, sizeof(str_read_packet));
     sky_str_buf_init2(&packet->buf, r->pool, 1024);
     packet->call = call;
-    packet->call = data;
+    packet->cb_data = data;
     packet->read_none = false;
 
     http_req_body_chunked_read(r, http_read_body_str_cb, packet);
