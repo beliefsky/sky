@@ -4,16 +4,30 @@
 #include "http_server_common.h"
 #include <core/hex.h>
 #include <core/memory.h>
+#include <core/string_buf.h>
+
+typedef struct {
+    sky_str_buf_t buf;
+    sky_http_server_next_str_pt call;
+    void *cb_data;
+    sky_bool_t read_none;
+} str_read_packet;
 
 
 static void http_body_read_none(sky_tcp_t *tcp);
 
 static void http_body_read_cb(sky_tcp_t *tcp);
 
+static void http_read_body_str_cb(
+        sky_http_server_request_t *r,
+        const sky_uchar_t *buf,
+        sky_usize_t size,
+        void *data
+);
+
 static void http_read_body_none_timeout(sky_timer_wheel_entry_t *entry);
 
 static void http_read_body_read_timeout(sky_timer_wheel_entry_t *entry);
-
 
 void
 http_req_body_chunked_none(
@@ -29,51 +43,57 @@ http_req_body_chunked_none(
     r->headers_in.content_length_n = 0;
 
     next_chunked:
-    if (read_n > 2) {
-        sky_isize_t n;
-        if (read_n < 18) {
-            n = sky_str_len_index_char(p, read_n, '\n');
-            if (n < 0) {
-                r->index = read_n;
-                if (buf->pos != p) {
-                    sky_memmove(buf->pos, p, read_n);
-                    buf->last = buf->pos + read_n;
-                }
-                goto next_read;
-            }
-        } else {
-            n = sky_str_len_index_char(p, 18, '\n');
+    if (read_n <= 2) {
+        r->index = read_n;
+        if (buf->pos != p) {
+            sky_memmove(buf->pos, p, read_n);
+            buf->last = buf->pos + read_n;
         }
-        if (sky_unlikely(n < 2
-                         || p[--n] != '\r'
-                         || !sky_hex_str_len_to_usize(p, (sky_usize_t) n, &r->headers_in.content_length_n))) {
+        goto next_read;
+    }
+    sky_isize_t n;
+    if (read_n < 18) {
+        n = sky_str_len_index_char(p, read_n, '\n');
+        if (n < 0) {
+            r->index = read_n;
+            if (buf->pos != p) {
+                sky_memmove(buf->pos, p, read_n);
+                buf->last = buf->pos + read_n;
+            }
+            goto next_read;
+        }
+    } else {
+        n = sky_str_len_index_char(p, 18, '\n');
+    }
+    if (sky_unlikely(n < 2
+                     || p[--n] != '\r'
+                     || !sky_hex_str_len_to_usize(p, (sky_usize_t) n, &r->headers_in.content_length_n))) {
+        goto error;
+    }
+    r->index = r->headers_in.content_length_n == 0;
+    r->headers_in.content_length_n += 2;
+    p += n + 2;
+    read_n -= (sky_usize_t) n + 2;
+
+    if (read_n >= r->headers_in.content_length_n) {
+        p += r->headers_in.content_length_n;
+        if (sky_unlikely(!sky_str2_cmp(p - 2, '\r', '\n'))) {
             goto error;
         }
-        r->index = r->headers_in.content_length_n == 0;
-        r->headers_in.content_length_n += 2;
-        p += n + 2;
-        read_n -= (sky_usize_t) n + 2;
-
-        if (read_n >= r->headers_in.content_length_n) {
-            p += r->headers_in.content_length_n;
-            if (sky_unlikely(!sky_str2_cmp(p - 2, '\r', '\n'))) {
-                goto error;
-            }
-            r->headers_in.content_length_n = 0;
-            if (r->index) { //end
-                buf->pos = p;
-                sky_buf_rebuild(buf, 0);
-                call(r, data);
-                return;
-            }
-            goto next_chunked;
+        r->headers_in.content_length_n = 0;
+        if (r->index) { //end
+            buf->pos = p;
+            sky_buf_rebuild(buf, 0);
+            call(r, data);
+            return;
         }
-        p += read_n;
-        r->headers_in.content_length_n -= read_n;
-        buf->last = buf->pos;
-        if (sky_unlikely(r->headers_in.content_length_n == 1)) { // 防止\r\n不完整
-            *(buf->last++) = *(p - 1);
-        }
+        goto next_chunked;
+    }
+    p += read_n;
+    r->headers_in.content_length_n -= read_n;
+    buf->last = buf->pos;
+    if (sky_unlikely(r->headers_in.content_length_n == 1)) { // 防止\r\n不完整
+        *(buf->last++) = *(p - 1);
     }
 
     next_read:
@@ -104,6 +124,13 @@ http_req_body_chunked_str(
         void *const data
 ) {
 
+    str_read_packet *const packet = sky_palloc(r->pool, sizeof(str_read_packet));
+    sky_str_buf_init2(&packet->buf, r->pool, 1024);
+    packet->call = call;
+    packet->call = data;
+    packet->read_none = false;
+
+    http_req_body_chunked_read(r, http_read_body_str_cb, packet);
 }
 
 void
@@ -120,71 +147,77 @@ http_req_body_chunked_read(
     r->headers_in.content_length_n = 0;
 
     next_chunked:
-    if (read_n > 2) {
-        sky_isize_t n;
-        if (read_n < 18) {
-            n = sky_str_len_index_char(p, read_n, '\n');
-            if (n < 0) {
-                r->index = read_n;
-                if (buf->pos != p) {
-                    sky_memmove(buf->pos, p, read_n);
-                    buf->last = buf->pos + read_n;
-                }
-                goto next_read;
-            }
-        } else {
-            n = sky_str_len_index_char(p, 18, '\n');
+    if (read_n <= 2) {
+        r->index = read_n;
+        if (buf->pos != p) {
+            sky_memmove(buf->pos, p, read_n);
+            buf->last = buf->pos + read_n;
         }
-        if (sky_unlikely(n < 2
-                         || p[--n] != '\r'
-                         || !sky_hex_str_len_to_usize(p, (sky_usize_t) n, &r->headers_in.content_length_n))) {
+        goto next_read;
+    }
+    sky_isize_t n;
+    if (read_n < 18) {
+        n = sky_str_len_index_char(p, read_n, '\n');
+        if (n < 0) {
+            r->index = read_n;
+            if (buf->pos != p) {
+                sky_memmove(buf->pos, p, read_n);
+                buf->last = buf->pos + read_n;
+            }
+            goto next_read;
+        }
+    } else {
+        n = sky_str_len_index_char(p, 18, '\n');
+    }
+    if (sky_unlikely(n < 2
+                     || p[--n] != '\r'
+                     || !sky_hex_str_len_to_usize(p, (sky_usize_t) n, &r->headers_in.content_length_n))) {
+        goto error;
+    }
+    r->index = r->headers_in.content_length_n == 0;
+    r->headers_in.content_length_n += 2;
+    p += n + 2;
+    read_n -= (sky_usize_t) n + 2;
+
+    if (read_n >= r->headers_in.content_length_n) {
+        p += r->headers_in.content_length_n;
+        if (sky_unlikely(!sky_str2_cmp(p - 2, '\r', '\n'))) {
             goto error;
         }
-        r->index = r->headers_in.content_length_n == 0;
-        r->headers_in.content_length_n += 2;
-        p += n + 2;
-        read_n -= (sky_usize_t) n + 2;
-
-        if (read_n >= r->headers_in.content_length_n) {
-            p += r->headers_in.content_length_n;
-            if (sky_unlikely(!sky_str2_cmp(p - 2, '\r', '\n'))) {
-                goto error;
-            }
-            if (r->headers_in.content_length_n > 2) {
-                call(r, p - r->headers_in.content_length_n, r->headers_in.content_length_n - 2, data);
-            }
-
-            r->headers_in.content_length_n = 0;
-            if (r->index) { //end
-                buf->pos = p;
-                sky_buf_rebuild(buf, 0);
-                call(r, null, 0, data);
-                return;
-            }
-            goto next_chunked;
+        if (r->headers_in.content_length_n > 2) {
+            call(r, p - r->headers_in.content_length_n, r->headers_in.content_length_n - 2, data);
         }
-        p += read_n;
 
-        r->headers_in.content_length_n -= read_n;
-        if (read_n) {
-            if (r->headers_in.content_length_n < 2) {
-                const sky_usize_t ret = 2 - r->headers_in.content_length_n;
-                if (read_n > ret) {
-                    call(r, p - read_n, read_n - ret, data);
-                }
-            } else {
-                call(r, p - read_n, read_n, data);
+        r->headers_in.content_length_n = 0;
+        if (r->index) { //end
+            buf->pos = p;
+            sky_buf_rebuild(buf, 0);
+            call(r, null, 0, data);
+            return;
+        }
+        goto next_chunked;
+    }
+    p += read_n;
+
+    r->headers_in.content_length_n -= read_n;
+    if (read_n) {
+        if (r->headers_in.content_length_n < 2) {
+            const sky_usize_t ret = 2 - r->headers_in.content_length_n;
+            if (read_n > ret) {
+                call(r, p - read_n, read_n - ret, data);
             }
+        } else {
+            call(r, p - read_n, read_n, data);
         }
-        buf->last = buf->pos;
-        if (sky_unlikely(r->headers_in.content_length_n == 1)) { // 防止\r\n不完整
-            *(buf->last++) = *(p - 1);
-        }
+    }
+    buf->last = buf->pos;
+    if (sky_unlikely(r->headers_in.content_length_n == 1)) { // 防止\r\n不完整
+        *(buf->last++) = *(p - 1);
     }
 
     next_read:
     if ((sky_usize_t) (buf->end - buf->pos) < SKY_USIZE(4096)) {
-        sky_buf_rebuild(buf, SKY_USIZE(8192));
+        sky_buf_rebuild(buf, SKY_USIZE(4096));
     }
     r->req_pos = buf->last;
 
@@ -494,6 +527,37 @@ http_body_read_cb(sky_tcp_t *const tcp) {
     req->headers_in.content_length_n = 0;
     req->error = true;
     conn->next_read_cb(req, null, 0, conn->cb_data);
+}
+
+static void
+http_read_body_str_cb(
+        sky_http_server_request_t *const r,
+        const sky_uchar_t *const buf,
+        const sky_usize_t size,
+        void *const data
+) {
+    str_read_packet *const packet = data;
+
+    if (!size) {
+        if (packet->read_none || sky_http_server_req_error(r)) {
+            sky_str_buf_destroy(&packet->buf);
+            packet->call(r, null, packet->cb_data);
+            return;
+        }
+        sky_str_t *const result = sky_palloc(r->pool, sizeof(sky_str_t));
+        sky_str_buf_build(&packet->buf, result);
+        packet->call(r, result, packet->cb_data);
+        return;
+    }
+    if (packet->read_none) {
+        return;
+    }
+    const sky_usize_t buf_size = sky_str_buf_size(&packet->buf) + size;
+    if (buf_size > r->conn->server->body_str_max) {
+        packet->read_none = true;
+        return;
+    }
+    sky_str_buf_append_str_len(&packet->buf, buf, size);
 }
 
 static void
