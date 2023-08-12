@@ -25,9 +25,9 @@ sky_http_req_body_none(
     r->read_request_body = true;
 
     if (r->headers_in.content_length) {
-        http_req_body_length_none(r, call, data);
+        http_req_length_body_none(r, call, data);
     } else if (r->headers_in.transfer_encoding) {
-        http_req_body_chunked_none(r, call, data);
+        http_req_chunked_body_none(r, call, data);
     } else {
         call(r, data);
     }
@@ -47,9 +47,9 @@ sky_http_req_body_str(
     r->read_request_body = true;
 
     if (r->headers_in.content_length) {
-        http_req_body_length_str(r, call, data);
+        http_req_length_body_str(r, call, data);
     } else if (r->headers_in.transfer_encoding) {
-        http_req_body_chunked_str(r, call, data);
+        http_req_chunked_body_str(r, call, data);
     } else {
         call(r, null, data);
     }
@@ -69,9 +69,9 @@ sky_http_req_body_read(
     r->read_request_body = true;
 
     if (r->headers_in.content_length) {
-        http_req_body_length_read(r, call, data);
+        http_req_length_body_read(r, call, data);
     } else if (r->headers_in.transfer_encoding) {
-        http_req_body_chunked_read(r, call, data);
+        http_req_chunked_body_read(r, call, data);
     } else {
         call(r, null, 0, data);
     }

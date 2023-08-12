@@ -27,7 +27,7 @@ static void http_body_str_too_large(sky_http_server_request_t *r, void *data);
 static void http_body_read_none_to_str(sky_http_server_request_t *r, void *data);
 
 void
-http_req_body_length_none(
+http_req_length_body_none(
         sky_http_server_request_t *const r,
         const sky_http_server_next_pt call,
         void *const data
@@ -62,7 +62,7 @@ http_req_body_length_none(
 }
 
 void
-http_req_body_length_str(
+http_req_length_body_str(
         sky_http_server_request_t *r,
         sky_http_server_next_str_pt call,
         void *data
@@ -75,7 +75,7 @@ http_req_body_length_str(
         cb_data->call = call;
         cb_data->data = data;
 
-        http_req_body_length_none(r, http_body_str_too_large, cb_data);
+        http_req_length_body_none(r, http_body_str_too_large, cb_data);
         return;
     }
 
@@ -105,7 +105,7 @@ http_req_body_length_str(
 }
 
 void
-http_req_body_length_read(
+http_req_length_body_read(
         sky_http_server_request_t *const r,
         const sky_http_server_next_read_pt call,
         void *const data

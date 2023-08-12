@@ -32,7 +32,7 @@ static void http_read_body_none_timeout(sky_timer_wheel_entry_t *entry);
 static void http_read_body_read_timeout(sky_timer_wheel_entry_t *entry);
 
 void
-http_req_body_chunked_none(
+http_req_chunked_body_none(
         sky_http_server_request_t *const r,
         const sky_http_server_next_pt call,
         void *const data
@@ -120,7 +120,7 @@ http_req_body_chunked_none(
 }
 
 void
-http_req_body_chunked_str(
+http_req_chunked_body_str(
         sky_http_server_request_t *const r,
         const sky_http_server_next_str_pt call,
         void *const data
@@ -132,11 +132,11 @@ http_req_body_chunked_str(
     packet->cb_data = data;
     packet->read_none = false;
 
-    http_req_body_chunked_read(r, http_read_body_str_cb, packet);
+    http_req_chunked_body_read(r, http_read_body_str_cb, packet);
 }
 
 void
-http_req_body_chunked_read(
+http_req_chunked_body_read(
         sky_http_server_request_t *const r,
         const sky_http_server_next_read_pt call,
         void *const data
