@@ -576,6 +576,7 @@ http_read_body_str_cb(
 static void
 http_body_str_too_large(sky_http_server_request_t *const r, void *const data) {
     str_read_packet *const packet = data;
+    r->error = true;
 
     packet->call(r, null, packet->cb_data);
 }

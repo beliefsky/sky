@@ -327,5 +327,6 @@ http_body_str_too_large(sky_http_server_request_t *const r, void *const data) {
 static void
 http_body_read_none_to_str(sky_http_server_request_t *const r, void *const data) {
     const http_body_str_cb_t *const cb_data = data;
+    r->error = true;
     cb_data->call(r, null, cb_data->data);
 }
