@@ -165,6 +165,7 @@ sky_tcp_close(sky_tcp_t *const tcp) {
     }
     tcp->ev.fd = SKY_SOCKET_FD_NONE;
     tcp->status = SKY_U32(0);
+    shutdown(fd, SHUT_RDWR);
     close(fd);
     sky_tcp_register_cancel(tcp);
 }
