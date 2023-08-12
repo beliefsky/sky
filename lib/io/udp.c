@@ -192,12 +192,16 @@ sky_udp_write_v(sky_udp_t *udp, const sky_inet_addr_t *addr, sky_io_vec_t *vec, 
 
 sky_api void
 sky_udp_close(sky_udp_t *const udp) {
-    if (sky_udp_is_open(udp)) {
-        close(sky_ev_get_fd(&udp->ev));
-        udp->ev.fd = SKY_SOCKET_FD_NONE;
-        udp->status = SKY_U32(0);
-        sky_udp_register_cancel(udp);
+    const sky_socket_t fd = sky_ev_get_fd(&udp->ev);
+
+    if (!sky_udp_is_open(udp)) {
+        return;
     }
+    udp->ev.fd = SKY_SOCKET_FD_NONE;
+    udp->status = SKY_U32(0);
+    shutdown(fd, SHUT_RDWR);
+    close(fd);
+    sky_udp_register_cancel(udp);
 }
 
 sky_bool_t
