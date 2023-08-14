@@ -22,13 +22,13 @@ sky_http_server_create(const sky_http_server_conf_t *const conf) {
     server->rfc_last = 0;
 
     if (!conf) {
-        server->body_str_max = SKY_USIZE(1048576);
+        server->body_str_max = SKY_USIZE(131072);
         server->keep_alive = SKY_U32(75);
         server->timeout = SKY_U32(30);
         server->header_buf_size = SKY_U32(2048);
         server->header_buf_n = SKY_U8(4);
     } else {
-        server->body_str_max = conf->body_str_max ?: SKY_USIZE(1048576);
+        server->body_str_max = conf->body_str_max ?: SKY_USIZE(131072);
         server->keep_alive = conf->keep_alive ?: SKY_U32(75);
         server->timeout = conf->timeout ?: SKY_U32(30);
         server->header_buf_size = conf->header_buf_size ?: SKY_U32(2048);
