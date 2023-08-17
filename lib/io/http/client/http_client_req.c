@@ -25,6 +25,8 @@ static void client_read_res_next(sky_http_client_t *client);
 
 static void client_read_res_header(sky_tcp_t *tcp);
 
+static void http_work_none(sky_tcp_t *tcp);
+
 static void client_req_timeout(sky_timer_wheel_entry_t *timer);
 
 
@@ -219,6 +221,7 @@ client_read_res_next(sky_http_client_t *const client) {
     const sky_i8_t i = http_res_header_parse(r, buf);
     if (i > 0) {
         sky_timer_wheel_unlink(&client->timer);
+        sky_tcp_set_cb(&client->tcp, http_work_none);
         client->next_res_cb(client, r, client->cb_data);
         return;
     }
@@ -266,6 +269,7 @@ client_read_res_header(sky_tcp_t *const tcp) {
         i = http_res_header_parse(r, buf);
         if (i == 1) {
             sky_timer_wheel_unlink(&client->timer);
+            sky_tcp_set_cb(&client->tcp, http_work_none);
             client->next_res_cb(client, r, client->cb_data);
             return;
         }
@@ -299,6 +303,13 @@ client_read_res_header(sky_tcp_t *const tcp) {
     sky_tcp_close(&client->tcp);
     sky_timer_wheel_unlink(&client->timer);
     client->next_res_cb(client, null, client->cb_data);
+}
+
+static void
+http_work_none(sky_tcp_t *const tcp) {
+    if (sky_unlikely(sky_ev_error(sky_tcp_ev(tcp)))) {
+        sky_tcp_close(tcp);
+    }
 }
 
 static void
