@@ -75,6 +75,7 @@ struct sky_http_client_header_s {
 
 
 typedef struct {
+    sky_usize_t body_str_max;
     sky_u32_t timeout;
     sky_u32_t header_buf_size;
     sky_u8_t header_buf_n;

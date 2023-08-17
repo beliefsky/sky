@@ -269,7 +269,7 @@ client_read_res_header(sky_tcp_t *const tcp) {
         i = http_res_header_parse(r, buf);
         if (i == 1) {
             sky_timer_wheel_unlink(&client->timer);
-            sky_tcp_set_cb(&client->tcp, http_work_none);
+            sky_tcp_set_cb(tcp, http_work_none);
             client->next_res_cb(client, r, client->cb_data);
             return;
         }
@@ -300,7 +300,7 @@ client_read_res_header(sky_tcp_t *const tcp) {
     }
 
     error:
-    sky_tcp_close(&client->tcp);
+    sky_tcp_close(tcp);
     sky_timer_wheel_unlink(&client->timer);
     client->next_res_cb(client, null, client->cb_data);
 }
