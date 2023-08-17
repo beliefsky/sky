@@ -4,6 +4,8 @@
 #include <core/string_buf.h>
 #include "http_client_common.h"
 
+#include <netinet/in.h>
+
 typedef struct {
     sky_str_buf_t buf;
     sky_str_t data;
@@ -23,6 +25,8 @@ static void client_read_res_next(sky_http_client_t *client);
 
 static void client_read_res_header(sky_tcp_t *tcp);
 
+static void client_req_timeout(sky_timer_wheel_entry_t *timer);
+
 
 sky_api sky_http_client_req_t *
 sky_http_client_req_create(sky_http_client_t *const client, sky_pool_t *const pool) {
@@ -31,6 +35,7 @@ sky_http_client_req_create(sky_http_client_t *const client, sky_pool_t *const po
     sky_str_set(&req->path, "/");
     sky_str_set(&req->method, "GET");
     sky_str_set(&req->version_name, "HTTP/1.1");
+    req->client = client;
     req->pool = pool;
 
     return req;
@@ -42,21 +47,30 @@ sky_http_client_req(sky_http_client_req_t *const req, const sky_http_client_res_
     client->next_res_cb = call;
     client->cb_data = cb_data;
 
-    // get address
-    // connect
-    // build buf
-    // write buf
-    // read buf
+    sky_timer_set_cb(&client->timer, client_req_timeout);
+    if (sky_tcp_is_open(&client->tcp)) {
+        sky_tcp_close(&client->tcp);
+    }
+    sky_inet_addr_t *const address = sky_palloc(req->pool, sizeof(sky_inet_addr_t) + sizeof(struct sockaddr_in));
+    address->size = sizeof(struct sockaddr_in);
+    struct sockaddr_in *const ptr = (struct sockaddr_in *) (address + 1);
+    ptr->sin_family = AF_INET;
+    ptr->sin_addr.s_addr = INADDR_ANY;
+    ptr->sin_port = sky_htons(8080);
+    sky_inet_addr_set_ptr(address, ptr);
 
-    call(client, null, cb_data);
+    client->send_packet = address;
+    sky_tcp_set_cb(&client->tcp, client_connect);
+    client_connect(&client->tcp);
 }
 
 
 static void
 client_connect(sky_tcp_t *const tcp) {
     sky_http_client_t *const client = sky_type_convert(tcp, sky_http_client_t, tcp);
+    const sky_inet_addr_t *const address = client->send_packet;
 
-    const sky_i8_t r = sky_tcp_connect(tcp, null);
+    const sky_i8_t r = sky_tcp_connect(tcp, address);
     if (r > 0) {
         client_send_start(client);
         return;
@@ -275,6 +289,15 @@ client_read_res_header(sky_tcp_t *const tcp) {
     }
 
     error:
+    sky_tcp_close(&client->tcp);
+    sky_timer_wheel_unlink(&client->timer);
+    client->next_res_cb(client, null, client->cb_data);
+}
+
+static void
+client_req_timeout(sky_timer_wheel_entry_t *const timer) {
+    sky_http_client_t *const client = sky_type_convert(timer, sky_http_client_t, timer);
+
     sky_tcp_close(&client->tcp);
     sky_timer_wheel_unlink(&client->timer);
     client->next_res_cb(client, null, client->cb_data);
