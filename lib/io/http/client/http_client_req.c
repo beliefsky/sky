@@ -44,13 +44,12 @@ sky_http_client_req_create(sky_http_client_t *const client, sky_pool_t *const po
 sky_api void
 sky_http_client_req(sky_http_client_req_t *const req, const sky_http_client_res_pt call, void *const cb_data) {
     sky_http_client_t *const client = req->client;
-    client->next_res_cb = call;
-    client->cb_data = cb_data;
 
     sky_timer_set_cb(&client->timer, client_req_timeout);
     if (sky_tcp_is_open(&client->tcp)) {
         sky_tcp_close(&client->tcp);
     }
+
     sky_inet_addr_t *const address = sky_palloc(req->pool, sizeof(sky_inet_addr_t) + sizeof(struct sockaddr_in));
     address->size = sizeof(struct sockaddr_in);
     struct sockaddr_in *const ptr = (struct sockaddr_in *) (address + 1);
@@ -59,7 +58,15 @@ sky_http_client_req(sky_http_client_req_t *const req, const sky_http_client_res_
     ptr->sin_port = sky_htons(8080);
     sky_inet_addr_set_ptr(address, ptr);
 
+    if (sky_unlikely(!sky_tcp_open(&client->tcp, AF_INET))) {
+        call(client, null, cb_data);
+        return;
+    }
+
     client->send_packet = address;
+    client->next_res_cb = call;
+    client->cb_data = cb_data;
+    client->current_req = req;
     sky_tcp_set_cb(&client->tcp, client_connect);
     client_connect(&client->tcp);
 }
@@ -108,7 +115,7 @@ client_send_start(sky_http_client_t *const client) {
     });
     sky_str_buf_append_two_uchar(buf, '\r', '\n');
 
-    packet->data.data = buf->post;
+    packet->data.data = buf->start;
     packet->data.len = sky_str_buf_size(buf);
 
     client->send_packet = packet;
@@ -162,7 +169,7 @@ client_send_next(sky_http_client_t *const client, sky_pool_t *pool) {
     res->read_res_body = false;
 
     client->current_res = res;
-    client->read_buf = sky_palloc(pool, client->header_buf_size);
+    client->read_buf = sky_buf_create(pool, client->header_buf_size);
     client->free_buf_n = client->header_buf_n;
 
     sky_tcp_set_cb(&client->tcp, client_read_res_line);
