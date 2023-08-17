@@ -39,7 +39,6 @@ http_req_length_body_none(
     sky_usize_t size = r->headers_in.content_length_n;
     if (read_n >= size) {
         r->headers_in.content_length_n = 0;
-        r->read_request_body = true;
         tmp->pos += size;
         sky_buf_rebuild(tmp, 0);
 
