@@ -351,15 +351,15 @@ http_body_read_none(sky_tcp_t *const tcp) {
     }
 
     if (sky_likely(!n)) {
-        sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
+        sky_tcp_try_register(tcp, SKY_EV_READ | SKY_EV_WRITE);
         sky_event_timeout_set(conn->ev_loop, &conn->timer, conn->server->timeout);
         return;
     }
 
     error:
     sky_timer_wheel_unlink(&conn->timer);
-    sky_tcp_close(&conn->tcp);
-    sky_buf_rebuild(conn->buf, 0);
+    sky_tcp_close(tcp);
+    sky_buf_rebuild(buf, 0);
     req->headers_in.content_length_n = 0;
     req->error = true;
     conn->next_cb(req, conn->cb_data);
@@ -517,15 +517,15 @@ http_body_read_cb(sky_tcp_t *const tcp) {
     }
 
     if (sky_likely(!n)) {
-        sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
+        sky_tcp_try_register(tcp, SKY_EV_READ | SKY_EV_WRITE);
         sky_event_timeout_set(conn->ev_loop, &conn->timer, conn->server->timeout);
         return;
     }
 
     error:
     sky_timer_wheel_unlink(&conn->timer);
-    sky_tcp_close(&conn->tcp);
-    sky_buf_rebuild(conn->buf, 0);
+    sky_tcp_close(tcp);
+    sky_buf_rebuild(buf, 0);
     req->headers_in.content_length_n = 0;
     req->error = true;
     conn->next_read_cb(req, null, 0, conn->cb_data);
