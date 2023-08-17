@@ -64,14 +64,16 @@ http_request_line_parse(sky_http_server_request_t *const r, sky_buf_t *const b) 
     re_switch:
     switch (state) {
         case sw_start: {
-            sw_start:
+            do {
+                if (p == end) {
+                    goto again;
+                } else if (*p == ' ') {
+                    ++p;
+                    continue;
+                }
+                break;
+            } while (true);
 
-            if (p == end) {
-                goto again;
-            } else if (*p == ' ') {
-                ++p;
-                goto sw_start;
-            }
             r->req_pos = p;
             state = sw_method;
         }
