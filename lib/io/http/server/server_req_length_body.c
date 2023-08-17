@@ -93,7 +93,7 @@ http_req_length_body_str(
         call(r, body, data);
         return;
     }
-    sky_buf_rebuild(conn->buf, size);
+    sky_buf_rebuild(tmp, size);
     r->headers_in.content_length_n = size - read_n;
 
     sky_timer_set_cb(&conn->timer, http_read_body_str_timeout);

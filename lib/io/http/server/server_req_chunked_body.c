@@ -114,7 +114,7 @@ http_req_chunked_body_none(
 
     error:
     sky_tcp_close(&conn->tcp);
-    sky_buf_rebuild(conn->buf, 0);
+    sky_buf_rebuild(buf, 0);
     r->error = true;
     call(r, data);
 }
@@ -233,7 +233,7 @@ http_req_chunked_body_read(
 
     error:
     sky_tcp_close(&conn->tcp);
-    sky_buf_rebuild(conn->buf, 0);
+    sky_buf_rebuild(buf, 0);
     r->error = true;
     call(r, null, 0, data);
 }
