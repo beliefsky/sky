@@ -13,8 +13,12 @@ sky_http_client_create(sky_event_loop_t *const ev_loop, const sky_http_client_co
 
     if (conf) {
         client->timeout = conf->timeout ?: 30;
+        client->header_buf_size = conf->header_buf_size ?: 2048;
+        client->header_buf_n = conf->header_buf_n ?: 4;
     } else {
         client->timeout = 30;
+        client->header_buf_size = 2048;
+        client->header_buf_n = 4;
     }
 
     return client;

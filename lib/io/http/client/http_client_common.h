@@ -15,7 +15,16 @@ struct sky_http_client_s {
     sky_tcp_t tcp;
     sky_timer_wheel_entry_t timer;
     sky_event_loop_t *ev_loop;
-    sky_buf_t *buf;
+
+    union {
+        sky_http_client_req_t *current_req;
+        sky_http_client_res_t *current_res;
+    };
+
+    union {
+        void *send_packet;
+        sky_buf_t *read_buf;
+    };
 
     union {
         sky_http_client_pt next_cb;
@@ -26,7 +35,14 @@ struct sky_http_client_s {
     void *cb_data;
 
     sky_u32_t timeout;
+    sky_u32_t header_buf_size;
+    sky_u8_t header_buf_n;
+    sky_u8_t free_buf_n;
 };
+
+sky_i8_t http_res_line_parse(sky_http_client_res_t *r, sky_buf_t *b);
+
+sky_i8_t http_res_header_parse(sky_http_client_res_t *r, sky_buf_t *b);
 
 void http_client_res_length_body_none(sky_http_client_res_t *res, sky_http_client_pt call, void *data);
 

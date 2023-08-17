@@ -49,6 +49,9 @@ struct sky_http_client_req_s {
 struct sky_http_client_res_s {
     sky_list_t headers;
     sky_str_t version_name;
+
+    sky_str_t header_name;
+
     sky_str_t *content_type;
     sky_str_t *content_length;
     sky_str_t *transfer_encoding;
@@ -56,8 +59,13 @@ struct sky_http_client_res_s {
     sky_http_client_t *client;
     sky_pool_t *pool;
 
+    sky_uchar_t *res_pos;
+
     sky_usize_t content_length_n;
+
     sky_u32_t state: 9;
+    sky_u32_t parse_status: 4;
+    sky_bool_t keep_alive: 1;
     sky_bool_t read_res_body: 1;
 };
 
@@ -69,6 +77,8 @@ struct sky_http_client_header_s {
 
 typedef struct {
     sky_u32_t timeout;
+    sky_u32_t header_buf_size;
+    sky_u8_t header_buf_n;
 } sky_http_client_conf_t;
 
 

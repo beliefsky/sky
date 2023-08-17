@@ -170,7 +170,7 @@ http_header_read(sky_tcp_t *const tcp) {
                 goto error;
             }
             if (r->req_pos) {
-                n = (sky_u32_t) (buf->pos - r->req_pos);
+                n = (sky_isize_t) (buf->pos - r->req_pos);
                 buf->pos -= n;
                 sky_buf_rebuild(buf, conn->server->header_buf_size);
                 r->req_pos = buf->pos;
