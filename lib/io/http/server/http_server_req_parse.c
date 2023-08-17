@@ -959,7 +959,8 @@ header_handle_run(sky_http_server_request_t *const req, sky_http_server_header_t
             }
             return true;
         case 10:
-            if (sky_str8_cmp(p, 'c', 'o', 'n', 'n', 'e', 'c', 't', 'i') && sky_str2_cmp(p + 8, 'o', 'n')) {
+            if (sky_str8_cmp(p, 'c', 'o', 'n', 'n', 'e', 'c', 't', 'i')
+                && sky_str2_cmp(p + 8, 'o', 'n')) {
                 req->headers_in.connection = &h->val;
 
                 if (h->val.len == 5) {
@@ -1005,7 +1006,8 @@ header_handle_run(sky_http_server_request_t *const req, sky_http_server_header_t
                     if (sky_str8_cmp(p, '-', 'e', 'n', 'c', 'o', 'd', 'i', 'n') && p[8] == 'g') {
                         req->headers_in.transfer_encoding = &h->val;
                         req->read_request_body = false;
-                        return h->val.len == 7 && sky_str8_cmp(h->val.data, 'c', 'h', 'u', 'n', 'k', 'e', 'd', '\0');
+                        return h->val.len == 7
+                               && sky_str8_cmp(h->val.data, 'c', 'h', 'u', 'n', 'k', 'e', 'd', '\0');
                     }
                     return true;
                 }
