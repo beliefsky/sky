@@ -32,6 +32,17 @@ static sky_isize_t parse_token(sky_uchar_t *buf, const sky_uchar_t *end, sky_uch
 static sky_isize_t find_header_line(sky_uchar_t *post, const sky_uchar_t *end);
 
 
+#ifdef __SSE4_1__
+
+static sky_bool_t find_char_fast(
+        sky_uchar_t **buf,
+        sky_usize_t buf_size,
+        const sky_uchar_t *ranges,
+        sky_i32_t ranges_size
+);
+
+#endif
+
 sky_i8_t
 http_res_line_parse(sky_http_client_res_t *const r, sky_buf_t *const b) {
     parse_state_t state = r->parse_status;
