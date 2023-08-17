@@ -16,10 +16,13 @@ test_sync(sky_sync_wait_t *wait, void *data) {
 
     sky_http_client_req_t *const req = sky_http_client_req_create(client, pool);
     sky_http_client_res_t *const res = sky_http_client_wait_req(req, wait);
-    if (res) {
-        sky_log_info("11111111111");
+    sky_str_t *const body = sky_http_client_res_body_wait_str(res, wait);
+
+    if (body) {
+        sky_log_info("body:(%lu)%s", body->len, body->data);
+    } else {
+        sky_log_error("body read error");
     }
-    sky_log_info("end");
 
     sky_pool_destroy(pool);
     sky_http_client_destroy(client);
