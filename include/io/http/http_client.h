@@ -59,6 +59,7 @@ struct sky_http_client_res_s {
     sky_pool_t *pool;
 
     sky_uchar_t *res_pos;
+    sky_usize_t index;
 
     sky_usize_t content_length_n;
 

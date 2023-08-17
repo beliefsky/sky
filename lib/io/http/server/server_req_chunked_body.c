@@ -18,6 +18,8 @@ static void http_body_read_none(sky_tcp_t *tcp);
 
 static void http_body_read_cb(sky_tcp_t *tcp);
 
+static void http_work_none(sky_tcp_t *tcp);
+
 static void http_read_body_str_cb(
         sky_http_server_request_t *r,
         const sky_uchar_t *buf,
@@ -100,7 +102,7 @@ http_req_chunked_body_none(
 
     next_read:
     if ((sky_usize_t) (buf->end - buf->pos) < SKY_USIZE(4096)) {
-        sky_buf_rebuild(buf, SKY_USIZE(8192));
+        sky_buf_rebuild(buf, SKY_USIZE(4096));
     }
     r->req_pos = buf->last;
 
@@ -275,6 +277,7 @@ http_body_read_none(sky_tcp_t *const tcp) {
                 buf->pos = req->req_pos;
                 req->headers_in.content_length_n = 0;
                 sky_buf_rebuild(buf, 0);
+                sky_tcp_set_cb(tcp, http_work_none);
                 conn->next_cb(req, conn->cb_data);
                 return;
             }
@@ -322,6 +325,7 @@ http_body_read_none(sky_tcp_t *const tcp) {
             if (req->index) { //end
                 buf->pos = req->req_pos;
                 sky_buf_rebuild(buf, 0);
+                sky_tcp_set_cb(tcp, http_work_none);
                 conn->next_cb(req, conn->cb_data);
                 return;
             }
@@ -422,6 +426,7 @@ http_body_read_cb(sky_tcp_t *const tcp) {
                 buf->pos = req->req_pos;
                 req->headers_in.content_length_n = 0;
                 sky_buf_rebuild(buf, 0);
+                sky_tcp_set_cb(tcp, http_work_none);
                 conn->next_read_cb(req, null, 0, conn->cb_data);
                 return;
             }
@@ -477,6 +482,7 @@ http_body_read_cb(sky_tcp_t *const tcp) {
             if (req->index) { //end
                 buf->pos = req->req_pos;
                 sky_buf_rebuild(buf, 0);
+                sky_tcp_set_cb(tcp, http_work_none);
                 conn->next_read_cb(req, null, 0, conn->cb_data);
                 return;
             }
@@ -529,6 +535,13 @@ http_body_read_cb(sky_tcp_t *const tcp) {
     req->headers_in.content_length_n = 0;
     req->error = true;
     conn->next_read_cb(req, null, 0, conn->cb_data);
+}
+
+static void
+http_work_none(sky_tcp_t *const tcp) {
+    if (sky_unlikely(sky_ev_error(sky_tcp_ev(tcp)))) {
+        sky_tcp_close(tcp);
+    }
 }
 
 static void
