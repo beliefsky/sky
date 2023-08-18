@@ -27,32 +27,13 @@ main() {
     }
 
     sky_event_loop_t *loop = sky_event_loop_create();
-    {
-        struct sockaddr_in http_address = {
-                .sin_family = AF_INET,
-                .sin_addr.s_addr = INADDR_ANY,
-                .sin_port = sky_htons(8080)
-        };
-        sky_inet_addr_t address;
-        sky_inet_addr_set(&address, &http_address, sizeof(struct sockaddr_in));
 
+    sky_inet_address_t address;
+    sky_inet_address_ipv4(&address, 0, 8080);
+    sky_http_server_bind(server, loop, &address);
 
-        sky_http_server_bind(server, loop, &address);
-    }
-
-    {
-        struct sockaddr_in6 http_address = {
-                .sin6_family = AF_INET6,
-                .sin6_addr = in6addr_any,
-                .sin6_port = sky_htons(8080)
-        };
-
-        sky_inet_addr_t address;
-        sky_inet_addr_set(&address, &http_address, sizeof(struct sockaddr_in6));
-
-
-        sky_http_server_bind(server, loop, &address);
-    }
+    const sky_uchar_t local_ipv6[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    sky_inet_address_ipv6(&address, local_ipv6, 0, 8080);
 
     sky_event_loop_run(loop);
     sky_event_loop_destroy(loop);

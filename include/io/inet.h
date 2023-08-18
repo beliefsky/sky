@@ -6,7 +6,6 @@
 #define SKY_INET_H
 
 #include "../core/types.h"
-#include <sys/socket.h>
 
 
 #if defined(__cplusplus)
@@ -31,8 +30,11 @@ extern "C" {
 
 #define SKY_SOCKET_FD_NONE (-1)
 
+
+
 typedef sky_i32_t sky_socket_t;
 typedef struct sky_io_vec_s sky_io_vec_t;
+typedef struct sky_inet_address_s sky_inet_address_t;
 typedef struct sky_inet_addr_s sky_inet_addr_t;
 
 
@@ -41,32 +43,43 @@ struct sky_io_vec_s {
     sky_usize_t size;
 };
 
-struct sky_inet_addr_s {
-    sky_u32_t size;
-    struct sockaddr *addr;
+
+struct sky_inet_address_s {
+    union {
+        struct {
+            sky_u16_t family;
+        } common;
+
+        struct {
+            sky_u16_t family;
+            sky_u16_t port;
+            sky_u32_t address;
+        } ipv4;
+
+        struct {
+            sky_u16_t family;
+            sky_u16_t port;
+            sky_u32_t flow_info;
+            sky_uchar_t address[16];
+        } ipv6;
+
+        struct {
+            sky_u16_t family;
+            sky_uchar_t path[24];
+        } un;
+    };
 };
 
-void sky_inet_addr_copy(sky_inet_addr_t *dst, const sky_inet_addr_t *src);
+void sky_inet_address_ipv4(sky_inet_address_t *address, sky_u32_t ip, sky_u16_t port);
 
-static sky_inline sky_u32_t
-sky_inet_addr_size(const sky_inet_addr_t *const addr) {
-    return addr->size;
-}
+void sky_inet_address_ipv6(sky_inet_address_t *address, const sky_uchar_t ip[16], sky_u32_t flow_info, sky_u16_t port);
 
-static sky_inline void
-sky_inet_addr_set(sky_inet_addr_t *const addr, void *const ptr, const sky_u32_t size) {
-    addr->size = size;
-    addr->addr = ptr;
-}
+void sky_inet_address_un(sky_inet_address_t *address, const sky_uchar_t *path, sky_usize_t len);
 
-static sky_inline void
-sky_inet_addr_set_ptr(sky_inet_addr_t *const addr, void *const ptr) {
-    addr->addr = ptr;
-}
 
 static sky_inline sky_i32_t
-sky_inet_addr_family(const sky_inet_addr_t *const addr) {
-    return addr->addr->sa_family;
+sky_inet_address_family(const sky_inet_address_t *const address) {
+    return address->common.family;
 }
 
 #if defined(__cplusplus)

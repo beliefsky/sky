@@ -67,7 +67,6 @@ typedef void (*sky_http_server_multipart_read_pt)(
 );
 
 
-
 struct sky_http_server_conf_s {
     sky_usize_t body_str_max;
     sky_u32_t keep_alive;
@@ -151,7 +150,11 @@ sky_http_server_t *sky_http_server_create(const sky_http_server_conf_t *conf);
 
 sky_bool_t sky_http_server_module_put(sky_http_server_t *server, sky_http_server_module_t *module);
 
-sky_bool_t sky_http_server_bind(sky_http_server_t *server, sky_event_loop_t *ev_loop, const sky_inet_addr_t *addr);
+sky_bool_t sky_http_server_bind(
+        sky_http_server_t *server,
+        sky_event_loop_t *ev_loop,
+        const sky_inet_address_t *address
+);
 
 sky_bool_t sky_http_url_decode(sky_str_t *str);
 

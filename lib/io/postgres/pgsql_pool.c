@@ -16,7 +16,7 @@ static void pgsql_conn_keepalive_timeout(sky_timer_wheel_entry_t *timer);
 
 static void pgsql_connect_timeout(sky_timer_wheel_entry_t *timer);
 
-static void pgsql_task_next(sky_timer_wheel_entry_t * timer);
+static void pgsql_task_next(sky_timer_wheel_entry_t *timer);
 
 
 sky_api sky_pgsql_pool_t *
@@ -31,7 +31,6 @@ sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *c
 
     const sky_usize_t alloc_size = sizeof(sky_pgsql_pool_t)
                                    + (sizeof(sky_pgsql_conn_t) * conn_num)
-                                   + sky_inet_addr_size(&conf->address)
                                    + info_size
                                    + conf->password.len;
 
@@ -57,11 +56,8 @@ sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *c
         conn->pg_pool = pg_pool;
     }
     ptr += sizeof(sky_pgsql_conn_t) * conn_num;
-    sky_inet_addr_set_ptr(&pg_pool->address, ptr);
-    sky_inet_addr_copy(&pg_pool->address, &conf->address);
 
-    ptr += sky_inet_addr_size(&conf->address);
-
+    pg_pool->address = *conf->address;
     pg_pool->connect_info.len = info_size;
     pg_pool->connect_info.data = ptr;
 
@@ -144,7 +140,7 @@ static sky_inline void
 pgsql_connect_next(sky_pgsql_conn_t *const conn) {
     sky_pgsql_pool_t *const pg_pool = conn->pg_pool;
 
-    if (sky_tcp_is_open(&conn->tcp) || !sky_tcp_open(&conn->tcp, sky_inet_addr_family(&pg_pool->address))) {
+    if (sky_tcp_is_open(&conn->tcp) || !sky_tcp_open(&conn->tcp, sky_inet_address_family(&pg_pool->address))) {
         conn->conn_cb(conn, conn->cb_data);
         return;
     }

@@ -4,8 +4,6 @@
 #include <core/string_buf.h>
 #include "http_client_common.h"
 
-#include <netinet/in.h>
-
 typedef struct {
     sky_str_buf_t buf;
     sky_str_t data;
@@ -52,15 +50,10 @@ sky_http_client_req(sky_http_client_req_t *const req, const sky_http_client_res_
         sky_tcp_close(&client->tcp);
     }
 
-    sky_inet_addr_t *const address = sky_palloc(req->pool, sizeof(sky_inet_addr_t) + sizeof(struct sockaddr_in));
-    address->size = sizeof(struct sockaddr_in);
-    struct sockaddr_in *const ptr = (struct sockaddr_in *) (address + 1);
-    ptr->sin_family = AF_INET;
-    ptr->sin_addr.s_addr = INADDR_ANY;
-    ptr->sin_port = sky_htons(8080);
-    sky_inet_addr_set_ptr(address, ptr);
+    sky_inet_address_t *const address = sky_palloc(req->pool, sizeof(sky_inet_address_t));
+    sky_inet_address_ipv4(address, 0, 8080);
 
-    if (sky_unlikely(!sky_tcp_open(&client->tcp, AF_INET))) {
+    if (sky_unlikely(!sky_tcp_open(&client->tcp, sky_inet_address_family(address)))) {
         call(client, null, cb_data);
         return;
     }
@@ -77,7 +70,7 @@ sky_http_client_req(sky_http_client_req_t *const req, const sky_http_client_res_
 static void
 client_connect(sky_tcp_t *const tcp) {
     sky_http_client_t *const client = sky_type_convert(tcp, sky_http_client_t, tcp);
-    const sky_inet_addr_t *const address = client->send_packet;
+    const sky_inet_address_t *const address = client->send_packet;
 
     const sky_i8_t r = sky_tcp_connect(tcp, address);
     if (r > 0) {

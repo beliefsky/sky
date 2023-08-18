@@ -36,7 +36,7 @@ typedef struct {
 struct sky_pgsql_pool_s {
     sky_queue_t free_conns;
     sky_queue_t tasks;
-    sky_inet_addr_t address;
+    sky_inet_address_t address;
     sky_str_t username;
     sky_str_t password;
     sky_str_t connect_info;

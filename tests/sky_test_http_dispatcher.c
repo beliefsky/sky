@@ -10,8 +10,6 @@
 #include <io/http/http_server_dispatcher.h>
 #include <io/postgres/pgsql_pool_wait.h>
 #include <io/http/http_server_wait.h>
-#include <core/json.h>
-#include <core/log.h>
 
 static sky_bool_t create_server(sky_event_loop_t *ev_loop);
 
@@ -33,22 +31,14 @@ main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
-//    const sky_uchar_t ip[] = {192, 168, 31, 10};
-    struct sockaddr_in pg_address = {
-            .sin_family = AF_INET,
-            .sin_addr.s_addr = INADDR_ANY,
-//            .sin_addr.s_addr = *(sky_u32_t *)ip,
-            .sin_port = sky_htons(5432)
-    };
+    sky_inet_address_t address;
+    sky_inet_address_ipv4(&address, 0, 5432);
 
-    const sky_pgsql_conf_t conf = {
-            .address = {
-                    .size = sizeof(pg_address),
-                    .addr = (struct sockaddr *) &pg_address
-            },
+    sky_pgsql_conf_t conf = {
             .username = sky_string("postgres"),
             .password = sky_string("123456"),
             .database = sky_string("beliefsky_test"),
+            .address = &address
     };
 
     sky_event_loop_t *ev_loop = sky_event_loop_create();
@@ -72,6 +62,7 @@ create_server(sky_event_loop_t *ev_loop) {
             {
                     .path = sky_string("/hello"),
                     .get = hello_world,
+                    .post = put_data
             },
             {
                     .path = sky_string("/pgsql"),
@@ -88,24 +79,13 @@ create_server(sky_event_loop_t *ev_loop) {
 
     sky_http_server_module_put(server, sky_http_server_dispatcher_create(&dispatcher));
 
-    sky_inet_addr_t address;
-    struct sockaddr_in ipv4_address = {
-            .sin_family = AF_INET,
-            .sin_addr.s_addr = INADDR_ANY,
-            .sin_port = sky_htons(8080)
-    };
-    sky_inet_addr_set(&address, &ipv4_address, sizeof(struct sockaddr_in));
+    sky_inet_address_t address;
 
+    sky_inet_address_ipv4(&address, 0, 8080);
     sky_http_server_bind(server, ev_loop, &address);
 
-    struct sockaddr_in6 ipv6_address = {
-            .sin6_family = AF_INET6,
-            .sin6_addr = in6addr_any,
-            .sin6_port = sky_htons(8080)
-    };
-
-    sky_inet_addr_set(&address, &ipv6_address, sizeof(struct sockaddr_in6));
-
+    const sky_uchar_t local_ipv6[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    sky_inet_address_ipv6(&address, local_ipv6, 0, 8080);
     sky_http_server_bind(server, ev_loop, &address);
 
     return true;
@@ -159,10 +139,14 @@ static SKY_HTTP_MAPPER_HANDLER(pgsql_test) {
 }
 
 static void
-body_cb(sky_http_server_request_t *req, void *data) {
+body_cb(sky_http_server_request_t *req, sky_str_t *body, void *data) {
     (void) data;
 
-    sky_log_info("end");
+
+    if (body) {
+        sky_log_warn("%s", body->data);
+    }
+    sky_log_warn("=============");
 
     if (sky_unlikely(sky_http_server_req_error(req))) {
         sky_http_server_req_finish(req);
@@ -178,8 +162,7 @@ body_cb(sky_http_server_request_t *req, void *data) {
 }
 
 static SKY_HTTP_MAPPER_HANDLER(put_data) {
-    sky_log_info("start-> %s vs %lu", req->headers_in.content_length->data, req->headers_in.content_length_n);
-    sky_http_req_body_none(req, body_cb, null);
+    sky_http_req_body_str(req, body_cb, null);
 }
 
 

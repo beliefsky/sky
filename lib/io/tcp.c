@@ -67,9 +67,9 @@ sky_tcp_open(sky_tcp_t *const tcp, const sky_i32_t domain) {
 }
 
 sky_api sky_bool_t
-sky_tcp_bind(const sky_tcp_t *const tcp, const sky_inet_addr_t *const addr) {
+sky_tcp_bind(const sky_tcp_t *const tcp, const sky_inet_address_t *const address) {
     return sky_tcp_is_open(tcp)
-           && bind(sky_ev_get_fd(&tcp->ev), addr->addr, addr->size) == 0;
+           && bind(sky_ev_get_fd(&tcp->ev), (const struct sockaddr *) address, sizeof(sky_inet_address_t)) == 0;
 }
 
 sky_api sky_bool_t
@@ -131,14 +131,14 @@ sky_tcp_accept(sky_tcp_t *const server, sky_tcp_t *const client) {
 }
 
 sky_api sky_i8_t
-sky_tcp_connect(sky_tcp_t *const tcp, const sky_inet_addr_t *const addr) {
+sky_tcp_connect(sky_tcp_t *const tcp, const sky_inet_address_t *const address) {
     const sky_socket_t fd = sky_ev_get_fd(&tcp->ev);
 
     if (sky_unlikely(sky_ev_error(&tcp->ev) || !sky_tcp_is_open(tcp))) {
         return -1;
     }
 
-    if (connect(fd, addr->addr, addr->size) < 0) {
+    if (connect(fd, (const struct sockaddr *) address, sizeof(sky_inet_address_t)) < 0) {
         switch (errno) {
             case EALREADY:
             case EINPROGRESS:

@@ -72,7 +72,7 @@ sky_api sky_bool_t
 sky_http_server_bind(
         sky_http_server_t *const server,
         sky_event_loop_t *const ev_loop,
-        const sky_inet_addr_t *const addr
+        const sky_inet_address_t *const address
 ) {
     http_listener_t *const listener = sky_palloc(server->pool, sizeof(http_listener_t));
     sky_tcp_init(&listener->tcp, sky_event_selector(ev_loop));
@@ -81,7 +81,7 @@ sky_http_server_bind(
     listener->conn_tmp = null;
 
 
-    if (sky_unlikely(!sky_tcp_open(&listener->tcp, sky_inet_addr_family(addr)))) {
+    if (sky_unlikely(!sky_tcp_open(&listener->tcp, sky_inet_address_family(address)))) {
         sky_pfree(server->pool, listener, sizeof(http_listener_t));
         return false;
     }
@@ -96,7 +96,7 @@ sky_http_server_bind(
     sky_tcp_option_fast_open(&listener->tcp, 3);
     sky_tcp_option_defer_accept(&listener->tcp);
 
-    if (sky_unlikely(!sky_tcp_bind(&listener->tcp, addr))) {
+    if (sky_unlikely(!sky_tcp_bind(&listener->tcp, address))) {
         sky_tcp_close(&listener->tcp);
         sky_pfree(server->pool, listener, sizeof(http_listener_t));
         return false;

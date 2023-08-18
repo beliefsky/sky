@@ -6,6 +6,7 @@
 #endif
 
 #include <io/udp.h>
+#include <sys/socket.h>
 #include <errno.h>
 #include <unistd.h>
 
@@ -53,15 +54,15 @@ sky_udp_open(sky_udp_t *const udp, const sky_i32_t domain) {
 }
 
 sky_api sky_bool_t
-sky_udp_bind(const sky_udp_t *const udp, const sky_inet_addr_t *const addr) {
+sky_udp_bind(const sky_udp_t *const udp, const sky_inet_address_t *const address) {
     return sky_udp_is_open(udp)
-           && bind(sky_ev_get_fd(&udp->ev), addr->addr, addr->size) == 0;
+           && bind(sky_ev_get_fd(&udp->ev), (const struct sockaddr *) address, sizeof(sky_inet_address_t)) == 0;
 }
 
 sky_api sky_isize_t
 sky_udp_read(
         sky_udp_t *const udp,
-        sky_inet_addr_t *const addr,
+        sky_inet_address_t *const address,
         sky_uchar_t *const data,
         const sky_usize_t size
 ) {
@@ -72,8 +73,16 @@ sky_udp_read(
     if (sky_unlikely(!size || !sky_ev_readable(&udp->ev))) {
         return 0;
     }
+    socklen_t address_len = sizeof(sky_inet_address_t);
 
-    const sky_isize_t n = recvfrom(sky_ev_get_fd(&udp->ev), data, size, 0, addr->addr, &addr->size);
+    const sky_isize_t n = recvfrom(
+            sky_ev_get_fd(&udp->ev),
+            data,
+            size,
+            0,
+            (struct sockaddr *) address,
+            &address_len
+    );
     if (sky_likely(n > 0)) {
         return n;
     }
@@ -88,7 +97,7 @@ sky_udp_read(
 }
 
 sky_api sky_isize_t
-sky_udp_read_v(sky_udp_t *udp, sky_inet_addr_t *addr, sky_io_vec_t *vec, sky_usize_t num) {
+sky_udp_read_v(sky_udp_t *udp, sky_inet_address_t *const address, sky_io_vec_t *vec, sky_usize_t num) {
     if (sky_unlikely(sky_ev_error(&udp->ev) || !sky_udp_is_open(udp))) {
         return -1;
     }
@@ -110,15 +119,13 @@ sky_udp_read_v(sky_udp_t *udp, sky_inet_addr_t *addr, sky_io_vec_t *vec, sky_usi
     }
 
     struct msghdr msg = {
-            .msg_name = addr->addr,
+            .msg_name = address,
             .msg_iov = (struct iovec *) vec,
             .msg_iovlen = num
     };
     const sky_isize_t n = recvmsg(sky_ev_get_fd(&udp->ev), &msg, 0);
 
     if (sky_likely(n > 0)) {
-        addr->size = msg.msg_namelen;
-
         if ((sky_usize_t) n < size) {
             sky_ev_clean_read(&udp->ev);
         }
@@ -136,7 +143,7 @@ sky_udp_read_v(sky_udp_t *udp, sky_inet_addr_t *addr, sky_io_vec_t *vec, sky_usi
 sky_api sky_bool_t
 sky_udp_write(
         sky_udp_t *const udp,
-        const sky_inet_addr_t *const addr,
+        const sky_inet_address_t *const address,
         const sky_uchar_t *const data,
         const sky_usize_t size
 ) {
@@ -144,7 +151,14 @@ sky_udp_write(
         return false;
     }
 
-    if (sky_unlikely(!size || sendto(sky_ev_get_fd(&udp->ev), data, size, 0, addr->addr, addr->size) > 0)) {
+    if (sky_unlikely(!size || sendto(
+            sky_ev_get_fd(&udp->ev),
+            data,
+            size,
+            0,
+            (const struct sockaddr *) address,
+            sizeof(sky_inet_address_t)
+    ) > 0)) {
         return true;
     }
     sky_ev_set_error(&udp->ev);
@@ -153,7 +167,7 @@ sky_udp_write(
 }
 
 sky_api sky_bool_t
-sky_udp_write_v(sky_udp_t *udp, const sky_inet_addr_t *addr, sky_io_vec_t *vec, sky_usize_t num) {
+sky_udp_write_v(sky_udp_t *udp, sky_inet_address_t *const address, sky_io_vec_t *vec, sky_usize_t num) {
     if (sky_unlikely(sky_ev_error(&udp->ev) || !sky_udp_is_open(udp))) {
         return false;
     }
@@ -175,8 +189,8 @@ sky_udp_write_v(sky_udp_t *udp, const sky_inet_addr_t *addr, sky_io_vec_t *vec, 
     }
 
     const struct msghdr msg = {
-            .msg_name = addr->addr,
-            .msg_controllen = addr->size,
+            .msg_name = address,
+            .msg_namelen = sizeof(sky_inet_address_t),
             .msg_iov = (struct iovec *) vec,
             .msg_iovlen = num
     };
