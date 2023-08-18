@@ -4,7 +4,6 @@
 #include <io/event_loop.h>
 #include <core/log.h>
 #include <io/http/http_server_file.h>
-#include <netinet/in.h>
 
 static sky_bool_t http_index_router(sky_http_server_request_t *req, void *data);
 
