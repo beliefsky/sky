@@ -107,22 +107,32 @@ typedef double sky_f64_t;
 #define sky_clz_u64(_val) __builtin_clzll(_val)
 
 #else
-#define sky_swap_u16(_s)    (sky_u16_t)(((_s) & 0x00FF) << 8 | ((_s) & 0xFF00) >> 8)
-#define sky_swap_u32(_l)    (sky_u32_t)  \
-    (((_l) & 0x000000FF) << 24 |            \
-    ((_l) & 0x0000FF00) << 8  |             \
-    ((_l) & 0x00FF0000) >> 8  |             \
-    ((_l) & 0xFF000000) >> 24)
 
-#define sky_swap_u64(_ll)   (sky_u64_t)  \
-    (((_ll) & 0x00000000000000FF) << 56 |   \
-    ((_ll) & 0x000000000000FF00) << 40 |    \
-    ((_ll) & 0x0000000000FF0000) << 24 |    \
-    ((_ll) & 0x00000000FF000000) << 8  |    \
-    ((_ll) & 0x000000FF00000000) >> 8  |    \
-    ((_ll) & 0x0000FF0000000000) >> 24 |    \
-    ((_ll) & 0x00FF000000000000) >> 40 |    \
-    ((_ll) & 0xFF00000000000000) >> 56)
+static sky_inline sky_u16_t
+sky_swap_u16(const sky_u16_t value) {
+    return (sky_u16_t) ((value & SKY_U16(0x00FF)) << 8 | (value & SKY_U16(0xFF00)) >> 8);
+}
+
+static sky_inline sky_u32_t
+sky_swap_u32(const sky_u32_t value) {
+    return (value & SKY_U32(0x000000FF)) << 24
+           | (value & SKY_U32(0x0000FF00)) << 8
+           | (value & SKY_U32(0x00FF0000)) >> 8
+           | (value & SKY_U32(0xFF000000)) >> 24;
+}
+
+static sky_inline sky_u64_t
+sky_swap_u64(const sky_u64_t value) {
+    return (value & SKY_U64(0x00000000000000FF)) << 56
+           | (value & SKY_U64(0x000000000000FF00)) << 40
+           | (value & SKY_U64(0x0000000000FF0000)) << 24
+           | (value & SKY_U64(0x00000000FF000000)) << 8
+           | (value & SKY_U64(0x000000FF00000000)) >> 8
+           | (value & SKY_U64(0x0000FF0000000000)) >> 24
+           | (value & SKY_U64(0x00FF000000000000)) >> 40
+           | (value & SKY_U64(0xFF00000000000000)) >> 56;
+}
+
 #endif
 
 #if SKY_USIZE_MAX == SKY_U64_MAX
