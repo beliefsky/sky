@@ -32,12 +32,12 @@ sky_inet_address_ipv6(
 sky_api void
 sky_inet_address_un(sky_inet_address_t *const address, const sky_uchar_t *const path, const sky_usize_t len) {
     address->family = AF_UNIX;
-    if (len >= 24) {
-        sky_log_error("address_un path len >= 24");
+    if (len > 20) {
+        sky_log_error("address_un path len > 20");
         sky_memcpy8(address->ipv6.address, path);
         sky_memcpy8(address->ipv6.address + 8, path + 8);
-        sky_memcpy8(address->ipv6.address + 16, path + 16);
-        address->un.path[23] = '\0';
+        sky_memcpy4(address->ipv6.address + 16, path + 16);
+        address->un.path[20] = '\0';
         return;
     }
     sky_memcpy(address->un.path, path, len);

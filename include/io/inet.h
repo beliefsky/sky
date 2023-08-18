@@ -62,7 +62,7 @@ struct sky_inet_address_s {
 
         struct {
             sky_u16_t common;
-            sky_uchar_t path[24];
+            sky_uchar_t path[22];
         } un;
     };
 };
