@@ -35,6 +35,7 @@ sky_http_client_req_create(sky_http_client_t *const client, sky_pool_t *const po
     sky_str_set(&req->path, "/");
     sky_str_set(&req->method, "GET");
     sky_str_set(&req->version_name, "HTTP/1.1");
+    sky_str_null(&req->host);
     req->client = client;
     req->pool = pool;
 
@@ -46,22 +47,19 @@ sky_http_client_req(sky_http_client_req_t *const req, const sky_http_client_res_
     sky_http_client_t *const client = req->client;
 
     sky_timer_set_cb(&client->timer, client_req_timeout);
-    if (sky_tcp_is_open(&client->tcp)) {
-        sky_tcp_close(&client->tcp);
-    }
-
-    sky_inet_address_t *const address = sky_palloc(req->pool, sizeof(sky_inet_address_t));
-    sky_inet_address_ipv4(address, 0, 8080);
-
-    if (sky_unlikely(!sky_tcp_open(&client->tcp, sky_inet_address_family(address)))) {
-        call(client, null, cb_data);
-        return;
-    }
-
-    client->send_packet = address;
     client->next_res_cb = call;
     client->cb_data = cb_data;
     client->current_req = req;
+
+    if (sky_tcp_is_connect(&client->tcp)) {
+        client_send_start(client);
+        return;
+    }
+
+    if (sky_unlikely(!sky_tcp_open(&client->tcp, sky_inet_address_family(&client->address)))) {
+        call(client, null, cb_data);
+        return;
+    }
     sky_tcp_set_cb(&client->tcp, client_connect);
     client_connect(&client->tcp);
 }
@@ -70,9 +68,7 @@ sky_http_client_req(sky_http_client_req_t *const req, const sky_http_client_res_
 static void
 client_connect(sky_tcp_t *const tcp) {
     sky_http_client_t *const client = sky_type_convert(tcp, sky_http_client_t, tcp);
-    const sky_inet_address_t *const address = client->send_packet;
-
-    const sky_i8_t r = sky_tcp_connect(tcp, address);
+    const sky_i8_t r = sky_tcp_connect(tcp, &client->address);
     if (r > 0) {
         client_send_start(client);
         return;
@@ -101,6 +97,12 @@ client_send_start(sky_http_client_t *const client) {
     sky_str_buf_append_uchar(buf, ' ');
     sky_str_buf_append_str(buf, &req->version_name);
     sky_str_buf_append_two_uchar(buf, '\r', '\n');
+
+    if (req->host.len) {
+        sky_str_buf_append_str_len(buf, sky_str_line("Host: "));
+        sky_str_buf_append_str(buf, &req->host);
+        sky_str_buf_append_two_uchar(buf, '\r', '\n');
+    }
 
     sky_list_foreach(&req->headers, sky_http_client_header_t, item, {
         sky_str_buf_append_str(buf, &item->key);

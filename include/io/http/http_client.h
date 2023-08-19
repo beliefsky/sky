@@ -38,7 +38,7 @@ struct sky_http_client_req_s {
     sky_str_t path;
     sky_str_t method;
     sky_str_t version_name;
-    sky_str_t *host;
+    sky_str_t host;
 
     sky_http_client_t *client;
 
@@ -76,6 +76,7 @@ struct sky_http_client_header_s {
 
 
 typedef struct {
+    sky_inet_address_t *address;
     sky_usize_t body_str_max;
     sky_u32_t timeout;
     sky_u32_t header_buf_size;

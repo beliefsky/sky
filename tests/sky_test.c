@@ -4,24 +4,38 @@
 #include <io/event_loop.h>
 #include <core/log.h>
 #include <io/http/http_client_wait.h>
+#include <core/memory.h>
 
 
 static void
 test_sync(sky_sync_wait_t *wait, void *data) {
     sky_event_loop_t *const loop = data;
 
-    sky_http_client_t *const client = sky_http_client_create(loop, null);
+    sky_inet_address_t address;
+    const sky_uchar_t ip[] = {192, 168, 31, 10};
+    sky_inet_address_ipv4(&address, sky_mem4_load(ip), 80);
+    const sky_http_client_conf_t conf = {
+            .address = &address
+    };
+
+    sky_http_client_t *const client = sky_http_client_create(loop, &conf);
 
     sky_pool_t *const pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
 
     sky_http_client_req_t *const req = sky_http_client_req_create(client, pool);
-    sky_http_client_res_t *const res = sky_http_client_wait_req(req, wait);
-    sky_str_t *const body = sky_http_client_res_body_wait_str(res, wait);
+    sky_str_set(&req->host, "192.168.31.10");
 
-    if (body) {
-        sky_log_info("body:(%lu)%s", body->len, body->data);
+    sky_http_client_res_t *const res = sky_http_client_wait_req(req, wait);
+    if (res) {
+        sky_str_t *const body = sky_http_client_res_body_wait_str(res, wait);
+
+        if (body) {
+            sky_log_info("body:(%lu)%s", body->len, body->data);
+        } else {
+            sky_log_error("body read error");
+        }
     } else {
-        sky_log_error("body read error");
+        sky_log_error("client req error");
     }
 
     sky_pool_destroy(pool);

@@ -12,11 +12,17 @@ sky_http_client_create(sky_event_loop_t *const ev_loop, const sky_http_client_co
     client->ev_loop = ev_loop;
 
     if (conf) {
+        if (conf->address) {
+            client->address = *conf->address;
+        } else {
+            sky_inet_address_ipv4(&client->address, 0, 80);
+        }
         client->body_str_max = conf->body_str_max ?: SKY_USIZE(131072);
         client->timeout = conf->timeout ?: 30;
         client->header_buf_size = conf->header_buf_size ?: 2048;
         client->header_buf_n = conf->header_buf_n ?: 4;
     } else {
+        sky_inet_address_ipv4(&client->address, 0, 80);
         client->body_str_max = SKY_USIZE(131072);
         client->timeout = 30;
         client->header_buf_size = 2048;

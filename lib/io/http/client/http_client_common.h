@@ -14,6 +14,7 @@
 struct sky_http_client_s {
     sky_tcp_t tcp;
     sky_timer_wheel_entry_t timer;
+    sky_inet_address_t address;
     sky_event_loop_t *ev_loop;
 
     union {
