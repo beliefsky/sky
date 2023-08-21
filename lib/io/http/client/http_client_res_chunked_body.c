@@ -85,6 +85,9 @@ http_client_res_chunked_body_none(
         if (res->index) { //end
             buf->pos = p;
             sky_buf_rebuild(buf, 0);
+            if (!res->keep_alive) {
+                sky_tcp_close(&client->tcp);
+            }
             call(client, data);
             return;
         }
@@ -191,6 +194,9 @@ http_client_res_chunked_body_read(
         if (res->index) { //end
             buf->pos = p;
             sky_buf_rebuild(buf, 0);
+            if (!res->keep_alive) {
+                sky_tcp_close(&client->tcp);
+            }
             call(client, null, 0, data);
             return;
         }
@@ -273,6 +279,9 @@ http_body_read_none(sky_tcp_t *const tcp) {
                 res->content_length_n = 0;
                 sky_buf_rebuild(buf, 0);
                 sky_tcp_set_cb(tcp, http_work_none);
+                if (!res->keep_alive) {
+                    sky_tcp_close(&client->tcp);
+                }
                 client->next_cb(client, client->cb_data);
                 return;
             }
@@ -321,6 +330,9 @@ http_body_read_none(sky_tcp_t *const tcp) {
                 buf->pos = res->res_pos;
                 sky_buf_rebuild(buf, 0);
                 sky_tcp_set_cb(tcp, http_work_none);
+                if (!res->keep_alive) {
+                    sky_tcp_close(&client->tcp);
+                }
                 client->next_cb(client, client->cb_data);
                 return;
             }
@@ -421,6 +433,9 @@ http_body_read_cb(sky_tcp_t *const tcp) {
                 res->content_length_n = 0;
                 sky_buf_rebuild(buf, 0);
                 sky_tcp_set_cb(tcp, http_work_none);
+                if (!res->keep_alive) {
+                    sky_tcp_close(&client->tcp);
+                }
                 client->next_read_cb(client, null, 0, client->cb_data);
                 return;
             }
@@ -477,6 +492,9 @@ http_body_read_cb(sky_tcp_t *const tcp) {
                 buf->pos = res->res_pos;
                 sky_buf_rebuild(buf, 0);
                 sky_tcp_set_cb(tcp, http_work_none);
+                if (!res->keep_alive) {
+                    sky_tcp_close(&client->tcp);
+                }
                 client->next_read_cb(client, null, 0, client->cb_data);
                 return;
             }

@@ -41,7 +41,9 @@ http_client_res_length_body_none(
         res->content_length_n = 0;
         tmp->pos += size;
         sky_buf_rebuild(tmp, 0);
-
+        if (!res->keep_alive) {
+            sky_tcp_close(&client->tcp);
+        }
         call(res->client, data);
         return;
     }
@@ -89,6 +91,9 @@ http_client_res_length_body_str(
         tmp->pos += size;
 
         sky_buf_rebuild(tmp, 0);
+        if (!res->keep_alive) {
+            sky_tcp_close(&client->tcp);
+        }
         call(client, body, data);
         return;
     }
@@ -118,6 +123,9 @@ http_client_res_length_body_read(
         call(client, buf->pos, size, data);
         buf->pos += size;
         sky_buf_rebuild(buf, 0);
+        if (!res->keep_alive) {
+            sky_tcp_close(&client->tcp);
+        }
         call(client, null, 0, data);
         return;
     }
@@ -159,6 +167,9 @@ http_body_read_none(sky_tcp_t *const tcp) {
             res->content_length_n = 0;
             buf->last = buf->pos;
             sky_buf_rebuild(buf, 0);
+            if (!res->keep_alive) {
+                sky_tcp_close(&client->tcp);
+            }
             client->next_cb(client, client->cb_data);
             return;
         }
@@ -204,6 +215,9 @@ http_body_read_str(sky_tcp_t *const tcp) {
             sky_timer_wheel_unlink(&client->timer);
             sky_tcp_set_cb(tcp, http_work_none);
             res->content_length_n = 0;
+            if (!res->keep_alive) {
+                sky_tcp_close(&client->tcp);
+            }
             client->next_str_cb(client, body, client->cb_data);
             return;
         }
@@ -244,6 +258,9 @@ http_body_read_cb(sky_tcp_t *const tcp) {
             res->content_length_n = 0;
             buf->last = buf->pos;
             sky_buf_rebuild(buf, 0);
+            if (!res->keep_alive) {
+                sky_tcp_close(&client->tcp);
+            }
             client->next_read_cb(client, null, 0, client->cb_data);
             return;
         }
