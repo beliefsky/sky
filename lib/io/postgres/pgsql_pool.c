@@ -208,10 +208,8 @@ pgsql_task_next(sky_timer_wheel_entry_t *const timer) {
 
         ++pg_pool->free_conn_num;
 
-        if (pg_pool->free_conn_num >= pg_pool->conn_num) {
-            if (sky_unlikely(pg_pool->destroy)) {
-                pgsql_pool_destroy(pg_pool);
-            }
+        if (sky_unlikely(pg_pool->destroy && pg_pool->free_conn_num >= pg_pool->conn_num)) {
+            pgsql_pool_destroy(pg_pool);
         }
         return;
     }
