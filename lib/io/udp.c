@@ -213,7 +213,6 @@ sky_udp_close(sky_udp_t *const udp) {
     }
     udp->ev.fd = SKY_SOCKET_FD_NONE;
     udp->status = SKY_U32(0);
-    shutdown(fd, SHUT_RDWR);
     close(fd);
     sky_udp_register_cancel(udp);
 }
