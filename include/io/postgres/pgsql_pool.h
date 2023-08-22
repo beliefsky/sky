@@ -29,9 +29,9 @@ typedef struct {
     sky_str_t password;
     sky_str_t database;
     sky_inet_address_t *address;
-    sky_u32_t connection_size;
-    sky_u32_t timeout;
     sky_u32_t keepalive;
+    sky_u32_t timeout;
+    sky_u16_t connection_size;
 } sky_pgsql_conf_t;
 
 typedef enum {

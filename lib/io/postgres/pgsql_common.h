@@ -41,10 +41,10 @@ struct sky_pgsql_pool_s {
     sky_str_t password;
     sky_str_t connect_info;
     sky_event_loop_t *ev_loop;
-    sky_u32_t conn_num;
-    sky_u32_t free_conn_num;
-    sky_u32_t timeout;
     sky_u32_t keepalive;
+    sky_u32_t timeout;
+    sky_u16_t conn_num;
+    sky_u16_t free_conn_num;
     sky_bool_t destroy;
 };
 

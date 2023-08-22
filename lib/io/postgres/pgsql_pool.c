@@ -21,7 +21,7 @@ static void pgsql_task_next(sky_timer_wheel_entry_t *timer);
 
 sky_api sky_pgsql_pool_t *
 sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *const conf) {
-    const sky_u32_t conn_num = conf->connection_size ?: 8;
+    const sky_u16_t conn_num = conf->connection_size ?: 8;
 
     const sky_u32_t info_size = (sky_u32_t) (SKY_USIZE(11)
                                              + sizeof("user")
@@ -43,7 +43,7 @@ sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *c
     pg_pool->conn_num = conn_num;
     pg_pool->free_conn_num = conn_num;
     pg_pool->timeout = conf->timeout ?: 10;
-    pg_pool->keepalive = conf->keepalive ?: 180;
+    pg_pool->keepalive = conf->keepalive ?: 120;
 
     ptr += sizeof(sky_pgsql_pool_t);
 
