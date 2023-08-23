@@ -77,6 +77,8 @@ void http_connect_req(
         void *cb_data
 );
 
+sky_bool_t http_client_url_parse(sky_http_client_req_t *req, const sky_str_t *url);
+
 sky_i8_t http_res_line_parse(sky_http_client_res_t *r, sky_buf_t *b);
 
 sky_i8_t http_res_header_parse(sky_http_client_res_t *r, sky_buf_t *b);

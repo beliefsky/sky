@@ -53,7 +53,11 @@ sky_http_client_create(
 
 sky_api void
 sky_http_client_destroy(sky_http_client_t *client) {
+    client->destroy = true;
 
+    if (sky_rb_tree_is_empty(&client->tree)) {
+        sky_free(client);
+    }
 }
 
 sky_http_client_req_t *
@@ -68,6 +72,10 @@ sky_http_client_req_create(sky_pool_t *const pool, const sky_str_t *const url) {
     sky_str_null(&req->host);
     req->pool = pool;
 
+    if (sky_unlikely(!http_client_url_parse(req, url))) {
+        return null;
+    }
+
     return req;
 }
 
@@ -78,6 +86,11 @@ sky_http_client_req(
         sky_http_client_res_pt call,
         void *data
 ) {
+    if (sky_unlikely(!req || client->destroy)) {
+        call(null, data);
+        return;
+    }
+
     const sky_u32_t port_ssl = (sky_u32_t) (req->domain.is_ssl << 16) | req->domain.port;
 
     domain_node_t *node = rb_tree_get(&client->tree, &req->domain.host, port_ssl);

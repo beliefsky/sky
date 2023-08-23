@@ -46,6 +46,8 @@ http_connect_req(
         client_send_start(connect);
         return;
     }
+    // 此处应该存在 dns解析， 根据 host
+    sky_inet_address_ipv4(&connect->address, 0, 8080);
 
     if (sky_unlikely(!sky_tcp_open(&connect->tcp, sky_inet_address_family(&connect->address)))) {
         http_connect_release(connect);
@@ -61,6 +63,7 @@ static void
 client_connect(sky_tcp_t *const tcp) {
     sky_http_client_connect_t *const connect = sky_type_convert(tcp, sky_http_client_connect_t, tcp);
     sky_http_client_t *const client = connect->node->client;
+
     const sky_i8_t r = sky_tcp_connect(tcp, &connect->address);
     if (r > 0) {
         client_send_start(connect);
@@ -165,6 +168,7 @@ client_send_next(sky_http_client_connect_t *const connect, sky_pool_t *pool) {
     res->content_length_n = 0;
     res->parse_status = 0;
     res->read_res_body = false;
+    res->error = false;
 
     connect->current_res = res;
     connect->read_buf = sky_buf_create(pool, client->header_buf_size);
