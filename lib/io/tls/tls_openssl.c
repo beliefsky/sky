@@ -171,16 +171,25 @@ sky_tls_read(sky_tls_t *const tls, sky_uchar_t *data, sky_usize_t size) {
 
 #if OPENSSL_VERSION_NUMBER >= 0x10101000L
 
+    sky_usize_t total = 0;
     sky_usize_t read_n;
+    sky_i32_t n;
 
-    const sky_i32_t n = SSL_read_ex(tls->ssl, data, size, &read_n);
+    read_again:
+    n = SSL_read_ex(tls->ssl, data, size, &read_n);
     if (n > 0) {
-        return (sky_isize_t) read_n;
+        size -= read_n;
+        total += read_n;
+        if (!size) {
+            return (sky_isize_t) total;
+        }
+        data += read_n;
+        goto read_again;
     }
 
     if (SSL_get_error(tls->ssl, n) == SSL_ERROR_WANT_READ) {
         sky_ev_clean_read(sky_tcp_ev(tls->tcp));
-        return 0;
+        return (sky_isize_t) total;
     }
     sky_ev_set_error(sky_tcp_ev(tls->tcp));
 
@@ -250,15 +259,25 @@ sky_tls_write(sky_tls_t *tls, const sky_uchar_t *data, sky_usize_t size) {
     }
 #if OPENSSL_VERSION_NUMBER >= 0x10101000L
 
-    sky_usize_t read_n;
-    const sky_i32_t n = SSL_write_ex(tls->ssl, data, size, &read_n);
+    sky_usize_t total = 0;
+    sky_usize_t write_n;
+    sky_i32_t n;
+
+    read_again:
+    n = SSL_write_ex(tls->ssl, data, size, &write_n);
     if (n > 0) {
-        return (sky_isize_t) read_n;
+        size -= write_n;
+        total += write_n;
+        if (!size) {
+            return (sky_isize_t) total;
+        }
+        data += write_n;
+        goto read_again;
     }
 
     if (SSL_get_error(tls->ssl, n) == SSL_ERROR_WANT_WRITE) {
-        sky_ev_clean_write(sky_tcp_ev(tls->tcp));
-        return 0;
+        sky_ev_clean_read(sky_tcp_ev(tls->tcp));
+        return (sky_isize_t) total;
     }
     sky_ev_set_error(sky_tcp_ev(tls->tcp));
 
