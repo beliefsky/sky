@@ -172,11 +172,9 @@ sky_tls_read(sky_tls_t *const tls, sky_uchar_t *data, sky_usize_t size) {
 #if OPENSSL_VERSION_NUMBER >= 0x10101000L
 
     sky_usize_t read_n;
+
     const sky_i32_t n = SSL_read_ex(tls->ssl, data, size, &read_n);
     if (n > 0) {
-        if (read_n < size) {
-            sky_ev_clean_read(sky_tcp_ev(tls->tcp));
-        }
         return (sky_isize_t) read_n;
     }
 
@@ -196,10 +194,6 @@ sky_tls_read(sky_tls_t *const tls, sky_uchar_t *data, sky_usize_t size) {
             const sky_i32_t n = SSL_read(tls->ssl, data, SKY_I32_MAX);
             if (n > 0) {
                 result += n;
-                if (n < SKY_I32_MAX) {
-                    sky_ev_clean_read(sky_tcp_ev(tls->tcp));
-                    return result;
-                }
                 data += SKY_I32_MAX;
                 size -= SKY_I32_MAX;
                 continue;
@@ -220,9 +214,6 @@ sky_tls_read(sky_tls_t *const tls, sky_uchar_t *data, sky_usize_t size) {
         const sky_i32_t n = SSL_read(tls->ssl, data, (sky_i32_t) size);
         if (n > 0) {
             result += n;
-            if (n < (sky_i32_t) size) {
-                sky_ev_clean_read(sky_tcp_ev(tls->tcp));
-            }
             return result;
         }
         if (SSL_get_error(tls->ssl, n) == SSL_ERROR_WANT_READ) {
@@ -236,9 +227,6 @@ sky_tls_read(sky_tls_t *const tls, sky_uchar_t *data, sky_usize_t size) {
 
     const sky_i32_t n = SSL_read(tls->ssl, data, (sky_i32_t) size);
     if (n > 0) {
-        if (n < (sky_i32_t) size) {
-            sky_ev_clean_read(sky_tcp_ev(tls->tcp));
-        }
         return n;
     }
     if (SSL_get_error(tls->ssl, n) == SSL_ERROR_WANT_READ) {
@@ -265,9 +253,6 @@ sky_tls_write(sky_tls_t *tls, const sky_uchar_t *data, sky_usize_t size) {
     sky_usize_t read_n;
     const sky_i32_t n = SSL_write_ex(tls->ssl, data, size, &read_n);
     if (n > 0) {
-        if (read_n < size) {
-            sky_ev_clean_write(sky_tcp_ev(tls->tcp));
-        }
         return (sky_isize_t) read_n;
     }
 
@@ -288,10 +273,6 @@ sky_tls_write(sky_tls_t *tls, const sky_uchar_t *data, sky_usize_t size) {
             const sky_i32_t n = SSL_write(tls->ssl, data, SKY_I32_MAX);
             if (n > 0) {
                 result += n;
-                if (n < SKY_I32_MAX) {
-                    sky_ev_clean_write(sky_tcp_ev(tls->tcp));
-                    return result;
-                }
                 data += SKY_I32_MAX;
                 size -= SKY_I32_MAX;
                 continue;
@@ -312,9 +293,6 @@ sky_tls_write(sky_tls_t *tls, const sky_uchar_t *data, sky_usize_t size) {
         const sky_i32_t n = SSL_write(tls->ssl, data, (sky_i32_t) size);
         if (n > 0) {
             result += n;
-            if (n < (sky_i32_t) size) {
-                sky_ev_clean_write(sky_tcp_ev(tls->tcp));
-            }
             return result;
         }
         if (SSL_get_error(tls->ssl, n) == SSL_ERROR_WANT_WRITE) {
