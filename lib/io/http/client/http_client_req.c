@@ -47,7 +47,8 @@ http_connect_req(
         return;
     }
     // 此处应该存在 dns解析， 根据 host
-    sky_inet_address_ipv4(&connect->address, 0, 8080);
+    const sky_uchar_t ip[4] = {14, 119, 104, 254};
+    sky_inet_address_ipv4(&connect->address, *(sky_u32_t *)ip, 80);
 
     if (sky_unlikely(!sky_tcp_open(&connect->tcp, sky_inet_address_family(&connect->address)))) {
         http_connect_release(connect);

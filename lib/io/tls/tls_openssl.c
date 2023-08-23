@@ -105,7 +105,7 @@ sky_tls_ctx_destroy(sky_tls_ctx_t *const ctx) {
 
 sky_api sky_bool_t
 sky_tls_init(sky_tls_ctx_t *const ctx, sky_tls_t *const tls, sky_tcp_t *const tcp) {
-    SSL *const ssl = SSL_new((SSL_CTX *) ctx);
+    SSL *const ssl = SSL_new(ctx->ctx);
     if (sky_unlikely(!ssl)) {
         return false;
     }
@@ -161,6 +161,7 @@ sky_tls_connect(sky_tls_t *const tls) {
         sky_ev_clean_write(sky_tcp_ev(tls->tcp));
         return 0;
     }
+
     sky_ev_set_error(sky_tcp_ev(tls->tcp));
 
     return -1;
@@ -383,7 +384,7 @@ sky_tls_shutdown(sky_tls_t *const tls) {
 }
 
 sky_api void
-sky_tls_close(sky_tls_t *tls) {
+sky_tls_destroy(sky_tls_t *tls) {
     SSL_free(tls->ssl);
     tls->ssl = null;
     tls->tcp = null;

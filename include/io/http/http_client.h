@@ -70,7 +70,7 @@ struct sky_http_client_res_s {
     sky_u32_t parse_status: 4;
     sky_bool_t keep_alive: 1;
     sky_bool_t read_res_body: 1;
-    sky_bool_t error:1;
+    sky_bool_t error: 1;
 };
 
 struct sky_http_client_header_s {
@@ -80,12 +80,18 @@ struct sky_http_client_header_s {
 
 
 typedef struct {
+    sky_str_t ssl_ca_file;
+    sky_str_t ssl_ca_path;
+    sky_str_t ssl_crt_file;
+    sky_str_t ssl_key_file;
+
     sky_usize_t body_str_max;
     sky_u32_t keepalive;
     sky_u32_t timeout;
     sky_u32_t header_buf_size;
     sky_u16_t domain_conn_max;
     sky_u8_t header_buf_n;
+    sky_bool_t ssl_need_verify;
 } sky_http_client_conf_t;
 
 sky_http_client_t *sky_http_client_create(
