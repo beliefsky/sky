@@ -31,18 +31,16 @@ sky_inet_address_ipv6(
     address->ipv6.scope_id = scope_id;
 }
 
-sky_api void
+sky_api sky_bool_t
 sky_inet_address_un(sky_inet_address_t *const address, const sky_uchar_t *const path, const sky_usize_t len) {
     address->family = AF_UNIX;
     if (len > 24) {
         sky_log_error("address_un path len > 24 : %s", path);
-        sky_memcpy8(address->un.path, path);
-        sky_memcpy8(address->un.path + 8, path + 8);
-        sky_memcpy8(address->un.path + 16, path + 16);
-        address->un.path[24] = '\0';
-    } else {
-        sky_memcpy(address->un.path, path, len);
-        address->un.path[len] = '\0';
+        return false;
     }
+    sky_memcpy(address->un.path, path, len);
+    address->un.path[len] = '\0';
+
+    return true;
 }
 

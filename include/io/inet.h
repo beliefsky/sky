@@ -77,8 +77,7 @@ void sky_inet_address_ipv6(
         sky_u16_t port
 );
 
-void sky_inet_address_un(sky_inet_address_t *address, const sky_uchar_t *path, sky_usize_t len);
-
+sky_bool_t sky_inet_address_un(sky_inet_address_t *address, const sky_uchar_t *path, sky_usize_t len);
 
 static sky_inline sky_i32_t
 sky_inet_address_family(const sky_inet_address_t *const address) {
