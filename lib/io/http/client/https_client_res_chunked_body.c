@@ -133,7 +133,7 @@ https_client_res_chunked_body_str(
         void *const data
 ) {
     str_read_packet *const packet = sky_palloc(res->pool, sizeof(str_read_packet));
-    sky_str_buf_init2(&packet->buf, res->pool, 1024);
+    sky_str_buf_init2(&packet->buf, res->pool, 2048);
     packet->call = call;
     packet->cb_data = data;
     packet->read_none = false;
@@ -263,7 +263,7 @@ http_body_read_none(sky_tcp_t *const tcp) {
     sky_isize_t n;
 
     read_again:
-    n = sky_tcp_read(tcp, buf->last, (sky_usize_t) (buf->end - buf->last));
+    n = sky_tls_read(&connect->tls, buf->last, (sky_usize_t) (buf->end - buf->last));
     if (n > 0) {
         buf->last += n;
         sky_usize_t read_n;
@@ -412,7 +412,7 @@ http_body_read_cb(sky_tcp_t *const tcp) {
     sky_isize_t n;
 
     read_again:
-    n = sky_tcp_read(tcp, buf->last, (sky_usize_t) (buf->end - buf->last));
+    n = sky_tls_read(&connect->tls, buf->last, (sky_usize_t) (buf->end - buf->last));
     if (n > 0) {
         buf->last += n;
         sky_usize_t read_n;
@@ -613,6 +613,7 @@ http_read_body_str_cb(
     if (packet->read_none) {
         return;
     }
+
     const sky_usize_t buf_size = sky_str_buf_size(&packet->buf) + size;
     if (buf_size > res->connect->node->client->body_str_max) {
         packet->read_none = true;
