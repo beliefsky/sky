@@ -11,40 +11,61 @@
 sky_api sky_bool_t
 sky_tls_ctx_init(sky_tls_ctx_t *const ctx, const sky_tls_ctx_conf_t *const conf) {
     static sky_bool_t tlx_init = false;
-
     if (!tlx_init) {
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
         SSL_library_init();
+        OpenSSL_add_all_algorithms();
         SSL_load_error_strings();
-#else
-        OPENSSL_init_ssl(OPENSSL_INIT_SSL_DEFAULT, null);
-#endif
+
         tlx_init = true;
     }
+
     sky_i32_t verify_mode = SSL_VERIFY_NONE;
 
-    const sky_char_t *ca_file;
-    const sky_char_t *ca_path;
     SSL_CTX *ssl_ctx;
-
-    if (conf) {
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-        ssl_ctx = SSL_CTX_new(conf->is_server ? SSLv23_server_method() : SSLv23_client_method());
-#else
-        ssl_ctx = SSL_CTX_new(conf->is_server ? TLS_server_method() : TLS_client_method());
-#endif
+    if (!conf) {
+        ssl_ctx = SSL_CTX_new(SSLv23_method());
         if (sky_unlikely(!ssl_ctx)) {
             return false;
         }
-
-
-        ca_file = conf->ca_file.len ? (sky_char_t *) conf->ca_file.data : null;
-        ca_path = conf->ca_path.len ? (sky_char_t *) conf->ca_path.data : null;
-        if (ca_file || ca_path) {
-            if (!SSL_CTX_load_verify_locations(ssl_ctx, ca_file, ca_path)) {
-                goto error;
+    } else {
+        if (conf->is_server) {
+            ssl_ctx = SSL_CTX_new(SSLv23_server_method());
+            if (sky_unlikely(!ssl_ctx)) {
+                return false;
+            }
+            if (conf->ca_file.len || conf->ca_path.len) {
+                if (!SSL_CTX_load_verify_locations(
+                        ssl_ctx,
+                        (sky_char_t *) conf->ca_file.data,
+                        (sky_char_t *) conf->ca_path.data
+                )) {
+                    goto error;
+                }
+            }
+            if (conf->need_verify) {
+                verify_mode = SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
+            }
+        } else {
+            ssl_ctx = SSL_CTX_new(SSLv23_client_method());
+            if (sky_unlikely(!ssl_ctx)) {
+                return false;
+            }
+            if (conf->ca_file.len || conf->ca_path.len) {
+                if (!SSL_CTX_load_verify_locations(
+                        ssl_ctx,
+                        (sky_char_t *) conf->ca_file.data,
+                        (sky_char_t *) conf->ca_path.data
+                )) {
+                    goto error;
+                }
+            } else if (conf->need_verify) {
+                SSL_CTX_set_default_verify_paths(ssl_ctx);
+            }
+            if (conf->need_verify) {
+                verify_mode = SSL_VERIFY_PEER;
             }
         }
+
         if (conf->crt_file.len) {
             if (!SSL_CTX_use_certificate_file(ssl_ctx, (sky_char_t *) conf->crt_file.data, SSL_FILETYPE_PEM)) {
                 goto error;
@@ -58,27 +79,6 @@ sky_tls_ctx_init(sky_tls_ctx_t *const ctx, const sky_tls_ctx_conf_t *const conf)
                 goto error;
             }
         }
-        if (conf->need_verify) {
-            verify_mode = SSL_VERIFY_PEER;
-            if (conf->is_server) {
-                verify_mode |= SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
-            }
-        }
-    } else {
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-        ssl_ctx = SSL_CTX_new(SSLv23_method());
-#else
-        ssl_ctx = SSL_CTX_new(TLS_method());
-#endif
-        if (sky_unlikely(!ssl_ctx)) {
-            return null;
-        }
-
-        ca_file = null;
-        ca_path = null;
-    }
-    if (verify_mode == SSL_VERIFY_PEER && !ca_file && !ca_path) {
-        SSL_CTX_set_default_verify_paths(ssl_ctx);
     }
 
 #ifdef SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER
@@ -87,7 +87,6 @@ sky_tls_ctx_init(sky_tls_ctx_t *const ctx, const sky_tls_ctx_conf_t *const conf)
     SSL_CTX_set_verify(ssl_ctx, verify_mode, null);
 
     ctx->ctx = ssl_ctx;
-
     return true;
 
     error:
