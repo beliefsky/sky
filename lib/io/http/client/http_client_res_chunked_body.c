@@ -81,6 +81,7 @@ http_client_res_chunked_body_none(
         if (sky_unlikely(!sky_str2_cmp(p - 2, '\r', '\n'))) {
             goto error;
         }
+        read_n -= res->content_length_n;
         res->content_length_n = 0;
         if (res->index) { //end
             buf->pos = p;
@@ -194,6 +195,7 @@ http_client_res_chunked_body_read(
             call(res, p - res->content_length_n, res->content_length_n - 2, data);
         }
 
+        read_n -= res->content_length_n;
         res->content_length_n = 0;
         if (res->index) { //end
             buf->pos = p;

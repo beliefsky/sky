@@ -81,6 +81,7 @@ https_client_res_chunked_body_none(
         if (sky_unlikely(!sky_str2_cmp(p - 2, '\r', '\n'))) {
             goto error;
         }
+        read_n -= res->content_length_n;
         res->content_length_n = 0;
         if (res->index) { //end
             buf->pos = p;
@@ -182,6 +183,7 @@ https_client_res_chunked_body_read(
                      || !sky_hex_str_len_to_usize(p, (sky_usize_t) n, &res->content_length_n))) {
         goto error;
     }
+
     res->index = res->content_length_n == 0;
     res->content_length_n += 2;
     p += n + 2;
@@ -195,6 +197,7 @@ https_client_res_chunked_body_read(
         if (res->content_length_n > 2) {
             call(res, p - res->content_length_n, res->content_length_n - 2, data);
         }
+        read_n -= res->content_length_n;
 
         res->content_length_n = 0;
         if (res->index) { //end
