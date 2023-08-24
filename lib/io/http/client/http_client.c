@@ -32,6 +32,19 @@ sky_http_client_create(
     client->ev_loop = ev_loop;
 
     if (conf) {
+        const sky_tls_ctx_conf_t tls_conf = {
+                .ca_file = conf->ssl_ca_file,
+                .ca_path = conf->ssl_ca_path,
+                .crt_file = conf->ssl_crt_file,
+                .key_file = conf->ssl_key_file,
+                .need_verify = conf->ssl_need_verify,
+                .is_server = false
+        };
+        if (sky_unlikely(!sky_tls_ctx_init(&client->tls_ctx, &tls_conf))) {
+            sky_free(client);
+            return null;
+        }
+
         client->body_str_max = conf->body_str_max ?: SKY_USIZE(131072);
         client->keepalive = conf->keepalive ?: 75;
         client->timeout = conf->timeout ?: 30;
@@ -39,6 +52,12 @@ sky_http_client_create(
         client->domain_conn_max = conf->domain_conn_max ?: 6;
         client->header_buf_n = conf->header_buf_n ?: 4;
     } else {
+        const sky_tls_ctx_conf_t tls_conf = {};
+        if (sky_unlikely(!sky_tls_ctx_init(&client->tls_ctx, null))) {
+            sky_free(client);
+            return null;
+        }
+
         client->body_str_max = SKY_USIZE(131072);
         client->keepalive = 75;
         client->timeout = 30;
@@ -46,6 +65,7 @@ sky_http_client_create(
         client->domain_conn_max = 6;
         client->header_buf_n = 4;
     }
+
     client->destroy = false;
 
     return client;
@@ -56,6 +76,7 @@ sky_http_client_destroy(sky_http_client_t *client) {
     client->destroy = true;
 
     if (sky_rb_tree_is_empty(&client->tree)) {
+        sky_tls_ctx_destroy(&client->tls_ctx);
         sky_free(client);
     }
 }
@@ -115,14 +136,26 @@ sky_http_client_req(
     sky_queue_t *const next = sky_queue_next(&node->free_conns);
     if (next == &node->free_conns) {
         if (node->conn_num < client->domain_conn_max) {
-            sky_http_client_connect_t *const connect = sky_malloc(sizeof(sky_http_client_connect_t));
-            sky_tcp_init(&connect->tcp, sky_event_selector(client->ev_loop));
-            sky_timer_entry_init(&connect->timer, null);
-            sky_queue_init_node(&connect->link);
-            connect->node = node;
 
-            ++node->conn_num;
-            http_connect_req(connect, req, call, data);
+            if (domain_node_is_ssl(node)) {
+                https_client_connect_t *const connect = sky_malloc(sizeof(https_client_connect_t));
+                sky_tcp_init(&connect->conn.tcp, sky_event_selector(client->ev_loop));
+                sky_timer_entry_init(&connect->conn.timer, null);
+                sky_queue_init_node(&connect->conn.link);
+                connect->conn.node = node;
+
+                ++node->conn_num;
+                https_connect_req(&connect->conn, req, call, data);
+            } else {
+                sky_http_client_connect_t *const connect = sky_malloc(sizeof(sky_http_client_connect_t));
+                sky_tcp_init(&connect->tcp, sky_event_selector(client->ev_loop));
+                sky_timer_entry_init(&connect->timer, null);
+                sky_queue_init_node(&connect->link);
+                connect->node = node;
+
+                ++node->conn_num;
+                http_connect_req(connect, req, call, data);
+            }
             return;
         }
         client_task_t *const task = sky_palloc(req->pool, sizeof(client_task_t));
@@ -217,7 +250,11 @@ connect_task_next(sky_timer_wheel_entry_t *const timer) {
 
     client_task_t *const task = sky_type_convert(item, client_task_t, link);
 
-    http_connect_req(connect, task->req, task->cb, task->data);
+    if (domain_node_is_ssl(node)) {
+        https_connect_req(connect, task->req, task->cb, task->data);
+    } else {
+        http_connect_req(connect, task->req, task->cb, task->data);
+    }
 }
 
 static void

@@ -2,7 +2,6 @@
 // Created by weijing on 2023/8/14.
 //
 #include "http_client_common.h"
-#include <core/log.h>
 
 sky_api void
 sky_http_client_res_body_none(
@@ -16,12 +15,22 @@ sky_http_client_res_body_none(
     }
     res->read_res_body = true;
     if (res->content_length) {
-        http_client_res_length_body_none(res, call, data);
-    } else if (res->transfer_encoding) {
-        http_client_res_chunked_body_none(res, call, data);
-    } else {
-        call(res, data);
+        if (domain_node_is_ssl(res->connect->node)) {
+            https_client_res_length_body_none(res, call, data);
+        } else {
+            http_client_res_length_body_none(res, call, data);
+        }
+        return;
     }
+    if (res->transfer_encoding) {
+        if (domain_node_is_ssl(res->connect->node)) {
+            https_client_res_chunked_body_none(res, call, data);
+        } else {
+            http_client_res_chunked_body_none(res, call, data);
+        }
+        return;
+    }
+    call(res, data);
 }
 
 sky_api void
@@ -36,12 +45,22 @@ sky_http_client_res_body_str(
     }
     res->read_res_body = true;
     if (res->content_length) {
-        http_client_res_length_body_str(res, call, data);
-    } else if (res->transfer_encoding) {
-        http_client_res_chunked_body_str(res, call, data);
-    } else {
-        call(res, null, data);
+        if (domain_node_is_ssl(res->connect->node)) {
+            https_client_res_length_body_str(res, call, data);
+        } else {
+            http_client_res_length_body_str(res, call, data);
+        }
+        return;
     }
+    if (res->transfer_encoding) {
+        if (domain_node_is_ssl(res->connect->node)) {
+            https_client_res_chunked_body_str(res, call, data);
+        } else {
+            http_client_res_chunked_body_str(res, call, data);
+        }
+        return;
+    }
+    call(res, null, data);
 }
 
 sky_api void
@@ -56,10 +75,20 @@ sky_http_client_res_body_read(
     }
     res->read_res_body = true;
     if (res->content_length) {
-        http_client_res_length_body_read(res, call, data);
-    } else if (res->transfer_encoding) {
-        http_client_res_chunked_body_read(res, call, data);
-    } else {
-        call(res, null, 0, data);
+        if (domain_node_is_ssl(res->connect->node)) {
+            https_client_res_length_body_read(res, call, data);
+        } else {
+            http_client_res_length_body_read(res, call, data);
+        }
+        return;
     }
+    if (res->transfer_encoding) {
+        if (domain_node_is_ssl(res->connect->node)) {
+            https_client_res_chunked_body_read(res, call, data);
+        } else {
+            http_client_res_chunked_body_read(res, call, data);
+        }
+        return;
+    }
+    call(res, null, 0, data);
 }
