@@ -123,6 +123,19 @@ sky_pgsql_conn_release(sky_pgsql_conn_t *const conn) {
     }
     sky_pgsql_pool_t *const pg_pool = conn->pg_pool;
 
+    if (sky_queue_empty(&pg_pool->tasks)) {
+        sky_queue_insert_next(&pg_pool->free_conns, &conn->link);
+        sky_timer_set_cb(&conn->timer, pgsql_conn_keepalive_timeout);
+        sky_event_timeout_set(pg_pool->ev_loop, &conn->timer, pg_pool->keepalive);
+
+        ++pg_pool->free_conn_num;
+
+        if (sky_unlikely(pg_pool->destroy && pg_pool->free_conn_num >= pg_pool->conn_num)) {
+            pgsql_pool_destroy(pg_pool);
+        }
+        return;
+    }
+
     sky_timer_set_cb(&conn->timer, pgsql_task_next);
     sky_event_timeout_set(pg_pool->ev_loop, &conn->timer, 0);
 }

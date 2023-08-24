@@ -47,7 +47,6 @@ struct sky_http_client_connect_s {
     sky_queue_t link;
 
     sky_inet_address_t address;
-    sky_event_loop_t *ev_loop;
     domain_node_t *node;
 
     union {

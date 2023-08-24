@@ -53,7 +53,7 @@ sky_http_client_create(
         client->header_buf_n = conf->header_buf_n ?: 4;
     } else {
         const sky_tls_ctx_conf_t tls_conf = {};
-        if (sky_unlikely(!sky_tls_ctx_init(&client->tls_ctx, null))) {
+        if (sky_unlikely(!sky_tls_ctx_init(&client->tls_ctx, &tls_conf))) {
             sky_free(client);
             return null;
         }
@@ -136,7 +136,6 @@ sky_http_client_req(
     sky_queue_t *const next = sky_queue_next(&node->free_conns);
     if (next == &node->free_conns) {
         if (node->conn_num < client->domain_conn_max) {
-
             if (domain_node_is_ssl(node)) {
                 https_client_connect_t *const connect = sky_malloc(sizeof(https_client_connect_t));
                 sky_tcp_init(&connect->conn.tcp, sky_event_selector(client->ev_loop));
@@ -158,6 +157,7 @@ sky_http_client_req(
             }
             return;
         }
+
         client_task_t *const task = sky_palloc(req->pool, sizeof(client_task_t));
         sky_queue_init_node(&task->link);
         task->req = req;
@@ -171,15 +171,27 @@ sky_http_client_req(
     --node->free_conn_num;
 
     sky_http_client_connect_t *const connect = sky_type_convert(next, sky_http_client_connect_t, link);
-    http_connect_req(connect, req, call, data);
+    if (domain_node_is_ssl(node)) {
+        https_connect_req(connect, req, call, data);
+    } else {
+        http_connect_req(connect, req, call, data);
+    }
 }
 
 void
 http_connect_release(sky_http_client_connect_t *const connect) {
-    // 如果 client为keepalive且body未读取，应先读取再处理后面请求
+    domain_node_t *const node = connect->node;
+
+    if (sky_queue_empty(&node->tasks)) {
+        sky_queue_insert_next(&node->free_conns, &connect->link);
+        sky_timer_set_cb(&connect->timer, connect_keepalive_timeout);
+        sky_event_timeout_set(node->client->ev_loop, &connect->timer, node->client->keepalive);
+        ++node->free_conn_num;
+        return;
+    }
 
     sky_timer_set_cb(&connect->timer, connect_task_next);
-    sky_event_timeout_set(connect->node->client->ev_loop, &connect->timer, 0);
+    sky_event_timeout_set(node->client->ev_loop, &connect->timer, 0);
 }
 
 

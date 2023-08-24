@@ -106,6 +106,7 @@ sky_api sky_bool_t
 sky_tls_init(sky_tls_ctx_t *const ctx, sky_tls_t *const tls, sky_tcp_t *const tcp) {
     SSL *const ssl = SSL_new(ctx->ctx);
     if (sky_unlikely(!ssl)) {
+        tls->ssl = null;
         return false;
     }
     SSL_set_fd(ssl, sky_tcp_fd(tcp));
@@ -117,7 +118,7 @@ sky_tls_init(sky_tls_ctx_t *const ctx, sky_tls_t *const tls, sky_tcp_t *const tc
 
 sky_api sky_i8_t
 sky_tls_accept(sky_tls_t *const tls) {
-    if (sky_unlikely(sky_ev_error(sky_tcp_ev(tls->tcp)) || !sky_tcp_is_connect(tls->tcp))) {
+    if (sky_unlikely(!tls->ssl || sky_ev_error(sky_tcp_ev(tls->tcp)) || !sky_tcp_is_connect(tls->tcp))) {
         return -1;
     }
 
@@ -140,7 +141,7 @@ sky_tls_accept(sky_tls_t *const tls) {
 
 sky_api sky_i8_t
 sky_tls_connect(sky_tls_t *const tls) {
-    if (sky_unlikely(sky_ev_error(sky_tcp_ev(tls->tcp)) || !sky_tcp_is_connect(tls->tcp))) {
+    if (sky_unlikely(!tls->ssl || sky_ev_error(sky_tcp_ev(tls->tcp)) || !sky_tcp_is_connect(tls->tcp))) {
         return -1;
     }
     const sky_i32_t r = SSL_connect(tls->ssl);
@@ -162,7 +163,7 @@ sky_tls_connect(sky_tls_t *const tls) {
 
 sky_api sky_isize_t
 sky_tls_read(sky_tls_t *const tls, sky_uchar_t *data, sky_usize_t size) {
-    if (sky_unlikely(sky_ev_error(sky_tcp_ev(tls->tcp)) || !sky_tcp_is_connect(tls->tcp))) {
+    if (sky_unlikely(!tls->ssl || sky_ev_error(sky_tcp_ev(tls->tcp)) || !sky_tcp_is_connect(tls->tcp))) {
         return -1;
     }
     if (sky_unlikely(!size || !sky_ev_readable(sky_tcp_ev(tls->tcp)))) {
@@ -247,7 +248,7 @@ sky_tls_read(sky_tls_t *const tls, sky_uchar_t *data, sky_usize_t size) {
 
 sky_api sky_isize_t
 sky_tls_write(sky_tls_t *tls, const sky_uchar_t *data, sky_usize_t size) {
-    if (sky_unlikely(sky_ev_error(sky_tcp_ev(tls->tcp)) || !sky_tcp_is_connect(tls->tcp))) {
+    if (sky_unlikely(!tls->ssl || sky_ev_error(sky_tcp_ev(tls->tcp)) || !sky_tcp_is_connect(tls->tcp))) {
         return -1;
     }
     if (sky_unlikely(!size || !sky_ev_writable(sky_tcp_ev(tls->tcp)))) {
@@ -331,7 +332,7 @@ sky_tls_write(sky_tls_t *tls, const sky_uchar_t *data, sky_usize_t size) {
 
 sky_api sky_i8_t
 sky_tls_shutdown(sky_tls_t *const tls) {
-    if (sky_unlikely(sky_ev_error(sky_tcp_ev(tls->tcp)) || !sky_tcp_is_connect(tls->tcp))) {
+    if (sky_unlikely(!tls->ssl || sky_ev_error(sky_tcp_ev(tls->tcp)) || !sky_tcp_is_connect(tls->tcp))) {
         return -1;
     }
 
@@ -362,10 +363,12 @@ sky_tls_shutdown(sky_tls_t *const tls) {
 }
 
 sky_api void
-sky_tls_destroy(sky_tls_t *tls) {
+sky_tls_destroy(sky_tls_t *const tls) {
+    if (sky_unlikely(!tls->ssl)) {
+        return;
+    }
     SSL_free(tls->ssl);
     tls->ssl = null;
-    tls->tcp = null;
 }
 
 #endif

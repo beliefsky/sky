@@ -44,7 +44,7 @@ https_connect_req(
     connect->cb_data = cb_data;
     connect->current_req = req;
 
-    if (sky_tcp_is_connect(&connect->tcp)) {
+    if (sky_tcp_is_open(&connect->tcp)) {
         https_client_connect_t *const tmp = sky_type_convert(connect, https_client_connect_t, conn);
         client_send_start(tmp);
         return;
