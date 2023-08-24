@@ -2,6 +2,7 @@
 // Created by weijing on 2023/8/14.
 //
 #include <core/string_buf.h>
+#include <netdb.h>
 #include "http_client_common.h"
 
 
@@ -36,27 +37,70 @@ http_connect_req(
         sky_http_client_res_pt call,
         void *cb_data
 ) {
+    if (sky_tcp_is_connect(&connect->tcp)) {
+        sky_timer_set_cb(&connect->timer, client_req_timeout);
+        connect->next_res_cb = call;
+        connect->cb_data = cb_data;
+        connect->current_req = req;
+        client_send_start(connect);
+        return;
+    }
 
+    const struct addrinfo hints = {
+            .ai_family = AF_UNSPEC,
+            .ai_socktype = SOCK_STREAM,
+    };
+    struct addrinfo *result = null;
+    const sky_i32_t ret = getaddrinfo((const sky_char_t *) req->host.data, null, &hints, &result);
+    if (sky_unlikely(ret != 0)) {
+        goto error;
+    }
+    sky_inet_address_t *const address = sky_palloc(req->pool, sizeof(sky_inet_address_t));
+
+    for (struct addrinfo *item = result; item; item = item->ai_next) {
+        switch (item->ai_family) {
+            case AF_INET: {
+                struct sockaddr_in *tmp = (struct sockaddr_in *) item->ai_addr;
+                sky_inet_address_ipv4(address, tmp->sin_addr.s_addr, req->domain.port);
+                goto done;
+            }
+            case AF_INET6: {
+                struct sockaddr_in6 *tmp = (struct sockaddr_in6 *) item->ai_addr;
+                sky_inet_address_ipv6(
+                        address,
+                        (sky_uchar_t *) &tmp->sin6_addr,
+                        tmp->sin6_flowinfo,
+                        tmp->sin6_scope_id,
+                        req->domain.port
+                );
+                goto done;
+            }
+            default:
+                continue;
+        }
+    }
+
+    freeaddrinfo(result);
+    goto error;
+
+    done:
+    freeaddrinfo(result);
+    if (sky_unlikely(!sky_tcp_open(&connect->tcp, sky_inet_address_family(address)))) {
+        goto error;
+    }
     sky_timer_set_cb(&connect->timer, client_req_timeout);
     connect->next_res_cb = call;
     connect->cb_data = cb_data;
     connect->current_req = req;
-
-    if (sky_tcp_is_connect(&connect->tcp)) {
-        client_send_start(connect);
-        return;
-    }
-    // 此处应该存在 dns解析， 根据 host
-    const sky_uchar_t ip[4] = {14, 119, 104, 254};
-    sky_inet_address_ipv4(&connect->address, *(sky_u32_t *)ip, 80);
-
-    if (sky_unlikely(!sky_tcp_open(&connect->tcp, sky_inet_address_family(&connect->address)))) {
-        http_connect_release(connect);
-        call(null, cb_data);
-        return;
-    }
+    connect->send_packet = address;
     sky_tcp_set_cb(&connect->tcp, client_connect);
     client_connect(&connect->tcp);
+
+    return;
+
+    error:
+    http_connect_release(connect);
+    call(null, cb_data);
 }
 
 
@@ -65,7 +109,7 @@ client_connect(sky_tcp_t *const tcp) {
     sky_http_client_connect_t *const connect = sky_type_convert(tcp, sky_http_client_connect_t, tcp);
     sky_http_client_t *const client = connect->node->client;
 
-    const sky_i8_t r = sky_tcp_connect(tcp, &connect->address);
+    const sky_i8_t r = sky_tcp_connect(tcp, connect->send_packet);
     if (r > 0) {
         client_send_start(connect);
         return;

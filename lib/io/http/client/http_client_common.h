@@ -25,7 +25,7 @@ struct sky_http_client_s {
     sky_u32_t header_buf_size;
     sky_u16_t domain_conn_max;
     sky_u8_t header_buf_n;
-    sky_bool_t destroy:1;
+    sky_bool_t destroy: 1;
 };
 
 struct domain_node_s {
@@ -46,7 +46,6 @@ struct sky_http_client_connect_s {
     sky_timer_wheel_entry_t timer;
     sky_queue_t link;
 
-    sky_inet_address_t address;
     domain_node_t *node;
 
     union {
