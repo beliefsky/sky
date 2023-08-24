@@ -39,8 +39,9 @@ http_client_url_parse(sky_http_client_req_t *const req, const sky_str_t *const u
     if (sky_unlikely(!size)) {
         return false;
     }
+    const sky_bool_t is_ipv6 = *p == '[';
 
-    if (*p == '[') { // ipv6 address
+    if (is_ipv6) { // ipv6 address
         ++p;
         --size;
         index = sky_str_len_index_char(p, size, ']');
@@ -67,7 +68,16 @@ http_client_url_parse(sky_http_client_req_t *const req, const sky_str_t *const u
         return false;
     }
     if (!size) {
-        req->host = req->domain.host;
+        if (is_ipv6) {
+            req->host.len = req->domain.host.len + 2;
+            req->host.data = sky_palloc(req->pool, req->host.len + 1);
+            req->host.data[0] = '[';
+            sky_memcpy(req->host.data + 1, req->domain.host.data, req->domain.host.len);
+            req->host.data[req->domain.host.len + 1] = ']';
+            req->host.data[req->host.len] = '\0';
+        } else {
+            req->host = req->domain.host;
+        }
         return true;
     }
 
@@ -75,18 +85,38 @@ http_client_url_parse(sky_http_client_req_t *const req, const sky_str_t *const u
         --size;
         const sky_uchar_t *const start = ++p;
         for (; !(!size || *p == '/' || *p == '?'); --size, ++p);
-        const sky_usize_t len = (sky_usize_t)(p - start);
+        const sky_usize_t len = (sky_usize_t) (p - start);
         if (sky_unlikely(!sky_str_len_to_u16(start, len, &req->domain.port))) {
             return false;
         }
-        req->host.len = req->domain.host.len + len + 1;
-        req->host.data = sky_palloc(req->pool, req->host.len + 1);
-        sky_memcpy(req->host.data, req->domain.host.data, req->domain.host.len);
-        req->host.data[req->domain.host.len] = ':';
-        sky_memcpy(req->host.data + req->domain.host.len + 1, start, len);
-        req->host.data[req->host.len] = '\0';
+        if (is_ipv6) {
+            req->host.len = req->domain.host.len + len + 3;
+            req->host.data = sky_palloc(req->pool, req->host.len + 1);
+            req->host.data[0] = '[';
+            sky_memcpy(req->host.data + 1, req->domain.host.data, req->domain.host.len);
+            req->host.data[req->domain.host.len + 1] = ']';
+            req->host.data[req->domain.host.len + 2] = ':';
+            sky_memcpy(req->host.data + req->domain.host.len + 3, start, len);
+            req->host.data[req->host.len] = '\0';
+        } else {
+            req->host.len = req->domain.host.len + len + 1;
+            req->host.data = sky_palloc(req->pool, req->host.len + 1);
+            sky_memcpy(req->host.data, req->domain.host.data, req->domain.host.len);
+            req->host.data[req->domain.host.len] = ':';
+            sky_memcpy(req->host.data + req->domain.host.len + 1, start, len);
+            req->host.data[req->host.len] = '\0';
+        }
     } else {
-        req->host = req->domain.host;
+        if (is_ipv6) {
+            req->host.len = req->domain.host.len + 2;
+            req->host.data = sky_palloc(req->pool, req->host.len + 1);
+            req->host.data[0] = '[';
+            sky_memcpy(req->host.data + 1, req->domain.host.data, req->domain.host.len);
+            req->host.data[req->domain.host.len + 1] = ']';
+            req->host.data[req->host.len] = '\0';
+        } else {
+            req->host = req->domain.host;
+        }
     }
 
     if (size > 1) {
