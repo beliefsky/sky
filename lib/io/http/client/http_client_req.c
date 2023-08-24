@@ -147,6 +147,7 @@ client_send_start(sky_http_client_connect_t *const connect) {
         sky_str_buf_append_str(buf, &req->host);
         sky_str_buf_append_two_uchar(buf, '\r', '\n');
     }
+    sky_str_buf_append_str_len(buf, sky_str_line("Connection: keep-alive\r\n"));
 
     sky_list_foreach(&req->headers, sky_http_client_header_t, item, {
         sky_str_buf_append_str(buf, &item->key);
