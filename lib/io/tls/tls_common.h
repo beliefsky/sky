@@ -9,6 +9,8 @@
 
 #if defined(SKY_HAVE_OPENSSL)
 #define TLS_USE_OPENSSL
+#else
+#define TLS_USE_NOSSL
 #endif
 
 #endif //SKY_TLS_COMMON_H
