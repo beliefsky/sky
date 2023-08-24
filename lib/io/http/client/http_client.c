@@ -81,7 +81,7 @@ sky_http_client_destroy(sky_http_client_t *client) {
     }
 }
 
-sky_http_client_req_t *
+sky_api sky_http_client_req_t *
 sky_http_client_req_create(sky_pool_t *const pool, const sky_str_t *const url) {
     (void) url;
 
