@@ -78,7 +78,7 @@ https_client_res_length_body_str(
         cb_data->call = call;
         cb_data->data = data;
 
-        http_client_res_length_body_none(res, http_body_read_none_to_str, cb_data);
+        https_client_res_length_body_none(res, http_body_read_none_to_str, cb_data);
         return;
     }
 

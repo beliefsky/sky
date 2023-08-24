@@ -138,7 +138,7 @@ https_client_res_chunked_body_str(
     packet->cb_data = data;
     packet->read_none = false;
 
-    http_client_res_chunked_body_read(res, http_read_body_str_cb, packet);
+    https_client_res_chunked_body_read(res, http_read_body_str_cb, packet);
 }
 
 void
