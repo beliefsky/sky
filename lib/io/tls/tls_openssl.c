@@ -12,9 +12,12 @@ sky_api sky_bool_t
 sky_tls_ctx_init(sky_tls_ctx_t *const ctx, const sky_tls_ctx_conf_t *const conf) {
     static sky_bool_t tlx_init = false;
     if (!tlx_init) {
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
         SSL_library_init();
-        OpenSSL_add_all_algorithms();
         SSL_load_error_strings();
+#else
+        OPENSSL_init_ssl(OPENSSL_INIT_SSL_DEFAULT, null);
+#endif
 
         tlx_init = true;
     }
