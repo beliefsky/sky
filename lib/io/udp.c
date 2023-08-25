@@ -121,10 +121,10 @@ sky_udp_read_vec(sky_udp_t *udp, sky_inet_address_t *const address, sky_io_vec_t
     struct msghdr msg = {
             .msg_name = address,
             .msg_iov = (struct iovec *) vec,
-#if defined(__APPLE__)
-            .msg_iovlen = (sky_i32_t) num
-#else
+#if defined(__linux__)
             .msg_iovlen = num
+#else
+            .msg_iovlen = (sky_i32_t) num
 #endif
     };
     const sky_isize_t n = recvmsg(sky_ev_get_fd(&udp->ev), &msg, 0);
@@ -196,10 +196,10 @@ sky_udp_write_vec(sky_udp_t *udp, sky_inet_address_t *const address, sky_io_vec_
             .msg_name = address,
             .msg_namelen = sizeof(sky_inet_address_t),
             .msg_iov = (struct iovec *) vec,
-#if defined(__APPLE__)
-            .msg_iovlen = (sky_i32_t) num
-#else
+#if defined(__linux__)
             .msg_iovlen = num
+#else
+            .msg_iovlen = (sky_i32_t) num
 #endif
     };
 
