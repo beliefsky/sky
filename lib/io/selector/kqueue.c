@@ -157,7 +157,7 @@ sky_selector_register(sky_ev_t *const ev, const sky_u32_t flags) {
     if (sky_unlikely(sky_ev_reg(ev) || ev->fd < 0 || !(flags & (SKY_EV_READ | SKY_EV_WRITE)))) {
         return false;
     }
-    sky_u32_t n = 0;
+    sky_i32_t n = 0;
     struct kevent events[2];
 
     if ((flags & SKY_EV_READ) != 0) {
@@ -183,7 +183,7 @@ sky_selector_update(sky_ev_t *const ev, const sky_u32_t flags) {
         return false;
     }
 
-    sky_u32_t n = 0;
+    sky_i32_t n = 0;
     struct kevent events[2];
 
     if ((flags & SKY_EV_READ) != 0) {
@@ -222,7 +222,7 @@ sky_selector_cancel(sky_ev_t *const ev) {
         return true;
     }
     if (ev->fd >= 0) {
-        sky_u32_t n = 0;
+        sky_i32_t n = 0;
         struct kevent events[2];
 
 
