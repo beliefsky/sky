@@ -3,7 +3,12 @@
 //
 #include <core/string_buf.h>
 #include <netdb.h>
+
+#ifndef __linux__
 #include <netinet/in.h>
+#include <sys/socket.h>
+#endif
+
 #include "http_client_common.h"
 
 
