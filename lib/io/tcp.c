@@ -553,6 +553,7 @@ sky_tcp_option_reuse_port(const sky_tcp_t *const tcp) {
 #elif defined(SO_REUSEPORT)
     return 0 == setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_i32_t));
 #else
+
     return false;
 #endif
 }
@@ -565,6 +566,7 @@ sky_tcp_option_no_delay(const sky_tcp_t *const tcp) {
 
     return 0 == setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(sky_i32_t));
 #else
+    (void) tcp;
     return false;
 #endif
 }
@@ -577,6 +579,7 @@ sky_tcp_option_defer_accept(const sky_tcp_t *const tcp) {
 
     return 0 == setsockopt(fd, IPPROTO_TCP, TCP_DEFER_ACCEPT, &opt, sizeof(sky_i32_t));
 #else
+    (void) tcp;
     return false;
 #endif
 }
@@ -588,6 +591,7 @@ sky_tcp_option_fast_open(const sky_tcp_t *const tcp, const sky_i32_t n) {
 
     return 0 == setsockopt(fd, IPPROTO_TCP, TCP_FASTOPEN, &n, sizeof(sky_i32_t));
 #else
+    (void) tcp;
     return false;
 #endif
 }
@@ -602,6 +606,7 @@ sky_tcp_option_no_push(const sky_tcp_t *const tcp, const sky_bool_t open) {
 #elif defined(TCP_NOPUSH)
     return 0 == setsockopt(fd, IPPROTO_TCP, TCP_NOPUSH, &opt, sizeof(sky_i32_t));
 #else
+    (void) tcp;
     retrun false;
 #endif
 
