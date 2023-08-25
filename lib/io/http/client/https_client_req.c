@@ -3,6 +3,7 @@
 //
 #include <core/string_buf.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include "http_client_common.h"
 
 

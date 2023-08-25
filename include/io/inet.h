@@ -45,15 +45,24 @@ struct sky_io_vec_s {
 
 struct sky_inet_address_s {
     union {
+#ifndef __linux__
+        sky_u8_t  address_len;
+#endif
         sky_u16_t family;
         struct {
-            sky_u16_t common;
+#ifndef __linux__
+            sky_u8_t  p1;
+#endif
+            sky_u16_t p2;
             sky_u16_t port;
             sky_u32_t address;
         } ipv4;
 
         struct {
-            sky_u16_t common;
+#ifndef __linux__
+            sky_u8_t  p1;
+#endif
+            sky_u16_t p2;
             sky_u16_t port;
             sky_u32_t flow_info;
             sky_uchar_t address[16];
@@ -61,7 +70,10 @@ struct sky_inet_address_s {
         } ipv6;
 
         struct {
-            sky_u16_t common;
+#ifndef __linux__
+            sky_u8_t  p1;
+#endif
+            sky_u16_t p2;
             sky_uchar_t path[26];
         } un;
     };
