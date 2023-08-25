@@ -57,7 +57,7 @@ sky_mqtt_client_create(sky_event_loop_t *const ev_loop, const sky_mqtt_client_co
     sky_queue_init(&client->packet);
     client->current_packet = null;
     client->reader_pool = sky_pool_create(8192);
-    client->timeout = 5;
+    client->timeout = 15;
     client->write_size = 0;
     client->head_copy = 0;
     client->reconnect = conf->reconnect;
@@ -121,7 +121,6 @@ tcp_connection(sky_tcp_t *const tcp) {
 
     const sky_i8_t r = sky_tcp_connect(tcp, &client->address);
     if (r > 0) {
-        sky_timer_wheel_unlink(&client->timer);
         mqtt_client_handshake(client);
         return;
     }
