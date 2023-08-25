@@ -34,7 +34,6 @@ extern "C" {
 typedef sky_i32_t sky_socket_t;
 typedef struct sky_io_vec_s sky_io_vec_t;
 typedef struct sky_inet_address_s sky_inet_address_t;
-typedef struct sky_inet_addr_s sky_inet_addr_t;
 
 
 struct sky_io_vec_s {
