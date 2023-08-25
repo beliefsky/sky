@@ -33,11 +33,11 @@ sky_bool_t sky_udp_bind(const sky_udp_t *udp, const sky_inet_address_t *address)
 
 sky_isize_t sky_udp_read(sky_udp_t *udp, sky_inet_address_t *address, sky_uchar_t *data, sky_usize_t size);
 
-sky_isize_t sky_udp_read_v(sky_udp_t *udp, sky_inet_address_t *address, sky_io_vec_t *vec, sky_usize_t num);
+sky_isize_t sky_udp_read_vec(sky_udp_t *udp, sky_inet_address_t *address, sky_io_vec_t *vec, sky_u32_t num);
 
 sky_bool_t sky_udp_write(sky_udp_t *udp, const sky_inet_address_t *address, const sky_uchar_t *data, sky_usize_t size);
 
-sky_bool_t sky_udp_write_v(sky_udp_t *udp, sky_inet_address_t *address, sky_io_vec_t *vec, sky_usize_t num);
+sky_bool_t sky_udp_write_vec(sky_udp_t *udp, sky_inet_address_t *address, sky_io_vec_t *vec, sky_u32_t num);
 
 void sky_udp_close(sky_udp_t *udp);
 

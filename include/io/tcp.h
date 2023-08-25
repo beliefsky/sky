@@ -43,11 +43,11 @@ void sky_tcp_close(sky_tcp_t *tcp);
 
 sky_isize_t sky_tcp_read(sky_tcp_t *tcp, sky_uchar_t *data, sky_usize_t size);
 
-sky_isize_t sky_tcp_read_v(sky_tcp_t *tcp, sky_io_vec_t *vec, sky_usize_t num);
+sky_isize_t sky_tcp_read_vec(sky_tcp_t *tcp, sky_io_vec_t *vec, sky_u32_t num);
 
 sky_isize_t sky_tcp_write(sky_tcp_t *tcp, const sky_uchar_t *data, sky_usize_t size);
 
-sky_isize_t sky_tcp_write_v(sky_tcp_t *tcp, const sky_io_vec_t *vec, sky_usize_t num);
+sky_isize_t sky_tcp_write_vec(sky_tcp_t *tcp, const sky_io_vec_t *vec, sky_u32_t num);
 
 sky_isize_t sky_tcp_sendfile(
         sky_tcp_t *tcp,

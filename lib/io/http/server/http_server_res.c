@@ -347,7 +347,7 @@ http_response_vec(sky_tcp_t *const tcp) {
     sky_isize_t n;
 
     again:
-    n = sky_tcp_write_v(tcp, vec, num);
+    n = sky_tcp_write_vec(tcp, vec, num);
     if (n > 0) {
         next_vec:
         if ((sky_usize_t) n < vec->size) {

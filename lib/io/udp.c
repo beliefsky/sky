@@ -97,7 +97,7 @@ sky_udp_read(
 }
 
 sky_api sky_isize_t
-sky_udp_read_v(sky_udp_t *udp, sky_inet_address_t *const address, sky_io_vec_t *vec, sky_usize_t num) {
+sky_udp_read_vec(sky_udp_t *udp, sky_inet_address_t *const address, sky_io_vec_t *vec, sky_u32_t num) {
     if (sky_unlikely(sky_ev_error(&udp->ev) || !sky_udp_is_open(udp))) {
         return -1;
     }
@@ -107,7 +107,7 @@ sky_udp_read_v(sky_udp_t *udp, sky_inet_address_t *const address, sky_io_vec_t *
     }
     const sky_io_vec_t *item = vec;
     sky_usize_t size = 0;
-    sky_usize_t i = num;
+    sky_u32_t i = num;
     do {
         size += item->size;
         --i;
@@ -167,7 +167,7 @@ sky_udp_write(
 }
 
 sky_api sky_bool_t
-sky_udp_write_v(sky_udp_t *udp, sky_inet_address_t *const address, sky_io_vec_t *vec, sky_usize_t num) {
+sky_udp_write_vec(sky_udp_t *udp, sky_inet_address_t *const address, sky_io_vec_t *vec, sky_u32_t num) {
     if (sky_unlikely(sky_ev_error(&udp->ev) || !sky_udp_is_open(udp))) {
         return false;
     }
@@ -177,7 +177,7 @@ sky_udp_write_v(sky_udp_t *udp, sky_inet_address_t *const address, sky_io_vec_t 
 
     const sky_io_vec_t *item = vec;
     sky_usize_t size = 0;
-    sky_usize_t i = num;
+    sky_u32_t i = num;
     do {
         size += item->size;
         --i;

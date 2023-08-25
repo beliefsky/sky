@@ -197,7 +197,7 @@ sky_tcp_read(sky_tcp_t *const tcp, sky_uchar_t *const data, const sky_usize_t si
 }
 
 sky_api sky_isize_t
-sky_tcp_read_v(sky_tcp_t *const tcp, sky_io_vec_t *const vec, const sky_usize_t num) {
+sky_tcp_read_vec(sky_tcp_t *const tcp, sky_io_vec_t *const vec, const sky_u32_t num) {
     if (sky_unlikely(sky_ev_error(&tcp->ev) || !sky_tcp_is_connect(tcp))) {
         return -1;
     }
@@ -207,7 +207,7 @@ sky_tcp_read_v(sky_tcp_t *const tcp, sky_io_vec_t *const vec, const sky_usize_t 
     }
     const sky_io_vec_t *item = vec;
     sky_usize_t size = 0;
-    sky_usize_t i = num;
+    sky_u32_t i = num;
     do {
         size += item->size;
         --i;
@@ -267,7 +267,7 @@ sky_tcp_write(sky_tcp_t *const tcp, const sky_uchar_t *const data, const sky_usi
 }
 
 sky_api sky_isize_t
-sky_tcp_write_v(sky_tcp_t *tcp, const sky_io_vec_t *vec, sky_usize_t num) {
+sky_tcp_write_vec(sky_tcp_t *tcp, const sky_io_vec_t *vec, sky_u32_t num) {
     if (sky_unlikely(sky_ev_error(&tcp->ev) || !sky_tcp_is_connect(tcp))) {
         return -1;
     }
@@ -276,7 +276,7 @@ sky_tcp_write_v(sky_tcp_t *tcp, const sky_io_vec_t *vec, sky_usize_t num) {
     }
     const sky_io_vec_t *item = vec;
     sky_usize_t size = 0;
-    sky_usize_t i = num;
+    sky_u32_t i = num;
     do {
         size += item->size;
         --i;
