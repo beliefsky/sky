@@ -220,7 +220,11 @@ sky_tcp_read_vec(sky_tcp_t *const tcp, sky_io_vec_t *const vec, const sky_u32_t 
 
     struct msghdr msg = {
             .msg_iov = (struct iovec *) vec,
+#if defined(__APPLE__)
+            .msg_iovlen = (sky_i32_t) num
+#else
             .msg_iovlen = num
+#endif
     };
 
     const sky_isize_t n = recvmsg(sky_ev_get_fd(&tcp->ev), &msg, 0);
@@ -289,7 +293,11 @@ sky_tcp_write_vec(sky_tcp_t *tcp, const sky_io_vec_t *vec, sky_u32_t num) {
 
     const struct msghdr msg = {
             .msg_iov = (struct iovec *) vec,
+#if defined(__APPLE__)
+            .msg_iovlen = (sky_i32_t) num
+#else
             .msg_iovlen = num
+#endif
     };
 
     const sky_isize_t n = sendmsg(sky_ev_get_fd(&tcp->ev), &msg, MSG_NOSIGNAL);
