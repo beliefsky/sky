@@ -82,7 +82,10 @@ pgsql_connect_info_send(sky_tcp_t *const tcp) {
 
     sky_tcp_close(tcp);
     sky_timer_wheel_unlink(&conn->timer);
-    conn->conn_cb(conn, conn->cb_data);
+    const sky_pgsql_conn_pt call = conn->conn_cb;
+    void *const cb_data = conn->cb_data;
+    sky_pgsql_conn_release(conn);
+    call(null, cb_data);
 }
 
 static void
@@ -212,7 +215,10 @@ pgsql_auth_read(sky_tcp_t *const tcp) {
     sky_buf_destroy(buf);
     sky_timer_wheel_unlink(&conn->timer);
     sky_tcp_close(&conn->tcp);
-    conn->conn_cb(conn, conn->cb_data);
+    const sky_pgsql_conn_pt call = conn->conn_cb;
+    void *const cb_data = conn->cb_data;
+    sky_pgsql_conn_release(conn);
+    call(null, cb_data);
 }
 
 static sky_inline void
@@ -231,7 +237,10 @@ pgsql_password(
         sky_tcp_close(&conn->tcp);
 
         sky_log_error("auth type %u not support", auth_type);
-        conn->conn_cb(conn, conn->cb_data);
+        const sky_pgsql_conn_pt call = conn->conn_cb;
+        void *const cb_data = conn->cb_data;
+        sky_pgsql_conn_release(conn);
+        call(null, cb_data);
         return;
     }
     const sky_pgsql_pool_t *const pg_pool = conn->pg_pool;
@@ -302,7 +311,10 @@ pgsql_password_send(sky_tcp_t *const tcp) {
     sky_tcp_close(tcp);
     sky_buf_destroy(buf);
     sky_timer_wheel_unlink(&conn->timer);
-    conn->conn_cb(conn, conn->cb_data);
+    const sky_pgsql_conn_pt call = conn->conn_cb;
+    void *const cb_data = conn->cb_data;
+    sky_pgsql_conn_release(conn);
+    call(null, cb_data);
 }
 
 static void
@@ -316,7 +328,10 @@ static void
 pgsql_send_info_timeout(sky_timer_wheel_entry_t *const timer) {
     sky_pgsql_conn_t *const conn = sky_type_convert(timer, sky_pgsql_conn_t, timer);
     sky_tcp_close(&conn->tcp);
-    conn->conn_cb(conn, conn->cb_data);
+    const sky_pgsql_conn_pt call = conn->conn_cb;
+    void *const cb_data = conn->cb_data;
+    sky_pgsql_conn_release(conn);
+    call(null, cb_data);
 }
 
 static void
@@ -326,5 +341,8 @@ pgsql_auth_timeout(sky_timer_wheel_entry_t *const timer) {
     sky_tcp_close(&conn->tcp);
 
     sky_buf_destroy(&packet->buf);
-    conn->conn_cb(conn, conn->cb_data);
+    const sky_pgsql_conn_pt call = conn->conn_cb;
+    void *const cb_data = conn->cb_data;
+    sky_pgsql_conn_release(conn);
+    call(null, cb_data);
 }

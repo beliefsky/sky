@@ -153,10 +153,19 @@ static sky_inline void
 pgsql_connect_next(sky_pgsql_conn_t *const conn) {
     sky_pgsql_pool_t *const pg_pool = conn->pg_pool;
 
-    if (sky_tcp_is_open(&conn->tcp) || !sky_tcp_open(&conn->tcp, sky_inet_address_family(&pg_pool->address))) {
+    if (sky_tcp_is_open(&conn->tcp)) {
         conn->conn_cb(conn, conn->cb_data);
         return;
     }
+
+    if (sky_unlikely(!sky_tcp_open(&conn->tcp, sky_inet_address_family(&pg_pool->address)))) {
+        const sky_pgsql_conn_pt call = conn->conn_cb;
+        void *const cb_data = conn->cb_data;
+        sky_pgsql_conn_release(conn);
+        call(null, cb_data);
+        return;
+    }
+
     sky_tcp_option_no_delay(&conn->tcp);
 
     sky_timer_set_cb(&conn->timer, pgsql_connect_timeout);
@@ -181,7 +190,10 @@ pgsql_connection(sky_tcp_t *const tcp) {
 
     sky_tcp_close(tcp);
     sky_timer_wheel_unlink(&conn->timer);
-    conn->conn_cb(conn, conn->cb_data);
+    const sky_pgsql_conn_pt call = conn->conn_cb;
+    void *const cb_data = conn->cb_data;
+    sky_pgsql_conn_release(conn);
+    call(null, cb_data);
 }
 
 static void
@@ -205,7 +217,10 @@ static void
 pgsql_connect_timeout(sky_timer_wheel_entry_t *const timer) {
     sky_pgsql_conn_t *const conn = sky_type_convert(timer, sky_pgsql_conn_t, timer);
     sky_tcp_close(&conn->tcp);
-    conn->conn_cb(conn, conn->cb_data);
+    const sky_pgsql_conn_pt call = conn->conn_cb;
+    void *const cb_data = conn->cb_data;
+    sky_pgsql_conn_release(conn);
+    call(null, cb_data);
 }
 
 static void
