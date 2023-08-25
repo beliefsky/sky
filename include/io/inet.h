@@ -48,7 +48,7 @@ struct sky_inet_address_s {
 #ifdef __linux__
         sky_u16_t family;
 #else
-        sky_u8_t address_len;
+        sky_u8_t size;
         sky_u8_t family;
 #endif
         struct {
