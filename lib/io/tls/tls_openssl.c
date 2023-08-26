@@ -123,6 +123,9 @@ sky_tls_accept(sky_tls_t *const tls) {
     if (sky_unlikely(!tls->ssl || sky_ev_error(sky_tcp_ev(tls->tcp)) || !sky_tcp_is_connect(tls->tcp))) {
         return -1;
     }
+    if (sky_unlikely(!sky_ev_any_able(sky_tcp_ev(tls->tcp)))) {
+        return 0;
+    }
 
     const sky_i32_t r = SSL_accept(tls->ssl);
     if (r > 0) {
@@ -146,6 +149,10 @@ sky_tls_connect(sky_tls_t *const tls) {
     if (sky_unlikely(!tls->ssl || sky_ev_error(sky_tcp_ev(tls->tcp)) || !sky_tcp_is_connect(tls->tcp))) {
         return -1;
     }
+    if (sky_unlikely(!sky_ev_any_able(sky_tcp_ev(tls->tcp)))) {
+        return 0;
+    }
+
     const sky_i32_t r = SSL_connect(tls->ssl);
     if (r > 0) {
         return 1;
@@ -228,6 +235,9 @@ sky_api sky_i8_t
 sky_tls_shutdown(sky_tls_t *const tls) {
     if (sky_unlikely(!tls->ssl || sky_ev_error(sky_tcp_ev(tls->tcp)) || !sky_tcp_is_connect(tls->tcp))) {
         return -1;
+    }
+    if (sky_unlikely(!sky_ev_any_able(sky_tcp_ev(tls->tcp)))) {
+        return 0;
     }
 
     const sky_i32_t r = SSL_shutdown(tls->ssl);
