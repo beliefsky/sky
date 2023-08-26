@@ -213,6 +213,8 @@ http_run_handler(sky_http_server_request_t *const r, void *const data) {
         sky_memcpy(&node->path.data, r->uri.data, r->uri.len);
 
         rb_tree_insert(&module_file->cache_tree, node);
+    } else {
+        ++node->ref_count;
     }
 
     r->headers_out.content_type = mime_type.val;
