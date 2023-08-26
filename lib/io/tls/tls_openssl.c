@@ -186,7 +186,7 @@ sky_tls_read(sky_tls_t *const tls, sky_uchar_t *const data, const sky_usize_t si
         return (sky_isize_t) read_n;
     }
 #else
-    const sky_i32_t max_read = size > SKY_I32_MAX ? SKY_I32_MAX : (sky_i32_t) size;
+    const sky_i32_t max_read = sky_unlikely(size > SKY_I32_MAX) ? SKY_I32_MAX : (sky_i32_t) size;
     const sky_i32_t n = SSL_read(tls->ssl, data, max_read);
     if (n > 0) {
         return n;
@@ -216,7 +216,7 @@ sky_tls_write(sky_tls_t *tls, const sky_uchar_t *data, sky_usize_t size) {
         return (sky_isize_t) write_n;
     }
 #else
-    const sky_i32_t max_write = size > SKY_I32_MAX ? SKY_I32_MAX : (sky_i32_t) size;
+    const sky_i32_t max_write = sky_unlikely(size > SKY_I32_MAX) ? SKY_I32_MAX : (sky_i32_t) size;
     const sky_i32_t n = SSL_write(tls->ssl, data, max_write);
     if (n > 0) {
         return n;
