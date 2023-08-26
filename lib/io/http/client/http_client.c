@@ -3,6 +3,7 @@
 //
 #include "http_client_common.h"
 #include <core/memory.h>
+#include <core/crc32.h>
 
 
 typedef struct {
@@ -13,7 +14,7 @@ typedef struct {
 } client_task_t;
 
 
-static domain_node_t *rb_tree_get(sky_rb_tree_t *tree, const sky_str_t *host, sky_u32_t port_ssl);
+static domain_node_t *rb_tree_get(sky_rb_tree_t *tree, const sky_str_t *host, sky_u32_t host_hash, sky_u32_t port_ssl);
 
 static void rb_tree_insert(sky_rb_tree_t *tree, domain_node_t *node);
 
@@ -111,10 +112,14 @@ sky_http_client_req(
         call(null, data);
         return;
     }
-
     const sky_u32_t port_ssl = (sky_u32_t) (req->domain.is_ssl << 16) | req->domain.port;
 
-    domain_node_t *node = rb_tree_get(&client->tree, &req->domain.host, port_ssl);
+    sky_u32_t host_hash = sky_crc32_init();
+    host_hash = sky_crc32c_update(host_hash, req->domain.host.data, req->domain.host.len);
+    host_hash = sky_crc32c_update(host_hash, (sky_uchar_t *)&port_ssl, sizeof(sky_u32_t));
+    host_hash = sky_crc32_final(host_hash);
+
+    domain_node_t *node = rb_tree_get(&client->tree, &req->domain.host, host_hash, port_ssl);
     if (!node) {
         sky_uchar_t *ptr = sky_malloc(sizeof(domain_node_t) + req->domain.host.len);
         node = (domain_node_t *) ptr;
@@ -126,6 +131,7 @@ sky_http_client_req(
         sky_queue_init(&node->free_conns);
         sky_queue_init(&node->tasks);
         node->client = client;
+        node->host_hash = host_hash;
         node->port_and_ssl = port_ssl;
         node->conn_num = 0;
         node->free_conn_num = 0;
@@ -196,21 +202,30 @@ http_connect_release(sky_http_client_connect_t *const connect) {
 
 
 static domain_node_t *
-rb_tree_get(sky_rb_tree_t *const tree, const sky_str_t *const host, const sky_u32_t port_ssl) {
+rb_tree_get(
+        sky_rb_tree_t *const tree,
+        const sky_str_t *const host,
+        const sky_u32_t host_hash,
+        const sky_u32_t port_ssl
+) {
     sky_rb_node_t *node = tree->root;
     domain_node_t *tmp;
     sky_i32_t r;
 
     while (node != &tree->sentinel) {
         tmp = sky_type_convert(node, domain_node_t, node);
-        if (tmp->port_and_ssl == port_ssl) {
-            r = sky_str_cmp(&tmp->host, host);
-            if (!r) {
-                return tmp;
+        if (tmp->host_hash == host_hash) {
+            if (tmp->port_and_ssl == port_ssl) {
+                r = sky_str_cmp(&tmp->host, host);
+                if (!r) {
+                    return tmp;
+                }
+                node = r > 0 ? node->left : node->right;
+            } else {
+                node = tmp->port_and_ssl > port_ssl ? node->left : node->right;
             }
-            node = r > 0 ? node->left : node->right;
         } else {
-            node = tmp->port_and_ssl > port_ssl ? node->left : node->right;
+            node = tmp->host_hash > host_hash ? node->left : node->right;
         }
     }
 
@@ -228,10 +243,14 @@ rb_tree_insert(sky_rb_tree_t *const tree, domain_node_t *const node) {
 
     for (;;) {
         other = sky_type_convert(temp, domain_node_t, node);
-        if (node->port_and_ssl == other->port_and_ssl) {
-            p = sky_str_cmp(&node->host, &other->host) < 0 ? &temp->left : &temp->right;
+        if (node->host_hash == other->host_hash) {
+            if (node->port_and_ssl == other->port_and_ssl) {
+                p = sky_str_cmp(&node->host, &other->host) < 0 ? &temp->left : &temp->right;
+            } else {
+                p = node->port_and_ssl < other->port_and_ssl ? &temp->left : &temp->right;
+            }
         } else {
-            p = node->port_and_ssl < other->port_and_ssl ? &temp->left : &temp->right;
+            p = node->host_hash < other->host_hash ? &temp->left : &temp->right;
         }
 
         if (*p == &tree->sentinel) {
