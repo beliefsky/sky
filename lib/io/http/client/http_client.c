@@ -116,7 +116,7 @@ sky_http_client_req(
 
     sky_u32_t host_hash = sky_crc32_init();
     host_hash = sky_crc32c_update(host_hash, req->domain.host.data, req->domain.host.len);
-    host_hash = sky_crc32c_update(host_hash, (sky_uchar_t *)&port_ssl, sizeof(sky_u32_t));
+    host_hash = sky_crc32c_update(host_hash, (sky_uchar_t *) &port_ssl, sizeof(sky_u32_t));
     host_hash = sky_crc32_final(host_hash);
 
     domain_node_t *node = rb_tree_get(&client->tree, &req->domain.host, host_hash, port_ssl);
