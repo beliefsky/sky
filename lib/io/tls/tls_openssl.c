@@ -84,9 +84,17 @@ sky_tls_ctx_init(sky_tls_ctx_t *const ctx, const sky_tls_ctx_conf_t *const conf)
         }
     }
 
-#ifdef SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER
-    SSL_CTX_set_mode(ssl_ctx, SSL_CTX_get_mode(ssl_ctx) | SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER);
+    sky_isize_t mode = SSL_CTX_get_mode(ssl_ctx);
+
+#ifdef SSL_MODE_ENABLE_PARTIAL_WRITE
+    mode |= SSL_MODE_ENABLE_PARTIAL_WRITE;
 #endif
+
+#ifdef SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER
+    mode |= SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER;
+#endif
+
+    SSL_CTX_set_mode(ssl_ctx, mode);
     SSL_CTX_set_verify(ssl_ctx, verify_mode, null);
 
     ctx->ctx = ssl_ctx;
