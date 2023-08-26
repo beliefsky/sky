@@ -210,7 +210,7 @@ http_run_handler(sky_http_server_request_t *const r, void *const data) {
         node->fd = fd;
         node->path.data = ptr;
         node->path.len = r->uri.len;
-        sky_memcpy(&node->path.data, r->uri.data, r->uri.len);
+        sky_memcpy(node->path.data, r->uri.data, r->uri.len);
 
         rb_tree_insert(&module_file->cache_tree, node);
     } else {
