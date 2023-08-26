@@ -248,7 +248,7 @@ http_run_handler(sky_http_server_request_t *const r, void *const data) {
             (sky_usize_t) (file->right - file->left + 1),
             (sky_usize_t) node->file_size,
             http_response_next,
-            file
+            node
     );
 }
 
