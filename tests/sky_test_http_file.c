@@ -24,7 +24,7 @@ main() {
                 .pre_run = http_index_router
         };
 
-        sky_http_server_module_put(server, sky_http_server_file_create(&conf));
+        sky_http_server_module_put(server, sky_http_server_file_create(loop, &conf));
     }
 
     sky_inet_address_t address;

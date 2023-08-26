@@ -42,22 +42,28 @@ typedef struct {
 
 typedef struct {
     sky_rb_tree_t cache_tree;
+    sky_queue_t cache_queue;
+    sky_timer_wheel_entry_t timer;
     http_mime_type_t default_mime_type;
     sky_str_t path;
     sky_str_t *prefix;
     sky_pool_t *pool;
+    sky_event_loop_t *ev_loop;
 
     sky_bool_t (*pre_run)(sky_http_server_request_t *req, void *data);
 
     void *run_data;
+    sky_u32_t cache_sec;
 } http_module_file_t;
 
 
 typedef struct {
     sky_rb_node_t node;
+    sky_queue_t link;
     sky_str_t path;
     sky_i64_t modified_time;
     sky_i64_t file_size;
+    sky_i64_t expire_at;
     http_module_file_t *module_file;
     sky_u32_t path_hash;
     sky_u32_t ref_count;
@@ -68,7 +74,15 @@ static void http_run_handler(sky_http_server_request_t *r, void *data);
 
 static void http_response_next(sky_http_server_request_t *r, void *data);
 
+static file_cache_node_t *cache_node_file_get_ref(
+        http_module_file_t *module_file,
+        sky_pool_t *pool,
+        const sky_str_t *uri_path
+);
+
 static void cache_node_file_unref(file_cache_node_t *node);
+
+static void cache_node_free_timer(sky_timer_wheel_entry_t *timer);
 
 static file_cache_node_t *rb_tree_get(
         sky_rb_tree_t *tree,
@@ -84,7 +98,7 @@ static sky_bool_t http_header_range(http_file_t *file, const sky_str_t *value);
 
 
 sky_api sky_http_server_module_t *
-sky_http_server_file_create(const sky_http_server_file_conf_t *const conf) {
+sky_http_server_file_create(sky_event_loop_t *const ev_loop, const sky_http_server_file_conf_t *const conf) {
     sky_pool_t *const pool = sky_pool_create(2048);
     sky_http_server_module_t *const module = sky_palloc(pool, sizeof(sky_http_server_module_t));
     module->host.data = sky_palloc(pool, conf->host.len);
@@ -97,6 +111,8 @@ sky_http_server_file_create(const sky_http_server_file_conf_t *const conf) {
 
     http_module_file_t *const data = sky_palloc(pool, sizeof(http_module_file_t));
     sky_rb_tree_init(&data->cache_tree);
+    sky_queue_init(&data->cache_queue);
+    sky_timer_entry_init(&data->timer, cache_node_free_timer);
     sky_str_set(&data->default_mime_type.val, "application/octet-stream");
     data->default_mime_type.binary = true;
     data->path.data = sky_palloc(pool, conf->dir.len);
@@ -104,8 +120,10 @@ sky_http_server_file_create(const sky_http_server_file_conf_t *const conf) {
     sky_memcpy(data->path.data, conf->dir.data, conf->dir.len);
     data->prefix = &module->prefix;
     data->pool = pool;
+    data->ev_loop = ev_loop;
     data->pre_run = conf->pre_run;
     data->run_data = conf->run_data;
+    data->cache_sec = conf->cache_sec ?: 15;
 
     module->module_data = data;
 
@@ -114,7 +132,24 @@ sky_http_server_file_create(const sky_http_server_file_conf_t *const conf) {
 
 sky_api void
 sky_http_server_file_destroy(sky_http_server_module_t *const server_file) {
-    http_module_file_t *data = server_file->module_data;
+    http_module_file_t *const data = server_file->module_data;
+    sky_timer_wheel_unlink(&data->timer);
+
+    sky_rb_node_t *item;
+    file_cache_node_t *node;
+    for (;;) {
+        item = sky_rb_tree_first(&data->cache_tree);
+        if (!item) {
+            break;
+        }
+        sky_rb_tree_del(&data->cache_tree, item);
+
+        node = sky_type_convert(item, file_cache_node_t, node);
+        if (node->fd != -1) {
+            close(node->fd);
+        }
+        sky_free(node);
+    }
     sky_pool_destroy(data->pool);
 }
 
@@ -172,49 +207,11 @@ http_run_handler(sky_http_server_request_t *const r, void *const data) {
             sky_rfc_str_to_date(r->headers_in.if_range, &file->range_time);
         }
     }
-    sky_u32_t path_hash = sky_crc32_init();
-    path_hash = sky_crc32c_update(path_hash, r->uri.data, r->uri.len);
-    path_hash = sky_crc32_final(path_hash);
 
-    file_cache_node_t *node = rb_tree_get(&module_file->cache_tree, &r->uri, path_hash);
-    if (!node) {
-        sky_char_t *const path = sky_palloc(r->pool, module_file->path.len + r->uri.len + 1);
-        sky_memcpy(path, module_file->path.data, module_file->path.len);
-        sky_memcpy(path + module_file->path.len, r->uri.data, r->uri.len + 1);
-
-        const sky_i32_t fd = open(path, O_RDONLY | O_NONBLOCK | O_CLOEXEC);
-        if (fd < 0) {
-            http_error_page(r, 404, "404 Not Found");
-            return;
-        }
-        struct stat stat_buf;
-        fstat(fd, &stat_buf);
-        if (sky_unlikely(S_ISDIR(stat_buf.st_mode))) {
-            close(fd);
-            http_error_page(r, 404, "404 Not Found");
-            return;
-        }
-        sky_uchar_t *ptr = sky_malloc(sizeof(file_cache_node_t) + r->uri.len);
-        node = (file_cache_node_t *) ptr;
-        ptr += sizeof(file_cache_node_t);
-
-#if defined(__APPLE__)
-        node->modified_time = stat_buf.st_mtimespec.tv_sec;
-#else
-        node->modified_time = stat_buf.st_mtim.tv_sec;
-#endif
-        node->file_size = stat_buf.st_size;
-        node->module_file = module_file;
-        node->path_hash = path_hash;
-        node->ref_count = 1;
-        node->fd = fd;
-        node->path.data = ptr;
-        node->path.len = r->uri.len;
-        sky_memcpy(node->path.data, r->uri.data, r->uri.len);
-
-        rb_tree_insert(&module_file->cache_tree, node);
-    } else {
-        ++node->ref_count;
+    file_cache_node_t *const node = cache_node_file_get_ref(module_file, r->pool, &r->uri);
+    if (node->fd == -1) {
+        http_error_page(r, 404, "404 Not Found");
+        return;
     }
 
     r->headers_out.content_type = mime_type.val;
@@ -260,11 +257,92 @@ http_response_next(sky_http_server_request_t *const r, void *const data) {
     sky_http_server_req_finish(r);
 }
 
+static file_cache_node_t *
+cache_node_file_get_ref(http_module_file_t *module_file, sky_pool_t *pool, const sky_str_t *uri_path) {
+    sky_u32_t path_hash = sky_crc32_init();
+    path_hash = sky_crc32c_update(path_hash, uri_path->data, uri_path->len);
+    path_hash = sky_crc32_final(path_hash);
+
+    file_cache_node_t *node = rb_tree_get(&module_file->cache_tree, uri_path, path_hash);
+    if (node) {
+        if (sky_queue_linked(&node->link)) {
+            sky_queue_remove(&node->link);
+        }
+        ++node->ref_count;
+        return node;
+    }
+    sky_uchar_t *ptr = sky_malloc(sizeof(file_cache_node_t) + uri_path->len);
+    node = (file_cache_node_t *) ptr;
+    ptr += sizeof(file_cache_node_t);
+
+    sky_queue_init_node(&node->link);
+    node->module_file = module_file;
+    node->path_hash = path_hash;
+    node->ref_count = 1;
+    node->fd = -1;
+    node->path.data = ptr;
+    node->path.len = uri_path->len;
+    sky_memcpy(node->path.data, uri_path->data, uri_path->len);
+    rb_tree_insert(&module_file->cache_tree, node);
+
+
+    sky_char_t *const path = sky_palloc(pool, module_file->path.len + uri_path->len + 1);
+    sky_memcpy(path, module_file->path.data, module_file->path.len);
+    sky_memcpy(path + module_file->path.len, uri_path->data, uri_path->len + 1);
+
+    const sky_i32_t fd = open(path, O_RDONLY | O_NONBLOCK | O_CLOEXEC);
+    if (fd < 0) {
+        return node;
+    }
+    struct stat stat_buf;
+    fstat(fd, &stat_buf);
+    if (sky_unlikely(S_ISDIR(stat_buf.st_mode))) {
+        close(fd);
+        return node;
+    }
+    node->fd = fd;
+#if defined(__APPLE__)
+    node->modified_time = stat_buf.st_mtimespec.tv_sec;
+#else
+    node->modified_time = stat_buf.st_mtim.tv_sec;
+#endif
+    node->file_size = stat_buf.st_size;
+
+    return node;
+}
+
 static void
 cache_node_file_unref(file_cache_node_t *const node) {
-    if ((--node->ref_count) == 0) {
+    if ((--node->ref_count) != 0) {
+        return;
+    }
+    http_module_file_t *const module_file = node->module_file;
+    node->expire_at = sky_event_now(module_file->ev_loop) + module_file->cache_sec;
+    sky_queue_insert_prev(&module_file->cache_queue, &node->link);
+    if (!sky_timer_linked(&module_file->timer)) {
+        sky_event_timeout_set(module_file->ev_loop, &module_file->timer, module_file->cache_sec);
+    }
+}
+
+static void
+cache_node_free_timer(sky_timer_wheel_entry_t *const timer) {
+    http_module_file_t *const module_file = sky_type_convert(timer, http_module_file_t, timer);
+    sky_queue_t *item;
+    file_cache_node_t *node;
+
+    const sky_i64_t now_time = sky_event_now(module_file->ev_loop);
+    while (!sky_queue_empty(&module_file->cache_queue)) {
+        item = sky_queue_next(&module_file->cache_queue);
+        node = sky_type_convert(item, file_cache_node_t, link);
+        if (node->expire_at > now_time) {
+            sky_event_timeout_set(module_file->ev_loop, &module_file->timer, (sky_u32_t) (node->expire_at - now_time));
+            return;
+        }
+        sky_queue_remove(item);
         sky_rb_tree_del(&node->module_file->cache_tree, &node->node);
-        close(node->fd);
+        if (node->fd != -1) {
+            close(node->fd);
+        }
         sky_free(node);
     }
 }
