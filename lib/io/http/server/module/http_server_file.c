@@ -123,7 +123,7 @@ sky_http_server_file_create(sky_event_loop_t *const ev_loop, const sky_http_serv
     data->ev_loop = ev_loop;
     data->pre_run = conf->pre_run;
     data->run_data = conf->run_data;
-    data->cache_sec = conf->cache_sec ?: 15;
+    data->cache_sec = conf->cache_sec ?: 5;
 
     module->module_data = data;
 
