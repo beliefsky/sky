@@ -267,7 +267,7 @@ http_header_write_pre(sky_http_server_request_t *const r, sky_str_buf_t *const b
     }
     sky_str_buf_append_str_len(buf, sky_str_line("Date: "));
 
-    const sky_i64_t now = sky_event_now(r->conn->ev_loop);
+    const sky_i64_t now = sky_event_now(r->conn->server->ev_loop);
 
     if (now > r->conn->server->rfc_last) {
         sky_date_to_rfc_str(now, r->conn->server->rfc_date);
@@ -327,7 +327,7 @@ http_response_str(sky_tcp_t *const tcp) {
         goto again;
     }
     if (sky_likely(!n)) {
-        sky_event_timeout_set(conn->ev_loop, &conn->timer, conn->server->timeout);
+        sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
         sky_tcp_try_register(tcp, packet->ev_flag);
         return;
     }
@@ -368,7 +368,7 @@ http_response_vec(sky_tcp_t *const tcp) {
         goto next_vec;
     }
     if (sky_likely(!n)) {
-        sky_event_timeout_set(conn->ev_loop, &conn->timer, conn->server->timeout);
+        sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
         sky_tcp_try_register(tcp, packet->ev_flag);
         return;
     }
@@ -412,7 +412,7 @@ http_response_file(sky_tcp_t *const tcp) {
         goto again;
     }
     if (sky_likely(!n)) {
-        sky_event_timeout_set(conn->ev_loop, &conn->timer, conn->server->timeout);
+        sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
         sky_tcp_try_register(tcp, packet->ev_flag);
     } else {
         sky_timer_wheel_unlink(&conn->timer);
