@@ -6,6 +6,7 @@
 #define SKY_MQTT_CLIENT_H
 
 #include <io/event_loop.h>
+#include <io/inet.h>
 
 #if defined(__cplusplus)
 extern "C" {
