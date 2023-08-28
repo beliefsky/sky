@@ -53,7 +53,7 @@ sky_i8_t sky_tls_shutdown(sky_tls_t *tls);
 
 void sky_tls_destroy(sky_tls_t *tls);
 
-void sky_tls_set_sni_hostname(sky_tls_t *tls, sky_str_t *hostname);
+void sky_tls_set_sni_hostname(sky_tls_t *tls, sky_str_t *const hostname);
 
 
 #if defined(__cplusplus)
