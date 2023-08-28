@@ -24,11 +24,14 @@ struct sky_mqtt_client_s {
 
     mqtt_head_t mqtt_head_tmp;
     sky_queue_t packet;
-    mqtt_client_packet_t *current_packet;
+
+    union {
+        mqtt_client_packet_t *current_packet;
+        sky_str_t *handshake_str;
+    };
     sky_event_loop_t *ev_loop;
     sky_pool_t *reader_pool;
     sky_uchar_t *body_tmp;
-    sky_mqtt_status_pt next_cb;
     sky_mqtt_status_pt connected;
     sky_mqtt_status_pt closed;
     sky_mqtt_msg_pt msg_handle;
@@ -41,6 +44,7 @@ struct sky_mqtt_client_s {
     sky_u16_t keep_alive;
     sky_u32_t head_copy: 3;
     sky_bool_t reconnect: 1;
+    sky_bool_t read_head:1;
     sky_bool_t is_ok: 1;
 };
 
@@ -54,13 +58,13 @@ void mqtt_client_handshake(sky_mqtt_client_t *client);
 
 void mqtt_client_msg(sky_mqtt_client_t *client);
 
-void mqtt_client_read_packet(sky_mqtt_client_t *client, sky_mqtt_status_pt call);
+sky_i8_t mqtt_client_head_parse(sky_mqtt_client_t *client, sky_u32_t read_size);
 
 mqtt_client_packet_t *mqtt_client_get_packet(sky_mqtt_client_t *client, sky_u32_t need_size);
 
 sky_bool_t mqtt_client_write_packet(sky_mqtt_client_t *client);
 
-void mqtt_client_clean_packet(sky_mqtt_client_t * client);
+void mqtt_client_clean_packet(sky_mqtt_client_t *client);
 
 void mqtt_client_close(sky_mqtt_client_t *client);
 

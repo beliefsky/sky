@@ -83,6 +83,9 @@ sky_tcp_accept(sky_tcp_t *const server, sky_tcp_t *const client) {
     if (sky_unlikely(sky_ev_error(&server->ev) || !sky_tcp_is_open(server))) {
         return -1;
     }
+    if (sky_unlikely(!sky_ev_readable(&server->ev))) {
+        return 0;
+    }
 
     const sky_socket_t listener = sky_ev_get_fd(&server->ev);
 #ifdef SKY_HAVE_ACCEPT4
@@ -136,6 +139,10 @@ sky_tcp_connect(sky_tcp_t *const tcp, const sky_inet_address_t *const address) {
 
     if (sky_unlikely(sky_ev_error(&tcp->ev) || !sky_tcp_is_open(tcp))) {
         return -1;
+    }
+
+    if (sky_unlikely(!sky_ev_any_able(&tcp->ev))) {
+        return 0;
     }
 
     if (connect(fd, (const struct sockaddr *) address, sizeof(sky_inet_address_t)) < 0) {

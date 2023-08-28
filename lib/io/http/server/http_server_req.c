@@ -132,9 +132,9 @@ http_line_cb(sky_tcp_t *const tcp) {
     if (sky_likely(!n)) {
         sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
         if (sky_timer_linked(&conn->timer)) {
-            sky_event_timeout_expired(conn->ev_loop, &conn->timer, conn->server->timeout);
+            sky_event_timeout_expired(conn->server->ev_loop, &conn->timer, conn->server->timeout);
         } else {
-            sky_event_timeout_set(conn->ev_loop, &conn->timer, conn->server->keep_alive);
+            sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->keep_alive);
         }
         return;
     }
@@ -185,7 +185,7 @@ http_header_read(sky_tcp_t *const tcp) {
 
     if (sky_likely(!n)) {
         sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
-        sky_event_timeout_set(conn->ev_loop, &conn->timer, conn->server->timeout);
+        sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
         return;
     }
 
@@ -239,7 +239,7 @@ http_server_req_finish(sky_http_server_request_t *r, void *const data) {
     }
 
     sky_timer_set_cb(&conn->timer, http_server_request_next);
-    sky_event_timeout_set(conn->ev_loop, &conn->timer, 0);
+    sky_event_timeout_set(conn->server->ev_loop, &conn->timer, 0);
 }
 
 static void

@@ -7,7 +7,6 @@
 
 typedef struct {
     sky_tcp_t tcp;
-    sky_event_loop_t *ev_loop;
     sky_http_server_t *server;
     sky_http_connection_t *conn_tmp;
 } http_listener_t;
@@ -15,10 +14,11 @@ typedef struct {
 static void http_server_accept(sky_tcp_t *tcp);
 
 sky_api sky_http_server_t *
-sky_http_server_create(const sky_http_server_conf_t *const conf) {
+sky_http_server_create(sky_event_loop_t *ev_loop, const sky_http_server_conf_t *const conf) {
     sky_pool_t *const pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
     sky_http_server_t *const server = sky_palloc(pool, sizeof(sky_http_server_t));
     server->pool = pool;
+    server->ev_loop = ev_loop;
     server->rfc_last = 0;
 
     if (!conf) {
@@ -71,12 +71,10 @@ sky_http_server_module_put(sky_http_server_t *const server, sky_http_server_modu
 sky_api sky_bool_t
 sky_http_server_bind(
         sky_http_server_t *const server,
-        sky_event_loop_t *const ev_loop,
         const sky_inet_address_t *const address
 ) {
     http_listener_t *const listener = sky_palloc(server->pool, sizeof(http_listener_t));
-    sky_tcp_init(&listener->tcp, sky_event_selector(ev_loop));
-    listener->ev_loop = ev_loop;
+    sky_tcp_init(&listener->tcp, sky_event_selector(server->ev_loop));
     listener->server = server;
     listener->conn_tmp = null;
 
@@ -119,9 +117,8 @@ http_server_accept(sky_tcp_t *const tcp) {
     sky_http_connection_t *conn = l->conn_tmp;
     if (!conn) {
         conn = sky_malloc(sizeof(sky_http_connection_t));
-        sky_tcp_init(&conn->tcp, sky_event_selector(l->ev_loop));
+        sky_tcp_init(&conn->tcp, sky_event_selector(l->server->ev_loop));
         sky_timer_entry_init(&conn->timer, null);
-        conn->ev_loop = l->ev_loop;
         conn->server = l->server;
     }
     sky_i8_t r;
@@ -131,9 +128,8 @@ http_server_accept(sky_tcp_t *const tcp) {
             http_server_request_process(conn);
 
             conn = sky_malloc(sizeof(sky_http_connection_t));
-            sky_tcp_init(&conn->tcp, sky_event_selector(l->ev_loop));
+            sky_tcp_init(&conn->tcp, sky_event_selector(l->server->ev_loop));
             sky_timer_entry_init(&conn->timer, null);
-            conn->ev_loop = l->ev_loop;
             conn->server = l->server;
 
             continue;

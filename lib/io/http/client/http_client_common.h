@@ -36,6 +36,7 @@ struct domain_node_s {
 
     sky_http_client_t *client;
 
+    sky_u32_t host_hash;
     sky_u32_t port_and_ssl;
     sky_u16_t conn_num;
     sky_u16_t free_conn_num;

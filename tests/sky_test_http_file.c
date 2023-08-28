@@ -12,7 +12,9 @@ main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
-    sky_http_server_t *server = sky_http_server_create(null);
+    sky_event_loop_t *loop = sky_event_loop_create();
+
+    sky_http_server_t *server = sky_http_server_create(loop, null);
 
     {
         const sky_http_server_file_conf_t conf = {
@@ -22,14 +24,12 @@ main() {
                 .pre_run = http_index_router
         };
 
-        sky_http_server_module_put(server, sky_http_server_file_create(&conf));
+        sky_http_server_module_put(server, sky_http_server_file_create(loop, &conf));
     }
-
-    sky_event_loop_t *loop = sky_event_loop_create();
 
     sky_inet_address_t address;
     sky_inet_address_ipv4(&address, 0, 8080);
-    sky_http_server_bind(server, loop, &address);
+    sky_http_server_bind(server, &address);
 
     const sky_uchar_t local_ipv6[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     sky_inet_address_ipv6(&address, local_ipv6, 0, 0, 8080);

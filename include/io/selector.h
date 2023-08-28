@@ -93,6 +93,11 @@ sky_ev_writable(const sky_ev_t *const ev) {
     return (ev->status & SKY_EV_WRITE) != 0;
 }
 
+static sky_inline sky_bool_t
+sky_ev_any_able(const sky_ev_t *const ev) {
+    return (ev->status & (SKY_EV_READ | SKY_EV_WRITE)) != 0;
+}
+
 static sky_inline void
 sky_ev_clean_read(sky_ev_t *const ev) {
     ev->status &= ~SKY_EV_READ;

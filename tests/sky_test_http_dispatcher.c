@@ -55,7 +55,7 @@ main() {
 
 static sky_bool_t
 create_server(sky_event_loop_t *ev_loop) {
-    sky_http_server_t *server = sky_http_server_create(null);
+    sky_http_server_t *server = sky_http_server_create(ev_loop, null);
 
 
     const sky_http_mapper_t mappers[] = {
@@ -82,11 +82,11 @@ create_server(sky_event_loop_t *ev_loop) {
     sky_inet_address_t address;
 
     sky_inet_address_ipv4(&address, 0, 8080);
-    sky_http_server_bind(server, ev_loop, &address);
+    sky_http_server_bind(server, &address);
 
     const sky_uchar_t local_ipv6[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     sky_inet_address_ipv6(&address, local_ipv6, 0, 0, 8080);
-    sky_http_server_bind(server, ev_loop, &address);
+    sky_http_server_bind(server, &address);
 
     return true;
 }

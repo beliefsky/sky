@@ -498,7 +498,7 @@ http_multipart_boundary_start(sky_tcp_t *const tcp) {
 
     if (sky_likely(!n)) {
         sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
-        sky_event_timeout_set(conn->ev_loop, &conn->timer, conn->server->timeout);
+        sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
         return;
     }
 
@@ -586,7 +586,7 @@ http_multipart_header_read(sky_tcp_t *const tcp) {
     }
     if (sky_likely(!n)) {
         sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
-        sky_event_timeout_set(conn->ev_loop, &conn->timer, conn->server->timeout);
+        sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
         return;
     }
 
@@ -676,7 +676,7 @@ http_multipart_body_none(sky_tcp_t *const tcp) {
     }
     if (sky_likely(!n)) {
         sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
-        sky_event_timeout_set(conn->ev_loop, &conn->timer, conn->server->timeout);
+        sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
         return;
     }
 
@@ -788,7 +788,7 @@ http_multipart_body_str(sky_tcp_t *tcp) {
     }
     if (sky_likely(!n)) {
         sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
-        sky_event_timeout_set(conn->ev_loop, &conn->timer, conn->server->timeout);
+        sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
         return;
     }
 
@@ -877,7 +877,7 @@ http_multipart_body_str_none(sky_tcp_t *const tcp) {
     }
     if (sky_likely(!n)) {
         sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
-        sky_event_timeout_set(conn->ev_loop, &conn->timer, conn->server->timeout);
+        sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
         return;
     }
 
@@ -977,7 +977,7 @@ http_multipart_body_read(sky_tcp_t *const tcp) {
     }
     if (sky_likely(!n)) {
         sky_tcp_try_register(&conn->tcp, SKY_EV_READ | SKY_EV_WRITE);
-        sky_event_timeout_set(conn->ev_loop, &conn->timer, conn->server->timeout);
+        sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
         return;
     }
 

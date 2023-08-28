@@ -11,8 +11,8 @@
 extern "C" {
 #endif
 
-#define sky_crc32_init()        0xffffffffU
-#define sky_crc32_final(_crc)   ((_crc) ^ 0xffffffffU)
+#define sky_crc32_init()        SKY_U32(0xFFFFFFFF)
+#define sky_crc32_final(_crc)   ((_crc) ^ SKY_U32(0xFFFFFFFF))
 
 sky_u32_t sky_crc32_update(sky_u32_t crc, const sky_uchar_t *p, sky_usize_t len);
 
