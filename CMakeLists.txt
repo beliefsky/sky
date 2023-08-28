@@ -21,7 +21,7 @@ if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release")
 endif ()
 
-if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^i[3456]86|x86|amd64|AMD64")
+if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^x86_64|amd64|aarch64")
     set(SKY_HAVE_LIBUCONTEXT 1)
 endif ()
 
@@ -147,6 +147,7 @@ enable_warning_if_supported(-Wno-override-init)
 enable_warning_if_supported(-Wno-free-nonheap-object)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wshadow -Wconversion -std=gnu11")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffunction-sections -fdata-sections -fvisibility=hidden")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${C_FLAGS_REL}")
 set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} ${C_FLAGS_REL}")
 set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL} ${C_FLAGS_REL}")
@@ -162,9 +163,14 @@ endif ()
 #
 # Generate sky_build_config.h
 #
+#configure_file(
+#        "${CMAKE_SOURCE_DIR}/cmake/sky_build_config.h.cmake"
+#        "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/sky_build_config.h"
+#)
+
 configure_file(
         "${CMAKE_SOURCE_DIR}/cmake/sky_build_config.h.cmake"
-        "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/sky_build_config.h"
+        "${CMAKE_CURRENT_SOURCE_DIR}/include/sky_build_config.h"
 )
 
 configure_file(
@@ -172,5 +178,8 @@ configure_file(
         "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc"
 )
 
-add_subdirectory(src)
+#add_subdirectory(src)
+
+add_subdirectory(lib)
+add_subdirectory(tests)
 

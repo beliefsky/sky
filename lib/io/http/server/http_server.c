@@ -1,0 +1,151 @@
+//
+// Created by beliefsky on 2023/7/1.
+//
+#include <io/tcp.h>
+#include <core/memory.h>
+#include "http_server_common.h"
+
+typedef struct {
+    sky_tcp_t tcp;
+    sky_http_server_t *server;
+    sky_http_connection_t *conn_tmp;
+} http_listener_t;
+
+static void http_server_accept(sky_tcp_t *tcp);
+
+sky_api sky_http_server_t *
+sky_http_server_create(sky_event_loop_t *ev_loop, const sky_http_server_conf_t *const conf) {
+    sky_pool_t *const pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
+    sky_http_server_t *const server = sky_palloc(pool, sizeof(sky_http_server_t));
+    server->pool = pool;
+    server->ev_loop = ev_loop;
+    server->rfc_last = 0;
+
+    if (!conf) {
+        server->body_str_max = SKY_USIZE(131072);
+        server->keep_alive = SKY_U32(75);
+        server->timeout = SKY_U32(30);
+        server->header_buf_size = SKY_U32(2048);
+        server->header_buf_n = SKY_U8(4);
+    } else {
+        server->body_str_max = conf->body_str_max ?: SKY_USIZE(131072);
+        server->keep_alive = conf->keep_alive ?: SKY_U32(75);
+        server->timeout = conf->timeout ?: SKY_U32(30);
+        server->header_buf_size = conf->header_buf_size ?: SKY_U32(2048);
+        server->header_buf_n = conf->header_buf_n ?: SKY_U8(4);
+    }
+    server->host_map = sky_trie_create(server->pool);
+
+    return server;
+}
+
+sky_api sky_bool_t
+sky_http_server_module_put(sky_http_server_t *const server, sky_http_server_module_t *const module) {
+    sky_trie_t *host_trie = sky_trie_contains(server->host_map, &module->host);
+    if (!host_trie) {
+        host_trie = sky_trie_create(server->pool);
+
+        sky_str_t tmp = {
+                .data = sky_palloc(server->pool, module->host.len),
+                .len = module->host.len
+        };
+        sky_memcpy(tmp.data, module->host.data, tmp.len);
+        sky_trie_put(server->host_map, &tmp, host_trie);
+    }
+    const sky_http_server_module_t *const old = sky_trie_contains(host_trie, &module->prefix);
+    if (!old) {
+        sky_str_t tmp = {
+                .data = sky_palloc(server->pool, module->prefix.len),
+                .len = module->prefix.len
+        };
+        sky_memcpy(tmp.data, module->prefix.data, tmp.len);
+        sky_trie_put(host_trie, &tmp, module);
+
+        return true;
+    }
+
+
+    return false;
+}
+
+sky_api sky_bool_t
+sky_http_server_bind(
+        sky_http_server_t *const server,
+        const sky_inet_address_t *const address
+) {
+    http_listener_t *const listener = sky_palloc(server->pool, sizeof(http_listener_t));
+    sky_tcp_init(&listener->tcp, sky_event_selector(server->ev_loop));
+    listener->server = server;
+    listener->conn_tmp = null;
+
+
+    if (sky_unlikely(!sky_tcp_open(&listener->tcp, sky_inet_address_family(address)))) {
+        sky_pfree(server->pool, listener, sizeof(http_listener_t));
+        return false;
+    }
+    sky_tcp_option_reuse_addr(&listener->tcp);
+
+    if (sky_unlikely(!sky_tcp_option_reuse_port(&listener->tcp))) {
+        sky_tcp_close(&listener->tcp);
+        sky_pfree(server->pool, listener, sizeof(http_listener_t));
+        return false;
+    }
+    sky_tcp_option_no_delay(&listener->tcp);
+    sky_tcp_option_fast_open(&listener->tcp, 3);
+    sky_tcp_option_defer_accept(&listener->tcp);
+
+    if (sky_unlikely(!sky_tcp_bind(&listener->tcp, address))) {
+        sky_tcp_close(&listener->tcp);
+        sky_pfree(server->pool, listener, sizeof(http_listener_t));
+        return false;
+    }
+
+    if (sky_unlikely(!sky_tcp_listen(&listener->tcp, 1000))) {
+        sky_tcp_close(&listener->tcp);
+        sky_pfree(server->pool, listener, sizeof(http_listener_t));
+        return false;
+    }
+    sky_tcp_set_cb(&listener->tcp, http_server_accept);
+    http_server_accept(&listener->tcp);
+    return true;
+}
+
+static void
+http_server_accept(sky_tcp_t *const tcp) {
+    http_listener_t *const l = sky_type_convert(tcp, http_listener_t, tcp);
+
+    sky_http_connection_t *conn = l->conn_tmp;
+    if (!conn) {
+        conn = sky_malloc(sizeof(sky_http_connection_t));
+        sky_tcp_init(&conn->tcp, sky_event_selector(l->server->ev_loop));
+        sky_timer_entry_init(&conn->timer, null);
+        conn->server = l->server;
+    }
+    sky_i8_t r;
+    for (;;) {
+        r = sky_tcp_accept(tcp, &conn->tcp);
+        if (r > 0) {
+            http_server_request_process(conn);
+
+            conn = sky_malloc(sizeof(sky_http_connection_t));
+            sky_tcp_init(&conn->tcp, sky_event_selector(l->server->ev_loop));
+            sky_timer_entry_init(&conn->timer, null);
+            conn->server = l->server;
+
+            continue;
+        }
+        l->conn_tmp = conn;
+
+        if (sky_likely(!r)) {
+            sky_tcp_try_register(tcp, SKY_EV_READ);
+            return;
+        }
+
+        sky_free(l->conn_tmp);
+        l->conn_tmp = null;
+        sky_tcp_close(tcp);
+
+        return;
+    }
+}
+

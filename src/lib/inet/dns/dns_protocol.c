@@ -206,10 +206,6 @@ decode_question(
             return false;
         }
         sky_str_buf_build(&str_buf, &name);
-        if (name.len > 0) {
-            ++name.data;
-            --name.len;
-        }
         q->name = name.data;
         q->name_len = (sky_u32_t) name.len;
 
@@ -264,10 +260,6 @@ decode_answer(
             return false;
         }
         sky_str_buf_build(&str_buf, &name);
-        if (name.len > 0) {
-            ++name.data;
-            --name.len;
-        }
         a->name = name.data;
         a->name_len = (sky_u32_t) name.len;
 
@@ -339,7 +331,7 @@ decode_name(sky_str_buf_t *str_buf, buf_ref_t *ref) {
         len = *buf;
 
         if (sky_unlikely(!len)) {
-            sky_str_buf_append_u8(str_buf, len);
+            sky_str_buf_append_uchar(str_buf, len);
             ++buf;
             --size;
             break;
@@ -367,11 +359,10 @@ decode_name(sky_str_buf_t *str_buf, buf_ref_t *ref) {
         --size;
 
         if (sky_likely(size > len)) {
-            sky_str_buf_append_u8(str_buf, len);
+            sky_str_buf_append_uchar(str_buf, len);
             sky_str_buf_append_str_len(str_buf, buf, len);
             buf += len;
             size -= len;
-
             continue;
         }
 
@@ -391,7 +382,7 @@ decode_name_offset(sky_str_buf_t *str_buf, buf_position_t *p) {
     for (;;) {
         len = *p->buf;
         if (sky_unlikely(!len)) {
-            sky_str_buf_append_u8(str_buf, len);
+            sky_str_buf_append_uchar(str_buf, len);
             ++p->buf;
             --p->size;
             break;
@@ -409,7 +400,7 @@ decode_name_offset(sky_str_buf_t *str_buf, buf_position_t *p) {
         --p->size;
 
         if (sky_likely(p->size > len)) {
-            sky_str_buf_append_u8(str_buf, len);
+            sky_str_buf_append_uchar(str_buf, len);
             sky_str_buf_append_str_len(str_buf, p->buf, len);
             p->buf += len;
             p->size -= len;

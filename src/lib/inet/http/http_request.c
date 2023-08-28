@@ -26,7 +26,7 @@ static sky_usize_t http_read(sky_http_connection_t *conn, sky_uchar_t *data, sky
 
 static void http_read_timeout(sky_timer_wheel_entry_t *timer);
 
-static void http_read_error(sky_http_connection_t *conn);
+static void http_conn_free(sky_http_connection_t *conn);
 
 static void http_res_error(sky_http_connection_t *conn);
 
@@ -634,7 +634,7 @@ http_line_read(sky_tcp_t *tcp) {
         break;
     }
 
-    http_read_error(conn);
+    http_conn_free(conn);
 }
 
 
@@ -688,7 +688,7 @@ http_header_read(sky_tcp_t *tcp) {
         break;
     }
 
-    http_read_error(conn);
+    http_conn_free(conn);
 }
 
 static void
@@ -830,7 +830,7 @@ http_read_timeout(sky_timer_wheel_entry_t *timer) {
 }
 
 static sky_inline void
-http_read_error(sky_http_connection_t *conn) {
+http_conn_free(sky_http_connection_t *conn) {
     sky_http_request_t *req = conn->req_tmp;
 
     sky_timer_wheel_unlink(&req->timer);
