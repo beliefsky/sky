@@ -2,6 +2,6 @@
 .vscode/
 build/
 target/
-src/lib/sky_build_config.h
+include/sky_build_config.h
 cmake-build-*
 *.lock
