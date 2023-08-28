@@ -210,7 +210,7 @@ sky_tls_read(sky_tls_t *const tls, sky_uchar_t *const data, const sky_usize_t si
 }
 
 sky_api sky_isize_t
-sky_tls_write(sky_tls_t *tls, const sky_uchar_t *data, sky_usize_t size) {
+sky_tls_write(sky_tls_t *const tls, const sky_uchar_t *const data, const sky_usize_t size) {
     if (sky_unlikely(!tls->ssl || sky_ev_error(sky_tcp_ev(tls->tcp)) || !sky_tcp_is_connect(tls->tcp))) {
         return -1;
     }
