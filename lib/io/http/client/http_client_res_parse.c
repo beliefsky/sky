@@ -193,7 +193,7 @@ http_res_header_parse(sky_http_client_res_t *const r, sky_buf_t *const b) {
                 break;
             } while (true);
 
-            r->res_pos = p++;
+            r->res_pos = p;
             state = sw_header_value;
         }
         case sw_header_value: {
