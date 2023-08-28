@@ -210,7 +210,7 @@ sky_tls_read(sky_tls_t *const tls, sky_uchar_t *const data, const sky_usize_t si
 }
 
 sky_api sky_isize_t
-sky_tls_write(sky_tls_t *tls, const sky_uchar_t *data, sky_usize_t size) {
+sky_tls_write(sky_tls_t *const tls, const sky_uchar_t *const data, const sky_usize_t size) {
     if (sky_unlikely(!tls->ssl || sky_ev_error(sky_tcp_ev(tls->tcp)) || !sky_tcp_is_connect(tls->tcp))) {
         return -1;
     }
@@ -277,6 +277,13 @@ sky_tls_destroy(sky_tls_t *const tls) {
     }
     SSL_free(tls->ssl);
     tls->ssl = null;
+}
+
+sky_api void
+sky_tls_set_sni_hostname(sky_tls_t *const tls, const sky_str_t *const hostname) {
+#ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
+    SSL_set_tlsext_host_name(tls->ssl, hostname->data);
+#endif
 }
 
 #endif

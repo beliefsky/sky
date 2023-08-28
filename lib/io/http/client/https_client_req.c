@@ -123,6 +123,7 @@ client_connect(sky_tcp_t *const tcp) {
         if (sky_unlikely(!sky_tls_init(&client->tls_ctx, &connect->tls, &connect->conn.tcp))) {
             goto error;
         }
+        sky_tls_set_sni_hostname(&connect->tls, &connect->conn.node->host);
         sky_tcp_set_cb(tcp, client_handshake);
         client_handshake(tcp);
         return;
