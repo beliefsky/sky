@@ -45,7 +45,7 @@ sky_tls_connect(sky_tls_t *const tls) {
 }
 
 sky_api sky_isize_t
-sky_tls_read(sky_tls_t *const tls, sky_uchar_t *data, sky_usize_t size) {
+sky_tls_read(sky_tls_t *const tls, sky_uchar_t *const data, const sky_usize_t size) {
     (void) tls;
     (void) data;
     (void) size;
@@ -54,7 +54,7 @@ sky_tls_read(sky_tls_t *const tls, sky_uchar_t *data, sky_usize_t size) {
 }
 
 sky_api sky_isize_t
-sky_tls_write(sky_tls_t *tls, const sky_uchar_t *data, sky_usize_t size) {
+sky_tls_write(sky_tls_t *const tls, const sky_uchar_t *const data, const sky_usize_t size) {
     (void) tls;
     (void) data;
     (void) size;
