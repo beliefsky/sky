@@ -100,7 +100,7 @@ mqtt_client_clean_packet(sky_mqtt_client_t *const client) {
     sky_queue_t *item;
     while (!sky_queue_empty(&client->packet)) {
         item = sky_queue_next(&client->packet);
-        sky_queue_remove(&packet->link);
+        sky_queue_remove(item);
 
         packet = sky_type_convert(item, mqtt_client_packet_t, link);
         sky_free(packet);
