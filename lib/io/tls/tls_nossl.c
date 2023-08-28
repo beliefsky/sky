@@ -74,5 +74,11 @@ sky_tls_destroy(sky_tls_t *const tls) {
     (void) tls;
 }
 
+sky_api void
+sky_tls_set_sni_hostname(sky_tls_t *const tls, const sky_str_t *const hostname) {
+    (void) tls;
+    (void) hostname;
+}
+
 #endif
 

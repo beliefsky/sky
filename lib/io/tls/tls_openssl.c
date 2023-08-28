@@ -280,7 +280,7 @@ sky_tls_destroy(sky_tls_t *const tls) {
 }
 
 sky_api void
-sky_tls_set_sni_hostname(sky_tls_t *tls, sky_str_t *const hostname) {
+sky_tls_set_sni_hostname(sky_tls_t *const tls, const sky_str_t *const hostname) {
 #ifdef SSL_CTRL_SET_TLSEXT_HOSTNAME
     SSL_set_tlsext_host_name(tls->ssl, hostname->data);
 #endif
