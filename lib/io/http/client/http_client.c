@@ -46,7 +46,7 @@ sky_http_client_create(
             return null;
         }
 
-        client->body_str_max = conf->body_str_max ?: SKY_USIZE(131072);
+        client->body_str_max = conf->body_str_max ?: SKY_USIZE(1048576);
         client->keepalive = conf->keepalive ?: 75;
         client->timeout = conf->timeout ?: 30;
         client->header_buf_size = conf->header_buf_size ?: 2048;
@@ -59,7 +59,7 @@ sky_http_client_create(
             return null;
         }
 
-        client->body_str_max = SKY_USIZE(131072);
+        client->body_str_max = SKY_USIZE(1048576);
         client->keepalive = 75;
         client->timeout = 30;
         client->header_buf_size = 2048;

@@ -116,6 +116,8 @@ struct sky_http_server_request_s {
     sky_pool_t *pool;
     sky_http_connection_t *conn;
 
+    void *attr_data;
+
     sky_u32_t state: 9;
     sky_u8_t method: 7;
     sky_bool_t keep_alive: 1;
@@ -150,7 +152,7 @@ sky_http_server_t *sky_http_server_create(sky_event_loop_t *ev_loop, const sky_h
 
 sky_bool_t sky_http_server_module_put(sky_http_server_t *server, sky_http_server_module_t *module);
 
-sky_bool_t sky_http_server_bind( sky_http_server_t *server,const sky_inet_address_t *address);
+sky_bool_t sky_http_server_bind(sky_http_server_t *server, const sky_inet_address_t *address);
 
 sky_bool_t sky_http_url_decode(sky_str_t *str);
 
@@ -220,6 +222,16 @@ void sky_http_server_req_finish(sky_http_server_request_t *r);
 static sky_inline sky_bool_t
 sky_http_server_req_error(const sky_http_server_request_t *const r) {
     return r->error;
+}
+
+static sky_inline void
+sky_http_server_req_set_data(sky_http_server_request_t *const r, void *const data) {
+    r->attr_data = data;
+}
+
+static sky_inline void *
+sky_http_server_req_get_data(sky_http_server_request_t *const r) {
+    return r->attr_data;
 }
 
 #if defined(__cplusplus)

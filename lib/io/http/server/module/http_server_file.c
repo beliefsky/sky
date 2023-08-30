@@ -295,17 +295,12 @@ cache_node_file_get_ref(http_module_file_t *module_file, sky_pool_t *pool, const
         return node;
     }
     struct stat stat_buf;
-    fstat(fd, &stat_buf);
-    if (sky_unlikely(S_ISDIR(stat_buf.st_mode))) {
+    if (sky_unlikely(fstat(fd, &stat_buf) < 0 || S_ISDIR(stat_buf.st_mode))) {
         close(fd);
         return node;
     }
     node->fd = fd;
-#if defined(__APPLE__)
-    node->modified_time = stat_buf.st_mtimespec.tv_sec;
-#else
-    node->modified_time = stat_buf.st_mtim.tv_sec;
-#endif
+    node->modified_time = stat_buf.st_mtime;
     node->file_size = stat_buf.st_size;
 
     return node;

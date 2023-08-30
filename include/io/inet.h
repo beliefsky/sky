@@ -84,6 +84,13 @@ void sky_inet_address_ipv6(
         sky_u16_t port
 );
 
+sky_bool_t sky_inet_address_ip_str(
+        sky_inet_address_t *address,
+        const sky_uchar_t *ip,
+        sky_usize_t size,
+        sky_u16_t port
+);
+
 sky_bool_t sky_inet_address_un(sky_inet_address_t *address, const sky_uchar_t *path, sky_usize_t len);
 
 static sky_inline sky_i32_t

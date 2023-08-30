@@ -31,6 +31,7 @@ static sky_u32_t crc32_sb8(const sky_uchar_t *input, sky_usize_t length, sky_u32
 static sky_u32_t crc32_sb16(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32);
 
 #ifndef __SSE4_1__
+
 static sky_u32_t crc32c_no_slice(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32c);
 
 /* Computes the Castagnoli CRC32c (iSCSI) using slice-by-4. */
@@ -41,6 +42,7 @@ static sky_u32_t crc32c_sb8(const sky_uchar_t *input, sky_usize_t length, sky_u3
 
 /* Computes the Castagnoli CRC32c (iSCSI) using slice-by-16. */
 static sky_u32_t crc32c_sb16(const sky_uchar_t *input, sky_usize_t length, sky_u32_t previous_crc32);
+
 #else
 
 #include <smmintrin.h>
@@ -76,19 +78,19 @@ sky_crc32_update(sky_u32_t crc, const sky_uchar_t *p, sky_usize_t len) {
         p += chunk_size;
     }
 #endif
-    if (len >= 16) {
-        return crc32_sb16(p, len, crc);
-    }
-
-    if (len >= 8) {
-        return crc32_sb8(p, len, crc);
-    }
-
-    if (len >= 4) {
+    if (len < 8) {
+        if (len < 4) {
+            return crc32_no_slice(p, len, crc);
+        }
         return crc32_sb4(p, len, crc);
     }
 
-    return crc32_no_slice(p, len, crc);
+    if (len < 16) {
+        return crc32_sb8(p, len, crc);
+    }
+
+    return crc32_sb16(p, len, crc);
+
 }
 
 /**
@@ -138,19 +140,18 @@ sky_crc32c_update(sky_u32_t crc, const sky_uchar_t *p, sky_usize_t len) {
     return crc;
 
 #else
-    if (len >= 16) {
-        return crc32c_sb16(p, len, crc);
-    }
 
-    if (len >= 8) {
-        return crc32c_sb8(p, len, crc);
-    }
-
-    if (len >= 4) {
+    if (len < 8) {
+        if (len < 4) {
+            return crc32c_no_slice(p, len, crc);
+        }
         return crc32c_sb4(p, len, crc);
     }
 
-    return crc32c_no_slice(p, len, crc);
+    if (len < 16) {
+        return crc32c_sb8(p, len, crc);
+    }
+    return crc32c_sb16(p, len, crc);
 #endif
 }
 

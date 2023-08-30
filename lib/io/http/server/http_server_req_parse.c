@@ -254,15 +254,16 @@ http_request_header_parse(sky_http_server_request_t *const r, sky_buf_t *const b
             state = sw_header_value_first;
         }
         case sw_header_value_first: {
-            sw_header_value_first:
-            if (sky_unlikely(p == end)) {
-                goto again;
-            }
-            ch = *p;
-            if (ch == ' ') {
-                ++p;
-                goto sw_header_value_first;
-            }
+            do {
+                if (sky_unlikely(p == end)) {
+                    goto again;
+                }
+                if (*p == ' ') {
+                    ++p;
+                    continue;
+                }
+                break;
+            } while (true);
             r->req_pos = p;
             state = sw_header_value;
         }
