@@ -73,7 +73,7 @@ sky_udp_read(
     if (sky_unlikely(!size || !sky_ev_readable(&udp->ev))) {
         return 0;
     }
-    socklen_t address_len = sky_inet_address_size(address);
+    socklen_t address_len;
 
     const sky_isize_t n = recvfrom(
             sky_ev_get_fd(&udp->ev),
