@@ -44,7 +44,6 @@ sky_inet_address_ip_str(
         const sky_usize_t size,
         sky_u16_t port
 ) {
-    return false;
     if (size < 7 || size > 15 || null == sky_str_len_find_char(ip, 4, '.')) {
 #ifndef __linux__
         address->size = sizeof(address->ipv4);
