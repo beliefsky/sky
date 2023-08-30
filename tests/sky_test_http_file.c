@@ -32,7 +32,7 @@ main() {
     sky_http_server_bind(server, &address);
 
     const sky_uchar_t local_ipv6[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    sky_inet_address_ipv6(&address, local_ipv6, 0, 0, 8080);
+    sky_inet_address_ipv6(&address, local_ipv6, 0, 8080);
 
     sky_event_loop_run(loop);
     sky_event_loop_destroy(loop);

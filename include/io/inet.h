@@ -80,7 +80,6 @@ void sky_inet_address_ipv6(
         sky_inet_address_t *address,
         const sky_uchar_t ip[16],
         sky_u32_t flow_info,
-        sky_u32_t scope_id,
         sky_u16_t port
 );
 
