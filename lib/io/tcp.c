@@ -9,7 +9,7 @@
 #include <io/tcp.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
-#include <errno.h>
+#include <sys/errno.h>
 #include <unistd.h>
 
 #if defined(__linux__)
@@ -18,15 +18,13 @@
 
 #elif defined(__FreeBSD__) || defined(__APPLE__)
 
-#include <sys/types.h>
 #include <sys/socket.h>
-#include <sys/uio.h>
 
 #endif
 
 #ifndef SKY_HAVE_ACCEPT4
 
-#include <fcntl.h>
+#include <sys/fcntl.h>
 
 static sky_bool_t set_socket_nonblock(sky_socket_t fd);
 
@@ -69,7 +67,7 @@ sky_tcp_open(sky_tcp_t *const tcp, const sky_i32_t domain) {
 sky_api sky_bool_t
 sky_tcp_bind(const sky_tcp_t *const tcp, const sky_inet_address_t *const address) {
     return sky_tcp_is_open(tcp)
-           && bind(sky_ev_get_fd(&tcp->ev), (const struct sockaddr *) address, sizeof(sky_inet_address_t)) == 0;
+           && bind(sky_ev_get_fd(&tcp->ev), (const struct sockaddr *) address, sky_inet_address_size(address)) == 0;
 }
 
 sky_api sky_bool_t
@@ -145,7 +143,7 @@ sky_tcp_connect(sky_tcp_t *const tcp, const sky_inet_address_t *const address) {
         return 0;
     }
 
-    if (connect(fd, (const struct sockaddr *) address, sizeof(sky_inet_address_t)) < 0) {
+    if (connect(fd, (const struct sockaddr *) address, sky_inet_address_size(address)) < 0) {
         switch (errno) {
             case EALREADY:
             case EINPROGRESS:

@@ -7,12 +7,12 @@
 
 #include <io/udp.h>
 #include <sys/socket.h>
-#include <errno.h>
+#include <sys/errno.h>
 #include <unistd.h>
 
 #ifndef SKY_HAVE_ACCEPT4
 
-#include <fcntl.h>
+#include <sys/fcntl.h>
 
 static sky_bool_t set_socket_nonblock(sky_socket_t fd);
 
@@ -56,7 +56,7 @@ sky_udp_open(sky_udp_t *const udp, const sky_i32_t domain) {
 sky_api sky_bool_t
 sky_udp_bind(const sky_udp_t *const udp, const sky_inet_address_t *const address) {
     return sky_udp_is_open(udp)
-           && bind(sky_ev_get_fd(&udp->ev), (const struct sockaddr *) address, sizeof(sky_inet_address_t)) == 0;
+           && bind(sky_ev_get_fd(&udp->ev), (const struct sockaddr *) address, sky_inet_address_size(address)) == 0;
 }
 
 sky_api sky_isize_t
@@ -73,7 +73,7 @@ sky_udp_read(
     if (sky_unlikely(!size || !sky_ev_readable(&udp->ev))) {
         return 0;
     }
-    socklen_t address_len = sizeof(sky_inet_address_t);
+    socklen_t address_len = sky_inet_address_size(address);
 
     const sky_isize_t n = recvfrom(
             sky_ev_get_fd(&udp->ev),
@@ -161,7 +161,7 @@ sky_udp_write(
             size,
             0,
             (const struct sockaddr *) address,
-            sizeof(sky_inet_address_t)
+            sky_inet_address_size(address)
     ) > 0)) {
         return true;
     }
@@ -194,7 +194,7 @@ sky_udp_write_vec(sky_udp_t *udp, sky_inet_address_t *const address, sky_io_vec_
 
     const struct msghdr msg = {
             .msg_name = address,
-            .msg_namelen = sizeof(sky_inet_address_t),
+            .msg_namelen = sky_inet_address_size(address),
             .msg_iov = (struct iovec *) vec,
 #if defined(__linux__)
             .msg_iovlen = num

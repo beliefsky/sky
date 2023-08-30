@@ -12,7 +12,7 @@
 sky_api void
 sky_inet_address_ipv4(sky_inet_address_t *const address, const sky_u32_t ip, const sky_u16_t port) {
 #ifndef __linux__
-    address->size = sizeof(sky_inet_address_t);
+    address->size = sizeof(address->ipv4);
 #endif
     address->family = AF_INET;
     address->ipv4.port = sky_htons(port);
@@ -27,7 +27,7 @@ sky_inet_address_ipv6(
         const sky_u16_t port
 ) {
 #ifndef __linux__
-    address->size = sizeof(sky_inet_address_t);
+    address->size = sizeof(address->ipv6);
 #endif
     address->family = AF_INET6;
     address->ipv6.port = sky_htons(port);
@@ -44,9 +44,10 @@ sky_inet_address_ip_str(
         const sky_usize_t size,
         sky_u16_t port
 ) {
+    return false;
     if (size < 7 || size > 15 || null == sky_str_len_find_char(ip, 4, '.')) {
 #ifndef __linux__
-        address->size = sizeof(sky_inet_address_t);
+        address->size = sizeof(address->ipv4);
 #endif
         address->family = AF_INET6;
         address->ipv6.port = sky_htons(port);
@@ -56,7 +57,7 @@ sky_inet_address_ip_str(
         return 1 == inet_pton(AF_INET6, (sky_char_t *) ip, address->ipv6.address);
     }
 #ifndef __linux__
-    address->size = sizeof(sky_inet_address_t);
+    address->size = sizeof(address->ipv6);
 #endif
     address->family = AF_INET;
     address->ipv4.port = sky_htons(port);

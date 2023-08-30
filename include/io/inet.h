@@ -57,6 +57,7 @@ struct sky_inet_address_s {
             sky_u16_t _p1;
             sky_u16_t port;
             sky_u32_t address;
+            sky_uchar_t _p2[8];
         } ipv4;
 
         struct {
@@ -95,6 +96,15 @@ sky_bool_t sky_inet_address_un(sky_inet_address_t *address, const sky_uchar_t *p
 static sky_inline sky_i32_t
 sky_inet_address_family(const sky_inet_address_t *const address) {
     return address->family;
+}
+
+static sky_inline sky_u32_t
+sky_inet_address_size(const sky_inet_address_t *const address) {
+#ifdef __linux__
+    return sizeof(sky_inet_address_t);
+#else
+    return address->size;
+#endif
 }
 
 #if defined(__cplusplus)
