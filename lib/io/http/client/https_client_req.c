@@ -5,8 +5,10 @@
 #include <netdb.h>
 
 #ifndef __linux__
+
 #include <netinet/in.h>
 #include <sys/socket.h>
+
 #endif
 
 #include "http_client_common.h"
@@ -81,7 +83,6 @@ https_connect_req(
                     sky_inet_address_ipv6(
                             address,
                             (sky_uchar_t *) &tmp->sin6_addr,
-                            tmp->sin6_flowinfo,
                             tmp->sin6_scope_id,
                             req->domain.port
                     );
