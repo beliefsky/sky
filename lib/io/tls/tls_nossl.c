@@ -20,7 +20,6 @@ sky_tls_ctx_init(sky_tls_ctx_t *const ctx, const sky_tls_ctx_conf_t *const conf)
 sky_api void
 sky_tls_ctx_destroy(sky_tls_ctx_t *const ctx) {
     (void) ctx;
-    return;
 }
 
 sky_api sky_bool_t
