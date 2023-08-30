@@ -37,14 +37,13 @@ sky_inet_address_ipv6(
     address->ipv6.scope_id = scope_id;
 }
 
-sky_bool_t
+sky_api sky_bool_t
 sky_inet_address_ip_str(
         sky_inet_address_t *const address,
         const sky_uchar_t *const ip,
         const sky_usize_t size,
         sky_u16_t port
 ) {
-    return false;
     if (size < 7 || size > 15 || null == sky_str_len_find_char(ip, 4, '.')) {
 #ifndef __linux__
         address->size = sizeof(address->ipv4);
@@ -68,7 +67,7 @@ sky_inet_address_ip_str(
 sky_api sky_bool_t
 sky_inet_address_un(sky_inet_address_t *const address, const sky_uchar_t *const path, const sky_usize_t len) {
 #ifndef __linux__
-    address->size = sizeof(sky_inet_address_t);
+    address->size = sizeof(address->un);
 #endif
     address->family = AF_UNIX;
     if (len > 24) {
@@ -80,4 +79,20 @@ sky_inet_address_un(sky_inet_address_t *const address, const sky_uchar_t *const 
 
     return true;
 }
+
+#ifdef __linux__
+
+sky_api sky_u32_t
+sky_inet_address_size(const sky_inet_address_t *const address) {
+    switch (address->family) {
+        case AF_INET:
+            return sizeof(address->ipv4);
+        case AF_INET6:
+            return sizeof(address->ipv6);
+        default:
+            return sizeof(address->un);
+    }
+}
+
+#endif
 
