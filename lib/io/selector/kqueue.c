@@ -10,10 +10,10 @@
 #include <sys/event.h>
 #include <signal.h>
 #include <unistd.h>
-#include <errno.h>
+#include <sys/errno.h>
 
 #define SKY_EVENT_MAX       1024
-#define SKY_EV_NONE_INDEX   SKY_U32(0x80000000)
+#define SKY_EV_IN_INDEX     SKY_U32(0x80000000)
 #define SKY_EV_INDEX_MASK   SKY_U32(0xFFFF0000)
 #define SKY_EV_STATUS_MASK  SKY_U32(0xFFFF)
 
@@ -116,13 +116,15 @@ sky_selector_select(sky_selector_t *const s, const sky_i32_t timeout) {
         }
 
         ev->status |= event->filter == EVFILT_WRITE ? SKY_EV_WRITE : SKY_EV_READ;
-
-        if (!(ev->status & SKY_EV_NONE_INDEX)) {
+        if ((ev->status & SKY_EV_IN_INDEX)) {
             continue;
         }
+        ev->status |= SKY_EV_IN_INDEX;
         ev->status &= (i << 16) | SKY_EV_STATUS_MASK;
         s->evs[i] = ev;
     }
+
+    return true;
 }
 
 sky_api void
@@ -137,7 +139,7 @@ sky_selector_run(sky_selector_t *const s) {
         if (sky_unlikely(!ev)) {
             continue;
         }
-        ev->status |= SKY_EV_NONE_INDEX;
+        ev->status &= ~SKY_EV_IN_INDEX;
         ev->cb(ev);
     }
 
@@ -236,13 +238,14 @@ sky_selector_cancel(sky_ev_t *const ev) {
         kevent(ev->s->fd, events, n, null, 0, null);
     }
 
-    if (!(ev->status & SKY_EV_NONE_INDEX)) {
+    if ((ev->status & SKY_EV_IN_INDEX)) {
         const sky_u32_t status = (ev->status & SKY_EV_INDEX_MASK) >> 16;
         ev->s->evs[status] = null;
+        ev->status &= ~SKY_EV_IN_INDEX;
     }
 
     ev->flags = 0;
-    ev->status |= SKY_EV_NO_REG | SKY_EV_NONE_INDEX;
+    ev->status |= SKY_EV_NO_REG;
 
     return true;
 }

@@ -67,16 +67,15 @@ http_connect_req(
         for (struct addrinfo *item = result; item; item = item->ai_next) {
             switch (item->ai_family) {
                 case AF_INET: {
-                    struct sockaddr_in *tmp = (struct sockaddr_in *) item->ai_addr;
+                    struct sockaddr_in *const tmp = (struct sockaddr_in *) item->ai_addr;
                     sky_inet_address_ipv4(address, tmp->sin_addr.s_addr, req->domain.port);
                     goto done;
                 }
                 case AF_INET6: {
-                    struct sockaddr_in6 *tmp = (struct sockaddr_in6 *) item->ai_addr;
+                    struct sockaddr_in6 *const tmp = (struct sockaddr_in6 *) item->ai_addr;
                     sky_inet_address_ipv6(
                             address,
                             (sky_uchar_t *) &tmp->sin6_addr,
-                            tmp->sin6_flowinfo,
                             tmp->sin6_scope_id,
                             req->domain.port
                     );
