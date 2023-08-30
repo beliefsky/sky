@@ -5,6 +5,7 @@
 #include <core/memory.h>
 #include <core/string.h>
 #include <core/log.h>
+#include <sys/socket.h>
 #include <arpa/inet.h>
 
 
