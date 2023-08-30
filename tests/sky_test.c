@@ -44,7 +44,7 @@ main() {
     sky_http_client_t *const client = sky_http_client_create(loop, null);
 
 
-    sky_sync_wait_create_with_stack(test_sync, client, 2048);
+    sky_sync_wait_create_with_stack(test_sync, client, 1024 << 4);
 
 
     sky_event_loop_run(loop);
