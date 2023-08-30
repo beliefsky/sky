@@ -49,7 +49,7 @@ struct sky_inet_address_s {
             sky_u16_t family;
 #else
             sky_u8_t size;
-        sky_u8_t family;
+            sky_u8_t family;
 #endif
         };
 
