@@ -93,18 +93,22 @@ sky_bool_t sky_inet_address_ip_str(
 
 sky_bool_t sky_inet_address_un(sky_inet_address_t *address, const sky_uchar_t *path, sky_usize_t len);
 
-static sky_inline sky_i32_t
-sky_inet_address_family(const sky_inet_address_t *const address) {
-    return address->family;
-}
+#ifdef __linux__
+
+sky_u32_t sky_inet_address_size(const sky_inet_address_t *address);
+
+#else
 
 static sky_inline sky_u32_t
 sky_inet_address_size(const sky_inet_address_t *const address) {
-#ifdef __linux__
-    return sizeof(sky_inet_address_t);
-#else
     return address->size;
+}
+
 #endif
+
+static sky_inline sky_i32_t
+sky_inet_address_family(const sky_inet_address_t *const address) {
+    return address->family;
 }
 
 #if defined(__cplusplus)
