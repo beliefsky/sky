@@ -3,8 +3,9 @@
 //
 #include <io/inet.h>
 #include <core/memory.h>
+#include <core/string.h>
 #include <core/log.h>
-#include <sys/socket.h>
+#include <arpa/inet.h>
 
 
 sky_api void
@@ -34,6 +35,33 @@ sky_inet_address_ipv6(
     sky_memcpy8(address->ipv6.address, ip);
     sky_memcpy8(address->ipv6.address + 8, ip + 8);
     address->ipv6.scope_id = scope_id;
+}
+
+sky_bool_t
+sky_inet_address_ip_str(
+        sky_inet_address_t *const address,
+        const sky_uchar_t *const ip,
+        const sky_usize_t size,
+        sky_u16_t port
+) {
+    if (size < 7 || size > 15 || null == sky_str_len_find_char(ip, 4, '.')) {
+#ifndef __linux__
+        address->size = sizeof(sky_inet_address_t);
+#endif
+        address->family = AF_INET6;
+        address->ipv6.port = sky_htons(port);
+        address->ipv6.flow_info = 0;
+        address->ipv6.scope_id = 0;
+
+        return 1 == inet_pton(AF_INET6, (sky_char_t *) ip, address->ipv6.address);
+    }
+#ifndef __linux__
+    address->size = sizeof(sky_inet_address_t);
+#endif
+    address->family = AF_INET;
+    address->ipv4.port = sky_htons(port);
+
+    return 1 == inet_pton(AF_INET, (sky_char_t *) ip, &address->ipv4.address);
 }
 
 sky_api sky_bool_t

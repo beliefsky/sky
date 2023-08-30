@@ -51,46 +51,49 @@ http_connect_req(
         client_send_start(connect);
         return;
     }
-
-    const struct addrinfo hints = {
-            .ai_family = AF_UNSPEC,
-            .ai_socktype = SOCK_STREAM,
-    };
-    struct addrinfo *result = null;
-    const sky_i32_t ret = getaddrinfo((const sky_char_t *) req->host.data, null, &hints, &result);
-    if (sky_unlikely(ret != 0)) {
-        goto error;
-    }
     sky_inet_address_t *const address = sky_palloc(req->pool, sizeof(sky_inet_address_t));
 
-    for (struct addrinfo *item = result; item; item = item->ai_next) {
-        switch (item->ai_family) {
-            case AF_INET: {
-                struct sockaddr_in *tmp = (struct sockaddr_in *) item->ai_addr;
-                sky_inet_address_ipv4(address, tmp->sin_addr.s_addr, req->domain.port);
-                goto done;
-            }
-            case AF_INET6: {
-                struct sockaddr_in6 *tmp = (struct sockaddr_in6 *) item->ai_addr;
-                sky_inet_address_ipv6(
-                        address,
-                        (sky_uchar_t *) &tmp->sin6_addr,
-                        tmp->sin6_flowinfo,
-                        tmp->sin6_scope_id,
-                        req->domain.port
-                );
-                goto done;
-            }
-            default:
-                continue;
+    if (!sky_inet_address_ip_str(address, req->domain.host.data, req->domain.host.len, req->domain.port)) {
+        const struct addrinfo hints = {
+                .ai_family = AF_UNSPEC,
+                .ai_socktype = SOCK_STREAM,
+        };
+        struct addrinfo *result = null;
+        const sky_i32_t ret = getaddrinfo((const sky_char_t *) req->domain.host.data, null, &hints, &result);
+        if (sky_unlikely(ret != 0)) {
+            goto error;
         }
+
+        for (struct addrinfo *item = result; item; item = item->ai_next) {
+            switch (item->ai_family) {
+                case AF_INET: {
+                    struct sockaddr_in *tmp = (struct sockaddr_in *) item->ai_addr;
+                    sky_inet_address_ipv4(address, tmp->sin_addr.s_addr, req->domain.port);
+                    goto done;
+                }
+                case AF_INET6: {
+                    struct sockaddr_in6 *tmp = (struct sockaddr_in6 *) item->ai_addr;
+                    sky_inet_address_ipv6(
+                            address,
+                            (sky_uchar_t *) &tmp->sin6_addr,
+                            tmp->sin6_flowinfo,
+                            tmp->sin6_scope_id,
+                            req->domain.port
+                    );
+                    goto done;
+                }
+                default:
+                    continue;
+            }
+        }
+
+        freeaddrinfo(result);
+        goto error;
+
+        done:
+        freeaddrinfo(result);
     }
 
-    freeaddrinfo(result);
-    goto error;
-
-    done:
-    freeaddrinfo(result);
     if (sky_unlikely(!sky_tcp_open(&connect->tcp, sky_inet_address_family(address)))) {
         goto error;
     }
