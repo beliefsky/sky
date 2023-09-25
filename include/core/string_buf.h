@@ -66,6 +66,26 @@ void sky_str_buf_append_f64(sky_str_buf_t *buf, sky_f64_t num);
 
 sky_bool_t sky_str_buf_build(sky_str_buf_t *buf, sky_str_t *out);
 
+
+static sky_inline void
+sky_str_buf_append_usize(sky_str_buf_t *const buf, const sky_usize_t num) {
+#if SKY_USIZE_MAX == SKY_U64_MAX
+    sky_str_buf_append_u64(buf, num);
+#else
+    sky_str_buf_append_u32(buf, num);
+#endif
+}
+
+static sky_inline void
+sky_str_buf_append_isize(sky_str_buf_t *const buf, const sky_isize_t num) {
+#if SKY_USIZE_MAX == SKY_U64_MAX
+    sky_str_buf_append_i64(buf, num);
+#else
+    sky_str_buf_append_i32(buf, num);
+#endif
+}
+
+
 static sky_inline void
 sky_str_buf_reset(sky_str_buf_t *const buf) {
     buf->post = buf->start;
