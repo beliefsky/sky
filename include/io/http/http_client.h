@@ -14,6 +14,9 @@
 extern "C" {
 #endif
 
+#define SKY_HTTP_CLIENT_BODY_NONE   0
+#define SKY_HTTP_CLIENT_BODY_STR    1
+
 typedef struct sky_http_client_s sky_http_client_t;
 typedef struct sky_http_client_connect_s sky_http_client_connect_t;
 typedef struct sky_http_client_req_s sky_http_client_req_t;
@@ -38,14 +41,20 @@ struct sky_http_client_req_s {
     sky_str_t method;
     sky_str_t version_name;
     sky_str_t host;
-
-    sky_pool_t *pool;
+    sky_str_t content_type;
 
     struct {
         sky_str_t host;
         sky_u16_t port;
         sky_bool_t is_ssl;
     } domain;
+
+    union {
+        sky_str_t str;
+    } body;
+
+    sky_pool_t *pool;
+    sky_u8_t body_type;
 };
 
 struct sky_http_client_res_s {
@@ -116,6 +125,75 @@ void sky_http_client_res_body_str(sky_http_client_res_t *res, sky_http_client_re
 
 void sky_http_client_res_body_read(sky_http_client_res_t *res, sky_http_client_res_read_pt call, void *data);
 
+
+static sky_inline sky_http_client_header_t *
+sky_http_client_add_header(sky_http_client_req_t *const req) {
+    return sky_list_push(&req->headers);
+}
+
+
+static sky_inline void
+sky_http_client_set_method_str(sky_http_client_req_t *const req, const sky_str_t *val) {
+    if (sky_unlikely(!val || !val->len)) {
+        return;
+    }
+    req->method = *val;
+}
+
+static sky_inline void
+sky_http_client_set_method_str_len(
+        sky_http_client_req_t *const req,
+        sky_uchar_t *const val,
+        const sky_usize_t len
+) {
+    if (sky_unlikely(!len)) {
+        return;
+    }
+    req->method.data = val;
+    req->method.len = len;
+}
+
+static sky_inline void
+sky_http_client_content_type_str(sky_http_client_req_t *const req, const sky_str_t *val) {
+    if (sky_unlikely(!val || !val->len)) {
+        return;
+    }
+    req->content_type = *val;
+}
+
+static sky_inline void
+sky_http_client_set_content_type_str_len(
+        sky_http_client_req_t *const req,
+        sky_uchar_t *const val,
+        const sky_usize_t len
+) {
+    if (sky_unlikely(!len)) {
+        return;
+    }
+    req->content_type.data = val;
+    req->content_type.len = len;
+}
+
+static sky_inline void
+sky_http_client_set_body_str(sky_http_client_req_t *const req, const sky_str_t *body) {
+    req->body_type = SKY_HTTP_CLIENT_BODY_STR;
+    if (sky_unlikely(!body)) {
+        sky_str_null(&req->body.str);
+        return;
+    }
+    req->body.str = *body;
+}
+
+static sky_inline void
+sky_http_client_req_set_body_str_len(
+        sky_http_client_req_t *const req,
+        sky_uchar_t *const body,
+        const sky_usize_t body_len
+) {
+    req->body_type = SKY_HTTP_CLIENT_BODY_STR;
+    req->body.str.data = body;
+    req->body.str.len = body_len;
+}
 
 #if defined(__cplusplus)
 } /* extern "C" { */

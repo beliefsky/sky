@@ -17,11 +17,20 @@ typedef struct {
     sky_str_t data;
 } http_str_packet_t;
 
+typedef struct {
+    sky_str_buf_t buf;
+    sky_u32_t num;
+    sky_u32_t read;
+    sky_io_vec_t vec[];
+} http_vec_packet_t;
+
 static void client_connect(sky_tcp_t *tcp);
 
 static void client_send_start(sky_http_client_connect_t *connect);
 
 static void client_send_str(sky_tcp_t *tcp);
+
+static void client_send_vec(sky_tcp_t *tcp);
 
 static void client_send_next(sky_http_client_connect_t *connect, sky_pool_t *pool);
 
@@ -34,6 +43,10 @@ static void client_read_res_header(sky_tcp_t *tcp);
 static void http_work_none(sky_tcp_t *tcp);
 
 static void client_req_timeout(sky_timer_wheel_entry_t *timer);
+
+static void build_header_pre(sky_http_client_req_t *req, sky_str_buf_t *buf);
+
+static void build_header_ex(sky_http_client_req_t *req, sky_str_buf_t *buf);
 
 
 void
@@ -139,40 +152,68 @@ client_connect(sky_tcp_t *const tcp) {
 static void
 client_send_start(sky_http_client_connect_t *const connect) {
     sky_http_client_req_t *const req = connect->current_req;
-    http_str_packet_t *packet = sky_palloc(req->pool, sizeof(http_str_packet_t));
-    sky_str_buf_t *buf = &packet->buf;
 
-    sky_str_buf_init2(buf, req->pool, 2048);
-    sky_str_buf_append_str(buf, &req->method);
-    sky_str_buf_append_uchar(buf, ' ');
-    sky_str_buf_append_str(buf, &req->path);
-    sky_str_buf_append_uchar(buf, ' ');
-    sky_str_buf_append_str(buf, &req->version_name);
-    sky_str_buf_append_two_uchar(buf, '\r', '\n');
+    switch (req->body_type) {
+        case SKY_HTTP_CLIENT_BODY_STR: {
+            sky_str_t *const body = &req->body.str;
+            if (!body->len) {
+                http_str_packet_t *const packet = sky_palloc(req->pool, sizeof(http_str_packet_t));
+                sky_str_buf_t *const buf = &packet->buf;
+                build_header_pre(req, buf);
 
-    if (req->host.len) {
-        sky_str_buf_append_str_len(buf, sky_str_line("Host: "));
-        sky_str_buf_append_str(buf, &req->host);
-        sky_str_buf_append_two_uchar(buf, '\r', '\n');
+                sky_str_buf_append_str_len(buf, sky_str_line("Content-Type: "));
+                sky_str_buf_append_str(buf, &req->content_type);
+                sky_str_buf_append_str_len(buf, sky_str_line("\r\nContent-Length: 0\r\n"));
+                build_header_ex(req, buf);
+
+                packet->data.data = buf->start;
+                packet->data.len = sky_str_buf_size(buf);
+                connect->send_packet = packet;
+                sky_tcp_set_cb(&connect->tcp, client_send_str);
+                client_send_str(&connect->tcp);
+                return;
+            }
+
+            http_vec_packet_t *const packet = sky_palloc(
+                    req->pool,
+                    sizeof(http_vec_packet_t) + (sizeof(sky_io_vec_t) << 1)
+            );
+            sky_str_buf_t *const buf = &packet->buf;
+            build_header_pre(req, buf);
+
+            sky_str_buf_append_str_len(buf, sky_str_line("Content-Type: "));
+            sky_str_buf_append_str(buf, &req->content_type);
+            sky_str_buf_append_str_len(buf, sky_str_line("\r\nContent-Length: "));
+            sky_str_buf_append_usize(buf, body->len);
+            sky_str_buf_append_two_uchar(buf, '\r', '\n');
+            build_header_ex(req, buf);
+
+            packet->num = 2;
+            packet->read = 0;
+            packet->vec[0].buf = buf->start;
+            packet->vec[0].size = sky_str_buf_size(buf);
+            packet->vec[1].buf = body->data;
+            packet->vec[1].size = body->len;
+            connect->send_packet = packet;
+            sky_tcp_set_cb(&connect->tcp, client_send_vec);
+            client_send_vec(&connect->tcp);
+            return;
+        }
+        default: {
+            http_str_packet_t *const packet = sky_palloc(req->pool, sizeof(http_str_packet_t));
+            sky_str_buf_t *buf = &packet->buf;
+            build_header_pre(req, buf);
+            build_header_ex(req, buf);
+
+            packet->data.data = buf->start;
+            packet->data.len = sky_str_buf_size(buf);
+            connect->send_packet = packet;
+            sky_tcp_set_cb(&connect->tcp, client_send_str);
+            client_send_str(&connect->tcp);
+
+            return;
+        }
     }
-    sky_str_buf_append_str_len(buf, sky_str_line("Connection: keep-alive\r\n"));
-
-    sky_list_foreach(&req->headers, sky_http_client_header_t, item, {
-        sky_str_buf_append_str(buf, &item->key);
-        sky_str_buf_append_two_uchar(buf, ':', ' ');
-        sky_str_buf_append_str(buf, &item->val);
-        sky_str_buf_append_two_uchar(buf, '\r', '\n');
-    });
-    sky_str_buf_append_two_uchar(buf, '\r', '\n');
-
-    packet->data.data = buf->start;
-    packet->data.len = sky_str_buf_size(buf);
-
-    connect->send_packet = packet;
-
-
-    sky_tcp_set_cb(&connect->tcp, client_send_str);
-    client_send_str(&connect->tcp);
 }
 
 static void
@@ -194,6 +235,50 @@ client_send_str(sky_tcp_t *const tcp) {
             return;
         }
         goto again;
+    }
+    if (sky_likely(!n)) {
+        sky_event_timeout_set(client->ev_loop, &connect->timer, client->timeout);
+        sky_tcp_try_register(tcp, SKY_EV_READ | SKY_EV_WRITE);
+        return;
+    }
+
+    sky_tcp_close(tcp);
+    sky_timer_wheel_unlink(&connect->timer);
+    const sky_http_client_res_pt call = connect->next_res_cb;
+    void *const cb_data = connect->cb_data;
+    http_connect_release(connect);
+    call(null, cb_data);
+}
+
+static void
+client_send_vec(sky_tcp_t *const tcp) {
+    sky_http_client_connect_t *const connect = sky_type_convert(tcp, sky_http_client_connect_t, tcp);
+    sky_http_client_t *const client = connect->node->client;
+    http_vec_packet_t *const packet = connect->send_packet;
+    sky_io_vec_t *vec = packet->vec + packet->read;
+    sky_u32_t num = packet->num - packet->read;
+
+    sky_isize_t n;
+
+    again:
+    n = sky_tcp_write_vec(tcp, vec, num);
+    if (n > 0) {
+        next_vec:
+        if ((sky_usize_t) n < vec->size) {
+            vec->size -= (sky_usize_t) n;
+            vec->buf += n;
+            goto again;
+        }
+        ++packet->read;
+        --num;
+        if (!num) {
+            sky_str_buf_destroy(&packet->buf);
+            client_send_next(connect, connect->current_req->pool);
+            return;
+        }
+        n -= (sky_isize_t) vec->size;
+        ++vec;
+        goto next_vec;
     }
     if (sky_likely(!n)) {
         sky_event_timeout_set(client->ev_loop, &connect->timer, client->timeout);
@@ -390,4 +475,33 @@ client_req_timeout(sky_timer_wheel_entry_t *const timer) {
     void *const cb_data = connect->cb_data;
     http_connect_release(connect);
     call(null, cb_data);
+}
+
+static sky_inline void
+build_header_pre(sky_http_client_req_t *const req, sky_str_buf_t *const buf) {
+    sky_str_buf_init2(buf, req->pool, 2048);
+    sky_str_buf_append_str(buf, &req->method);
+    sky_str_buf_append_uchar(buf, ' ');
+    sky_str_buf_append_str(buf, &req->path);
+    sky_str_buf_append_uchar(buf, ' ');
+    sky_str_buf_append_str(buf, &req->version_name);
+    sky_str_buf_append_two_uchar(buf, '\r', '\n');
+
+    if (sky_likely(req->host.len)) {
+        sky_str_buf_append_str_len(buf, sky_str_line("Host: "));
+        sky_str_buf_append_str(buf, &req->host);
+        sky_str_buf_append_two_uchar(buf, '\r', '\n');
+    }
+    sky_str_buf_append_str_len(buf, sky_str_line("Connection: keep-alive\r\n"));
+}
+
+static sky_inline void
+build_header_ex(sky_http_client_req_t *const req, sky_str_buf_t *const buf) {
+    sky_list_foreach(&req->headers, sky_http_client_header_t, item, {
+        sky_str_buf_append_str(buf, &item->key);
+        sky_str_buf_append_two_uchar(buf, ':', ' ');
+        sky_str_buf_append_str(buf, &item->val);
+        sky_str_buf_append_two_uchar(buf, '\r', '\n');
+    });
+    sky_str_buf_append_two_uchar(buf, '\r', '\n');
 }

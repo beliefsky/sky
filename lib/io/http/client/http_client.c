@@ -92,7 +92,9 @@ sky_http_client_req_create(sky_pool_t *const pool, const sky_str_t *const url) {
     sky_str_set(&req->method, "GET");
     sky_str_set(&req->version_name, "HTTP/1.1");
     sky_str_null(&req->host);
+    sky_str_set(&req->content_type, "application/octet-stream");
     req->pool = pool;
+    req->body_type = SKY_HTTP_CLIENT_BODY_NONE;
 
     if (sky_unlikely(!http_client_url_parse(req, url))) {
         return null;
