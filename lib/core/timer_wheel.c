@@ -5,13 +5,32 @@
 #include <core/memory.h>
 
 #define TIMER_WHEEL_NUM_BITS   SKY_U32(2)
-#define TIMER_WHEEL_NUM         SKY_U32(4)          // 1 << TIMER_WHEEL_NUM_BITS
-#define TIMER_WHEEL_NUM_MASK    SKY_U32(3)          // TIMER_WHEEL_NUM -1
+/**
+ * 1 << TIMER_WHEEL_NUM_BITS
+ */
+#define TIMER_WHEEL_NUM         SKY_U32(4)
+
+/**
+ * TIMER_WHEEL_NUM -1
+ */
+#define TIMER_WHEEL_NUM_MASK    SKY_U32(3)
 
 #define TIMER_WHEEL_BITS        SKY_U32(6)
-#define TIMER_WHEEL_SLOTS       SKY_U32(64)         // 1 << TIMER_WHEEL_BITS
-#define TIMER_WHEEL_SLOTS_MASK  SKY_U32(63)         // TIMER_WHEEL_SLOTS - 1
-#define TIMER_WHEEL_MAX_TICKS   SKY_U32(16777215)   // (1 << (TIMER_WHEEL_BITS * TIMER_WHEEL_NUM)) - 1)
+
+/**
+ * 1 << TIMER_WHEEL_BITS
+ */
+#define TIMER_WHEEL_SLOTS       SKY_U32(64)
+
+/**
+ * TIMER_WHEEL_SLOTS - 1
+ */
+#define TIMER_WHEEL_SLOTS_MASK  SKY_U32(63)
+
+/**
+ * (1 << (TIMER_WHEEL_BITS * TIMER_WHEEL_NUM)) - 1)
+ */
+#define TIMER_WHEEL_MAX_TICKS   SKY_U32(16777215)
 
 struct sky_timer_wheel_s {
     sky_u64_t last_run;
@@ -237,7 +256,6 @@ static sky_inline void
 link_timer(sky_timer_wheel_entry_t *const entry) {
     sky_timer_wheel_t *const ctx = entry->ctx;
 
-
     if (entry->expire_at <= ctx->last_run) {
         entry->expire_at = ctx->last_run;
         entry->index = SKY_U32_MAX;
@@ -264,8 +282,7 @@ unlink_timer(sky_timer_wheel_entry_t *const entry) {
     const sky_u32_t slot = entry->index & TIMER_WHEEL_NUM_MASK;
 
     sky_timer_wheel_t *const ctx = entry->ctx;
-    sky_queue_t *const queue = &ctx->wheels[wheel][slot];
-    if (sky_queue_empty(queue)) {
+    if (sky_queue_empty(&ctx->wheels[wheel][slot])) {
         ctx->pending[wheel] &= ~(SKY_U64(1) << slot);
     }
 }
