@@ -147,7 +147,7 @@ sky_http_client_req(
             if (domain_node_is_ssl(node)) {
                 https_client_connect_t *const connect = sky_malloc(sizeof(https_client_connect_t));
                 sky_tcp_init(&connect->conn.tcp, sky_event_selector(client->ev_loop));
-                sky_timer_entry_init(&connect->conn.timer, null);
+                sky_event_timeout_init(client->ev_loop, &connect->conn.timer, null);
                 sky_queue_init_node(&connect->conn.link);
                 connect->conn.node = node;
 
@@ -156,7 +156,7 @@ sky_http_client_req(
             } else {
                 sky_http_client_connect_t *const connect = sky_malloc(sizeof(sky_http_client_connect_t));
                 sky_tcp_init(&connect->tcp, sky_event_selector(client->ev_loop));
-                sky_timer_entry_init(&connect->timer, null);
+                sky_event_timeout_init(client->ev_loop, &connect->timer, null);
                 sky_queue_init_node(&connect->link);
                 connect->node = node;
 

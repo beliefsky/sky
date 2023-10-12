@@ -27,7 +27,7 @@ sky_mqtt_client_create(sky_event_loop_t *const ev_loop, const sky_mqtt_client_co
     ptr += sizeof(sky_mqtt_client_t);
 
     sky_tcp_init(&client->tcp, sky_event_selector(ev_loop));
-    sky_timer_entry_init(&client->timer, null);
+    sky_event_timeout_init(ev_loop, &client->timer, null);
     client->address = *conf->address;
 
     client->client_id.len = conf->client_id.len;

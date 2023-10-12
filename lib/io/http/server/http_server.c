@@ -118,7 +118,7 @@ http_server_accept(sky_tcp_t *const tcp) {
     if (!conn) {
         conn = sky_malloc(sizeof(sky_http_connection_t));
         sky_tcp_init(&conn->tcp, sky_event_selector(l->server->ev_loop));
-        sky_timer_entry_init(&conn->timer, null);
+        sky_event_timeout_init(l->server->ev_loop, &conn->timer, null);
         conn->server = l->server;
     }
     sky_i8_t r;
@@ -129,7 +129,7 @@ http_server_accept(sky_tcp_t *const tcp) {
 
             conn = sky_malloc(sizeof(sky_http_connection_t));
             sky_tcp_init(&conn->tcp, sky_event_selector(l->server->ev_loop));
-            sky_timer_entry_init(&conn->timer, null);
+            sky_event_timeout_init(l->server->ev_loop, &conn->timer, null);
             conn->server = l->server;
 
             continue;

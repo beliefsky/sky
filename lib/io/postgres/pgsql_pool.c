@@ -52,7 +52,7 @@ sky_pgsql_pool_create(sky_event_loop_t *const ev_loop, const sky_pgsql_conf_t *c
         sky_tcp_init(&conn->tcp, sky_event_selector(ev_loop));
         sky_queue_init_node(&conn->link);
         sky_queue_insert_prev(&pg_pool->free_conns, &conn->link);
-        sky_timer_entry_init(&conn->timer, pgsql_conn_keepalive_timeout);
+        sky_event_timeout_init(ev_loop, &conn->timer, pgsql_conn_keepalive_timeout);
         conn->pg_pool = pg_pool;
     }
     ptr += sizeof(sky_pgsql_conn_t) * conn_num;
