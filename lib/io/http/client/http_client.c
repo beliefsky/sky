@@ -199,7 +199,7 @@ http_connect_release(sky_http_client_connect_t *const connect) {
     }
 
     sky_timer_set_cb(&connect->timer, connect_task_next);
-    sky_event_timeout_set(node->client->ev_loop, &connect->timer, 0);
+    sky_timer_wheel_link(&connect->timer, 0);
 }
 
 

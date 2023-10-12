@@ -239,7 +239,7 @@ http_server_req_finish(sky_http_server_request_t *r, void *const data) {
     }
 
     sky_timer_set_cb(&conn->timer, http_server_request_next);
-    sky_event_timeout_set(conn->server->ev_loop, &conn->timer, 0);
+    sky_timer_wheel_link(&conn->timer, 0);
 }
 
 static void

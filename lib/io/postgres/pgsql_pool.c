@@ -137,7 +137,7 @@ sky_pgsql_conn_release(sky_pgsql_conn_t *const conn) {
     }
 
     sky_timer_set_cb(&conn->timer, pgsql_task_next);
-    sky_event_timeout_set(pg_pool->ev_loop, &conn->timer, 0);
+    sky_timer_wheel_link(&conn->timer, 0);
 }
 
 sky_api void
