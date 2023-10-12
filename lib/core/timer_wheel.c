@@ -60,8 +60,20 @@ sky_timer_wheel_create(const sky_u64_t now) {
 }
 
 sky_api void
-sky_timer_wheel_destroy(sky_timer_wheel_t *ctx) {
+sky_timer_wheel_destroy(sky_timer_wheel_t *const ctx) {
+    sky_u32_t i, j;
+    sky_queue_t *queue, *node;
 
+    for (i = 0; i < TIMER_WHEEL_NUM; ++i) {
+        for (j = 0; j < TIMER_WHEEL_SLOTS; ++j) {
+            queue = &ctx->wheels[i][j];
+            while (!sky_queue_empty(queue)) {
+                node = sky_queue_next(queue);
+                sky_queue_remove(node);
+            }
+        }
+    }
+    sky_free(ctx);
 }
 
 sky_api void
