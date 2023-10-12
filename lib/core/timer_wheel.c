@@ -79,7 +79,7 @@ sky_timer_wheel_run(sky_timer_wheel_t *const ctx, const sky_u64_t now) {
 }
 
 sky_api void
-sky_timer_wheel_run_get_expired(
+sky_timer_wheel_get_expired(
         sky_timer_wheel_t *const ctx,
         sky_queue_t *const result,
         const sky_u64_t now
