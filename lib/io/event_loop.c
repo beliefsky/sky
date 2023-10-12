@@ -23,9 +23,8 @@ sky_event_loop_run(sky_event_loop_t *const loop) {
 
 
     sky_timer_wheel_run(loop->timer_ctx, (sky_u64_t) loop->now);
-    next_time = sky_timer_wheel_wake_at(loop->timer_ctx);
-    timeout = next_time == SKY_U64_MAX ? -1 : (sky_i32_t) (next_time - (sky_u64_t) loop->now) * 1000;
-
+    next_time = sky_timer_wheel_timeout(loop->timer_ctx);
+    timeout = next_time == SKY_U64_MAX ? -1 : (sky_i32_t) (next_time) * 1000;
 
     while (sky_likely(sky_selector_select(loop->selector, timeout))) {
         loop->now = time(null);
@@ -33,8 +32,8 @@ sky_event_loop_run(sky_event_loop_t *const loop) {
         sky_selector_run(loop->selector);
 
         sky_timer_wheel_run(loop->timer_ctx, (sky_u64_t) loop->now);
-        next_time = sky_timer_wheel_wake_at(loop->timer_ctx);
-        timeout = next_time == SKY_U64_MAX ? -1 : (sky_i32_t) (next_time - (sky_u64_t) loop->now) * 1000;
+        next_time = sky_timer_wheel_timeout(loop->timer_ctx);
+        timeout = next_time == SKY_U64_MAX ? -1 : (sky_i32_t) (next_time) * 1000;
     }
 }
 

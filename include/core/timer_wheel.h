@@ -29,7 +29,7 @@ void sky_timer_wheel_run(sky_timer_wheel_t *ctx, sky_u64_t now);
 
 void sky_timer_wheel_run_get_expired(sky_timer_wheel_t *ctx, sky_queue_t *result, sky_u64_t now);
 
-sky_u64_t sky_timer_wheel_wake_at(const sky_timer_wheel_t *ctx);
+sky_u64_t sky_timer_wheel_timeout(const sky_timer_wheel_t *ctx);
 
 void sky_timer_wheel_link(sky_timer_wheel_entry_t *entry, sky_u64_t at);
 
@@ -39,8 +39,8 @@ void sky_timer_wheel_unlink(sky_timer_wheel_entry_t *entry);
 
 static sky_inline void
 sky_timer_entry_init(
-        sky_timer_wheel_t *const ctx,
         sky_timer_wheel_entry_t *const entry,
+        sky_timer_wheel_t *const ctx,
         const sky_timer_wheel_pt cb
 ) {
     sky_queue_init_node(&entry->link);

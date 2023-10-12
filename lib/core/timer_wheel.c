@@ -89,7 +89,7 @@ sky_timer_wheel_run_get_expired(
 }
 
 sky_api sky_u64_t
-sky_timer_wheel_wake_at(const sky_timer_wheel_t *const ctx) {
+sky_timer_wheel_timeout(const sky_timer_wheel_t *const ctx) {
     if (!sky_queue_empty(&ctx->expired)) {
         return 0;
     }
@@ -159,9 +159,9 @@ timer_wheel_update(sky_timer_wheel_t *const ctx, const sky_u64_t now) {
 
     const sky_u64_t elapsed = now - ctx->last_run;
     sky_u64_t pending;
-    sky_u32_t ticks_shift;
+    sky_u32_t ticks_shift, wheel;
 
-    for (sky_u32_t wheel = 0; wheel < TIMER_WHEEL_NUM; ++wheel) {
+    for (wheel = 0; wheel < TIMER_WHEEL_NUM; ++wheel) {
         ticks_shift = wheel * TIMER_WHEEL_BITS;
 
         if ((elapsed >> ticks_shift) >= TIMER_WHEEL_SLOTS_MASK) {
@@ -208,7 +208,7 @@ timer_slot(const sky_u32_t wheel, const sky_u64_t expires) {
 
 static sky_inline sky_u32_t
 timer_wheel(const sky_u64_t current, const sky_u64_t expires) {
-     static const sky_u32_t TABLES[] = { // 除以6（TIMER_WHEEL_BITS）的结果，避免计算除法, 最大轮为4，因此不会越界访问
+    static const sky_u32_t TABLES[] = { // 除以6（TIMER_WHEEL_BITS）的结果，避免计算除法, 最大轮为4，因此不会越界访问
             0, 0, 0, 0, 0, 0,
             1, 1, 1, 1, 1, 1,
             2, 2, 2, 2, 2, 2,
@@ -225,20 +225,16 @@ static sky_inline void
 link_timer(sky_timer_wheel_entry_t *const entry) {
     sky_timer_wheel_t *const ctx = entry->ctx;
 
+
     if (entry->expire_at <= ctx->last_run) {
         entry->expire_at = ctx->last_run;
         entry->index = SKY_U32_MAX;
         sky_queue_insert_prev(&ctx->expired, &entry->link);
         return;
     }
-
     const sky_u32_t wheel = timer_wheel(ctx->last_run, entry->expire_at);
     const sky_u32_t slot = timer_slot(wheel, entry->expire_at);
     sky_queue_t *const queue = &ctx->wheels[wheel][slot];
-
-    if (!queue->prev || !queue->next) {
-        sky_queue_init(queue);
-    }
 
     entry->index = wheel * slot;
     sky_queue_insert_prev(queue, &entry->link);

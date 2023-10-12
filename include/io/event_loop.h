@@ -33,7 +33,7 @@ sky_event_timeout_init(
         sky_timer_wheel_entry_t *const timer,
         const sky_timer_wheel_pt cb
 ) {
-    sky_timer_entry_init(loop->timer_ctx, timer, cb);
+    sky_timer_entry_init(timer, loop->timer_ctx, cb);
 }
 
 static sky_inline void
