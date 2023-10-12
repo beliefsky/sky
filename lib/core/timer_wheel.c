@@ -119,7 +119,7 @@ sky_timer_wheel_wake_at(const sky_timer_wheel_t *const ctx) {
 
 sky_api void
 sky_timer_wheel_link(sky_timer_wheel_entry_t *const entry, const sky_u64_t at) {
-    if (sky_unlikely(sky_queue_linked(&entry->link))) {
+    if (sky_queue_linked(&entry->link)) {
         if (at == entry->expire_at) {
             return;
         }
@@ -131,7 +131,7 @@ sky_timer_wheel_link(sky_timer_wheel_entry_t *const entry, const sky_u64_t at) {
 
 sky_api void
 sky_timer_wheel_expired(sky_timer_wheel_entry_t *const entry, const sky_u64_t at) {
-    if (sky_unlikely(sky_queue_linked(&entry->link))) {
+    if (sky_queue_linked(&entry->link)) {
         if (at == entry->expire_at) {
             return;
         }
@@ -144,7 +144,7 @@ sky_timer_wheel_expired(sky_timer_wheel_entry_t *const entry, const sky_u64_t at
 
 sky_api void
 sky_timer_wheel_unlink(sky_timer_wheel_entry_t *const entry) {
-    if (sky_unlikely(sky_queue_linked(&entry->link))) {
+    if (sky_likely(sky_queue_linked(&entry->link))) {
         unlink_timer(entry);
     }
 }
