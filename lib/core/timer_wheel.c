@@ -182,7 +182,7 @@ sky_timer_wheel_unlink(sky_timer_wheel_entry_t *const entry) {
 
 void
 timer_wheel_update(sky_timer_wheel_t *const ctx, const sky_u64_t now) {
-    if (sky_unlikely(now < ctx->last_run)) {
+    if (now <= ctx->last_run) {
         return;
     }
     sky_queue_t todo;
