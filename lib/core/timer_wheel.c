@@ -240,16 +240,16 @@ timer_slot(const sky_u32_t wheel, const sky_u64_t expires) {
 static sky_inline sky_u32_t
 timer_wheel(const sky_u64_t current, const sky_u64_t expires) {
     static const sky_u32_t TABLES[] = { // 除以6（TIMER_WHEEL_BITS）的结果，避免计算除法, 最大轮为4，因此不会越界访问
-            0, 0, 0, 0, 0, 0,
-            1, 1, 1, 1, 1, 1,
-            2, 2, 2, 2, 2, 2,
-            3, 3, 3, 3, 3, 3,
+            0, 0, 0,
+            1, 1, 1,
+            2, 2, 2,
+            3, 3, 3,
     };
 
     sky_u64_t tmp = current ^ expires;
     tmp = sky_min(tmp, TIMER_WHEEL_MAX_TICKS);
 
-    return TABLES[63 - sky_clz_u64(tmp)];
+    return TABLES[(63 - sky_clz_u64(tmp)) >> 1];
 }
 
 static sky_inline void
