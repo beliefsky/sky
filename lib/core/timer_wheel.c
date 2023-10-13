@@ -162,15 +162,13 @@ sky_timer_wheel_link(sky_timer_wheel_entry_t *const entry, const sky_u64_t at) {
 
 sky_api void
 sky_timer_wheel_expired(sky_timer_wheel_entry_t *const entry, const sky_u64_t at) {
-    if (sky_queue_linked(&entry->link)) {
-        if (at == entry->expire_at) {
-            return;
-        }
-        unlink_timer(entry);
-
-        entry->expire_at = at;
-        link_timer(entry);
+    if (!sky_queue_linked(&entry->link) || at == entry->expire_at) {
+        return;
     }
+    unlink_timer(entry);
+
+    entry->expire_at = at;
+    link_timer(entry);
 }
 
 sky_api void
@@ -189,29 +187,25 @@ timer_wheel_update(sky_timer_wheel_t *const ctx, const sky_u64_t now) {
     sky_queue_init(&todo);
 
     const sky_u64_t elapsed = now - ctx->last_run;
-    sky_u64_t pending;
-    sky_u32_t ticks_shift, wheel;
+    sky_u64_t pending, u64_tmp;
+    sky_u32_t u32_tmp, wheel;
 
     for (wheel = 0; wheel < TIMER_WHEEL_NUM; ++wheel) {
-        ticks_shift = wheel * TIMER_WHEEL_BITS;
+        u32_tmp = wheel * TIMER_WHEEL_BITS;
 
-        if ((elapsed >> ticks_shift) >= TIMER_WHEEL_SLOTS_MASK) {
+        if ((elapsed >> u32_tmp) >= TIMER_WHEEL_SLOTS_MASK) {
             pending = ~SKY_U64(0);
         } else {
-            const sky_u32_t o_slot = TIMER_WHEEL_SLOTS_MASK & (ctx->last_run >> ticks_shift);
-            const sky_u32_t n_slot = TIMER_WHEEL_SLOTS_MASK & (now >> ticks_shift);
+            const sky_u32_t o_slot = TIMER_WHEEL_SLOTS_MASK & (ctx->last_run >> u32_tmp);
+            const sky_u32_t n_slot = TIMER_WHEEL_SLOTS_MASK & (now >> u32_tmp);
             const sky_u64_t _elapsed = TIMER_WHEEL_SLOTS_MASK & (TIMER_WHEEL_NUM + n_slot - o_slot);
 
             pending = rot_l(((SKY_U64(1) << _elapsed) - 1), o_slot + 1);
         }
-
-        sky_u64_t tmp = (pending & ctx->pending[wheel]);
-
-        while (tmp) {
-            const sky_u32_t slot = (sky_u32_t) sky_ctz_u64(tmp);
-            sky_queue_insert_prev_list(&todo, &ctx->wheels[wheel][slot]);
-            ctx->pending[wheel] &= ~(SKY_U64(1) << slot);
-            tmp = (pending & ctx->pending[wheel]);
+        while ((u64_tmp = (pending & ctx->pending[wheel]))) {
+            u32_tmp = (sky_u32_t) sky_ctz_u64(u64_tmp); // slot
+            sky_queue_insert_prev_list(&todo, &ctx->wheels[wheel][u32_tmp]);
+            ctx->pending[wheel] &= ~(SKY_U64(1) << u32_tmp);
         }
         if (!(pending & 0x1)) {
             break;
@@ -257,18 +251,15 @@ link_timer(sky_timer_wheel_entry_t *const entry) {
     sky_timer_wheel_t *const ctx = entry->ctx;
 
     if (entry->expire_at <= ctx->last_run) {
-        entry->expire_at = ctx->last_run;
         entry->index = SKY_U32_MAX;
         sky_queue_insert_prev(&ctx->expired, &entry->link);
         return;
     }
     const sky_u32_t wheel = timer_wheel(ctx->last_run, entry->expire_at);
     const sky_u32_t slot = timer_slot(wheel, entry->expire_at);
-    sky_queue_t *const queue = &ctx->wheels[wheel][slot];
 
     entry->index = wheel * slot;
-    sky_queue_insert_prev(queue, &entry->link);
-
+    sky_queue_insert_prev(&ctx->wheels[wheel][slot], &entry->link);
     ctx->pending[wheel] |= SKY_U64(1) << slot;
 }
 
