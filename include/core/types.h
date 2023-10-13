@@ -106,6 +106,9 @@ typedef double sky_f64_t;
 #define sky_clz_u32(_val) __builtin_clz(_val)
 #define sky_clz_u64(_val) __builtin_clzll(_val)
 
+#define sky_ctz_u32(_val) __builtin_ctz(_val)
+#define sky_ctz_u64(_val) __builtin_ctzll(_val)
+
 #else
 
 static sky_inline sky_u16_t
@@ -137,8 +140,10 @@ sky_swap_u64(const sky_u64_t value) {
 
 #if SKY_USIZE_MAX == SKY_U64_MAX
 #define sky_clz_usize(_val) sky_clz_u64(_val)
+#define sky_ctz_usize(_val) sky_ctz_u64(_val)
 #else
 #define sky_clz_usize(_val) sky_clz_u32(_val)
+#define sky_ctz_usize(_val) sky_ctz_u32(_val)
 #endif
 
 #define sky_abs(_v)         (((_v) < 0) ? -(_v) : v)

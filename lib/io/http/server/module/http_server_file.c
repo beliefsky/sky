@@ -112,7 +112,7 @@ sky_http_server_file_create(sky_event_loop_t *const ev_loop, const sky_http_serv
     http_module_file_t *const data = sky_palloc(pool, sizeof(http_module_file_t));
     sky_rb_tree_init(&data->cache_tree);
     sky_queue_init(&data->cache_queue);
-    sky_timer_entry_init(&data->timer, cache_node_free_timer);
+    sky_event_timeout_init(ev_loop, &data->timer, cache_node_free_timer);
     sky_str_set(&data->default_mime_type.val, "application/octet-stream");
     data->default_mime_type.binary = true;
     data->path.data = sky_palloc(pool, conf->dir.len);

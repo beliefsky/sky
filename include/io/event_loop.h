@@ -28,13 +28,30 @@ void sky_event_loop_destroy(sky_event_loop_t *loop);
 
 
 static sky_inline void
-sky_event_timeout_set(sky_event_loop_t *const loop, sky_timer_wheel_entry_t *const timer, const sky_u32_t timout) {
-    sky_timer_wheel_link(loop->timer_ctx, timer, (sky_u64_t) (loop->now + timout));
+sky_event_timeout_init(
+        sky_event_loop_t *const loop,
+        sky_timer_wheel_entry_t *const timer,
+        const sky_timer_wheel_pt cb
+) {
+    sky_timer_entry_init(timer, loop->timer_ctx, cb);
 }
 
 static sky_inline void
-sky_event_timeout_expired(sky_event_loop_t *const loop, sky_timer_wheel_entry_t *const timer, const sky_u32_t timout) {
-    sky_timer_wheel_expired(loop->timer_ctx, timer, (sky_u64_t) (loop->now + timout));
+sky_event_timeout_set(
+        sky_event_loop_t *const loop,
+        sky_timer_wheel_entry_t *const timer,
+        const sky_u32_t timout
+) {
+    sky_timer_wheel_link(timer, (sky_u64_t) (loop->now + timout));
+}
+
+static sky_inline void
+sky_event_timeout_expired(
+        sky_event_loop_t *const loop,
+        sky_timer_wheel_entry_t *const timer,
+        const sky_u32_t timout
+) {
+    sky_timer_wheel_expired(timer, (sky_u64_t) (loop->now + timout));
 }
 
 static sky_inline sky_selector_t *
