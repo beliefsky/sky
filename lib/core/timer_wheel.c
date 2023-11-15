@@ -4,16 +4,8 @@
 #include <core/timer_wheel.h>
 #include <core/memory.h>
 
-#define TIMER_WHEEL_NUM_BITS   SKY_U32(2)
-/**
- * 1 << TIMER_WHEEL_NUM_BITS
- */
-#define TIMER_WHEEL_NUM         SKY_U32(4)
 
-/**
- * TIMER_WHEEL_NUM -1
- */
-#define TIMER_WHEEL_NUM_MASK    SKY_U32(3)
+#define TIMER_WHEEL_NUM         SKY_U32(4)
 
 #define TIMER_WHEEL_BITS        SKY_U32(6)
 
