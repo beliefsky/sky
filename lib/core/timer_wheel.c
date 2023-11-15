@@ -258,7 +258,8 @@ link_timer(sky_timer_wheel_entry_t *const entry) {
     const sky_u32_t wheel = timer_wheel(ctx->last_run, entry->expire_at);
     const sky_u32_t slot = timer_slot(wheel, entry->expire_at);
 
-    entry->index = wheel * slot;
+    entry->index = (wheel << TIMER_WHEEL_BITS) + slot;
+
     sky_queue_insert_prev(&ctx->wheels[wheel][slot], &entry->link);
     ctx->pending[wheel] |= SKY_U64(1) << slot;
 }
@@ -269,8 +270,8 @@ unlink_timer(sky_timer_wheel_entry_t *const entry) {
     if (entry->index == SKY_U32_MAX) {
         return;
     }
-    const sky_u32_t wheel = entry->index >> TIMER_WHEEL_NUM_BITS;
-    const sky_u32_t slot = entry->index & TIMER_WHEEL_NUM_MASK;
+    const sky_u32_t wheel = entry->index >> TIMER_WHEEL_BITS;
+    const sky_u32_t slot = entry->index & TIMER_WHEEL_SLOTS_MASK;
 
     sky_timer_wheel_t *const ctx = entry->ctx;
     if (sky_queue_empty(&ctx->wheels[wheel][slot])) {
