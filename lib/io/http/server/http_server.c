@@ -45,21 +45,32 @@ sky_http_server_module_put(sky_http_server_t *const server, sky_http_server_modu
     if (!host_trie) {
         host_trie = sky_trie_create(server->pool);
 
-        sky_str_t tmp = {
-                .data = sky_palloc(server->pool, module->host.len),
-                .len = module->host.len
-        };
-        sky_memcpy(tmp.data, module->host.data, tmp.len);
-        sky_trie_put(server->host_map, &tmp, host_trie);
+        if (module->host.len) {
+            sky_str_t tmp = {
+                    .data = sky_palloc(server->pool, module->host.len),
+                    .len = module->host.len
+            };
+            sky_memcpy(tmp.data, module->host.data, tmp.len);
+            sky_trie_put(server->host_map, &tmp, host_trie);
+        } else {
+            sky_trie_put(server->host_map, null, host_trie);
+        }
+
     }
     const sky_http_server_module_t *const old = sky_trie_contains(host_trie, &module->prefix);
     if (!old) {
-        sky_str_t tmp = {
-                .data = sky_palloc(server->pool, module->prefix.len),
-                .len = module->prefix.len
-        };
-        sky_memcpy(tmp.data, module->prefix.data, tmp.len);
-        sky_trie_put(host_trie, &tmp, module);
+
+        if (module->prefix.len) {
+            sky_str_t tmp = {
+                    .data = sky_palloc(server->pool, module->prefix.len),
+                    .len = module->prefix.len
+            };
+            sky_memcpy(tmp.data, module->prefix.data, tmp.len);
+            sky_trie_put(host_trie, &tmp, module);
+        } else {
+            sky_trie_put(host_trie, null, module);
+        }
+
 
         return true;
     }

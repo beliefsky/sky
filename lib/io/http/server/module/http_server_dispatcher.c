@@ -35,15 +35,13 @@ sky_http_server_dispatcher_create(const sky_http_server_dispatcher_conf_t *const
         sky_str_null(&module->host);
     }
 
-    if (module->prefix.len) {
+    if (conf->prefix.len) {
         module->prefix.data = sky_palloc(pool, conf->prefix.len);
         module->prefix.len = conf->prefix.len;
         sky_memcpy(module->prefix.data, conf->prefix.data, conf->prefix.len);
     } else {
-        sky_str_set(&module->prefix, "/");
+        sky_str_null(&module->prefix);
     }
-
-
     module->run = conf->pre_run ? http_run_handler_with_pre : http_run_handler;
 
 
