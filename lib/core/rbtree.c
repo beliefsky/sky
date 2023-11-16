@@ -73,7 +73,7 @@ sky_rb_tree_last(sky_rb_tree_t *tree) {
 }
 
 sky_api void
-sky_rb_tree_link(sky_rb_tree_t *const tree, sky_rb_node_t * node, sky_rb_node_t *const parent) {
+sky_rb_tree_link(sky_rb_tree_t *const tree, sky_rb_node_t *node, sky_rb_node_t *const parent) {
     node->parent = parent;
     node->left = &tree->sentinel;
     node->right = &tree->sentinel;
@@ -84,8 +84,8 @@ sky_rb_tree_link(sky_rb_tree_t *const tree, sky_rb_node_t * node, sky_rb_node_t 
     }
     sky_rbt_red(node);
 
-    sky_rb_node_t *temp;
-    while (node != tree->root && sky_rbt_is_red(node->parent)) {
+    sky_rb_node_t *temp, **const root = &tree->root;
+    while (node != *root && sky_rbt_is_red(node->parent)) {
         if (node->parent == node->parent->parent->left) {
             temp = node->parent->parent->right;
             if (sky_rbt_is_red(temp)) {
@@ -96,11 +96,11 @@ sky_rb_tree_link(sky_rb_tree_t *const tree, sky_rb_node_t * node, sky_rb_node_t 
             } else {
                 if (node == node->parent->right) {
                     node = node->parent;
-                    rb_tree_left_rotate(&tree->root, &tree->sentinel, node);
+                    rb_tree_left_rotate(root, &tree->sentinel, node);
                 }
                 sky_rbt_black(node->parent);
                 sky_rbt_red(node->parent->parent);
-                rb_tree_right_rotate(&tree->root, &tree->sentinel, node->parent->parent);
+                rb_tree_right_rotate(root, &tree->sentinel, node->parent->parent);
             }
         } else {
             temp = node->parent->parent->left;
@@ -112,15 +112,15 @@ sky_rb_tree_link(sky_rb_tree_t *const tree, sky_rb_node_t * node, sky_rb_node_t 
             } else {
                 if (node == node->parent->left) {
                     node = node->parent;
-                    rb_tree_right_rotate(&tree->root, &tree->sentinel, node);
+                    rb_tree_right_rotate(root, &tree->sentinel, node);
                 }
                 sky_rbt_black(node->parent);
                 sky_rbt_red(node->parent->parent);
-                rb_tree_left_rotate(&tree->root, &tree->sentinel, node->parent->parent);
+                rb_tree_left_rotate(root, &tree->sentinel, node->parent->parent);
             }
         }
     }
-    sky_rbt_black(tree->root);
+    sky_rbt_black(*root);
 }
 
 
@@ -128,7 +128,7 @@ sky_api void
 sky_rb_tree_del(sky_rb_tree_t *const tree, sky_rb_node_t *const node) {
     /* a binary tree delete */
     sky_rb_node_t **const root = &tree->root;
-    sky_rb_node_t *sentinel = &tree->sentinel;
+    sky_rb_node_t *const sentinel = &tree->sentinel;
 
     sky_rb_node_t *temp, *subst;
     if (node->left == sentinel) {
