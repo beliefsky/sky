@@ -190,7 +190,7 @@ timer_wheel_update(sky_timer_wheel_t *const ctx, const sky_u64_t now) {
         } else {
             const sky_u32_t o_slot = TIMER_WHEEL_SLOTS_MASK & (ctx->last_run >> u32_tmp);
             const sky_u32_t n_slot = TIMER_WHEEL_SLOTS_MASK & (now >> u32_tmp);
-            const sky_u64_t _elapsed = TIMER_WHEEL_SLOTS_MASK & (TIMER_WHEEL_NUM + n_slot - o_slot);
+            const sky_u64_t _elapsed = TIMER_WHEEL_SLOTS_MASK & (TIMER_WHEEL_SLOTS + n_slot - o_slot);
 
             pending = rot_l(((SKY_U64(1) << _elapsed) - 1), o_slot + 1);
         }
