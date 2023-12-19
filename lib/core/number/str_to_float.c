@@ -29,96 +29,114 @@ sky_str_len_to_f64(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *const o
     const sky_bool_t negative = (*in == '-');
     in += negative;
     in_len -= negative;
-    if (sky_unlikely(!in_len)) {
+    if (sky_unlikely(!in_len || *in < '0' || *in > '9')) {
         return false;
     }
 
-    sky_u64_t i = 0;
-    sky_u64_t mask;
-    for (;;) {
-        if (in_len < 8) {
-            mask = fast_str_parse_mask(in, in_len);
-            if (!fast_str_check_number(mask)) {
-                break;
-            }
-            i = i * u32_power_ten(in_len) + fast_str_parse_u32(mask);
+    sky_u64_t number = 0, mask;
+    sky_isize_t power_ten = 0;
+    sky_usize_t number_n;
 
-            *out = negative ? -((sky_f64_t) i) : (sky_f64_t) i;
-            return true;
-        }
-        mask = fast_str_parse_mask8(in);
-        if (!fast_str_check_number(mask)) {
-            break;
-        }
-        i = i * u32_power_ten(8) + fast_str_parse_u32(mask);
-        in_len -= 8;
-        in += 8;
-        if (!in_len) {
-            *out = negative ? -((sky_f64_t) i) : (sky_f64_t) i;
-            return true;
-        }
-    }
-    if (*in >= '0' && *in <= '9') {
+    { // read int
+        sky_usize_t n = 0;
         const sky_uchar_t *p = in;
         do {
             ++p;
-        } while (*p >= '0' && *p <= '9');
-
-        const sky_usize_t n = (sky_usize_t) (p - in);
-        mask = fast_str_parse_mask(in, n);
-        i = i * u32_power_ten(n) + fast_str_parse_u32(mask);
-
-        in = p;
+            ++n;
+        } while (n <= in_len && *p >= '0' && *p <= '9');
+        number_n = n;
         in_len -= n;
+
+        if (n > 18) {
+            power_ten = (sky_isize_t) n - 19;
+
+            mask = fast_str_parse_mask8(in);
+            number = fast_str_parse_u32(mask);
+
+            mask = fast_str_parse_mask8(in + 8);
+            number = number * u32_power_ten(8) + fast_str_parse_u32(mask);
+
+            mask = fast_str_parse_mask(in + 16, 3);
+            number = number * u32_power_ten(3) + fast_str_parse_u32(mask);
+
+            in += n;
+        } else {
+            do {
+                if (n >= 8) {
+                    mask = fast_str_parse_mask8(in);
+                    number = number * u32_power_ten(8) + fast_str_parse_u32(mask);
+                    n -= 8;
+                    in += 8;
+                } else {
+                    mask = fast_str_parse_mask(in, n);
+                    number = number * u32_power_ten(n) + fast_str_parse_u32(mask);
+                    in += n;
+                    break;
+                }
+            } while (n);
+        }
     }
 
-    sky_isize_t power_ten = 0;
-    if (*in == '.') {
+    if (!in_len) {
+        return compute_float_64(number, power_ten, negative, out);
+    }
+
+    if (*in == '.') { // read float num
         ++in;
         --in_len;
         if (sky_unlikely(!in_len || *in < '0' || *in > '9')) {
             return false;
         }
-        for (;;) {
-            if (in_len < 8) {
-                mask = fast_str_parse_mask(in, in_len);
-                if (!fast_str_check_number(mask)) {
+        sky_usize_t n = 0;
+        const sky_uchar_t *p = in;
+        do {
+            ++p;
+            ++n;
+        } while (n <= in_len && *p >= '0' && *p <= '9');
+        in_len -= n;
+
+        if (power_ten) {
+            in += n;
+        } else if ((number_n + n) > 18) { // number_n < 18
+            const sky_usize_t read_f_n = 19 - number_n;
+            power_ten -= (sky_isize_t) read_f_n;
+            sky_usize_t i = read_f_n;
+            do {
+                if (i >= 8) {
+                    mask = fast_str_parse_mask8(in);
+                    number = number * u32_power_ten(8) + fast_str_parse_u32(mask);
+                    i -= 8;
+                    in += 8;
+                } else {
+                    mask = fast_str_parse_mask(in, i);
+                    number = number * u32_power_ten(i) + fast_str_parse_u32(mask);
+                    in += i;
                     break;
                 }
-                i = i * u32_power_ten(in_len) + fast_str_parse_u32(mask);
-                power_ten -= (sky_isize_t) in_len;
-
-                return compute_float_64(i, power_ten, negative, out);
-            }
-            mask = fast_str_parse_mask8(in);
-            if (!fast_str_check_number(mask)) {
-                break;
-            }
-            i = i * u32_power_ten(8) + fast_str_parse_u32(mask);
-            in_len -= 8;
-            in += 8;
-            power_ten -= 8;
-            if (!in_len) {
-                return compute_float_64(i, power_ten, negative, out);
-            }
+            } while (i);
+            in += n - read_f_n;
+        } else {
+            power_ten -= (sky_isize_t) n;
+            do {
+                if (n >= 8) {
+                    mask = fast_str_parse_mask8(in);
+                    number = number * u32_power_ten(8) + fast_str_parse_u32(mask);
+                    n -= 8;
+                    in += 8;
+                } else {
+                    mask = fast_str_parse_mask(in, n);
+                    number = number * u32_power_ten(n) + fast_str_parse_u32(mask);
+                    in += n;
+                    break;
+                }
+            } while (n);
         }
 
-        if (*in >= '0' && *in <= '9') {
-            const sky_uchar_t *p = in;
-            do {
-                ++p;
-            } while (*p >= '0' && *p <= '9');
-
-            const sky_usize_t n = (sky_usize_t) (p - in);
-            mask = fast_str_parse_mask(in, n);
-            i = i * u32_power_ten(n) + fast_str_parse_u32(mask);
-
-            in = p;
-            in_len -= n;
-            power_ten -= (sky_isize_t) n;
+        if (!in_len) {
+            return compute_float_64(number, power_ten, negative, out);
         }
     }
-    if (*in != 'e' && *in != 'E') {
+    if (*in != 'e' && *in != 'E') { // read power num
         return false;
     }
     ++in;
@@ -130,7 +148,7 @@ sky_str_len_to_f64(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *const o
     }
     power_ten += i16;
 
-    return compute_float_64(i, power_ten, negative, out);
+    return compute_float_64(number, power_ten, negative, out);
 }
 
 static sky_inline sky_bool_t
