@@ -7,9 +7,6 @@
 
 #include <core/number.h>
 
-#define F64_SMALLEST_POWER (-342)
-#define F64_LARGEST_POWER  308
-
 
 static sky_inline void
 u128_mul(const sky_u64_t a, const sky_u64_t b, sky_u64_t *const hi, sky_u64_t *const lo) {

@@ -3,6 +3,13 @@
 //
 #include "number_common.h"
 
+#define F32_SMALLEST_POWER (-65)
+#define F32_LARGEST_POWER  38
+
+#define F64_SMALLEST_POWER (-342)
+#define F64_LARGEST_POWER  308
+
+
 static sky_u64_t fast_str_parse_mask8(const sky_uchar_t *chars);
 
 static sky_u64_t fast_str_parse_mask(const sky_uchar_t *chars, sky_usize_t len);
@@ -30,14 +37,34 @@ sky_str_len_to_f32(const sky_uchar_t *in, sky_usize_t in_len, sky_f32_t *const o
     sky_usize_t number_n;
 
     { // read int
-        sky_usize_t n = 0;
-        const sky_uchar_t *p = in;
-        do {
-            ++p;
-            ++n;
-        } while (n <= in_len && *p >= '0' && *p <= '9');
+        sky_usize_t n, i = in_len - 1;
+        const sky_uchar_t *p = in + 1;
+
+        while (i >= 8) {
+            mask = fast_str_parse_mask8(p);
+            if (!fast_str_check_number(mask)) {
+                if (*p >= '0' && *p <= '9') {
+                    do {
+                        ++p;
+                        --i;
+                    } while (i && *p >= '0' && *p <= '9');
+                }
+                goto read_int_end;
+            }
+            i -= 8;
+            p += 8;
+        }
+        if (i && *p >= '0' && *p <= '9') {
+            do {
+                ++p;
+                --i;
+            } while (i && *p >= '0' && *p <= '9');
+        }
+
+        read_int_end:
+        n = in_len - i;
+        in_len = i;
         number_n = n;
-        in_len -= n;
 
         if (n > 8) {
             power_ten = (sky_isize_t) n - 9;
@@ -63,13 +90,33 @@ sky_str_len_to_f32(const sky_uchar_t *in, sky_usize_t in_len, sky_f32_t *const o
         if (sky_unlikely(!in_len || *in < '0' || *in > '9')) {
             return false;
         }
-        sky_usize_t n = 0;
-        const sky_uchar_t *p = in;
-        do {
-            ++p;
-            ++n;
-        } while (n <= in_len && *p >= '0' && *p <= '9');
-        in_len -= n;
+        sky_usize_t n, i = in_len - 1;
+        const sky_uchar_t *p = in + 1;
+
+        while (i >= 8) {
+            mask = fast_str_parse_mask8(p);
+            if (!fast_str_check_number(mask)) {
+                if (*p >= '0' && *p <= '9') {
+                    do {
+                        ++p;
+                        --i;
+                    } while (i && *p >= '0' && *p <= '9');
+                }
+                goto read_float_end;
+            }
+            i -= 8;
+            p += 8;
+        }
+        if (i && *p >= '0' && *p <= '9') {
+            do {
+                ++p;
+                --i;
+            } while (i && *p >= '0' && *p <= '9');
+        }
+
+        read_float_end:
+        n = in_len - i;
+        in_len = i;
 
         if (power_ten) {
             in += n;
@@ -128,14 +175,34 @@ sky_str_len_to_f64(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *const o
     sky_usize_t number_n;
 
     { // read int
-        sky_usize_t n = 0;
-        const sky_uchar_t *p = in;
-        do {
-            ++p;
-            ++n;
-        } while (n <= in_len && *p >= '0' && *p <= '9');
+        sky_usize_t n, i = in_len - 1;
+        const sky_uchar_t *p = in + 1;
+
+        while (i >= 8) {
+            mask = fast_str_parse_mask8(p);
+            if (!fast_str_check_number(mask)) {
+                if (*p >= '0' && *p <= '9') {
+                    do {
+                        ++p;
+                        --i;
+                    } while (i && *p >= '0' && *p <= '9');
+                }
+                goto read_int_end;
+            }
+            i -= 8;
+            p += 8;
+        }
+        if (i && *p >= '0' && *p <= '9') {
+            do {
+                ++p;
+                --i;
+            } while (i && *p >= '0' && *p <= '9');
+        }
+
+        read_int_end:
+        n = in_len - i;
+        in_len = i;
         number_n = n;
-        in_len -= n;
 
         if (n > 18) {
             power_ten = (sky_isize_t) n - 19;
@@ -177,20 +244,40 @@ sky_str_len_to_f64(const sky_uchar_t *in, sky_usize_t in_len, sky_f64_t *const o
         if (sky_unlikely(!in_len || *in < '0' || *in > '9')) {
             return false;
         }
-        sky_usize_t n = 0;
-        const sky_uchar_t *p = in;
-        do {
-            ++p;
-            ++n;
-        } while (n <= in_len && *p >= '0' && *p <= '9');
-        in_len -= n;
+        sky_usize_t n, i = in_len - 1;
+        const sky_uchar_t *p = in + 1;
+
+        while (i >= 8) {
+            mask = fast_str_parse_mask8(p);
+            if (!fast_str_check_number(mask)) {
+                if (*p >= '0' && *p <= '9') {
+                    do {
+                        ++p;
+                        --i;
+                    } while (i && *p >= '0' && *p <= '9');
+                }
+                goto read_float_end;
+            }
+            i -= 8;
+            p += 8;
+        }
+        if (i && *p >= '0' && *p <= '9') {
+            do {
+                ++p;
+                --i;
+            } while (i && *p >= '0' && *p <= '9');
+        }
+
+        read_float_end:
+        n = in_len - i;
+        in_len = i;
 
         if (power_ten) {
             in += n;
         } else if ((number_n + n) > 18) { // number_n < 18
             const sky_usize_t read_f_n = 19 - number_n;
             power_ten -= (sky_isize_t) read_f_n;
-            sky_usize_t i = read_f_n;
+            i = read_f_n;
             do {
                 if (i >= 8) {
                     mask = fast_str_parse_mask8(in);
