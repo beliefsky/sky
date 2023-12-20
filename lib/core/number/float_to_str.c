@@ -69,7 +69,8 @@ sky_f64_to_str(sky_f64_t data, sky_uchar_t *out) {
             i = sky_u64_to_str(sig_dec, out);
             if (exp_dec == 1) {
                 out += 16;
-                sky_memcpy2(out, "0");
+                *out = '0';
+
                 return 17;
             }
             i = f64_encode_trim(out, i);
