@@ -37,9 +37,9 @@ sky_f64_to_str(sky_f64_t data, sky_uchar_t *out) {
     *out = '-';
     out += sign;
     if (raw == 0) {
-        sky_memcpy4(out, "0.0");
+        *out = '0';
 
-        return (sky_u8_t) (sig_raw + 3);
+        return (sky_u8_t) (sig_raw + 1);
     }
     if (sky_likely(exp_raw != 0)) {
         const sky_u64_t sig_bin = sig_raw | (SKY_U64(1) << 52);
