@@ -2,7 +2,6 @@
 // Created by beliefsky on 2023/7/8.
 //
 #include "number_common.h"
-#include <core/memory.h>
 
 static void f64_bin_to_dec(
         sky_u64_t sig_raw,
@@ -38,7 +37,7 @@ sky_f64_to_str(sky_f64_t data, sky_uchar_t *out) {
     *out = '-';
     out += sign;
     if (raw == 0) {
-        sky_memcpy2(out, "0");
+        sky_memcpy4(out, "0.0");
 
         return (sky_u8_t) (sig_raw + 3);
     }
