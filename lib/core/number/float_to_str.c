@@ -2,7 +2,6 @@
 // Created by beliefsky on 2023/7/8.
 //
 #include "number_common.h"
-#include <core/memory.h>
 
 static void f64_bin_to_dec(
         sky_u64_t sig_raw,
@@ -38,9 +37,9 @@ sky_f64_to_str(sky_f64_t data, sky_uchar_t *out) {
     *out = '-';
     out += sign;
     if (raw == 0) {
-        sky_memcpy2(out, "0");
+        *out = '0';
 
-        return (sky_u8_t) (sig_raw + 3);
+        return (sky_u8_t) (sig_raw + 1);
     }
     if (sky_likely(exp_raw != 0)) {
         const sky_u64_t sig_bin = sig_raw | (SKY_U64(1) << 52);
@@ -70,7 +69,8 @@ sky_f64_to_str(sky_f64_t data, sky_uchar_t *out) {
             i = sky_u64_to_str(sig_dec, out);
             if (exp_dec == 1) {
                 out += 16;
-                sky_memcpy2(out, "0");
+                *out = '0';
+
                 return 17;
             }
             i = f64_encode_trim(out, i);

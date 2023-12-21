@@ -40,13 +40,13 @@ void sky_rb_tree_link(sky_rb_tree_t *tree, sky_rb_node_t *node, sky_rb_node_t *p
 void sky_rb_tree_del(sky_rb_tree_t *tree, sky_rb_node_t *node);
 
 static sky_inline void
-sky_rb_tree_init(sky_rb_tree_t *tree) {
+sky_rb_tree_init(sky_rb_tree_t *const tree) {
     tree->sentinel.color = false;
     tree->root = &tree->sentinel;
 }
 
 static sky_inline sky_bool_t
-sky_rb_tree_is_empty(const sky_rb_tree_t *tree) {
+sky_rb_tree_is_empty(const sky_rb_tree_t *const tree) {
     return tree->root == &tree->sentinel;
 }
 

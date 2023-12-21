@@ -101,12 +101,20 @@ sky_api sky_http_server_module_t *
 sky_http_server_file_create(sky_event_loop_t *const ev_loop, const sky_http_server_file_conf_t *const conf) {
     sky_pool_t *const pool = sky_pool_create(2048);
     sky_http_server_module_t *const module = sky_palloc(pool, sizeof(sky_http_server_module_t));
-    module->host.data = sky_palloc(pool, conf->host.len);
-    module->host.len = conf->host.len;
-    sky_memcpy(module->host.data, conf->host.data, conf->host.len);
-    module->prefix.data = sky_palloc(pool, conf->prefix.len);
-    module->prefix.len = conf->prefix.len;
-    sky_memcpy(module->prefix.data, conf->prefix.data, conf->prefix.len);
+    if (conf->host.len) {
+        module->host.data = sky_palloc(pool, conf->host.len);
+        module->host.len = conf->host.len;
+        sky_memcpy(module->host.data, conf->host.data, conf->host.len);
+    } else {
+        sky_str_null(&module->host);
+    }
+    if (conf->prefix.len) {
+        module->prefix.data = sky_palloc(pool, conf->prefix.len);
+        module->prefix.len = conf->prefix.len;
+        sky_memcpy(module->prefix.data, conf->prefix.data, conf->prefix.len);
+    } else {
+        sky_str_null(&module->prefix);
+    }
     module->run = http_run_handler;
 
     http_module_file_t *const data = sky_palloc(pool, sizeof(http_module_file_t));
