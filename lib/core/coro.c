@@ -82,33 +82,32 @@ static sky_thread coro_switcher_t thread_switcher = {
 void __attribute__((noinline, visibility("internal")))
 coro_swapcontext(sky_coro_context_t *current, sky_coro_context_t *other);
 
-asm(
-        ".text\n\t"
-        ".p2align 5\n\t"
-        ASM_ROUTINE(coro_swapcontext)
-        "movq    %rbx,0(%rdi)\n\t"
-        "movq    %rbp,8(%rdi)\n\t"
-        "movq    %r12,16(%rdi)\n\t"
-        "movq    %r13,24(%rdi)\n\t"
-        "movq    %r14,32(%rdi)\n\t"
-        "movq    %r15,40(%rdi)\n\t"
-        "movq    %rdi,48(%rdi)\n\t"
-        "movq    %rsi,56(%rdi)\n\t"
-        "movq    (%rsp),%rcx\n\t"
-        "movq    %rcx,64(%rdi)\n\t"
-        "leaq    0x8(%rsp),%rcx\n\t"
-        "movq    %rcx,72(%rdi)\n\t"
-        "movq    72(%rsi),%rsp\n\t"
-        "movq    0(%rsi),%rbx\n\t"
-        "movq    8(%rsi),%rbp\n\t"
-        "movq    16(%rsi),%r12\n\t"
-        "movq    24(%rsi),%r13\n\t"
-        "movq    32(%rsi),%r14\n\t"
-        "movq    40(%rsi),%r15\n\t"
-        "movq    48(%rsi),%rdi\n\t"
-        "movq    64(%rsi),%rcx\n\t"
-        "movq    56(%rsi),%rsi\n\t"
-        "jmpq    *%rcx\n\t");
+asm(".text\n\t"
+    ".p2align 5\n\t"
+    ASM_ROUTINE(coro_swapcontext)
+    "movq    %rbx,0(%rdi)\n\t"
+    "movq    %rbp,8(%rdi)\n\t"
+    "movq    %r12,16(%rdi)\n\t"
+    "movq    %r13,24(%rdi)\n\t"
+    "movq    %r14,32(%rdi)\n\t"
+    "movq    %r15,40(%rdi)\n\t"
+    "movq    %rdi,48(%rdi)\n\t"
+    "movq    %rsi,56(%rdi)\n\t"
+    "movq    (%rsp),%rcx\n\t"
+    "movq    %rcx,64(%rdi)\n\t"
+    "leaq    0x8(%rsp),%rcx\n\t"
+    "movq    %rcx,72(%rdi)\n\t"
+    "movq    72(%rsi),%rsp\n\t"
+    "movq    0(%rsi),%rbx\n\t"
+    "movq    8(%rsi),%rbp\n\t"
+    "movq    16(%rsi),%r12\n\t"
+    "movq    24(%rsi),%r13\n\t"
+    "movq    32(%rsi),%r14\n\t"
+    "movq    40(%rsi),%r15\n\t"
+    "movq    48(%rsi),%rdi\n\t"
+    "movq    64(%rsi),%rcx\n\t"
+    "movq    56(%rsi),%rsi\n\t"
+    "jmpq    *%rcx\n\t");
 
 #elif defined(__aarch64__)
 
@@ -165,7 +164,7 @@ asm(".text\n\t"
     ASM_ROUTINE(coro_entry_point_x86_64)
     "mov %r15, %rdx\n\t"
     "jmp " ASM_SYMBOL(coro_entry_point) "\n\t"
-        );
+);
 
 #elif defined(__aarch64__)
 
@@ -337,13 +336,11 @@ coro_resume(sky_coro_t *const coro) {
 
     coro->parent = switcher->current;
     switcher->current = coro;
-    if (!coro->parent) {
-        coro_swapcontext(&switcher->caller, &coro->context);
-        switcher->current = null;
-    } else {
-        coro_swapcontext(&coro->parent->context, &coro->context);
-        switcher->current = coro->parent;
-    }
+    coro_swapcontext(
+            (!!coro->parent) ? &coro->parent->context : &switcher->caller,
+            &coro->context
+    );
+    switcher->current = coro->parent;
 
     return coro->yield_value;
 }
@@ -351,13 +348,10 @@ coro_resume(sky_coro_t *const coro) {
 static sky_inline sky_usize_t
 coro_yield(sky_coro_t *const coro, const sky_usize_t value) {
     coro->yield_value = value;
-
-    if (!coro->parent) {
-        coro_swapcontext(&coro->context, &thread_switcher.caller);
-    } else {
-        coro_swapcontext(&coro->context, &coro->parent->context);
-    }
-
+    coro_swapcontext(
+            &coro->context,
+            (!!coro->parent) ? &coro->parent->context : &thread_switcher.caller
+    );
 
     return coro->yield_value;
 }
