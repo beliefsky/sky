@@ -1289,7 +1289,7 @@ sky_json_mut_arr_add_obj(sky_json_mut_doc_t *const doc, sky_json_mut_val_t *cons
         sky_json_mut_val_t *const val = sky_json_mut_obj(doc);
         return sky_likely(sky_json_mut_arr_append(arr, val)) ? val : null;
     }
-    return false;
+    return null;
 }
 
 static sky_inline sky_json_mut_val_t *
@@ -1298,7 +1298,7 @@ sky_json_mut_arr_add_arr(sky_json_mut_doc_t *const doc, sky_json_mut_val_t *cons
         sky_json_mut_val_t *const val = sky_json_mut_arr(doc);
         return sky_likely(sky_json_mut_arr_append(arr, val)) ? val : null;
     }
-    return false;
+    return null;
 }
 
 static sky_inline sky_bool_t

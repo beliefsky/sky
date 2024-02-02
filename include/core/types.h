@@ -12,8 +12,8 @@
 extern "C" {
 #endif
 
-#define true    1
-#define false   0
+#define true  ((_Bool)+1U)
+#define false ((_Bool)+0U)
 
 #define sky_offset_of(_TYPE, _MEMBER) __builtin_offsetof(_TYPE, _MEMBER)
 #ifdef _MSC_VER
