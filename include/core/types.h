@@ -66,7 +66,7 @@ extern "C" {
 #define SKY_USIZE_MAX   SKY_U64_MAX
 #else
 #define SKY_ISIZE_MAX   SKY_I32_MAX
-#define SKY_USIZE_MAX   SKY_32_MAX
+#define SKY_USIZE_MAX   SKY_U32_MAX
 #endif
 
 

@@ -19,10 +19,12 @@ if (NOT CMAKE_BUILD_TYPE)
     message(STATUS "No build type selected, defaulting to Release")
     set(CMAKE_BUILD_TYPE "Release")
 endif ()
-
-if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^x86_64|amd64|aarch64")
+message(${CMAKE_SYSTEM_PROCESSOR})
+if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|X86_64|AMD64|amd64|aarch64|AARCH64)$")
     set(SKY_HAVE_LIBUCONTEXT 1)
 endif ()
+
+message(${CMAKE_SYSTEM_PROCESSOR} "---> " ${SKY_HAVE_LIBUCONTEXT})
 
 #
 # Find libraries
