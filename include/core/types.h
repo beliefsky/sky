@@ -34,34 +34,33 @@ extern "C" {
 
 #define null    (void *)0
 
-#define SKY_I8(_c)      _c
-#define SKY_U8(_c)      _c
-#define SKY_I16(_c)     _c
-#define SKY_U16(_c)     _c
-#define SKY_I32(_c)     _c
-#define SKY_U32(_c)     _c ## U
+#define SKY_I8(_c)      INT8_C(_c)
+#define SKY_U8(_c)      UINT8_C(_c)
+#define SKY_I16(_c)     INT16_C(_c)
+#define SKY_U16(_c)     UINT16_C(_c)
+#define SKY_I32(_c)     INT32_C(_c)
+#define SKY_U32(_c)     UINT32_C(_c)
+#define SKY_I64(_c)     INT64_C(_c)
+#define SKY_U64(_c)     UINT64_C(_c)
 
-#if __WORDSIZE == 64
-#define SKY_I64(_c)     _c ## L
-#define SKY_U64(_c)     _c ## UL
+#if UINTPTR_MAX == UINT64_MAX
 #define SKY_ISIZE(_c)   SKY_I64(_c)
 #define SKY_USIZE(_c)   SKY_U64(_c)
 #else
-#define SKY_I64(_c)     _c ## LL
-#define SKY_U64(_c)     _c ## ULL
 #define SKY_ISIZE(_c)   SKY_I32(_c)
 #define SKY_USIZE(_c)   SKY_U32(_c)
 #endif
 
-#define SKY_I8_MAX      SKY_I8(127)
-#define SKY_U8_MAX      SKY_U8(255)
-#define SKY_I16_MAX     SKY_I16(32767)
-#define SKY_U16_MAX     SKY_U16(65535)
-#define SKY_I32_MAX     SKY_I32(2147483647)
-#define SKY_U32_MAX     SKY_U32(4294967295)
-#define SKY_I64_MAX     SKY_I64(9223372036854775807)
-#define SKY_U64_MAX     SKY_U64(18446744073709551615)
-#if __WORDSIZE == 64
+#define SKY_I8_MAX      INT8_MAX
+#define SKY_U8_MAX      UINT8_MAX
+#define SKY_I16_MAX     INT16_MAX
+#define SKY_U16_MAX     UINT16_MAX
+#define SKY_I32_MAX     INT32_MAX
+#define SKY_U32_MAX     UINT32_MAX
+#define SKY_I64_MAX     INT64_MAX
+#define SKY_U64_MAX     UINT64_MAX
+
+#if UINTPTR_MAX == UINT64_MAX
 #define SKY_ISIZE_MAX   SKY_I64_MAX
 #define SKY_USIZE_MAX   SKY_U64_MAX
 #else
@@ -79,14 +78,13 @@ typedef signed short sky_i16_t;             /*-32768 ~ + 32767*/
 typedef unsigned short sky_u16_t;           /*0 ~ 65536*/
 typedef signed int sky_i32_t;               /*-2147483648 ~ +2147483647*/
 typedef unsigned int sky_u32_t;             /*0 ~ 4294967295*/
-#if __WORDSIZE == 64
-typedef signed long int sky_i64_t;          /*-9223372036854775808 ~ +9223372036854775807*/
-typedef unsigned long int sky_u64_t;        /*0 ~ 18446744073709551615*/
+typedef int64_t sky_i64_t;                  /*-9223372036854775808 ~ +9223372036854775807*/
+typedef uint64_t sky_u64_t;                 /*0 ~ 18446744073709551615*/
+
+#if UINTPTR_MAX == UINT64_MAX
 typedef sky_i64_t sky_isize_t;
 typedef sky_u64_t sky_usize_t;
 #else
-typedef signed long long int sky_i64_t;     /*-9223372036854775808 ~ +9223372036854775807*/
-typedef unsigned long long int sky_u64_t;   /*0 ~ 18446744073709551615*/
 typedef sky_i32_t sky_isize_t;
 typedef sky_u32_t sky_usize_t;
 #endif
