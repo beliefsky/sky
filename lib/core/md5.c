@@ -146,7 +146,7 @@ sky_md5_final(sky_md5_t *const ctx, sky_uchar_t result[16]) {
  */
 
 static const sky_uchar_t*
-sky_md5_body(sky_md5_t *const ctx, const sky_uchar_t *const data, size_t size) {
+sky_md5_body(sky_md5_t *const ctx, const sky_uchar_t *const data, sky_usize_t size) {
     sky_u32_t a, b, c, d;
     sky_u32_t saved_a, saved_b, saved_c, saved_d;
     const sky_uchar_t *p;
