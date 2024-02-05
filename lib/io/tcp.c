@@ -139,7 +139,7 @@ sky_tcp_connect(sky_tcp_t *const tcp, const sky_inet_address_t *const address) {
         return -1;
     }
 
-    if (sky_unlikely(!sky_ev_any_able(&tcp->ev))) {
+    if (sky_unlikely(!sky_ev_any_enable(&tcp->ev))) {
         return 0;
     }
 

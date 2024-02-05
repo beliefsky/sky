@@ -94,7 +94,7 @@ sky_ev_writable(const sky_ev_t *const ev) {
 }
 
 static sky_inline sky_bool_t
-sky_ev_any_able(const sky_ev_t *const ev) {
+sky_ev_any_enable(const sky_ev_t *const ev) {
     return (ev->status & (SKY_EV_READ | SKY_EV_WRITE)) != 0;
 }
 
