@@ -3679,7 +3679,7 @@ read_string(sky_uchar_t **ptr, const sky_uchar_t *lst, sky_json_val_t *val, sky_
  ---------------------------------------------------
  */
 
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if SKY_ENDIAN == SKY_LITTLE_ENDIAN
 #define b1_mask SKY_U32(0x00000080)
 #define b1_patt SKY_U32(0x00000000)
 #define b2_mask SKY_U32(0x0000C0E0)
@@ -5525,7 +5525,7 @@ write_string(sky_uchar_t *cur, const sky_str_t *str, const sky_u8_t *enc_table, 
     };
 
 
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if SKY_ENDIAN == SKY_LITTLE_ENDIAN
 #define b2_mask SKY_U32(0x0000C0E0)
 #define b2_patt SKY_U32(0x000080C0)
 #define b2_requ SKY_U32(0x0000001E)

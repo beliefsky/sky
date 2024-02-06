@@ -69,7 +69,7 @@ sky_u32_to_hex_str(const sky_u32_t data, sky_uchar_t *const out, const sky_bool_
 
     sky_u64_t *tmp = (sky_u64_t *) out;
 
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if SKY_ENDIAN == SKY_LITTLE_ENDIAN
     *tmp >>= (8 - n) << 3;
 #else
     *tmp <<= (8 - n) << 3;
@@ -91,7 +91,7 @@ sky_u64_to_hex_str(const sky_u64_t data, sky_uchar_t *out, const sky_bool_t lowe
 
     sky_u64_t *tmp = (sky_u64_t *) out;
 
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if SKY_ENDIAN == SKY_LITTLE_ENDIAN
     *tmp >>= (8 - n) << 3;
 #else
     *tmp <<= (8 - n) << 3;

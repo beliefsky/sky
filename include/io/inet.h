@@ -12,7 +12,7 @@
 extern "C" {
 #endif
 
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if SKY_ENDIAN == SKY_LITTLE_ENDIAN
 #define sky_htons(_s)   sky_swap_u16(_s)
 #define sky_ntohs(_s)   sky_swap_u16(_s)
 #define sky_htonl(_l)   sky_swap_u32(_l)

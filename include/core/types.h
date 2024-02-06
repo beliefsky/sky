@@ -5,8 +5,20 @@
 #ifndef SKY_TYPES_H
 #define SKY_TYPES_H
 
-#include <inttypes.h>
 #include "../sky_build_config.h"
+#include <inttypes.h>
+
+#ifdef __has_include
+#define sky_has_include(_x) __has_include(_x)
+#endif
+
+#if sky_has_include(<endian.h>)
+#include <endian.h>
+#elif sky_has_include(<sys/endian.h>)
+#include <sys/endian.h>
+#elif sky_has_include(<machine/endian.h>)
+#include <machine/endian.h>
+#endif
 
 #if defined(__cplusplus)
 extern "C" {
@@ -72,12 +84,12 @@ extern "C" {
 typedef _Bool sky_bool_t;
 typedef char sky_char_t;                    /*-128 ~ +127*/
 typedef unsigned char sky_uchar_t;          /*0 ~ 255*/
-typedef signed char sky_i8_t;               /*-128 ~ +127*/
-typedef unsigned char sky_u8_t;             /*0 ~ 255*/
-typedef signed short sky_i16_t;             /*-32768 ~ + 32767*/
-typedef unsigned short sky_u16_t;           /*0 ~ 65536*/
-typedef signed int sky_i32_t;               /*-2147483648 ~ +2147483647*/
-typedef unsigned int sky_u32_t;             /*0 ~ 4294967295*/
+typedef int8_t sky_i8_t;                    /*-128 ~ +127*/
+typedef uint8_t sky_u8_t;                   /*0 ~ 255*/
+typedef int16_t sky_i16_t;                  /*-32768 ~ + 32767*/
+typedef uint16_t sky_u16_t;                 /*0 ~ 65536*/
+typedef int32_t sky_i32_t;                  /*-2147483648 ~ +2147483647*/
+typedef uint32_t sky_u32_t;                 /*0 ~ 4294967295*/
 typedef int64_t sky_i64_t;                  /*-9223372036854775808 ~ +9223372036854775807*/
 typedef uint64_t sky_u64_t;                 /*0 ~ 18446744073709551615*/
 
@@ -93,8 +105,35 @@ typedef sky_i64_t sky_time_t;
 typedef float sky_f32_t;
 typedef double sky_f64_t;
 
-
 #define sky_thread __thread
+
+
+#define SKY_BIG_ENDIAN       4321
+#define SKY_LITTLE_ENDIAN    1234
+
+#if defined(BYTE_ORDER)
+#if BYTE_ORDER == BIG_ENDIAN
+#define SKY_ENDIAN SKY_BIG_ENDIAN
+#elif BYTE_ORDER == LITTLE_ENDIAN
+#define SKY_ENDIAN SKY_LITTLE_ENDIAN
+#endif
+#elif defined(__BYTE_ORDER)
+#if __BYTE_ORDER == __BIG_ENDIAN
+#define SKY_ENDIAN SKY_BIG_ENDIAN
+#elif __BYTE_ORDER == __LITTLE_ENDIAN
+#define SKY_ENDIAN SKY_LITTLE_ENDIAN
+#endif
+#elif defined(__BYTE_ORDER__)
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+#define SKY_ENDIAN SKY_BIG_ENDIAN
+#elif __BYTE_ORDER == __ORDER_LITTLE_ENDIAN__
+#define SKY_ENDIAN SKY_LITTLE_ENDIAN
+#endif
+#endif
+
+#ifndef SKY_ENDIAN
+#error Unknown byte order
+#endif
 
 #ifdef SKY_HAVE_BUILTIN_BSWAP
 #define sky_swap_u16(_ll) __builtin_bswap16(_ll)

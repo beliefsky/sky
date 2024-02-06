@@ -125,7 +125,7 @@ sky_md5_final(sky_md5_t *const ctx, sky_uchar_t result[16]) {
  * memory accesses is just an optimization.  Nothing will break if it
  * does not work.
  */
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if SKY_ENDIAN == SKY_LITTLE_ENDIAN
 #define SET(_n)      (*(sky_u32_t *) &p[(_n) << 2])
 #define GET(_n)      (*(sky_u32_t *) &p[(_n) << 2])
 #else
@@ -150,7 +150,7 @@ sky_md5_body(sky_md5_t *const ctx, const sky_uchar_t *const data, sky_usize_t si
     sky_u32_t a, b, c, d;
     sky_u32_t saved_a, saved_b, saved_c, saved_d;
     const sky_uchar_t *p;
-#if __BYTE_ORDER != __LITTLE_ENDIAN
+#if SKY_ENDIAN == SKY_LITTLE_ENDIAN
     sky_u32_t       block[16];
 #endif
 
