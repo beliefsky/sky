@@ -5,8 +5,9 @@
 #ifndef SKY_TYPES_H
 #define SKY_TYPES_H
 
-#include <inttypes.h>
 #include "../sky_build_config.h"
+#include <inttypes.h>
+#include <endian.h>
 
 #if defined(__cplusplus)
 extern "C" {
@@ -112,9 +113,9 @@ typedef double sky_f64_t;
 #define SKY_ENDIAN SKY_LITTLE_ENDIAN
 #endif
 #elif defined(__BYTE_ORDER__)
-#if __BYTE_ORDER__ == __BIG_ENDIAN__
+#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 #define SKY_ENDIAN SKY_BIG_ENDIAN
-#elif __BYTE_ORDER == __LITTLE_ENDIAN__
+#elif __BYTE_ORDER == __ORDER_LITTLE_ENDIAN__
 #define SKY_ENDIAN SKY_LITTLE_ENDIAN
 #endif
 #endif
