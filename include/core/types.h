@@ -119,6 +119,10 @@ typedef double sky_f64_t;
 #endif
 #endif
 
+#ifndef SKY_ENDIAN
+#error not supported byte order
+#endif
+
 #ifdef SKY_HAVE_BUILTIN_BSWAP
 #define sky_swap_u16(_ll) __builtin_bswap16(_ll)
 #define sky_swap_u32(_ll) __builtin_bswap32(_ll)
