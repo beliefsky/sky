@@ -72,12 +72,12 @@ extern "C" {
 typedef _Bool sky_bool_t;
 typedef char sky_char_t;                    /*-128 ~ +127*/
 typedef unsigned char sky_uchar_t;          /*0 ~ 255*/
-typedef signed char sky_i8_t;               /*-128 ~ +127*/
-typedef unsigned char sky_u8_t;             /*0 ~ 255*/
-typedef signed short sky_i16_t;             /*-32768 ~ + 32767*/
-typedef unsigned short sky_u16_t;           /*0 ~ 65536*/
-typedef signed int sky_i32_t;               /*-2147483648 ~ +2147483647*/
-typedef unsigned int sky_u32_t;             /*0 ~ 4294967295*/
+typedef int8_t sky_i8_t;                    /*-128 ~ +127*/
+typedef uint8_t sky_u8_t;                   /*0 ~ 255*/
+typedef int16_t sky_i16_t;                  /*-32768 ~ + 32767*/
+typedef uint16_t sky_u16_t;                 /*0 ~ 65536*/
+typedef int32_t sky_i32_t;                  /*-2147483648 ~ +2147483647*/
+typedef uint32_t sky_u32_t;                 /*0 ~ 4294967295*/
 typedef int64_t sky_i64_t;                  /*-9223372036854775808 ~ +9223372036854775807*/
 typedef uint64_t sky_u64_t;                 /*0 ~ 18446744073709551615*/
 
