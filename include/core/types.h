@@ -7,7 +7,18 @@
 
 #include "../sky_build_config.h"
 #include <inttypes.h>
+
+#ifdef __has_include
+#define sky_has_include(_x) __has_include(_x)
+#endif
+
+#if sky_has_include(<endian.h>)
 #include <endian.h>
+#elif sky_has_include(<sys/endian.h>)
+#include <sys/endian.h>
+#elif sky_has_include(<machine/endian.h>)
+#include <machine/endian.h>
+#endif
 
 #if defined(__cplusplus)
 extern "C" {
@@ -121,7 +132,7 @@ typedef double sky_f64_t;
 #endif
 
 #ifndef SKY_ENDIAN
-#error not supported byte order
+#error Unknown byte order
 #endif
 
 #ifdef SKY_HAVE_BUILTIN_BSWAP
