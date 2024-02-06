@@ -93,8 +93,31 @@ typedef sky_i64_t sky_time_t;
 typedef float sky_f32_t;
 typedef double sky_f64_t;
 
-
 #define sky_thread __thread
+
+
+#define SKY_BIG_ENDIAN       4321
+#define SKY_LITTLE_ENDIAN    1234
+
+#if defined(BYTE_ORDER)
+#if BYTE_ORDER == BIG_ENDIAN
+#define SKY_ENDIAN SKY_BIG_ENDIAN
+#elif BYTE_ORDER == LITTLE_ENDIAN
+#define SKY_ENDIAN SKY_LITTLE_ENDIAN
+#endif
+#elif defined(__BYTE_ORDER)
+#if __BYTE_ORDER == __BIG_ENDIAN
+#define SKY_ENDIAN SKY_BIG_ENDIAN
+#elif __BYTE_ORDER == __LITTLE_ENDIAN
+#define SKY_ENDIAN SKY_LITTLE_ENDIAN
+#endif
+#elif defined(__BYTE_ORDER__)
+#if __BYTE_ORDER__ == __BIG_ENDIAN__
+#define SKY_ENDIAN SKY_BIG_ENDIAN
+#elif __BYTE_ORDER == __LITTLE_ENDIAN__
+#define SKY_ENDIAN SKY_LITTLE_ENDIAN
+#endif
+#endif
 
 #ifdef SKY_HAVE_BUILTIN_BSWAP
 #define sky_swap_u16(_ll) __builtin_bswap16(_ll)

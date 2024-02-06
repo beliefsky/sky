@@ -20,7 +20,7 @@ extern "C" {
 #define sky_str8_switch(_m) \
     (*(sky_u64_t *)(_m))
 
-#if __BYTE_ORDER == __LITTLE_ENDIAN
+#if SKY_ENDIAN == SKY_LITTLE_ENDIAN
 #define sky_str2_num(c0, c1)            \
     ((sky_u16_t)(((sky_u32_t)(c1) << 8U) | (sky_u32_t)(c0)))
 
