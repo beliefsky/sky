@@ -150,7 +150,7 @@ sky_md5_body(sky_md5_t *const ctx, const sky_uchar_t *const data, sky_usize_t si
     sky_u32_t a, b, c, d;
     sky_u32_t saved_a, saved_b, saved_c, saved_d;
     const sky_uchar_t *p;
-#if SKY_ENDIAN == SKY_LITTLE_ENDIAN
+#if SKY_ENDIAN != SKY_LITTLE_ENDIAN
     sky_u32_t       block[16];
 #endif
 
