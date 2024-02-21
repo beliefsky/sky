@@ -6,7 +6,7 @@
 #define SKY_EVENT_LOOP_H
 
 #include "../core/timer_wheel.h"
-#include "selector.h"
+#include "./selector.h"
 
 #if defined(__cplusplus)
 extern "C" {

@@ -5,8 +5,8 @@
 #ifndef SKY_TRIE_H
 #define SKY_TRIE_H
 
-#include "palloc.h"
-#include "string.h"
+#include "./palloc.h"
+#include "./string.h"
 
 #if defined(__cplusplus)
 extern "C" {

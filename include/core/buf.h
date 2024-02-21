@@ -5,8 +5,8 @@
 #ifndef SKY_BUF_H
 #define SKY_BUF_H
 
-#include "types.h"
-#include "palloc.h"
+#include "./types.h"
+#include "./palloc.h"
 
 #if defined(__cplusplus)
 extern "C" {

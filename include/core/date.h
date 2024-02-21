@@ -6,7 +6,7 @@
 #define SKY_SKY_DATE_H
 
 #include <time.h>
-#include "string.h"
+#include "./string.h"
 
 #if defined(__cplusplus)
 extern "C" {

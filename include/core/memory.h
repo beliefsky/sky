@@ -5,7 +5,7 @@
 #ifndef SKY_MEMORY_H
 #define SKY_MEMORY_H
 
-#include "types.h"
+#include "./types.h"
 #include <string.h>
 
 #ifdef SKY_HAVE_MALLOC

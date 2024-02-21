@@ -5,7 +5,7 @@
 #ifndef SKY_QUEUE_H
 #define SKY_QUEUE_H
 
-#include "types.h"
+#include "./types.h"
 
 #if defined(__cplusplus)
 extern "C" {

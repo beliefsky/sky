@@ -1,7 +1,7 @@
 //
 // Created by beliefsky on 2023/3/24.
 //
-#include "common.h"
+#include "./common.h"
 #ifdef SELECTOR_USE_KQUEUE
 
 #include <core/memory.h>
@@ -160,19 +160,22 @@ sky_selector_register(sky_ev_t *const ev, const sky_u32_t flags) {
         return false;
     }
     sky_i32_t n = 0;
+    sky_u32_t opts = 0;
     struct kevent events[2];
 
     if ((flags & SKY_EV_READ) != 0) {
+        opts |= SKY_EV_READ;
         EV_SET(&events[n++], ev->fd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
     }
 
     if ((flags & SKY_EV_WRITE) != 0) {
+        opts |= SKY_EV_WRITE;
         EV_SET(&events[n++], ev->fd, EVFILT_WRITE, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
     }
 
     kevent(ev->s->fd, events, n, null, 0, null);
 
-    ev->flags = flags;
+    ev->flags = opts;
     ev->status &= ~SKY_EV_NO_REG;
     ev->status |= SKY_EV_NO_ERR;
 
@@ -186,9 +189,11 @@ sky_selector_update(sky_ev_t *const ev, const sky_u32_t flags) {
     }
 
     sky_i32_t n = 0;
+    sky_u32_t opts = 0;
     struct kevent events[2];
 
     if ((flags & SKY_EV_READ) != 0) {
+        opts |= SKY_EV_READ;
         if ((ev->flags & SKY_EV_READ) == 0) {
             EV_SET(&events[n++], ev->fd, EVFILT_READ, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
         }
@@ -199,6 +204,7 @@ sky_selector_update(sky_ev_t *const ev, const sky_u32_t flags) {
     }
 
     if ((flags & SKY_EV_WRITE) != 0) {
+         opts |= SKY_EV_WRITE;
         if ((ev->flags & SKY_EV_WRITE) == 0) {
             EV_SET(&events[n++], ev->fd, EVFILT_WRITE, EV_ADD | EV_ENABLE | EV_CLEAR, 0, 0, ev);
         }
@@ -207,12 +213,15 @@ sky_selector_update(sky_ev_t *const ev, const sky_u32_t flags) {
             EV_SET(&events[n++], ev->fd, EVFILT_WRITE, EV_DELETE, 0, 0, ev);
         }
     }
+    if (ev->flags == opts) { // 事件相同时不再触发
+        return !sky_ev_error(ev);
+    }
 
     if (n > 0) {
         kevent(ev->s->fd, events, n, null, 0, null);
     }
 
-    ev->flags = flags;
+    ev->flags = opts;
     ev->status |= SKY_EV_NO_ERR;
 
     return true;

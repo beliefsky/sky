@@ -5,7 +5,7 @@
 #ifndef SKY_ARRAY_H
 #define SKY_ARRAY_H
 
-#include "palloc.h"
+#include "./palloc.h"
 
 #if defined(__cplusplus)
 extern "C" {

@@ -5,9 +5,9 @@
 #ifndef SKY_JSON_H
 #define SKY_JSON_H
 
-#include "types.h"
-#include "string.h"
-#include "palloc.h"
+#include "./types.h"
+#include "./string.h"
+#include "./palloc.h"
 
 #if defined(__cplusplus)
 extern "C" {

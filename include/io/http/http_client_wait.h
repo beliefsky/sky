@@ -5,7 +5,7 @@
 #ifndef SKY_HTTP_CLIENT_WAIT_H
 #define SKY_HTTP_CLIENT_WAIT_H
 
-#include "http_client.h"
+#include "./http_client.h"
 #include "../sync_wait.h"
 
 #if defined(__cplusplus)

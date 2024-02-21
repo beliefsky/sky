@@ -6,8 +6,8 @@
 #define SKY_TCP_H
 
 
-#include "selector.h"
-#include "file.h"
+#include "./selector.h"
+#include "./file.h"
 
 #if defined(__cplusplus)
 extern "C" {

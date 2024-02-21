@@ -1,7 +1,7 @@
 #ifndef SKY_PALLOC_H
 #define SKY_PALLOC_H
 
-#include "types.h"
+#include "./types.h"
 
 #if defined(__cplusplus)
 extern "C" {

@@ -5,8 +5,8 @@
 #ifndef SKY_NUMBER_H
 #define SKY_NUMBER_H
 
-#include "string.h"
-#include "memory.h"
+#include "./string.h"
+#include "./memory.h"
 
 #if defined(__cplusplus)
 extern "C" {

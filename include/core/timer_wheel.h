@@ -5,8 +5,8 @@
 #ifndef SKY_TIMER_WHEEL_H
 #define SKY_TIMER_WHEEL_H
 
-#include "types.h"
-#include "queue.h"
+#include "./types.h"
+#include "./queue.h"
 
 typedef struct sky_timer_wheel_s sky_timer_wheel_t;
 typedef struct sky_timer_wheel_entry_s sky_timer_wheel_entry_t;

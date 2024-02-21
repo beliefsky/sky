@@ -5,7 +5,7 @@
 #ifndef SKY_MD5_H
 #define SKY_MD5_H
 
-#include "types.h"
+#include "./types.h"
 
 #if defined(__cplusplus)
 extern "C" {

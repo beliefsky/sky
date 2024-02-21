@@ -5,7 +5,7 @@
 #ifndef SKY_CORO_H
 #define SKY_CORO_H
 
-#include "types.h"
+#include "./types.h"
 
 #if defined(__cplusplus)
 } /* extern "C" { */

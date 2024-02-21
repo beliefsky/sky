@@ -5,7 +5,7 @@
 #ifndef SKY_SELECTOR_H
 #define SKY_SELECTOR_H
 
-#include "inet.h"
+#include "./inet.h"
 
 #if defined(__cplusplus)
 extern "C" {

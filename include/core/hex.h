@@ -5,7 +5,7 @@
 #ifndef SKY_HEX_H
 #define SKY_HEX_H
 
-#include "string.h"
+#include "./string.h"
 
 #if defined(__cplusplus)
 extern "C" {

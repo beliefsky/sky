@@ -5,7 +5,7 @@
 #ifndef SKY_LIST_H
 #define SKY_LIST_H
 
-#include "palloc.h"
+#include "./palloc.h"
 
 #if defined(__cplusplus)
 extern "C" {

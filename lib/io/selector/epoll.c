@@ -2,7 +2,7 @@
 // Created by beliefsky on 2023/3/24.
 //
 
-#include "common.h"
+#include "./common.h"
 
 #ifdef SELECTOR_USE_EPOLL
 
@@ -58,7 +58,7 @@ sky_selector_create() {
     sky_i32_t max_event = setup_open_file_count_limits();
     max_event = sky_min(max_event, 1024);
 
-    sky_selector_t *const s = sky_malloc(sizeof(sky_selector_t) );
+    sky_selector_t *const s = sky_malloc(sizeof(sky_selector_t));
     s->fd = fd;
     s->ev_n = 0;
     s->max_event = max_event;
@@ -177,6 +177,9 @@ sky_selector_update(sky_ev_t *const ev, const sky_u32_t flags) {
     }
     if ((flags & SKY_EV_WRITE) != 0) {
         opts |= EPOLLOUT;
+    }
+    if (ev->flags == opts) { // 事件相同时不再触发
+        return !sky_ev_error(ev);
     }
 
     struct epoll_event event = {

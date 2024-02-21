@@ -5,7 +5,7 @@
 #ifndef SKY_PGSQL_POOL_WAIT_H
 #define SKY_PGSQL_POOL_WAIT_H
 
-#include "pgsql_pool.h"
+#include "./pgsql_pool.h"
 #include "../sync_wait.h"
 
 #if defined(__cplusplus)
