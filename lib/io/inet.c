@@ -46,7 +46,7 @@ sky_inet_address_ip_str(
 ) {
     if (size < 7 || size > 15 || null == sky_str_len_find_char(ip, 4, '.')) {
 #ifndef __linux__
-        address->size = sizeof(address->ipv4);
+        address->size = sizeof(address->ipv6);
 #endif
         address->family = AF_INET6;
         address->ipv6.port = sky_htons(port);
@@ -56,7 +56,7 @@ sky_inet_address_ip_str(
         return 1 == inet_pton(AF_INET6, (sky_char_t *) ip, address->ipv6.address);
     }
 #ifndef __linux__
-    address->size = sizeof(address->ipv6);
+    address->size = sizeof(address->ipv4);
 #endif
     address->family = AF_INET;
     address->ipv4.port = sky_htons(port);
