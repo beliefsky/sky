@@ -34,13 +34,16 @@
 #define EV_OUT_CONNECT_CB   SKY_U8(2)
 #define EV_OUT_SEND         SKY_U8(3)
 #define EV_OUT_SEND_CB      SKY_U8(4)
+#define EV_OUT_SEND_VEC     SKY_U8(5)
+#define EV_OUT_SEND_VEC_CB  SKY_U8(6)
 
 #define EV_HANDLE_MASK      SKY_U32(0xFF000000)
 #define EV_HANDLE_SHIFT     SKY_U32(24)
 
-#define EV_IN_ACCEPT        SKY_U32(1)
-#define EV_IN_RECV          SKY_U32(2)
-#define EV_IN_CLOSE         SKY_U32(3)
+#define EV_IN_CLOSE         SKY_U32(1)
+#define EV_IN_ACCEPT        SKY_U32(2)
+#define EV_IN_RECV          SKY_U32(3)
+#define EV_IN_RECVFROM      SKY_U32(4)
 
 #define EV_REG_IN           SKY_U32(0x00000001)
 #define EV_REG_OUT          SKY_U32(0x00000002)
@@ -84,6 +87,7 @@ struct sky_ev_out_s {
     union {
         sky_ev_connect_pt connect;
         sky_ev_write_pt send;
+        sky_ev_write_vec_pt send_vec;
     } cb;
     sky_ev_block_t *block;
     sky_ev_out_t *next; // next out;
@@ -112,6 +116,10 @@ sky_bool_t event_on_connect_cb(sky_ev_t *ev, sky_ev_out_t *out);
 sky_bool_t event_on_send(sky_ev_t *ev, sky_ev_out_t *out);
 
 sky_bool_t event_on_send_cb(sky_ev_t *ev, sky_ev_out_t *out);
+
+sky_bool_t event_on_send_vec(sky_ev_t *ev, sky_ev_out_t *out);
+
+sky_bool_t event_on_send_vec_cb(sky_ev_t *ev, sky_ev_out_t *out);
 
 void event_on_accept(sky_ev_t *ev);
 

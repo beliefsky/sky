@@ -17,8 +17,8 @@ typedef struct {
 
 
 sky_api void
-sky_ev_write(sky_ev_t *ev, sky_uchar_t *buf, sky_usize_t size, sky_ev_write_pt cb) {
-    if (sky_unlikely(!size)) {
+sky_ev_send(sky_ev_t *ev, sky_uchar_t *buf, sky_usize_t size, sky_ev_write_pt cb) {
+    if (!size) {
         return;
     }
     ev_out_buf_t *const ev_out = (ev_out_buf_t *) event_out_get(ev->ev_loop, sizeof(ev_out_buf_t));

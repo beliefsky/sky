@@ -9,7 +9,7 @@
 #include <sys/errno.h>
 
 sky_api void
-sky_ev_read_start(sky_ev_t *ev, sky_ev_read_alloc_pt alloc, sky_ev_read_pt cb) {
+sky_ev_recv_start(sky_ev_t *ev, sky_ev_read_alloc_pt alloc, sky_ev_read_pt cb) {
     if (sky_likely(!(ev->flags & EV_HANDLE_MASK))) {
         ev->flags |= EV_IN_RECV << EV_HANDLE_SHIFT;
         ev->in_alloc_handle.read = alloc;
@@ -19,7 +19,7 @@ sky_ev_read_start(sky_ev_t *ev, sky_ev_read_alloc_pt alloc, sky_ev_read_pt cb) {
 }
 
 sky_api void
-sky_ev_read_stop(sky_ev_t *ev) {
+sky_ev_recv_stop(sky_ev_t *ev) {
     if (sky_likely((ev->flags & EV_HANDLE_MASK) == (EV_IN_RECV << EV_HANDLE_SHIFT))) {
         ev->flags &= ~EV_HANDLE_MASK;
         ev->in_alloc_handle.read = null;

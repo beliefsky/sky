@@ -29,7 +29,6 @@ sky_ev_connect(sky_ev_t *ev, const sky_inet_address_t *address, sky_ev_connect_p
             case EISCONN:
                 break;
             default:
-                sky_log_info("---> %d", a);
                 ev_out->pending = false;
                 ev->flags |= EV_STATUS_ERROR;
                 break;

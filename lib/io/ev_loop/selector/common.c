@@ -23,13 +23,7 @@ static void event_pending_process(sky_ev_t *ev);
 static void event_out_release(sky_ev_loop_t *ev_loop, sky_ev_out_t *out);
 
 sky_api void
-sky_ev_init(sky_ev_t *ev, sky_ev_loop_t *ev_loop, sky_socket_t fd) {
-    ev->ev_loop = ev_loop;
-    ev->status_next = null;
-    ev->pending_next = null;
-    ev->out_queue = null;
-    ev->out_queue_tail = null;
-    ev->in_handle.read = null;
+sky_ev_bind(sky_ev_t *ev, sky_socket_t fd) {
     ev->fd = fd;
     ev->flags = EV_STATUS_READ | EV_STATUS_WRITE;
 }
@@ -79,7 +73,9 @@ event_pending_process(sky_ev_t *ev) {
             [EV_OUT_CONNECT] = event_on_connect,
             [EV_OUT_CONNECT_CB] = event_on_connect_cb,
             [EV_OUT_SEND] = event_on_send,
-            [EV_OUT_SEND_CB] = event_on_send_cb
+            [EV_OUT_SEND_CB] = event_on_send_cb,
+            [EV_OUT_SEND_VEC] = event_on_send_vec,
+            [EV_OUT_SEND_VEC_CB] = event_on_send_vec_cb
     };
 
     static const event_on_in_pt IN_HANDLE_TABLES[] = {
