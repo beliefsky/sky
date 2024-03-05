@@ -111,24 +111,53 @@ typedef double sky_f64_t;
 #define SKY_BIG_ENDIAN       4321
 #define SKY_LITTLE_ENDIAN    1234
 
-#if defined(BYTE_ORDER)
-#if BYTE_ORDER == BIG_ENDIAN
-#define SKY_ENDIAN SKY_BIG_ENDIAN
-#elif BYTE_ORDER == LITTLE_ENDIAN
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__
+
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
 #define SKY_ENDIAN SKY_LITTLE_ENDIAN
-#endif
-#elif defined(__BYTE_ORDER)
-#if __BYTE_ORDER == __BIG_ENDIAN
+#elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 #define SKY_ENDIAN SKY_BIG_ENDIAN
-#elif __BYTE_ORDER == __LITTLE_ENDIAN
-#define SKY_ENDIAN SKY_LITTLE_ENDIAN
 #endif
-#elif defined(__BYTE_ORDER__)
-#if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+
+#elif defined(__BYTE_ORDER) && __BYTE_ORDER
+
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+#define SKY_ENDIAN SKY_LITTLE_ENDIAN
+#elif __BYTE_ORDER == __BIG_ENDIAN
 #define SKY_ENDIAN SKY_BIG_ENDIAN
-#elif __BYTE_ORDER == __ORDER_LITTLE_ENDIAN__
-#define SKY_ENDIAN SKY_LITTLE_ENDIAN
 #endif
+
+#elif defined(BYTE_ORDER) && BYTE_ORDER
+
+#if BYTE_ORDER == LITTLE_ENDIAN
+#define SKY_ENDIAN SKY_LITTLE_ENDIAN
+#elif BYTE_ORDER == BIG_ENDIAN
+#define SKY_ENDIAN SKY_BIG_ENDIAN
+#endif
+
+#elif (defined(__LITTLE_ENDIAN__) && __LITTLE_ENDIAN__ == 1) || \
+    defined(__i386) || defined(__i386__) || \
+    defined(_X86_) || defined(__X86__) || \
+    defined(_M_IX86) || defined(__THW_INTEL__) || \
+    defined(__x86_64) || defined(__x86_64__) || \
+    defined(__amd64) || defined(__amd64__) || \
+    defined(_M_AMD64) || defined(_M_X64) || \
+    defined(__ia64) || defined(_IA64) || defined(__IA64__) || \
+    defined(__ia64__) || defined(_M_IA64) || defined(__itanium__) || \
+    defined(__ARMEL__) || defined(__THUMBEL__) || defined(__AARCH64EL__) || \
+    defined(__alpha) || defined(__alpha__) || defined(_M_ALPHA) || \
+    defined(__riscv) || defined(__riscv__) || \
+    defined(_MIPSEL) || defined(__MIPSEL) || defined(__MIPSEL__) || \
+    defined(__EMSCRIPTEN__) || defined(__wasm__)
+#define SKY_ENDIAN SKY_LITTLE_ENDIAN
+#elif (defined(__BIG_ENDIAN__) && __BIG_ENDIAN__ == 1) || \
+    defined(__ARMEB__) || defined(__THUMBEB__) || defined(__AARCH64EB__) || \
+    defined(_MIPSEB) || defined(__MIPSEB) || defined(__MIPSEB__) || \
+    defined(_ARCH_PPC) || defined(_ARCH_PPC64) || \
+    defined(__ppc) || defined(__ppc__) || \
+    defined(__sparc) || defined(__sparc__) || defined(__sparc64__) || \
+    defined(__or1k__) || defined(__OR1K__)
+#define SKY_ENDIAN SKY_BIG_ENDIAN
 #endif
 
 #ifndef SKY_ENDIAN
