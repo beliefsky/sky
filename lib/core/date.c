@@ -6,6 +6,8 @@
 #include <core/memory.h>
 #include "./number/number_common.h"
 
+#include <time.h>
+
 
 sky_api sky_u8_t
 sky_time_to_str(const sky_u32_t secs, sky_uchar_t *const out) {
@@ -148,7 +150,13 @@ sky_rfc_str_to_date(const sky_str_t *const in, time_t *const out) {
     }
 
     tm.tm_isdst = -1;
+
+
+#ifndef __WINNT__
     *out = timegm(&tm);
+#else
+    *out = _mkgmtime(&tm);
+#endif
 
     return true;
 
@@ -162,9 +170,16 @@ sky_date_to_rfc_str(time_t time, sky_uchar_t *src) {
     struct tm tm;
 
     const sky_u32_t day_of_time = (sky_u32_t) (time % 86400);
-    if (sky_unlikely(!gmtime_r(&time, &tm))) {
+#ifndef __WINNT__
+    if (sky_unlikely(0 != gmtime_r(&time, &tm))) {
         return 0;
     }
+#else
+    if (sky_unlikely(0 != gmtime_s(&tm, &time))) {
+        return 0;
+    }
+#endif
+
     sky_memcpy4(src, week_days + (tm.tm_wday << 2));
     src += 4;
     *(src++) = ' ';

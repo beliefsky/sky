@@ -23,7 +23,7 @@
 
 #endif
 
-#ifndef SKY_HAVE_STD_GNU
+#if defined(__WINNT__) || !defined(SKY_HAVE_STD_GNU)
 
 typedef sky_bool_t (*mem_equals_pt)(const sky_uchar_t *a, const sky_uchar_t *b);
 
@@ -142,7 +142,7 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
     if (src_len < sub_len) {
         return null;
     }
-#ifdef SKY_HAVE_STD_GNU
+#if !defined(__WINNT__) && defined(SKY_HAVE_STD_GNU)
     return memmem(src, src_len, sub, sub_len);
 #else
     mem_equals_pt func;
@@ -531,7 +531,7 @@ sky_str_len_find(const sky_uchar_t *src, sky_usize_t src_len, const sky_uchar_t 
 #endif
 }
 
-#ifndef SKY_HAVE_STD_GNU
+#if defined(__WINNT__) || !defined(SKY_HAVE_STD_GNU)
 static sky_inline sky_bool_t
 mem_always_true(const sky_uchar_t *const a, const sky_uchar_t *const b) {
     (void) a;
