@@ -28,24 +28,43 @@ extern "C" {
 #define sky_ntohll(_ll) (_ll)
 #endif
 
-#define SKY_SOCKET_FD_NONE (-1)
+#ifndef __WINNT__
 
-
+#define SKY_SOCKET_FD_NONE SKY_I32(-1)
 typedef sky_i32_t sky_socket_t;
+
+#else
+
+#include <windows.h>
+
+#define SKY_SOCKET_FD_NONE INVALID_SOCKET
+typedef SOCKET sky_socket_t;
+
+#endif
 typedef struct sky_io_vec_s sky_io_vec_t;
 typedef struct sky_inet_address_s sky_inet_address_t;
 
+
+#ifdef __WINNT__
+struct sky_io_vec_s {
+    u_long len;
+    sky_uchar_t *buf;
+};
+
+#else
 
 struct sky_io_vec_s {
     sky_uchar_t *buf;
     sky_usize_t size;
 };
 
+#endif
+
 
 struct sky_inet_address_s {
     union {
         struct {
-#ifdef __linux__
+#if defined(__linux__) || defined(__WINNT__)
             sky_u16_t family;
 #else
             sky_u8_t size;
@@ -93,7 +112,7 @@ sky_bool_t sky_inet_address_ip_str(
 
 sky_bool_t sky_inet_address_un(sky_inet_address_t *address, const sky_uchar_t *path, sky_usize_t len);
 
-#ifdef __linux__
+#if defined(__linux__) || defined(__WINNT__)
 
 sky_u32_t sky_inet_address_size(const sky_inet_address_t *address);
 

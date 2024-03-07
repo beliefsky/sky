@@ -44,7 +44,11 @@ extern "C" {
 #define sky_unlikely(_x)     __builtin_expect(!!(_x), 0)
 #endif
 
-#define null    (void *)0
+#ifndef __cplusplus
+#define null ((void *)0)
+#else
+#define null 0
+#endif
 
 #define SKY_I8(_c)      INT8_C(_c)
 #define SKY_U8(_c)      UINT8_C(_c)

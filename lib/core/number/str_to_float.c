@@ -1,7 +1,7 @@
 //
 // Created by beliefsky on 2023/7/8.
 //
-#include "number_common.h"
+#include "./number_common.h"
 
 #define F32_SMALLEST_POWER (-65)
 #define F32_LARGEST_POWER  38
@@ -339,11 +339,16 @@ compute_float_32(sky_u32_t num, sky_isize_t power, sky_bool_t negative, sky_f32_
         return true;
     }
 
-    if (-10 <= power && power <= 10) {
+    if (-10 <= power && power <= 10 && num < SKY_U32(0xFFFFFF)) {
         *out = ((sky_f32_t) num) * power_of_ten[power + 10];
         *out = negative ? -*out : *out;
         return true;
     }
+
+    if (sky_unlikely(power < F32_SMALLEST_POWER || power > F32_LARGEST_POWER)) {
+        return false;
+    }
+
 
     return false;
 }
@@ -1015,7 +1020,7 @@ compute_float_64(sky_u64_t num, sky_isize_t power, sky_bool_t negative, sky_f64_
         return true;
     }
 
-    if (-22 <= power && power <= 22 && num < 9007199254740991) {
+    if (-22 <= power && power <= 22 && num < SKY_U64(0x1FFFFFFFFFFFFF)) {
         *out = ((sky_f64_t) num) * power_of_ten[power + 22];
         *out = negative ? -*out : *out;
         return true;

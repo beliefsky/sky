@@ -10,7 +10,6 @@
 
 #if sky_has_include(<sys/epoll.h>)
 
-
 #define EVENT_USE_EPOLL
 #define EV_LOOP_USE_SELECTOR
 
@@ -23,12 +22,19 @@
 
 #include <sys/event.h>
 
+#elif sky_has_include(<ioapiset.h>)
+
+#define EVENT_USE_IOCP
+
+#include <ioapiset.h>
+
 #else
 
-#error Unsupported platform.
+//#error Unsupported platform.
 
 #endif
 
+#ifndef EVENT_USE_IOCP
 
 #define EV_OUT_CONNECT      SKY_U8(1)
 #define EV_OUT_CONNECT_CB   SKY_U8(2)
@@ -64,8 +70,12 @@ typedef void (*event_on_in_pt)(sky_ev_t *ev);
 
 
 struct sky_ev_loop_s {
+#ifdef EVENT_USE_IOCP
+    HANDLE iocp;
+#else
     sky_i32_t fd;
     sky_i32_t max_event;
+#endif
     sky_i64_t start_ms;
     sky_i64_t current_ms;
     sky_timer_wheel_t *timer_ctx;
@@ -91,6 +101,10 @@ struct sky_ev_out_s {
     } cb;
     sky_ev_block_t *block;
     sky_ev_out_t *next; // next out;
+
+#ifdef EVENT_USE_IOCP
+    OVERLAPPED overlapped;
+#endif
 };
 
 struct sky_ev_block_s {
@@ -161,5 +175,7 @@ event_out_add(sky_ev_t *ev, sky_ev_out_t *out) {
         }
     }
 }
+
+#endif
 
 #endif //SKY_EV_LOOP_ADAPTER_H
