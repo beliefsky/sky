@@ -11,19 +11,30 @@
 extern "C" {
 #endif
 
+
 typedef struct sky_ev_loop_s sky_ev_loop_t;
-typedef struct sky_ev_out_s sky_ev_out_t;
+typedef struct sky_ev_req_s sky_ev_req_t;
 typedef struct sky_ev_s sky_ev_t;
 
+#ifdef __WINNT__
 struct sky_ev_s {
     sky_ev_loop_t *ev_loop;
     sky_socket_t fd;
     sky_u32_t flags;
-
-#ifdef __WINNT__
     sky_u32_t req_num;
-#endif
 };
+#else
+struct sky_ev_s {
+    sky_socket_t fd;
+    sky_u32_t flags;
+    sky_ev_loop_t *ev_loop;
+    sky_ev_req_t *in_req;
+    sky_ev_req_t **in_req_tail;
+    sky_ev_req_t *out_req;
+    sky_ev_req_t **out_req_tail;
+    sky_ev_t *status_next;
+};
+#endif
 
 sky_ev_loop_t *sky_ev_loop_create();
 

@@ -5,9 +5,9 @@
 #ifndef SKY_WIN_SOCKET_H
 #define SKY_WIN_SOCKET_H
 
-#include <io/ev_loop.h>
-
 #ifdef __WINNT__
+
+#include <io/ev_loop.h>
 
 #if sky_has_include(<ioapiset.h>)
 
@@ -17,13 +17,13 @@
 #include <ioapiset.h>
 #include <winsock2.h>
 
-#define EV_OUT_TCP_CONNECT      SKY_U8(1)
-#define EV_OUT_TCP_WRITE        SKY_U8(2)
-#define EV_OUT_TCP_READ         SKY_U8(3)
+#define EV_REQ_TCP_CONNECT      SKY_U8(1)
+#define EV_REQ_TCP_WRITE        SKY_U8(2)
+#define EV_REQ_TCP_READ         SKY_U8(3)
 
 typedef struct sky_ev_block_s sky_ev_block_t;
 
-typedef void (*event_on_cb_pt)(sky_ev_t *ev, sky_ev_out_t *out, sky_bool_t success);
+typedef void (*event_req_pt)(sky_ev_t *ev, sky_ev_req_t *req, sky_bool_t success);
 
 typedef void (*sky_ev_connect_pt)(sky_ev_t *ev, sky_bool_t success);
 
@@ -36,7 +36,7 @@ struct sky_ev_loop_s {
 };
 
 
-struct sky_ev_out_s {
+struct sky_ev_req_s {
     OVERLAPPED overlapped;
     union {
         sky_ev_connect_pt connect;
@@ -54,11 +54,11 @@ struct sky_ev_block_s {
 };
 
 
-void event_on_tcp_connect(sky_ev_t *ev, sky_ev_out_t *out, sky_bool_t success);
+void event_on_tcp_connect(sky_ev_t *ev, sky_ev_req_t *req, sky_bool_t success);
 
-void event_on_tcp_write(sky_ev_t *ev, sky_ev_out_t *out, sky_bool_t success);
+void event_on_tcp_write(sky_ev_t *ev, sky_ev_req_t *req, sky_bool_t success);
 
-void event_on_tcp_read(sky_ev_t *ev, sky_ev_out_t *out, sky_bool_t success);
+void event_on_tcp_read(sky_ev_t *ev, sky_ev_req_t *req, sky_bool_t success);
 
 
 static sky_inline sky_bool_t
@@ -79,7 +79,7 @@ get_extension_function(sky_socket_t socket, GUID guid, void **target) {
 }
 
 static sky_inline void *
-event_out_get(sky_ev_loop_t *ev_loop, sky_u32_t size) {
+event_req_get(sky_ev_loop_t *ev_loop, sky_u32_t size) {
     sky_ev_block_t *block = ev_loop->current_block;
 
     if (!block || block->free_size < size) {
@@ -91,17 +91,17 @@ event_out_get(sky_ev_loop_t *ev_loop, sky_u32_t size) {
         block->free_size -= size;
         ++block->count;
     }
-    sky_ev_out_t *const result = (sky_ev_out_t *) (block->data + block->free_size);
+    sky_ev_req_t *const result = (sky_ev_req_t *) (block->data + block->free_size);
     result->block = block;
 
     return result;
 }
 
 static sky_inline void
-event_out_release(sky_ev_loop_t *ev_loop, sky_ev_out_t *out) {
-    sky_ev_block_t *const block = out->block;
+event_req_release(sky_ev_loop_t *ev_loop, sky_ev_req_t *req) {
+    sky_ev_block_t *const block = req->block;
 
-    out->block = null;
+    req->block = null;
     if (!(--block->count) && block != ev_loop->current_block) {
         sky_free(block);
     }

@@ -4,6 +4,8 @@
 
 #include "./win_socket.h"
 
+#ifdef EVENT_USE_IOCP
+
 #include <handleapi.h>
 #include <windows.h>
 #include <core/log.h>
@@ -31,17 +33,17 @@ sky_ev_loop_create() {
 
 sky_api void
 sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
-    static const event_on_cb_pt EVENT_TABLES[] = {
-            [EV_OUT_TCP_CONNECT] = event_on_tcp_connect,
-            [EV_OUT_TCP_WRITE] = event_on_tcp_write,
-            [EV_OUT_TCP_READ] = event_on_tcp_read
+    static const event_req_pt EVENT_TABLES[] = {
+            [EV_REQ_TCP_CONNECT] = event_on_tcp_connect,
+            [EV_REQ_TCP_WRITE] = event_on_tcp_write,
+            [EV_REQ_TCP_READ] = event_on_tcp_read
     };
 
 
     DWORD bytes;
     ULONG_PTR key;
     LPOVERLAPPED pov;
-    sky_ev_out_t *out;
+    sky_ev_req_t *req;
 
     sky_ev_t *ev;
 
@@ -49,21 +51,21 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
         pov = null;
         if (sky_unlikely(GetQueuedCompletionStatus(ev_loop->iocp, &bytes, &key, &pov, INFINITE))) {
             ev = (sky_ev_t *) key;
-            out = (sky_ev_out_t *) pov;
-            out->bytes = bytes;
-            EVENT_TABLES[out->type](ev, out, true);
+            req = (sky_ev_req_t *) pov;
+            req->bytes = bytes;
+            EVENT_TABLES[req->type](ev, req, true);
 
-            event_out_release(ev_loop, out);
+            event_req_release(ev_loop, req);
         } else {
             if (GetLastError() != WAIT_TIMEOUT) {
                 if (sky_unlikely(!pov)) {
                     return;
                 }
                 ev = (sky_ev_t *) key;
-                out = (sky_ev_out_t *) pov;
-                out->bytes = bytes;
-                EVENT_TABLES[out->type](ev, out, false);
-                event_out_release(ev_loop, out);
+                req = (sky_ev_req_t *) pov;
+                req->bytes = bytes;
+                EVENT_TABLES[req->type](ev, req, false);
+                event_req_release(ev_loop, req);
             }
 
         }
@@ -75,3 +77,5 @@ sky_api void
 sky_ev_loop_stop(sky_ev_loop_t *ev_loop) {
 
 }
+
+#endif

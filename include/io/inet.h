@@ -29,6 +29,7 @@ extern "C" {
 #endif
 
 #ifndef __WINNT__
+#include <sys/socket.h>
 
 #define SKY_SOCKET_FD_NONE SKY_I32(-1)
 typedef sky_i32_t sky_socket_t;
@@ -111,6 +112,7 @@ sky_bool_t sky_inet_address_ip_str(
 );
 
 sky_bool_t sky_inet_address_un(sky_inet_address_t *address, const sky_uchar_t *path, sky_usize_t len);
+
 
 #if defined(__linux__) || defined(__WINNT__)
 

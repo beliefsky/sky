@@ -32,12 +32,12 @@ sky_udp_open(sky_udp_t *const udp, const sky_i32_t domain) {
         return false;
     }
 #ifdef SKY_HAVE_ACCEPT4
-    const sky_socket_t fd = socket(domain, SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+    const sky_socket_t fd = socket(domain, SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC, IPPROTO_UDP);
     if (sky_unlikely(fd < 0)) {
         return false;
     }
 #else
-    const sky_socket_t fd = socket(domain, SOCK_DGRAM, 0);
+    const sky_socket_t fd = socket(domain, SOCK_DGRAM, IPPROTO_UDP);
     if (sky_unlikely(fd < 0)) {
         return false;
     }

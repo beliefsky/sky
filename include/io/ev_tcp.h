@@ -36,7 +36,7 @@ sky_bool_t sky_tcp_write(sky_tcp_t *tcp, sky_uchar_t *buf, sky_u32_t size, sky_t
 
 sky_bool_t sky_tcp_write_v(sky_tcp_t *tcp, sky_io_vec_t *buf, sky_u32_t n, sky_tcp_rw_pt cb);
 
-sky_bool_t sky_tcp_read(sky_tcp_t *tcp, sky_uchar_t *buf, sky_u32_t n, sky_tcp_rw_pt cb);
+sky_bool_t sky_tcp_read(sky_tcp_t *tcp, sky_uchar_t *buf, sky_u32_t size, sky_tcp_rw_pt cb);
 
 sky_bool_t sky_tcp_read_v(sky_tcp_t *tcp, sky_io_vec_t *buf, sky_u32_t size, sky_tcp_rw_pt cb);
 

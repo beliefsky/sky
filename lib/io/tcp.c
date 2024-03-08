@@ -39,16 +39,16 @@ sky_tcp_init(sky_tcp_t *const tcp, sky_selector_t *const s) {
 
 sky_api sky_bool_t
 sky_tcp_open(sky_tcp_t *const tcp, const sky_i32_t domain) {
-    if (sky_unlikely(sky_tcp_is_open(tcp))) {
+    if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE)) {
         return false;
     }
 #ifdef SKY_HAVE_ACCEPT4
-    const sky_socket_t fd = socket(domain, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, 0);
+    const sky_socket_t fd = socket(domain, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, IPPROTO_TCP);
     if (sky_unlikely(fd < 0)) {
         return false;
     }
 #else
-    const sky_socket_t fd = socket(domain, SOCK_STREAM, 0);
+    const sky_socket_t fd = socket(domain, SOCK_STREAM, IPPROTO_TCP);
     if (sky_unlikely(fd < 0)) {
         return false;
     }

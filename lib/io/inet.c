@@ -67,7 +67,7 @@ sky_inet_address_ip_str(
         return 0 == inet_pton(AF_INET6, (sky_char_t *) ip, address->ipv6.address);
 #else
         sky_i32_t n;
-        return 0 == WSAStringToAddressA((sky_char_t *) ip, AF_INET6, null, (LPSOCKADDR) &address->ipv6, &n);
+        return 0 == WSAStringToAddressA((sky_char_t *) ip, AF_INET6, null, (LPSOCKADDR) address->ipv6, &n);
 #endif
 
     }
@@ -78,7 +78,7 @@ sky_inet_address_ip_str(
     address->ipv4.port = sky_htons(port);
 
 #ifndef __WINNT__
-    return 0 == inet_pton(AF_INET, (sky_char_t *) ip, address->ipv4.address);
+    return 0 == inet_pton(AF_INET, (sky_char_t *) ip, &address->ipv4.address);
 #else
     sky_i32_t n;
     return 0 == WSAStringToAddressA((sky_char_t *) ip, AF_INET, null, (LPSOCKADDR) &address->ipv4, &n);
