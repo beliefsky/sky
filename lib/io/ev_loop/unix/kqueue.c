@@ -85,10 +85,7 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
                 if (event->filter == EVFILT_WRITE) {
                     if (sky_unlikely((event->flags & (EV_ERROR)))) {
                         ev->flags |= EV_STATUS_ERROR;
-                        if (ev->out_req) {
-                            *ev_loop->pending_req_tail = ev->out_req;
-                            ev_loop->pending_req_tail = ev->out_req_tail;
-                        }
+                        event_pending_out_all(ev_loop, ev);
                         sky_log_info("event out error: %d", ev->fd);
                     } else {
                         ev->flags |= EV_STATUS_WRITE;
@@ -111,10 +108,7 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
                 } else { // EVFILT_READ
                     if (sky_unlikely((event->flags & (EV_ERROR)))) {
                         ev->flags |= EV_STATUS_ERROR;
-                        if (ev->in_req) {
-                            *ev_loop->pending_req_tail = ev->in_req;
-                            ev_loop->pending_req_tail = ev->in_req_tail;
-                        }
+                        event_pending_in_all(ev_loop, ev);
                         sky_log_info("event in error: %d", ev->fd);
                     } else {
                         ev->flags |= EV_STATUS_READ;

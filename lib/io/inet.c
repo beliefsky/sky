@@ -8,7 +8,6 @@
 
 #ifndef __WINNT__
 
-#include <sys/socket.h>
 #include <arpa/inet.h>
 
 #else

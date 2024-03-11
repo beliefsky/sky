@@ -140,6 +140,22 @@ event_pending_add(sky_ev_t *ev, sky_ev_req_t *req) {
 }
 
 static sky_inline void
+event_pending_out_all(sky_ev_loop_t *ev_loop, sky_ev_t *ev) {
+    if (ev->out_req) {
+        *ev_loop->pending_req_tail = ev->out_req;
+        ev_loop->pending_req_tail = ev->out_req_tail;
+    }
+}
+
+static sky_inline void
+event_pending_in_all(sky_ev_loop_t *ev_loop, sky_ev_t *ev) {
+    if (ev->in_req) {
+        *ev_loop->pending_req_tail = ev->in_req;
+        ev_loop->pending_req_tail = ev->in_req_tail;
+    }
+}
+
+static sky_inline void
 event_in_add(sky_ev_t *ev, sky_ev_req_t *req) {
     req->ev = ev;
     req->next = null;

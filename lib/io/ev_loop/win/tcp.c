@@ -254,7 +254,7 @@ void
 event_on_tcp_write(sky_ev_t *ev, sky_ev_req_t *req, sky_bool_t success) {
     --ev->req_num;
 
-    req->cb.rw(ev, success && req->bytes ? req->bytes : SKY_USIZE_MAX);
+    req->cb.rw(ev, success ? req->bytes : SKY_USIZE_MAX);
     if (!ev->req_num && (ev->flags & TCP_STATUS_CLOSING)) {
         closesocket(ev->fd);
         ev->fd = SKY_SOCKET_FD_NONE;
@@ -268,7 +268,7 @@ event_on_tcp_write(sky_ev_t *ev, sky_ev_req_t *req, sky_bool_t success) {
 void
 event_on_tcp_read(sky_ev_t *ev, sky_ev_req_t *req, sky_bool_t success) {
     --ev->req_num;
-    req->cb.rw(ev, success && req->bytes ? req->bytes : SKY_USIZE_MAX);
+    req->cb.rw(ev, success ? req->bytes : SKY_USIZE_MAX);
     if (!success && !ev->req_num && (ev->flags & TCP_STATUS_CLOSING)) {
         closesocket(ev->fd);
         ev->fd = SKY_SOCKET_FD_NONE;

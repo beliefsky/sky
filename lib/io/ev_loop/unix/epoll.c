@@ -46,8 +46,8 @@ sky_ev_loop_create() {
 sky_api void
 sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
     static const event_req_pt OUT_TABLES[] = {
-            [(EV_REQ_TCP_CONNECT -1) >> 1] = event_on_tcp_connect,
-            [(EV_REQ_TCP_WRITE -1) >> 1] = event_on_tcp_write,
+            [(EV_REQ_TCP_CONNECT - 1) >> 1] = event_on_tcp_connect,
+            [(EV_REQ_TCP_WRITE - 1) >> 1] = event_on_tcp_write,
     };
     static const event_req_pt IN_TABLES[] = {
             [EV_REQ_TCP_READ >> 1] = event_on_tcp_read,
@@ -59,9 +59,10 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
     sky_ev_req_t *req;
     sky_i32_t n;
 
-    event_on_status(ev_loop);
-
     for (;;) {
+        event_on_pending(ev_loop);
+        event_on_status(ev_loop);
+
         n = epoll_wait(
                 ev_loop->fd,
                 ev_loop->sys_evs,
@@ -78,15 +79,8 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
                 ev = event->data.ptr;
                 if ((event->events & (EPOLLHUP | EPOLLERR))) {
                     ev->flags |= EV_STATUS_ERROR;
-                    if (ev->out_req) {
-                        *ev_loop->pending_req_tail = ev->out_req;
-                        ev_loop->pending_req_tail = ev->out_req_tail;
-                    }
-                    if (ev->in_req) {
-                        *ev_loop->pending_req_tail = ev->in_req;
-                        ev_loop->pending_req_tail = ev->in_req_tail;
-                    }
-                    sky_log_info("event error: %d", ev->fd);
+                    sky_log_debug("event error: %u %u",  event->events & EPOLLERR, event->events & EPOLLHUP);
+                    event_pending_out_all(ev_loop, ev);
                 } else {
                     if ((event->events & EPOLLOUT)) {
                         ev->flags |= EV_STATUS_WRITE;
@@ -94,7 +88,7 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
                         if (ev->out_req) {
                             for (;;) {
                                 req = ev->out_req;
-                                if (!OUT_TABLES[(req->type -1) >> 1](ev, req)) {
+                                if (!OUT_TABLES[(req->type - 1) >> 1](ev, req)) {
                                     break;
                                 }
                                 ev->out_req = req->next;
@@ -128,8 +122,6 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
                 ++event;
             } while ((--n));
         }
-        event_on_pending(ev_loop);
-        event_on_status(ev_loop);
     }
 }
 
@@ -174,7 +166,7 @@ event_on_status(sky_ev_loop_t *ev_loop) {
     }
     ev_loop->status_queue = null;
 
-     sky_ev_t *next;
+    sky_ev_t *next;
     sky_u32_t opts, reg_opts;
 
     do {
@@ -182,8 +174,9 @@ event_on_status(sky_ev_loop_t *ev_loop) {
         reg_opts = 0;
 
         if ((ev->flags & EV_REG_IN)) {
-            opts |= EPOLLIN | EPOLLPRI;
+            opts |= EPOLLIN;
             reg_opts |= EV_EP_IN;
+            sky_log_warn("event in");
         }
         if ((ev->flags & EV_REG_OUT)) {
             opts |= EPOLLOUT;

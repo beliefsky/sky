@@ -122,7 +122,7 @@ sky_tcp_write(sky_tcp_t *tcp, sky_uchar_t *buf, sky_u32_t size, sky_tcp_rw_pt cb
 
     if ((tcp->ev.flags & EV_STATUS_WRITE) && !tcp->ev.out_req) {
         const sky_isize_t n = send(tcp->ev.fd, buf, size, MSG_NOSIGNAL);
-        if (n > 0) {
+        if (n != SKY_ISIZE(-1)) {
             req = event_req_get(tcp->ev.ev_loop, sizeof(ev_req_buf_t));
             req->base.cb.rw = (sky_ev_rw_pt) cb;
             req->base.type = EV_REQ_TCP_WRITE;
@@ -135,31 +135,27 @@ sky_tcp_write(sky_tcp_t *tcp, sky_uchar_t *buf, sky_u32_t size, sky_tcp_rw_pt cb
                 return true;
             }
             req->rw_n = (sky_u32_t) n;
-            tcp->ev.flags &= ~EV_STATUS_WRITE;
-            event_add(&tcp->ev, EV_REG_OUT);
-        } else {
-            if (sky_unlikely(errno != EAGAIN)) {
-                tcp->ev.flags |= EV_STATUS_ERROR;
-                return false;
-            }
-            tcp->ev.flags &= ~EV_STATUS_WRITE;
-            event_add(&tcp->ev, EV_REG_OUT);
 
-            req = event_req_get(tcp->ev.ev_loop, sizeof(ev_req_buf_t));
-            req->base.cb.rw = (sky_ev_rw_pt) cb;
-            req->base.type = EV_REQ_TCP_WRITE;
-            req->buf = buf;
-            req->size = size;
-            req->rw_n = 0;
+            tcp->ev.flags &= ~EV_STATUS_WRITE;
+            event_add(&tcp->ev, EV_REG_OUT);
+            event_out_add(&tcp->ev, &req->base);
+
+            return true;
         }
-    } else {
-        req = event_req_get(tcp->ev.ev_loop, sizeof(ev_req_buf_t));
-        req->base.cb.rw = (sky_ev_rw_pt) cb;
-        req->base.type = EV_REQ_TCP_WRITE;
-        req->buf = buf;
-        req->size = size;
-        req->rw_n = 0;
+        if (sky_unlikely(errno != EAGAIN)) {
+            tcp->ev.flags |= EV_STATUS_ERROR;
+            return false;
+        }
+        tcp->ev.flags &= ~EV_STATUS_WRITE;
+        event_add(&tcp->ev, EV_REG_OUT);
     }
+    req = event_req_get(tcp->ev.ev_loop, sizeof(ev_req_buf_t));
+    req->base.cb.rw = (sky_ev_rw_pt) cb;
+    req->base.type = EV_REQ_TCP_WRITE;
+    req->buf = buf;
+    req->size = size;
+    req->rw_n = 0;
+
     event_out_add(&tcp->ev, &req->base);
 
     return true;
@@ -186,44 +182,30 @@ sky_tcp_read(sky_tcp_t *tcp, sky_uchar_t *buf, sky_u32_t size, sky_tcp_rw_pt cb)
 
     if ((tcp->ev.flags & EV_STATUS_READ) && !tcp->ev.out_req) {
         const sky_isize_t n = recv(tcp->ev.fd, buf, size, 0);
-        if (n > 0) {
+        if (n != SKY_ISIZE(-1)) {
             req = event_req_get(tcp->ev.ev_loop, sizeof(ev_req_buf_t));
             req->base.cb.rw = (sky_ev_rw_pt) cb;
             req->base.type = EV_REQ_TCP_READ;
             req->buf = buf;
             req->size = size;
-
-            if (n == size) {
-                req->rw_n = size;
-                event_pending_add(&tcp->ev, &req->base);
-                return true;
-            }
             req->rw_n = (sky_u32_t) n;
-            tcp->ev.flags &= ~EV_STATUS_READ;
-            event_add(&tcp->ev, EV_REG_IN);
-        } else {
-            if (sky_unlikely(errno != EAGAIN)) {
-                tcp->ev.flags |= EV_STATUS_ERROR;
-                return false;
-            }
-            tcp->ev.flags &= ~EV_STATUS_READ;
-            event_add(&tcp->ev, EV_REG_IN);
+            event_pending_add(&tcp->ev, &req->base);
 
-            req = event_req_get(tcp->ev.ev_loop, sizeof(ev_req_buf_t));
-            req->base.cb.rw = (sky_ev_rw_pt) cb;
-            req->base.type = EV_REQ_TCP_READ;
-            req->buf = buf;
-            req->size = size;
-            req->rw_n = 0;
+            return true;
         }
-    } else {
-        req = event_req_get(tcp->ev.ev_loop, sizeof(ev_req_buf_t));
-        req->base.cb.rw = (sky_ev_rw_pt) cb;
-        req->base.type = EV_REQ_TCP_READ;
-        req->buf = buf;
-        req->size = size;
-        req->rw_n = 0;
+        if (sky_unlikely(errno != EAGAIN)) {
+            tcp->ev.flags |= EV_STATUS_ERROR;
+            return false;
+        }
+        tcp->ev.flags &= ~EV_STATUS_READ;
+        event_add(&tcp->ev, EV_REG_IN);
     }
+    req = event_req_get(tcp->ev.ev_loop, sizeof(ev_req_buf_t));
+    req->base.cb.rw = (sky_ev_rw_pt) cb;
+    req->base.type = EV_REQ_TCP_READ;
+    req->buf = buf;
+    req->size = size;
+
     event_in_add(&tcp->ev, &req->base);
 
     return true;
@@ -276,26 +258,24 @@ event_on_tcp_write(sky_ev_t *ev, sky_ev_req_t *req) {
     if (sky_unlikely((ev->flags & EV_STATUS_ERROR))) {
         return true;
     }
-    ev_req_buf_t *req_buf = (ev_req_buf_t *) req;
-
-    const sky_u32_t size = req_buf->size - req_buf->rw_n;
-
-    const sky_isize_t n = send(ev->fd, req_buf->buf + req_buf->rw_n, size, MSG_NOSIGNAL);
-    if (n > 0) {
-        if (n == size) {
-            req_buf->rw_n = req_buf->size;
+    ev_req_buf_t *const req_buf = (ev_req_buf_t *) req;
+    const sky_isize_t n = send(
+            ev->fd,
+            req_buf->buf + req_buf->rw_n,
+            req_buf->size - req_buf->rw_n,
+            MSG_NOSIGNAL
+    );
+    if (n != SKY_ISIZE(-1)) {
+        if (sky_unlikely(errno != EAGAIN)) {
+            ev->flags |= EV_STATUS_ERROR;
             return true;
         }
-        req_buf->rw_n += n;
         ev->flags &= ~EV_STATUS_WRITE;
         return false;
     }
-    if (sky_unlikely(errno != EAGAIN)) {
-        ev->flags |= EV_STATUS_ERROR;
-        return true;
-    }
-    ev->flags &= ~EV_STATUS_WRITE;
-    return false;
+    req_buf->rw_n += n;
+
+    return req_buf->rw_n == req_buf->size;
 }
 
 sky_bool_t
@@ -306,22 +286,17 @@ event_on_tcp_read(sky_ev_t *ev, sky_ev_req_t *req) {
     ev_req_buf_t *req_buf = (ev_req_buf_t *) req;
 
     const sky_isize_t n = recv(ev->fd, req_buf->buf, req_buf->size, 0);
-
-    if (n > 0) {
-        if (n == req_buf->size) {
-            req_buf->rw_n = req_buf->size;
-        } else {
-            req_buf->rw_n = (sky_u32_t) n;
-            ev->flags &= ~EV_STATUS_READ;
+    if (n == SKY_ISIZE(-1)) {
+        if (sky_unlikely(errno != EAGAIN)) {
+            ev->flags |= EV_STATUS_ERROR;
+            return true;
         }
-        return true;
+        ev->flags &= ~EV_STATUS_READ;
+        return false;
     }
-    if (sky_unlikely(errno != EAGAIN)) {
-        ev->flags |= EV_STATUS_ERROR;
-        return true;
-    }
-    ev->flags &= ~EV_STATUS_READ;
-    return false;
+    req_buf->rw_n = (sky_u32_t) n;
+
+    return true;
 }
 
 void
