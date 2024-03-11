@@ -36,6 +36,7 @@
 #define EV_REQ_TCP_READ         SKY_U8(4)
 #define EV_REQ_TCP_WRITE_V      SKY_U8(5)
 #define EV_REQ_TCP_READ_V       SKY_U8(6)
+#define EV_REQ_TCP_CLOSE        SKY_U8(7)
 
 #define EV_REG_IN           SKY_U32(0x00000010)
 #define EV_REG_OUT          SKY_U32(0x00000020)
@@ -58,6 +59,8 @@ typedef void (*sky_ev_connect_pt)(sky_ev_t *ev, sky_bool_t success);
 
 typedef void (*sky_ev_rw_pt)(sky_ev_t *ev, sky_usize_t n);
 
+typedef void (*sky_ev_close_pt)(sky_ev_t *ev);
+
 struct sky_ev_loop_s {
     sky_i32_t fd;
     sky_i32_t max_event;
@@ -78,6 +81,7 @@ struct sky_ev_req_s {
     union {
         sky_ev_connect_pt connect;
         sky_ev_rw_pt rw;
+        sky_ev_close_pt close;
     } cb;
     sky_ev_req_t *next;
     sky_ev_block_t *block;
@@ -144,6 +148,8 @@ event_pending_out_all(sky_ev_loop_t *ev_loop, sky_ev_t *ev) {
     if (ev->out_req) {
         *ev_loop->pending_req_tail = ev->out_req;
         ev_loop->pending_req_tail = ev->out_req_tail;
+        ev->out_req = null;
+        ev->out_req_tail = &ev->out_req;
     }
 }
 
@@ -152,6 +158,8 @@ event_pending_in_all(sky_ev_loop_t *ev_loop, sky_ev_t *ev) {
     if (ev->in_req) {
         *ev_loop->pending_req_tail = ev->in_req;
         ev_loop->pending_req_tail = ev->in_req_tail;
+        ev->in_req = null;
+        ev->in_req_tail = &ev->in_req;
     }
 }
 
@@ -189,6 +197,10 @@ sky_bool_t event_on_tcp_write(sky_ev_t *ev, sky_ev_req_t *req);
 sky_bool_t event_on_tcp_read(sky_ev_t *ev, sky_ev_req_t *req);
 
 void event_cb_tcp_rw(sky_ev_t *ev, sky_ev_req_t *req);
+
+sky_bool_t event_on_tcp_close(sky_ev_t *ev, sky_ev_req_t *req);
+
+void event_cb_tcp_close(sky_ev_t *ev, sky_ev_req_t *req);
 
 
 #endif

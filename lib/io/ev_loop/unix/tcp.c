@@ -10,10 +10,10 @@
 #include <netinet/in.h>
 #include <sys/errno.h>
 #include <core/log.h>
+#include <unistd.h>
 
 
 #define TCP_STATUS_CONNECT      SKY_U32(0x01000000)
-#define TCP_STATUS_CLOSING      SKY_U32(0x02000000)
 
 
 typedef struct {
@@ -78,8 +78,7 @@ sky_tcp_listen(sky_tcp_t *tcp, sky_i32_t backlog) {
 
 sky_api sky_bool_t
 sky_tcp_connect(sky_tcp_t *tcp, const sky_inet_address_t *address, sky_tcp_connect_pt cb) {
-    if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE
-                     || (tcp->ev.flags & (TCP_STATUS_CONNECT | TCP_STATUS_CLOSING)))) {
+    if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE || (tcp->ev.flags & (TCP_STATUS_CONNECT)))) {
         return false;
     }
     if (connect(tcp->ev.fd, (const struct sockaddr *) address, sky_inet_address_size(address)) < 0) { ;
@@ -115,7 +114,7 @@ sky_tcp_connect(sky_tcp_t *tcp, const sky_inet_address_t *address, sky_tcp_conne
 
 sky_api sky_bool_t
 sky_tcp_write(sky_tcp_t *tcp, sky_uchar_t *buf, sky_u32_t size, sky_tcp_rw_pt cb) {
-    if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE || (tcp->ev.flags & TCP_STATUS_CLOSING))) {
+    if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE)) {
         return false;
     }
     ev_req_buf_t *req;
@@ -163,7 +162,7 @@ sky_tcp_write(sky_tcp_t *tcp, sky_uchar_t *buf, sky_u32_t size, sky_tcp_rw_pt cb
 
 sky_api sky_bool_t
 sky_tcp_write_v(sky_tcp_t *tcp, sky_io_vec_t *buf, sky_u32_t n, sky_tcp_rw_pt cb) {
-    if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE || (tcp->ev.flags & TCP_STATUS_CLOSING))) {
+    if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE)) {
         return false;
     }
     if ((tcp->ev.flags & EV_STATUS_WRITE) && !tcp->ev.out_req) {
@@ -175,7 +174,7 @@ sky_tcp_write_v(sky_tcp_t *tcp, sky_io_vec_t *buf, sky_u32_t n, sky_tcp_rw_pt cb
 
 sky_api sky_bool_t
 sky_tcp_read(sky_tcp_t *tcp, sky_uchar_t *buf, sky_u32_t size, sky_tcp_rw_pt cb) {
-    if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE || (tcp->ev.flags & TCP_STATUS_CLOSING))) {
+    if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE)) {
         return false;
     }
     ev_req_buf_t *req;
@@ -213,7 +212,7 @@ sky_tcp_read(sky_tcp_t *tcp, sky_uchar_t *buf, sky_u32_t size, sky_tcp_rw_pt cb)
 
 sky_api sky_bool_t
 sky_tcp_read_v(sky_tcp_t *tcp, sky_io_vec_t *buf, sky_u32_t size, sky_tcp_rw_pt cb) {
-    if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE || (tcp->ev.flags & TCP_STATUS_CLOSING))) {
+    if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE)) {
         return false;
     }
     if ((tcp->ev.flags & EV_STATUS_READ) && !tcp->ev.in_req_tail) {
@@ -225,6 +224,26 @@ sky_tcp_read_v(sky_tcp_t *tcp, sky_io_vec_t *buf, sky_u32_t size, sky_tcp_rw_pt 
 
 sky_api sky_bool_t
 sky_tcp_close(sky_tcp_t *tcp, sky_tcp_close_pt cb) {
+    if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE)) {
+        return false;
+    }
+    close(tcp->ev.fd);
+    tcp->ev.fd = SKY_SOCKET_FD_NONE;
+    tcp->ev.flags |= EV_STATUS_ERROR;
+
+    event_pending_out_all(tcp->ev.ev_loop, &tcp->ev);
+    event_pending_in_all(tcp->ev.ev_loop, &tcp->ev);
+
+    sky_ev_req_t *const req = event_req_get(tcp->ev.ev_loop, sizeof(sky_ev_req_t));
+    req->cb.connect = (sky_ev_connect_pt) cb;
+    req->type = EV_REQ_TCP_CLOSE;
+
+    if (tcp->ev.status_next) {
+        event_out_add(&tcp->ev, req);
+    } else {
+        event_pending_add(&tcp->ev, req);
+    }
+
     return true;
 }
 
@@ -303,6 +322,19 @@ void
 event_cb_tcp_rw(sky_ev_t *ev, sky_ev_req_t *req) {
     ev_req_buf_t *req_buf = (ev_req_buf_t *) req;
     req->cb.rw(ev, (ev->flags & EV_STATUS_ERROR) ? SKY_USIZE_MAX : req_buf->rw_n);
+}
+
+sky_bool_t
+event_on_tcp_close(sky_ev_t *ev, sky_ev_req_t *req) {
+    (void ) ev;
+    (void ) req;
+
+    return true;
+}
+
+void
+event_cb_tcp_close(sky_ev_t *ev, sky_ev_req_t *req) {
+    req->cb.close(ev);
 }
 
 #endif

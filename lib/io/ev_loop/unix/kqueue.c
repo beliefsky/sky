@@ -50,6 +50,7 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
     static const event_req_pt OUT_TABLES[] = {
             [(EV_REQ_TCP_CONNECT -1) >> 1] = event_on_tcp_connect,
             [(EV_REQ_TCP_WRITE -1) >> 1] = event_on_tcp_write,
+            [(EV_REQ_TCP_CLOSE - 1) >> 1] = event_on_tcp_close,
     };
     static const event_req_pt IN_TABLES[] = {
             [EV_REQ_TCP_READ >> 1] = event_on_tcp_read,
@@ -149,6 +150,7 @@ event_on_pending(sky_ev_loop_t *ev_loop) {
             [EV_REQ_TCP_CONNECT] = event_cb_tcp_connect,
             [EV_REQ_TCP_WRITE] = event_cb_tcp_rw,
             [EV_REQ_TCP_READ] = event_cb_tcp_rw,
+            [EV_REQ_TCP_CLOSE] = event_cb_tcp_close
     };
 
     if (!ev_loop->pending_req) {
@@ -181,35 +183,39 @@ event_on_status(sky_ev_loop_t *ev_loop) {
 
     sky_ev_t *next;
     do {
-        if (!(ev->flags & EV_EP_IN) && (ev->flags & EV_REG_IN)) {
-            if (ev_loop->event_n == ev_loop->max_event) {
-                kevent(ev->fd, ev_loop->sys_evs, ev_loop->event_n, null, 0, null);
-                ev_loop->event_n = 0;
+        if (ev->fd == SKY_SOCKET_FD_NONE) {
+            event_pending_out_all(ev_loop, ev);
+        } else {
+            if (!(ev->flags & EV_EP_IN) && (ev->flags & EV_REG_IN)) {
+                if (ev_loop->event_n == ev_loop->max_event) {
+                    kevent(ev->fd, ev_loop->sys_evs, ev_loop->event_n, null, 0, null);
+                    ev_loop->event_n = 0;
+                }
+                EV_SET(
+                        &ev_loop->sys_evs[ev_loop->event_n++],
+                        ev->fd, EVFILT_READ,
+                        EV_ADD | EV_CLEAR,
+                        0,
+                        0,
+                        ev
+                );
+                ev->flags |= EV_EP_IN;
             }
-            EV_SET(
-                    &ev_loop->sys_evs[ev_loop->event_n++],
-                    ev->fd, EVFILT_READ,
-                    EV_ADD | EV_CLEAR,
-                    0,
-                    0,
-                    ev
-            );
-            ev->flags |= EV_EP_IN;
-        }
-        if (!(ev->flags & EV_EP_OUT) && (ev->flags & EV_REG_OUT)) {
-            if (ev_loop->event_n == ev_loop->max_event) {
-                kevent(ev->fd, ev_loop->sys_evs, ev_loop->event_n, null, 0, null);
-                ev_loop->event_n = 0;
+            if (!(ev->flags & EV_EP_OUT) && (ev->flags & EV_REG_OUT)) {
+                if (ev_loop->event_n == ev_loop->max_event) {
+                    kevent(ev->fd, ev_loop->sys_evs, ev_loop->event_n, null, 0, null);
+                    ev_loop->event_n = 0;
+                }
+                EV_SET(
+                        &ev_loop->sys_evs[ev_loop->event_n++],
+                        ev->fd, EVFILT_WRITE,
+                        EV_ADD | EV_CLEAR,
+                        0,
+                        0,
+                        ev
+                );
+                ev->flags |= EV_EP_OUT;
             }
-            EV_SET(
-                    &ev_loop->sys_evs[ev_loop->event_n++],
-                    ev->fd, EVFILT_WRITE,
-                    EV_ADD | EV_CLEAR,
-                    0,
-                    0,
-                    ev
-            );
-            ev->flags |= EV_EP_OUT;
         }
 
         next = ev->status_next;
