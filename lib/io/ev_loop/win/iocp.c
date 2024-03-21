@@ -8,7 +8,6 @@
 
 #include <handleapi.h>
 #include <windows.h>
-#include <core/log.h>
 
 sky_api sky_ev_loop_t *
 sky_ev_loop_create() {
@@ -26,7 +25,8 @@ sky_ev_loop_create() {
 
     sky_ev_loop_t *const ev_loop = sky_malloc(sizeof(sky_ev_loop_t));
     ev_loop->iocp = iocp;
-    ev_loop->current_block = null;
+    ev_loop->pending = null;
+    ev_loop->pending_tail = &ev_loop->pending;
 
     return ev_loop;
 }
@@ -34,6 +34,7 @@ sky_ev_loop_create() {
 sky_api void
 sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
     static const event_req_pt EVENT_TABLES[] = {
+            [EV_REQ_TCP_ACCEPT] = event_on_tcp_accept,
             [EV_REQ_TCP_CONNECT] = event_on_tcp_connect,
             [EV_REQ_TCP_WRITE] = event_on_tcp_write,
             [EV_REQ_TCP_READ] = event_on_tcp_read
@@ -45,17 +46,27 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
     LPOVERLAPPED pov;
     sky_ev_req_t *req;
 
-    sky_ev_t *ev;
+    sky_ev_t *ev, *next;
 
     for (;;) {
-        pov = null;
-        if (sky_unlikely(GetQueuedCompletionStatus(ev_loop->iocp, &bytes, &key, &pov, INFINITE))) {
+        if (ev_loop->pending) {
+            do {
+                ev = ev_loop->pending;
+                ev_loop->pending = null;
+                ev_loop->pending_tail = &ev_loop->pending;
+                do {
+                    next = ev->next;
+                    ev->cb(ev);
+                    ev = next;
+                } while (ev);
+
+            } while (ev_loop->pending);
+        }
+
+        if (GetQueuedCompletionStatus(ev_loop->iocp, &bytes, &key, &pov, INFINITE)) {
             ev = (sky_ev_t *) key;
             req = (sky_ev_req_t *) pov;
-            req->bytes = bytes;
-            EVENT_TABLES[req->type](ev, req, true);
-
-            event_req_release(ev_loop, req);
+            EVENT_TABLES[req->type](ev, req, bytes, true);
         } else {
             if (GetLastError() != WAIT_TIMEOUT) {
                 if (sky_unlikely(!pov)) {
@@ -63,11 +74,8 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
                 }
                 ev = (sky_ev_t *) key;
                 req = (sky_ev_req_t *) pov;
-                req->bytes = bytes;
-                EVENT_TABLES[req->type](ev, req, false);
-                event_req_release(ev_loop, req);
+                EVENT_TABLES[req->type](ev, req, bytes, false);
             }
-
         }
     }
 
@@ -76,6 +84,8 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
 sky_api void
 sky_ev_loop_stop(sky_ev_loop_t *ev_loop) {
 
+    CloseHandle(ev_loop->iocp);
+    sky_free(ev_loop);
 }
 
 #endif

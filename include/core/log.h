@@ -17,10 +17,28 @@ extern "C" {
 #define sky_log_warn(format, ...)    printf("[WARN] (%s:%d) " format "\n", __FILE__, __LINE__, ##__VA_ARGS__)
 #define sky_log_error(format, ...)   printf("[ERROR] (%s:%d) " format "\n",__FILE__, __LINE__, ##__VA_ARGS__)
 #else
+
+#ifdef __WINNT__
+#include <windows.h>
+
+#define sky_log_debug(format, ...)  \
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),  0x7); \
+    printf("[DEBUG] (%s:%d) " format "\n",__FILE__, __LINE__, ##__VA_ARGS__)
+#define sky_log_info(format, ...)   \
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),  FOREGROUND_BLUE); \
+    printf("[INFO] (%s:%d) " format "\n",__FILE__, __LINE__, ##__VA_ARGS__)
+#define sky_log_warn(format, ...)    \
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),  FOREGROUND_GREEN); \
+    printf("[WARN] (%s:%d) " format "\n", __FILE__, __LINE__, ##__VA_ARGS__)
+#define sky_log_error(format, ...) \
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE),  FOREGROUND_RED); \
+    printf("[ERROR] (%s:%d) " format "\n",__FILE__, __LINE__, ##__VA_ARGS__)
+#else
 #define sky_log_debug(format, ...)    printf("[DEBUG] (%s:%d) " format "\n",__FILE__, __LINE__, ##__VA_ARGS__)
 #define sky_log_info(format, ...)    printf("\033[0;34m[INFO] (%s:%d) " format "\n\033[0m",__FILE__, __LINE__, ##__VA_ARGS__)
 #define sky_log_warn(format, ...)    printf("\033[0;32m[WARN] (%s:%d) " format "\n\033[0m", __FILE__, __LINE__, ##__VA_ARGS__)
 #define sky_log_error(format, ...)   printf("\033[0;31m[ERROR] (%s:%d) " format "\n\033[0m",__FILE__, __LINE__, ##__VA_ARGS__)
+#endif
 
 #endif
 #if defined(__cplusplus)

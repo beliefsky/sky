@@ -58,15 +58,17 @@ sky_inet_address_ip_str(
         address->size = sizeof(address->ipv6);
 #endif
         address->family = AF_INET6;
-        address->ipv6.port = sky_htons(port);
         address->ipv6.flow_info = 0;
         address->ipv6.scope_id = 0;
 
 #ifndef __WINNT__
+        address->ipv6.port = sky_htons(port);
         return 0 == inet_pton(AF_INET6, (sky_char_t *) ip, address->ipv6.address);
 #else
-        sky_i32_t n;
-        return 0 == WSAStringToAddressA((sky_char_t *) ip, AF_INET6, null, (LPSOCKADDR) address->ipv6, &n);
+        sky_i32_t n = sizeof(address->ipv6);
+        sky_bool_t r = 0 == WSAStringToAddress((sky_char_t *) ip, AF_INET6, null, (LPSOCKADDR) &address->ipv6, &n);
+        address->ipv6.port = sky_htons(port);
+        return r;
 #endif
 
     }
@@ -74,13 +76,15 @@ sky_inet_address_ip_str(
     address->size = sizeof(address->ipv4);
 #endif
     address->family = AF_INET;
-    address->ipv4.port = sky_htons(port);
 
 #ifndef __WINNT__
+    address->ipv4.port = sky_htons(port);
     return 0 == inet_pton(AF_INET, (sky_char_t *) ip, &address->ipv4.address);
 #else
-    sky_i32_t n;
-    return 0 == WSAStringToAddressA((sky_char_t *) ip, AF_INET, null, (LPSOCKADDR) &address->ipv4, &n);
+    sky_i32_t n = sizeof(address->ipv4);
+    sky_bool_t r = 0 == WSAStringToAddress((sky_char_t *) ip, AF_INET, null, (LPSOCKADDR) &address->ipv4, &n);
+    address->ipv4.port = sky_htons(port);
+    return r;
 #endif
 }
 
