@@ -173,6 +173,9 @@ event_on_status(sky_ev_loop_t *ev_loop) {
     sky_u32_t opts, reg_opts;
 
     do {
+        next = ev->next;
+        ev->next = null;
+
         if (ev->fd == SKY_SOCKET_FD_NONE) {
             ev->cb(ev);
         } else {
@@ -203,8 +206,6 @@ event_on_status(sky_ev_loop_t *ev_loop) {
                 ev->flags |= reg_opts;
             }
         }
-        next = ev->next;
-        ev->next = null;
         ev = next;
     } while (ev);
 }
