@@ -39,19 +39,19 @@ sky_ev_loop_create() {
     ev_loop->pending_req = null;
     ev_loop->pending_req_tail = &ev_loop->pending_req;
     ev_loop->status_queue = null;
+    ev_loop->status_queue_tail = &ev_loop->status_queue;
 
     return ev_loop;
 }
 
 sky_api void
 sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
-    static const event_req_pt OUT_TABLES[] = {
-            [(EV_REQ_TCP_CONNECT - 1) >> 1] = event_on_tcp_connect,
-            [(EV_REQ_TCP_WRITE - 1) >> 1] = event_on_tcp_write,
-            [(EV_REQ_TCP_CLOSE - 1) >> 1] = event_on_tcp_close,
-    };
-    static const event_req_pt IN_TABLES[] = {
-            [EV_REQ_TCP_READ >> 1] = event_on_tcp_read,
+    static const event_req_pt REQ_TABLES[] = {
+            [EV_REQ_TCP_ACCEPT] = event_on_tcp_accept,
+            [EV_REQ_TCP_CONNECT] = event_on_tcp_connect,
+            [EV_REQ_TCP_READ] = event_on_tcp_read,
+            [EV_REQ_TCP_WRITE] = event_on_tcp_write,
+            [EV_REQ_TCP_WRITE_V] = event_on_tcp_write_v
     };
 
 
@@ -88,7 +88,7 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
                         if (ev->out_req) {
                             for (;;) {
                                 req = ev->out_req;
-                                if (!OUT_TABLES[(req->type - 1) >> 1](ev, req)) {
+                                if (!REQ_TABLES[req->type](ev, req)) {
                                     break;
                                 }
                                 ev->out_req = req->next;
@@ -105,7 +105,7 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
                         if (ev->in_req) {
                             for (;;) {
                                 req = ev->in_req;
-                                if (!IN_TABLES[req->type >> 1](ev, req)) {
+                                if (!REQ_TABLES[req->type](ev, req)) {
                                     break;
                                 }
                                 ev->in_req = req->next;
@@ -132,10 +132,11 @@ sky_ev_loop_stop(sky_ev_loop_t *ev_loop) {
 static void
 event_on_pending(sky_ev_loop_t *ev_loop) {
     static const event_pending_pt PENDING_TABLES[] = {
+            [EV_REQ_TCP_ACCEPT] = event_cb_tcp_accept,
             [EV_REQ_TCP_CONNECT] = event_cb_tcp_connect,
-            [EV_REQ_TCP_WRITE] = event_cb_tcp_rw,
-            [EV_REQ_TCP_READ] = event_cb_tcp_rw,
-            [EV_REQ_TCP_CLOSE] = event_cb_tcp_close
+            [EV_REQ_TCP_READ] = event_cb_tcp_read,
+            [EV_REQ_TCP_WRITE] = event_cb_tcp_write,
+            [EV_REQ_TCP_WRITE_V] = event_cb_tcp_write_v
     };
 
     if (!ev_loop->pending_req) {
@@ -151,7 +152,6 @@ event_on_pending(sky_ev_loop_t *ev_loop) {
         do {
             next = req->next;
             PENDING_TABLES[req->type](req->ev, req);
-            event_req_release(ev_loop, req);
             req = next;
         } while (req);
 
@@ -165,13 +165,14 @@ event_on_status(sky_ev_loop_t *ev_loop) {
         return;
     }
     ev_loop->status_queue = null;
+    ev_loop->status_queue_tail = &ev_loop->status_queue;
 
     sky_ev_t *next;
     sky_u32_t opts, reg_opts;
 
     do {
         if (ev->fd == SKY_SOCKET_FD_NONE) {
-            event_pending_out_all(ev_loop, ev);
+            ev->cb(ev);
         } else {
             opts = EPOLLET;
             reg_opts = 0;
@@ -200,11 +201,10 @@ event_on_status(sky_ev_loop_t *ev_loop) {
                 ev->flags |= reg_opts;
             }
         }
-        next = ev->status_next;
-        ev->status_next = null;
+        next = ev->next;
+        ev->next = null;
         ev = next;
     } while (ev);
-
 }
 
 #endif

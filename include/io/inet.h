@@ -56,7 +56,7 @@ struct sky_io_vec_s {
 
 struct sky_io_vec_s {
     sky_uchar_t *buf;
-    sky_usize_t size;
+    sky_usize_t len;
 };
 
 #endif

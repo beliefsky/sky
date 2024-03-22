@@ -95,7 +95,7 @@ sky_http_server_bind(sky_http_server_t *server, const sky_inet_address_t *addres
         sky_pfree(server->pool, listener, sizeof(http_listener_t));
         return false;
     }
-    //sky_tcp_option_reuse_addr(&listener->tcp);
+    sky_tcp_option_reuse_address(&listener->tcp);
 //    if (sky_unlikely(!sky_tcp_option_reuse_port(&listener->tcp))) {
 //        sky_tcp_close(&listener->tcp, on_http_server_close);
 //        sky_pfree(server->pool, listener, sizeof(http_listener_t));

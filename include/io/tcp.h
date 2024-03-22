@@ -34,6 +34,23 @@ struct sky_tcp_req_s {
         sky_tcp_rw_pt read;
         sky_tcp_rw_pt write;
     } cb;
+
+#ifndef __WINNT__
+    union {
+        sky_bool_t success;
+        struct {
+            sky_uchar_t *buf;
+            sky_u32_t size;
+            sky_u32_t pending_size;
+        } one;
+        struct {
+            sky_io_vec_t *vec;
+            sky_usize_t pending_size;
+            sky_u32_t num;
+            sky_u32_t offset;
+        } vec;
+    };
+#endif
 };
 
 struct sky_tcp_req_accept_s {
@@ -41,7 +58,9 @@ struct sky_tcp_req_accept_s {
     sky_tcp_accept_pt accept;
     sky_socket_t accept_fd;
 
+#ifdef __WINNT__
     sky_uchar_t accept_buffer[(sizeof(sky_inet_address_t) << 1) + 32];
+#endif
 };
 
 void sky_tcp_init(sky_tcp_t *tcp, sky_ev_loop_t *ev_loop);
@@ -60,13 +79,15 @@ sky_bool_t sky_tcp_connect(sky_tcp_t *tcp, sky_tcp_req_t *req, const sky_inet_ad
 
 sky_bool_t sky_tcp_write(sky_tcp_t *tcp, sky_tcp_req_t *req, sky_uchar_t *buf, sky_u32_t size, sky_tcp_rw_pt cb);
 
-sky_bool_t sky_tcp_write_v(sky_tcp_t *tcp, sky_tcp_req_t *req, sky_io_vec_t *buf, sky_u32_t n, sky_tcp_rw_pt cb);
+sky_bool_t sky_tcp_write_v(sky_tcp_t *tcp, sky_tcp_req_t *req, sky_io_vec_t *buf, sky_u32_t num, sky_tcp_rw_pt cb);
 
 sky_bool_t sky_tcp_read(sky_tcp_t *tcp, sky_tcp_req_t *req, sky_uchar_t *buf, sky_u32_t size, sky_tcp_rw_pt cb);
 
-sky_bool_t sky_tcp_read_v(sky_tcp_t *tcp, sky_tcp_req_t *req, sky_io_vec_t *buf, sky_u32_t size, sky_tcp_rw_pt cb);
+sky_bool_t sky_tcp_read_v(sky_tcp_t *tcp, sky_tcp_req_t *req, sky_io_vec_t *buf, sky_u32_t num, sky_tcp_rw_pt cb);
 
 sky_bool_t sky_tcp_close(sky_tcp_t *tcp, sky_tcp_close_pt cb);
+
+sky_bool_t sky_tcp_option_reuse_address(const sky_tcp_t *tcp);
 
 static sky_inline sky_bool_t
 sky_tcp_closed(sky_tcp_t *tcp) {

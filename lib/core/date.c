@@ -171,7 +171,7 @@ sky_date_to_rfc_str(time_t time, sky_uchar_t *src) {
 
     const sky_u32_t day_of_time = (sky_u32_t) (time % 86400);
 #ifndef __WINNT__
-    if (sky_unlikely(0 != gmtime_r(&time, &tm))) {
+    if (sky_unlikely(null == gmtime_r(&time, &tm))) {
         return 0;
     }
 #else

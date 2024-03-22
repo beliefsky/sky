@@ -44,7 +44,7 @@ http_req_length_body_none(
         size = sky_min(size, SKY_USIZE(4096));
         sky_buf_rebuild(tmp, size);
     } else {
-        size = min(size, free_n);
+        size = sky_min(size, free_n);
     }
     conn->next_cb = call;
     conn->cb_data = data;

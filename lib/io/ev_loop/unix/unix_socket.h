@@ -30,13 +30,13 @@
 
 #endif
 
-#define EV_REQ_TCP_CONNECT      SKY_U8(1)
+#define EV_REQ_TCP_ACCEPT       SKY_U32(0)
+#define EV_REQ_TCP_CONNECT      SKY_U32(1)
 
-#define EV_REQ_TCP_WRITE        SKY_U8(3)
-#define EV_REQ_TCP_READ         SKY_U8(4)
-#define EV_REQ_TCP_WRITE_V      SKY_U8(5)
-#define EV_REQ_TCP_READ_V       SKY_U8(6)
-#define EV_REQ_TCP_CLOSE        SKY_U8(7)
+#define EV_REQ_TCP_READ         SKY_U32(2)
+#define EV_REQ_TCP_WRITE        SKY_U32(3)
+#define EV_REQ_TCP_READ_V       SKY_U32(4)
+#define EV_REQ_TCP_WRITE_V      SKY_U32(5)
 
 #define EV_REG_IN           SKY_U32(0x00000010)
 #define EV_REG_OUT          SKY_U32(0x00000020)
@@ -55,11 +55,7 @@ typedef sky_bool_t (*event_req_pt)(sky_ev_t *ev, sky_ev_req_t *req);
 
 typedef void (*event_pending_pt)(sky_ev_t *ev, sky_ev_req_t *req);
 
-typedef void (*sky_ev_connect_pt)(sky_ev_t *ev, sky_bool_t success);
-
 typedef void (*sky_ev_rw_pt)(sky_ev_t *ev, sky_usize_t n);
-
-typedef void (*sky_ev_close_pt)(sky_ev_t *ev);
 
 struct sky_ev_loop_s {
     sky_i32_t fd;
@@ -68,6 +64,8 @@ struct sky_ev_loop_s {
     sky_ev_req_t *pending_req;
     sky_ev_req_t **pending_req_tail;
     sky_ev_t *status_queue;
+    sky_ev_t **status_queue_tail;
+
 #ifdef EVENT_USE_EPOLL
     struct epoll_event sys_evs[];
 #endif
@@ -77,58 +75,10 @@ struct sky_ev_loop_s {
 #endif
 };
 
-struct sky_ev_req_s {
-    union {
-        sky_ev_connect_pt connect;
-        sky_ev_rw_pt rw;
-        sky_ev_close_pt close;
-    } cb;
-    sky_ev_req_t *next;
-    sky_ev_block_t *block;
-    sky_ev_t *ev;
-    sky_u8_t type; // send, connect,
-    sky_bool_t success;
-};
-
-struct sky_ev_block_s {
-    sky_u32_t count;
-    sky_u32_t free_size;
-    sky_uchar_t data[];
-};
 
 sky_bool_t set_socket_nonblock(sky_socket_t fd);
 
 sky_i32_t setup_open_file_count_limits();
-
-
-static sky_inline void *
-event_req_get(sky_ev_loop_t *ev_loop, sky_u32_t size) {
-    sky_ev_block_t *block = ev_loop->current_block;
-
-    if (!block || block->free_size < size) {
-        block = sky_malloc(16384);
-        block->free_size = SKY_U32(16384) - size - sizeof(sky_ev_block_t);
-        block->count = 1;
-        ev_loop->current_block = block;
-    } else {
-        block->free_size -= size;
-        ++block->count;
-    }
-    sky_ev_req_t *const req = (sky_ev_req_t *) (block->data + block->free_size);
-    req->block = block;
-
-    return req;
-}
-
-static sky_inline void
-event_req_release(sky_ev_loop_t *ev_loop, sky_ev_req_t *req) {
-    sky_ev_block_t *const block = req->block;
-
-    req->block = null;
-    if (!(--block->count) && block != ev_loop->current_block) {
-        sky_free(block);
-    }
-}
 
 static sky_inline void
 event_pending_add2(sky_ev_loop_t *ev_loop, sky_ev_t *ev, sky_ev_req_t *req) {
@@ -181,26 +131,43 @@ event_out_add(sky_ev_t *ev, sky_ev_req_t *req) {
 
 static sky_inline void
 event_add(sky_ev_t *ev, sky_u32_t events) {
-    if (!ev->status_next && (ev->flags & events) != events) {
-        ev->status_next = ev->ev_loop->status_queue;
-        ev->ev_loop->status_queue = ev;
+    if (!ev->next && (ev->flags & events) != events) {
+        sky_ev_loop_t *const ev_loop = ev->ev_loop;
+        *ev_loop->status_queue_tail = ev;
+        ev_loop->status_queue_tail = &ev->next;
     }
     ev->flags |= events;
 }
+
+static sky_inline void
+event_close_add(sky_ev_t *ev) {
+    if (!ev->next && ev->fd == SKY_SOCKET_FD_NONE) {
+        sky_ev_loop_t *const ev_loop = ev->ev_loop;
+
+        *ev_loop->status_queue_tail = ev;
+        ev_loop->status_queue_tail = &ev->next;
+    }
+}
+
+sky_bool_t event_on_tcp_accept(sky_ev_t *ev, sky_ev_req_t *req);
+
+void event_cb_tcp_accept(sky_ev_t *ev, sky_ev_req_t *req);
 
 sky_bool_t event_on_tcp_connect(sky_ev_t *ev, sky_ev_req_t *req);
 
 void event_cb_tcp_connect(sky_ev_t *ev, sky_ev_req_t *req);
 
-sky_bool_t event_on_tcp_write(sky_ev_t *ev, sky_ev_req_t *req);
-
 sky_bool_t event_on_tcp_read(sky_ev_t *ev, sky_ev_req_t *req);
 
-void event_cb_tcp_rw(sky_ev_t *ev, sky_ev_req_t *req);
+void event_cb_tcp_read(sky_ev_t *ev, sky_ev_req_t *req);
 
-sky_bool_t event_on_tcp_close(sky_ev_t *ev, sky_ev_req_t *req);
+sky_bool_t event_on_tcp_write(sky_ev_t *ev, sky_ev_req_t *req);
 
-void event_cb_tcp_close(sky_ev_t *ev, sky_ev_req_t *req);
+void event_cb_tcp_write(sky_ev_t *ev, sky_ev_req_t *req);
+
+sky_bool_t event_on_tcp_write_v(sky_ev_t *ev, sky_ev_req_t *req);
+
+void event_cb_tcp_write_v(sky_ev_t *ev, sky_ev_req_t *req);
 
 
 #endif
