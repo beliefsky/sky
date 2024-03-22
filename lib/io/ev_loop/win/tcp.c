@@ -58,6 +58,9 @@ sky_tcp_open(sky_tcp_t *tcp, sky_i32_t domain) {
 
 sky_api sky_bool_t
 sky_tcp_bind(sky_tcp_t *tcp, const sky_inet_address_t *address) {
+    const sky_i32_t opt = 1;
+    setsockopt(tcp->ev.fd, SOL_SOCKET, SO_REUSEADDR, (const char *)&opt, sizeof(sky_i32_t));
+
     if (!(tcp->ev.flags & TCP_STATUS_BIND)
         && bind(
             tcp->ev.fd,
@@ -151,6 +154,9 @@ sky_tcp_connect(sky_tcp_t *tcp, sky_tcp_req_t *req, const sky_inet_address_t *ad
         return false;
     }
     if (!(tcp->ev.flags & TCP_STATUS_BIND)) {
+        const sky_i32_t opt = 1;
+        setsockopt(tcp->ev.fd, SOL_SOCKET, SO_REUSEADDR, (const char *)&opt, sizeof(sky_i32_t));
+
         switch (address->family) {
             case AF_INET: {
                 struct sockaddr_in bind_address = {
