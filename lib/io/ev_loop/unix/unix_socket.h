@@ -32,21 +32,20 @@
 
 #define EV_REQ_TCP_ACCEPT       SKY_U32(0)
 #define EV_REQ_TCP_CONNECT      SKY_U32(1)
-
 #define EV_REQ_TCP_READ         SKY_U32(2)
 #define EV_REQ_TCP_WRITE        SKY_U32(3)
 #define EV_REQ_TCP_READ_V       SKY_U32(4)
 #define EV_REQ_TCP_WRITE_V      SKY_U32(5)
 
-#define EV_REG_IN           SKY_U32(0x00000010)
-#define EV_REG_OUT          SKY_U32(0x00000020)
+#define EV_REG_IN           SKY_U32(0x00000001)
+#define EV_REG_OUT          SKY_U32(0x00000002)
 
-#define EV_EP_IN            SKY_U32(0x00000040)
-#define EV_EP_OUT           SKY_U32(0x00000080)
+#define EV_EP_IN            SKY_U32(0x00000004)
+#define EV_EP_OUT           SKY_U32(0x00000008)
 
-#define EV_STATUS_READ      SKY_U32(0x00000100)
-#define EV_STATUS_WRITE     SKY_U32(0x00000200)
-#define EV_STATUS_ERROR     SKY_U32(0x00000400)
+#define EV_STATUS_READ      SKY_U32(0x00000010)
+#define EV_STATUS_WRITE     SKY_U32(0x00000020)
+#define EV_STATUS_ERROR     SKY_U32(0x00000040)
 
 
 typedef struct sky_ev_block_s sky_ev_block_t;
@@ -160,6 +159,10 @@ void event_cb_tcp_connect(sky_ev_t *ev, sky_ev_req_t *req);
 sky_bool_t event_on_tcp_read(sky_ev_t *ev, sky_ev_req_t *req);
 
 void event_cb_tcp_read(sky_ev_t *ev, sky_ev_req_t *req);
+
+sky_bool_t event_on_tcp_read_v(sky_ev_t *ev, sky_ev_req_t *req);
+
+void event_cb_tcp_read_v(sky_ev_t *ev, sky_ev_req_t *req);
 
 sky_bool_t event_on_tcp_write(sky_ev_t *ev, sky_ev_req_t *req);
 

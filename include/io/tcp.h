@@ -87,8 +87,6 @@ sky_bool_t sky_tcp_read_v(sky_tcp_t *tcp, sky_tcp_req_t *req, sky_io_vec_t *buf,
 
 sky_bool_t sky_tcp_close(sky_tcp_t *tcp, sky_tcp_close_pt cb);
 
-sky_bool_t sky_tcp_option_reuse_address(const sky_tcp_t *tcp);
-
 static sky_inline sky_bool_t
 sky_tcp_closed(sky_tcp_t *tcp) {
     return tcp->ev.fd == SKY_SOCKET_FD_NONE;

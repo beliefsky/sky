@@ -51,6 +51,7 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
             [EV_REQ_TCP_CONNECT] = event_on_tcp_connect,
             [EV_REQ_TCP_READ] = event_on_tcp_read,
             [EV_REQ_TCP_WRITE] = event_on_tcp_write,
+            [EV_REQ_TCP_READ_V] = event_on_tcp_read_v,
             [EV_REQ_TCP_WRITE_V] = event_on_tcp_write_v
     };
 
@@ -136,6 +137,7 @@ event_on_pending(sky_ev_loop_t *ev_loop) {
             [EV_REQ_TCP_CONNECT] = event_cb_tcp_connect,
             [EV_REQ_TCP_READ] = event_cb_tcp_read,
             [EV_REQ_TCP_WRITE] = event_cb_tcp_write,
+            [EV_REQ_TCP_READ_V] = event_cb_tcp_read_v,
             [EV_REQ_TCP_WRITE_V] = event_cb_tcp_write_v
     };
 

@@ -60,6 +60,9 @@ sky_tcp_open(sky_tcp_t *tcp, sky_i32_t domain) {
 
 sky_api sky_bool_t
 sky_tcp_bind(sky_tcp_t *tcp, const sky_inet_address_t *address) {
+    const sky_i32_t opt = 1;
+    setsockopt(tcp->ev.fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_i32_t));
+
     return bind(
             tcp->ev.fd,
             (const struct sockaddr *) address,
@@ -233,7 +236,7 @@ sky_tcp_write_v(sky_tcp_t *tcp, sky_tcp_req_t *req, sky_io_vec_t *buf, sky_u32_t
             req->base.type = EV_REQ_TCP_WRITE_V;
             req->vec.pending_size = 0;
 
-            for (;;) {
+            do {
                 if ((sky_usize_t) n < buf->len) {
                     req->vec.vec = buf;
                     req->vec.num = num;
@@ -248,14 +251,12 @@ sky_tcp_write_v(sky_tcp_t *tcp, sky_tcp_req_t *req, sky_io_vec_t *buf, sky_u32_t
                 n -= (sky_isize_t) buf->len;
                 req->vec.pending_size += buf->len;
                 ++buf;
+            } while ((--num) != 0);
 
-                if ((--num) == 0) {
-                    req->vec.vec = null;
-                    req->vec.num = 0;
-                    event_pending_add(&tcp->ev, &req->base);
-                    return true;
-                }
-            }
+            req->vec.vec = null;
+            req->vec.num = 0;
+            event_pending_add(&tcp->ev, &req->base);
+            return true;
         }
         if (sky_unlikely(errno != EAGAIN)) {
             tcp->ev.flags |= EV_STATUS_ERROR;
@@ -313,13 +314,44 @@ sky_tcp_read(sky_tcp_t *tcp, sky_tcp_req_t *req, sky_uchar_t *buf, sky_u32_t siz
 }
 
 sky_api sky_bool_t
-sky_tcp_read_v(sky_tcp_t *tcp, sky_tcp_req_t *req, sky_io_vec_t *buf, sky_u32_t size, sky_tcp_rw_pt cb) {
+sky_tcp_read_v(sky_tcp_t *tcp, sky_tcp_req_t *req, sky_io_vec_t *buf, sky_u32_t num, sky_tcp_rw_pt cb) {
     if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE)) {
         return false;
     }
-    if ((tcp->ev.flags & EV_STATUS_READ) && !tcp->ev.in_req_tail) {
 
+    if ((tcp->ev.flags & EV_STATUS_READ) && !tcp->ev.in_req) {
+        struct msghdr msg = {
+                .msg_iov = (struct iovec *) buf,
+#if defined(__linux__)
+                .msg_iovlen = num
+#else
+                .msg_iovlen = (sky_i32_t) num
+#endif
+        };
+
+        const sky_isize_t n = recvmsg(tcp->ev.fd, &msg, 0);
+        if (n != SKY_ISIZE(-1)) {
+            req->cb.read = cb;
+            req->base.type = EV_REQ_TCP_READ_V;
+            req->vec.vec = buf;
+            req->vec.pending_size = (sky_usize_t) n;
+            req->vec.num = num;
+            event_pending_add(&tcp->ev, &req->base);
+            return true;
+        }
+        if (sky_unlikely(errno != EAGAIN)) {
+            tcp->ev.flags |= EV_STATUS_ERROR;
+            return false;
+        }
+        tcp->ev.flags &= ~EV_STATUS_READ;
+        event_add(&tcp->ev, EV_REG_IN);
     }
+    req->base.type = EV_REQ_TCP_READ_V;
+    req->vec.vec = buf;
+    req->vec.pending_size = 0;
+    req->vec.num = num;
+
+    event_in_add(&tcp->ev, &req->base);
 
     return true;
 }
@@ -340,13 +372,6 @@ sky_tcp_close(sky_tcp_t *tcp, sky_tcp_close_pt cb) {
     event_close_add(&tcp->ev);
 
     return true;
-}
-
-sky_api sky_bool_t
-sky_tcp_option_reuse_address(const sky_tcp_t *const tcp) {
-    const sky_i32_t opt = 1;
-
-    return 0 == setsockopt(tcp->ev.fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_i32_t));
 }
 
 
@@ -461,6 +486,42 @@ event_cb_tcp_read(sky_ev_t *ev, sky_ev_req_t *req) {
 
     tcp_req->cb.read(tcp, tcp_req, (ev->flags & EV_STATUS_ERROR) ? SKY_USIZE_MAX : tcp_req->one.pending_size);
 }
+
+sky_bool_t
+event_on_tcp_read_v(sky_ev_t *ev, sky_ev_req_t *req) {
+    if (sky_unlikely((ev->flags & EV_STATUS_ERROR))) {
+        return true;
+    }
+    sky_tcp_req_t *const tcp_req = (sky_tcp_req_t *) req;
+
+    struct msghdr msg = {
+            .msg_iov = (struct iovec *) tcp_req->vec.vec,
+#if defined(__linux__)
+            .msg_iovlen = tcp_req->vec.num
+#else
+            .msg_iovlen = (sky_i32_t) tcp_req->vec.num
+#endif
+    };
+    const sky_isize_t n = recvmsg(ev->fd, &msg, MSG_NOSIGNAL);
+
+    if (n == SKY_ISIZE(-1)) {
+        if (sky_unlikely(errno != EAGAIN)) {
+            ev->flags |= EV_STATUS_ERROR;
+            return true;
+        }
+        ev->flags &= ~EV_STATUS_READ;
+        return false;
+    }
+    tcp_req->vec.pending_size = (sky_usize_t) n;
+}
+
+void
+event_cb_tcp_read_v(sky_ev_t *ev, sky_ev_req_t *req) {
+    sky_tcp_t *const tcp = (sky_tcp_t *) ev;
+    sky_tcp_req_t *const tcp_req = (sky_tcp_req_t *) req;
+    tcp_req->cb.read(tcp, tcp_req, (ev->flags & EV_STATUS_ERROR) ? SKY_USIZE_MAX : tcp_req->vec.pending_size);
+}
+
 
 sky_bool_t
 event_on_tcp_write(sky_ev_t *ev, sky_ev_req_t *req) {
