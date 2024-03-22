@@ -73,7 +73,7 @@ sky_tcp_bind(sky_tcp_t *tcp, const sky_inet_address_t *address) {
 }
 
 sky_api sky_bool_t
-sky_tcp_listen(sky_tcp_t *tcp,  sky_i32_t backlog) {
+sky_tcp_listen(sky_tcp_t *tcp, sky_i32_t backlog) {
     if (!(tcp->ev.flags & TCP_STATUS_LISTEN)) {
         if (listen(tcp->ev.fd, backlog) == -1) {
             return false;
@@ -310,8 +310,15 @@ event_on_tcp_accept(sky_ev_t *ev, sky_ev_req_t *req, sky_usize_t bytes, sky_bool
 
     sky_tcp_t *const tcp = (sky_tcp_t *) ev;
     sky_tcp_req_accept_t *const tcp_req = (sky_tcp_req_accept_t *) req;
-    tcp_req->accept(tcp, tcp_req, success);
-    if (!success && !ev->req_num && (ev->flags & TCP_STATUS_CLOSING)) {
+
+    if (success) {
+        tcp_req->accept(tcp, tcp_req, true);
+        return;
+    }
+    closesocket(tcp_req->accept_fd);
+    tcp_req->accept_fd = SKY_SOCKET_FD_NONE;
+    tcp_req->accept(tcp, tcp_req, false);
+    if (!ev->req_num && (ev->flags & TCP_STATUS_CLOSING)) {
         closesocket(ev->fd);
         ev->fd = SKY_SOCKET_FD_NONE;
         ev->flags = 0;
