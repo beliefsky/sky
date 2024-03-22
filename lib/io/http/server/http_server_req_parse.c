@@ -1,7 +1,7 @@
 //
 // Created by beliefsky on 18-2-23.
 //
-#include "./http_server_common.h"
+#include "http_server_common.h"
 #include <core/number.h>
 
 #ifdef __SSE4_1__

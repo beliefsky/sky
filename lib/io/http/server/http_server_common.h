@@ -17,7 +17,7 @@ struct sky_http_server_s {
     sky_uchar_t rfc_date[30];
     sky_trie_t *host_map;
     sky_pool_t *pool;
-    sky_event_loop_t *ev_loop;
+    sky_ev_loop_t *ev_loop;
     sky_time_t rfc_last;
     sky_usize_t body_str_max;
     sky_u32_t keep_alive;
@@ -28,7 +28,7 @@ struct sky_http_server_s {
 
 struct sky_http_connection_s {
     sky_tcp_t tcp;
-    sky_timer_wheel_entry_t timer;
+    sky_tcp_req_t read_req;
     sky_http_server_t *server;
     sky_http_server_request_t *current_req;
     sky_buf_t *buf;

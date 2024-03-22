@@ -5,7 +5,7 @@
 
 #ifdef EVENT_USE_IOCP
 
-#include <io/ev_tcp.h>
+#include <io/tcp.h>
 #include <winsock2.h>
 #include <mswsock.h>
 #include <core/log.h>
@@ -73,7 +73,7 @@ sky_tcp_bind(sky_tcp_t *tcp, const sky_inet_address_t *address) {
 }
 
 sky_api sky_bool_t
-sky_tcp_listen(sky_tcp_t *tcp, sky_i32_t backlog) {
+sky_tcp_listen(sky_tcp_t *tcp,  sky_i32_t backlog) {
     if (!(tcp->ev.flags & TCP_STATUS_LISTEN)) {
         if (listen(tcp->ev.fd, backlog) == -1) {
             return false;
@@ -81,6 +81,13 @@ sky_tcp_listen(sky_tcp_t *tcp, sky_i32_t backlog) {
         tcp->ev.flags |= TCP_STATUS_LISTEN;
     }
     return true;
+}
+
+sky_api void
+sky_tcp_acceptor(sky_tcp_t *tcp, sky_tcp_req_accept_t *req) {
+    tcp->ev.fd = req->accept_fd;
+    CreateIoCompletionPort((HANDLE) tcp->ev.fd, tcp->ev.ev_loop->iocp, (ULONG_PTR) &tcp->ev, 0);
+    tcp->ev.flags |= TCP_STATUS_BIND;
 }
 
 sky_api sky_bool_t

@@ -55,26 +55,4 @@ sky_http_req_body_str(
     }
 }
 
-sky_api void
-sky_http_req_body_read(
-        sky_http_server_request_t *const r,
-        const sky_http_server_next_read_pt call,
-        void *const data
-) {
-    if (sky_unlikely(r->read_request_body)) {
-        sky_log_error("request body read repeat");
-        call(r, null, 0, data);
-        return;
-    }
-    r->read_request_body = true;
-
-    if (r->headers_in.content_length) {
-        http_req_length_body_read(r, call, data);
-    } else if (r->headers_in.transfer_encoding) {
-        http_req_chunked_body_read(r, call, data);
-    } else {
-        call(r, null, 0, data);
-    }
-}
-
 

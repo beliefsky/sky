@@ -91,7 +91,9 @@ enable_c_flag_if_avail(-fstack-protector-explicit CMAKE_C_FLAGS SKY_HAVE_STACK_P
 if (APPLE)
     enable_c_flag_if_avail(-Wl,-bind_at_load CMAKE_EXE_LINKER_FLAGS
             SKY_HAVE_IMMEDIATE_BINDING)
-else ()
+elseif (WIN32)
+
+else()
     enable_c_flag_if_avail(-Wl,-z,now CMAKE_EXE_LINKER_FLAGS
             SKY_HAVE_IMMEDIATE_BINDING)
     enable_c_flag_if_avail(-Wl,-z,relro CMAKE_EXE_LINKER_FLAGS
@@ -162,11 +164,6 @@ endif ()
 #
 # Generate sky_build_config.h
 #
-#configure_file(
-#        "${CMAKE_SOURCE_DIR}/cmake/sky_build_config.h.cmake"
-#        "${CMAKE_CURRENT_SOURCE_DIR}/src/lib/sky_build_config.h"
-#)
-
 configure_file(
         "${CMAKE_SOURCE_DIR}/cmake/sky_build_config.h.cmake"
         "${CMAKE_CURRENT_SOURCE_DIR}/include/sky_build_config.h"

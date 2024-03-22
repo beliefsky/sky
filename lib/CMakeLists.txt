@@ -7,8 +7,20 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 
 file(GLOB_RECURSE SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/*.c")
 
+set(SOURCES ${SOURCES} ${SOURCES_CORE} io/inet.c)
+message("source -> ${SOURCES}")
+
+if (WIN32)
+    set(SKY_COMMON_LIBS ${SKY_COMMON_LIBS})
+endif ()
+
 add_library(sky_static STATIC ${SOURCES})
-target_link_libraries(sky_static)
+
+if (WIN32)
+    target_link_libraries(sky_static wsock32 ws2_32)
+else()
+    target_link_libraries(sky_static)
+endif ()
 
 set_target_properties(sky_static PROPERTIES
         OUTPUT_NAME sky CLEAN_DIRECT_OUTPUT 1)

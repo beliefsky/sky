@@ -1,20 +1,24 @@
 //
-// Created by beliefsky on 2023/7/1.
+// Created by weijing on 2024/3/21.
 //
-#include <io/tcp.h>
-#include <core/memory.h>
 #include "./http_server_common.h"
+#include <core/memory.h>
+
 
 typedef struct {
     sky_tcp_t tcp;
+    sky_tcp_req_accept_t req;
     sky_http_server_t *server;
     sky_http_connection_t *conn_tmp;
 } http_listener_t;
 
-static void http_server_accept(sky_tcp_t *tcp);
+static void on_http_server_accept(sky_tcp_t *tcp, sky_tcp_req_accept_t *req, sky_bool_t success);
+
+static void on_http_server_close(sky_tcp_t *tcp);
+
 
 sky_api sky_http_server_t *
-sky_http_server_create(sky_event_loop_t *ev_loop, const sky_http_server_conf_t *const conf) {
+sky_http_server_create(sky_ev_loop_t *ev_loop, const sky_http_server_conf_t *conf) {
     sky_pool_t *const pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
     sky_http_server_t *const server = sky_palloc(pool, sizeof(sky_http_server_t));
     server->pool = pool;
@@ -39,8 +43,8 @@ sky_http_server_create(sky_event_loop_t *ev_loop, const sky_http_server_conf_t *
     return server;
 }
 
-sky_api sky_bool_t
-sky_http_server_module_put(sky_http_server_t *const server, sky_http_server_module_t *const module) {
+sky_bool_t
+sky_http_server_module_put(sky_http_server_t *server, sky_http_server_module_t *module) {
     sky_trie_t *host_trie = sky_trie_contains(server->host_map, &module->host);
     if (!host_trie) {
         host_trie = sky_trie_create(server->pool);
@@ -79,13 +83,10 @@ sky_http_server_module_put(sky_http_server_t *const server, sky_http_server_modu
     return false;
 }
 
-sky_api sky_bool_t
-sky_http_server_bind(
-        sky_http_server_t *const server,
-        const sky_inet_address_t *const address
-) {
+sky_bool_t
+sky_http_server_bind(sky_http_server_t *server, const sky_inet_address_t *address) {
     http_listener_t *const listener = sky_palloc(server->pool, sizeof(http_listener_t));
-    sky_tcp_init(&listener->tcp, sky_event_selector(server->ev_loop));
+    sky_tcp_init(&listener->tcp, server->ev_loop);
     listener->server = server;
     listener->conn_tmp = null;
 
@@ -94,69 +95,52 @@ sky_http_server_bind(
         sky_pfree(server->pool, listener, sizeof(http_listener_t));
         return false;
     }
-    sky_tcp_option_reuse_addr(&listener->tcp);
-
-    if (sky_unlikely(!sky_tcp_option_reuse_port(&listener->tcp))) {
-        sky_tcp_close(&listener->tcp);
-        sky_pfree(server->pool, listener, sizeof(http_listener_t));
-        return false;
-    }
-    sky_tcp_option_no_delay(&listener->tcp);
-    sky_tcp_option_fast_open(&listener->tcp, 3);
-    sky_tcp_option_defer_accept(&listener->tcp);
+    //sky_tcp_option_reuse_addr(&listener->tcp);
+//    if (sky_unlikely(!sky_tcp_option_reuse_port(&listener->tcp))) {
+//        sky_tcp_close(&listener->tcp, on_http_server_close);
+//        sky_pfree(server->pool, listener, sizeof(http_listener_t));
+//        return false;
+//    }
+//    sky_tcp_option_no_delay(&listener->tcp);
+//    sky_tcp_option_fast_open(&listener->tcp, 3);
+//    sky_tcp_option_defer_accept(&listener->tcp);
 
     if (sky_unlikely(!sky_tcp_bind(&listener->tcp, address))) {
-        sky_tcp_close(&listener->tcp);
-        sky_pfree(server->pool, listener, sizeof(http_listener_t));
+        sky_tcp_close(&listener->tcp, on_http_server_close);
         return false;
     }
 
     if (sky_unlikely(!sky_tcp_listen(&listener->tcp, 1000))) {
-        sky_tcp_close(&listener->tcp);
-        sky_pfree(server->pool, listener, sizeof(http_listener_t));
+        sky_tcp_close(&listener->tcp, on_http_server_close);
         return false;
     }
-    sky_tcp_set_cb(&listener->tcp, http_server_accept);
-    http_server_accept(&listener->tcp);
+    sky_tcp_accept(&listener->tcp, &listener->req, on_http_server_accept);
+
     return true;
 }
 
 static void
-http_server_accept(sky_tcp_t *const tcp) {
-    http_listener_t *const l = sky_type_convert(tcp, http_listener_t, tcp);
-
-    sky_http_connection_t *conn = l->conn_tmp;
-    if (!conn) {
-        conn = sky_malloc(sizeof(sky_http_connection_t));
-        sky_tcp_init(&conn->tcp, sky_event_selector(l->server->ev_loop));
-        sky_event_timeout_init(l->server->ev_loop, &conn->timer, null);
-        conn->server = l->server;
-    }
-    sky_i8_t r;
-    for (;;) {
-        r = sky_tcp_accept(tcp, &conn->tcp);
-        if (r > 0) {
-            http_server_request_process(conn);
-
-            conn = sky_malloc(sizeof(sky_http_connection_t));
-            sky_tcp_init(&conn->tcp, sky_event_selector(l->server->ev_loop));
-            sky_event_timeout_init(l->server->ev_loop, &conn->timer, null);
-            conn->server = l->server;
-
-            continue;
-        }
-        l->conn_tmp = conn;
-
-        if (sky_likely(!r)) {
-            sky_tcp_try_register(tcp, SKY_EV_READ);
-            return;
-        }
-
-        sky_free(l->conn_tmp);
-        l->conn_tmp = null;
-        sky_tcp_close(tcp);
-
+on_http_server_accept(sky_tcp_t *tcp, sky_tcp_req_accept_t *req, sky_bool_t success) {
+    if (sky_unlikely(!success)) {
+        sky_tcp_close(tcp, on_http_server_close);
         return;
     }
+    http_listener_t *const listener = (http_listener_t *) tcp;
+    sky_http_connection_t *conn = sky_malloc(sizeof(sky_http_connection_t));
+    sky_tcp_init(&conn->tcp, listener->server->ev_loop);
+    sky_tcp_acceptor(&conn->tcp, req);
+    conn->server = listener->server;
+
+    http_server_request_process(conn);
+
+    sky_tcp_accept(tcp, req, on_http_server_accept);
+}
+
+
+static void
+on_http_server_close(sky_tcp_t *tcp) {
+    http_listener_t *listener = (http_listener_t *) tcp;
+
+    sky_pfree(listener->server->pool, listener, sizeof(http_listener_t));
 }
 

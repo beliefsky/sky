@@ -1,18 +1,14 @@
 //
-// Created by beliefsky on 2023/7/1.
+// Created by weijing on 2024/3/21.
 //
 
 #ifndef SKY_HTTP_SERVER_H
 #define SKY_HTTP_SERVER_H
 
-#include "../event_loop.h"
+#include "../ev_loop.h"
 #include "../../core/string.h"
 #include "../../core/palloc.h"
 #include "../../core/list.h"
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
 
 #define SKY_HTTP_UNKNOWN                   0x0000
 #define SKY_HTTP_GET                       0x0001
@@ -147,8 +143,7 @@ struct sky_http_server_multipart_s {
     sky_u32_t state;
 };
 
-
-sky_http_server_t *sky_http_server_create(sky_event_loop_t *ev_loop, const sky_http_server_conf_t *conf);
+sky_http_server_t *sky_http_server_create(sky_ev_loop_t *ev_loop, const sky_http_server_conf_t *conf);
 
 sky_bool_t sky_http_server_module_put(sky_http_server_t *server, sky_http_server_module_t *module);
 
@@ -160,29 +155,16 @@ void sky_http_req_body_none(sky_http_server_request_t *r, sky_http_server_next_p
 
 void sky_http_req_body_str(sky_http_server_request_t *r, sky_http_server_next_str_pt call, void *data);
 
-void sky_http_req_body_read(sky_http_server_request_t *r, sky_http_server_next_read_pt call, void *data);
+sky_bool_t sky_http_response_nobody(sky_http_server_request_t *r, sky_http_server_next_pt call, void *cb_data);
 
-void sky_http_req_body_multipart(sky_http_server_request_t *r, sky_http_server_multipart_pt call, void *data);
-
-void sky_http_multipart_next(sky_http_server_multipart_t *m, sky_http_server_multipart_pt call, void *data);
-
-void sky_http_multipart_body_none(sky_http_server_multipart_t *m, sky_http_server_multipart_pt call, void *data);
-
-void sky_http_multipart_body_str(sky_http_server_multipart_t *m, sky_http_server_multipart_str_pt call, void *data);
-
-void sky_http_multipart_body_read(sky_http_server_multipart_t *m, sky_http_server_multipart_read_pt call, void *data);
-
-
-void sky_http_response_nobody(sky_http_server_request_t *r, sky_http_server_next_pt call, void *cb_data);
-
-void sky_http_response_str(
+sky_bool_t sky_http_response_str(
         sky_http_server_request_t *r,
         const sky_str_t *data,
         sky_http_server_next_pt call,
         void *cb_data
 );
 
-void sky_http_response_str_len(
+sky_bool_t sky_http_response_str_len(
         sky_http_server_request_t *r,
         const sky_uchar_t *data,
         sky_usize_t data_len,
@@ -190,51 +172,6 @@ void sky_http_response_str_len(
         void *cb_data
 );
 
-
-void sky_http_response_file(
-        sky_http_server_request_t *r,
-        sky_socket_t fd,
-        sky_i64_t offset,
-        sky_usize_t size,
-        sky_usize_t file_size,
-        sky_http_server_next_pt call,
-        void *cb_data
-);
-
-/*
-
-void sky_http_response_chunked_start(sky_http_server_request_t *r);
-
-void sky_http_response_chunked_write(sky_http_server_request_t *r, const sky_str_t *buf);
-
-void sky_http_response_chunked_write_len(sky_http_server_request_t *r, const sky_uchar_t *buf, sky_usize_t buf_len);
-
-void sky_http_response_chunked_flush(sky_http_server_request_t *r);
-
-void sky_http_response_chunked_end(sky_http_server_request_t *r);
-
- */
-
-
 void sky_http_server_req_finish(sky_http_server_request_t *r);
 
-
-static sky_inline sky_bool_t
-sky_http_server_req_error(const sky_http_server_request_t *const r) {
-    return r->error;
-}
-
-static sky_inline void
-sky_http_server_req_set_data(sky_http_server_request_t *const r, void *const data) {
-    r->attr_data = data;
-}
-
-static sky_inline void *
-sky_http_server_req_get_data(sky_http_server_request_t *const r) {
-    return r->attr_data;
-}
-
-#if defined(__cplusplus)
-} /* extern "C" { */
-#endif
 #endif //SKY_HTTP_SERVER_H
