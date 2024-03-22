@@ -7,8 +7,6 @@
 
 #include <signal.h>
 #include <unistd.h>
-#include <sys/errno.h>
-#include <core/log.h>
 
 static void event_on_pending(sky_ev_loop_t *ev_loop);
 
