@@ -22,7 +22,6 @@ typedef void (*sky_ev_pt)(sky_ev_t *ev);
 struct sky_ev_s {
     sky_socket_t fd;
     sky_u32_t flags;
-    sky_u32_t req_num;
     sky_ev_pt cb;
     sky_ev_loop_t *ev_loop;
     sky_ev_t *next;

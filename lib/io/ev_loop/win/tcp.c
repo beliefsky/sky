@@ -44,7 +44,6 @@ sky_tcp_init(sky_tcp_t *tcp, sky_ev_loop_t *ev_loop) {
     tcp->ev.ev_loop = ev_loop;
     tcp->ev.fd = SKY_SOCKET_FD_NONE;
     tcp->ev.flags = 0;
-    tcp->ev.req_num = 0;
     tcp->in_buf = null;
     tcp->out_buf = null;
     tcp->connect_cb = null;
@@ -238,7 +237,7 @@ sky_tcp_connect(sky_tcp_t *tcp, const sky_inet_address_t *address, sky_tcp_conne
         return true;
     }
 
-    tcp->ev.flags |= TCP_STATUS_EOF;
+    tcp->ev.flags |= TCP_STATUS_ERROR;
 
 //     WSAEINVAL
     sky_log_error("connect: status(false), error(%lu)", GetLastError());

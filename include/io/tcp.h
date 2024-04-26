@@ -20,7 +20,6 @@ extern "C" {
 typedef struct sky_tcp_s sky_tcp_t;
 typedef struct sky_tcp_req_accept_s sky_tcp_req_accept_t;
 
-
 typedef void (*sky_tcp_cb_pt)(sky_tcp_t *tcp);
 
 typedef void (*sky_tcp_connect_pt)(sky_tcp_t *tcp, sky_bool_t success);
