@@ -259,7 +259,7 @@ sky_tcp_skip(sky_tcp_t *tcp, sky_usize_t size) {
     }
     const sky_u32_t want_read = (sky_u32_t) sky_min(size, SKY_U32_MAX);
     const sky_u32_t read_n = sky_ring_buf_commit_read(tcp->in_buf, want_read); // 直接提交，不用copy
-    if ((tcp->ev.flags & TCP_STATUS_EOF)) {
+    if ((tcp->ev.flags & (TCP_STATUS_EOF | TCP_STATUS_ERROR))) {
         return read_n ?: SKY_USIZE_MAX;
     }
     if (!(tcp->ev.flags & TCP_STATUS_READING)) {
