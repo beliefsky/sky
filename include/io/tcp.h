@@ -39,7 +39,10 @@ struct sky_tcp_s {
     sky_ring_buf_t *in_buf;
     sky_ring_buf_t *out_buf;
 
-    sky_tcp_connect_pt connect_cb;
+    union {
+        sky_tcp_connect_pt connect_cb;
+        sky_tcp_cb_pt accept_cb;
+    };
     sky_tcp_cb_pt read_cb;
     sky_tcp_cb_pt write_cb;
 #else

@@ -12,11 +12,11 @@
 #include <ws2ipdef.h>
 
 #define TCP_STATUS_BIND         SKY_U32(0x01000000)
-#define TCP_STATUS_LISTEN       SKY_U32(0x02000000)
-#define TCP_STATUS_CONNECTED    SKY_U32(0x04000000)
-#define TCP_STATUS_READING      SKY_U32(0x08000000)
-#define TCP_STATUS_WRITING      SKY_U32(0x10000000)
-#define TCP_STATUS_EOF          SKY_U32(0x20000000)
+#define TCP_STATUS_CONNECTED    SKY_U32(0x02000000)
+#define TCP_STATUS_READING      SKY_U32(0x04000000)
+#define TCP_STATUS_WRITING      SKY_U32(0x08000000)
+#define TCP_STATUS_EOF          SKY_U32(0x10000000)
+#define TCP_STATUS_ERROR        SKY_U32(0x20000000)
 #define TCP_STATUS_CLOSING      SKY_U32(0x40000000)
 
 #define TCP_IN_BUF_SIZE         SKY_USIZE(8192)
@@ -107,13 +107,7 @@ sky_tcp_bind(sky_tcp_t *tcp, const sky_inet_address_t *address) {
 
 sky_api sky_bool_t
 sky_tcp_listen(sky_tcp_t *tcp, sky_i32_t backlog) {
-    if (!(tcp->ev.flags & TCP_STATUS_LISTEN)) {
-        if (listen(tcp->ev.fd, backlog) == -1) {
-            return false;
-        }
-        tcp->ev.flags |= TCP_STATUS_LISTEN;
-    }
-    return true;
+    return listen(tcp->ev.fd, backlog) == 0;
 }
 
 /*
@@ -288,7 +282,7 @@ sky_tcp_read(sky_tcp_t *tcp, sky_uchar_t *buf, sky_usize_t size) {
     }
     const sky_u32_t want_read = (sky_u32_t) sky_min(size, SKY_U32_MAX);
     const sky_u32_t read_n = sky_ring_buf_read(tcp->in_buf, buf, want_read);
-    if ((tcp->ev.flags & TCP_STATUS_EOF)) {
+    if ((tcp->ev.flags & (TCP_STATUS_EOF | TCP_STATUS_ERROR))) {
         return read_n ?: SKY_USIZE_MAX;
     }
     if (!(tcp->ev.flags & TCP_STATUS_READING)) {
@@ -326,7 +320,7 @@ sky_tcp_read_vec(sky_tcp_t *tcp, sky_io_vec_t *vec, sky_u32_t num) {
         ++vec;
     } while ((--num));
 
-    if ((tcp->ev.flags & TCP_STATUS_EOF)) {
+    if ((tcp->ev.flags & (TCP_STATUS_EOF | TCP_STATUS_ERROR))) {
         return read_n ?: SKY_USIZE_MAX;
     }
     if (!(tcp->ev.flags & TCP_STATUS_READING)) {
@@ -337,7 +331,7 @@ sky_tcp_read_vec(sky_tcp_t *tcp, sky_io_vec_t *vec, sky_u32_t num) {
 
 sky_api sky_usize_t
 sky_tcp_write(sky_tcp_t *tcp, const sky_uchar_t *buf, sky_usize_t size) {
-    if (sky_unlikely(!(tcp->ev.flags & TCP_STATUS_CONNECTED))) {
+    if (sky_unlikely(!(tcp->ev.flags & (TCP_STATUS_CONNECTED | TCP_STATUS_ERROR)))) {
         return SKY_USIZE_MAX;
     }
     if (sky_unlikely(!size)) {
@@ -360,7 +354,7 @@ sky_tcp_write(sky_tcp_t *tcp, const sky_uchar_t *buf, sky_usize_t size) {
 
 sky_api sky_usize_t
 sky_tcp_write_vec(sky_tcp_t *tcp, const sky_io_vec_t *vec, sky_u32_t num) {
-    if (sky_unlikely(!(tcp->ev.flags & TCP_STATUS_CONNECTED))) {
+    if (sky_unlikely(!(tcp->ev.flags & (TCP_STATUS_CONNECTED | TCP_STATUS_ERROR)))) {
         return SKY_USIZE_MAX;
     }
     if (sky_unlikely(!num)) {
@@ -486,7 +480,7 @@ event_on_tcp_read(sky_ev_t *ev, sky_ev_req_t *req, sky_usize_t bytes, sky_bool_t
     sky_tcp_t *const tcp = (sky_tcp_t *const) ev;
     tcp->ev.flags &= ~TCP_STATUS_READING;
     if (!success) {
-        ev->flags |= TCP_STATUS_EOF;
+        ev->flags |= TCP_STATUS_ERROR;
         if (!(tcp->ev.flags & TCP_STATUS_CLOSING) && tcp->read_cb) { //提交关闭后不再回调
             tcp->read_cb(tcp);
         }
@@ -515,7 +509,7 @@ event_on_tcp_write(sky_ev_t *ev, sky_ev_req_t *req, sky_usize_t bytes, sky_bool_
 
     tcp->ev.flags &= ~TCP_STATUS_WRITING;
     if (!success) {
-        ev->flags |= TCP_STATUS_EOF;
+        ev->flags |= TCP_STATUS_ERROR;
 
         if (!(tcp->ev.flags & TCP_STATUS_CLOSING) && tcp->write_cb) { //提交关闭后不再回调
             tcp->write_cb(tcp);
@@ -577,7 +571,7 @@ do_read(sky_tcp_t *tcp) {
         tcp->ev.flags |= TCP_STATUS_READING;
         return true;
     }
-    tcp->ev.flags |= TCP_STATUS_EOF;
+    tcp->ev.flags |= TCP_STATUS_ERROR;
 
     sky_log_error("read: status(false), error(%lu)", GetLastError());
 
@@ -623,7 +617,7 @@ do_write(sky_tcp_t *tcp) {
         tcp->ev.flags |= TCP_STATUS_WRITING;
         return true;
     }
-    tcp->ev.flags |= TCP_STATUS_EOF;
+    tcp->ev.flags |= TCP_STATUS_ERROR;
     sky_log_error("write: status(false), error(%lu)", GetLastError());
     return false;
 }
