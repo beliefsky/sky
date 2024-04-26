@@ -20,7 +20,7 @@ main() {
         const sky_http_server_file_conf_t conf = {
                 .host = sky_null_string,
                 .prefix = sky_null_string,
-                .dir = sky_string("/home/beliefsky"),
+                .dir = sky_string("/mnt/d/private/sky/html"),
                 .pre_run = http_index_router
         };
 

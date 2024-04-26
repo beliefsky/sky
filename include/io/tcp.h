@@ -7,6 +7,8 @@
 
 #include "./ev_loop.h"
 
+#include "../core/ring_buf.h"
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -15,24 +17,38 @@ typedef struct sky_tcp_s sky_tcp_t;
 typedef struct sky_tcp_req_s sky_tcp_req_t;
 typedef struct sky_tcp_req_accept_s sky_tcp_req_accept_t;
 
-typedef void (*sky_tcp_connect_pt)(sky_tcp_t *tcp, sky_tcp_req_t *req, sky_bool_t success);
+
+typedef void (*sky_tcp_cb_pt)(sky_tcp_t *tcp);
+
+typedef void (*sky_tcp_connect_pt)(sky_tcp_t *tcp, sky_bool_t success);
 
 typedef void (*sky_tcp_accept_pt)(sky_tcp_t *tcp, sky_tcp_req_accept_t *req, sky_bool_t success);
-
-typedef void (*sky_tcp_rw_pt)(sky_tcp_t *tcp, sky_tcp_req_t *req, sky_usize_t size);
 
 typedef void (*sky_tcp_close_pt)(sky_tcp_t *tcp);
 
 struct sky_tcp_s {
     sky_ev_t ev;
+
+#ifdef __WINNT__
+    sky_ev_req_t in_req;
+    sky_ev_req_t out_req;
+
+    sky_ring_buf_t *in_buf;
+    sky_ring_buf_t *out_buf;
+
+    sky_tcp_connect_pt connect_cb;
+    sky_tcp_cb_pt read_cb;
+    sky_tcp_cb_pt write_cb;
+#else
+
+#endif
+
 };
 
 struct sky_tcp_req_s {
     sky_ev_req_t base;
     union {
         sky_tcp_connect_pt connect;
-        sky_tcp_rw_pt read;
-        sky_tcp_rw_pt write;
     } cb;
 
 #ifndef __WINNT__
@@ -65,27 +81,31 @@ struct sky_tcp_req_accept_s {
 
 void sky_tcp_init(sky_tcp_t *tcp, sky_ev_loop_t *ev_loop);
 
+void sky_tcp_set_read_cb(sky_tcp_t *tcp, sky_tcp_cb_pt cb);
+
+void sky_tcp_set_write_cb(sky_tcp_t *tcp, sky_tcp_cb_pt cb);
+
 sky_bool_t sky_tcp_open(sky_tcp_t *tcp, sky_i32_t domain);
 
 sky_bool_t sky_tcp_bind(sky_tcp_t *tcp, const sky_inet_address_t *address);
 
 sky_bool_t sky_tcp_listen(sky_tcp_t *tcp, sky_i32_t backlog);
 
+/*
+
 void sky_tcp_acceptor(sky_tcp_t *tcp, sky_tcp_req_accept_t *req);
 
 sky_bool_t sky_tcp_accept(sky_tcp_t *tcp, sky_tcp_req_accept_t *req, sky_tcp_accept_pt cb);
 
-sky_bool_t sky_tcp_connect(sky_tcp_t *tcp, sky_tcp_req_t *req, const sky_inet_address_t *address, sky_tcp_connect_pt cb);
+*/
 
-sky_bool_t sky_tcp_write(sky_tcp_t *tcp, sky_tcp_req_t *req, sky_uchar_t *buf, sky_u32_t size, sky_tcp_rw_pt cb);
+sky_bool_t sky_tcp_connect(sky_tcp_t *tcp, const sky_inet_address_t *address, sky_tcp_connect_pt cb);
 
-sky_bool_t sky_tcp_write_v(sky_tcp_t *tcp, sky_tcp_req_t *req, sky_io_vec_t *buf, sky_u32_t num, sky_tcp_rw_pt cb);
+sky_usize_t sky_tcp_read(sky_tcp_t *tcp, sky_uchar_t *buf, sky_usize_t size);
 
-sky_bool_t sky_tcp_read(sky_tcp_t *tcp, sky_tcp_req_t *req, sky_uchar_t *buf, sky_u32_t size, sky_tcp_rw_pt cb);
+sky_usize_t sky_tcp_write(sky_tcp_t *tcp, const sky_uchar_t *buf, sky_usize_t size);
 
-sky_bool_t sky_tcp_read_v(sky_tcp_t *tcp, sky_tcp_req_t *req, sky_io_vec_t *buf, sky_u32_t num, sky_tcp_rw_pt cb);
-
-sky_bool_t sky_tcp_close(sky_tcp_t *tcp, sky_tcp_close_pt cb);
+sky_bool_t sky_tcp_close(sky_tcp_t *tcp, sky_tcp_cb_pt cb);
 
 static sky_inline sky_bool_t
 sky_tcp_closed(sky_tcp_t *tcp) {

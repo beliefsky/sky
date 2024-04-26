@@ -5,13 +5,13 @@
 //
 // Created by weijing on 18-2-8.
 //
-#include <netinet/in.h>
 
 #include <io/http/http_server_dispatcher.h>
-#include <io/postgres/pgsql_pool_wait.h>
-#include <io/http/http_server_wait.h>
+#include <core/log.h>
+//#include <io/postgres/pgsql_pool_wait.h>
+//#include <io/http/http_server_wait.h>
 
-static sky_bool_t create_server(sky_event_loop_t *ev_loop);
+static sky_bool_t create_server(sky_ev_loop_t *ev_loop);
 
 
 //static SKY_HTTP_MAPPER_HANDLER(redis_test);
@@ -20,17 +20,21 @@ static sky_bool_t create_server(sky_event_loop_t *ev_loop);
 
 static SKY_HTTP_MAPPER_HANDLER(hello_world);
 
-static SKY_HTTP_MAPPER_HANDLER(pgsql_test);
+//static SKY_HTTP_MAPPER_HANDLER(pgsql_test);
 
 static SKY_HTTP_MAPPER_HANDLER(put_data);
 
-static sky_pgsql_pool_t *pgsql_pool;
+//static sky_pgsql_pool_t *pgsql_pool;
 
 int
 main() {
+
+#ifdef __unix__
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
+#endif
 
+    /*
     sky_inet_address_t address;
     sky_inet_address_ipv4(&address, 0, 5432);
 
@@ -41,20 +45,23 @@ main() {
             .address = &address
     };
 
-    sky_event_loop_t *ev_loop = sky_event_loop_create();
 
     pgsql_pool = sky_pgsql_pool_create(ev_loop, &conf);
 
+     */
+
+    sky_ev_loop_t *ev_loop = sky_ev_loop_create();
+
     create_server(ev_loop);
-    sky_event_loop_run(ev_loop);
-    sky_pgsql_pool_destroy(pgsql_pool);
-    sky_event_loop_destroy(ev_loop);
+    sky_ev_loop_run(ev_loop);
+//    sky_pgsql_pool_destroy(pgsql_pool);
+    sky_ev_loop_stop(ev_loop);
 
     return 0;
 }
 
 static sky_bool_t
-create_server(sky_event_loop_t *ev_loop) {
+create_server(sky_ev_loop_t *ev_loop) {
     sky_http_server_t *server = sky_http_server_create(ev_loop, null);
 
 
@@ -64,28 +71,28 @@ create_server(sky_event_loop_t *ev_loop) {
                     .get = hello_world,
                     .post = put_data
             },
-            {
-                    .path = sky_string("/pgsql"),
-                    .get = pgsql_test
-            },
+//            {
+//                    .path = sky_string("/pgsql"),
+//                    .get = pgsql_test
+//            },
     };
 
     const sky_http_server_dispatcher_conf_t dispatcher = {
             .host = sky_null_string,
             .prefix = sky_string("/api"),
             .mappers = mappers,
-            .mapper_len = 2
+            .mapper_len = 1
     };
 
     sky_http_server_module_put(server, sky_http_server_dispatcher_create(&dispatcher));
 
     sky_inet_address_t address;
 
-    sky_inet_address_ipv4(&address, 0, 8080);
+    sky_inet_address_ipv4(&address, 0, 8081);
     sky_http_server_bind(server, &address);
 
     const sky_uchar_t local_ipv6[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    sky_inet_address_ipv6(&address, local_ipv6, 0, 8080);
+    sky_inet_address_ipv6(&address, local_ipv6, 0, 8081);
     sky_http_server_bind(server, &address);
 
     return true;
@@ -101,6 +108,7 @@ static SKY_HTTP_MAPPER_HANDLER(hello_world) {
     );
 }
 
+/*
 
 static void
 pgsql_test_wait(sky_sync_wait_t *const wait, void *const data) {
@@ -137,21 +145,22 @@ pgsql_test_wait(sky_sync_wait_t *const wait, void *const data) {
 static SKY_HTTP_MAPPER_HANDLER(pgsql_test) {
     sky_sync_wait_create(pgsql_test_wait, req);
 }
+*/
 
 static void
-body_cb(sky_http_server_request_t *req, sky_str_t *body, void *data) {
+body_cb(sky_http_server_request_t *req/*, sky_str_t *body*/, void *data) {
     (void) data;
 
 
-    if (body) {
-        sky_log_warn("%s", body->data);
-    }
+   /* if (body) {
+        sky_log_warn("%lu", body->len);
+    }*/
     sky_log_warn("=============");
 
-    if (sky_unlikely(sky_http_server_req_error(req))) {
-        sky_http_server_req_finish(req);
-        return;
-    }
+//    if (sky_unlikely(sky_http_server_req_error(req))) {
+//        sky_http_server_req_finish(req);
+//        return;
+//    }
 
     sky_http_response_str_len(
             req,
@@ -162,8 +171,6 @@ body_cb(sky_http_server_request_t *req, sky_str_t *body, void *data) {
 }
 
 static SKY_HTTP_MAPPER_HANDLER(put_data) {
-    sky_http_req_body_str(req, body_cb, null);
+    sky_http_req_body_none(req, body_cb, null);
 }
-
-
 
