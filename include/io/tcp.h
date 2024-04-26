@@ -7,14 +7,17 @@
 
 #include "./ev_loop.h"
 
+#ifdef __WINNT__
+
 #include "../core/ring_buf.h"
+
+#endif
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
 typedef struct sky_tcp_s sky_tcp_t;
-typedef struct sky_tcp_req_s sky_tcp_req_t;
 typedef struct sky_tcp_req_accept_s sky_tcp_req_accept_t;
 
 
@@ -43,30 +46,6 @@ struct sky_tcp_s {
 
 #endif
 
-};
-
-struct sky_tcp_req_s {
-    sky_ev_req_t base;
-    union {
-        sky_tcp_connect_pt connect;
-    } cb;
-
-#ifndef __WINNT__
-    union {
-        sky_bool_t success;
-        struct {
-            sky_uchar_t *buf;
-            sky_u32_t size;
-            sky_u32_t pending_size;
-        } one;
-        struct {
-            sky_io_vec_t *vec;
-            sky_usize_t pending_size;
-            sky_u32_t num;
-            sky_u32_t offset;
-        } vec;
-    };
-#endif
 };
 
 struct sky_tcp_req_accept_s {

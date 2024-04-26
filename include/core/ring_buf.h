@@ -15,6 +15,8 @@ typedef struct sky_ring_buf_s sky_ring_buf_t;
 
 sky_ring_buf_t *sky_ring_buf_create(sky_u32_t capacity);
 
+void sky_ring_buf_destroy(sky_ring_buf_t *rb);
+
 sky_bool_t sky_ring_is_full(const sky_ring_buf_t *rb);
 
 sky_bool_t sky_ring_is_empty(const sky_ring_buf_t *rb);

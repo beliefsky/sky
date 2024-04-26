@@ -25,6 +25,7 @@ on_write_cb(sky_tcp_t *tcp) {
     do {
         size = sky_tcp_write(tcp, WRITE_BUF + write_n, sizeof(WRITE_BUF) - write_n -1);
         if (size == SKY_USIZE_MAX) { // ERROR
+            sky_tcp_close(tcp, on_close_cb);
             sky_log_info("write error");
             return;
         }
@@ -35,12 +36,13 @@ on_write_cb(sky_tcp_t *tcp) {
 
 static void
 on_read_cb(sky_tcp_t *tcp) {
-    sky_uchar_t read_buf[2048];
+    sky_uchar_t read_buf[512];
 
     sky_usize_t size;
     do {
-        size = sky_tcp_read(tcp, read_buf, 2047);
+        size = sky_tcp_read(tcp, read_buf, 512);
         if (size == SKY_USIZE_MAX) { // EOF/ERROR
+            sky_tcp_close(tcp, on_close_cb);
             sky_log_info("read EOF");
             return;
         }

@@ -35,12 +35,17 @@ sky_ring_buf_create(sky_u32_t capacity) {
     return rb;
 }
 
-sky_api sky_bool_t
+void
+sky_ring_buf_destroy(sky_ring_buf_t *rb) {
+    sky_free(rb);
+}
+
+sky_api sky_inline sky_bool_t
 sky_ring_is_full(const sky_ring_buf_t *rb) {
     return ring_buf_size(rb) == rb->size;
 }
 
-sky_api sky_bool_t
+sky_api sky_inline sky_bool_t
 sky_ring_is_empty(const sky_ring_buf_t *rb) {
     return ring_buf_size(rb) == 0;
 }
