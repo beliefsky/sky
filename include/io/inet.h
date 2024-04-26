@@ -46,20 +46,10 @@ typedef struct sky_io_vec_s sky_io_vec_t;
 typedef struct sky_inet_address_s sky_inet_address_t;
 
 
-#ifdef __WINNT__
-struct sky_io_vec_s {
-    u_long len;
-    sky_uchar_t *buf;
-};
-
-#else
-
 struct sky_io_vec_s {
     sky_uchar_t *buf;
     sky_usize_t len;
 };
-
-#endif
 
 
 struct sky_inet_address_s {

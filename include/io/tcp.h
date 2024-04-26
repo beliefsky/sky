@@ -80,9 +80,15 @@ sky_bool_t sky_tcp_accept(sky_tcp_t *tcp, sky_tcp_req_accept_t *req, sky_tcp_acc
 
 sky_bool_t sky_tcp_connect(sky_tcp_t *tcp, const sky_inet_address_t *address, sky_tcp_connect_pt cb);
 
+sky_usize_t sky_tcp_skip(sky_tcp_t *tcp, sky_usize_t size);
+
 sky_usize_t sky_tcp_read(sky_tcp_t *tcp, sky_uchar_t *buf, sky_usize_t size);
 
+sky_usize_t sky_tcp_read_vec(sky_tcp_t *tcp, sky_io_vec_t *vec, sky_u32_t num);
+
 sky_usize_t sky_tcp_write(sky_tcp_t *tcp, const sky_uchar_t *buf, sky_usize_t size);
+
+sky_usize_t sky_tcp_write_vec(sky_tcp_t *tcp, const sky_io_vec_t *vec, sky_u32_t num);
 
 sky_bool_t sky_tcp_close(sky_tcp_t *tcp, sky_tcp_cb_pt cb);
 

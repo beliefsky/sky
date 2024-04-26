@@ -252,6 +252,29 @@ sky_tcp_connect(sky_tcp_t *tcp, const sky_inet_address_t *address, sky_tcp_conne
 }
 
 sky_api sky_usize_t
+sky_tcp_skip(sky_tcp_t *tcp, sky_usize_t size) {
+    if (sky_unlikely(!(tcp->ev.flags & TCP_STATUS_CONNECTED))) {
+        return SKY_USIZE_MAX;
+    }
+    if (sky_unlikely(!size)) {
+        return 0;
+    }
+    if (!tcp->in_buf) {
+        tcp->in_buf = sky_ring_buf_create(TCP_IN_BUF_SIZE);
+        return do_read(tcp) ? 0 : SKY_USIZE_MAX;
+    }
+    const sky_u32_t want_read = (sky_u32_t) sky_min(size, SKY_U32_MAX);
+    const sky_u32_t read_n = sky_ring_buf_commit_read(tcp->in_buf, want_read); // 直接提交，不用copy
+    if ((tcp->ev.flags & TCP_STATUS_EOF)) {
+        return read_n ?: SKY_USIZE_MAX;
+    }
+    if (!(tcp->ev.flags & TCP_STATUS_READING)) {
+        do_read(tcp);
+    }
+    return read_n;
+}
+
+sky_api sky_usize_t
 sky_tcp_read(sky_tcp_t *tcp, sky_uchar_t *buf, sky_usize_t size) {
     if (sky_unlikely(!(tcp->ev.flags & TCP_STATUS_CONNECTED))) {
         return SKY_USIZE_MAX;
@@ -259,19 +282,57 @@ sky_tcp_read(sky_tcp_t *tcp, sky_uchar_t *buf, sky_usize_t size) {
     if (sky_unlikely(!size)) {
         return 0;
     }
-    const sky_u32_t want_read = (sky_u32_t) sky_min(size, SKY_U32_MAX);
-    if (tcp->in_buf) {
-        const sky_u32_t read_n = sky_ring_buf_read(tcp->in_buf, buf, want_read);
-        if ((tcp->ev.flags & TCP_STATUS_EOF)) {
-            return read_n ?: SKY_USIZE_MAX;
-        }
-        if (!(tcp->ev.flags & TCP_STATUS_READING)) {
-            do_read(tcp);
-        }
-        return read_n;
+    if (!tcp->in_buf) {
+        tcp->in_buf = sky_ring_buf_create(TCP_IN_BUF_SIZE);
+        return do_read(tcp) ? 0 : SKY_USIZE_MAX;
     }
-    tcp->in_buf = sky_ring_buf_create(TCP_IN_BUF_SIZE);
-    return do_read(tcp) ? 0 : SKY_USIZE_MAX;
+    const sky_u32_t want_read = (sky_u32_t) sky_min(size, SKY_U32_MAX);
+    const sky_u32_t read_n = sky_ring_buf_read(tcp->in_buf, buf, want_read);
+    if ((tcp->ev.flags & TCP_STATUS_EOF)) {
+        return read_n ?: SKY_USIZE_MAX;
+    }
+    if (!(tcp->ev.flags & TCP_STATUS_READING)) {
+        do_read(tcp);
+    }
+    return read_n;
+
+}
+
+sky_api sky_usize_t
+sky_tcp_read_vec(sky_tcp_t *tcp, sky_io_vec_t *vec, sky_u32_t num) {
+    if (sky_unlikely(!(tcp->ev.flags & TCP_STATUS_CONNECTED))) {
+        return SKY_USIZE_MAX;
+    }
+    if (sky_unlikely(!num)) {
+        return 0;
+    }
+    if (!tcp->in_buf) {
+        tcp->in_buf = sky_ring_buf_create(TCP_IN_BUF_SIZE);
+        return do_read(tcp) ? 0 : SKY_USIZE_MAX;
+    }
+    sky_u32_t read_n = 0, n;
+    do {
+        if (vec->len >= SKY_U32_MAX) {
+            read_n += sky_ring_buf_read(tcp->in_buf, vec->buf, SKY_U32_MAX);
+            break;
+        }
+        if (vec->len) {
+            n = sky_ring_buf_read(tcp->in_buf, vec->buf, (sky_u32_t) vec->len);
+            read_n += n;
+            if (n != (sky_u32_t) vec->len) {
+                break;
+            }
+        }
+        ++vec;
+    } while ((--num));
+
+    if ((tcp->ev.flags & TCP_STATUS_EOF)) {
+        return read_n ?: SKY_USIZE_MAX;
+    }
+    if (!(tcp->ev.flags & TCP_STATUS_READING)) {
+        do_read(tcp);
+    }
+    return read_n;
 }
 
 sky_api sky_usize_t
@@ -283,19 +344,67 @@ sky_tcp_write(sky_tcp_t *tcp, const sky_uchar_t *buf, sky_usize_t size) {
         return 0;
     }
     const sky_u32_t want_write = (sky_u32_t) sky_min(size, SKY_U32_MAX);
-    if (tcp->out_buf) {
+
+    if (!tcp->out_buf) {
+        tcp->out_buf = sky_ring_buf_create(TCP_OUT_BUF_SIZE);
         const sky_u32_t write_n = sky_ring_buf_write(tcp->out_buf, buf, want_write);
-        if (!(tcp->ev.flags & TCP_STATUS_WRITING)) {
-            do_write(tcp);
-        }
-        return write_n;
+        return do_write(tcp) ? write_n : SKY_USIZE_MAX;
     }
-    tcp->out_buf = sky_ring_buf_create(TCP_OUT_BUF_SIZE);
 
     const sky_u32_t write_n = sky_ring_buf_write(tcp->out_buf, buf, want_write);
-    return do_write(tcp) ? write_n : SKY_USIZE_MAX;
+    if (!(tcp->ev.flags & TCP_STATUS_WRITING)) {
+        do_write(tcp);
+    }
+    return write_n;
 }
 
+sky_api sky_usize_t
+sky_tcp_write_vec(sky_tcp_t *tcp, const sky_io_vec_t *vec, sky_u32_t num) {
+    if (sky_unlikely(!(tcp->ev.flags & TCP_STATUS_CONNECTED))) {
+        return SKY_USIZE_MAX;
+    }
+    if (sky_unlikely(!num)) {
+        return 0;
+    }
+
+    sky_u32_t write_n = 0, n;
+
+    if (!tcp->out_buf) {
+        tcp->out_buf = sky_ring_buf_create(TCP_OUT_BUF_SIZE);
+        do {
+            if (vec->len >= SKY_U32_MAX) {
+                write_n += sky_ring_buf_write(tcp->out_buf, vec->buf, SKY_U32_MAX);
+                break;
+            }
+            n = sky_ring_buf_write(tcp->out_buf, vec->buf, (sky_u32_t) vec->len);
+            write_n += n;
+            if (n != (sky_u32_t) vec->len) {
+                break;
+            }
+            ++vec;
+        } while ((--num));
+
+        return do_write(tcp) ? write_n : SKY_USIZE_MAX;
+    }
+
+    do {
+        if (vec->len >= SKY_U32_MAX) {
+            write_n += sky_ring_buf_write(tcp->out_buf, vec->buf, SKY_U32_MAX);
+            break;
+        }
+        n = sky_ring_buf_write(tcp->out_buf, vec->buf, (sky_u32_t) vec->len);
+        write_n += n;
+        if (n != (sky_u32_t) vec->len) {
+            break;
+        }
+        ++vec;
+    } while ((--num));
+
+    if (!(tcp->ev.flags & TCP_STATUS_WRITING)) {
+        do_write(tcp);
+    }
+    return write_n;
+}
 
 sky_api sky_bool_t
 sky_tcp_close(sky_tcp_t *tcp, sky_tcp_close_pt cb) {
