@@ -33,6 +33,7 @@ on_write_cb(sky_tcp_t *tcp) {
     } while (size > 0);
 }
 
+sky_bool_t a = false;
 
 static void
 on_read_cb(sky_tcp_t *tcp) {
@@ -41,7 +42,11 @@ on_read_cb(sky_tcp_t *tcp) {
     sky_usize_t size;
 
     do {
-        size = sky_tcp_read(tcp, read_buf, 512);
+        if (!a) {
+            size = sky_tcp_skip(tcp, 512);
+        } else {
+            size = sky_tcp_read(tcp, read_buf, 512);
+        }
         if (size == SKY_USIZE_MAX) { // EOF/ERROR
             sky_log_info("read EOF");
             sky_tcp_close(tcp, on_close_cb);

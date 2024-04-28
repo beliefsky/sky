@@ -173,12 +173,27 @@ sky_tcp_connect(sky_tcp_t *tcp, const sky_inet_address_t *address, sky_tcp_conne
 
 sky_api sky_usize_t
 sky_tcp_skip(sky_tcp_t *tcp, sky_usize_t size) {
+    static sky_uchar_t SKIP_BUF[8192];
+
     if (!(tcp->ev.flags & (TCP_STATUS_CONNECTED | TCP_STATUS_ERROR | TCP_STATUS_READ))) {
         return SKY_USIZE_MAX;
     }
     if (!size || !(tcp->ev.flags & TCP_STATUS_READ)) {
         return 0;
     }
+    const sky_isize_t n = recv(tcp->ev.fd, SKIP_BUF, sky_min(size, 8192), 0);
+    if (n == -1) {
+        if (errno == EAGAIN) {
+            tcp->ev.flags &= ~TCP_STATUS_READ;
+            event_add(&tcp->ev, EV_REG_IN);
+            return 0;
+        }
+        tcp->ev.flags |= TCP_STATUS_ERROR;
+        return SKY_USIZE_MAX;
+    }
+    return !n ? SKY_USIZE_MAX : (sky_usize_t) n;
+
+
 }
 
 sky_api sky_usize_t
