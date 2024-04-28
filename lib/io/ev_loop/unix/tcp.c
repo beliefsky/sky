@@ -323,6 +323,16 @@ event_on_tcp_client_error(sky_ev_t *ev) {
     if (tcp->ev.fd == SKY_SOCKET_FD_NONE) {
         return;
     }
+    if (!(tcp->ev.flags & TCP_STATUS_CONNECTED)) {
+        tcp->connect_cb(tcp, false);
+        return;
+    }
+    if (tcp->write_cb) {
+        tcp->write_cb(tcp);
+    }
+    if (tcp->ev.fd != SKY_SOCKET_FD_NONE && tcp->read_cb) { // 可能在write_cb中执行了close操作
+        tcp->read_cb(tcp);
+    }
 }
 
 void
@@ -345,7 +355,7 @@ event_on_tcp_client_out(sky_ev_t *ev) {
     if (!(tcp->ev.flags & TCP_STATUS_CONNECTED)) {
         sky_i32_t err;
         socklen_t len = sizeof(err);
-        if (0 == getsockopt(ev->fd, SOL_SOCKET, SO_ERROR, &err, &len) && err == 0) {
+        if (0 == getsockopt(ev->fd, SOL_SOCKET, SO_ERROR, &err, &len)) {
             tcp->ev.flags |= TCP_STATUS_CONNECTED;
             tcp->connect_cb(tcp, true);
         } else {

@@ -25,7 +25,7 @@ on_write_cb(sky_tcp_t *tcp) {
     do {
         size = sky_tcp_write(tcp, WRITE_BUF + write_n, sizeof(WRITE_BUF) - write_n -1);
         if (size == SKY_USIZE_MAX) { // ERROR
-//            sky_tcp_close(tcp, on_close_cb);
+            sky_tcp_close(tcp, on_close_cb);
             sky_log_info("write error");
             return;
         }
