@@ -76,7 +76,7 @@ sky_tcp_open(sky_tcp_t *tcp, sky_i32_t domain) {
     if (sky_unlikely(tcp->ev.fd != SKY_SOCKET_FD_NONE)) {
         return false;
     }
-    const sky_socket_t fd = WSASocket(domain, SOCK_STREAM, IPPROTO_TCP, null, 0, WSA_FLAG_OVERLAPPED);
+    const sky_socket_t fd = socket(domain, SOCK_STREAM, IPPROTO_TCP);
     if (sky_unlikely(fd == SKY_SOCKET_FD_NONE)) {
         return false;
     }
@@ -503,14 +503,7 @@ event_on_tcp_write(sky_ev_t *ev, sky_ev_req_t *req, sky_usize_t bytes, sky_bool_
 
 static sky_bool_t
 do_accept(sky_tcp_t *tcp) {
-    const sky_socket_t accept_fd = WSASocket(
-            (sky_i32_t) (tcp->ev.flags & TCP_TYPE_MASK),
-            SOCK_STREAM,
-            IPPROTO_TCP,
-            null,
-            0,
-            WSA_FLAG_OVERLAPPED
-    );
+    const sky_socket_t accept_fd = socket((sky_i32_t) (tcp->ev.flags & TCP_TYPE_MASK), SOCK_STREAM, IPPROTO_TCP);
     if (sky_unlikely(accept_fd == SKY_SOCKET_FD_NONE)) {
         return false;
     }
