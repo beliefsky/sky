@@ -92,6 +92,8 @@ sky_tcp_listen(sky_tcp_t *tcp, sky_i32_t backlog, sky_tcp_cb_pt cb) {
     tcp->ev.flags &= ~EV_TYPE_MASK;
     tcp->ev.flags |= EV_TYPE_TCP_SERVER;
     event_add(&tcp->ev, EV_REG_IN);
+
+    return true;
 }
 
 

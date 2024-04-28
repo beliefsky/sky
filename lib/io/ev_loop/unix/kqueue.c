@@ -8,8 +8,6 @@
 #include <signal.h>
 #include <unistd.h>
 
-static void event_on_pending(sky_ev_loop_t *ev_loop);
-
 static void event_on_status(sky_ev_loop_t *ev_loop);
 
 sky_api sky_ev_loop_t *
@@ -34,9 +32,6 @@ sky_ev_loop_create() {
 
     ev_loop->fd = fd;
     ev_loop->max_event = max_event;
-    ev_loop->current_block = null;
-    ev_loop->pending_req = null;
-    ev_loop->pending_req_tail = &ev_loop->pending_req;
     ev_loop->status_queue = null;
     ev_loop->status_queue_tail = &ev_loop->status_queue;
     ev_loop->event_n = 0;
@@ -46,29 +41,34 @@ sky_ev_loop_create() {
 
 sky_api void
 sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
-    static const event_req_pt REQ_TABLES[] = {
-            [EV_REQ_TCP_ACCEPT] = event_on_tcp_accept,
-            [EV_REQ_TCP_CONNECT] = event_on_tcp_connect,
-            [EV_REQ_TCP_READ] = event_on_tcp_read,
-            [EV_REQ_TCP_WRITE] = event_on_tcp_write,
-            [EV_REQ_TCP_READ_V] = event_on_tcp_read_v,
-            [EV_REQ_TCP_WRITE_V] = event_on_tcp_write_v
+    static const sky_ev_pt EVENT_TABLES[][3] = {
+            [EV_TYPE_TCP_SERVER] = {
+                    event_on_tcp_server_error,
+                    null,
+                    event_on_tcp_server_in,
+            },
+            [EV_TYPE_TCP_CLIENT] = {
+                    event_on_tcp_client_error,
+                    event_on_tcp_client_out,
+                    event_on_tcp_client_in
+            }
     };
 
 
     sky_ev_t *ev;
     const struct kevent *event;
-    sky_ev_req_t *req;
+    sky_u32_t event_type;
     sky_i32_t n;
 
-    event_on_status(ev_loop);
-
     for (;;) {
+
+        event_on_status(ev_loop);
+
         n = kevent(
                 ev_loop->fd,
                 ev_loop->sys_evs,
                 ev_loop->event_n,
-                ev_loop->sys_evs + + ev_loop->max_event,
+                ev_loop->sys_evs + +ev_loop->max_event,
                 ev_loop->max_event,
                 null
         );
@@ -81,49 +81,17 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
             event = ev_loop->sys_evs + ev_loop->max_event;
             do {
                 ev = event->udata;
-
+                event_type = ev->flags & EV_TYPE_MASK;
                 if (sky_unlikely((event->flags & (EV_ERROR)))) {
-                    event_pending_out_all(ev_loop, ev);
-                    event_pending_in_all(ev_loop, ev);
+                    EVENT_TABLES[event_type][0](ev);
                 } else if (event->filter == EVFILT_WRITE) {
-                    ev->flags |= EV_STATUS_WRITE;
-                    if (ev->out_req) {
-                        for (;;) {
-                            req = ev->out_req;
-                            if (!REQ_TABLES[req->type](ev, req)) {
-                                break;
-                            }
-                            ev->out_req = req->next;
-                            event_pending_add2(ev_loop, ev, req);
-                            if (!ev->out_req) {
-                                ev->out_req_tail = &ev->out_req;
-                                break;
-                            }
-                        }
-                    }
+                    EVENT_TABLES[event_type][1](ev);
                 } else {
-                    ev->flags |= EV_STATUS_READ;
-                    if (ev->in_req) {
-                        for (;;) {
-                            req = ev->in_req;
-                            if (!REQ_TABLES[req->type](ev, req)) {
-                                break;
-                            }
-                            ev->in_req = req->next;
-                            event_pending_add2(ev_loop, ev, req);
-                            if (!ev->in_req) {
-                                ev->in_req_tail = &ev->in_req;
-                                break;
-                            }
-                        }
-                    }
+                    EVENT_TABLES[event_type][2](ev);
                 }
-
                 ++event;
             } while ((--n));
         }
-        event_on_pending(ev_loop);
-        event_on_status(ev_loop);
     }
 }
 
@@ -131,36 +99,6 @@ sky_api void
 sky_ev_loop_stop(sky_ev_loop_t *ev_loop) {
     close(ev_loop->fd);
     sky_free(ev_loop);
-}
-
-static void
-event_on_pending(sky_ev_loop_t *ev_loop) {
-    static const event_pending_pt PENDING_TABLES[] = {
-            [EV_REQ_TCP_ACCEPT] = event_cb_tcp_accept,
-            [EV_REQ_TCP_CONNECT] = event_cb_tcp_connect,
-            [EV_REQ_TCP_READ] = event_cb_tcp_read,
-            [EV_REQ_TCP_WRITE] = event_cb_tcp_write,
-            [EV_REQ_TCP_READ_V] = event_cb_tcp_read_v,
-            [EV_REQ_TCP_WRITE_V] = event_cb_tcp_write_v
-    };
-
-    if (!ev_loop->pending_req) {
-        return;
-    }
-    sky_ev_req_t *req, *next;
-
-    do {
-        req = ev_loop->pending_req;
-        ev_loop->pending_req = null;
-        ev_loop->pending_req_tail = &ev_loop->pending_req;
-
-        do {
-            next = req->next;
-            PENDING_TABLES[req->type](req->ev, req);
-            req = next;
-        } while (req);
-
-    } while (ev_loop->pending_req);
 }
 
 static void

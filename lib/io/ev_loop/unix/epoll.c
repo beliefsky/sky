@@ -97,6 +97,8 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
 
 sky_api void
 sky_ev_loop_stop(sky_ev_loop_t *ev_loop) {
+    close(ev_loop->fd);
+    sky_free(ev_loop);
 }
 
 static void
