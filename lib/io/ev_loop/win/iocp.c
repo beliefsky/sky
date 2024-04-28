@@ -34,7 +34,7 @@ sky_ev_loop_create() {
 sky_api void
 sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
     static const event_req_pt EVENT_TABLES[] = {
-//            [EV_REQ_TCP_ACCEPT] = event_on_tcp_accept,
+            [EV_REQ_TCP_ACCEPT] = event_on_tcp_accept,
             [EV_REQ_TCP_CONNECT] = event_on_tcp_connect,
             [EV_REQ_TCP_WRITE] = event_on_tcp_write,
             [EV_REQ_TCP_READ] = event_on_tcp_read

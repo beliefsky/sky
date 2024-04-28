@@ -47,7 +47,7 @@ on_read_cb(sky_tcp_t *tcp) {
             return;
         }
         read_buf[size] = '\0';
-        sky_log_info("read result: [%lld]%s", size, read_buf);
+        sky_log_info("read result: [%lld] %s", size, read_buf);
     } while (size > 0);
 }
 
