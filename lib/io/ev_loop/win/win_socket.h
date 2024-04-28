@@ -26,20 +26,11 @@ typedef struct sky_ev_block_s sky_ev_block_t;
 
 typedef void (*event_req_pt)(sky_ev_t *ev, sky_ev_req_t *req, sky_usize_t bytes, sky_bool_t success);
 
-typedef void (*sky_ev_rw_pt)(sky_ev_t *ev, sky_usize_t n);
-
 
 struct sky_ev_loop_s {
     HANDLE iocp;
     sky_ev_t *pending;
     sky_ev_t **pending_tail;
-};
-
-
-struct sky_ev_block_s {
-    sky_u32_t count;
-    sky_u32_t free_size;
-    sky_uchar_t data[];
 };
 
 void event_on_tcp_accept(sky_ev_t *ev, sky_ev_req_t *req, sky_usize_t bytes, sky_bool_t success);

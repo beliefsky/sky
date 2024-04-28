@@ -47,15 +47,14 @@ struct sky_tcp_s {
     };
     sky_tcp_cb_pt read_cb;
     sky_tcp_cb_pt write_cb;
+};
 #else
 
 struct sky_tcp_s {
     sky_ev_t ev;
-}
+};
 
 #endif
-
-};
 
 void sky_tcp_init(sky_tcp_t *tcp, sky_ev_loop_t *ev_loop);
 
