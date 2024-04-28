@@ -404,7 +404,6 @@ event_on_tcp_accept(sky_ev_t *ev, sky_ev_req_t *req, sky_usize_t bytes, sky_bool
 
     sky_tcp_t *const tcp = (sky_tcp_t *const) ev;
 
-    sky_log_debug("accept cb: %llu -> %llu  %d", tcp->ev.fd, tcp->accept_buf->accept_fd, success);
     tcp->ev.flags &= ~TCP_STATUS_READING;
     if (success) {
         tcp->accept_cb(tcp);
@@ -620,8 +619,6 @@ do_write(sky_tcp_t *tcp) {
                     .len = size[1]
             }
     };
-
-    sky_log_debug("commit write: %u %u", buf_n, size[0]);
 
     DWORD bytes;
     if (WSASend(
