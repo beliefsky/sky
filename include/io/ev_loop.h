@@ -6,6 +6,7 @@
 #define SKY_EV_LOOP_H
 
 #include "./inet.h"
+#include "../core/timer_wheel.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -49,6 +50,8 @@ sky_ev_loop_t *sky_ev_loop_create();
 void sky_ev_loop_run(sky_ev_loop_t *ev_loop);
 
 void sky_ev_loop_stop(sky_ev_loop_t *ev_loop);
+
+void sky_ev_timeout_init(sky_ev_loop_t *ev_loop, sky_timer_wheel_entry_t *timer, sky_timer_wheel_pt cb);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

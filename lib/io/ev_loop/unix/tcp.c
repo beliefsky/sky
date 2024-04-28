@@ -106,7 +106,7 @@ sky_tcp_accept(sky_tcp_t *server, sky_tcp_t *client) {
     const sky_socket_t accept_fd = accept4(server->ev.fd, null, 0, SOCK_NONBLOCK | SOCK_CLOEXEC);
     if (accept_fd != SKY_SOCKET_FD_NONE) {
         client->ev.fd = accept_fd;
-        client->ev.flags |= TCP_STATUS_CONNECTED | TCP_STATUS_READ | TCP_STATUS_WRITE;
+        client->ev.flags |= EV_TYPE_TCP_CLIENT | TCP_STATUS_CONNECTED | TCP_STATUS_READ | TCP_STATUS_WRITE;
         return true;
     }
 #else
@@ -117,7 +117,7 @@ sky_tcp_accept(sky_tcp_t *server, sky_tcp_t *client) {
             return false;
         }
         client->ev.fd = accept_fd;
-        client->ev.flags |= TCP_STATUS_CONNECTED | TCP_STATUS_READ | TCP_STATUS_WRITE;
+        client->ev.flags |= EV_TYPE_TCP_CLIENT | TCP_STATUS_CONNECTED | TCP_STATUS_READ | TCP_STATUS_WRITE;
         return true;
     }
 #endif

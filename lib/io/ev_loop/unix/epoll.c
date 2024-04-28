@@ -33,6 +33,7 @@ sky_ev_loop_create() {
 
     ev_loop->fd = fd;
     ev_loop->max_event = max_event;
+    ev_loop->timer_wheel = sky_timer_wheel_create(0);
     ev_loop->status_queue = null;
     ev_loop->status_queue_tail = &ev_loop->status_queue;
 
@@ -99,6 +100,11 @@ sky_api void
 sky_ev_loop_stop(sky_ev_loop_t *ev_loop) {
     close(ev_loop->fd);
     sky_free(ev_loop);
+}
+
+sky_api sky_inline void
+sky_ev_timeout_init(sky_ev_loop_t *ev_loop, sky_timer_wheel_entry_t *timer, sky_timer_wheel_pt cb) {
+    sky_timer_entry_init(timer, ev_loop->timer_wheel, cb);
 }
 
 static void
