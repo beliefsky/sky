@@ -33,7 +33,7 @@ sky_ev_loop_create() {
 
     ev_loop->fd = fd;
     ev_loop->max_event = max_event;
-    ev_loop->timer_wheel = sky_timer_wheel_create(0);
+    ev_loop->timer_ctx = sky_timer_wheel_create(0);
     ev_loop->status_queue = null;
     ev_loop->status_queue_tail = &ev_loop->status_queue;
 
@@ -60,15 +60,19 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
     const struct epoll_event *event;
     sky_u32_t event_type;
     sky_i32_t n;
+    sky_u64_t next_time;
 
     for (;;) {
+        sky_timer_wheel_run(ev_loop->timer_ctx, 0);
         event_on_status(ev_loop);
+        next_time = sky_timer_wheel_timeout(ev_loop->timer_ctx);
+        n = next_time == SKY_U64_MAX ? -1 : (sky_i32_t) next_time;
 
         n = epoll_wait(
                 ev_loop->fd,
                 ev_loop->sys_evs,
                 ev_loop->max_event,
-                -1
+                n
         );
 
         if (sky_unlikely(n == -1)) {
@@ -99,12 +103,13 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
 sky_api void
 sky_ev_loop_stop(sky_ev_loop_t *ev_loop) {
     close(ev_loop->fd);
+    sky_timer_wheel_destroy(ev_loop->timer_ctx);
     sky_free(ev_loop);
 }
 
 sky_api sky_inline void
 sky_ev_timeout_init(sky_ev_loop_t *ev_loop, sky_timer_wheel_entry_t *timer, sky_timer_wheel_pt cb) {
-    sky_timer_entry_init(timer, ev_loop->timer_wheel, cb);
+    sky_timer_entry_init(timer, ev_loop->timer_ctx, cb);
 }
 
 static void

@@ -29,6 +29,7 @@ typedef void (*event_req_pt)(sky_ev_t *ev, sky_ev_req_t *req, sky_usize_t bytes,
 
 struct sky_ev_loop_s {
     HANDLE iocp;
+    sky_timer_wheel_t *timer_ctx;
     sky_ev_t *pending;
     sky_ev_t **pending_tail;
 };

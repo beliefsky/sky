@@ -32,6 +32,7 @@ sky_ev_loop_create() {
 
     ev_loop->fd = fd;
     ev_loop->max_event = max_event;
+    ev_loop->timer_ctx = sky_timer_wheel_create(0);
     ev_loop->status_queue = null;
     ev_loop->status_queue_tail = &ev_loop->status_queue;
     ev_loop->event_n = 0;
@@ -57,20 +58,35 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
 
     sky_ev_t *ev;
     const struct kevent *event;
+    struct timespec *tmp;
     sky_u32_t event_type;
     sky_i32_t n;
+    sky_u64_t next_time;
+
+    struct timespec timespec = {
+            .tv_sec = 0,
+            .tv_nsec = 0
+    };
+
 
     for (;;) {
-
+        sky_timer_wheel_run(ev_loop->timer_ctx, 0);
         event_on_status(ev_loop);
-
+        next_time = sky_timer_wheel_timeout(ev_loop->timer_ctx);
+        if(next_time == SKY_U64_MAX) {
+            tmp = null;
+        } else {
+            tmp = &timespec;
+            tmp->tv_sec = next_time / 1000;
+            tmp->tv_nsec = (next_time % 1000) * 1000;
+        }
         n = kevent(
                 ev_loop->fd,
                 ev_loop->sys_evs,
                 ev_loop->event_n,
                 ev_loop->sys_evs + +ev_loop->max_event,
                 ev_loop->max_event,
-                null
+                tmp
         );
         if (sky_unlikely(n == -1)) {
             return;
@@ -98,7 +114,13 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
 sky_api void
 sky_ev_loop_stop(sky_ev_loop_t *ev_loop) {
     close(ev_loop->fd);
+    sky_timer_wheel_destroy(ev_loop->timer_ctx);
     sky_free(ev_loop);
+}
+
+sky_api sky_inline void
+sky_ev_timeout_init(sky_ev_loop_t *ev_loop, sky_timer_wheel_entry_t *timer, sky_timer_wheel_pt cb) {
+    sky_timer_entry_init(timer, ev_loop->timer_ctx, cb);
 }
 
 static void

@@ -137,12 +137,15 @@ sky_tcp_listen(sky_tcp_t *tcp, sky_i32_t backlog, sky_tcp_cb_pt cb) {
 
 sky_bool_t
 sky_tcp_accept(sky_tcp_t *server, sky_tcp_t *client) {
-    if (!server->accept_buf || server->accept_buf->accept_fd == SKY_SOCKET_FD_NONE) {
+    if ((server->ev.flags & TCP_STATUS_READING)
+        || !server->accept_buf
+        || server->accept_buf->accept_fd == SKY_SOCKET_FD_NONE) {
         return false;
     }
     client->ev.fd = server->accept_buf->accept_fd;
     client->ev.flags |= TCP_STATUS_CONNECTED;
     server->accept_buf->accept_fd = SKY_SOCKET_FD_NONE;
+    CreateIoCompletionPort((HANDLE) client->ev.fd, client->ev.ev_loop->iocp, (ULONG_PTR) &client->ev, 0);
 
     return true;
 }
@@ -401,13 +404,13 @@ event_on_tcp_accept(sky_ev_t *ev, sky_ev_req_t *req, sky_usize_t bytes, sky_bool
 
     sky_tcp_t *const tcp = (sky_tcp_t *const) ev;
 
+    sky_log_debug("accept cb: %llu -> %llu  %d", tcp->ev.fd, tcp->accept_buf->accept_fd, success);
     tcp->ev.flags &= ~TCP_STATUS_READING;
     if (success) {
         tcp->accept_cb(tcp);
         if (tcp->accept_buf->accept_fd == SKY_SOCKET_FD_NONE
             && tcp->ev.fd != SKY_SOCKET_FD_NONE
-            && !(tcp->ev.flags & TCP_STATUS_CLOSING)
-                ) {
+            && !(tcp->ev.flags & TCP_STATUS_CLOSING)) {
             do_accept(tcp);
         }
         return;
@@ -449,6 +452,7 @@ event_on_tcp_read(sky_ev_t *ev, sky_ev_req_t *req, sky_usize_t bytes, sky_bool_t
 
     sky_tcp_t *const tcp = (sky_tcp_t *const) ev;
     tcp->ev.flags &= ~TCP_STATUS_READING;
+
     if (!success) {
         ev->flags |= TCP_STATUS_ERROR;
         if (!(tcp->ev.flags & TCP_STATUS_CLOSING) && tcp->read_cb) { //提交关闭后不再回调
@@ -528,8 +532,8 @@ do_accept(sky_tcp_t *tcp) {
             accept_fd,
             tcp->accept_buf->accept_buffer,
             0,
-            sizeof(sky_inet_address_t),
-            sizeof(sky_inet_address_t),
+            sizeof(sky_inet_address_t) + 16,
+            sizeof(sky_inet_address_t) + 16,
             &bytes,
             &tcp->in_req.overlapped
     ) || GetLastError() == ERROR_IO_PENDING) {
@@ -571,8 +575,6 @@ do_read(sky_tcp_t *tcp) {
                     .len = size[1]
             }
     };
-
-    sky_log_debug("commit read: %u %u", buf_n, size[0]);
 
     DWORD bytes, flags = 0;
 

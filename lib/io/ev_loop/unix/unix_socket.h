@@ -45,7 +45,7 @@
 struct sky_ev_loop_s {
     sky_i32_t fd;
     sky_i32_t max_event;
-    sky_timer_wheel_t *timer_wheel;
+    sky_timer_wheel_t *timer_ctx;
     sky_ev_t *status_queue;
     sky_ev_t **status_queue_tail;
 
