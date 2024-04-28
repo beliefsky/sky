@@ -14,21 +14,33 @@
 #include <netinet/in.h>
 #include <sys/errno.h>
 #include <unistd.h>
+#include <core/log.h>
 
+#define TCP_STATUS_READ         SKY_U32(0x00000100)
+#define TCP_STATUS_WRITE        SKY_U32(0x00000200)
+#define TCP_STATUS_ERROR        SKY_U32(0x00000400)
 
-#define TCP_STATUS_CONNECT      SKY_U32(0x01000000)
+#define TCP_STATUS_CONNECTED    SKY_U32(0x01000000)
 
 
 sky_api void
 sky_tcp_init(sky_tcp_t *tcp, sky_ev_loop_t *ev_loop) {
     tcp->ev.fd = SKY_SOCKET_FD_NONE;
-    tcp->ev.flags = EV_STATUS_READ | EV_STATUS_WRITE;
+    tcp->ev.flags = 0;
     tcp->ev.ev_loop = ev_loop;
-    tcp->ev.in_req = null;
-    tcp->ev.in_req_tail = &tcp->ev.in_req;
-    tcp->ev.out_req = null;
-    tcp->ev.out_req_tail = &tcp->ev.out_req;
     tcp->ev.next = null;
+    tcp->read_cb = null;
+    tcp->write_cb = null;
+}
+
+sky_api void
+sky_tcp_set_read_cb(sky_tcp_t *tcp, sky_tcp_cb_pt cb) {
+    tcp->read_cb = cb;
+}
+
+sky_api void
+sky_tcp_set_write_cb(sky_tcp_t *tcp, sky_tcp_cb_pt cb) {
+    tcp->write_cb = cb;
 }
 
 sky_api sky_bool_t
@@ -54,6 +66,7 @@ sky_tcp_open(sky_tcp_t *tcp, sky_i32_t domain) {
 #endif
 
     tcp->ev.fd = fd;
+    tcp->ev.flags |= TCP_STATUS_READ | TCP_STATUS_WRITE;
 
     return true;
 }
@@ -71,290 +84,204 @@ sky_tcp_bind(sky_tcp_t *tcp, const sky_inet_address_t *address) {
 }
 
 sky_api sky_bool_t
-sky_tcp_listen(sky_tcp_t *tcp, sky_i32_t backlog) {
-    return listen(tcp->ev.fd, backlog) == 0;
-}
-
-sky_api void
-sky_tcp_acceptor(sky_tcp_t *tcp, sky_tcp_req_accept_t *req) {
-    tcp->ev.fd = req->accept_fd;
-}
-
-sky_api sky_bool_t
-sky_tcp_accept(sky_tcp_t *tcp, sky_tcp_req_accept_t *req, sky_tcp_accept_pt cb) {
-    if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE)) {
+sky_tcp_listen(sky_tcp_t *tcp, sky_i32_t backlog, sky_tcp_cb_pt cb) {
+    if (sky_unlikely(listen(tcp->ev.fd, backlog) != 0)) {
         return false;
     }
+    tcp->accept_cb = cb;
+    tcp->ev.flags &= ~EV_TYPE_MASK;
+    tcp->ev.flags |= EV_TYPE_TCP_SERVER;
+    event_add(&tcp->ev, EV_REG_IN);
+}
 
-    if ((tcp->ev.flags & EV_STATUS_READ) && !tcp->ev.in_req) {
+
+sky_api sky_bool_t
+sky_tcp_accept(sky_tcp_t *server, sky_tcp_t *client) {
+    if (!(server->ev.flags & TCP_STATUS_READ)) {
+        return false;
+    }
 #ifdef SKY_HAVE_ACCEPT4
-        const sky_socket_t accept_fd = accept4(tcp->ev.fd, null, 0, SOCK_NONBLOCK | SOCK_CLOEXEC);
-        if (accept_fd != SKY_SOCKET_FD_NONE) {
-            req->base.type = EV_REQ_TCP_ACCEPT;
-            req->accept_fd = accept_fd;
-            req->accept = cb;
-            event_pending_add(&tcp->ev, &req->base);
-            return true;
-        }
+    const sky_socket_t accept_fd = accept4(server->ev.fd, null, 0, SOCK_NONBLOCK | SOCK_CLOEXEC);
+    if (accept_fd != SKY_SOCKET_FD_NONE) {
+        client->ev.fd = accept_fd;
+        client->ev.flags |= TCP_STATUS_CONNECTED | TCP_STATUS_READ | TCP_STATUS_WRITE;
+        return true;
+    }
 #else
-        const sky_socket_t accept_fd = accept(tcp->ev.fd, null, 0);
-        if (accept_fd != SKY_SOCKET_FD_NONE) {
-            if (sky_unlikely(!set_socket_nonblock(accept_fd))) {
-                close(accept_fd);
-                return false;
-            }
-            req->base.type = EV_REQ_TCP_ACCEPT;
-            req->accept_fd = accept_fd;
-            req->accept = cb;
-            event_pending_add(&tcp->ev, &req->base);
-
-            return true;
+    const sky_socket_t accept_fd = accept(server->ev.fd, null, 0);
+    if (accept_fd != SKY_SOCKET_FD_NONE) {
+        if (sky_unlikely(!set_socket_nonblock(accept_fd))) {
+            close(accept_fd);
+            return false;
         }
+        client->ev.fd = accept_fd;
+        client->ev.flags |= TCP_STATUS_CONNECTED | TCP_STATUS_READ | TCP_STATUS_WRITE;
+        return true;
+    }
 #endif
-        switch (errno) {
-            case EAGAIN:
-            case ECONNABORTED:
-            case EPROTO:
-            case EINTR:
-            case EMFILE: //文件数大多时，保证不中断
-                tcp->ev.flags &= ~EV_STATUS_READ;
-                event_add(&tcp->ev, EV_REG_IN);
-                break;
-            default:
-                tcp->ev.flags |= EV_STATUS_ERROR;
-                return false;
 
-        }
+    server->ev.flags &= ~TCP_STATUS_READ;
+
+    switch (errno) {
+        case EAGAIN:
+        case ECONNABORTED:
+        case EPROTO:
+        case EINTR:
+        case EMFILE: //文件数大太多时，保证不中断
+            return true;
+        default:
+            server->ev.flags |= TCP_STATUS_ERROR;
+            return false;
     }
-
-    req->base.type = EV_REQ_TCP_ACCEPT;
-    req->accept_fd = SKY_SOCKET_FD_NONE;
-    req->accept = cb;
-
-    event_in_add(&tcp->ev, &req->base);
-
-    return true;
 }
 
 sky_api sky_bool_t
-sky_tcp_connect(sky_tcp_t *tcp, sky_tcp_req_t *req, const sky_inet_address_t *address, sky_tcp_connect_pt cb) {
-    if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE || (tcp->ev.flags & (TCP_STATUS_CONNECT)))) {
+sky_tcp_connect(sky_tcp_t *tcp, const sky_inet_address_t *address, sky_tcp_connect_pt cb) {
+    if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE
+                     || (tcp->ev.flags & TCP_STATUS_CONNECTED))) {
         return false;
     }
-    if (connect(tcp->ev.fd, (const struct sockaddr *) address, sky_inet_address_size(address)) < 0) { ;
-        switch (errno) {
-            case EALREADY:
-            case EINPROGRESS: {
-                tcp->ev.flags &= ~EV_STATUS_WRITE;
-                tcp->ev.flags |= TCP_STATUS_CONNECT;
-                event_add(&tcp->ev, EV_REG_OUT);
-
-                req->cb.connect = cb;
-                req->base.type = EV_REQ_TCP_CONNECT;
-                req->success = false;
-                event_out_add(&tcp->ev, &req->base);
-                return true;
-            }
-            case EISCONN:
-                break;
-            default:
-                return false;
-        }
+    tcp->connect_cb = cb;
+    tcp->ev.flags &= ~EV_TYPE_MASK;
+    tcp->ev.flags |= EV_TYPE_TCP_CLIENT;
+    if (connect(tcp->ev.fd, (const struct sockaddr *) address, sky_inet_address_size(address)) == 0) {
+        tcp->ev.flags |= TCP_STATUS_CONNECTED;
+        cb(tcp, true);
+        return true;
     }
-    tcp->ev.flags |= TCP_STATUS_CONNECT;
-    req->cb.connect = cb;
-    req->base.type = EV_REQ_TCP_CONNECT;
-    req->success = true;
-    event_pending_add(&tcp->ev, &req->base);
 
-    return true;
-}
-
-sky_api sky_bool_t
-sky_tcp_write(sky_tcp_t *tcp, sky_tcp_req_t *req, sky_uchar_t *buf, sky_u32_t size, sky_tcp_rw_pt cb) {
-    if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE)) {
-        return false;
-    }
-    if ((tcp->ev.flags & EV_STATUS_WRITE) && !tcp->ev.out_req) {
-        const sky_isize_t n = send(tcp->ev.fd, buf, size, MSG_NOSIGNAL);
-        if (n != SKY_ISIZE(-1)) {
-            req->cb.write = cb;
-            req->base.type = EV_REQ_TCP_WRITE;
-            req->one.buf = buf;
-            req->one.size = size;
-
-            if (n == size) {
-                req->one.pending_size = size;
-                event_pending_add(&tcp->ev, &req->base);
-                return true;
-            }
-            req->one.pending_size = (sky_u32_t) n;
-
-            tcp->ev.flags &= ~EV_STATUS_WRITE;
+    switch (errno) {
+        case EALREADY:
+        case EINPROGRESS: {
+            tcp->ev.flags &= ~TCP_STATUS_WRITE;
             event_add(&tcp->ev, EV_REG_OUT);
-            event_out_add(&tcp->ev, &req->base);
-
-            return true;
+            break;
         }
-        if (sky_unlikely(errno != EAGAIN)) {
-            tcp->ev.flags |= EV_STATUS_ERROR;
+        case EISCONN:
+            tcp->ev.flags |= TCP_STATUS_CONNECTED;
+            break;
+        default:
+            tcp->ev.flags |= TCP_STATUS_ERROR;
             return false;
-        }
-        tcp->ev.flags &= ~EV_STATUS_WRITE;
-        event_add(&tcp->ev, EV_REG_OUT);
     }
-    req->cb.write = cb;
-    req->base.type = EV_REQ_TCP_WRITE;
-    req->one.buf = buf;
-    req->one.size = size;
-    req->one.pending_size = 0;
-
-    event_out_add(&tcp->ev, &req->base);
 
     return true;
 }
 
-sky_api sky_bool_t
-sky_tcp_write_v(sky_tcp_t *tcp, sky_tcp_req_t *req, sky_io_vec_t *buf, sky_u32_t num, sky_tcp_rw_pt cb) {
-    if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE)) {
-        return false;
-    }
 
-    if ((tcp->ev.flags & EV_STATUS_WRITE) && !tcp->ev.out_req) {
-        struct msghdr msg = {
-                .msg_iov = (struct iovec *) buf,
+sky_api sky_usize_t
+sky_tcp_skip(sky_tcp_t *tcp, sky_usize_t size) {
+    if (!(tcp->ev.flags & (TCP_STATUS_CONNECTED | TCP_STATUS_ERROR | TCP_STATUS_READ))) {
+        return SKY_USIZE_MAX;
+    }
+    if (!size || !(tcp->ev.flags & TCP_STATUS_READ)) {
+        return 0;
+    }
+}
+
+sky_api sky_usize_t
+sky_tcp_read(sky_tcp_t *tcp, sky_uchar_t *buf, sky_usize_t size) {
+    if (sky_unlikely(!(tcp->ev.flags & (TCP_STATUS_CONNECTED | TCP_STATUS_ERROR)))) {
+        return SKY_USIZE_MAX;
+    }
+    if (!size || !(tcp->ev.flags & TCP_STATUS_READ)) {
+        return 0;
+    }
+    const sky_isize_t n = recv(tcp->ev.fd, buf, size, 0);
+
+    if (n == -1) {
+        if (errno == EAGAIN) {
+            tcp->ev.flags &= ~TCP_STATUS_READ;
+            event_add(&tcp->ev, EV_REG_IN);
+            return 0;
+        }
+        tcp->ev.flags |= TCP_STATUS_ERROR;
+        return SKY_USIZE_MAX;
+    }
+    return !n ? SKY_USIZE_MAX : (sky_usize_t) n;
+}
+
+sky_api sky_usize_t
+sky_tcp_read_vec(sky_tcp_t *tcp, sky_io_vec_t *vec, sky_u32_t num) {
+    if (sky_unlikely(!(tcp->ev.flags & (TCP_STATUS_CONNECTED | TCP_STATUS_ERROR)))) {
+        return SKY_USIZE_MAX;
+    }
+    if (!num || !(tcp->ev.flags & TCP_STATUS_READ)) {
+        return 0;
+    }
+    struct msghdr msg = {
+            .msg_iov = (struct iovec *) vec,
 #if defined(__linux__)
-                .msg_iovlen = num
+            .msg_iovlen = num
 #else
-                .msg_iovlen = (sky_i32_t) num
+            .msg_iovlen = (sky_i32_t) num
 #endif
-        };
+    };
 
-        sky_isize_t n = sendmsg(tcp->ev.fd, &msg, MSG_NOSIGNAL);
-        if (n != SKY_ISIZE(-1)) {
-            req->cb.read = cb;
-            req->base.type = EV_REQ_TCP_WRITE_V;
-            req->vec.pending_size = 0;
-
-            do {
-                if ((sky_usize_t) n < buf->len) {
-                    req->vec.vec = buf;
-                    req->vec.num = num;
-                    req->vec.offset = (sky_u32_t) n;
-
-                    tcp->ev.flags &= ~EV_STATUS_WRITE;
-                    event_add(&tcp->ev, EV_REG_OUT);
-                    event_out_add(&tcp->ev, &req->base);
-
-                    return true;
-                }
-                n -= (sky_isize_t) buf->len;
-                req->vec.pending_size += buf->len;
-                ++buf;
-            } while ((--num) != 0);
-
-            req->vec.vec = null;
-            req->vec.num = 0;
-            event_pending_add(&tcp->ev, &req->base);
-            return true;
+    const sky_isize_t n = recvmsg(tcp->ev.fd, &msg, 0);
+    if (n == -1) {
+        if (errno == EAGAIN) {
+            tcp->ev.flags &= ~TCP_STATUS_READ;
+            event_add(&tcp->ev, EV_REG_IN);
+            return 0;
         }
-        if (sky_unlikely(errno != EAGAIN)) {
-            tcp->ev.flags |= EV_STATUS_ERROR;
-            return false;
-        }
-        tcp->ev.flags &= ~EV_STATUS_WRITE;
-        event_add(&tcp->ev, EV_REG_OUT);
+        tcp->ev.flags |= TCP_STATUS_ERROR;
+        return SKY_USIZE_MAX;
     }
-    req->base.type = EV_REQ_TCP_WRITE_V;
-    req->vec.vec = buf;
-    req->vec.pending_size = 0;
-    req->vec.num = num;
-    req->vec.offset = 0;
-
-    event_out_add(&tcp->ev, &req->base);
-
-    return true;
+    return !n ? SKY_USIZE_MAX : (sky_usize_t) n;
 }
 
-sky_api sky_bool_t
-sky_tcp_read(sky_tcp_t *tcp, sky_tcp_req_t *req, sky_uchar_t *buf, sky_u32_t size, sky_tcp_rw_pt cb) {
-    if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE)) {
-        return false;
+sky_api sky_usize_t
+sky_tcp_write(sky_tcp_t *tcp, const sky_uchar_t *buf, sky_usize_t size) {
+    if (sky_unlikely(!(tcp->ev.flags & (TCP_STATUS_CONNECTED | TCP_STATUS_ERROR)))) {
+        return SKY_USIZE_MAX;
     }
-
-    if ((tcp->ev.flags & EV_STATUS_READ) && !tcp->ev.in_req) {
-        const sky_isize_t n = recv(tcp->ev.fd, buf, size, 0);
-        if (n != SKY_ISIZE(-1)) {
-            req->cb.read = cb;
-            req->base.type = EV_REQ_TCP_READ;
-            req->one.buf = buf;
-            req->one.size = size;
-            req->one.pending_size = (sky_u32_t) n;
-            event_pending_add(&tcp->ev, &req->base);
-
-            return true;
-        }
-        if (sky_unlikely(errno != EAGAIN)) {
-            tcp->ev.flags |= EV_STATUS_ERROR;
-            return false;
-        }
-        tcp->ev.flags &= ~EV_STATUS_READ;
-        event_add(&tcp->ev, EV_REG_IN);
+    if (!size || !(tcp->ev.flags & TCP_STATUS_WRITE)) {
+        return 0;
     }
-
-    req->cb.read = cb;
-    req->base.type = EV_REQ_TCP_READ;
-    req->one.buf = buf;
-    req->one.size = size;
-    req->one.pending_size = 0;
-
-    event_in_add(&tcp->ev, &req->base);
-
-    return true;
+    const sky_isize_t n = send(tcp->ev.fd, buf, size, MSG_NOSIGNAL);
+    if (n == -1) {
+        if (errno == EAGAIN) {
+            tcp->ev.flags &= ~TCP_STATUS_WRITE;
+            event_add(&tcp->ev, EV_REG_OUT);
+            return 0;
+        }
+        tcp->ev.flags |= TCP_STATUS_ERROR;
+        return SKY_USIZE_MAX;
+    }
+    return (sky_usize_t) n;
 }
 
-sky_api sky_bool_t
-sky_tcp_read_v(sky_tcp_t *tcp, sky_tcp_req_t *req, sky_io_vec_t *buf, sky_u32_t num, sky_tcp_rw_pt cb) {
-    if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE)) {
-        return false;
+sky_api sky_usize_t
+sky_tcp_write_vec(sky_tcp_t *tcp, const sky_io_vec_t *vec, sky_u32_t num) {
+    if (sky_unlikely(!(tcp->ev.flags & (TCP_STATUS_CONNECTED | TCP_STATUS_ERROR)))) {
+        return SKY_USIZE_MAX;
     }
-
-    if ((tcp->ev.flags & EV_STATUS_READ) && !tcp->ev.in_req) {
-        struct msghdr msg = {
-                .msg_iov = (struct iovec *) buf,
+    if (!num || !(tcp->ev.flags & TCP_STATUS_WRITE)) {
+        return 0;
+    }
+    const struct msghdr msg = {
+            .msg_iov = (struct iovec *) vec,
 #if defined(__linux__)
-                .msg_iovlen = num
+            .msg_iovlen = num
 #else
-                .msg_iovlen = (sky_i32_t) num
+            .msg_iovlen = (sky_i32_t) num
 #endif
-        };
+    };
 
-        const sky_isize_t n = recvmsg(tcp->ev.fd, &msg, 0);
-        if (n != SKY_ISIZE(-1)) {
-            req->cb.read = cb;
-            req->base.type = EV_REQ_TCP_READ_V;
-            req->vec.vec = buf;
-            req->vec.pending_size = (sky_usize_t) n;
-            req->vec.num = num;
-            event_pending_add(&tcp->ev, &req->base);
-            return true;
+    const sky_isize_t n = sendmsg(tcp->ev.fd, &msg, MSG_NOSIGNAL);
+    if (n == -1) {
+        if (errno == EAGAIN) {
+            tcp->ev.flags &= ~TCP_STATUS_WRITE;
+            event_add(&tcp->ev, EV_REG_OUT);
+            return 0;
         }
-        if (sky_unlikely(errno != EAGAIN)) {
-            tcp->ev.flags |= EV_STATUS_ERROR;
-            return false;
-        }
-        tcp->ev.flags &= ~EV_STATUS_READ;
-        event_add(&tcp->ev, EV_REG_IN);
+        tcp->ev.flags |= TCP_STATUS_ERROR;
+        return SKY_USIZE_MAX;
     }
-    req->base.type = EV_REQ_TCP_READ_V;
-    req->vec.vec = buf;
-    req->vec.pending_size = 0;
-    req->vec.num = num;
-
-    event_in_add(&tcp->ev, &req->base);
-
-    return true;
+    return (sky_usize_t) n;
 }
+
 
 sky_api sky_bool_t
 sky_tcp_close(sky_tcp_t *tcp, sky_tcp_close_pt cb) {
@@ -363,252 +290,73 @@ sky_tcp_close(sky_tcp_t *tcp, sky_tcp_close_pt cb) {
     }
     close(tcp->ev.fd);
     tcp->ev.fd = SKY_SOCKET_FD_NONE;
-    tcp->ev.flags |= EV_STATUS_ERROR;
+    tcp->ev.flags = 0;
     tcp->ev.cb = (sky_ev_pt) cb;
-
-    event_pending_out_all(tcp->ev.ev_loop, &tcp->ev);
-    event_pending_in_all(tcp->ev.ev_loop, &tcp->ev);
 
     event_close_add(&tcp->ev);
 
     return true;
 }
 
-
-sky_bool_t
-event_on_tcp_accept(sky_ev_t *ev, sky_ev_req_t *req) {
-    if (sky_unlikely((ev->flags & EV_STATUS_ERROR))) {
-        return true;
-    }
-
-#ifdef SKY_HAVE_ACCEPT4
-    const sky_socket_t accept_fd = accept4(ev->fd, null, 0, SOCK_NONBLOCK | SOCK_CLOEXEC);
-    if (accept_fd != SKY_SOCKET_FD_NONE) {
-        sky_tcp_req_accept_t *tcp_req = (sky_tcp_req_accept_t *) req;
-        tcp_req->accept_fd = accept_fd;
-        return true;
-    }
-#else
-    const sky_socket_t accept_fd = accept(ev->fd, null, 0);
-    if (accept_fd != SKY_SOCKET_FD_NONE) {
-        if (sky_unlikely(!set_socket_nonblock(accept_fd))) {
-            close(accept_fd);
-        } else {
-            sky_tcp_req_accept_t *tcp_req = (sky_tcp_req_accept_t *) req;
-            tcp_req->accept_fd = accept_fd;
-        }
-        return true;
-    }
-#endif
-    switch (errno) {
-        case EAGAIN:
-        case ECONNABORTED:
-        case EPROTO:
-        case EINTR:
-        case EMFILE: //文件数大多时，保证不中断
-            ev->flags &= ~EV_STATUS_READ;
-            return false;
-        default:
-            ev->flags |= EV_STATUS_ERROR;
-            return true;
-
+void
+event_on_tcp_server_error(sky_ev_t *ev) {
+    sky_tcp_t *const tcp = (sky_tcp_t *const) ev;
+    tcp->ev.flags |= TCP_STATUS_ERROR;
+    if (tcp->ev.fd != SKY_SOCKET_FD_NONE) {
+        tcp->accept_cb(tcp);
     }
 }
 
 void
-event_cb_tcp_accept(sky_ev_t *ev, sky_ev_req_t *req) {
-    sky_tcp_t *const tcp = (sky_tcp_t *) ev;
-    sky_tcp_req_accept_t *const tcp_req = (sky_tcp_req_accept_t *) req;
-    if (sky_unlikely((ev->flags & EV_STATUS_ERROR))) {
-        if (tcp_req->accept_fd != SKY_SOCKET_FD_NONE) {
-            close(tcp_req->accept_fd);
-            tcp_req->accept_fd = SKY_SOCKET_FD_NONE;
-        }
+event_on_tcp_server_in(sky_ev_t *ev) {
+    sky_tcp_t *const tcp = (sky_tcp_t *const) ev;
+    tcp->ev.flags |= TCP_STATUS_READ;
+    if (tcp->ev.fd != SKY_SOCKET_FD_NONE) {
+        tcp->accept_cb(tcp);
     }
-    tcp_req->accept(tcp, tcp_req, !(ev->flags & EV_STATUS_ERROR));
 }
 
+void
+event_on_tcp_client_error(sky_ev_t *ev) {
+    sky_tcp_t *const tcp = (sky_tcp_t *const) ev;
+    tcp->ev.flags |= TCP_STATUS_ERROR;
+    if (tcp->ev.fd == SKY_SOCKET_FD_NONE) {
+        return;
+    }
+}
 
-sky_bool_t
-event_on_tcp_connect(sky_ev_t *ev, sky_ev_req_t *req) {
-    sky_tcp_req_t *const tcp_req = (sky_tcp_req_t *) req;
+void
+event_on_tcp_client_in(sky_ev_t *ev) {
+    sky_tcp_t *const tcp = (sky_tcp_t *const) ev;
+    tcp->ev.flags |= TCP_STATUS_READ;
+    if (!tcp->read_cb || tcp->ev.fd == SKY_SOCKET_FD_NONE) {
+        return;
+    }
+    tcp->read_cb(tcp);
+}
 
-    if (sky_likely(!(ev->flags & EV_STATUS_ERROR))) {
+void
+event_on_tcp_client_out(sky_ev_t *ev) {
+    sky_tcp_t *const tcp = (sky_tcp_t *const) ev;
+    tcp->ev.flags |= TCP_STATUS_WRITE;
+    if (tcp->ev.fd == SKY_SOCKET_FD_NONE) {
+        return;
+    }
+    if (!(tcp->ev.flags & TCP_STATUS_CONNECTED)) {
         sky_i32_t err;
         socklen_t len = sizeof(err);
-        if (0 == getsockopt(ev->fd, SOL_SOCKET, SO_ERROR, &err, &len)) {
-            tcp_req->success = true;
+        if (0 == getsockopt(ev->fd, SOL_SOCKET, SO_ERROR, &err, &len) && err == 0) {
+            tcp->ev.flags |= TCP_STATUS_CONNECTED;
+            tcp->connect_cb(tcp, true);
         } else {
-            ev->flags |= EV_STATUS_ERROR;
+            tcp->connect_cb(tcp, false);
         }
+        return;
     }
 
-    return true;
-}
-
-void
-event_cb_tcp_connect(sky_ev_t *ev, sky_ev_req_t *req) {
-    sky_tcp_t *const tcp = (sky_tcp_t *) ev;
-    sky_tcp_req_t *const tcp_req = (sky_tcp_req_t *) req;
-
-    const sky_bool_t result = tcp_req->success && !(ev->flags & EV_STATUS_ERROR);
-    if (!result) {
-        ev->flags &= ~TCP_STATUS_CONNECT;
+    if (tcp->write_cb) {
+        tcp->write_cb(tcp);
     }
-    tcp_req->cb.connect(tcp, tcp_req, result);
 }
-
-sky_bool_t
-event_on_tcp_read(sky_ev_t *ev, sky_ev_req_t *req) {
-    if (sky_unlikely((ev->flags & EV_STATUS_ERROR))) {
-        return true;
-    }
-    sky_tcp_req_t *const tcp_req = (sky_tcp_req_t *) req;
-
-    const sky_isize_t n = recv(ev->fd, tcp_req->one.buf, tcp_req->one.size, 0);
-    if (n == SKY_ISIZE(-1)) {
-        if (sky_unlikely(errno != EAGAIN)) {
-            ev->flags |= EV_STATUS_ERROR;
-            return true;
-        }
-        ev->flags &= ~EV_STATUS_READ;
-        return false;
-    }
-    tcp_req->one.pending_size = (sky_u32_t) n;
-
-    return true;
-}
-
-void
-event_cb_tcp_read(sky_ev_t *ev, sky_ev_req_t *req) {
-    sky_tcp_t *const tcp = (sky_tcp_t *) ev;
-    sky_tcp_req_t *const tcp_req = (sky_tcp_req_t *) req;
-
-    tcp_req->cb.read(tcp, tcp_req, (ev->flags & EV_STATUS_ERROR) ? SKY_USIZE_MAX : tcp_req->one.pending_size);
-}
-
-sky_bool_t
-event_on_tcp_read_v(sky_ev_t *ev, sky_ev_req_t *req) {
-    if (sky_unlikely((ev->flags & EV_STATUS_ERROR))) {
-        return true;
-    }
-    sky_tcp_req_t *const tcp_req = (sky_tcp_req_t *) req;
-
-    struct msghdr msg = {
-            .msg_iov = (struct iovec *) tcp_req->vec.vec,
-#if defined(__linux__)
-            .msg_iovlen = tcp_req->vec.num
-#else
-            .msg_iovlen = (sky_i32_t) tcp_req->vec.num
-#endif
-    };
-    const sky_isize_t n = recvmsg(ev->fd, &msg, MSG_NOSIGNAL);
-
-    if (n == SKY_ISIZE(-1)) {
-        if (sky_unlikely(errno != EAGAIN)) {
-            ev->flags |= EV_STATUS_ERROR;
-            return true;
-        }
-        ev->flags &= ~EV_STATUS_READ;
-        return false;
-    }
-    tcp_req->vec.pending_size = (sky_usize_t) n;
-}
-
-void
-event_cb_tcp_read_v(sky_ev_t *ev, sky_ev_req_t *req) {
-    sky_tcp_t *const tcp = (sky_tcp_t *) ev;
-    sky_tcp_req_t *const tcp_req = (sky_tcp_req_t *) req;
-    tcp_req->cb.read(tcp, tcp_req, (ev->flags & EV_STATUS_ERROR) ? SKY_USIZE_MAX : tcp_req->vec.pending_size);
-}
-
-
-sky_bool_t
-event_on_tcp_write(sky_ev_t *ev, sky_ev_req_t *req) {
-    if (sky_unlikely((ev->flags & EV_STATUS_ERROR))) {
-        return true;
-    }
-    sky_tcp_req_t *const tcp_req = (sky_tcp_req_t *) req;
-
-    const sky_isize_t n = send(
-            ev->fd,
-            tcp_req->one.buf + tcp_req->one.pending_size,
-            tcp_req->one.size - tcp_req->one.pending_size,
-            MSG_NOSIGNAL
-    );
-    if (n == SKY_ISIZE(-1)) {
-        if (sky_unlikely(errno != EAGAIN)) {
-            ev->flags |= EV_STATUS_ERROR;
-            return true;
-        }
-        ev->flags &= ~EV_STATUS_WRITE;
-        return false;
-    }
-    tcp_req->one.pending_size += (sky_u32_t) n;
-
-    return tcp_req->one.pending_size == tcp_req->one.size;
-}
-
-
-void
-event_cb_tcp_write(sky_ev_t *ev, sky_ev_req_t *req) {
-    sky_tcp_t *const tcp = (sky_tcp_t *) ev;
-    sky_tcp_req_t *const tcp_req = (sky_tcp_req_t *) req;
-
-    tcp_req->cb.write(tcp, tcp_req, (ev->flags & EV_STATUS_ERROR) ? SKY_USIZE_MAX : tcp_req->one.pending_size);
-}
-
-sky_bool_t
-event_on_tcp_write_v(sky_ev_t *ev, sky_ev_req_t *req) {
-    if (sky_unlikely((ev->flags & EV_STATUS_ERROR))) {
-        return true;
-    }
-    sky_tcp_req_t *const tcp_req = (sky_tcp_req_t *) req;
-    tcp_req->vec.vec->buf += tcp_req->vec.offset;
-    tcp_req->vec.vec->len -= tcp_req->vec.offset;
-
-    struct msghdr msg = {
-            .msg_iov = (struct iovec *) tcp_req->vec.vec,
-#if defined(__linux__)
-            .msg_iovlen = tcp_req->vec.num
-#else
-            .msg_iovlen = (sky_i32_t) tcp_req->vec.num
-#endif
-    };
-    sky_isize_t n = sendmsg(ev->fd, &msg, MSG_NOSIGNAL);
-
-    tcp_req->vec.vec->buf -= tcp_req->vec.offset;
-    tcp_req->vec.vec->len += tcp_req->vec.offset;
-    if (n == SKY_ISIZE(-1)) {
-        if (sky_unlikely(errno != EAGAIN)) {
-            ev->flags |= EV_STATUS_ERROR;
-            return true;
-        }
-        ev->flags &= ~EV_STATUS_WRITE;
-        return false;
-    }
-    n += tcp_req->vec.offset;
-
-    do {
-        if ((sky_usize_t) n < tcp_req->vec.vec->len) {
-            tcp_req->vec.offset = (sky_u32_t) n;
-            ev->flags &= ~EV_STATUS_WRITE;
-            return false;
-        }
-        n -= (sky_isize_t) (tcp_req->vec.vec->len);
-        tcp_req->vec.pending_size += tcp_req->vec.vec->len;
-        ++tcp_req->vec.vec;
-    } while ((--tcp_req->vec.num) != 0);
-
-    return true;
-}
-
-void
-event_cb_tcp_write_v(sky_ev_t *ev, sky_ev_req_t *req) {
-    sky_tcp_t *const tcp = (sky_tcp_t *) ev;
-    sky_tcp_req_t *const tcp_req = (sky_tcp_req_t *) req;
-    tcp_req->cb.write(tcp, tcp_req, (ev->flags & EV_STATUS_ERROR) ? SKY_USIZE_MAX : tcp_req->vec.pending_size);
-}
-
 
 #endif

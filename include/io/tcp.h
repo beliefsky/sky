@@ -52,6 +52,12 @@ struct sky_tcp_s {
 
 struct sky_tcp_s {
     sky_ev_t ev;
+    union {
+        sky_tcp_connect_pt connect_cb;
+        sky_tcp_cb_pt accept_cb;
+    };
+    sky_tcp_cb_pt read_cb;
+    sky_tcp_cb_pt write_cb;
 };
 
 #endif

@@ -56,7 +56,6 @@ sky_tcp_init(sky_tcp_t *tcp, sky_ev_loop_t *ev_loop) {
     tcp->ev.flags = 0;
     tcp->in_buf = null;
     tcp->out_buf = null;
-    tcp->connect_cb = null;
     tcp->read_cb = null;
     tcp->write_cb = null;
 }
