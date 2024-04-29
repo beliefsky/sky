@@ -28,20 +28,22 @@ extern "C" {
 #define sky_ntohll(_ll) (_ll)
 #endif
 
-#ifndef __WINNT__
-#include <sys/socket.h>
-
-#define SKY_SOCKET_FD_NONE SKY_I32(-1)
-typedef sky_i32_t sky_socket_t;
-
-#else
+#ifdef __WINNT__
 
 #include <windows.h>
 
 #define SKY_SOCKET_FD_NONE INVALID_SOCKET
 typedef SOCKET sky_socket_t;
 
+#else
+
+#include <sys/socket.h>
+
+#define SKY_SOCKET_FD_NONE SKY_I32(-1)
+typedef sky_i32_t sky_socket_t;
+
 #endif
+
 typedef struct sky_io_vec_s sky_io_vec_t;
 typedef struct sky_inet_address_s sky_inet_address_t;
 

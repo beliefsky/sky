@@ -7,6 +7,10 @@
 
 #ifdef __WINNT__
 
+#ifndef _WIN32_WINNT
+# define _WIN32_WINNT   0x0600
+#endif
+
 #include <io/ev_loop.h>
 
 #if sky_has_include(<ioapiset.h>)
@@ -21,8 +25,6 @@
 #define EV_REQ_TCP_CONNECT      SKY_U32(1)
 #define EV_REQ_TCP_WRITE        SKY_U32(2)
 #define EV_REQ_TCP_READ         SKY_U32(3)
-
-typedef struct sky_ev_block_s sky_ev_block_t;
 
 typedef void (*event_req_pt)(sky_ev_t *ev, sky_ev_req_t *req, sky_usize_t bytes, sky_bool_t success);
 
