@@ -240,10 +240,11 @@ sky_tcp_skip(sky_tcp_t *tcp, sky_usize_t size) {
     if (sky_unlikely(!size)) {
         return 0;
     }
+    const sky_u32_t want_read = (sky_u32_t) sky_min(size, SKY_U32_MAX);
+
     if (!tcp->in_buf) {
         tcp->in_buf = sky_ring_buf_create(TCP_IN_BUF_SIZE);
     } else {
-        const sky_u32_t want_read = (sky_u32_t) sky_min(size, SKY_U32_MAX);
         const sky_u32_t read_n = sky_ring_buf_commit_read(tcp->in_buf, want_read); // 直接提交，不用copy
         if ((tcp->ev.flags & (TCP_STATUS_EOF | TCP_STATUS_ERROR))) {
             return read_n ?: SKY_USIZE_MAX;
@@ -253,7 +254,7 @@ sky_tcp_skip(sky_tcp_t *tcp, sky_usize_t size) {
         }
     }
     const sky_u32_t read_n = do_read(tcp);
-    return read_n == SKY_U32_MAX ? SKY_USIZE_MAX : sky_ring_buf_commit_read(tcp->in_buf, read_n);
+    return read_n == SKY_U32_MAX ? SKY_USIZE_MAX : sky_ring_buf_commit_read(tcp->in_buf, want_read);
 }
 
 sky_api sky_usize_t
@@ -264,10 +265,11 @@ sky_tcp_read(sky_tcp_t *tcp, sky_uchar_t *buf, sky_usize_t size) {
     if (sky_unlikely(!size)) {
         return 0;
     }
+    const sky_u32_t want_read = (sky_u32_t) sky_min(size, SKY_U32_MAX);
+
     if (!tcp->in_buf) {
         tcp->in_buf = sky_ring_buf_create(TCP_IN_BUF_SIZE);
     } else {
-        const sky_u32_t want_read = (sky_u32_t) sky_min(size, SKY_U32_MAX);
         const sky_u32_t read_n = sky_ring_buf_read(tcp->in_buf, buf, want_read); // 直接提交，不用copy
         if ((tcp->ev.flags & (TCP_STATUS_EOF | TCP_STATUS_ERROR))) {
             return read_n ?: SKY_USIZE_MAX;
@@ -277,7 +279,7 @@ sky_tcp_read(sky_tcp_t *tcp, sky_uchar_t *buf, sky_usize_t size) {
         }
     }
     const sky_u32_t read_n = do_read(tcp);
-    return read_n == SKY_U32_MAX ? SKY_USIZE_MAX : sky_ring_buf_read(tcp->in_buf, buf, read_n);
+    return read_n == SKY_U32_MAX ? SKY_USIZE_MAX : sky_ring_buf_read(tcp->in_buf, buf, want_read);
 }
 
 sky_api sky_usize_t
