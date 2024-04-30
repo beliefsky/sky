@@ -90,11 +90,6 @@ sky_usize_t sky_tcp_write_vec(sky_tcp_t *tcp, const sky_io_vec_t *vec, sky_u32_t
 
 sky_bool_t sky_tcp_close(sky_tcp_t *tcp, sky_tcp_cb_pt cb);
 
-static sky_inline sky_bool_t
-sky_tcp_closed(sky_tcp_t *tcp) {
-    return tcp->ev.fd == SKY_SOCKET_FD_NONE;
-}
-
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif
