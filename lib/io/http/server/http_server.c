@@ -13,6 +13,8 @@ typedef struct {
 
 static void http_server_accept(sky_tcp_t *tcp);
 
+static void http_server_close(sky_tcp_t *tcp);
+
 sky_api sky_http_server_t *
 sky_http_server_create(sky_ev_loop_t *ev_loop, const sky_http_server_conf_t *const conf) {
     sky_pool_t *const pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
@@ -105,17 +107,15 @@ sky_http_server_bind(
 //    sky_tcp_option_defer_accept(&listener->tcp);
 
     if (sky_unlikely(!sky_tcp_bind(&listener->tcp, address))) {
-//        sky_tcp_close(&listener->tcp);
-        sky_pfree(server->pool, listener, sizeof(http_listener_t));
+        sky_tcp_close(&listener->tcp, http_server_close);
         return false;
     }
 
     if (sky_unlikely(!sky_tcp_listen(&listener->tcp, 1000, http_server_accept))) {
-//        sky_tcp_close(&listener->tcp);
-        sky_pfree(server->pool, listener, sizeof(http_listener_t));
+        sky_tcp_close(&listener->tcp, http_server_close);
         return false;
     }
-    return true;
+    return false;
 }
 
 static void
@@ -138,11 +138,12 @@ http_server_accept(sky_tcp_t *const tcp) {
         conn->server = l->server;
     }
     l->conn_tmp = conn;
+}
 
-    if (false) {
-        sky_free(l->conn_tmp);
-        l->conn_tmp = null;
-        sky_tcp_close(tcp, null);
-    }
+static void
+http_server_close(sky_tcp_t *const tcp) {
+    http_listener_t *const l = sky_type_convert(tcp, http_listener_t, tcp);
+    sky_free(l->conn_tmp);
+    l->conn_tmp = null;
 }
 

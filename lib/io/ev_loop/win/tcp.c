@@ -138,7 +138,7 @@ sky_tcp_listen(sky_tcp_t *tcp, sky_i32_t backlog, sky_tcp_cb_pt cb) {
 
 sky_bool_t
 sky_tcp_accept(sky_tcp_t *server, sky_tcp_t *client) {
-    if ((server->ev.flags & TCP_STATUS_READING)
+    if ((server->ev.flags & (TCP_STATUS_READING | TCP_STATUS_ERROR | TCP_STATUS_CLOSING))
         || !server->accept_buf
         || (server->accept_buf->accept_fd == SKY_SOCKET_FD_NONE
             && (!do_accept(server) || (server->ev.flags & TCP_STATUS_READING))
@@ -158,7 +158,7 @@ sky_tcp_accept(sky_tcp_t *server, sky_tcp_t *client) {
 sky_api sky_bool_t
 sky_tcp_connect(sky_tcp_t *tcp, const sky_inet_address_t *address, sky_tcp_connect_pt cb) {
     if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE
-                     || (tcp->ev.flags & (TCP_STATUS_CONNECTED | TCP_STATUS_CONNECTED | TCP_STATUS_CLOSING)))) {
+                     || (tcp->ev.flags & (TCP_STATUS_CONNECTED | TCP_STATUS_ERROR | TCP_STATUS_CLOSING)))) {
         return false;
     }
     if (!(tcp->ev.flags & TCP_STATUS_BIND)) {
@@ -662,7 +662,7 @@ do_close(sky_tcp_t *tcp) {
         tcp->out_buf = null;
     }
 
-    if ((tcp->ev.flags & (TCP_STATUS_LISTENER | TCP_STATUS_CONNECTED))) {
+    if ((tcp->ev.flags & TCP_STATUS_CONNECTED)) {
         if (!wsa_func.disconnect) {
             const GUID wsaid_disconnectex = WSAID_DISCONNECTEX;
             if (sky_unlikely(!get_extension_function(tcp->ev.fd, wsaid_disconnectex, (void **) &wsa_func.disconnect))) {
