@@ -33,8 +33,9 @@ struct sky_tcp_accept_s {
 
 
 typedef struct {
-    LPFN_CONNECTEX connect;
     LPFN_ACCEPTEX accept;
+    LPFN_CONNECTEX connect;
+    LPFN_DISCONNECTEX disconnect;
 } wsa_func_t;
 
 static sky_bool_t do_accept(sky_tcp_t *tcp);
@@ -393,13 +394,8 @@ sky_tcp_close(sky_tcp_t *tcp, sky_tcp_close_pt cb) {
 
     if (!(tcp->ev.flags & (TCP_STATUS_READING | TCP_STATUS_WRITING))) {
         do_close(tcp);
-        sky_ev_loop_t *const ev_loop = tcp->ev.ev_loop;
-        *ev_loop->pending_tail = &tcp->ev;
-        ev_loop->pending_tail = &tcp->ev.next;
-
         return true;
     }
-
     if ((tcp->ev.flags & TCP_STATUS_READING)) {
         CancelIoEx((HANDLE) tcp->ev.fd, &tcp->in_req.overlapped);
     }
@@ -411,8 +407,7 @@ sky_tcp_close(sky_tcp_t *tcp, sky_tcp_close_pt cb) {
 
 
 void
-event_on_tcp_accept(sky_ev_t *ev, sky_ev_req_t *req, sky_usize_t bytes, sky_bool_t success) {
-    (void) req;
+event_on_tcp_accept(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
     (void) bytes;
 
     sky_tcp_t *const tcp = (sky_tcp_t *const) ev;
@@ -426,13 +421,11 @@ event_on_tcp_accept(sky_ev_t *ev, sky_ev_req_t *req, sky_usize_t bytes, sky_bool
     tcp->accept_cb(tcp);
     if (should_close) {
         do_close(tcp);
-        tcp->ev.cb(ev);
     }
 }
 
 void
-event_on_tcp_connect(sky_ev_t *ev, sky_ev_req_t *req, sky_usize_t bytes, sky_bool_t success) {
-    (void) req;
+event_on_tcp_connect(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
     (void) bytes;
 
     sky_tcp_t *const tcp = (sky_tcp_t *const) ev;
@@ -448,14 +441,27 @@ event_on_tcp_connect(sky_ev_t *ev, sky_ev_req_t *req, sky_usize_t bytes, sky_boo
     tcp->connect_cb(tcp, false);
     if (should_close) {
         do_close(tcp);
-        tcp->ev.cb(ev);
     }
 }
 
-void
-event_on_tcp_read(sky_ev_t *ev, sky_ev_req_t *req, sky_usize_t bytes, sky_bool_t success) {
-    (void) req;
+sky_inline void
+event_on_tcp_disconnect(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
+    (void) bytes;
+    (void) success;
 
+    sky_tcp_t *const tcp = (sky_tcp_t *const) ev;
+    closesocket(tcp->ev.fd);
+    tcp->ev.fd = SKY_SOCKET_FD_NONE;
+    tcp->ev.flags = 0;
+    tcp->ev.next = null;
+
+    sky_ev_loop_t *const ev_loop = tcp->ev.ev_loop;
+    *ev_loop->pending_tail = &tcp->ev;
+    ev_loop->pending_tail = &tcp->ev.next;
+}
+
+void
+event_on_tcp_read(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
     sky_tcp_t *const tcp = (sky_tcp_t *const) ev;
     tcp->ev.flags &= ~TCP_STATUS_READING;
 
@@ -466,7 +472,6 @@ event_on_tcp_read(sky_ev_t *ev, sky_ev_req_t *req, sky_usize_t bytes, sky_bool_t
         }
         if ((tcp->ev.flags & TCP_STATUS_CLOSING) && !(tcp->ev.flags & TCP_STATUS_WRITING)) {
             do_close(tcp);
-            tcp->ev.cb(ev);
         }
         return;
     }
@@ -482,9 +487,7 @@ event_on_tcp_read(sky_ev_t *ev, sky_ev_req_t *req, sky_usize_t bytes, sky_bool_t
 }
 
 void
-event_on_tcp_write(sky_ev_t *ev, sky_ev_req_t *req, sky_usize_t bytes, sky_bool_t success) {
-    (void) req;
-
+event_on_tcp_write(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
     sky_tcp_t *const tcp = (sky_tcp_t *const) ev;
     tcp->ev.flags &= ~TCP_STATUS_WRITING;
     if (!success) {
@@ -494,7 +497,6 @@ event_on_tcp_write(sky_ev_t *ev, sky_ev_req_t *req, sky_usize_t bytes, sky_bool_
         }
         if ((tcp->ev.flags & TCP_STATUS_CLOSING) && !(tcp->ev.flags & TCP_STATUS_READING)) {
             do_close(tcp);
-            tcp->ev.cb(ev);
         }
         return;
     }
@@ -509,7 +511,6 @@ event_on_tcp_write(sky_ev_t *ev, sky_ev_req_t *req, sky_usize_t bytes, sky_bool_
     if ((do_write(tcp) == SKY_U32_MAX || sky_ring_is_empty(tcp->out_buf))
         && !(tcp->ev.flags & TCP_STATUS_READING)) {
         do_close(tcp);
-        tcp->ev.cb(ev);
     }
 }
 
@@ -643,12 +644,6 @@ do_write(sky_tcp_t *tcp) {
 
 static sky_inline void
 do_close(sky_tcp_t *tcp) {
-
-    closesocket(tcp->ev.fd);
-    tcp->ev.fd = SKY_SOCKET_FD_NONE;
-    tcp->ev.flags = 0;
-    tcp->ev.next = null;
-
     if ((tcp->ev.flags & TCP_STATUS_LISTENER)) {
         if (tcp->accept_buf) {
             if (tcp->accept_buf->accept_fd != SKY_SOCKET_FD_NONE) {
@@ -666,6 +661,24 @@ do_close(sky_tcp_t *tcp) {
         sky_ring_buf_destroy(tcp->out_buf);
         tcp->out_buf = null;
     }
+
+    if ((tcp->ev.flags & (TCP_STATUS_LISTENER | TCP_STATUS_CONNECTED))) {
+        if (!wsa_func.disconnect) {
+            const GUID wsaid_disconnectex = WSAID_DISCONNECTEX;
+            if (sky_unlikely(!get_extension_function(tcp->ev.fd, wsaid_disconnectex, (void **) &wsa_func.disconnect))) {
+                event_on_tcp_disconnect(&tcp->ev, 0, false);
+                return;
+            }
+        }
+        sky_memzero(&tcp->in_req.overlapped, sizeof(OVERLAPPED));
+        tcp->in_req.type = EV_REQ_TCP_DISCONNECT;
+
+        if (!wsa_func.disconnect(tcp->ev.fd, &tcp->in_req.overlapped, 0, 0)
+            && GetLastError() == ERROR_IO_PENDING) {
+            return;
+        }
+    }
+    event_on_tcp_disconnect(&tcp->ev, 0, true);
 }
 
 static sky_inline sky_socket_t

@@ -41,6 +41,7 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
     static const event_req_pt EVENT_TABLES[] = {
             [EV_REQ_TCP_ACCEPT] = event_on_tcp_accept,
             [EV_REQ_TCP_CONNECT] = event_on_tcp_connect,
+            [EV_REQ_TCP_DISCONNECT] = event_on_tcp_disconnect,
             [EV_REQ_TCP_WRITE] = event_on_tcp_write,
             [EV_REQ_TCP_READ] = event_on_tcp_read
     };
@@ -58,7 +59,7 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
         if (GetQueuedCompletionStatus(ev_loop->iocp, &bytes, &key, &pov, timeout)) {
             ev = (sky_ev_t *) key;
             req = (sky_ev_req_t *) pov;
-            EVENT_TABLES[req->type](ev, req, bytes, true);
+            EVENT_TABLES[req->type](ev, bytes, true);
         } else {
             if (GetLastError() == WAIT_TIMEOUT) {
                 continue;
@@ -68,7 +69,7 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
             }
             ev = (sky_ev_t *) key;
             req = (sky_ev_req_t *) pov;
-            EVENT_TABLES[req->type](ev, req, bytes, false);
+            EVENT_TABLES[req->type](ev, bytes, false);
         }
 
         do {
@@ -94,7 +95,7 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
             do {
                 ev = (sky_ev_t *) event->lpCompletionKey;
                 req = (sky_ev_req_t *) event->lpOverlapped;
-                EVENT_TABLES[req->type](ev, req, event->dwNumberOfBytesTransferred, !event->Internal);
+                EVENT_TABLES[req->type](ev, event->dwNumberOfBytesTransferred, !event->Internal);
                 ++event;
             } while ((--i));
         } while (n == IOCP_EVENT_NUM);
