@@ -148,19 +148,19 @@ static SKY_HTTP_MAPPER_HANDLER(pgsql_test) {
 */
 
 static void
-body_cb(sky_http_server_request_t *req/*, sky_str_t *body*/, void *data) {
+body_cb(sky_http_server_request_t *req, sky_str_t *body, void *data) {
     (void) data;
 
 
-   /* if (body) {
+   if (body) {
         sky_log_warn("%lu", body->len);
-    }*/
+    }
     sky_log_warn("=============");
 
-//    if (sky_unlikely(sky_http_server_req_error(req))) {
-//        sky_http_server_req_finish(req);
-//        return;
-//    }
+    if (sky_unlikely(sky_http_server_req_error(req))) {
+        sky_http_server_req_finish(req);
+        return;
+    }
 
     sky_http_response_str_len(
             req,
@@ -171,6 +171,6 @@ body_cb(sky_http_server_request_t *req/*, sky_str_t *body*/, void *data) {
 }
 
 static SKY_HTTP_MAPPER_HANDLER(put_data) {
-    sky_http_req_body_none(req, body_cb, null);
+    sky_http_req_body_str(req, body_cb, null);
 }
 

@@ -29,6 +29,10 @@ static void http_conn_on_close(sky_tcp_t *tcp);
 
 sky_api void
 sky_http_server_req_finish(sky_http_server_request_t *const r) {
+    if (r->error) { //标记错误立即关闭
+        http_conn_close(r->conn);
+        return;
+    }
     if (sky_unlikely(!r->response)) { //如果未响应则响应空数据
         sky_http_response_str_len(r, null, 0, null, null);
         return;
@@ -215,7 +219,7 @@ http_server_req_finish(sky_http_server_request_t *r, void *const data) {
     (void) data;
 
     sky_http_connection_t *const conn = r->conn;
-    if (!r->keep_alive) {
+    if (!r->keep_alive || r->error) {
         http_conn_close(conn);
         return;
     }
