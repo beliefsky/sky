@@ -8,7 +8,6 @@
 
 #include <handleapi.h>
 #include <windows.h>
-#include <core/log.h>
 
 
 #define IOCP_EVENT_NUM 1024
@@ -118,8 +117,8 @@ sky_ev_timeout_init(sky_ev_loop_t *ev_loop, sky_timer_wheel_entry_t *timer, sky_
 static DWORD
 run_pending(sky_ev_loop_t *ev_loop) {
     sky_ev_t *ev, *next;
+    sky_u64_t next_time;
 
-    sky_timer_wheel_run(ev_loop->timer_ctx, 0);
     if (ev_loop->pending) {
         do {
             ev = ev_loop->pending;
@@ -133,8 +132,13 @@ run_pending(sky_ev_loop_t *ev_loop) {
 
         } while (ev_loop->pending);
     }
-    const sky_u64_t next_time = sky_timer_wheel_timeout(ev_loop->timer_ctx);
-    next_time == SKY_U64_MAX ? INFINITE : (DWORD) next_time;
+
+    do {
+        sky_timer_wheel_run(ev_loop->timer_ctx, 0);
+        next_time = sky_timer_wheel_timeout(ev_loop->timer_ctx);
+    } while (!next_time); //有可能定时立即返回，减少系统调用，知道有具体超时时间为止
+
+    return next_time == SKY_U64_MAX ? INFINITE : (DWORD) next_time;
 }
 
 #endif
