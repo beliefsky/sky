@@ -34,6 +34,7 @@ struct sky_ev_loop_s {
     sky_timer_wheel_t *timer_ctx;
     sky_ev_t *pending;
     sky_ev_t **pending_tail;
+    OVERLAPPED_ENTRY sys_evs[];
 };
 
 void event_on_tcp_accept(sky_ev_t *ev, sky_ev_req_t *req, sky_usize_t bytes, sky_bool_t success);

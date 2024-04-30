@@ -8,6 +8,10 @@
 
 #include <handleapi.h>
 #include <windows.h>
+#include <core/log.h>
+
+
+#define IOCP_EVENT_NUM 1024
 
 sky_api sky_ev_loop_t *
 sky_ev_loop_create() {
@@ -22,8 +26,7 @@ sky_ev_loop_create() {
             0,
             0
     );
-
-    sky_ev_loop_t *const ev_loop = sky_malloc(sizeof(sky_ev_loop_t));
+    sky_ev_loop_t *const ev_loop = sky_malloc(sizeof(sky_ev_loop_t) + sizeof(OVERLAPPED_ENTRY) * IOCP_EVENT_NUM);
     ev_loop->iocp = iocp;
     ev_loop->timer_ctx = sky_timer_wheel_create(0);
     ev_loop->pending = null;
@@ -42,13 +45,12 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
     };
 
 
-    DWORD bytes, timeout;
-    ULONG_PTR key;
-    LPOVERLAPPED pov;
+    DWORD timeout;
+    ULONG n;
+    LPOVERLAPPED_ENTRY event;
     sky_ev_req_t *req;
     sky_ev_t *ev, *next;
     sky_u64_t next_time;
-    sky_u32_t n;
 
     for (;;) {
         sky_timer_wheel_run(ev_loop->timer_ctx, 0);
@@ -68,40 +70,29 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
         next_time = sky_timer_wheel_timeout(ev_loop->timer_ctx);
         timeout = next_time == SKY_U64_MAX ? INFINITE : (DWORD) next_time;
 
-        if (GetQueuedCompletionStatus(ev_loop->iocp, &bytes, &key, &pov, timeout)) {
-            ev = (sky_ev_t *) key;
-            req = (sky_ev_req_t *) pov;
-            EVENT_TABLES[req->type](ev, req, bytes, true);
-        } else {
-            if (GetLastError() == WAIT_TIMEOUT) {
+        if (!GetQueuedCompletionStatusEx(
+                ev_loop->iocp,
+                ev_loop->sys_evs,
+                IOCP_EVENT_NUM,
+                &n,
+                timeout,
+                false
+        )) {
+            if (sky_likely(GetLastError() == WAIT_TIMEOUT)) {
                 continue;
             }
-            if (sky_unlikely(!pov)) {
-                return;
-            }
-            ev = (sky_ev_t *) key;
-            req = (sky_ev_req_t *) pov;
-            EVENT_TABLES[req->type](ev, req, bytes, false);
+            return;
         }
-        n = 1024; //不等待处理1024个事件再调用超时相关函数，以减少timer wheel相关调用
-
+        if (!n) {
+            continue;
+        }
+        event = ev_loop->sys_evs;
         do {
-            if (GetQueuedCompletionStatus(ev_loop->iocp, &bytes, &key, &pov, 0)) {
-                ev = (sky_ev_t *) key;
-                req = (sky_ev_req_t *) pov;
-                EVENT_TABLES[req->type](ev, req, bytes, true);
-            } else {
-                if (GetLastError() == WAIT_TIMEOUT) {
-                    break;
-                }
-                if (sky_unlikely(!pov)) {
-                    return;
-                }
-                ev = (sky_ev_t *) key;
-                req = (sky_ev_req_t *) pov;
-                EVENT_TABLES[req->type](ev, req, bytes, false);
-            }
-        } while (!(--n));
+            ev = (sky_ev_t *) event->lpCompletionKey;
+            req = (sky_ev_req_t *) event->lpOverlapped;
+            EVENT_TABLES[req->type](ev, req, event->dwNumberOfBytesTransferred, !event->Internal);
+            ++event;
+        } while ((--n));
     }
 
 }
