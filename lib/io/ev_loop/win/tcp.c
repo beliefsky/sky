@@ -157,7 +157,7 @@ sky_tcp_accept(sky_tcp_t *server, sky_tcp_t *client) {
 sky_api sky_bool_t
 sky_tcp_connect(sky_tcp_t *tcp, const sky_inet_address_t *address, sky_tcp_connect_pt cb) {
     if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE
-                     || (tcp->ev.flags & (TCP_STATUS_CONNECTED | TCP_STATUS_CLOSING)))) {
+                     || (tcp->ev.flags & (TCP_STATUS_CONNECTED | TCP_STATUS_CONNECTED | TCP_STATUS_CLOSING)))) {
         return false;
     }
     if (!(tcp->ev.flags & TCP_STATUS_BIND)) {
