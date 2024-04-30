@@ -45,6 +45,8 @@ static sky_u32_t do_write(sky_tcp_t *tcp);
 
 static void do_close(sky_tcp_t *tcp);
 
+static sky_socket_t create_socket(sky_i32_t domain);
+
 
 static wsa_func_t wsa_func = {};
 
@@ -76,18 +78,10 @@ sky_tcp_open(sky_tcp_t *tcp, sky_i32_t domain) {
     if (sky_unlikely(tcp->ev.fd != SKY_SOCKET_FD_NONE)) {
         return false;
     }
-    const sky_socket_t fd = socket(domain, SOCK_STREAM, IPPROTO_TCP);
+    const sky_socket_t fd = create_socket(domain);
     if (sky_unlikely(fd == SKY_SOCKET_FD_NONE)) {
         return false;
     }
-    if (sky_unlikely(!SetHandleInformation((HANDLE) fd, HANDLE_FLAG_INHERIT, 0))) {
-        closesocket(fd);
-        return false;
-    }
-
-    u_long opt = 1;
-    ioctlsocket(fd, (long) FIONBIO, &opt);
-
     tcp->ev.fd = fd;
     tcp->ev.flags |= (sky_u32_t) domain;
 
@@ -521,22 +515,14 @@ event_on_tcp_write(sky_ev_t *ev, sky_ev_req_t *req, sky_usize_t bytes, sky_bool_
 
 static sky_bool_t
 do_accept(sky_tcp_t *tcp) {
-    const sky_socket_t accept_fd = socket((sky_i32_t) (tcp->ev.flags & TCP_TYPE_MASK), SOCK_STREAM, IPPROTO_TCP);
+    const sky_socket_t accept_fd = create_socket((sky_i32_t) (tcp->ev.flags & TCP_TYPE_MASK));
     if (sky_unlikely(accept_fd == SKY_SOCKET_FD_NONE)) {
         return false;
     }
-    if (sky_unlikely(!SetHandleInformation((HANDLE) accept_fd, HANDLE_FLAG_INHERIT, 0))) {
-        closesocket(accept_fd);
-        return false;
-    }
-    u_long opt = 1;
-    ioctlsocket(accept_fd, (long) FIONBIO, &opt);
-
     sky_memzero(&tcp->in_req.overlapped, sizeof(OVERLAPPED));
     tcp->in_req.type = EV_REQ_TCP_ACCEPT;
 
     DWORD bytes;
-
 
     if (wsa_func.accept(
             tcp->ev.fd,
@@ -680,6 +666,40 @@ do_close(sky_tcp_t *tcp) {
         sky_ring_buf_destroy(tcp->out_buf);
         tcp->out_buf = null;
     }
+}
+
+static sky_inline sky_socket_t
+create_socket(sky_i32_t domain) {
+#ifdef WSA_FLAG_NO_HANDLE_INHERIT
+    const sky_socket_t fd = WSASocket(
+            domain,
+            SOCK_STREAM,
+            IPPROTO_TCP,
+            null,
+            0, WSA_FLAG_OVERLAPPED | WSA_FLAG_NO_HANDLE_INHERIT);
+    if (sky_unlikely(fd == SKY_SOCKET_FD_NONE)) {
+        return SKY_SOCKET_FD_NONE;
+    }
+#else
+    const sky_socket_t fd = WSASocket(
+            domain,
+            SOCK_STREAM,
+            IPPROTO_TCP,
+            null,
+            0, WSA_FLAG_OVERLAPPED);
+    if (sky_unlikely(fd == SKY_SOCKET_FD_NONE)) {
+        return SKY_SOCKET_FD_NONE;
+    }
+    if (sky_unlikely(!SetHandleInformation((HANDLE) fd, HANDLE_FLAG_INHERIT, 0))) {
+        closesocket(fd);
+        return SKY_SOCKET_FD_NONE;
+    }
+#endif
+
+    u_long opt = 1;
+    ioctlsocket(fd, (long) FIONBIO, &opt);
+
+    return fd;
 }
 
 #endif
