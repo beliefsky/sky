@@ -8,7 +8,7 @@
 
 
 typedef struct {
-    sky_coro_context_t caller;
+    coro_context_t caller;
     sky_coro_t *current;
 } coro_switcher_t;
 
@@ -78,8 +78,6 @@ sky_coro_resume_value(sky_coro_t *const coro, const sky_usize_t value) {
     coro->yield_value = value;
     return coro_resume(coro);
 }
-
-
 
 sky_api sky_usize_t
 sky_coro_yield(const sky_usize_t value) {

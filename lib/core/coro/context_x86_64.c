@@ -1,9 +1,9 @@
 //
 // Created by weijing on 2024/5/6.
 //
-#include "./coro_common.h"
+#if defined(__x86_64__)
 
-#ifdef __x86_64__
+#include "./coro_common.h"
 
 void __attribute__((visibility("internal"))) coro_entry_point_x86_64();
 
@@ -13,13 +13,13 @@ sky_coro_set(
         sky_coro_func_t func,
         void *data
 ) {
-    const sky_usize_t rsp = (sky_usize_t) coro->stack + coro->stack_size;
+    const sky_usize_t stack = (sky_usize_t) coro->stack + coro->stack_size;
 
     coro->context[5 /* R15 */] = (sky_usize_t) data;
     coro->context[6 /* RDI */] = (sky_usize_t) coro;
     coro->context[7 /* RSI */] = (sky_usize_t) func;
     coro->context[8 /* RIP */] = (sky_usize_t) coro_entry_point_x86_64;
-    coro->context[9 /* RSP */] = (rsp & ~SKY_USIZE(0xF)) - SKY_USIZE(0x8);
+    coro->context[9 /* RSP */] = (stack & ~SKY_USIZE(0xF)) - SKY_USIZE(0x8);
 }
 
 asm(".text\n\t"
@@ -35,7 +35,7 @@ asm(".text\n\t"
     "movq   %rsi,56(%rdi)\n\t"
     "movq   (%rsp),%rcx\n\t"
     "movq   %rcx,64(%rdi)\n\t"
-    "leaq   0x8(%rsp),%rcx\n\t"
+    "leaq   8(%rsp),%rcx\n\t"
     "movq   %rcx,72(%rdi)\n\t"
     "movq   72(%rsi),%rsp\n\t"
     "movq   0(%rsi),%rbx\n\t"
@@ -47,7 +47,8 @@ asm(".text\n\t"
     "movq   48(%rsi),%rdi\n\t"
     "movq   64(%rsi),%rcx\n\t"
     "movq   56(%rsi),%rsi\n\t"
-    "jmpq   *%rcx\n\t");
+    "jmpq   *%rcx\n\t"
+);
 
 
 asm(".text\n\t"

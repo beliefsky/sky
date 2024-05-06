@@ -10,23 +10,29 @@
 #define CORO_DEFAULT_STACK_SIZE 14336
 #define PAGE_SIZE 2048
 
+
 #if defined(__MACH__)
 #define ASM_SYMBOL(name_) "_" #name_
 #else
 #define ASM_SYMBOL(name_) #name_
 #endif
 
-#define ASM_ROUTINE(name_)                                      \
-    ".globl " ASM_SYMBOL(name_) "\n\t" ASM_SYMBOL(name_) ":\n\t"
+#define ASM_ROUTINE(name_) \
+    ".globl " ASM_SYMBOL(name_) "\n\t" \
+    ASM_SYMBOL(name_) ":\n\t"
 
 
 #if defined(__x86_64__)
 
-typedef sky_usize_t sky_coro_context_t[10];
+typedef sky_usize_t coro_context_t[10];
+
+#elif defined(__i386__)
+
+typedef sky_usize_t coro_context_t[7];
 
 #elif defined(__aarch64__)
 
-typedef sky_usize_t coro_context[22];
+typedef sky_usize_t coro_context_t[22];
 
 #endif
 
@@ -34,7 +40,7 @@ typedef sky_usize_t coro_context[22];
 typedef struct coro_block_s coro_block_t;
 
 struct sky_coro_s {
-    sky_coro_context_t context;
+    coro_context_t context;
     sky_usize_t yield_value;
 //===================================
     sky_coro_t *parent;
@@ -45,14 +51,7 @@ struct sky_coro_s {
     sky_uchar_t stack[];
 };
 
-
-void sky_coro_set(
-        sky_coro_t *coro,
-        sky_coro_func_t func,
-        void *data
-);
-
-void coro_swap_context(sky_coro_context_t *current, sky_coro_context_t *other);
+void coro_swap_context(coro_context_t *current, coro_context_t *other);
 
 void coro_entry_point(sky_coro_t *coro, sky_coro_func_t func, void *data);
 

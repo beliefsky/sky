@@ -1,9 +1,12 @@
 //
 // Created by weijing on 2024/5/6.
 //
+
+#if defined(__aarch64__)
+
 #include "./coro_common.h"
 
-#ifdef __aarch64__
+void __attribute__((visibility("internal"))) coro_entry_point_arm64();
 
 sky_inline void
 sky_coro_set(
@@ -11,13 +14,13 @@ sky_coro_set(
         sky_coro_func_t func,
         void *data
 ) {
-    const sky_usize_t rsp = (sky_usize_t) coro->stack + coro->stack_size;
+    const sky_usize_t stack = (sky_usize_t) coro->stack + coro->stack_size;
 
     coro->context[19/* x28 */] = (sky_usize_t) data;
     coro->context[0 /* x0  */] = (sky_usize_t) coro;
     coro->context[1 /* x1  */] = (sky_usize_t) func;
     coro->context[5 /* lr  */] = (sky_usize_t) coro_entry_point;
-    coro->context[4 /* RSP */] = rsp & ~SKY_USIZE(0xF);
+    coro->context[4 /* RSP */] = stack & ~SKY_USIZE(0xF);
 }
 
 asm(".text\n\t"
@@ -49,6 +52,13 @@ asm(".text\n\t"
     "ldp x0, x1, [x1, #(0*16)]\n\t"
     "mov sp, x10\n\t"
     "br x11\n\t");
+
+asm(".text\n\t"
+    ".p2align 5\n\t"
+    ASM_ROUTINE(coro_entry_point_arm64)
+    "mov x2, x28\n\t"
+    "bl " ASM_SYMBOL(coro_entry_point) "\n\t"
+);
 
 #endif
 
