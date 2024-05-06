@@ -25,8 +25,8 @@ sky_coro_set(
     args[2] = (sky_usize_t) func;
     args[3] = (sky_usize_t) data;
 
-    coro->context[5 /* EIP */] = (uintptr_t) coro_entry_point;
-    coro->context[6] = (uintptr_t) stack;
+    coro->context[5 /* EIP */] = (sky_usize_t) coro_entry_point;
+    coro->context[6] = stack;
 }
 
 
