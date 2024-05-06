@@ -31,7 +31,7 @@ sky_coro_set(
 
 
 asm(".text\n\t"
-    ".p2align 5\n\t"
+    ".p2align 4\n\t"
     ASM_ROUTINE(coro_swap_context)
     "movl   0x4(%esp),%eax\n\t"
     "movl   %ecx,0x1c(%eax)\n\t" /* ECX */

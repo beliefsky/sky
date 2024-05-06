@@ -24,7 +24,7 @@ sky_coro_set(
 }
 
 asm(".text\n\t"
-    ".p2align 5\n\t"
+    ".p2align 4\n\t"
     ASM_ROUTINE(coro_swap_context)
     "mov x10, sp\n\t"
     "mov x11, x30\n\t"
@@ -54,7 +54,7 @@ asm(".text\n\t"
     "br x11\n\t");
 
 asm(".text\n\t"
-    ".p2align 5\n\t"
+    ".p2align 4\n\t"
     ASM_ROUTINE(coro_entry_point_arm64)
     "mov x2, x28\n\t"
     "bl " ASM_SYMBOL(coro_entry_point) "\n\t"
