@@ -2,7 +2,7 @@
 // Created by beliefsky on 2023/7/22.
 //
 #include <io/sync_wait.h>
-#include <core/coro/coro.h>
+#include <core/coro.h>
 
 struct sky_sync_wait_s {
     sky_bool_t wait;

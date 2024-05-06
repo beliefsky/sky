@@ -2,6 +2,8 @@
 // Created by beliefsky on 18-3-12.
 //
 
+#if 0
+
 #include <stdlib.h>
 #include <core/coro.h>
 #include <core/memory.h>
@@ -365,3 +367,5 @@ mem_block_add(sky_coro_t *const coro) {
     coro->ptr = (sky_uchar_t *) (block + 1);
     coro->ptr_size = PAGE_SIZE - sizeof(coro_block_t);
 }
+
+#endif
