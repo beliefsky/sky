@@ -45,8 +45,8 @@ sky_pgsql_pool_create(sky_ev_loop_t *const ev_loop, const sky_pgsql_conf_t *cons
     pg_pool->ev_loop = ev_loop;
     pg_pool->conn_num = conn_num;
     pg_pool->free_conn_num = conn_num;
-    pg_pool->timeout = conf->timeout ?: 10;
-    pg_pool->keepalive = conf->keepalive ?: 120;
+    pg_pool->timeout = conf->timeout ?: 10000;
+    pg_pool->keepalive = conf->keepalive ?: 120000;
 
     ptr += sizeof(sky_pgsql_pool_t);
 
