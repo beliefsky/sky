@@ -73,6 +73,11 @@ sky_tcp_set_write_cb(sky_tcp_t *tcp, sky_tcp_cb_pt cb) {
     tcp->write_cb = cb;
 }
 
+sky_api sky_bool_t
+sky_tcp_error(const sky_tcp_t *tcp) {
+    return !!(tcp->ev.flags & TCP_STATUS_ERROR);
+}
+
 
 sky_api sky_bool_t
 sky_tcp_open(sky_tcp_t *tcp, sky_i32_t domain) {

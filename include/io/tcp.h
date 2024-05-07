@@ -62,6 +62,8 @@ struct sky_tcp_s {
 
 void sky_tcp_init(sky_tcp_t *tcp, sky_ev_loop_t *ev_loop);
 
+sky_bool_t sky_tcp_error(const sky_tcp_t *tcp);
+
 void sky_tcp_set_read_cb(sky_tcp_t *tcp, sky_tcp_cb_pt cb);
 
 void sky_tcp_set_write_cb(sky_tcp_t *tcp, sky_tcp_cb_pt cb);

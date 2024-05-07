@@ -33,6 +33,12 @@ sky_tcp_init(sky_tcp_t *tcp, sky_ev_loop_t *ev_loop) {
     tcp->write_cb = null;
 }
 
+sky_api sky_bool_t
+sky_tcp_error(const sky_tcp_t *tcp) {
+    return !!(tcp->ev.flags & TCP_STATUS_ERROR);
+}
+
+
 sky_api void
 sky_tcp_set_read_cb(sky_tcp_t *tcp, sky_tcp_cb_pt cb) {
     tcp->read_cb = cb;
