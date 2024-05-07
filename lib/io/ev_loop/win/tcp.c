@@ -385,24 +385,29 @@ sky_tcp_write_vec(sky_tcp_t *tcp, const sky_io_vec_t *vec, sky_u32_t num) {
     return ((tcp->ev.flags & TCP_STATUS_WRITING) || do_write(tcp) != SKY_U32_MAX) ? write_n : SKY_USIZE_MAX;
 }
 
-sky_api sky_bool_t
+sky_api void
 sky_tcp_close(sky_tcp_t *tcp, sky_tcp_close_pt cb) {
-    if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE || (tcp->ev.flags & TCP_STATUS_CLOSING))) {
-        return false;
-    }
     tcp->ev.cb = (sky_ev_pt) cb;
+
+    if (tcp->ev.fd == SKY_SOCKET_FD_NONE) {
+        sky_ev_loop_t *const ev_loop = tcp->ev.ev_loop;
+        *ev_loop->pending_tail = &tcp->ev;
+        ev_loop->pending_tail = &tcp->ev.next;
+        return;
+    }
+    if (sky_unlikely((tcp->ev.flags & TCP_STATUS_CLOSING))) {
+        return;
+    }
 
     if (!(tcp->ev.flags & (TCP_STATUS_READING | TCP_STATUS_WRITING))) {
         do_close(tcp);
-        return true;
+        return;
     }
     if ((tcp->ev.flags & TCP_STATUS_READING)) {
         CancelIoEx((HANDLE) tcp->ev.fd, &tcp->in_req.overlapped);
     }
     tcp->ev.flags &= ~TCP_STATUS_CONNECTED;
     tcp->ev.flags |= TCP_STATUS_CLOSING;
-
-    return true;
 }
 
 

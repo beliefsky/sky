@@ -88,7 +88,7 @@ sky_usize_t sky_tcp_write(sky_tcp_t *tcp, const sky_uchar_t *buf, sky_usize_t si
 
 sky_usize_t sky_tcp_write_vec(sky_tcp_t *tcp, const sky_io_vec_t *vec, sky_u32_t num);
 
-sky_bool_t sky_tcp_close(sky_tcp_t *tcp, sky_tcp_cb_pt cb);
+void sky_tcp_close(sky_tcp_t *tcp, sky_tcp_cb_pt cb);
 
 static sky_inline sky_bool_t
 sky_tcp_is_open(sky_tcp_t *tcp) {

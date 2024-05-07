@@ -300,19 +300,18 @@ sky_tcp_write_vec(sky_tcp_t *tcp, const sky_io_vec_t *vec, sky_u32_t num) {
 }
 
 
-sky_api sky_bool_t
+sky_api void
 sky_tcp_close(sky_tcp_t *tcp, sky_tcp_close_pt cb) {
+    tcp->ev.cb = (sky_ev_pt) cb;
     if (sky_unlikely(tcp->ev.fd == SKY_SOCKET_FD_NONE)) {
-        return false;
+        event_close_add(&tcp->ev);
+        return;
     }
     close(tcp->ev.fd);
     tcp->ev.fd = SKY_SOCKET_FD_NONE;
     tcp->ev.flags = 0;
-    tcp->ev.cb = (sky_ev_pt) cb;
 
     event_close_add(&tcp->ev);
-
-    return true;
 }
 
 void

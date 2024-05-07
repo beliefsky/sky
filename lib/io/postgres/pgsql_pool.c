@@ -20,6 +20,8 @@ static void pgsql_task_next(sky_timer_wheel_entry_t *timer);
 
 static void pgsql_keepalive_on_close(sky_tcp_t *tcp);
 
+static void pgsql_destroy_on_close(sky_tcp_t *tcp);
+
 sky_api sky_pgsql_pool_t *
 sky_pgsql_pool_create(sky_ev_loop_t *const ev_loop, const sky_pgsql_conf_t *const conf) {
     const sky_u16_t conn_num = conf->connection_size ?: 8;
@@ -131,7 +133,7 @@ sky_pgsql_conn_release(sky_pgsql_conn_t *const conn) {
 
         ++pg_pool->free_conn_num;
 
-        if (sky_unlikely(pg_pool->destroy && pg_pool->free_conn_num >= pg_pool->conn_num)) {
+        if (pg_pool->destroy && pg_pool->free_conn_num == pg_pool->conn_num) {
             pgsql_pool_destroy(pg_pool);
         }
         return;
@@ -145,7 +147,7 @@ sky_api void
 sky_pgsql_pool_destroy(sky_pgsql_pool_t *const pg_pool) {
     pg_pool->destroy = true;
 
-    if (pg_pool->free_conn_num >= pg_pool->conn_num) {
+    if (pg_pool->free_conn_num == pg_pool->conn_num) {
         pgsql_pool_destroy(pg_pool);
     }
 }
@@ -195,17 +197,17 @@ pgsql_on_connect(sky_tcp_t *const tcp, sky_bool_t success) {
 static void
 pgsql_pool_destroy(sky_pgsql_pool_t *const pg_pool) {
     sky_pgsql_conn_t *conn = (sky_pgsql_conn_t *) (pg_pool + 1);
+    pg_pool->free_conn_num = 0;
     for (sky_u32_t i = pg_pool->conn_num; i > 0; --i, ++conn) {
         sky_timer_wheel_unlink(&conn->timer);
-//        sky_tcp_close(&conn->tcp);
+        sky_tcp_close(&conn->tcp, pgsql_destroy_on_close);
     }
-
-    sky_free(pg_pool);
 }
 
 static void
 pgsql_conn_keepalive_timeout(sky_timer_wheel_entry_t *const timer) {
     sky_pgsql_conn_t *const conn = sky_type_convert(timer, sky_pgsql_conn_t, timer);
+    --conn->pg_pool->free_conn_num;
     sky_queue_remove(&conn->link); // 从free conn中移除,正在关闭中
     sky_tcp_close(&conn->tcp, pgsql_keepalive_on_close);
 }
@@ -229,7 +231,7 @@ pgsql_task_next(sky_timer_wheel_entry_t *const timer) {
 
         ++pg_pool->free_conn_num;
 
-        if (sky_unlikely(pg_pool->destroy && pg_pool->free_conn_num >= pg_pool->conn_num)) {
+        if (sky_unlikely(pg_pool->destroy && pg_pool->free_conn_num == pg_pool->conn_num)) {
             pgsql_pool_destroy(pg_pool);
         }
         return;
@@ -248,4 +250,14 @@ static void
 pgsql_keepalive_on_close(sky_tcp_t *tcp) {
     sky_pgsql_conn_t *const conn = sky_type_convert(tcp, sky_pgsql_conn_t, tcp);
     sky_pgsql_conn_release(conn); // 重新加入free conn中或在有任务列队时执行任务
+}
+
+static void
+pgsql_destroy_on_close(sky_tcp_t *tcp) {
+    sky_pgsql_conn_t *const conn = sky_type_convert(tcp, sky_pgsql_conn_t, tcp);
+    sky_pgsql_pool_t *pg_pool = conn->pg_pool;
+    ++pg_pool->free_conn_num;
+    if (pg_pool->free_conn_num == pg_pool->conn_num) { //所有连接均关闭时才销毁连接池
+        sky_free(pg_pool);
+    }
 }
