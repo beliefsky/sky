@@ -6,8 +6,6 @@
 
 #include "./coro_common.h"
 
-void __attribute__((visibility("internal"))) coro_entry_point_arm64();
-
 sky_inline void
 sky_coro_set(
         sky_coro_t *coro,
@@ -51,14 +49,8 @@ asm(".text\n\t"
     "ldp x29, x30, [x1, #(10*16)]\n\t"
     "ldp x0, x1, [x1, #(0*16)]\n\t"
     "mov sp, x10\n\t"
-    "br x11\n\t");
-
-asm(".text\n\t"
-    ".p2align 4\n\t"
-    ASM_ROUTINE(coro_entry_point_arm64)
     "mov x2, x28\n\t"
-    "bl " ASM_SYMBOL(coro_entry_point) "\n\t"
-);
+    "br x11\n\t");
 
 #endif
 
