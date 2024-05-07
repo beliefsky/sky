@@ -25,8 +25,8 @@ sky_http_server_create(sky_ev_loop_t *ev_loop, const sky_http_server_conf_t *con
 
     if (!conf) {
         server->body_str_max = SKY_USIZE(1048576);
-        server->keep_alive = SKY_U32(75);
-        server->timeout = SKY_U32(30);
+        server->keep_alive = SKY_U32(75000);
+        server->timeout = SKY_U32(30000);
         server->header_buf_size = SKY_U32(2048);
         server->header_buf_n = SKY_U8(4);
     } else {

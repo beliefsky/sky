@@ -50,6 +50,7 @@ http_server_request_process(sky_http_connection_t *const conn) {
     sky_pool_t *const pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
     http_server_request_set(conn, pool, conn->server->header_buf_size);
 
+    sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
     sky_tcp_set_read_cb(&conn->tcp, http_line_cb);
     http_line_cb(&conn->tcp);
 }
@@ -78,11 +79,13 @@ http_line_next(sky_http_connection_t *const conn, sky_http_server_request_t *con
         return;
     }
     if (sky_unlikely(i < 0)) {
-        goto error;
+        http_conn_close(conn);
+        return;
     }
     if (sky_unlikely(buf->last == buf->end)) {
         if (sky_unlikely(--conn->free_buf_n == 0)) {
-            goto error;
+            http_conn_close(conn);
+            return;
         }
         if (r->req_pos) {
             const sky_u32_t n = (sky_u32_t) (buf->pos - r->req_pos);
@@ -96,10 +99,6 @@ http_line_next(sky_http_connection_t *const conn, sky_http_server_request_t *con
     }
     sky_tcp_set_read_cb(&conn->tcp, http_header_read);
     http_header_read(&conn->tcp);
-    return;
-
-    error:
-    http_conn_close(conn);
 }
 
 static void
@@ -117,6 +116,7 @@ http_line_cb(sky_tcp_t *const tcp) {
             break;
         }
         if (!n) {
+            sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
             return;
         }
         buf->last += n;
@@ -129,7 +129,6 @@ http_line_cb(sky_tcp_t *const tcp) {
             break;
         }
     }
-
     http_conn_close(conn);
 }
 
@@ -149,6 +148,7 @@ http_header_read(sky_tcp_t *const tcp) {
             break;
         }
         if (!n) {
+            sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
             return;
         }
         buf->last += n;
@@ -247,6 +247,7 @@ http_server_request_next(sky_timer_wheel_entry_t *const timer) {
         sky_pool_t *const pool = r->pool;
         sky_pool_reset(pool);
         http_server_request_set(conn, pool, conn->server->header_buf_size);
+        sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->keep_alive);
         sky_tcp_set_read_cb(&conn->tcp, http_line_cb);
         http_line_cb(&conn->tcp);
         return;
@@ -258,6 +259,7 @@ http_server_request_next(sky_timer_wheel_entry_t *const timer) {
 
     sky_pool_t *const pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
     http_server_request_set(conn, pool, buf_size);
+    sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
     sky_memcpy(conn->buf->pos, old_buf->pos, read_n);
     conn->buf->last += read_n;
     sky_pool_destroy(r->pool);
@@ -271,14 +273,11 @@ http_server_request_next(sky_timer_wheel_entry_t *const timer) {
         return;
     }
     if (sky_unlikely(i < 0 || buf->last >= buf->end)) {
-        goto error;
+        http_conn_close(conn);
+        return;
     }
     sky_tcp_set_read_cb(&conn->tcp, http_line_cb);
     http_line_cb(&conn->tcp);
-    return;
-
-    error:
-    http_conn_close(conn);
 }
 
 static sky_inline void
