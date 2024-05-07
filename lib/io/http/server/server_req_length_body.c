@@ -52,6 +52,7 @@ http_req_length_body_none(
     }
 
     sky_timer_set_cb(&conn->timer, http_read_body_none_timeout);
+    sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
     conn->next_cb = call;
     conn->cb_data = data;
     sky_tcp_set_read_cb(&conn->tcp, http_body_read_none);
@@ -95,6 +96,7 @@ http_req_length_body_str(
     r->headers_in.content_length_n = size - read_n;
 
     sky_timer_set_cb(&conn->timer, http_read_body_str_timeout);
+    sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
     conn->next_str_cb = call;
     conn->cb_data = data;
     sky_tcp_set_read_cb(&conn->tcp, http_body_read_str);
@@ -245,6 +247,7 @@ http_read_body_none_timeout(sky_timer_wheel_entry_t *const entry) {
     sky_buf_rebuild(conn->buf, 0);
     req->headers_in.content_length_n = 0;
     req->error = true;
+    sky_tcp_set_read_cb(&conn->tcp, null);
     conn->next_cb(req, conn->cb_data);
 }
 
@@ -256,6 +259,7 @@ http_read_body_str_timeout(sky_timer_wheel_entry_t *const entry) {
     sky_buf_rebuild(conn->buf, 0);
     req->headers_in.content_length_n = 0;
     req->error = true;
+    sky_tcp_set_read_cb(&conn->tcp, null);
     conn->next_str_cb(req, null, conn->cb_data);
 }
 
@@ -267,6 +271,7 @@ http_read_body_cb_timeout(sky_timer_wheel_entry_t *const entry) {
     sky_buf_rebuild(conn->buf, 0);
     req->headers_in.content_length_n = 0;
     req->error = true;
+    sky_tcp_set_read_cb(&conn->tcp, null);
     conn->next_read_cb(req, null, 0, conn->cb_data);
 }
 
