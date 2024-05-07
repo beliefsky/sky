@@ -35,6 +35,8 @@ struct sky_ev_loop_s {
     sky_timer_wheel_t *timer_ctx;
     sky_ev_t *pending;
     sky_ev_t **pending_tail;
+    struct timeval current_time;
+    sky_u64_t current_step;
     OVERLAPPED_ENTRY sys_evs[];
 };
 

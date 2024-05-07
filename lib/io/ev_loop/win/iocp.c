@@ -8,11 +8,16 @@
 
 #include <handleapi.h>
 #include <windows.h>
+#include <sys/time.h>
 
 
 #define IOCP_EVENT_NUM 1024
 
 static DWORD run_pending(sky_ev_loop_t *ev_loop);
+
+static void init_time(sky_ev_loop_t *ev_loop);
+
+static void update_time(sky_ev_loop_t *ev_loop);
 
 sky_api sky_ev_loop_t *
 sky_ev_loop_create() {
@@ -32,6 +37,8 @@ sky_ev_loop_create() {
     ev_loop->timer_ctx = sky_timer_wheel_create(0);
     ev_loop->pending = null;
     ev_loop->pending_tail = &ev_loop->pending;
+
+    init_time(ev_loop);
 
     return ev_loop;
 }
@@ -54,13 +61,17 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
     sky_ev_req_t *req;
     sky_ev_t *ev;
 
+    update_time(ev_loop);
     for (;;) {
         timeout = run_pending(ev_loop);
         if (GetQueuedCompletionStatus(ev_loop->iocp, &bytes, &key, &pov, timeout)) {
+            update_time(ev_loop);
+
             ev = (sky_ev_t *) key;
             req = (sky_ev_req_t *) pov;
             EVENT_TABLES[req->type](ev, bytes, true);
         } else {
+            update_time(ev_loop);
             if (GetLastError() == WAIT_TIMEOUT) {
                 continue;
             }
@@ -83,10 +94,12 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
                     false
             )) {
                 if (sky_likely(GetLastError() == WAIT_TIMEOUT)) {
+                    update_time(ev_loop);
                     break;
                 }
                 return;
             }
+            update_time(ev_loop);
             if (!n) {
                 break;
             }
@@ -109,6 +122,11 @@ sky_ev_loop_stop(sky_ev_loop_t *ev_loop) {
     sky_free(ev_loop);
 }
 
+sky_api sky_inline sky_i64_t
+sky_ev_now_sec(sky_ev_loop_t *ev_loop) {
+    return ev_loop->current_time.tv_sec;
+}
+
 sky_api sky_inline void
 sky_ev_timeout_init(sky_ev_loop_t *ev_loop, sky_timer_wheel_entry_t *timer, sky_timer_wheel_pt cb) {
     sky_timer_entry_init(timer, ev_loop->timer_ctx, cb);
@@ -116,7 +134,7 @@ sky_ev_timeout_init(sky_ev_loop_t *ev_loop, sky_timer_wheel_entry_t *timer, sky_
 
 sky_api sky_inline void
 sky_event_timeout_set(sky_ev_loop_t *ev_loop, sky_timer_wheel_entry_t *timer, sky_u32_t timeout) {
-
+    sky_timer_wheel_link(timer, ev_loop->current_step + timeout);
 }
 
 
@@ -145,6 +163,22 @@ run_pending(sky_ev_loop_t *ev_loop) {
     } while (!next_time); //有可能定时立即返回，减少系统调用，知道有具体超时时间为止
 
     return next_time == SKY_U64_MAX ? INFINITE : (DWORD) next_time;
+}
+
+static void
+init_time(sky_ev_loop_t *ev_loop) {
+    ev_loop->current_step = 0;
+    gettimeofday(&ev_loop->current_time, null);
+}
+
+static void
+update_time(sky_ev_loop_t *ev_loop) {
+    struct timeval current;
+    gettimeofday(&current, null);
+    ev_loop->current_step += (sky_u64_t) ((current.tv_sec - ev_loop->current_time.tv_sec) * 1000)
+                             + (sky_u64_t) ((current.tv_usec - ev_loop->current_time.tv_usec) / 1000);
+
+    ev_loop->current_time = current;
 }
 
 #endif

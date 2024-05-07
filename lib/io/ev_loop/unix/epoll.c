@@ -63,6 +63,7 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
     sky_i32_t n;
     sky_u64_t next_time;
 
+    update_time(ev_loop);
     for (;;) {
         sky_timer_wheel_run(ev_loop->timer_ctx, ev_loop->current_step);
         event_on_status(ev_loop);
