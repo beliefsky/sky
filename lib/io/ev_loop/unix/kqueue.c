@@ -36,6 +36,7 @@ sky_ev_loop_create() {
     ev_loop->status_queue = null;
     ev_loop->status_queue_tail = &ev_loop->status_queue;
     ev_loop->event_n = 0;
+    init_time(ev_loop);
 
     return ev_loop;
 }
@@ -70,7 +71,7 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
 
 
     for (;;) {
-        sky_timer_wheel_run(ev_loop->timer_ctx, 0);
+        sky_timer_wheel_run(ev_loop->timer_ctx, ev_loop->current_step);
         event_on_status(ev_loop);
         next_time = sky_timer_wheel_timeout(ev_loop->timer_ctx);
         if(next_time == SKY_U64_MAX) {
@@ -93,6 +94,7 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
         }
         ev_loop->event_n = 0;
 
+        update_time(ev_loop);
         if (n) {
             event = ev_loop->sys_evs + ev_loop->max_event;
             do {

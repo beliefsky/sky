@@ -22,7 +22,7 @@
 
 sky_api sky_inline sky_i64_t
 sky_ev_now_sec(sky_ev_loop_t *ev_loop) {
-    return time(null);
+    return ev_loop->current_time.tv_sec;
 }
 
 sky_api sky_inline void
@@ -90,6 +90,22 @@ setup_open_file_count_limits() {
         }
     }
     return (sky_i32_t) r.rlim_cur;
+}
+
+void
+init_time(sky_ev_loop_t *ev_loop) {
+    ev_loop->current_step = 0;
+    gettimeofday(&ev_loop->current_time, null);
+}
+
+void
+update_time(sky_ev_loop_t *ev_loop) {
+    struct timeval current;
+    gettimeofday(&current, null);
+    ev_loop->current_step += (sky_u64_t) ((current.tv_sec - ev_loop->current_time.tv_sec) * 1000)
+                             + (sky_u64_t) ((current.tv_usec - ev_loop->current_time.tv_usec) / 1000);
+
+    ev_loop->current_time = current;
 }
 
 #endif

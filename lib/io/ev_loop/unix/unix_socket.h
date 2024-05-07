@@ -45,6 +45,7 @@
 struct sky_ev_loop_s {
     sky_i32_t fd;
     sky_i32_t max_event;
+    struct timeval current_time;
     sky_timer_wheel_t *timer_ctx;
     sky_ev_t *status_queue;
     sky_ev_t **status_queue_tail;
@@ -63,6 +64,10 @@ struct sky_ev_loop_s {
 sky_bool_t set_socket_nonblock(sky_socket_t fd);
 
 sky_i32_t setup_open_file_count_limits();
+
+void init_time(sky_ev_loop_t *ev_loop);
+
+void update_time(sky_ev_loop_t *ev_loop);
 
 static sky_inline void
 event_add(sky_ev_t *ev, sky_u32_t events) {
