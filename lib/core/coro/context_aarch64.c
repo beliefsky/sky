@@ -50,7 +50,8 @@ asm(".text\n\t"
     "ldp x0, x1, [x1, #(0*16)]\n\t"
     "mov sp, x10\n\t"
     "mov x2, x28\n\t"
-    "br x11\n\t");
+    "br x11\n\t"
+);
 
 #endif
 
