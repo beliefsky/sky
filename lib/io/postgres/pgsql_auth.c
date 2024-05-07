@@ -89,7 +89,7 @@ pgsql_auth_read(sky_tcp_t *const tcp) {
 
     read_again:
     n = sky_tcp_read(tcp, buf->last, (sky_usize_t) (buf->end - buf->last));
-    if (n == SKY_TCP_EOF) {
+    if (n == SKY_IO_EOF) {
         goto error;
     }
     if (!n) {

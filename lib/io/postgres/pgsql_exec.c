@@ -225,7 +225,7 @@ pgsql_exec_read(sky_tcp_t *const tcp) {
 
     do {
         n = sky_tcp_read(tcp, buf->last, (sky_u32_t) (buf->end - buf->last));
-        if (n == SKY_TCP_EOF) {
+        if (n == SKY_IO_EOF) {
             goto error;
         }
         if (!n) {

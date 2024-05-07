@@ -17,8 +17,6 @@
 extern "C" {
 #endif
 
-#define SKY_TCP_EOF SKY_USIZE_MAX
-
 typedef struct sky_tcp_s sky_tcp_t;
 typedef struct sky_tcp_accept_s sky_tcp_accept_t;
 

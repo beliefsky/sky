@@ -112,7 +112,7 @@ http_line_cb(sky_tcp_t *const tcp) {
 
     for (;;) {
         n = sky_tcp_read(&conn->tcp, buf->last, (sky_usize_t) (buf->end - buf->last));
-        if (sky_unlikely(n == SKY_TCP_EOF)) {
+        if (sky_unlikely(n == SKY_IO_EOF)) {
             break;
         }
         if (!n) {
@@ -143,7 +143,7 @@ http_header_read(sky_tcp_t *const tcp) {
 
     for (;;) {
         n = sky_tcp_read(&conn->tcp, buf->last, (sky_usize_t) (buf->end - buf->last));
-        if (sky_unlikely(n == SKY_TCP_EOF)) {
+        if (sky_unlikely(n == SKY_IO_EOF)) {
             break;
         }
         if (!n) {

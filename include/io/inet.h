@@ -12,6 +12,8 @@
 extern "C" {
 #endif
 
+#define SKY_IO_EOF SKY_USIZE_MAX
+
 #if SKY_ENDIAN == SKY_LITTLE_ENDIAN
 #define sky_htons(_s)   sky_swap_u16(_s)
 #define sky_ntohs(_s)   sky_swap_u16(_s)

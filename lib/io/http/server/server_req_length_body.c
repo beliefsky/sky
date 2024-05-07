@@ -148,7 +148,7 @@ http_body_read_none(sky_tcp_t *const tcp) {
 
     for (;;) {
         n = sky_tcp_skip(tcp, req->headers_in.content_length_n);
-        if (n == SKY_TCP_EOF) {
+        if (n == SKY_IO_EOF) {
             req->error = true;
             req->headers_in.content_length_n = 0;
             break;
@@ -177,7 +177,7 @@ http_body_read_str(sky_tcp_t *const tcp) {
 
     for (;;) {
         n = sky_tcp_read(tcp, buf->last, req->headers_in.content_length_n);
-        if (n == SKY_TCP_EOF) {
+        if (n == SKY_IO_EOF) {
             req->headers_in.content_length_n = 0;
             req->error = true;
 
@@ -218,7 +218,7 @@ http_body_read_cb(sky_tcp_t *const tcp) {
 
     for (;;) {
         n = sky_tcp_read(tcp, buf->pos, sky_min(free_n, req->headers_in.content_length_n));
-        if (n == SKY_TCP_EOF) {
+        if (n == SKY_IO_EOF) {
             req->headers_in.content_length_n = 0;
             req->error = true;
             break;
