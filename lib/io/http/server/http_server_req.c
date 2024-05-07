@@ -116,7 +116,6 @@ http_line_cb(sky_tcp_t *const tcp) {
             break;
         }
         if (!n) {
-            sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
             return;
         }
         buf->last += n;
@@ -148,7 +147,6 @@ http_header_read(sky_tcp_t *const tcp) {
             break;
         }
         if (!n) {
-            sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
             return;
         }
         buf->last += n;
