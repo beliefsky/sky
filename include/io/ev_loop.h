@@ -51,6 +51,8 @@ void sky_ev_loop_run(sky_ev_loop_t *ev_loop);
 
 void sky_ev_loop_stop(sky_ev_loop_t *ev_loop);
 
+sky_i64_t sky_ev_now_sec(sky_ev_loop_t *ev_loop);
+
 void sky_ev_timeout_init(sky_ev_loop_t *ev_loop, sky_timer_wheel_entry_t *timer, sky_timer_wheel_pt cb);
 
 void sky_event_timeout_set(sky_ev_loop_t *ev_loop, sky_timer_wheel_entry_t *timer, sky_u32_t timeout);

@@ -48,6 +48,7 @@ struct sky_ev_loop_s {
     sky_timer_wheel_t *timer_ctx;
     sky_ev_t *status_queue;
     sky_ev_t **status_queue_tail;
+    sky_u64_t current_step;
 
 #ifdef EVENT_USE_EPOLL
     struct epoll_event sys_evs[];

@@ -5,7 +5,6 @@
 #ifndef SKY_SKY_DATE_H
 #define SKY_SKY_DATE_H
 
-#include <time.h>
 #include "./string.h"
 
 #if defined(__cplusplus)
@@ -20,9 +19,9 @@ extern "C" {
  */
 sky_u8_t sky_time_to_str(sky_u32_t secs, sky_uchar_t *out);
 
-sky_bool_t sky_rfc_str_to_date(const sky_str_t *in, time_t *out);
+sky_bool_t sky_rfc_str_to_date(const sky_str_t *in, sky_i64_t *out);
 
-sky_u8_t sky_date_to_rfc_str(time_t time, sky_uchar_t *src);
+sky_u8_t sky_date_to_rfc_str(sky_i64_t time, sky_uchar_t *src);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

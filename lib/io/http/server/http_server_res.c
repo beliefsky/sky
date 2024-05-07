@@ -249,14 +249,15 @@ http_header_write_pre(sky_http_server_request_t *const r, sky_str_buf_t *const b
     }
     sky_str_buf_append_str_len(buf, sky_str_line("Date: "));
 
-    const sky_i64_t now = time(null);
+    sky_http_server_t *const server = r->conn->server;
+    const sky_i64_t now = sky_ev_now_sec(server->ev_loop);
 
-    if (now > r->conn->server->rfc_last) {
-        sky_date_to_rfc_str(now, r->conn->server->rfc_date);
-        r->conn->server->rfc_last = now;
+    if (now > server->rfc_last) {
+        sky_date_to_rfc_str(now, server->rfc_date);
+        server->rfc_last = now;
     }
 
-    sky_str_buf_append_str_len(buf, r->conn->server->rfc_date, 29);
+    sky_str_buf_append_str_len(buf, server->rfc_date, 29);
 
     if (r->headers_out.content_type.len) {
         sky_str_buf_append_str_len(buf, sky_str_line("\r\nContent-Type: "));

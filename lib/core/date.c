@@ -46,7 +46,7 @@ sky_time_to_str(const sky_u32_t secs, sky_uchar_t *const out) {
 
 
 sky_api sky_bool_t
-sky_rfc_str_to_date(const sky_str_t *const in, time_t *const out) {
+sky_rfc_str_to_date(const sky_str_t *const in, sky_i64_t *const out) {
     struct tm tm;
 
     if (sky_unlikely(in->len != 29)) {

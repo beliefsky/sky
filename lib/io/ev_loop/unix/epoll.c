@@ -107,16 +107,6 @@ sky_ev_loop_stop(sky_ev_loop_t *ev_loop) {
     sky_free(ev_loop);
 }
 
-sky_api sky_inline void
-sky_ev_timeout_init(sky_ev_loop_t *ev_loop, sky_timer_wheel_entry_t *timer, sky_timer_wheel_pt cb) {
-    sky_timer_entry_init(timer, ev_loop->timer_ctx, cb);
-}
-
-sky_api sky_inline void
-sky_event_timeout_set(sky_ev_loop_t *ev_loop, sky_timer_wheel_entry_t *timer, sky_u32_t timeout) {
-
-}
-
 static void
 event_on_status(sky_ev_loop_t *ev_loop) {
     sky_ev_t *ev = ev_loop->status_queue;

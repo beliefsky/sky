@@ -9,6 +9,7 @@
 #include <sys/fcntl.h>
 #include <sys/resource.h>
 #include <core/log.h>
+#include <sys/time.h>
 
 #ifndef OPEN_MAX
 #ifdef NOFILE
@@ -17,6 +18,22 @@
 #define OPEN_MAX 65535
 #endif
 #endif
+
+
+sky_api sky_inline sky_i64_t
+sky_ev_now_sec(sky_ev_loop_t *ev_loop) {
+    return time(null);
+}
+
+sky_api sky_inline void
+sky_ev_timeout_init(sky_ev_loop_t *ev_loop, sky_timer_wheel_entry_t *timer, sky_timer_wheel_pt cb) {
+    sky_timer_entry_init(timer, ev_loop->timer_ctx, cb);
+}
+
+sky_api sky_inline void
+sky_event_timeout_set(sky_ev_loop_t *ev_loop, sky_timer_wheel_entry_t *timer, sky_u32_t timeout) {
+    sky_timer_wheel_link(timer, ev_loop->current_step + timeout);
+}
 
 sky_bool_t
 set_socket_nonblock(sky_socket_t fd) {
