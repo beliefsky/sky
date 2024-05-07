@@ -18,6 +18,8 @@ static void pgsql_connect_timeout(sky_timer_wheel_entry_t *timer);
 
 static void pgsql_task_next(sky_timer_wheel_entry_t *timer);
 
+static void pgsql_keepalive_on_close(sky_tcp_t *tcp);
+
 sky_api sky_pgsql_pool_t *
 sky_pgsql_pool_create(sky_ev_loop_t *const ev_loop, const sky_pgsql_conf_t *const conf) {
     const sky_u16_t conn_num = conf->connection_size ?: 8;
@@ -148,6 +150,16 @@ sky_pgsql_pool_destroy(sky_pgsql_pool_t *const pg_pool) {
     }
 }
 
+sky_inline void
+pgsql_connect_on_close(sky_tcp_t *tcp) {
+    sky_pgsql_conn_t *const conn = sky_type_convert(tcp, sky_pgsql_conn_t, tcp);
+
+    const sky_pgsql_conn_pt call = conn->conn_cb;
+    void *const cb_data = conn->cb_data;
+    sky_pgsql_conn_release(conn);
+    call(null, cb_data);
+}
+
 static sky_inline void
 pgsql_connect_next(sky_pgsql_conn_t *const conn) {
     sky_pgsql_pool_t *const pg_pool = conn->pg_pool;
@@ -194,7 +206,8 @@ pgsql_pool_destroy(sky_pgsql_pool_t *const pg_pool) {
 static void
 pgsql_conn_keepalive_timeout(sky_timer_wheel_entry_t *const timer) {
     sky_pgsql_conn_t *const conn = sky_type_convert(timer, sky_pgsql_conn_t, timer);
-//    sky_tcp_close(&conn->tcp);
+    sky_queue_remove(&conn->link); // 从free conn中移除,正在关闭中
+    sky_tcp_close(&conn->tcp, pgsql_keepalive_on_close);
 }
 
 static void
@@ -231,12 +244,8 @@ pgsql_task_next(sky_timer_wheel_entry_t *const timer) {
     pgsql_connect_next(conn);
 }
 
-sky_inline void
-pgsql_connect_on_close(sky_tcp_t *tcp) {
+static void
+pgsql_keepalive_on_close(sky_tcp_t *tcp) {
     sky_pgsql_conn_t *const conn = sky_type_convert(tcp, sky_pgsql_conn_t, tcp);
-
-    const sky_pgsql_conn_pt call = conn->conn_cb;
-    void *const cb_data = conn->cb_data;
-    sky_pgsql_conn_release(conn);
-    call(null, cb_data);
+    sky_pgsql_conn_release(conn); // 重新加入free conn中或在有任务列队时执行任务
 }
