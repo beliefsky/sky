@@ -14,7 +14,6 @@
 #include <netinet/in.h>
 #include <sys/errno.h>
 #include <unistd.h>
-#include <core/log.h>
 
 #define TCP_STATUS_READ         SKY_U32(0x00000100)
 #define TCP_STATUS_WRITE        SKY_U32(0x00000200)

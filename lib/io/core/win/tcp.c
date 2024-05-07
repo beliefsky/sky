@@ -8,7 +8,6 @@
 #include <io/tcp.h>
 #include <winsock2.h>
 #include <mswsock.h>
-#include <core/log.h>
 #include <ws2ipdef.h>
 
 #define TCP_STATUS_BIND         SKY_U32(0x01000000)
@@ -227,8 +226,6 @@ sky_tcp_connect(sky_tcp_t *tcp, const sky_inet_address_t *address, sky_tcp_conne
         return true;
     }
     tcp->ev.flags |= TCP_STATUS_ERROR;
-
-    sky_log_error("connect: status(false), error(%lu)", GetLastError());
     return false;
 }
 
@@ -559,8 +556,6 @@ do_accept(sky_tcp_t *tcp) {
     tcp->ev.flags |= TCP_STATUS_ERROR;
     tcp->accept_buf->accept_fd = SKY_SOCKET_FD_NONE;
 
-    sky_log_error("accept: status(false), error(%lu)", GetLastError());
-
     return false;
 }
 
@@ -606,7 +601,6 @@ do_read(sky_tcp_t *tcp) {
         return 0;
     }
     tcp->ev.flags |= TCP_STATUS_ERROR;
-    sky_log_error("read: status(false), error(%lu)", GetLastError());
 
     return SKY_U32_MAX;
 }
@@ -648,7 +642,7 @@ do_write(sky_tcp_t *tcp) {
     }
 
     tcp->ev.flags |= TCP_STATUS_ERROR;
-    sky_log_error("write: status(false), error(%lu)", GetLastError()); //    WSAEINVAL
+    //    WSAEINVAL
     return SKY_U32_MAX;
 }
 
