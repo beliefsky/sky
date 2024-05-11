@@ -10,7 +10,7 @@
 #include <sys/errno.h>
 #include <core/log.h>
 
-static void event_on_status(sky_ev_loop_t *ev_loop, const sky_ev_pt event_tables[][4]);
+static void event_on_status(sky_ev_loop_t *ev_loop, const on_event_pt event_tables[][4]);
 
 sky_api sky_ev_loop_t *
 sky_ev_loop_create() {
@@ -43,7 +43,7 @@ sky_ev_loop_create() {
 
 sky_api void
 sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
-    static const sky_ev_pt EVENT_TABLES[][4] = {
+    static const on_event_pt EVENT_TABLES[][4] = {
             [EV_TYPE_TCP_SER] = {
                     event_on_tcp_ser_error,
                     null,
@@ -114,7 +114,7 @@ sky_ev_loop_stop(sky_ev_loop_t *ev_loop) {
 }
 
 static void
-event_on_status(sky_ev_loop_t *ev_loop, const sky_ev_pt event_tables[][4]) {
+event_on_status(sky_ev_loop_t *ev_loop, const on_event_pt event_tables[][4]) {
     sky_ev_t *ev = ev_loop->status_queue;
     if (!ev) {
         return;

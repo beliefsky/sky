@@ -85,8 +85,7 @@ sky_tcp_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_tcp_accept_pt cb) {
             return result;
         }
         event_add(&ser->ev, EV_REG_IN);
-    }
-    if ((ser->w_idx - ser->r_idx) == SKY_TCP_ACCEPT_QUEUE_NUM) {
+    } else if ((ser->w_idx - ser->r_idx) == SKY_TCP_ACCEPT_QUEUE_NUM) {
         return REQ_QUEUE_FULL;
     }
 
@@ -102,7 +101,7 @@ sky_tcp_ser_close(sky_tcp_ser_t *ser, sky_tcp_ser_cb_pt cb) {
     if (sky_unlikely(ser->ev.fd == SKY_SOCKET_FD_NONE)) {
         return false;
     }
-    ser->ev.cb = (sky_ev_pt) cb;
+    ser->close_cb = cb;
     close(ser->ev.fd);
     ser->ev.fd = SKY_SOCKET_FD_NONE;
     ser->ev.flags |= TCP_STATUS_CLOSING;
@@ -166,7 +165,7 @@ event_on_tcp_ser_close(sky_ev_t *ev) {
     ser->ev.flags = EV_TYPE_TCP_SER;
     ser->r_idx = 0;
     ser->w_idx = 0;
-    ser->ev.cb(ev);
+    ser->close_cb(ser);
 }
 
 static sky_inline void

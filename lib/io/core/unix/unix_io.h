@@ -43,6 +43,8 @@
 #define EV_PENDING          SKY_U32(0x00000100)
 
 
+typedef void (*on_event_pt)(sky_ev_t *ev);
+
 struct sky_ev_loop_s {
     sky_i32_t fd;
     sky_i32_t max_event;

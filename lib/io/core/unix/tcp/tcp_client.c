@@ -461,7 +461,7 @@ sky_tcp_cli_close(sky_tcp_cli_t *cli, sky_tcp_cli_cb_pt cb) {
     if (sky_unlikely(cli->ev.fd == SKY_SOCKET_FD_NONE)) {
         return false;
     }
-    cli->ev.cb = (sky_ev_pt) cb;
+    cli->close_cb = cb;
     close(cli->ev.fd);
     cli->ev.fd = SKY_SOCKET_FD_NONE;
     cli->ev.flags |= TCP_STATUS_CLOSING;
@@ -686,7 +686,7 @@ event_on_tcp_cli_close(sky_ev_t *ev) {
         cli->write_bytes = 0;
     }
     cli->ev.flags = EV_TYPE_TCP_CLI;
-    cli->ev.cb(ev);
+    cli->close_cb(cli);
 }
 
 static sky_inline void

@@ -15,35 +15,24 @@ extern "C" {
 
 typedef struct sky_ev_loop_s sky_ev_loop_t;
 typedef struct sky_ev_s sky_ev_t;
-typedef void (*sky_ev_pt)(sky_ev_t *ev);
 
 #ifdef __WINNT__
 
 typedef struct sky_ev_req_s sky_ev_req_t;
-
-struct sky_ev_s {
-    sky_socket_t fd;
-    sky_u32_t flags;
-    sky_ev_pt cb;
-    sky_ev_loop_t *ev_loop;
-    sky_ev_t *next;
-};
 
 struct sky_ev_req_s {
     OVERLAPPED overlapped;
     sky_u32_t type;
 };
 
-#else
+#endif
+
 struct sky_ev_s {
     sky_socket_t fd;
     sky_u32_t flags;
-    sky_ev_pt cb;
     sky_ev_loop_t *ev_loop;
     sky_ev_t *next;
 };
-
-#endif
 
 sky_ev_loop_t *sky_ev_loop_create();
 
