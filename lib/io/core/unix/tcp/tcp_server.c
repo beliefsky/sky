@@ -152,7 +152,7 @@ event_on_tcp_ser_in(sky_ev_t *ev) {
             default:
                 return;
         }
-    } while ((ser->r_idx++) != ser->w_idx);
+    } while ((ser->r_idx++) != ser->w_idx && (ev->flags & TCP_STATUS_READ));
 }
 
 void

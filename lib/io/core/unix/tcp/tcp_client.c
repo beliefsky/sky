@@ -568,7 +568,7 @@ event_on_tcp_cli_in(sky_ev_t *ev) {
             return;
         };
 
-    } while (cli->read_r_idx != cli->read_w_idx);
+    } while (cli->read_r_idx != cli->read_w_idx && (ev->flags & TCP_STATUS_READ));
 }
 
 void
@@ -663,7 +663,7 @@ event_on_tcp_cli_out(sky_ev_t *ev) {
             break;
         };
 
-    } while (cli->write_r_idx != cli->write_w_idx);
+    } while (cli->write_r_idx != cli->write_w_idx && (ev->flags & TCP_STATUS_WRITE));
 }
 
 void
