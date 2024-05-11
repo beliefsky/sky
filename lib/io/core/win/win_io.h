@@ -2,8 +2,8 @@
 // Created by weijing on 2024/3/6.
 //
 
-#ifndef SKY_WIN_SOCKET_H
-#define SKY_WIN_SOCKET_H
+#ifndef SKY_WIN_IO_H
+#define SKY_WIN_IO_H
 
 #ifdef __WINNT__
 
@@ -77,4 +77,4 @@ get_extension_function(sky_socket_t socket, GUID guid, void **target) {
 
 #endif
 
-#endif //SKY_WIN_SOCKET_H
+#endif //SKY_WIN_IO_H

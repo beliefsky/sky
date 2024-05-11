@@ -1,7 +1,7 @@
 //
 // Created by weijing on 2024/3/7.
 //
-#include "./unix_socket.h"
+#include "./unix_io.h"
 
 #ifdef EVENT_USE_EPOLL
 
@@ -10,7 +10,7 @@
 #include <sys/errno.h>
 #include <core/log.h>
 
-static void event_on_status(sky_ev_loop_t *ev_loop);
+static void event_on_status(sky_ev_loop_t *ev_loop, const sky_ev_pt event_tables[][4]);
 
 sky_api sky_ev_loop_t *
 sky_ev_loop_create() {
@@ -43,16 +43,18 @@ sky_ev_loop_create() {
 
 sky_api void
 sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
-    static const sky_ev_pt EVENT_TABLES[][3] = {
-            [EV_TYPE_TCP_SERVER] = {
-                    event_on_tcp_server_error,
+    static const sky_ev_pt EVENT_TABLES[][4] = {
+            [EV_TYPE_TCP_SER] = {
+                    event_on_tcp_ser_error,
                     null,
-                    event_on_tcp_server_in,
+                    event_on_tcp_ser_in,
+                    event_on_tcp_ser_close
             },
-            [EV_TYPE_TCP_CLIENT] = {
-                    event_on_tcp_client_error,
-                    event_on_tcp_client_out,
-                    event_on_tcp_client_in
+            [EV_TYPE_TCP_CLI] = {
+                    event_on_tcp_cli_error,
+                    event_on_tcp_cli_out,
+                    event_on_tcp_cli_in,
+                    event_on_tcp_cli_close
             }
     };
 
@@ -66,7 +68,7 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
     update_time(ev_loop);
     for (;;) {
         sky_timer_wheel_run(ev_loop->timer_ctx, ev_loop->current_step);
-        event_on_status(ev_loop);
+        event_on_status(ev_loop, EVENT_TABLES);
         next_time = sky_timer_wheel_timeout(ev_loop->timer_ctx);
         n = next_time == SKY_U64_MAX ? -1 : (sky_i32_t) next_time;
 
@@ -112,7 +114,7 @@ sky_ev_loop_stop(sky_ev_loop_t *ev_loop) {
 }
 
 static void
-event_on_status(sky_ev_loop_t *ev_loop) {
+event_on_status(sky_ev_loop_t *ev_loop, const sky_ev_pt event_tables[][4]) {
     sky_ev_t *ev = ev_loop->status_queue;
     if (!ev) {
         return;
@@ -127,8 +129,9 @@ event_on_status(sky_ev_loop_t *ev_loop) {
         next = ev->next;
         ev->next = null;
 
+        ev->flags &= ~EV_PENDING;
         if (ev->fd == SKY_SOCKET_FD_NONE) {
-            ev->cb(ev);
+            event_tables[ev->flags & EV_TYPE_MASK][3](ev);
         } else {
             opts = EPOLLET;
             reg_opts = 0;
