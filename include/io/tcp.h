@@ -64,18 +64,19 @@ struct sky_tcp_ser_s {
 
 struct sky_tcp_cli_s {
     sky_ev_t ev;
+    sky_tcp_cli_cb_pt close_cb;
+    sky_tcp_connect_pt connect_cb;
+
     sky_u8_t read_r_idx;
     sky_u8_t read_w_idx;
     sky_u8_t write_r_idx;
     sky_u8_t write_w_idx;
-    sky_usize_t write_bytes;
-
-    sky_tcp_cli_cb_pt close_cb;
-    sky_tcp_connect_pt connect_cb;
 
 #ifdef __WINNT__
     sky_ev_req_t in_req;
     sky_ev_req_t out_req;
+#else
+    sky_usize_t write_bytes;
 #endif
 
     sky_io_vec_t read_queue[SKY_TCP_READ_QUEUE_NUM];

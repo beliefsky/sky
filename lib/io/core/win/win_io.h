@@ -17,9 +17,10 @@
 
 #define EVENT_USE_IOCP
 
-#include <core/memory.h>
-#include <ioapiset.h>
+#include <windows.h>
 #include <winsock2.h>
+#include <ioapiset.h>
+#include <core/memory.h>
 
 #define EV_REQ_TCP_ACCEPT       SKY_U32(0)
 #define EV_REQ_TCP_CONNECT      SKY_U32(1)
@@ -27,7 +28,14 @@
 #define EV_REQ_TCP_WRITE        SKY_U32(3)
 #define EV_REQ_TCP_READ         SKY_U32(4)
 
+#define EV_TYPE_TCP_SER     SKY_U32(0x00000000)
+#define EV_TYPE_TCP_CLI     SKY_U32(0x10000000)
+
+#define EV_TYPE_SHIFT       SKY_U32(28)
+
+
 typedef void (*event_req_pt)(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success);
+typedef void (*on_event_pt)(sky_ev_t *ev);
 
 
 struct sky_ev_loop_s {
@@ -49,6 +57,10 @@ void event_on_tcp_disconnect(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success
 void event_on_tcp_write(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success);
 
 void event_on_tcp_read(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success);
+
+void close_on_tcp_ser(sky_ev_t *ev);
+
+void close_on_tcp_cli(sky_ev_t *ev);
 
 
 static sky_inline sky_bool_t

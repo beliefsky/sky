@@ -7,7 +7,6 @@
 #ifdef EVENT_USE_IOCP
 
 #include <handleapi.h>
-#include <windows.h>
 #include <sys/time.h>
 
 
@@ -140,6 +139,12 @@ sky_event_timeout_set(sky_ev_loop_t *ev_loop, sky_timer_wheel_entry_t *timer, sk
 
 static DWORD
 run_pending(sky_ev_loop_t *ev_loop) {
+    static const on_event_pt CLOSE_TABLES[] = {
+            close_on_tcp_ser,
+            close_on_tcp_cli
+    };
+
+
     sky_ev_t *ev, *next;
     sky_u64_t next_time;
 
@@ -150,7 +155,8 @@ run_pending(sky_ev_loop_t *ev_loop) {
             ev_loop->pending_tail = &ev_loop->pending;
             do {
                 next = ev->next;
-                ev->cb(ev);
+                ev->next = null;
+                CLOSE_TABLES[ev->flags >> EV_TYPE_SHIFT](ev);
                 ev = next;
             } while (ev);
 

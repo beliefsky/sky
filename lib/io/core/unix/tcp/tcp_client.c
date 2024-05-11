@@ -649,7 +649,7 @@ event_on_tcp_cli_out(sky_ev_t *ev) {
                     task->cb(cli, bytes, task->attr);
                     bytes = 0;
                 }
-                if ((cli->ev.flags & (TCP_STATUS_CLOSING | TCP_STATUS_ERROR))) {
+                if (!(cli->ev.flags & (TCP_STATUS_CLOSING | TCP_STATUS_ERROR))) {
                     continue;
                 }
                 if (cli->write_r_idx != cli->write_w_idx) {
