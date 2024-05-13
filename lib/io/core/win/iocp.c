@@ -146,7 +146,7 @@ run_pending(sky_ev_loop_t *ev_loop) {
 
 
     sky_ev_t *ev, *next;
-    sky_u64_t next_time;
+    sky_u64_t timeout;
 
     if (ev_loop->pending) {
         do {
@@ -165,10 +165,10 @@ run_pending(sky_ev_loop_t *ev_loop) {
 
     do {
         sky_timer_wheel_run(ev_loop->timer_ctx, 0);
-        next_time = sky_timer_wheel_timeout(ev_loop->timer_ctx);
-    } while (!next_time); //有可能定时立即返回，减少系统调用，知道有具体超时时间为止
+        timeout = sky_timer_wheel_timeout(ev_loop->timer_ctx);
+    } while (!timeout); //有可能定时立即返回，减少系统调用，知道有具体超时时间为止
 
-    return next_time == SKY_U64_MAX ? INFINITE : (DWORD) next_time;
+    return timeout == SKY_U64_MAX ? INFINITE : (DWORD) timeout;
 }
 
 static void
