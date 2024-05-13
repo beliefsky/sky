@@ -119,8 +119,10 @@ event_on_tcp_accept(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
     ser->ev.flags &= ~TCP_STATUS_READING;
 
     if (!success) {
-        closesocket(ser->accept_fd);
-        ser->accept_fd = SKY_SOCKET_FD_NONE;
+        if (ser->accept_fd != SKY_SOCKET_FD_NONE) {
+            closesocket(ser->accept_fd);
+            ser->accept_fd = SKY_SOCKET_FD_NONE;
+        }
         if ((ser->ev.flags & (TCP_STATUS_CLOSING))) {
             close_on_tcp_ser(ev);
         } else {
@@ -129,18 +131,17 @@ event_on_tcp_accept(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
         return;
     }
     sky_tcp_acceptor_t *req = ser->accept_queue + (ser->r_idx & SKY_TCP_ACCEPT_QUEUE_MASK);
-    sky_tcp_cli_t *cli;
+
+    sky_tcp_cli_t *const cli = req->cli;
+    cli->ev.fd = ser->accept_fd;
+    cli->ev.flags |= TCP_STATUS_CONNECTED;
+    CreateIoCompletionPort((HANDLE) cli->ev.fd, cli->ev.ev_loop->iocp, (ULONG_PTR) &cli->ev, 0);
+    SetFileCompletionNotificationModes((HANDLE) cli->ev.fd, FILE_SKIP_COMPLETION_PORT_ON_SUCCESS);
+    ser->accept_fd = SKY_SOCKET_FD_NONE;
 
     for (;;) {
-        cli = req->cli;
-        cli->ev.fd = ser->accept_fd;
-        cli->ev.flags |= TCP_STATUS_CONNECTED;
-        CreateIoCompletionPort((HANDLE) ser->accept_fd, cli->ev.ev_loop->iocp, (ULONG_PTR) &cli->ev, 0);
-        SetFileCompletionNotificationModes((HANDLE) ser->accept_fd, FILE_SKIP_COMPLETION_PORT_ON_SUCCESS);
-        ser->accept_fd = SKY_SOCKET_FD_NONE;
-
         ++ser->r_idx;
-        req->accept(ser, cli, true);
+        req->accept(ser, req->cli, true);
         if ((ser->ev.flags & (TCP_STATUS_CLOSING | TCP_STATUS_ERROR))) {
             if (ser->r_idx != ser->w_idx) {
                 clean_accept(ser);
