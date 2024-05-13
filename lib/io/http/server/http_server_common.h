@@ -44,22 +44,20 @@ sky_i8_t http_multipart_header_parse(sky_http_server_multipart_t *r, sky_buf_t *
 
 void http_server_request_process(sky_http_connection_t *conn);
 
-sky_i8_t http_req_length_body_none(sky_http_server_request_t *r, sky_http_server_next_pt call, void *data);
+void http_req_length_body_none(sky_http_server_request_t *r, sky_http_server_next_pt call, void *data);
 
-sky_i8_t http_req_length_body_str(
+void http_req_length_body_str(
         sky_http_server_request_t *r,
-        sky_str_t *out,
         sky_http_server_next_str_pt call,
         void *data
 );
 
 void http_req_length_body_read(sky_http_server_request_t *r, sky_http_server_next_read_pt call, void *data);
 
-sky_i8_t http_req_chunked_body_none(sky_http_server_request_t *r, sky_http_server_next_pt call, void *data);
+void http_req_chunked_body_none(sky_http_server_request_t *r, sky_http_server_next_pt call, void *data);
 
-sky_i8_t http_req_chunked_body_str(
+void http_req_chunked_body_str(
         sky_http_server_request_t *r,
-        sky_str_t *out,
         sky_http_server_next_str_pt call,
         void *data
 );

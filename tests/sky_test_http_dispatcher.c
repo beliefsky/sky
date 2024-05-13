@@ -97,14 +97,12 @@ create_server(sky_ev_loop_t *ev_loop) {
 }
 
 static SKY_HTTP_MAPPER_HANDLER(hello_world) {
-    if (sky_http_response_str_len(
+    sky_http_response_str_len(
             req,
             sky_str_line("{\"status\": 200, \"msg\": \"success\"}"),
             null, // 回调未null会自动调用finish
             null
-    ) != 0) {
-        sky_http_server_req_finish(req);
-    }
+    );
 }
 
 //
@@ -163,17 +161,6 @@ body_cb(sky_http_server_request_t *req, sky_str_t *body, void *data) {
 }
 
 static SKY_HTTP_MAPPER_HANDLER(put_data) {
-    sky_str_t out;
-    const sky_i8_t r = sky_http_req_body_str(req, &out, body_cb, null);
-    switch (r) {
-        case 0:
-            return;
-        case 1:
-            body_cb(req, &out, null);
-            return;
-        default:
-            sky_http_server_req_finish(req);
-            return;
-    }
+    sky_http_req_body_str(req, body_cb, null);
 }
 

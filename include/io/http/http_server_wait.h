@@ -57,7 +57,7 @@ void sky_http_response_wait_str(
 void sky_http_response_wait_str_len(
         sky_http_server_request_t *r,
         sky_sync_wait_t *wait,
-        const sky_uchar_t *data,
+        sky_uchar_t *data,
         sky_usize_t data_len
 );
 

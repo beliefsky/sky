@@ -24,17 +24,22 @@ static void on_http_response(sky_tcp_cli_t *tcp, sky_usize_t bytes, void *attr);
 
 static void status_msg_get(sky_u32_t status, sky_str_t *out);
 
-sky_api sky_i8_t
+sky_api void
 sky_http_response_nobody(
         sky_http_server_request_t *const r,
         sky_http_server_next_pt call,
         void *const cb_data
 ) {
-    if (sky_unlikely(r->response || r->error)) {
-        return -1;
+    if (sky_unlikely(r->response)) {
+        return;
     }
     r->response = true;
     call = call ?: http_res_default_cb;
+
+    if (r->error) {
+        call(r, cb_data);
+        return;
+    }
 
     http_res_packet_t *const packet = sky_palloc(r->pool, sizeof(http_res_packet_t));
     packet->cb = call;
@@ -61,30 +66,32 @@ sky_http_response_nobody(
     )) {
         case REQ_PENDING:
             sky_event_timeout_set(sky_tcp_cli_ev_loop(&conn->tcp), &conn->timer, conn->server->timeout);
-            return 0;
+            return;
         case REQ_SUCCESS:
-            return 1;
+            call(r, cb_data);
+            return;
         default:
             r->error = true;
-            return -1;
+            call(r, cb_data);
+            return;
     }
 }
 
-sky_api sky_i8_t
+sky_api void
 sky_http_response_str(
         sky_http_server_request_t *const r,
         const sky_str_t *const data,
         const sky_http_server_next_pt call,
         void *const cb_data
 ) {
-
     if (!data) {
-        return sky_http_response_str_len(r, null, 0, call, cb_data);
+        sky_http_response_str_len(r, null, 0, call, cb_data);
+    } else {
+        sky_http_response_str_len(r, data->data, data->len, call, cb_data);
     }
-    return sky_http_response_str_len(r, data->data, data->len, call, cb_data);
 }
 
-sky_api sky_i8_t
+sky_api void
 sky_http_response_str_len(
         sky_http_server_request_t *const r,
         sky_uchar_t *const data,
@@ -92,11 +99,16 @@ sky_http_response_str_len(
         sky_http_server_next_pt call,
         void *const cb_data
 ) {
-    if (sky_unlikely(r->response || r->error)) {
-        return -1;
+    if (sky_unlikely(r->response)) {
+        return;
     }
     r->response = true;
     call = call ?: http_res_default_cb;
+
+    if (r->error) {
+        call(r, cb_data);
+        return;
+    }
 
     sky_usize_t bytes;
 
@@ -126,12 +138,14 @@ sky_http_response_str_len(
         )) {
             case REQ_PENDING:
                 sky_event_timeout_set(sky_tcp_cli_ev_loop(&conn->tcp), &conn->timer, conn->server->timeout);
-                return 0;
+                return;
             case REQ_SUCCESS:
-                return 1;
+                call(r, cb_data);
+                return;
             default:
                 r->error = true;
-                return -1;
+                call(r, cb_data);
+                return;
         }
     }
 
@@ -163,12 +177,14 @@ sky_http_response_str_len(
     )) {
         case REQ_PENDING:
             sky_event_timeout_set(sky_tcp_cli_ev_loop(&conn->tcp), &conn->timer, conn->server->timeout);
-            return 0;
+            return;
         case REQ_SUCCESS:
-            return 1;
+            call(r, cb_data);
+            return;
         default:
             r->error = true;
-            return -1;
+            call(r, cb_data);
+            return;
     }
 }
 

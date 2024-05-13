@@ -6,45 +6,40 @@
 
 
 
-sky_api sky_i8_t
+sky_api void
 sky_http_req_body_none(
         sky_http_server_request_t *const r,
         const sky_http_server_next_pt call,
         void *const data
 ) {
     if (sky_unlikely(r->read_request_body || r->error)) {
-        return -1;
+        call(r, data);
+        return;
     }
-    r->read_request_body = true;
 
     if (r->headers_in.content_length) {
-        return http_req_length_body_none(r, call, data);
+        http_req_length_body_none(r, call, data);
+    } else if(r->headers_in.transfer_encoding) {
+//        http_req_chunked_body_none(r, call, data);
+    } else {
+        call(r, data);
     }
-    if (r->headers_in.transfer_encoding) {
-//        return http_req_chunked_body_none(r, call, data);
-    }
-    return -1;
+
 }
 
-sky_api sky_i8_t
-sky_http_req_body_str(
-        sky_http_server_request_t *r,
-        sky_str_t *out,
-        sky_http_server_next_str_pt call,
-        void *data
-) {
+sky_api void
+sky_http_req_body_str(sky_http_server_request_t *r, sky_http_server_next_str_pt call, void *data ) {
     if (sky_unlikely(r->read_request_body || r->error)) {
-        return -1;
+        call(r, null, data);
+        return;
     }
-    r->read_request_body = true;
 
     if (r->headers_in.content_length) {
-        return http_req_length_body_str(r, out, call, data);
-    }
-    if (r->headers_in.transfer_encoding) {
+        return http_req_length_body_str(r, call, data);
+    } else if (r->headers_in.transfer_encoding) {
 //        http_req_chunked_body_str(r, out, call, data);
     }
-    return -1;
+    call(r, null, data);
 }
 
 
