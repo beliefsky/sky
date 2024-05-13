@@ -417,7 +417,7 @@ sky_tcp_write_vec(
                 }
                 size = (sky_usize_t) n;
                 cli->write_bytes += size;
-                while (size >= vec->len) {
+                while (size && size >= vec->len) {
                     size -= vec->len;
                     ++vec;
                     --num;
