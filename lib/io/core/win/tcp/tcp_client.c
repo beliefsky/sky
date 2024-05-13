@@ -127,12 +127,14 @@ sky_tcp_skip(
         sky_tcp_rw_pt cb,
         void *attr
 ) {
-#define SKIP_BUF_NUM 8192
-    static sky_uchar_t SKIP_BUF[SKIP_BUF_NUM];
+#define TCP_SKIP_BUFF_SIZE 8192
+    static sky_uchar_t SKIP_BUFF[TCP_SKIP_BUFF_SIZE];
+    if (size <= 8192) {
+        return sky_tcp_read(cli, SKIP_BUFF, size, bytes, cb, attr);
+    }
+    return sky_tcp_read(cli, SKIP_BUFF, TCP_SKIP_BUFF_SIZE, bytes, cb, attr);
 
-
-    return REQ_ERROR;
-#undef SKIP_BUF_NUM
+#undef TCP_SKIP_BUFF_SIZE
 }
 
 sky_api sky_tcp_result_t
@@ -185,13 +187,11 @@ sky_tcp_read(
 
     sky_io_vec_t *const vec = cli->read_queue + (cli->read_w_idx & SKY_TCP_READ_QUEUE_MASK);
     vec->buf = buf;
-    vec->len = size;
+    vec->len = (u_long) size;
 
-    sky_tcp_rw_task_t *const task = cli->read_task + (cli->read_w_idx & SKY_TCP_READ_QUEUE_MASK);
+    sky_tcp_rw_task_t *const task = cli->read_task + ((cli->read_w_idx++) & SKY_TCP_READ_QUEUE_MASK);
     task->cb = cb;
     task->attr = attr;
-
-    ++cli->read_w_idx;
 
     return REQ_PENDING;
 }
@@ -251,9 +251,8 @@ sky_tcp_read_vec(
 
     do {
         cli->read_queue[cli->read_w_idx & SKY_TCP_READ_QUEUE_MASK] = *vec;
-        task = cli->read_task + (cli->read_w_idx & SKY_TCP_READ_QUEUE_MASK);
+        task = cli->read_task + ((cli->read_w_idx++) & SKY_TCP_READ_QUEUE_MASK);
         task->cb = null;
-        ++cli->read_w_idx;
         ++vec;
     } while ((--num));
     task->cb = cb;
@@ -306,13 +305,11 @@ sky_tcp_write(
     }
     sky_io_vec_t *const vec = cli->write_queue + (cli->write_w_idx & SKY_TCP_WRITE_QUEUE_MASK);
     vec->buf = buf;
-    vec->len = size;
+    vec->len = (u_long) size;
 
-    sky_tcp_rw_task_t *const task = cli->write_task + (cli->write_w_idx & SKY_TCP_WRITE_QUEUE_MASK);
+    sky_tcp_rw_task_t *const task = cli->write_task + ((cli->write_w_idx++) & SKY_TCP_WRITE_QUEUE_MASK);
     task->cb = cb;
     task->attr = attr;
-
-    ++cli->write_w_idx;
 
     return REQ_PENDING;
 }
@@ -455,46 +452,43 @@ event_on_tcp_read(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
     sky_u8_t r_pre_idx, r_idx, num;
     DWORD read_bytes, flags = 0;
     sky_usize_t size = 0;
-    sky_io_vec_t *vec = cli->read_queue + (cli->read_r_idx & SKY_TCP_READ_QUEUE_MASK);
-    sky_tcp_rw_task_t *task = cli->read_task + (cli->read_r_idx & SKY_TCP_READ_QUEUE_MASK);
+    sky_io_vec_t *vec;
+    sky_tcp_rw_task_t *task;
 
     for (;;) {
-
-        for (;;) {
-            if (bytes > vec->len) {
-                bytes -= vec->len;
-                size += vec->len;
-                ++cli->read_r_idx;
-                ++vec;
-                if (task->cb) {
-                    task->cb(cli, size, task->attr);
-                    size = 0;
-                }
-                ++task;
-                if (!(cli->ev.flags & (TCP_STATUS_CLOSING | TCP_STATUS_ERROR | TCP_STATUS_EOF))) {
-                    continue;
-                }
+        vec = cli->read_queue + (cli->read_r_idx & SKY_TCP_READ_QUEUE_MASK);
+        task = cli->read_task + ((cli->read_r_idx++) & SKY_TCP_READ_QUEUE_MASK);
+        if (bytes > vec->len) {
+            bytes -= vec->len;
+            size += vec->len;
+            if (task->cb) {
+                task->cb(cli, size, task->attr);
+                size = 0;
+            }
+            if ((cli->ev.flags & (TCP_STATUS_CLOSING | TCP_STATUS_ERROR | TCP_STATUS_EOF))) {
                 if (cli->read_r_idx != cli->read_w_idx) {
                     clean_read(cli);
                 }
                 return;
             }
-            size += bytes;
-            do {
-                task = cli->read_task + ((cli->read_r_idx++) & SKY_TCP_READ_QUEUE_MASK);
-            } while (!task->cb);
-            task->cb(cli, size, task->attr);
-            if (!(cli->ev.flags & (TCP_STATUS_CLOSING | TCP_STATUS_ERROR | TCP_STATUS_EOF))) {
-                break;
-            }
+            continue;
+        }
+        size += bytes;
+        while (!task->cb) {
+            task = cli->read_task + ((cli->read_r_idx++) & SKY_TCP_READ_QUEUE_MASK);
+        }
+        task->cb(cli, size, task->attr);
+        size = 0;
+        if ((cli->ev.flags & (TCP_STATUS_CLOSING | TCP_STATUS_ERROR | TCP_STATUS_EOF))) {
             if (cli->read_r_idx != cli->read_w_idx) {
                 clean_read(cli);
             }
             return;
-        };
-        if (cli->read_r_idx == cli->read_w_idx || (cli->ev.flags & TCP_STATUS_READING)) {
+        }
+        if (cli->read_r_idx == cli->read_w_idx) {
             return;
         }
+
         r_pre_idx = cli->read_r_idx & SKY_TCP_READ_QUEUE_MASK;
         r_idx = cli->read_w_idx & SKY_TCP_READ_QUEUE_MASK;
         vec = cli->read_queue + r_pre_idx;
@@ -516,8 +510,6 @@ event_on_tcp_read(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
                 clean_read(cli);
                 return;
             }
-            task = cli->read_task + r_pre_idx;
-            size = 0;
             bytes = read_bytes;
             continue;
         }
@@ -528,7 +520,7 @@ event_on_tcp_read(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
         }
         cli->ev.flags |= TCP_STATUS_READING;
         return;
-    };
+    }
 }
 
 void
@@ -548,46 +540,45 @@ event_on_tcp_write(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
     sky_u8_t r_pre_idx, r_idx, num;
     DWORD write_bytes;
     sky_usize_t size = 0;
-    sky_io_vec_t *vec = cli->write_queue + (cli->write_r_idx & SKY_TCP_WRITE_QUEUE_MASK);
-    sky_tcp_rw_task_t *task = cli->write_task + (cli->write_r_idx & SKY_TCP_WRITE_QUEUE_MASK);
+    sky_io_vec_t *vec;
+    sky_tcp_rw_task_t *task;
+
 
     for (;;) {
-        for (;;) {
-            if (bytes > vec->len) {
-                bytes -= vec->len;
-                size += vec->len;
-                ++vec;
-                if (task->cb) {
-                    task->cb(cli, bytes, task->attr);
-                    bytes = 0;
-                }
-                ++task;
-                if (!(cli->ev.flags & (TCP_STATUS_CLOSING | TCP_STATUS_ERROR))) {
-                    continue;
-                }
+        vec = cli->write_queue + (cli->write_r_idx & SKY_TCP_WRITE_QUEUE_MASK);
+        task = cli->write_task + ((cli->write_r_idx++) & SKY_TCP_WRITE_QUEUE_MASK);
+
+        if (bytes > vec->len) {
+            bytes -= vec->len;
+            size += vec->len;
+            if (task->cb) {
+                task->cb(cli, bytes, task->attr);
+                bytes = 0;
+            }
+            if ((cli->ev.flags & (TCP_STATUS_CLOSING | TCP_STATUS_ERROR))) {
                 if (cli->write_r_idx != cli->write_w_idx) {
                     clean_write(cli);
                 }
                 return;
             }
-            size += bytes;
-            do {
-                task = cli->write_task + ((cli->write_r_idx++) & SKY_TCP_WRITE_QUEUE_MASK);
-            } while (!task->cb);
-            task->cb(cli, size, task->attr);
-            if (!(cli->ev.flags & (TCP_STATUS_CLOSING | TCP_STATUS_ERROR))) {
-                break;
-            }
+            continue;
+        }
+        size += bytes;
+
+        while (!task->cb) {
+            task = cli->write_task + ((cli->write_r_idx++) & SKY_TCP_WRITE_QUEUE_MASK);
+        }
+        task->cb(cli, size, task->attr);
+        size = 0;
+        if ((cli->ev.flags & (TCP_STATUS_CLOSING | TCP_STATUS_ERROR))) {
             if (cli->write_r_idx != cli->write_w_idx) {
                 clean_write(cli);
             }
             return;
-        };
-
-        if (cli->write_r_idx == cli->write_w_idx || (cli->ev.flags & TCP_STATUS_WRITING)) {
+        }
+        if (cli->write_r_idx == cli->write_w_idx) {
             return;
         }
-
         r_pre_idx = cli->write_r_idx & SKY_TCP_WRITE_QUEUE_MASK;
         r_idx = cli->write_w_idx & SKY_TCP_WRITE_QUEUE_MASK;
         vec = cli->write_queue + r_pre_idx;
@@ -603,8 +594,6 @@ event_on_tcp_write(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
                 &cli->out_req.overlapped,
                 null
         ) == 0) {
-            task = cli->write_task + r_pre_idx;
-            size = 0;
             bytes = write_bytes;
             continue;
         }
@@ -615,7 +604,7 @@ event_on_tcp_write(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
         }
         cli->ev.flags |= TCP_STATUS_WRITING;
         return;
-    }
+    };
 }
 
 void

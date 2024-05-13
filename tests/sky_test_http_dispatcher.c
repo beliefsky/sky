@@ -67,7 +67,7 @@ create_server(sky_ev_loop_t *ev_loop) {
             {
                     .path = sky_string("/hello"),
                     .get = hello_world,
-//                    .post = put_data
+                    .post = put_data
             },
 //            {
 //                    .path = sky_string("/pgsql"),
@@ -96,11 +96,7 @@ create_server(sky_ev_loop_t *ev_loop) {
     return true;
 }
 
-static sky_u32_t num = 0;
-
 static SKY_HTTP_MAPPER_HANDLER(hello_world) {
-    sky_log_info("handle: %u", ++num);
-
     if (sky_http_response_str_len(
             req,
             sky_str_line("{\"status\": 200, \"msg\": \"success\"}"),
@@ -148,30 +144,36 @@ static SKY_HTTP_MAPPER_HANDLER(hello_world) {
 //    sky_sync_wait_create(pgsql_test_wait, req);
 //}
 
-//static void
-//body_cb(sky_http_server_request_t *req, sky_str_t *body, void *data) {
-//    (void) data;
-//
-//
-//    if (body) {
-//        sky_log_warn("%lu", body->len);
-//    }
-//    sky_log_warn("=============");
-//
-//    if (sky_unlikely(sky_http_server_req_error(req))) {
-//        sky_http_server_req_finish(req);
-//        return;
-//    }
-//
-//    sky_http_response_str_len(
-//            req,
-//            sky_str_line("{\"status\": 200, \"msg\": \"success\"}"),
-//            null,
-//            null
-//    );
-//}
-//
-//static SKY_HTTP_MAPPER_HANDLER(put_data) {
-//    sky_http_req_body_str(req, body_cb, null);
-//}
+static void
+body_cb(sky_http_server_request_t *req, sky_str_t *body, void *data) {
+    (void) data;
+
+    if (body) {
+        sky_log_warn("%lu", body->len);
+    }
+    sky_log_warn("=============");
+
+
+    sky_http_response_str_len(
+            req,
+            sky_str_line("{\"status\": 200, \"msg\": \"success\"}"),
+            null,
+            null
+    );
+}
+
+static SKY_HTTP_MAPPER_HANDLER(put_data) {
+    sky_str_t out;
+    const sky_i8_t r = sky_http_req_body_str(req, &out, body_cb, null);
+    switch (r) {
+        case 0:
+            return;
+        case 1:
+            body_cb(req, &out, null);
+            return;
+        default:
+            sky_http_server_req_finish(req);
+            return;
+    }
+}
 

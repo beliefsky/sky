@@ -156,11 +156,16 @@ sky_bool_t sky_http_server_bind(sky_http_server_t *server, const sky_inet_addres
 
 sky_bool_t sky_http_url_decode(sky_str_t *str);
 
-void sky_http_req_body_none(sky_http_server_request_t *r, sky_http_server_next_pt call, void *data);
+sky_i8_t sky_http_req_body_none(sky_http_server_request_t *r, sky_http_server_next_pt call, void *data);
 
-void sky_http_req_body_str(sky_http_server_request_t *r, sky_http_server_next_str_pt call, void *data);
+sky_i8_t sky_http_req_body_str(
+        sky_http_server_request_t *r,
+        sky_str_t *result,
+        sky_http_server_next_str_pt call,
+        void *data
+);
 
-void sky_http_req_body_read(sky_http_server_request_t *r, sky_http_server_next_read_pt call, void *data);
+//void sky_http_req_body_read(sky_http_server_request_t *r, sky_http_server_next_read_pt call, void *data);
 
 //void sky_http_req_body_multipart(sky_http_server_request_t *r, sky_http_server_multipart_pt call, void *data);
 
@@ -173,24 +178,25 @@ void sky_http_req_body_read(sky_http_server_request_t *r, sky_http_server_next_r
 //void sky_http_multipart_body_read(sky_http_server_multipart_t *m, sky_http_server_multipart_read_pt call, void *data);
 
 
-void sky_http_response_nobody(sky_http_server_request_t *r, sky_http_server_next_pt call, void *cb_data);
+sky_i8_t sky_http_response_nobody(sky_http_server_request_t *r, sky_http_server_next_pt call, void *cb_data);
 
-void sky_http_response_str(
+sky_i8_t sky_http_response_str(
         sky_http_server_request_t *r,
         const sky_str_t *data,
         sky_http_server_next_pt call,
         void *cb_data
 );
 
-void sky_http_response_str_len(
+sky_i8_t sky_http_response_str_len(
         sky_http_server_request_t *r,
-        const sky_uchar_t *data,
+        sky_uchar_t *data,
         sky_usize_t data_len,
         sky_http_server_next_pt call,
         void *cb_data
 );
 
 
+/*
 void sky_http_response_file(
         sky_http_server_request_t *r,
         sky_socket_t fd,
@@ -201,7 +207,7 @@ void sky_http_response_file(
         void *cb_data
 );
 
-/*
+
 
 void sky_http_response_chunked_start(sky_http_server_request_t *r);
 

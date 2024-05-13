@@ -6,6 +6,7 @@
 
 #include "./win_tcp.h"
 #include <mswsock.h>
+#include <core/log.h>
 
 static void clean_accept(sky_tcp_ser_t *ser);
 
@@ -135,6 +136,7 @@ event_on_tcp_accept(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
     sky_tcp_cli_t *const cli = req->cli;
     cli->ev.fd = ser->accept_fd;
     cli->ev.flags |= TCP_STATUS_CONNECTED;
+
     CreateIoCompletionPort((HANDLE) cli->ev.fd, cli->ev.ev_loop->iocp, (ULONG_PTR) &cli->ev, 0);
     SetFileCompletionNotificationModes((HANDLE) cli->ev.fd, FILE_SKIP_COMPLETION_PORT_ON_SUCCESS);
     ser->accept_fd = SKY_SOCKET_FD_NONE;

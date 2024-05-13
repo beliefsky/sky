@@ -1,0 +1,252 @@
+//
+// Created by beliefsky on 2023/7/31.
+//
+#include <core/log.h>
+#include "./http_server_common.h"
+
+typedef struct {
+    union {
+        sky_http_server_next_pt none_cb;
+        sky_http_server_next_str_pt str_cb;
+    };
+    void *data;
+} http_body_cb_t;
+
+
+static void on_http_body_read_none(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr);
+
+static void on_http_body_read_str(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr);
+
+static void http_body_str_too_large(sky_http_server_request_t *r, void *data);
+
+static void http_body_read_none_to_str(sky_http_server_request_t *r, void *data);
+
+sky_i8_t
+http_req_length_body_none(
+        sky_http_server_request_t *const r,
+        const sky_http_server_next_pt call,
+        void *const data
+) {
+    sky_http_connection_t *const conn = r->conn;
+    sky_buf_t *const tmp = conn->buf;
+
+    const sky_usize_t read_n = (sky_usize_t) (tmp->last - tmp->pos);
+    sky_usize_t size = r->headers_in.content_length_n;
+    if (read_n >= size) {
+        r->headers_in.content_length_n = 0;
+        tmp->pos += size;
+        sky_buf_rebuild(tmp, 0);
+
+        return 1;
+    }
+    tmp->last -= read_n;
+    size -= read_n;
+    r->headers_in.content_length_n = size;
+
+    http_body_cb_t *const cb_data = sky_palloc(r->pool, sizeof(http_body_cb_t));
+    cb_data->none_cb = call;
+    cb_data->data = data;
+
+
+    for (;;) {
+        switch (sky_tcp_skip(
+                &conn->tcp,
+                r->headers_in.content_length_n,
+                &size,
+                on_http_body_read_none,
+                cb_data
+        )) {
+            case REQ_PENDING:
+                sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
+                return 0;
+            case REQ_SUCCESS:
+                r->headers_in.content_length_n -= size;
+                if (!r->headers_in.content_length_n) {
+                    sky_pfree(r->pool, cb_data, sizeof(http_body_cb_t));
+                    return 1;
+                }
+                continue;
+            default:
+                sky_pfree(r->pool, cb_data, sizeof(http_body_cb_t));
+                r->error = true;
+                return -1;
+        }
+    }
+}
+
+sky_i8_t
+http_req_length_body_str(
+        sky_http_server_request_t *r,
+        sky_str_t *out,
+        sky_http_server_next_str_pt call,
+        void *data
+) {
+    sky_http_connection_t *const conn = r->conn;
+    sky_usize_t size = r->headers_in.content_length_n;
+    if (sky_unlikely(size > conn->server->body_str_max)) { // body过大先响应异常，再丢弃body
+        r->error = true;
+        http_body_cb_t *const cb_data = sky_palloc(r->pool, sizeof(http_body_cb_t));
+        cb_data->str_cb = call;
+        cb_data->data = data;
+        return http_req_length_body_none(r, http_body_str_too_large, cb_data);;
+    }
+
+    sky_buf_t *const tmp = conn->buf;
+    const sky_usize_t read_n = (sky_usize_t) (tmp->last - tmp->pos);
+
+    if (read_n >= size) {
+        r->headers_in.content_length_n = 0;
+        out->data = tmp->pos;
+        out->len = size;
+        tmp->pos += size;
+
+        sky_buf_rebuild(tmp, 0);
+        return 1;
+    }
+    sky_buf_rebuild(tmp, size);
+    r->headers_in.content_length_n = size - read_n;
+
+    http_body_cb_t *const cb_data = sky_palloc(r->pool, sizeof(http_body_cb_t));
+    cb_data->str_cb = call;
+    cb_data->data = data;
+
+    for (;;) {
+        switch (sky_tcp_read(
+                &conn->tcp,
+                tmp->last,
+                r->headers_in.content_length_n,
+                &size,
+                on_http_body_read_str,
+                cb_data
+        )) {
+            case REQ_PENDING:
+                sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
+                return 0;
+            case REQ_SUCCESS:
+                r->headers_in.content_length_n -= size;
+                tmp->last += size;
+                if (!r->headers_in.content_length_n) {
+                    sky_pfree(r->pool, cb_data, sizeof(http_body_cb_t));
+                    const sky_usize_t body_len = (sky_usize_t) (tmp->last - tmp->pos);
+                    out->data = tmp->pos;
+                    out->data[body_len] = '\0';
+                    out->len = body_len;
+                    tmp->pos += body_len;
+                    return 1;
+                }
+                continue;
+            default:
+                sky_pfree(r->pool, cb_data, sizeof(http_body_cb_t));
+                r->error = true;
+                return -1;
+        }
+    }
+}
+
+static void
+on_http_body_read_none(sky_tcp_cli_t *const cli, sky_usize_t bytes, void *attr) {
+    sky_http_connection_t *const conn = sky_type_convert(cli, sky_http_connection_t, tcp);
+    sky_http_server_request_t *const req = conn->current_req;
+    http_body_cb_t *const cb_data = attr;
+
+    if (bytes == SKY_USIZE_MAX) {
+        req->error = true;
+        sky_timer_wheel_unlink(&conn->timer);
+        cb_data->none_cb(req, cb_data->data);
+        return;
+    }
+
+    for (;;) {
+        req->headers_in.content_length_n -= bytes;
+        if (!req->headers_in.content_length_n) {
+            sky_timer_wheel_unlink(&conn->timer);
+            cb_data->none_cb(req, cb_data->data);
+            return;
+        }
+        switch (sky_tcp_skip(
+                cli,
+                req->headers_in.content_length_n,
+                &bytes,
+                on_http_body_read_none,
+                attr
+        )) {
+            case REQ_PENDING:
+                return;
+            case REQ_SUCCESS:
+                continue;
+            default:
+                req->error = true;
+                sky_timer_wheel_unlink(&conn->timer);
+                cb_data->none_cb(req, cb_data->data);
+                return;
+        }
+    }
+}
+
+static void
+on_http_body_read_str(sky_tcp_cli_t *const cli, sky_usize_t bytes, void *attr) {
+    sky_http_connection_t *const conn = sky_type_convert(cli, sky_http_connection_t, tcp);
+    sky_http_server_request_t *const req = conn->current_req;
+    http_body_cb_t *const cb_data = attr;
+
+    if (bytes == SKY_USIZE_MAX) {
+        req->error = true;
+        sky_timer_wheel_unlink(&conn->timer);
+        cb_data->str_cb(req, null, cb_data->data);
+        return;
+    }
+
+    for (;;) {
+        conn->buf->last += bytes;
+        req->headers_in.content_length_n -= bytes;
+        if (!req->headers_in.content_length_n) {
+            sky_timer_wheel_unlink(&conn->timer);
+
+            const sky_usize_t body_len = (sky_usize_t) (conn->buf->last - conn->buf->pos);
+            sky_str_t *body = sky_palloc(req->pool, sizeof(sky_str_t));
+            body->data = conn->buf->pos;
+            body->data[body_len] = '\0';
+            body->len = body_len;
+            conn->buf->pos += body_len;
+            cb_data->str_cb(req, body, cb_data->data);
+            return;
+        }
+        switch (sky_tcp_read(
+                cli,
+                conn->buf->last,
+                req->headers_in.content_length_n,
+                &bytes,
+                on_http_body_read_str,
+                attr
+        )) {
+            case REQ_PENDING:
+                return;
+            case REQ_SUCCESS:
+                continue;
+            default:
+                req->error = true;
+                sky_timer_wheel_unlink(&conn->timer);
+                cb_data->str_cb(req, null, cb_data->data);
+                return;
+        }
+    }
+}
+
+
+static void
+http_body_str_too_large(sky_http_server_request_t *const r, void *const data) {
+    r->state = 413;
+    sky_http_response_str_len(
+            r,
+            sky_str_line("413 Request Entity Too Large"),
+            http_body_read_none_to_str,
+            data
+    );
+}
+
+static void
+http_body_read_none_to_str(sky_http_server_request_t *const r, void *const data) {
+    http_body_cb_t *const cb_data = data;
+    r->error = true;
+    cb_data->str_cb(r, null, cb_data->data);
+}
