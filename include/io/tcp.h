@@ -166,6 +166,17 @@ sky_tcp_result_t sky_tcp_write_vec(
 
 sky_bool_t sky_tcp_cli_close(sky_tcp_cli_t *cli, sky_tcp_cli_cb_pt cb);
 
+
+static sky_inline sky_ev_loop_t *
+sky_tcp_ser_ev_loop(const sky_tcp_ser_t *ser) {
+    return ser->ev.ev_loop;
+}
+
+static sky_inline sky_ev_loop_t *
+sky_tcp_cli_ev_loop(const sky_tcp_cli_t *cli) {
+    return cli->ev.ev_loop;
+}
+
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif

@@ -481,6 +481,12 @@ event_on_tcp_cli_error(sky_ev_t *ev) {
         cli->connect_cb(cli, false);
         return;
     }
+    if (cli->write_r_idx != cli->write_w_idx) {
+        clean_write(cli);
+    }
+    if (cli->read_r_idx != cli->read_w_idx) {
+        clean_read(cli);
+    }
 }
 
 void

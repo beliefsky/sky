@@ -51,8 +51,13 @@ typedef struct sky_inet_address_s sky_inet_address_t;
 
 
 struct sky_io_vec_s {
+#ifdef __WINNT__
+    u_long len;
+    sky_uchar_t *buf;
+#else
     sky_uchar_t *buf;
     sky_usize_t len;
+#endif
 };
 
 

@@ -19,6 +19,8 @@ sky_tcp_ser_init(sky_tcp_ser_t *ser, sky_ev_loop_t *ev_loop) {
     ser->ev.flags = EV_TYPE_TCP_SER;
     ser->ev.ev_loop = ev_loop;
     ser->ev.next = null;
+    ser->r_idx = 0;
+    ser->w_idx = 0;
     ser->accept_fd = SKY_SOCKET_FD_NONE;
     ser->accept_req.type = EV_REQ_TCP_ACCEPT;
 }
