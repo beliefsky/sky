@@ -30,6 +30,26 @@ sky_tcp_cli_init(sky_tcp_cli_t *cli, sky_ev_loop_t *ev_loop) {
 }
 
 sky_api sky_inline sky_bool_t
+sky_tcp_cli_closed(const sky_tcp_cli_t *cli) {
+    return cli->ev.fd == SKY_SOCKET_FD_NONE && !(cli->ev.flags & TCP_STATUS_CLOSING);
+}
+
+sky_api sky_inline sky_bool_t
+sky_tcp_cli_closing(const sky_tcp_cli_t *cli) {
+    return !!(cli->ev.flags & TCP_STATUS_CLOSING);
+}
+
+sky_api sky_inline sky_bool_t
+sky_tcp_cli_connecting(const sky_tcp_cli_t *cli) {
+    return !!(cli->ev.flags & TCP_STATUS_CONNECTING);
+}
+
+sky_api sky_inline sky_bool_t
+sky_tcp_cli_connected(const sky_tcp_cli_t *cli) {
+    return !!(cli->ev.flags & TCP_STATUS_CONNECTED);
+}
+
+sky_api sky_inline sky_bool_t
 sky_tcp_cli_error(const sky_tcp_cli_t *cli) {
     return !!(cli->ev.flags & TCP_STATUS_ERROR);
 }

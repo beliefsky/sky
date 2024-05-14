@@ -8,7 +8,7 @@
 
 #include <io/http/http_server_dispatcher.h>
 #include <core/log.h>
-//#include <io/postgres/pgsql_pool_wait.h>
+#include <io/postgres/pgsql_pool_wait.h>
 #include <io/http/http_server_wait.h>
 
 static sky_bool_t create_server(sky_ev_loop_t *ev_loop);
@@ -24,7 +24,7 @@ static SKY_HTTP_MAPPER_HANDLER(pgsql_test);
 
 static SKY_HTTP_MAPPER_HANDLER(put_data);
 
-//static sky_pgsql_pool_t *pgsql_pool;
+static sky_pgsql_pool_t *pgsql_pool;
 
 int
 main() {
@@ -40,19 +40,19 @@ main() {
     sky_inet_address_t address;
     sky_inet_address_ipv4(&address, 0, 5432);
 
-//    sky_pgsql_conf_t conf = {
-//            .username = sky_string("postgres"),
-//            .password = sky_string("123456"),
-//            .database = sky_string("beliefsky_test"),
-//            .address = &address
-//    };
-//
-//
-//    pgsql_pool = sky_pgsql_pool_create(ev_loop, &conf);
+    sky_pgsql_conf_t conf = {
+            .username = sky_string("postgres"),
+            .password = sky_string("123456"),
+            .database = sky_string("beliefsky_test"),
+            .address = &address
+    };
+
+
+    pgsql_pool = sky_pgsql_pool_create(ev_loop, &conf);
 
     create_server(ev_loop);
     sky_ev_loop_run(ev_loop);
-//    sky_pgsql_pool_destroy(pgsql_pool);
+    sky_pgsql_pool_destroy(pgsql_pool);
     sky_ev_loop_stop(ev_loop);
 
     return 0;
@@ -111,22 +111,22 @@ pgsql_test_wait(sky_sync_wait_t *const wait, void *const data) {
     sky_http_server_request_t *req = data;
 
 
-//    sky_pgsql_conn_t *conn = sky_pgsql_pool_wait_get(pgsql_pool, req->pool, wait);
-//    if (conn) {
-//        sky_str_t sql = sky_string("SELECT 1");
-//
-//        sky_pgsql_result_t *result = sky_pgsql_wait_exec(conn, wait, &sql, null, 0);
-//        sky_pgsql_conn_release(conn);
-//        if (result) {
-//            sky_http_response_wait_str_len(
-//                    req,
-//                    wait,
-//                    sky_str_line("{\"status\": 200, \"msg\": \"success\"}")
-//            );
-//            sky_http_server_req_finish(req); // wait模式需要主动调用finish
-//            return;
-//        }
-//    }
+    sky_pgsql_conn_t *conn = sky_pgsql_pool_wait_get(pgsql_pool, req->pool, wait);
+    if (conn) {
+        sky_str_t sql = sky_string("SELECT 1");
+
+        sky_pgsql_result_t *result = sky_pgsql_wait_exec(conn, wait, &sql, null, 0);
+        sky_pgsql_conn_release(conn);
+        if (result) {
+            sky_http_response_wait_str_len(
+                    req,
+                    wait,
+                    sky_str_line("{\"status\": 200, \"msg\": \"success\"}")
+            );
+            sky_http_server_req_finish(req); // wait模式需要主动调用finish
+            return;
+        }
+    }
 
     sky_http_response_wait_str_len(
             req,
