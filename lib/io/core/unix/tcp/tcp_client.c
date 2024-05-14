@@ -29,6 +29,16 @@ sky_tcp_cli_init(sky_tcp_cli_t *cli, sky_ev_loop_t *ev_loop) {
     cli->write_bytes = 0;
 }
 
+sky_api sky_inline sky_bool_t
+sky_tcp_cli_error(const sky_tcp_cli_t *cli) {
+    return !!(cli->ev.flags & TCP_STATUS_ERROR);
+}
+
+sky_api sky_inline sky_bool_t
+sky_tcp_cli_eof(const sky_tcp_cli_t *cli) {
+    return !!(cli->ev.flags & TCP_STATUS_EOF);
+}
+
 sky_api sky_bool_t
 sky_tcp_cli_open(sky_tcp_cli_t *cli, sky_i32_t domain) {
     if (sky_unlikely(cli->ev.fd != SKY_SOCKET_FD_NONE || (cli->ev.flags & TCP_STATUS_CLOSING))) {

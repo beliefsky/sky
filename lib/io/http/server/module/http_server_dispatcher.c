@@ -4,7 +4,6 @@
 #include <io/http/http_server_dispatcher.h>
 #include <core/memory.h>
 #include <core/trie.h>
-#include <core/log.h>
 
 
 typedef struct {

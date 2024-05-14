@@ -111,6 +111,10 @@ sky_bool_t sky_tcp_ser_close(sky_tcp_ser_t *ser, sky_tcp_ser_cb_pt cb);
 
 void sky_tcp_cli_init(sky_tcp_cli_t *cli, sky_ev_loop_t *ev_loop);
 
+sky_bool_t sky_tcp_cli_error(const sky_tcp_cli_t *cli);
+
+sky_bool_t sky_tcp_cli_eof(const sky_tcp_cli_t *cli);
+
 sky_bool_t sky_tcp_cli_open(sky_tcp_cli_t *cli, sky_i32_t domain);
 
 sky_tcp_result_t sky_tcp_connect(
