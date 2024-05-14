@@ -51,13 +51,14 @@ sky_tcp_ser_open(
     if (sky_unlikely(fd == SKY_SOCKET_FD_NONE)) {
         return false;
     }
+    ser->ev.fd = fd;
     if ((options_cb && !options_cb(ser, fd))
         || bind(fd, (const struct sockaddr *) address, (sky_i32_t) sky_inet_address_size(address)) != 0
         || listen(fd, backlog) != 0) {
         closesocket(fd);
+        ser->ev.fd = SKY_SOCKET_FD_NONE;
         return false;
     }
-    ser->ev.fd = fd;
     ser->ev.flags |= (sky_u32_t) address->family;
     CreateIoCompletionPort((HANDLE) fd, ser->ev.ev_loop->iocp, (ULONG_PTR) &ser->ev, 0);
     SetFileCompletionNotificationModes((HANDLE) fd, FILE_SKIP_COMPLETION_PORT_ON_SUCCESS);

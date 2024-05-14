@@ -112,24 +112,28 @@ sky_bool_t sky_inet_address_ip_str(
 
 sky_bool_t sky_inet_address_un(sky_inet_address_t *address, const sky_uchar_t *path, sky_usize_t len);
 
-
-#if defined(__linux__) || defined(__WINNT__)
-
-sky_u32_t sky_inet_address_size(const sky_inet_address_t *address);
-
-#else
-
-static sky_inline sky_u32_t
-sky_inet_address_size(const sky_inet_address_t *const address) {
-    return address->size;
-}
-
-#endif
-
 static sky_inline sky_i32_t
 sky_inet_address_family(const sky_inet_address_t *const address) {
     return address->family;
 }
+
+static sky_inline sky_u32_t
+sky_inet_address_size(const sky_inet_address_t *address) {
+
+#if defined(__linux__) || defined(__WINNT__)
+    switch (address->family) {
+        case AF_INET:
+            return sizeof(address->ipv4);
+        case AF_INET6:
+            return sizeof(address->ipv6);
+        default:
+            return sizeof(address->un);
+    }
+#else
+    return address->size;
+#endif
+}
+
 
 #if defined(__cplusplus)
 } /* extern "C" { */

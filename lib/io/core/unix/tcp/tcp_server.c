@@ -61,7 +61,6 @@ sky_tcp_ser_open(
     if (sky_unlikely(fd == -1)) {
         return false;
     }
-
 #else
     const sky_socket_t fd = socket(address->family, SOCK_STREAM, IPPROTO_TCP);
     if (sky_unlikely(fd == -1)) {
@@ -72,17 +71,18 @@ sky_tcp_ser_open(
         return false;
     }
 #endif
+    ser->ev.fd = fd;
 
     const sky_i32_t opt = 1;
     setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(sky_i32_t));
 
-    if ((options_cb && !options_cb(ser, fd))
+    if ((options_cb && !options_cb(ser))
         || bind(fd, (const struct sockaddr *) address, sky_inet_address_size(address)) != 0
         || listen(fd, backlog) != 0) {
         close(fd);
+        ser->ev.fd = SKY_SOCKET_FD_NONE;
         return false;
     }
-    ser->ev.fd = fd;
     ser->ev.flags |= TCP_STATUS_READ;
 
     return true;

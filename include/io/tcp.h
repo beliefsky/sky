@@ -27,7 +27,7 @@ typedef enum sky_tcp_result_s sky_tcp_result_t;
 
 typedef void (*sky_tcp_ser_cb_pt)(sky_tcp_ser_t *ser);
 
-typedef sky_bool_t (*sky_tcp_ser_option_pt)(sky_tcp_ser_t *ser, sky_socket_t fd);
+typedef sky_bool_t (*sky_tcp_ser_option_pt)(sky_tcp_ser_t *ser);
 
 typedef void (*sky_tcp_accept_pt)(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_bool_t success);
 

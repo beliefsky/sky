@@ -104,19 +104,3 @@ sky_inet_address_un(sky_inet_address_t *const address, const sky_uchar_t *const 
     return true;
 }
 
-#if defined(__linux__) || defined(__WINNT__)
-
-sky_api sky_u32_t
-sky_inet_address_size(const sky_inet_address_t *const address) {
-    switch (address->family) {
-        case AF_INET:
-            return sizeof(address->ipv4);
-        case AF_INET6:
-            return sizeof(address->ipv6);
-        default:
-            return sizeof(address->un);
-    }
-}
-
-#endif
-

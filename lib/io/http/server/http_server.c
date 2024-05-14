@@ -12,6 +12,8 @@ typedef struct {
 
 static void http_server_accept(sky_tcp_ser_t * ser, sky_tcp_cli_t *cli, sky_bool_t success);
 
+static sky_bool_t http_server_options(sky_tcp_ser_t *ser);
+
 static void http_server_on_close(sky_tcp_ser_t *ser);
 
 sky_api sky_http_server_t *
@@ -91,20 +93,12 @@ sky_http_server_bind(
     if (sky_unlikely(!sky_tcp_ser_open(
             &listener->tcp,
             address,
-            null,
+            http_server_options,
             1000
     ))) {
         sky_pfree(server->pool, listener, sizeof(http_listener_t));
         return false;
     }
-
-    /*
-     sky_tcp_option_reuse_port(&listener->tcp)
-    sky_tcp_option_no_delay(&listener->tcp);
-    sky_tcp_option_fast_open(&listener->tcp, 3);
-    sky_tcp_option_defer_accept(&listener->tcp);
-    */
-
     sky_http_connection_t *conn = sky_malloc(sizeof(sky_http_connection_t));
     sky_tcp_cli_init(&conn->tcp, server->ev_loop);
     sky_ev_timeout_init(server->ev_loop, &conn->timer, null);
@@ -153,6 +147,18 @@ http_server_accept(sky_tcp_ser_t *const ser, sky_tcp_cli_t *cli, sky_bool_t succ
                 return;
         }
     }
+}
+
+static sky_bool_t
+http_server_options(sky_tcp_ser_t *ser) {
+    sky_tcp_ser_options_reuse_port(ser);
+    /*
+   sky_tcp_option_reuse_port(&listener->tcp)
+  sky_tcp_option_no_delay(&listener->tcp);
+  sky_tcp_option_fast_open(&listener->tcp, 3);
+  sky_tcp_option_defer_accept(&listener->tcp);
+  */
+    return true;
 }
 
 static void
