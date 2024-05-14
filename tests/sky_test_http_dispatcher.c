@@ -9,7 +9,7 @@
 #include <io/http/http_server_dispatcher.h>
 #include <core/log.h>
 //#include <io/postgres/pgsql_pool_wait.h>
-//#include <io/http/http_server_wait.h>
+#include <io/http/http_server_wait.h>
 
 static sky_bool_t create_server(sky_ev_loop_t *ev_loop);
 
@@ -69,10 +69,10 @@ create_server(sky_ev_loop_t *ev_loop) {
                     .get = hello_world,
                     .post = put_data
             },
-//            {
-//                    .path = sky_string("/pgsql"),
-//                    .get = pgsql_test
-//            },
+            {
+                    .path = sky_string("/pgsql"),
+                    .get = pgsql_test
+            },
     };
 
     const sky_http_server_dispatcher_conf_t dispatcher = {
@@ -105,12 +105,12 @@ static SKY_HTTP_MAPPER_HANDLER(hello_world) {
     );
 }
 
-//
-//static void
-//pgsql_test_wait(sky_sync_wait_t *const wait, void *const data) {
-//    sky_http_server_request_t *req = data;
-//
-//
+
+static void
+pgsql_test_wait(sky_sync_wait_t *const wait, void *const data) {
+    sky_http_server_request_t *req = data;
+
+
 //    sky_pgsql_conn_t *conn = sky_pgsql_pool_wait_get(pgsql_pool, req->pool, wait);
 //    if (conn) {
 //        sky_str_t sql = sky_string("SELECT 1");
@@ -127,27 +127,29 @@ static SKY_HTTP_MAPPER_HANDLER(hello_world) {
 //            return;
 //        }
 //    }
-//
-//    sky_http_response_wait_str_len(
-//            req,
-//            wait,
-//            sky_str_line("{\"status\": 500, \"msg\": \"query error\"}")
-//    );
-//
-//    sky_http_server_req_finish(req); // wait模式需要主动调用finish
-//}
-//
-//
-//static SKY_HTTP_MAPPER_HANDLER(pgsql_test) {
-//    sky_sync_wait_create(pgsql_test_wait, req);
-//}
+
+    sky_http_response_wait_str_len(
+            req,
+            wait,
+            sky_str_line("{\"status\": 500, \"msg\": \"query error\"}")
+    );
+
+    sky_http_server_req_finish(req); // wait模式需要主动调用finish
+}
+
+
+static SKY_HTTP_MAPPER_HANDLER(pgsql_test) {
+    sky_sync_wait_create(pgsql_test_wait, req);
+}
 
 static void
 body_cb(sky_http_server_request_t *req, sky_str_t *body, void *data) {
     (void) data;
 
     if (body) {
-        sky_log_warn("%lu", body->len);
+        sky_log_warn("%lu: %s", body->len, body->data);
+    } else {
+        sky_log_error("not body or error");
     }
     sky_log_warn("=============");
 
