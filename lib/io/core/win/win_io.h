@@ -17,8 +17,6 @@
 
 #define EVENT_USE_IOCP
 
-#include <windows.h>
-#include <winsock2.h>
 #include <ioapiset.h>
 #include <core/memory.h>
 
