@@ -131,7 +131,7 @@ on_pgsql_auth_read(sky_tcp_cli_t *tcp, sky_usize_t size, void *attr) {
                         packet->status = KEY_DATA;
                         break;
                     case 'E':
-                        packet->status = ERROR;
+                        packet->status = RESULT_ERROR;
                         break;
                     default:
                         sky_log_error("auth error %c", *(buf->pos - 1));

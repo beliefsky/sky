@@ -286,7 +286,7 @@ on_pgsql_exec_read(sky_tcp_cli_t *const tcp, sky_usize_t size, void *attr) {
                         packet->status = READY;
                         break;
                     case 'E':
-                        packet->status = ERROR;
+                        packet->status = RESULT_ERROR;
                         break;
                     default:
                         sky_log_error("接收数据无法识别命令");
