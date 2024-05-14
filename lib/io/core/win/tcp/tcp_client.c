@@ -34,15 +34,6 @@ sky_tcp_cli_init(sky_tcp_cli_t *cli, sky_ev_loop_t *ev_loop) {
     cli->out_req.type = EV_REQ_TCP_CONNECT;
 }
 
-sky_api sky_inline sky_bool_t
-sky_tcp_cli_error(const sky_tcp_cli_t *cli) {
-    return !!(cli->ev.flags & TCP_STATUS_ERROR);
-}
-
-sky_api sky_inline sky_bool_t
-sky_tcp_cli_eof(const sky_tcp_cli_t *cli) {
-    return !!(cli->ev.flags & TCP_STATUS_EOF);
-}
 
 sky_api sky_bool_t
 sky_tcp_cli_open(sky_tcp_cli_t *cli, sky_i32_t domain) {
@@ -93,7 +84,7 @@ sky_tcp_connect(
         sky_tcp_connect_pt cb
 ) {
     if (sky_unlikely(cli->ev.fd == SKY_SOCKET_FD_NONE
-                     || (cli->ev.flags & (TCP_STATUS_WRITING | TCP_STATUS_CONNECTED | TCP_STATUS_ERROR)))) {
+                     || (cli->ev.flags & (TCP_STATUS_WRITING | SKY_TCP_STATUS_CONNECTED | SKY_TCP_STATUS_ERROR)))) {
         return REQ_ERROR;
     }
     if (!connect_ex) {
@@ -114,7 +105,7 @@ sky_tcp_connect(
             &bytes,
             &cli->out_req.overlapped
     )) {
-        cli->ev.flags |= TCP_STATUS_CONNECTED;
+        cli->ev.flags |= SKY_TCP_STATUS_CONNECTED;
         cli->out_req.type = EV_REQ_TCP_WRITE;
         return REQ_SUCCESS;
     }
@@ -123,7 +114,7 @@ sky_tcp_connect(
         cli->ev.flags |= TCP_STATUS_WRITING;
         return REQ_PENDING;
     }
-    cli->ev.flags |= TCP_STATUS_ERROR;
+    cli->ev.flags |= SKY_TCP_STATUS_ERROR;
 
     return REQ_ERROR;
 
@@ -156,8 +147,8 @@ sky_tcp_read(
         sky_tcp_rw_pt cb,
         void *attr
 ) {
-    if (sky_unlikely(!(cli->ev.flags & TCP_STATUS_CONNECTED)
-                     || (cli->ev.flags & (TCP_STATUS_EOF | TCP_STATUS_ERROR | TCP_STATUS_CLOSING)))) {
+    if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
+                     || (cli->ev.flags & (SKY_TCP_STATUS_EOF | SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
         return REQ_ERROR;
     }
     if (!size) {
@@ -179,14 +170,14 @@ sky_tcp_read(
                     null
             ) == 0) {
                 if (!read_bytes) {
-                    cli->ev.flags |= TCP_STATUS_EOF;
+                    cli->ev.flags |= SKY_TCP_STATUS_EOF;
                     return REQ_ERROR;
                 }
                 *bytes = read_bytes;
                 return REQ_SUCCESS;
             }
             if (GetLastError() != ERROR_IO_PENDING) {
-                cli->ev.flags |= TCP_STATUS_ERROR;
+                cli->ev.flags |= SKY_TCP_STATUS_ERROR;
                 return REQ_ERROR;
             }
             cli->ev.flags |= TCP_STATUS_READING;
@@ -215,8 +206,8 @@ sky_tcp_read_vec(
         sky_tcp_rw_pt cb,
         void *attr
 ) {
-    if (sky_unlikely(!(cli->ev.flags & TCP_STATUS_CONNECTED)
-                     || (cli->ev.flags & (TCP_STATUS_EOF | TCP_STATUS_ERROR | TCP_STATUS_CLOSING)))) {
+    if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
+                     || (cli->ev.flags & (SKY_TCP_STATUS_EOF | SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
         return REQ_ERROR;
     }
     if (!num) {
@@ -240,14 +231,14 @@ sky_tcp_read_vec(
                     null
             ) == 0) {
                 if (!read_bytes) {
-                    cli->ev.flags |= TCP_STATUS_EOF;
+                    cli->ev.flags |= SKY_TCP_STATUS_EOF;
                     return REQ_ERROR;
                 }
                 *bytes = read_bytes;
                 return REQ_SUCCESS;
             }
             if (GetLastError() != ERROR_IO_PENDING) {
-                cli->ev.flags |= TCP_STATUS_ERROR;
+                cli->ev.flags |= SKY_TCP_STATUS_ERROR;
                 return REQ_ERROR;
             }
             cli->ev.flags |= TCP_STATUS_READING;
@@ -280,8 +271,8 @@ sky_tcp_write(
         sky_tcp_rw_pt cb,
         void *attr
 ) {
-    if (sky_unlikely(!(cli->ev.flags & TCP_STATUS_CONNECTED)
-                     || (cli->ev.flags & (TCP_STATUS_ERROR | TCP_STATUS_CLOSING)))) {
+    if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
+                     || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
         return REQ_ERROR;
     }
     if (!size) {
@@ -307,7 +298,7 @@ sky_tcp_write(
                 return REQ_SUCCESS;
             }
             if (GetLastError() != ERROR_IO_PENDING) {
-                cli->ev.flags |= TCP_STATUS_ERROR;
+                cli->ev.flags |= SKY_TCP_STATUS_ERROR;
                 return REQ_ERROR;
             }
             cli->ev.flags |= TCP_STATUS_READING;
@@ -333,8 +324,8 @@ sky_tcp_write_vec(
         sky_tcp_rw_pt cb,
         void *attr
 ) {
-    if (sky_unlikely(!(cli->ev.flags & TCP_STATUS_CONNECTED)
-                     || (cli->ev.flags & (TCP_STATUS_ERROR | TCP_STATUS_CLOSING)))) {
+    if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
+                     || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
         return REQ_ERROR;
     }
     if (!num) {
@@ -359,7 +350,7 @@ sky_tcp_write_vec(
                 return REQ_SUCCESS;
             }
             if (GetLastError() != ERROR_IO_PENDING) {
-                cli->ev.flags |= TCP_STATUS_ERROR;
+                cli->ev.flags |= SKY_TCP_STATUS_ERROR;
                 return REQ_ERROR;
             }
             cli->ev.flags |= TCP_STATUS_READING;
@@ -384,11 +375,11 @@ sky_tcp_write_vec(
 
 sky_api sky_bool_t
 sky_tcp_cli_close(sky_tcp_cli_t *cli, sky_tcp_cli_cb_pt cb) {
-    if (cli->ev.fd == SKY_SOCKET_FD_NONE || (cli->ev.flags & TCP_STATUS_CLOSING)) {
+    if (cli->ev.fd == SKY_SOCKET_FD_NONE || (cli->ev.flags & SKY_TCP_STATUS_CLOSING)) {
         return false;
     }
     cli->close_cb = cb;
-    cli->ev.flags |= TCP_STATUS_CLOSING;
+    cli->ev.flags |= SKY_TCP_STATUS_CLOSING;
     if (!(cli->ev.flags & (TCP_STATUS_READING | TCP_STATUS_WRITING))) {
         do_disconnect(cli);
         return true;
@@ -411,12 +402,12 @@ event_on_tcp_connect(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
     cli->ev.flags &= ~TCP_STATUS_WRITING;
 
     if (success) {
-        cli->ev.flags |= TCP_STATUS_CONNECTED;
+        cli->ev.flags |= SKY_TCP_STATUS_CONNECTED;
         cli->out_req.type = EV_REQ_TCP_WRITE;
         cli->connect_cb(cli, true);
         return;
     }
-    const sky_bool_t should_close = (cli->ev.flags & TCP_STATUS_CLOSING);
+    const sky_bool_t should_close = (cli->ev.flags & SKY_TCP_STATUS_CLOSING);
     cli->connect_cb(cli, false);
     if (should_close) {
         do_disconnect(cli);
@@ -445,8 +436,8 @@ event_on_tcp_read(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
     cli->ev.flags &= ~TCP_STATUS_READING;
 
     if (!success) {
-        ev->flags |= TCP_STATUS_ERROR;
-        if ((cli->ev.flags & TCP_STATUS_CLOSING) && !(cli->ev.flags & TCP_STATUS_WRITING)) {
+        ev->flags |= SKY_TCP_STATUS_ERROR;
+        if ((cli->ev.flags & SKY_TCP_STATUS_CLOSING) && !(cli->ev.flags & TCP_STATUS_WRITING)) {
             do_disconnect(cli);
         } else {
             clean_read(cli);
@@ -454,7 +445,7 @@ event_on_tcp_read(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
         return;
     }
     if (!bytes) {
-        ev->flags |= TCP_STATUS_EOF;
+        ev->flags |= SKY_TCP_STATUS_EOF;
         clean_read(cli);
         return;
     }
@@ -475,7 +466,7 @@ event_on_tcp_read(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
                 task->cb(cli, size, task->attr);
                 size = 0;
             }
-            if ((cli->ev.flags & (TCP_STATUS_CLOSING | TCP_STATUS_ERROR | TCP_STATUS_EOF))) {
+            if ((cli->ev.flags & (SKY_TCP_STATUS_CLOSING | SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_EOF))) {
                 if (cli->read_r_idx != cli->read_w_idx) {
                     clean_read(cli);
                 }
@@ -489,7 +480,7 @@ event_on_tcp_read(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
         }
         task->cb(cli, size, task->attr);
         size = 0;
-        if ((cli->ev.flags & (TCP_STATUS_CLOSING | TCP_STATUS_ERROR | TCP_STATUS_EOF))) {
+        if ((cli->ev.flags & (SKY_TCP_STATUS_CLOSING | SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_EOF))) {
             if (cli->read_r_idx != cli->read_w_idx) {
                 clean_read(cli);
             }
@@ -516,7 +507,7 @@ event_on_tcp_read(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
                 null
         ) == 0) {
             if (!read_bytes) {
-                cli->ev.flags |= TCP_STATUS_EOF;
+                cli->ev.flags |= SKY_TCP_STATUS_EOF;
                 clean_read(cli);
                 return;
             }
@@ -524,7 +515,7 @@ event_on_tcp_read(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
             continue;
         }
         if (GetLastError() != ERROR_IO_PENDING) {
-            cli->ev.flags |= TCP_STATUS_ERROR;
+            cli->ev.flags |= SKY_TCP_STATUS_ERROR;
             clean_read(cli);
             return;
         }
@@ -538,8 +529,8 @@ event_on_tcp_write(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
     sky_tcp_cli_t *const cli = (sky_tcp_cli_t *const) ev;
     cli->ev.flags &= ~TCP_STATUS_WRITING;
     if (!success) {
-        ev->flags |= TCP_STATUS_ERROR;
-        if ((cli->ev.flags & TCP_STATUS_CLOSING) && !(cli->ev.flags & TCP_STATUS_READING)) {
+        ev->flags |= SKY_TCP_STATUS_ERROR;
+        if ((cli->ev.flags & SKY_TCP_STATUS_CLOSING) && !(cli->ev.flags & TCP_STATUS_READING)) {
             do_disconnect(cli);
         } else {
             clean_write(cli);
@@ -565,7 +556,7 @@ event_on_tcp_write(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
                 task->cb(cli, bytes, task->attr);
                 bytes = 0;
             }
-            if ((cli->ev.flags & (TCP_STATUS_CLOSING | TCP_STATUS_ERROR))) {
+            if ((cli->ev.flags & (SKY_TCP_STATUS_CLOSING | SKY_TCP_STATUS_ERROR))) {
                 if (cli->write_r_idx != cli->write_w_idx) {
                     clean_write(cli);
                 }
@@ -580,7 +571,7 @@ event_on_tcp_write(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
         }
         task->cb(cli, size, task->attr);
         size = 0;
-        if ((cli->ev.flags & (TCP_STATUS_CLOSING | TCP_STATUS_ERROR))) {
+        if ((cli->ev.flags & (SKY_TCP_STATUS_CLOSING | SKY_TCP_STATUS_ERROR))) {
             if (cli->write_r_idx != cli->write_w_idx) {
                 clean_write(cli);
             }
@@ -608,7 +599,7 @@ event_on_tcp_write(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
             continue;
         }
         if (GetLastError() != ERROR_IO_PENDING) {
-            cli->ev.flags |= TCP_STATUS_ERROR;
+            cli->ev.flags |= SKY_TCP_STATUS_ERROR;
             clean_write(cli);
             return;
         }
@@ -640,7 +631,7 @@ close_on_tcp_cli(sky_ev_t *ev) {
 
 static sky_inline void
 do_disconnect(sky_tcp_cli_t *cli) {
-    if ((cli->ev.flags & TCP_STATUS_CONNECTED)) {
+    if ((cli->ev.flags & SKY_TCP_STATUS_CONNECTED)) {
         if (!disconnect_ex) {
             const GUID wsaid_disconnectex = WSAID_DISCONNECTEX;
             if (sky_unlikely(!get_extension_function(cli->ev.fd, wsaid_disconnectex, (void **) &disconnect_ex))) {
@@ -654,7 +645,7 @@ do_disconnect(sky_tcp_cli_t *cli) {
         if (!disconnect_ex(cli->ev.fd, &cli->out_req.overlapped, 0, 0)
             && GetLastError() == ERROR_IO_PENDING) {
             cli->ev.flags |= TCP_STATUS_WRITING;
-            cli->ev.flags &= ~TCP_STATUS_CONNECTED;
+            cli->ev.flags &= ~SKY_TCP_STATUS_CONNECTED;
             return;
         }
     }

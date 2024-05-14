@@ -12,7 +12,7 @@ typedef enum {
     AUTH,
     STRING,
     KEY_DATA,
-    ERROR
+    RESULT_ERROR
 
 } auth_status_t;
 
@@ -201,7 +201,7 @@ on_pgsql_auth_read(sky_tcp_cli_t *tcp, sky_usize_t size, void *attr) {
                 conn->conn_cb(conn, conn->cb_data);
                 return;
             }
-            case ERROR: {
+            case RESULT_ERROR: {
                 if ((sky_u32_t) (buf->last - buf->pos) < packet->size) {
                     break;
                 }

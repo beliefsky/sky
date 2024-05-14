@@ -14,7 +14,7 @@ typedef enum {
     ROW_DATA,
     COMPLETE,
     READY,
-    ERROR
+    RESULT_ERROR
 } exec_status_t;
 
 typedef struct {
@@ -388,7 +388,7 @@ on_pgsql_exec_read(sky_tcp_cli_t *const tcp, sky_usize_t size, void *attr) {
                 conn->exec_cb(conn, result, conn->cb_data);
                 return;
             }
-            case ERROR: {
+            case RESULT_ERROR: {
                 if ((sky_u32_t) (buf->last - buf->pos) < packet->size) {
                     break;
                 }

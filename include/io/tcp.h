@@ -11,6 +11,11 @@
 extern "C" {
 #endif
 
+#define SKY_TCP_STATUS_CONNECTED    SKY_U32(0x00010000)
+#define SKY_TCP_STATUS_EOF          SKY_U32(0x00020000)
+#define SKY_TCP_STATUS_ERROR        SKY_U32(0x00040000)
+#define SKY_TCP_STATUS_CLOSING      SKY_U32(0x00080000)
+
 #define SKY_TCP_ACCEPT_QUEUE_NUM    SKY_U8(16)
 #define SKY_TCP_ACCEPT_QUEUE_MASK   SKY_U8(15)
 #define SKY_TCP_READ_QUEUE_NUM      SKY_U8(8)
@@ -96,8 +101,6 @@ enum sky_tcp_result_s {
 
 void sky_tcp_ser_init(sky_tcp_ser_t *ser, sky_ev_loop_t *ev_loop);
 
-sky_bool_t sky_tcp_ser_error(const sky_tcp_ser_t *ser);
-
 sky_bool_t sky_tcp_ser_options_reuse_port(sky_tcp_ser_t *ser);
 
 sky_bool_t sky_tcp_ser_open(
@@ -112,18 +115,6 @@ sky_tcp_result_t sky_tcp_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_tcp_
 sky_bool_t sky_tcp_ser_close(sky_tcp_ser_t *ser, sky_tcp_ser_cb_pt cb);
 
 void sky_tcp_cli_init(sky_tcp_cli_t *cli, sky_ev_loop_t *ev_loop);
-
-sky_bool_t sky_tcp_cli_closed(const sky_tcp_cli_t *cli);
-
-sky_bool_t sky_tcp_cli_closing(const sky_tcp_cli_t *cli);
-
-sky_bool_t sky_tcp_cli_connecting(const sky_tcp_cli_t *cli);
-
-sky_bool_t sky_tcp_cli_connected(const sky_tcp_cli_t *cli);
-
-sky_bool_t sky_tcp_cli_error(const sky_tcp_cli_t *cli);
-
-sky_bool_t sky_tcp_cli_eof(const sky_tcp_cli_t *cli);
 
 sky_bool_t sky_tcp_cli_open(sky_tcp_cli_t *cli, sky_i32_t domain);
 
@@ -186,9 +177,49 @@ sky_tcp_ser_ev_loop(const sky_tcp_ser_t *ser) {
     return ser->ev.ev_loop;
 }
 
+static sky_inline sky_bool_t
+sky_tcp_ser_error(const sky_tcp_ser_t *ser) {
+    return !!(ser->ev.flags & SKY_TCP_STATUS_ERROR);
+}
+
+static sky_inline sky_bool_t
+sky_tcp_ser_closed(const sky_tcp_ser_t *ser) {
+    return ser->ev.fd == SKY_SOCKET_FD_NONE && !(ser->ev.flags & SKY_TCP_STATUS_CLOSING);
+}
+
+static sky_inline sky_bool_t
+sky_tcp_ser_closing(const sky_tcp_ser_t *ser) {
+    return !!(ser->ev.flags & SKY_TCP_STATUS_CLOSING);
+}
+
 static sky_inline sky_ev_loop_t *
 sky_tcp_cli_ev_loop(const sky_tcp_cli_t *cli) {
     return cli->ev.ev_loop;
+}
+
+static sky_inline sky_bool_t
+sky_tcp_cli_closed(const sky_tcp_cli_t *cli) {
+    return cli->ev.fd == SKY_SOCKET_FD_NONE && !(cli->ev.flags & SKY_TCP_STATUS_CLOSING);
+}
+
+static sky_inline sky_bool_t
+sky_tcp_cli_closing(const sky_tcp_cli_t *cli) {
+    return !!(cli->ev.flags & SKY_TCP_STATUS_CLOSING);
+}
+
+static sky_inline sky_bool_t
+sky_tcp_cli_connected(const sky_tcp_cli_t *cli) {
+    return !!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED);
+}
+
+static sky_inline sky_bool_t
+sky_tcp_cli_error(const sky_tcp_cli_t *cli) {
+    return !!(cli->ev.flags & SKY_TCP_STATUS_ERROR);
+}
+
+static sky_inline sky_bool_t
+sky_tcp_cli_eof(const sky_tcp_cli_t *cli) {
+    return !!(cli->ev.flags & SKY_TCP_STATUS_EOF);
 }
 
 #if defined(__cplusplus)

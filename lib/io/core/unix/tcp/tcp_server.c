@@ -28,11 +28,6 @@ sky_tcp_ser_init(sky_tcp_ser_t *ser, sky_ev_loop_t *ev_loop) {
 }
 
 sky_api sky_inline sky_bool_t
-sky_tcp_ser_error(const sky_tcp_ser_t *ser) {
-    return !!(ser->ev.flags & TCP_STATUS_ERROR);
-}
-
-sky_api sky_inline sky_bool_t
 sky_tcp_ser_options_reuse_port(sky_tcp_ser_t *ser) {
     const sky_i32_t opt = 1;
 
@@ -53,7 +48,7 @@ sky_tcp_ser_open(
         sky_tcp_ser_option_pt options_cb,
         sky_i32_t backlog
 ) {
-    if (sky_unlikely(ser->ev.fd != SKY_SOCKET_FD_NONE || (ser->ev.flags & TCP_STATUS_CLOSING))) {
+    if (sky_unlikely(ser->ev.fd != SKY_SOCKET_FD_NONE || (ser->ev.flags & SKY_TCP_STATUS_CLOSING))) {
         return false;
     }
 #ifdef SKY_HAVE_ACCEPT4
@@ -90,7 +85,7 @@ sky_tcp_ser_open(
 
 sky_api sky_tcp_result_t
 sky_tcp_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_tcp_accept_pt cb) {
-    if (sky_unlikely((ser->ev.flags & TCP_STATUS_ERROR) || ser->ev.fd == SKY_SOCKET_FD_NONE)) {
+    if (sky_unlikely((ser->ev.flags & SKY_TCP_STATUS_ERROR) || ser->ev.fd == SKY_SOCKET_FD_NONE)) {
         return REQ_ERROR;
     }
     if ((ser->ev.flags & TCP_STATUS_READ) && ser->w_idx == ser->r_idx) {
@@ -118,7 +113,7 @@ sky_tcp_ser_close(sky_tcp_ser_t *ser, sky_tcp_ser_cb_pt cb) {
     ser->close_cb = cb;
     close(ser->ev.fd);
     ser->ev.fd = SKY_SOCKET_FD_NONE;
-    ser->ev.flags |= TCP_STATUS_CLOSING;
+    ser->ev.flags |= SKY_TCP_STATUS_CLOSING;
 
     event_close_add(&ser->ev);
 
@@ -129,7 +124,7 @@ sky_tcp_ser_close(sky_tcp_ser_t *ser, sky_tcp_ser_cb_pt cb) {
 void
 event_on_tcp_ser_error(sky_ev_t *ev) {
     sky_tcp_ser_t *const ser = (sky_tcp_ser_t *const) ev;
-    ser->ev.flags |= TCP_STATUS_ERROR;
+    ser->ev.flags |= SKY_TCP_STATUS_ERROR;
     if (ser->r_idx == ser->w_idx) {
         return;
     }
@@ -143,7 +138,7 @@ event_on_tcp_ser_in(sky_ev_t *ev) {
     if (ser->r_idx == ser->w_idx) {
         return;
     }
-    if ((ser->ev.flags & (TCP_STATUS_CLOSING | TCP_STATUS_ERROR))) {
+    if ((ser->ev.flags & (SKY_TCP_STATUS_CLOSING | SKY_TCP_STATUS_ERROR))) {
         clean_accept(ser);
         return;
     }
@@ -153,7 +148,7 @@ event_on_tcp_ser_in(sky_ev_t *ev) {
         switch (do_accept(ser, req->cli)) {
             case REQ_SUCCESS:
                 req->accept(ser, req->cli, true);
-                if (!(ser->ev.flags & (TCP_STATUS_CLOSING | TCP_STATUS_ERROR))) {
+                if (!(ser->ev.flags & (SKY_TCP_STATUS_CLOSING | SKY_TCP_STATUS_ERROR))) {
                     break;
                 }
                 if ((ser->r_idx++) != ser->w_idx) {
@@ -198,7 +193,7 @@ do_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli) {
     const sky_socket_t accept_fd = accept4(ser->ev.fd, null, 0, SOCK_NONBLOCK | SOCK_CLOEXEC);
     if (accept_fd != -1) {
         cli->ev.fd = accept_fd;
-        cli->ev.flags |= TCP_STATUS_CONNECTED | TCP_STATUS_READ | TCP_STATUS_WRITE;
+        cli->ev.flags |= SKY_TCP_STATUS_CONNECTED | TCP_STATUS_READ | TCP_STATUS_WRITE;
         return REQ_SUCCESS;
     }
 #else
@@ -209,7 +204,7 @@ do_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli) {
             return REQ_ERROR;
         }
         cli->ev.fd = accept_fd;
-        cli->ev.flags |= TCP_STATUS_CONNECTED | TCP_STATUS_READ | TCP_STATUS_WRITE;
+        cli->ev.flags |= SKY_TCP_STATUS_CONNECTED | TCP_STATUS_READ | TCP_STATUS_WRITE;
         return REQ_SUCCESS;
     }
 #endif
@@ -223,7 +218,7 @@ do_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli) {
             ser->ev.flags &= ~TCP_STATUS_READ;
             return REQ_PENDING;
         default:
-            ser->ev.flags |= TCP_STATUS_ERROR;
+            ser->ev.flags |= SKY_TCP_STATUS_ERROR;
             return REQ_ERROR;
     }
 }
