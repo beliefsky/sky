@@ -32,6 +32,20 @@ sky_tcp_ser_error(const sky_tcp_ser_t *ser) {
     return !!(ser->ev.flags & TCP_STATUS_ERROR);
 }
 
+sky_api sky_inline sky_bool_t
+sky_tcp_ser_options_reuse_port(sky_tcp_ser_t *ser) {
+    const sky_i32_t opt = 1;
+
+#if defined(SO_REUSEPORT_LB)
+    return 0 == setsockopt(ser->ev.fd, SOL_SOCKET, SO_REUSEPORT_LB, &opt, sizeof(sky_i32_t));
+#elif defined(SO_REUSEPORT)
+    return 0 == setsockopt(ser->ev.fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_i32_t));
+#else
+
+    return false;
+#endif
+}
+
 sky_api sky_bool_t
 sky_tcp_ser_open(
         sky_tcp_ser_t *ser,

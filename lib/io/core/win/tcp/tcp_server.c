@@ -31,6 +31,12 @@ sky_tcp_ser_error(const sky_tcp_ser_t *ser) {
     return !!(ser->ev.flags & TCP_STATUS_ERROR);
 }
 
+sky_api sky_inline sky_bool_t
+sky_tcp_ser_options_reuse_port(sky_tcp_ser_t *ser) {
+    const sky_i32_t opt = 1;
+    return 0 ==  setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (const char *) &opt, sizeof(sky_i32_t));
+}
+
 sky_api sky_bool_t
 sky_tcp_ser_open(
         sky_tcp_ser_t *ser,
@@ -45,9 +51,6 @@ sky_tcp_ser_open(
     if (sky_unlikely(fd == SKY_SOCKET_FD_NONE)) {
         return false;
     }
-    const sky_i32_t opt = 1;
-    setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, (const char *) &opt, sizeof(sky_i32_t));
-
     if ((options_cb && !options_cb(ser, fd))
         || bind(fd, (const struct sockaddr *) address, (sky_i32_t) sky_inet_address_size(address)) != 0
         || listen(fd, backlog) != 0) {

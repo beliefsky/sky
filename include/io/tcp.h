@@ -98,6 +98,8 @@ void sky_tcp_ser_init(sky_tcp_ser_t *ser, sky_ev_loop_t *ev_loop);
 
 sky_bool_t sky_tcp_ser_error(const sky_tcp_ser_t *ser);
 
+sky_bool_t sky_tcp_ser_options_reuse_port(sky_tcp_ser_t *ser);
+
 sky_bool_t sky_tcp_ser_open(
         sky_tcp_ser_t *ser,
         const sky_inet_address_t *address,
