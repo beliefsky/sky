@@ -23,14 +23,13 @@ sky_tcp_ser_init(sky_tcp_ser_t *ser, sky_ev_loop_t *ev_loop) {
     ser->r_idx = 0;
     ser->w_idx = 0;
     ser->accept_fd = SKY_SOCKET_FD_NONE;
-    ser->accept_req.type = EV_REQ_TCP_ACCEPT;
 }
 
 
 sky_api sky_inline sky_bool_t
 sky_tcp_ser_options_reuse_port(sky_tcp_ser_t *ser) {
     const sky_i32_t opt = 1;
-    return 0 ==  setsockopt(ser->ev.fd, SOL_SOCKET, SO_REUSEADDR, (const char *) &opt, sizeof(sky_i32_t));
+    return 0 == setsockopt(ser->ev.fd, SOL_SOCKET, SO_REUSEADDR, (const char *) &opt, sizeof(sky_i32_t));
 }
 
 sky_api sky_bool_t
@@ -99,18 +98,13 @@ sky_tcp_ser_close(sky_tcp_ser_t *ser, sky_tcp_ser_cb_pt cb) {
     ser->ev.flags |= SKY_TCP_STATUS_CLOSING;
 
     if (!(ser->ev.flags & TCP_STATUS_READING)) {
-        if (ser->accept_fd != SKY_SOCKET_FD_NONE) {
-            closesocket(ser->accept_fd);
-            ser->accept_fd = SKY_SOCKET_FD_NONE;
-        }
-        closesocket(ser->ev.fd);
-        ser->ev.fd = SKY_SOCKET_FD_NONE;
         sky_ev_loop_t *const ev_loop = ser->ev.ev_loop;
         *ev_loop->pending_tail = &ser->ev;
         ev_loop->pending_tail = &ser->ev.next;
     } else {
         CancelIoEx((HANDLE) ser->ev.fd, &ser->accept_req.overlapped);
     }
+    return true;
 }
 
 void
@@ -118,7 +112,6 @@ event_on_tcp_accept(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
     (void) bytes;
     sky_tcp_ser_t *const ser = (sky_tcp_ser_t *const) ev;
     ser->ev.flags &= ~TCP_STATUS_READING;
-
     if (!success) {
         if (ser->accept_fd != SKY_SOCKET_FD_NONE) {
             closesocket(ser->accept_fd);
@@ -127,7 +120,9 @@ event_on_tcp_accept(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
         if ((ser->ev.flags & (SKY_TCP_STATUS_CLOSING))) {
             close_on_tcp_ser(ev);
         } else {
-            clean_accept(ser);
+            if (ser->r_idx != ser->w_idx) {
+                clean_accept(ser);
+            }
         }
         return;
     }
@@ -136,7 +131,6 @@ event_on_tcp_accept(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
     sky_tcp_cli_t *const cli = req->cli;
     cli->ev.fd = ser->accept_fd;
     cli->ev.flags |= SKY_TCP_STATUS_CONNECTED;
-
     CreateIoCompletionPort((HANDLE) cli->ev.fd, cli->ev.ev_loop->iocp, (ULONG_PTR) &cli->ev, 0);
     SetFileCompletionNotificationModes((HANDLE) cli->ev.fd, FILE_SKIP_COMPLETION_PORT_ON_SUCCESS);
     ser->accept_fd = SKY_SOCKET_FD_NONE;
@@ -150,7 +144,7 @@ event_on_tcp_accept(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
             }
             return;
         }
-        if (ser->r_idx == ser->w_idx) {
+        if (ser->r_idx == ser->w_idx || (ser->ev.flags & TCP_STATUS_READING)) {
             return;
         }
         req = ser->accept_queue + (ser->r_idx & SKY_TCP_ACCEPT_QUEUE_MASK);
@@ -169,6 +163,13 @@ event_on_tcp_accept(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
 sky_inline void
 close_on_tcp_ser(sky_ev_t *ev) {
     sky_tcp_ser_t *const ser = (sky_tcp_ser_t *const) ev;
+
+    if (ser->accept_fd != SKY_SOCKET_FD_NONE) {
+        closesocket(ser->accept_fd);
+        ser->accept_fd = SKY_SOCKET_FD_NONE;
+    }
+    closesocket(ser->ev.fd);
+    ser->ev.fd = SKY_SOCKET_FD_NONE;
 
     if (ser->r_idx != ser->w_idx) {
         clean_accept(ser);
@@ -196,6 +197,7 @@ do_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli) {
         return REQ_ERROR;
     }
     sky_memzero(&ser->accept_req.overlapped, sizeof(OVERLAPPED));
+    ser->accept_req.type = EV_REQ_TCP_ACCEPT;
 
     DWORD bytes;
 

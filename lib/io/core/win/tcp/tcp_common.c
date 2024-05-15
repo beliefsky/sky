@@ -3,6 +3,7 @@
 //
 
 #ifdef __WINNT__
+
 #include "./win_tcp.h"
 
 
@@ -14,7 +15,9 @@ create_socket(sky_i32_t domain) {
             SOCK_STREAM,
             IPPROTO_TCP,
             null,
-            0, WSA_FLAG_OVERLAPPED | WSA_FLAG_NO_HANDLE_INHERIT);
+            0,
+            WSA_FLAG_OVERLAPPED | WSA_FLAG_NO_HANDLE_INHERIT
+    );
     if (sky_unlikely(fd == SKY_SOCKET_FD_NONE)) {
         return SKY_SOCKET_FD_NONE;
     }
@@ -24,7 +27,9 @@ create_socket(sky_i32_t domain) {
             SOCK_STREAM,
             IPPROTO_TCP,
             null,
-            0, WSA_FLAG_OVERLAPPED);
+            0,
+            WSA_FLAG_OVERLAPPED
+    );
     if (sky_unlikely(fd == SKY_SOCKET_FD_NONE)) {
         return SKY_SOCKET_FD_NONE;
     }
