@@ -1,13 +1,14 @@
 //
 // Created by beliefsky on 2023/7/31.
 //
-#include <core/log.h>
+#include <core/memory.h>
 #include "./http_server_common.h"
 
 typedef struct {
     union {
         sky_http_server_next_pt none_cb;
         sky_http_server_next_str_pt str_cb;
+        sky_http_server_read_pt read_cb;
     };
     void *data;
 } http_body_cb_t;
@@ -16,6 +17,8 @@ typedef struct {
 static void on_http_body_read_none(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr);
 
 static void on_http_body_read_str(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr);
+
+static void on_http_body_read(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr);
 
 static void http_body_str_too_large(sky_http_server_request_t *r, void *data);
 
@@ -131,6 +134,62 @@ http_req_length_body_str(
     }
 }
 
+sky_i8_t
+http_req_length_body_read(
+        sky_http_server_request_t *r,
+        sky_uchar_t *buf,
+        sky_usize_t size,
+        sky_usize_t *bytes,
+        sky_http_server_read_pt call,
+        void *data
+) {
+    if (size > r->headers_in.content_length_n) {
+        size = r->headers_in.content_length_n;
+    }
+    sky_http_connection_t *const conn = r->conn;
+    sky_buf_t *const tmp = conn->buf;
+    const sky_usize_t read_n = (sky_usize_t) (tmp->last - tmp->pos);
+    if (read_n) {
+        size = sky_min(size, read_n);
+        sky_memcpy(buf, tmp->pos, size);
+        tmp->pos += size;
+        r->headers_in.content_length_n -= size;
+        *bytes = size;
+
+        if (!r->headers_in.content_length_n) {
+            r->read_request_body = true;
+        }
+        return 1;
+    }
+
+    http_body_cb_t *const cb_data = sky_palloc(r->pool, sizeof(http_body_cb_t));
+    cb_data->read_cb = call;
+    cb_data->data = data;
+
+    switch (sky_tcp_read(
+            &conn->tcp,
+            buf,
+            size,
+            bytes,
+            on_http_body_read,
+            cb_data
+    )) {
+        case REQ_PENDING:
+            sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
+            return 0;
+        case REQ_SUCCESS:
+            r->headers_in.content_length_n -= *bytes;
+            if (!r->headers_in.content_length_n) {
+                r->read_request_body = true;
+            }
+            sky_pfree(r->pool, cb_data, sizeof(http_body_cb_t));
+            return 1;
+        default:
+            r->error = true;
+            return -1;
+    }
+}
+
 static void
 on_http_body_read_none(sky_tcp_cli_t *const cli, sky_usize_t bytes, void *attr) {
     sky_http_connection_t *const conn = sky_type_convert(cli, sky_http_connection_t, tcp);
@@ -218,6 +277,27 @@ on_http_body_read_str(sky_tcp_cli_t *const cli, sky_usize_t bytes, void *attr) {
                 return;
         }
     }
+}
+
+static void
+on_http_body_read(sky_tcp_cli_t *const cli, sky_usize_t bytes, void *attr) {
+    sky_http_connection_t *const conn = sky_type_convert(cli, sky_http_connection_t, tcp);
+    sky_http_server_request_t *const req = conn->current_req;
+    http_body_cb_t *const cb_data = attr;
+    const sky_http_server_read_pt read_cb = cb_data->read_cb;
+    void *const data = cb_data->data;
+    sky_pfree(req->pool, cb_data, sizeof(http_body_cb_t));
+
+    if (bytes == SKY_USIZE_MAX) {
+        req->error = true;
+    } else {
+        req->headers_in.content_length_n -= bytes;
+        if (!req->headers_in.content_length_n) {
+            req->read_request_body = true;
+        }
+    }
+    sky_timer_wheel_unlink(&conn->timer);
+    read_cb(req, bytes, data);
 }
 
 

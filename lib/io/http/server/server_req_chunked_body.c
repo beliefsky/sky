@@ -268,6 +268,18 @@ http_req_chunked_body_str(
     call(r, null, data);
 }
 
+sky_i8_t
+http_req_chunked_body_read(
+        sky_http_server_request_t *r,
+        sky_uchar_t *buf,
+        sky_usize_t size,
+        sky_usize_t *bytes,
+        sky_http_server_read_pt call,
+        void *data
+) {
+    return -1;
+}
+
 static void
 on_http_body_read_none(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr) {
     sky_http_connection_t *const conn = sky_type_convert(cli, sky_http_connection_t, tcp);

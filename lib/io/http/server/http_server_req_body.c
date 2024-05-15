@@ -45,4 +45,25 @@ sky_http_req_body_str(sky_http_server_request_t *r, sky_http_server_next_str_pt 
     }
 }
 
+sky_api sky_i8_t
+sky_http_req_body_read(
+        sky_http_server_request_t *r,
+        sky_uchar_t *buf,
+        sky_usize_t size,
+        sky_usize_t *bytes,
+        sky_http_server_read_pt call,
+        void *data
+) {
+    if (sky_unlikely(r->read_request_body || r->error)) {
+        return -1;
+    }
+    if (r->headers_in.content_length) {
+        return http_req_length_body_read(r, buf, size, bytes, call, data);
+    }
+    if (r->headers_in.transfer_encoding) {
+        return http_req_chunked_body_read(r, buf, size, bytes, call, data);
+    }
+    return -1;
+}
+
 
