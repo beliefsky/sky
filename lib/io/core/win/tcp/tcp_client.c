@@ -487,7 +487,7 @@ event_on_tcp_read(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
             }
             return;
         }
-        if (cli->read_r_idx == cli->read_w_idx) {
+        if (cli->read_r_idx == cli->read_w_idx || (cli->ev.flags & TCP_STATUS_READING)) {
             return;
         }
 
@@ -579,7 +579,7 @@ event_on_tcp_write(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
             }
             return;
         }
-        if (cli->write_r_idx == cli->write_w_idx) {
+        if (cli->write_r_idx == cli->write_w_idx || (cli->ev.flags & TCP_STATUS_WRITING)) {
             return;
         }
         r_pre_idx = cli->write_r_idx & SKY_TCP_WRITE_QUEUE_MASK;
