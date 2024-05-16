@@ -47,8 +47,17 @@ typedef sky_i32_t sky_socket_t;
 
 #endif
 
+typedef enum sky_io_result_s sky_io_result_t;
 typedef struct sky_io_vec_s sky_io_vec_t;
 typedef struct sky_inet_address_s sky_inet_address_t;
+
+
+enum sky_io_result_s {
+    REQ_PENDING = 0, // 请求提交成功，未就绪，等待回调
+    REQ_SUCCESS, // 请求成功，可立即获取结果，不会触发回调
+    REQ_QUEUE_FULL, // 请求提交失败，请求列队已经满
+    REQ_ERROR // 请求失败
+};
 
 
 struct sky_io_vec_s {

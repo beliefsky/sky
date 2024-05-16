@@ -28,7 +28,6 @@ typedef struct sky_tcp_ser_s sky_tcp_ser_t;
 typedef struct sky_tcp_cli_s sky_tcp_cli_t;
 typedef struct sky_tcp_acceptor_s sky_tcp_acceptor_t;
 typedef struct sky_tcp_rw_task_s sky_tcp_rw_task_t;
-typedef enum sky_tcp_result_s sky_tcp_result_t;
 
 typedef void (*sky_tcp_ser_cb_pt)(sky_tcp_ser_t *ser);
 
@@ -91,14 +90,6 @@ struct sky_tcp_cli_s {
 };
 
 
-enum sky_tcp_result_s {
-    REQ_PENDING = 0, // 请求提交成功，未就绪，等待回调
-    REQ_SUCCESS, // 请求成功，可立即获取结果，不会触发回调
-    REQ_QUEUE_FULL, // 请求提交失败，请求列队已经满
-    REQ_ERROR // 请求失败
-};
-
-
 void sky_tcp_ser_init(sky_tcp_ser_t *ser, sky_ev_loop_t *ev_loop);
 
 sky_bool_t sky_tcp_ser_options_reuse_port(sky_tcp_ser_t *ser);
@@ -110,7 +101,7 @@ sky_bool_t sky_tcp_ser_open(
         sky_i32_t backlog
 );
 
-sky_tcp_result_t sky_tcp_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_tcp_accept_pt cb);
+sky_io_result_t sky_tcp_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_tcp_accept_pt cb);
 
 sky_bool_t sky_tcp_ser_close(sky_tcp_ser_t *ser, sky_tcp_ser_cb_pt cb);
 
@@ -118,13 +109,13 @@ void sky_tcp_cli_init(sky_tcp_cli_t *cli, sky_ev_loop_t *ev_loop);
 
 sky_bool_t sky_tcp_cli_open(sky_tcp_cli_t *cli, sky_i32_t domain);
 
-sky_tcp_result_t sky_tcp_connect(
+sky_io_result_t sky_tcp_connect(
         sky_tcp_cli_t *cli,
         const sky_inet_address_t *address,
         sky_tcp_connect_pt cb
 );
 
-sky_tcp_result_t sky_tcp_skip(
+sky_io_result_t sky_tcp_skip(
         sky_tcp_cli_t *cli,
         sky_usize_t size,
         sky_usize_t *bytes,
@@ -132,7 +123,7 @@ sky_tcp_result_t sky_tcp_skip(
         void *attr
 );
 
-sky_tcp_result_t sky_tcp_read(
+sky_io_result_t sky_tcp_read(
         sky_tcp_cli_t *cli,
         sky_uchar_t *buf,
         sky_usize_t size,
@@ -141,7 +132,7 @@ sky_tcp_result_t sky_tcp_read(
         void *attr
 );
 
-sky_tcp_result_t sky_tcp_read_vec(
+sky_io_result_t sky_tcp_read_vec(
         sky_tcp_cli_t *cli,
         sky_io_vec_t *vec,
         sky_u32_t num,
@@ -150,7 +141,7 @@ sky_tcp_result_t sky_tcp_read_vec(
         void *attr
 );
 
-sky_tcp_result_t sky_tcp_write(
+sky_io_result_t sky_tcp_write(
         sky_tcp_cli_t *cli,
         sky_uchar_t *buf,
         sky_usize_t size,
@@ -159,7 +150,7 @@ sky_tcp_result_t sky_tcp_write(
         void *attr
 );
 
-sky_tcp_result_t sky_tcp_write_vec(
+sky_io_result_t sky_tcp_write_vec(
         sky_tcp_cli_t *cli,
         sky_io_vec_t *vec,
         sky_u32_t num,

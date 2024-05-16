@@ -152,7 +152,7 @@ main() {
     sky_inet_address_ip_str(&address, sky_str_line("192.168.0.76"), 7000);
 
     sky_tcp_cli_open(&tcp, sky_inet_address_family(&address));
-    const sky_tcp_result_t r = sky_tcp_connect(&tcp, &address, on_connect_cb);
+    const sky_io_result_t r = sky_tcp_connect(&tcp, &address, on_connect_cb);
     if (sky_likely(r == REQ_PENDING)) { //wait
         sky_log_warn("try connect wait");
     } else {

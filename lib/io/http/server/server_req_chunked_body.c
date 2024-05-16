@@ -268,7 +268,7 @@ http_req_chunked_body_str(
     call(r, null, data);
 }
 
-sky_i8_t
+sky_io_result_t
 http_req_chunked_body_read(
         sky_http_server_request_t *r,
         sky_uchar_t *buf,
@@ -277,7 +277,7 @@ http_req_chunked_body_read(
         sky_http_server_read_pt call,
         void *data
 ) {
-    return -1;
+    return REQ_ERROR;
 }
 
 static void

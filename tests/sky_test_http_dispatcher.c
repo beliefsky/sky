@@ -1,8 +1,4 @@
 //
-// Created by edz on 2021/11/12.
-//
-
-//
 // Created by weijing on 18-2-8.
 //
 
@@ -89,9 +85,9 @@ create_server(sky_ev_loop_t *ev_loop) {
     sky_inet_address_ipv4(&address, 0, 8081);
     sky_http_server_bind(server, &address);
 
-    const sky_uchar_t local_ipv6[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    sky_inet_address_ipv6(&address, local_ipv6, 0, 8081);
-    sky_http_server_bind(server, &address);
+//    const sky_uchar_t local_ipv6[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+//    sky_inet_address_ipv6(&address, local_ipv6, 0, 8081);
+//    sky_http_server_bind(server, &address);
 
     return true;
 }

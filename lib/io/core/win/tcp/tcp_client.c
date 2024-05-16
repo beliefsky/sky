@@ -75,7 +75,7 @@ sky_tcp_cli_open(sky_tcp_cli_t *cli, sky_i32_t domain) {
     return true;
 }
 
-sky_api sky_tcp_result_t
+sky_api sky_io_result_t
 sky_tcp_connect(
         sky_tcp_cli_t *cli,
         const sky_inet_address_t *address,
@@ -118,7 +118,7 @@ sky_tcp_connect(
 
 }
 
-sky_api sky_tcp_result_t
+sky_api sky_io_result_t
 sky_tcp_skip(
         sky_tcp_cli_t *cli,
         sky_usize_t size,
@@ -136,7 +136,7 @@ sky_tcp_skip(
 #undef TCP_SKIP_BUFF_SIZE
 }
 
-sky_api sky_tcp_result_t
+sky_api sky_io_result_t
 sky_tcp_read(
         sky_tcp_cli_t *cli,
         sky_uchar_t *buf,
@@ -196,7 +196,7 @@ sky_tcp_read(
     return REQ_PENDING;
 }
 
-sky_api sky_tcp_result_t
+sky_api sky_io_result_t
 sky_tcp_read_vec(
         sky_tcp_cli_t *cli,
         sky_io_vec_t *vec,
@@ -262,7 +262,7 @@ sky_tcp_read_vec(
     return REQ_PENDING;
 }
 
-sky_api sky_tcp_result_t
+sky_api sky_io_result_t
 sky_tcp_write(
         sky_tcp_cli_t *cli,
         sky_uchar_t *buf,
@@ -316,7 +316,7 @@ sky_tcp_write(
     return REQ_PENDING;
 }
 
-sky_api sky_tcp_result_t
+sky_api sky_io_result_t
 sky_tcp_write_vec(
         sky_tcp_cli_t *cli,
         sky_io_vec_t *vec,

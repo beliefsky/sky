@@ -133,7 +133,7 @@ void sky_http_req_body_none(sky_http_server_request_t *r, sky_http_server_next_p
 
 void sky_http_req_body_str(sky_http_server_request_t *r, sky_http_server_next_str_pt call, void *data);
 
-sky_i8_t sky_http_req_body_read(
+sky_io_result_t sky_http_req_body_read(
         sky_http_server_request_t *r,
         sky_uchar_t *buf,
         sky_usize_t size,

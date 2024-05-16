@@ -134,7 +134,7 @@ http_req_length_body_str(
     }
 }
 
-sky_i8_t
+sky_io_result_t
 http_req_length_body_read(
         sky_http_server_request_t *r,
         sky_uchar_t *buf,
@@ -159,7 +159,7 @@ http_req_length_body_read(
         if (!r->headers_in.content_length_n) {
             r->read_request_body = true;
         }
-        return 1;
+        return REQ_SUCCESS;
     }
 
     http_body_cb_t *const cb_data = sky_palloc(r->pool, sizeof(http_body_cb_t));
@@ -176,17 +176,17 @@ http_req_length_body_read(
     )) {
         case REQ_PENDING:
             sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
-            return 0;
+            return REQ_PENDING;
         case REQ_SUCCESS:
             r->headers_in.content_length_n -= *bytes;
             if (!r->headers_in.content_length_n) {
                 r->read_request_body = true;
             }
             sky_pfree(r->pool, cb_data, sizeof(http_body_cb_t));
-            return 1;
+            return REQ_SUCCESS;
         default:
             r->error = true;
-            return -1;
+            return REQ_ERROR;
     }
 }
 

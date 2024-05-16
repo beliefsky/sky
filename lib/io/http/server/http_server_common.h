@@ -52,7 +52,7 @@ void http_req_length_body_str(
         void *data
 );
 
-sky_i8_t http_req_length_body_read(
+sky_io_result_t http_req_length_body_read(
         sky_http_server_request_t *r,
         sky_uchar_t *buf,
         sky_usize_t size,
@@ -69,7 +69,7 @@ void http_req_chunked_body_str(
         void *data
 );
 
-sky_i8_t http_req_chunked_body_read(
+sky_io_result_t http_req_chunked_body_read(
         sky_http_server_request_t *r,
         sky_uchar_t *buf,
         sky_usize_t size,

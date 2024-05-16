@@ -10,7 +10,7 @@
 
 static void clean_accept(sky_tcp_ser_t *ser);
 
-static sky_tcp_result_t do_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli);
+static sky_io_result_t do_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli);
 
 static LPFN_ACCEPTEX accept_ex = null;
 
@@ -61,7 +61,7 @@ sky_tcp_ser_open(
     return true;
 }
 
-sky_api sky_tcp_result_t
+sky_api sky_io_result_t
 sky_tcp_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_tcp_accept_pt cb) {
     if (sky_unlikely(ser->ev.fd == SKY_SOCKET_FD_NONE
                      || (ser->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
@@ -75,7 +75,7 @@ sky_tcp_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_tcp_accept_pt cb) {
     }
 
     if (!(ser->ev.flags & TCP_STATUS_READING) && ser->w_idx == ser->r_idx) {
-        const sky_tcp_result_t result = do_accept(ser, cli);
+        const sky_io_result_t result = do_accept(ser, cli);
         if (result != REQ_PENDING) {
             return result;
         }
@@ -190,7 +190,7 @@ clean_accept(sky_tcp_ser_t *ser) {
 }
 
 
-static sky_tcp_result_t
+static sky_io_result_t
 do_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli) {
     const sky_socket_t accept_fd = create_socket((sky_i32_t) (ser->ev.flags & TCP_TYPE_MASK));
     if (sky_unlikely(accept_fd == SKY_SOCKET_FD_NONE)) {
