@@ -20,8 +20,9 @@ static void update_time(sky_ev_loop_t *ev_loop);
 
 sky_api sky_ev_loop_t *
 sky_ev_loop_create() {
-    WSADATA ws;
-    if (sky_unlikely(WSAStartup(MAKEWORD(2, 2), &ws) != 0)) {
+    WSADATA wsd;
+    if (sky_unlikely(WSAStartup(MAKEWORD(2, 2), &wsd) != 0)) {
+        WSACleanup();
         return null;
     }
 
