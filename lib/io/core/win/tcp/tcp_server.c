@@ -120,9 +120,7 @@ event_on_tcp_accept(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
         if ((ser->ev.flags & (SKY_TCP_STATUS_CLOSING))) {
             close_on_tcp_ser(ev);
         } else {
-            if (ser->r_idx != ser->w_idx) {
-                clean_accept(ser);
-            }
+            clean_accept(ser);
         }
         return;
     }
