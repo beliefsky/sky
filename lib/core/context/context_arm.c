@@ -1,7 +1,7 @@
 //
 // Created by weijing on 2024/5/20.
 //
-#ifndef __arm__
+#ifdef __arm__
 
 #include "./context_common.h"
 
