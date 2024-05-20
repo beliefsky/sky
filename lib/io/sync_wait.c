@@ -2,36 +2,26 @@
 // Created by beliefsky on 2023/7/22.
 //
 #include <io/sync_wait.h>
-#include <core/coro.h>
+#include <core/context.h>
+#include <core/memory.h>
+#include <core/log.h>
 
 struct sky_sync_wait_s {
     sky_bool_t wait;
+    sky_bool_t finish;
+    sky_context_ref_t context;
+    sky_context_ref_t parent;
     sky_sync_wait_pt call;
-    sky_coro_t *coro;
     void *data;
     void *att_data;
+    sky_uchar_t stack[];
 };
 
-static sky_usize_t coro_process(sky_coro_t *coro, void *data);
-
+static void context_process(sky_context_from_t from);
 
 sky_api sky_bool_t
 sky_sync_wait_create(const sky_sync_wait_pt cb, void *const data) {
-    sky_coro_t *const coro = sky_coro_new();
-    if (sky_unlikely(!coro)) {
-        return false;
-    }
-
-    sky_sync_wait_t *const wait = sky_coro_malloc(coro, sizeof(sky_sync_wait_t));
-    wait->wait = false;
-    wait->call = cb;
-    wait->coro = coro;
-    wait->data = data;
-
-    sky_coro_set(coro, coro_process, wait);
-    sky_sync_wait_resume(wait, null);
-
-    return true;
+    return sky_sync_wait_create_with_stack(cb, data, 16384 - sizeof(sky_sync_wait_t));
 }
 
 sky_api sky_bool_t
@@ -40,19 +30,19 @@ sky_sync_wait_create_with_stack(
         void *const data,
         const sky_usize_t stack_size
 ) {
-    sky_coro_t *const coro = sky_coro_new_with_stack(stack_size);
-    if (sky_unlikely(!coro)) {
-        return false;
-    }
-
-    sky_sync_wait_t *const wait = sky_coro_malloc(coro, sizeof(sky_sync_wait_t));
+    sky_sync_wait_t *const wait = sky_malloc(sizeof(sky_sync_wait_t) + stack_size);
     wait->wait = false;
+    wait->finish = false;
+    wait->context = sky_context_make(wait->stack, stack_size, context_process);
+    wait->parent = null;
     wait->call = cb;
-    wait->coro = coro;
     wait->data = data;
 
-    sky_coro_set(coro, coro_process, wait);
-    sky_sync_wait_resume(wait, null);
+    const sky_context_from_t from = sky_context_jump(wait->context, wait);
+    wait->context = from.context;
+    if (wait->finish) {
+        sky_free(wait);
+    }
 
     return true;
 }
@@ -65,9 +55,10 @@ sky_sync_wait_resume(sky_sync_wait_t *const wait, void *const att_data) {
         wait->wait = false;
         return;
     }
-
-    if (sky_coro_resume(wait->coro) != SKY_CORO_MAY_RESUME) {
-        sky_coro_destroy(wait->coro);
+    const sky_context_from_t from = sky_context_jump(wait->context, wait);
+    wait->context = from.context;
+    if (wait->finish) {
+        sky_free(wait);
     }
 }
 
@@ -79,20 +70,22 @@ sky_sync_wait_yield_before(sky_sync_wait_t *const wait) {
 
 sky_api void *
 sky_sync_wait_yield(sky_sync_wait_t *const wait) {
-    if (wait->wait) {
-        wait->wait = false;
-        sky_coro_yield(SKY_CORO_MAY_RESUME);
+    if (!wait->wait) {
+        return wait->att_data;
     }
+    wait->wait = false;
+    const sky_context_from_t from = sky_context_jump(wait->parent, null);
+    wait->parent = from.context;
+
     return wait->att_data;
 }
 
-static sky_usize_t
-coro_process(sky_coro_t *const coro, void *const data) {
-    (void) coro;
 
-    sky_sync_wait_t *const wait = data;
-
+static void
+context_process(sky_context_from_t from) {
+    sky_sync_wait_t *const wait = from.data;
+    wait->parent = from.context;
     wait->call(wait, wait->data);
-
-    return SKY_CORO_FINISHED;
+    wait->finish = true;
+    sky_context_jump(wait->parent, null);
 }
