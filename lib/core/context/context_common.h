@@ -17,4 +17,9 @@
     ".globl " ASM_SYMBOL(name_) "\n\t" \
     ASM_SYMBOL(name_) ":\n\t"
 
+
+#if defined(__ELF__) || (defined(TB_COMPILER_IS_TINYC) && !defined(TCC_ARM_PE))
+#define ARCH_ELF
+#endif
+
 #endif //SKY_CONTEXT_COMMON_H
