@@ -39,7 +39,7 @@ asm(".text\n\t"
 
     /* init retval = a writeable space (context)
      *
-     * it will write retval(context, priv) when jump to a new context function entry first
+     * it will write retval(context, data) when jump to a new context function entry first
      */
     "addiu $t0, $v0, 52\n\t"
     "sw $t0, 36($v0)\n\t"
@@ -109,11 +109,11 @@ asm(".text\n\t"
     // restore stack space
     "addiu $sp, $sp, 64\n\t"
 
-    // return from-context(context: a0, priv: a1) from jump
+    // return from-context(context: a0, data: a1) from jump
     "sw $a0, ($t0)\n\t"
     "sw $a2, 4($t0)\n\t"
 
-    // pass old-context(context: a0, priv: a1) arguments to the context function
+    // pass old-context(context: a0, data: a1) arguments to the context function
     "move $a1, $a2\n\t"
 
     /* jump to the return or entry address(pc)

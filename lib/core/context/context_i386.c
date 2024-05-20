@@ -84,7 +84,7 @@ asm(".text\n\t"
     "ret\n\t"
     "__entry:\n\t"
 
-    // pass old-context(context: eax, priv: edx) arguments to the context function
+    // pass old-context(context: eax, data: edx) arguments to the context function
     "movl %eax, (%esp)\n\t"
     "movl %edx, 4(%esp)\n\t"
 
@@ -177,8 +177,8 @@ asm(".text\n\t"
     // restore the return or function address(ecx)
     "popl %ecx\n\t"
 
-    // return from-context(context: eax, priv: edx) from jump
-    // edx = [eax + 44] = [esp_jump + 44] = jump.argument(priv)
+    // return from-context(context: eax, data: edx) from jump
+    // edx = [eax + 44] = [esp_jump + 44] = jump.argument(data)
     "movl 44(%eax), %edx\n\t"
 
     // jump to the return or function address(eip)
@@ -230,7 +230,7 @@ asm(".text\n\t"
 
     "__entry:\n\t"
 
-    // pass old-arguments(context: eax, priv: edx) to the context function
+    // pass old-arguments(context: eax, data: edx) to the context function
     "movl %eax, (%esp)\n\t"
     "movl %edx, 0x4(%esp)\n\t"
 
@@ -243,7 +243,7 @@ asm(".text\n\t"
      *                  |
      *                  |        old-context
      *              ----|------------------------------------
-     * context: .. | retval | context |   priv   |  padding  |
+     * context: .. | retval | context |   data   |  padding  |
      *              -----------------------------------------
      *             0        4     arguments
      *             |        |
@@ -279,7 +279,7 @@ asm(".text\n\t"
     // ecx = argument(context)
     "movl 20(%esp), %ecx\n\t"
 
-    // edx = argument(priv)
+    // edx = argument(data)
     "movl 24(%esp), %edx\n\t"
 
     // switch to the new context(esp) and stack
@@ -294,7 +294,7 @@ asm(".text\n\t"
     // restore the return or function address(ecx)
     "popl %ecx\n\t"
 
-    // return from-context(context: eax, priv: edx) from jump
+    // return from-context(context: eax, data: edx) from jump
     // ...
 
     /* jump to the return or function address(eip)
@@ -302,7 +302,7 @@ asm(".text\n\t"
      *
      *                 old-context
      *              --------------------------------
-     * context: .. | context |   priv   |  padding  |
+     * context: .. | context |   data   |  padding  |
      *              --------------------------------
      *             0         4    arguments
      *             |
@@ -363,13 +363,13 @@ asm(".text\n\t"
 
     "__entry:\n\t"
 
-    /* pass arguments(context: eax, priv: edx) to the context function
+    /* pass arguments(context: eax, data: edx) to the context function
      *
      *              patch __end
      *                  |
      *                  |        old-context
      *              ----|------------------------------------
-     * context: .. | retval | context |   priv   |  padding  |
+     * context: .. | retval | context |   data   |  padding  |
      *              -----------------------------------------
      *             0        4     arguments
      *             |        |
@@ -415,7 +415,7 @@ asm(".text\n\t"
     // ecx = argument(context)
     "movl 24(%esp), %ecx\n\t"
 
-    // edx = argument(priv)
+    // edx = argument(data)
     "movl 28(%esp), %edx\n\t"
 
     // switch to the new context(esp) and stack
@@ -427,7 +427,7 @@ asm(".text\n\t"
     "popl %ebx\n\t"
     "popl %ebp\n\t"
 
-    /* return from-context(retval: [to_esp + 4](context: eax, priv: edx)) from jump
+    /* return from-context(retval: [to_esp + 4](context: eax, data: edx)) from jump
      *
      * it will write context.edi and context.esi (unused) when jump to a new context function entry first
      */
@@ -441,7 +441,7 @@ asm(".text\n\t"
      *
      *                           old-context
      *              ---------------------------------------------------
-     * context: .. |   eip   | retval | context |   priv   |  padding  |
+     * context: .. |   eip   | retval | context |   data   |  padding  |
      *              ---------------------------------------------------
      *             0         4        8     arguments
      *             |                  |

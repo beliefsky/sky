@@ -109,9 +109,9 @@ asm(".text\n\t"
     "ldp x29, x30, [sp, #0x50]\n\t"
 #endif
 
-    /* pass old-context(context: x0, priv: x1) arguments to the context function
+    /* pass old-context(context: x0, data: x1) arguments to the context function
      *
-     * and return from-context: retval(context: x0, priv: x1) from jump
+     * and return from-context: retval(context: x0, data: x1) from jump
      */
     "mov x0, x4\n\t"
 

@@ -35,7 +35,7 @@ asm(".text\n\t"
 
     /* init retval = a writeable space (context)
      *
-     * it will write retval(context, priv) when jump to a new context function entry first
+     * it will write retval(context, data) when jump to a new context function entry first
      */
     "add r1, r0, #44 + "CONTEXT_SJLJ_BYTES"\n\t"
     "str r1, [r0, #0 + "CONTEXT_SJLJ_BYTES"]\n\t"
@@ -92,18 +92,18 @@ asm(".text\n\t"
     // restore retval, r4 - r11, lr
     "pop {r3, r4 - r11, lr}\n\t"
 
-    // return from-context: retval(context: r0, priv: r2) from jump
+    // return from-context: retval(context: r0, data: r2) from jump
     "str r0, [r3, #0]\n\t"
     "str r2, [r3, #4]\n\t"
 
-    // pass old-context(context: r0, priv: r1 = r2) arguments to the context function
+    // pass old-context(context: r0, data: r1 = r2) arguments to the context function
     "mov r1, r2\n\t"
 
     /* jump to the return or entry address(pc)
      *
      *               func      retval(from)
      *             ---------------------------------------
-     * context:   |   pc   | context |  priv  |  padding  |
+     * context:   |   pc   | context |  data  |  padding  |
      *             ---------------------------------------
      *            0        4         8
      *            |

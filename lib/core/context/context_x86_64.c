@@ -38,7 +38,7 @@ asm(".text\n\t"
     "movq %rcx, (%rax)\n\t"
 
     // init context.retval(saved) = a writeable space (unused)
-    // it will write context (unused) and priv (unused) when jump to a new context function entry first
+    // it will write context (unused) and data (unused) when jump to a new context function entry first
     "leaq 128(%rax), %rcx\n\t"
     "movq %rcx, 96(%rax)\n\t"
 
@@ -142,8 +142,8 @@ asm(".text\n\t"
     // restore the return or function address(r10)
     "popq %r10\n\t"
 
-    // return from-context(retval: [rcx](context: r9, priv: r8)) from jump
-    // it will write context (unused) and priv (unused) when jump to a new context function entry first
+    // return from-context(retval: [rcx](context: r9, data: r8)) from jump
+    // it will write context (unused) and data (unused) when jump to a new context function entry first
     "movq %r9, (%rax)\n\t"
     "movq %r8, 8(%rax)\n\t"
     "movq %rax, %rcx\n\t"
@@ -183,7 +183,7 @@ asm(".text\n\t"
     "ret\n\t"
     "__entry:\n\t"
 
-    // pass old-context(context: rdi, priv: rsi) argument to the context function
+    // pass old-context(context: rdi, data: rsi) argument to the context function
     "movq %rax, %rdi\n\t"
 
     // patch __end
@@ -240,7 +240,7 @@ asm(".text\n\t"
     // restore the return or function address(rip)
     "popq %r8\n\t"
 
-    // return from-context(context: rax, priv: rdx) from jump
+    // return from-context(context: rax, data: rdx) from jump
     "movq %rsi, %rdx\n\t"
 
     /* jump to the return or function address(rip)
