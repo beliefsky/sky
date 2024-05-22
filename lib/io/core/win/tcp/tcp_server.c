@@ -42,6 +42,13 @@ sky_tcp_ser_open(
     if (sky_unlikely(ser->ev.fd != SKY_SOCKET_FD_NONE || (ser->ev.flags & SKY_TCP_STATUS_CLOSING))) {
         return false;
     }
+    if (!accept_ex) {
+        const GUID wsaid_acceptex = WSAID_ACCEPTEX;
+        if (sky_unlikely(!get_extension_function(ser->ev.fd, wsaid_acceptex, (void **) &accept_ex))) {
+            return false;
+        }
+    }
+
     const sky_socket_t fd = create_socket(address->family);
     if (sky_unlikely(fd == SKY_SOCKET_FD_NONE)) {
         return false;
@@ -66,12 +73,6 @@ sky_tcp_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_tcp_accept_pt cb) {
     if (sky_unlikely(ser->ev.fd == SKY_SOCKET_FD_NONE
                      || (ser->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
         return REQ_ERROR;
-    }
-    if (!accept_ex) {
-        const GUID wsaid_acceptex = WSAID_ACCEPTEX;
-        if (sky_unlikely(!get_extension_function(ser->ev.fd, wsaid_acceptex, (void **) &accept_ex))) {
-            return REQ_ERROR;
-        }
     }
 
     if (!(ser->ev.flags & TCP_STATUS_READING) && ser->w_idx == ser->r_idx) {
