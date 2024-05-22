@@ -70,6 +70,9 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
         sky_timer_wheel_run(ev_loop->timer_ctx, ev_loop->current_step);
         event_on_status(ev_loop, EVENT_TABLES);
         next_time = sky_timer_wheel_timeout(ev_loop->timer_ctx);
+        if (!next_time) {
+            continue;
+        }
         n = next_time == SKY_U64_MAX ? -1 : (sky_i32_t) next_time;
 
         n = epoll_wait(
