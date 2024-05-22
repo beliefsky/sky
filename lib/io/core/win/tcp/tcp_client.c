@@ -47,7 +47,7 @@ sky_tcp_cli_open(sky_tcp_cli_t *cli, sky_i32_t domain) {
             struct sockaddr_in bind_address = {
                     .sin_family = AF_INET
             };
-            if (-1 == bind(fd, (const struct sockaddr *) &bind_address, sizeof(struct sockaddr_in))) {
+            if (0 != bind(fd, (const struct sockaddr *) &bind_address, sizeof(struct sockaddr_in))) {
                 closesocket(fd);
                 return false;
             }
@@ -57,7 +57,7 @@ sky_tcp_cli_open(sky_tcp_cli_t *cli, sky_i32_t domain) {
             struct sockaddr_in6 bind_address = {
                     .sin6_family = AF_INET6
             };
-            if (-1 == bind(cli->ev.fd, (const struct sockaddr *) &bind_address, sizeof(struct sockaddr_in6))) {
+            if (0 != bind(cli->ev.fd, (const struct sockaddr *) &bind_address, sizeof(struct sockaddr_in6))) {
                 closesocket(fd);
                 return false;
             }
@@ -68,9 +68,18 @@ sky_tcp_cli_open(sky_tcp_cli_t *cli, sky_i32_t domain) {
             return false;
 
     }
-    cli->ev.fd = fd;
-    CreateIoCompletionPort((HANDLE) fd, cli->ev.ev_loop->iocp, (ULONG_PTR) &cli->ev, 0);
+    if (sky_unlikely(!CreateIoCompletionPort(
+            (HANDLE) fd,
+            cli->ev.ev_loop->iocp, (
+                    ULONG_PTR) &cli->ev,
+            0
+    ))) {
+        closesocket(fd);
+        return false;
+    }
     SetFileCompletionNotificationModes((HANDLE) fd, FILE_SKIP_COMPLETION_PORT_ON_SUCCESS);
+
+    cli->ev.fd = fd;
 
     return true;
 }
