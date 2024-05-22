@@ -1,7 +1,7 @@
 //
 // Created by edz on 2021/11/12.
 //
-#include <io/event_loop.h>
+#include <io/ev_loop.h>
 #include <core/log.h>
 #include <io/http/http_server_file.h>
 
@@ -12,7 +12,7 @@ main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
-    sky_event_loop_t *loop = sky_event_loop_create();
+    sky_ev_loop_t *loop = sky_ev_loop_create();
 
     sky_http_server_t *server = sky_http_server_create(loop, null);
 
@@ -34,8 +34,8 @@ main() {
     const sky_uchar_t local_ipv6[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     sky_inet_address_ipv6(&address, local_ipv6, 0, 8080);
 
-    sky_event_loop_run(loop);
-    sky_event_loop_destroy(loop);
+    sky_ev_loop_run(loop);
+    sky_ev_loop_stop(loop);
 
     return 0;
 }

@@ -31,7 +31,7 @@ on_read_cb(sky_tcp_cli_t *tcp, sky_usize_t bytes, void *attr) {
         sky_tcp_cli_close(tcp, on_close_cb);
         return;
     }
-    for(;;) {
+    for (;;) {
         read_buf[bytes] = '\0';
         sky_log_debug("(%lu)%s", bytes, read_buf);
 
@@ -45,13 +45,13 @@ on_read_cb(sky_tcp_cli_t *tcp, sky_usize_t bytes, void *attr) {
                 null
         )) {
             case REQ_PENDING:
-                sky_log_warn("read submit pending");
+            sky_log_warn("read submit pending");
                 return;
             case REQ_SUCCESS:
-                sky_log_warn("read submit success");
+            sky_log_warn("read submit success");
                 continue;
             default:
-                sky_log_error("read error");
+            sky_log_error("read error");
                 sky_tcp_cli_close(tcp, on_close_cb);
                 return;
         }
@@ -81,14 +81,14 @@ on_connect_cb(sky_tcp_cli_t *tcp, sky_bool_t success) {
             null
     )) {
         case REQ_PENDING:
-            sky_log_warn("write submit pending");
+        sky_log_warn("write submit pending");
             break;
         case REQ_SUCCESS:
-            sky_log_warn("write submit success");
+        sky_log_warn("write submit success");
             on_write_cb(tcp, bytes, null);
             break;
         default:
-            sky_log_error("write submit error");
+        sky_log_error("write submit error");
             on_write_cb(tcp, SKY_USIZE_MAX, null);
             return;
     }
@@ -102,29 +102,32 @@ on_connect_cb(sky_tcp_cli_t *tcp, sky_bool_t success) {
             null
     )) {
         case REQ_PENDING:
-            sky_log_warn("read submit pending");
+        sky_log_warn("read submit pending");
             break;
         case REQ_SUCCESS:
-            sky_log_warn("read submit success");
+        sky_log_warn("read submit success");
             on_read_cb(tcp, bytes, null);
             break;
         default:
-            sky_log_error("read submit error");
+        sky_log_error("read submit error");
             on_read_cb(tcp, SKY_USIZE_MAX, null);
             return;
     }
 }
 
 
-#include <core/coro.h>
+#include <core/context.h>
+#include <core/memory.h>
 
-static sky_usize_t
-test_c(sky_coro_t *coro, void *data) {
-    sky_log_info("1 %p", data);
-    sky_coro_yield(1);
-    sky_log_info("3 %p", data);
+static void
+test_c(sky_context_from_t from) {
+    sky_usize_t a = 5;
+    sky_log_info("1111111: %llu", (sky_usize_t)(&a) - (sky_usize_t)from.data);
+    from = sky_context_jump(from.context, null);
+    sky_usize_t b = 5;
+    sky_log_info("2222: %llu", (sky_usize_t)(&b) - (sky_usize_t)from.data);
+    sky_context_jump(from.context, null);
 
-    return 2;
 }
 
 
@@ -133,15 +136,17 @@ main() {
     setvbuf(stdout, null, _IOLBF, 0);
     setvbuf(stderr, null, _IOLBF, 0);
 
-//    sky_uchar_t a = 'q';
-//
-//    sky_coro_t *coro = sky_coro_create(test_c, &a);
-//    sky_log_info("start %p", &a);
-//    sky_coro_resume(coro);
-//    sky_log_info("2");
-//    sky_coro_resume(coro);
-//    sky_log_info("4");
-//    sky_coro_destroy(coro);
+    sky_usize_t stack_size = 2048;
+    sky_uchar_t *const stack = sky_malloc(stack_size);
+    sky_log_info("start: %llu, end: %llu", stack, stack + stack_size);
+    sky_context_ref_t context = sky_context_make(stack, stack_size, test_c);
+    sky_context_from_t from = sky_context_jump(context, stack);
+    sky_context_jump(from.context, stack);
+
+
+    sky_free(stack);
+
+    return 0;
 
     sky_ev_loop_t *const event_loop = sky_ev_loop_create();
 
