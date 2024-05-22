@@ -54,16 +54,17 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
     };
 
     DWORD bytes, timeout;
-    ULONG i, n;
+//    ULONG i, n;
     ULONG_PTR key;
     LPOVERLAPPED pov;
-    LPOVERLAPPED_ENTRY event;
+//    LPOVERLAPPED_ENTRY event;
     sky_ev_req_t *req;
     sky_ev_t *ev;
 
     update_time(ev_loop);
     for (;;) {
         timeout = run_pending(ev_loop);
+        pov = null;
         if (GetQueuedCompletionStatus(ev_loop->iocp, &bytes, &key, &pov, timeout)) {
             update_time(ev_loop);
 
@@ -83,35 +84,35 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
             EVENT_TABLES[req->type](ev, bytes, false);
         }
 
-        do {
-            timeout = run_pending(ev_loop);
-            if (!GetQueuedCompletionStatusEx(
-                    ev_loop->iocp,
-                    ev_loop->sys_evs,
-                    IOCP_EVENT_NUM,
-                    &n,
-                    timeout,
-                    false
-            )) {
-                if (sky_likely(GetLastError() == WAIT_TIMEOUT)) {
-                    update_time(ev_loop);
-                    break;
-                }
-                return;
-            }
-            update_time(ev_loop);
-            if (!n) {
-                break;
-            }
-            i = n;
-            event = ev_loop->sys_evs;
-            do {
-                ev = (sky_ev_t *) event->lpCompletionKey;
-                req = (sky_ev_req_t *) event->lpOverlapped;
-                EVENT_TABLES[req->type](ev, event->dwNumberOfBytesTransferred, !event->Internal);
-                ++event;
-            } while ((--i));
-        } while (n == IOCP_EVENT_NUM);
+//        do {
+//            timeout = run_pending(ev_loop);
+//            if (!GetQueuedCompletionStatusEx(
+//                    ev_loop->iocp,
+//                    ev_loop->sys_evs,
+//                    IOCP_EVENT_NUM,
+//                    &n,
+//                    timeout,
+//                    false
+//            )) {
+//                if (sky_likely(GetLastError() == WAIT_TIMEOUT)) {
+//                    update_time(ev_loop);
+//                    break;
+//                }
+//                return;
+//            }
+//            update_time(ev_loop);
+//            if (!n) {
+//                break;
+//            }
+//            i = n;
+//            event = ev_loop->sys_evs;
+//            do {
+//                ev = (sky_ev_t *) event->lpCompletionKey;
+//                req = (sky_ev_req_t *) event->lpOverlapped;
+//                EVENT_TABLES[req->type](ev, event->dwNumberOfBytesTransferred, !event->Internal);
+//                ++event;
+//            } while ((--i));
+//        } while (n == IOCP_EVENT_NUM);
     }
 }
 
@@ -149,23 +150,22 @@ run_pending(sky_ev_loop_t *ev_loop) {
     sky_ev_t *ev, *next;
     sky_u64_t timeout;
 
-    if (ev_loop->pending) {
-        do {
-            ev = ev_loop->pending;
-            ev_loop->pending = null;
-            ev_loop->pending_tail = &ev_loop->pending;
-            do {
-                next = ev->next;
-                ev->next = null;
-                CLOSE_TABLES[ev->flags >> EV_TYPE_SHIFT](ev);
-                ev = next;
-            } while (ev);
-
-        } while (ev_loop->pending);
-    }
-
     do {
         sky_timer_wheel_run(ev_loop->timer_ctx, 0);
+        if (ev_loop->pending) {
+            do {
+                ev = ev_loop->pending;
+                ev_loop->pending = null;
+                ev_loop->pending_tail = &ev_loop->pending;
+                do {
+                    next = ev->next;
+                    ev->next = null;
+                    CLOSE_TABLES[ev->flags >> EV_TYPE_SHIFT](ev);
+                    ev = next;
+                } while (ev);
+
+            } while (ev_loop->pending);
+        }
         timeout = sky_timer_wheel_timeout(ev_loop->timer_ctx);
     } while (!timeout); //有可能定时立即返回，减少系统调用，知道有具体超时时间为止
 
