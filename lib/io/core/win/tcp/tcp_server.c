@@ -46,15 +46,14 @@ sky_tcp_ser_open(
     if (sky_unlikely(fd == SKY_SOCKET_FD_NONE)) {
         return false;
     }
-    ser->ev.fd = fd;
-
     if (!accept_ex) {
         const GUID wsaid_acceptex = WSAID_ACCEPTEX;
-        if (sky_unlikely(!get_extension_function(ser->ev.fd, wsaid_acceptex, (void **) &accept_ex))) {
+        if (sky_unlikely(!get_extension_function(fd, wsaid_acceptex, (void **) &accept_ex))) {
+            closesocket(fd);
             return false;
         }
     }
-
+    ser->ev.fd = fd;
     if ((options_cb && !options_cb(ser))
         || bind(fd, (const struct sockaddr *) address, (sky_i32_t) sky_inet_address_size(address)) != 0
         || listen(fd, backlog) != 0) {
