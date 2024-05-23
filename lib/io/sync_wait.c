@@ -9,8 +9,8 @@
 struct sky_sync_wait_s {
     sky_bool_t wait;
     sky_bool_t finish;
-    sky_context_ref_t context;
-    sky_context_ref_t parent;
+    sky_context_t context;
+    sky_context_t parent;
     sky_sync_wait_pt call;
     void *data;
     void *att_data;
@@ -33,7 +33,7 @@ sky_sync_wait_create_with_stack(
     sky_sync_wait_t *const wait = sky_malloc(sizeof(sky_sync_wait_t) + stack_size);
     wait->wait = false;
     wait->finish = false;
-    wait->context = sky_context_make(wait->stack, stack_size, context_process);
+    wait->context = sky_context_make(wait->stack + stack_size, stack_size, context_process);
     wait->parent = null;
     wait->call = cb;
     wait->data = data;

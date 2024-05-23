@@ -17,16 +17,18 @@ typedef void (*sky_context_pt)(sky_context_from_t from);
 
 typedef struct {
     sky_i32_t dump;
-} const *sky_context_ref_t;
+} const *sky_context_t;
 
 struct sky_context_from_s {
-    sky_context_ref_t context;
+    sky_context_t context;
     void *data; // the passed user private data
 };
 
-sky_context_ref_t sky_context_make(sky_uchar_t *stacks, sky_usize_t size, sky_context_pt cb);
+sky_context_t sky_context_make(sky_uchar_t *sp, sky_usize_t size, sky_context_pt cb);
 
-sky_context_from_t sky_context_jump(sky_context_ref_t context, void *data);
+sky_context_from_t sky_context_jump(sky_context_t context, void *data);
+
+sky_context_from_t sky_context_ontop(sky_context_t context, void *data, sky_context_pt cb);
 
 
 #if defined(__cplusplus)
