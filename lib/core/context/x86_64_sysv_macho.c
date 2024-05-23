@@ -61,7 +61,7 @@ asm(
 /* exit code is zero */
 "   xorq  %rdi, %rdi\n\t"
 /* exit application */
-"   call  _exit@PLT\n\t"
+"   call  _exit\n\t"
 "   hlt\n\t"
 );
 
