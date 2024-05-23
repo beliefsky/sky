@@ -17,7 +17,7 @@ asm(
 "sky_context_make:\n\t"
 ".seh_endprologue\n\t"
 
-/* first arg of make_fcontext() == top of context-stack */
+/* first arg of sky_context_make()  == top of context-stack */
 "   movq  %rcx, %rax\t\n"
 
 /* shift address in RAX to lower 16 byte boundary */
@@ -60,7 +60,7 @@ asm(
 /* compute abs address of label trampoline */
 "   leaq  trampoline(%rip), %rcx\t\n"
 /* save address of finish as return-address for context-function */
-/* will be entered after jump_fcontext() first time */
+/* will be entered after sky_context_jump()  first time */
 "   movq  %rcx, 0x118(%rax)\t\n"
 
 /* compute abs address of label finish */
@@ -201,7 +201,7 @@ asm(
 "   popq  %r10\n\t"
 
 /* transport_t returned in RAX */
-/* return parent fcontext_t */
+/* return parent sky_context_t */
 "   movq  %r9, 0x0(%rax)\n\t"
 /* return data */
 "   movq  %r8, 0x8(%rax)\n\t"

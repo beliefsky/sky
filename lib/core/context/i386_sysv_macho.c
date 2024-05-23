@@ -16,7 +16,7 @@ asm(
 ".globl _sky_context_make\n\t"
 ".align 2\n\t"
 "_sky_context_make:\n\t"
-/* first arg of make_fcontext() == top of context-stack */
+/* first arg of sky_context_make()  == top of context-stack */
 "   movl  0x4(%esp), %eax\n\t"
 
 /* reserve space for first argument of context-function
@@ -29,7 +29,7 @@ asm(
 /* reserve space for context-data on context-stack, and align the stack */
 "   leal  -0x34(%eax), %eax\n\t"
 
-/* third arg of make_fcontext() == address of context-function */
+/* third arg of sky_context_make()  == address of context-function */
 /* stored in EBX */
 "   movl  0xc(%esp), %ecx\n\t"
 "   movl  %ecx, 0x10(%eax)\n\t"
@@ -46,7 +46,7 @@ asm(
 /* compute abs address of label trampoline */
 "   addl  $trampoline-1b, %ecx\n\t"
 /* save address of trampoline as return address */
-/* will be entered after calling jump_fcontext() first time */
+/* will be entered after calling sky_context_jump()  first time */
 "   movl  %ecx, 0x18(%eax)\n\t"
 
 /* compute abs address of label finish */
@@ -98,16 +98,16 @@ asm(
 /* store ESP (pointing to context-data) in ECX */
 "   movl  %esp, %ecx\n\t"
 
-/* first arg of jump_fcontext() == fcontext to jump to */
+/* first arg of sky_context_jump()  == sky_context to jump to */
 "   movl  0x1c(%esp), %eax\n\t"
 
-/* second arg of jump_fcontext() == data to be transferred */
+/* second arg of sky_context_jump()  == data to be transferred */
 "   movl  0x20(%esp), %edx\n\t"
 
 /* restore ESP (pointing to context-data) from EAX */
 "   movl  %eax, %esp\n\t"
 
-/* return parent fcontext_t */
+/* return parent sky_context_t */
 "   movl  %ecx, %eax\n\t"
 /* returned data is stored in EDX */
 
@@ -149,25 +149,25 @@ asm(
 /* store ESP (pointing to context-data) in ECX */
 "   movl  %esp, %ecx\n\t"
 
-/* first arg of ontop_fcontext() == fcontext to jump to */
+/* first arg of sky_context_ontop()  == sky_context to jump to */
 "   movl  0x1c(%esp), %eax\n\t"
 
-/* pass parent fcontext_t */
+/* pass parent sky_context_t */
 "   movl  %ecx, 0x1c(%eax)\n\t"
 
-/* second arg of ontop_fcontext() == data to be transferred */
+/* second arg of sky_context_ontop()  == data to be transferred */
 "   movl  0x20(%esp), %ecx\n\t"
 
 /* pass data */
 "   movl %ecx, 0x20(%eax)\n\t"
 
-/* third arg of ontop_fcontext() == ontop-function */
+/* third arg of sky_context_ontop()  == ontop-function */
 "   movl  0x24(%esp), %ecx\n\t"
 
 /* restore ESP (pointing to context-data) from EAX */
 "   movl  %eax, %esp\n\t"
 
-/* return parent fcontext_t */
+/* return parent sky_context_t */
 "   movl  %ecx, %eax\n\t"
 /* returned data is stored in EDX */
 

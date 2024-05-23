@@ -15,7 +15,7 @@ asm(
 /* reserve space for context-data on context-stack  */
 "   sub  x0, x0, #0xb0\n\t"
 
-/* third arg of make_fcontext() == address of context-function  */
+/* third arg of sky_context_make()  == address of context-function  */
 /* store address as a PC to jump in  */
 "   str  x2, [x0, #0xa0]\n\t"
 

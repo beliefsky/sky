@@ -26,7 +26,7 @@ asm(
 // save 0 as 'fiber data' 
 "   str  xzr, [x0, #0xb8]\n\t"
 
-// third arg of make_fcontext() == address of context-function 
+// third arg of sky_context_make()  == address of context-function
 // store address as x19 for trampoline 
 "   str  x2, [x0, #0x40]\n\t"
 // store trampoline address as pc 

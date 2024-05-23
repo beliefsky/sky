@@ -17,7 +17,7 @@ asm(
 ".globl _sky_context_make\n\t"
 ".align 8\n\t"
 "_sky_context_make:\n\t"
-/* first arg of make_fcontext() == top of context-stack */
+/* first arg of sky_context_make()  == top of context-stack */
 "   movq  %rdi, %rax\n\t"
 
 /* shift address in RAX to lower 16 byte boundary */

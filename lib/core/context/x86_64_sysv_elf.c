@@ -22,7 +22,7 @@ asm(
 ".align 16\n\t"
 "sky_context_make:\n\t"
 "   " _CET_ENDBR "\n\t"
-/* first arg of make_fcontext() == top of context-stack */
+/* first arg of sky_context_make()  == top of context-stack */
 "   movq  %rdi, %rax\n\t"
 
 /* shift address in RAX to lower 16 byte boundary */
