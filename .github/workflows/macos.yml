@@ -3,25 +3,13 @@ on: [ push ]
 env:
   BUILD_TYPE: Release
 jobs:
-  macosBuild:
-    name: ${{matrix.buildname}}
-    # The CMake configure and build commands are platform agnostic and should work equally
-    # well on Windows or Mac.  You can convert this to a matrix build if you need
-    # cross-platform coverage.
-    # See: https://docs.github.com/en/free-pro-team@latest/actions/learn-github-actions/managing-complex-workflows#using-a-build-matrix
-    runs-on: ${{matrix.os}}
+  build:
     strategy:
-      fail-fast: false
       matrix:
-        include:
-          - os: macos-latest
-            buildname: 'macos/gcc'
-            triplet: x64-osx
-            compiler: gcc_64
-          - os: macos-latest
-            buildname: 'macos/clang'
-            triplet: x64-osx
-            compiler: clang_64
+        os: [macOS-latest]
+
+    runs-on: ${{ matrix.os }}
+
     steps:
       - uses: actions/checkout@v2
 
