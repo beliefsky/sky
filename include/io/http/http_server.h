@@ -6,6 +6,7 @@
 #define SKY_HTTP_SERVER_H
 
 #include "../ev_loop.h"
+#include "../fs.h"
 #include "../../core/string.h"
 #include "../../core/palloc.h"
 #include "../../core/list.h"
@@ -91,7 +92,7 @@ struct sky_http_server_request_s {
 
     void *attr_data;
 
-    sky_u32_t state: 9;
+    sky_u32_t state;
     sky_u8_t method: 7;
     sky_bool_t keep_alive: 1;
     sky_bool_t read_request_body: 1;
@@ -176,17 +177,17 @@ void sky_http_response_str_len(
 );
 
 
-/*
 void sky_http_response_file(
         sky_http_server_request_t *r,
-        sky_socket_t fd,
-        sky_i64_t offset,
-        sky_usize_t size,
-        sky_usize_t file_size,
+        sky_fs_t *fs,
+        sky_u64_t offset,
+        sky_u64_t size,
+        sky_u64_t file_size,
         sky_http_server_next_pt call,
         void *cb_data
 );
 
+/*
 
 
 void sky_http_response_chunked_start(sky_http_server_request_t *r);

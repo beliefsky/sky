@@ -18,9 +18,9 @@ target_link_libraries(sky_test_http_dispatcher
         ${ADDITIONAL_LIBRARIES}
         )
 
-add_executable(sky_test_http_file sky_test_http_file.c)
-
-target_link_libraries(sky_test_http_file
-        ${SKY_COMMON_LIBS}
-        ${ADDITIONAL_LIBRARIES}
-        )
+#add_executable(sky_test_http_file sky_test_http_file.c)
+#
+#target_link_libraries(sky_test_http_file
+#        ${SKY_COMMON_LIBS}
+#        ${ADDITIONAL_LIBRARIES}
+#        )
