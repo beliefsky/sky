@@ -2,7 +2,7 @@
 // Created by weijing on 2024/5/23.
 //
 
-#if defined(__WINNT__)
+#if defined(__x86_64__) && defined(__WINNT__)
 
 #include "./context_common.h"
 
