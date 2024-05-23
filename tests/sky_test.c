@@ -45,13 +45,13 @@ on_read_cb(sky_tcp_cli_t *tcp, sky_usize_t bytes, void *attr) {
                 null
         )) {
             case REQ_PENDING:
-            sky_log_warn("read submit pending");
+                sky_log_warn("read submit pending");
                 return;
             case REQ_SUCCESS:
-            sky_log_warn("read submit success");
+                sky_log_warn("read submit success");
                 continue;
             default:
-            sky_log_error("read error");
+                sky_log_error("read error");
                 sky_tcp_cli_close(tcp, on_close_cb);
                 return;
         }
@@ -81,14 +81,14 @@ on_connect_cb(sky_tcp_cli_t *tcp, sky_bool_t success) {
             null
     )) {
         case REQ_PENDING:
-        sky_log_warn("write submit pending");
+            sky_log_warn("write submit pending");
             break;
         case REQ_SUCCESS:
-        sky_log_warn("write submit success");
+            sky_log_warn("write submit success");
             on_write_cb(tcp, bytes, null);
             break;
         default:
-        sky_log_error("write submit error");
+            sky_log_error("write submit error");
             on_write_cb(tcp, SKY_USIZE_MAX, null);
             return;
     }
@@ -102,14 +102,14 @@ on_connect_cb(sky_tcp_cli_t *tcp, sky_bool_t success) {
             null
     )) {
         case REQ_PENDING:
-        sky_log_warn("read submit pending");
+            sky_log_warn("read submit pending");
             break;
         case REQ_SUCCESS:
-        sky_log_warn("read submit success");
+            sky_log_warn("read submit success");
             on_read_cb(tcp, bytes, null);
             break;
         default:
-        sky_log_error("read submit error");
+            sky_log_error("read submit error");
             on_read_cb(tcp, SKY_USIZE_MAX, null);
             return;
     }
@@ -122,12 +122,22 @@ on_connect_cb(sky_tcp_cli_t *tcp, sky_bool_t success) {
 static void
 test_c(sky_context_from_t from) {
     sky_usize_t a = 5;
-    sky_log_info("1111111: %llu", (sky_usize_t)(&a) - (sky_usize_t)from.data);
+    sky_log_warn("test_c[1]: %lu, %lu", (sky_usize_t)from.context, (sky_usize_t) (&a) - (sky_usize_t) from.data);
     from = sky_context_jump(from.context, null);
     sky_usize_t b = 5;
-    sky_log_info("2222: %llu", (sky_usize_t)(&b) - (sky_usize_t)from.data);
+    sky_log_warn("test_c[2]: %lu, %lu", (sky_usize_t)from.context, (sky_usize_t) (&b) - (sky_usize_t) from.data);
     sky_context_jump(from.context, null);
 
+}
+
+static void
+test_d(sky_context_from_t from) {
+    sky_usize_t a = 5;
+    sky_log_warn("test_d[1]: %lu, %lu", (sky_usize_t)from.context, (sky_usize_t) (&a) - (sky_usize_t) from.data);
+    from = sky_context_jump(from.context, null);
+    sky_usize_t b = 5;
+    sky_log_warn("test_d[2]: %lu, %lu", (sky_usize_t)from.context, (sky_usize_t) (&b) - (sky_usize_t) from.data);
+    sky_context_jump(from.context, null);
 }
 
 
@@ -138,11 +148,17 @@ main() {
 
     sky_usize_t stack_size = 2048;
     sky_uchar_t *const stack = sky_malloc(stack_size);
-    sky_log_info("start: %llu, end: %llu", stack, stack + stack_size);
-    sky_context_ref_t context = sky_context_make(stack, stack_size, test_c);
+    sky_log_info("stack: %lu", (sky_usize_t)stack + stack_size);
+    sky_context_t context = sky_context_make(stack + stack_size, stack_size, test_c);
+    sky_log_info("main[1]: %lu", (sky_usize_t)context);
     sky_context_from_t from = sky_context_jump(context, stack);
-    sky_context_jump(from.context, stack);
-
+    sky_log_info("main[2]: %lu", (sky_usize_t)from.context);
+    from = sky_context_jump(from.context, stack);
+    sky_log_info("main[3]: %lu", (sky_usize_t)from.context);
+    from = sky_context_ontop(from.context, stack, test_d);
+    sky_log_info("main[4]: %lu", (sky_usize_t)from.context);
+    from = sky_context_jump(from.context, stack);
+    sky_log_info("main[5]: %lu", (sky_usize_t)from.context);
 
     sky_free(stack);
 
