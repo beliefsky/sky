@@ -2,7 +2,7 @@
 // Created by weijing on 2024/5/22.
 //
 
-#ifdef __unix__
+#if defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
 
 #include "./fs_io.h"
 #include <fcntl.h>

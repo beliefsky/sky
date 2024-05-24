@@ -5,7 +5,7 @@
 #ifndef SKY_UNIX_TCP_H
 #define SKY_UNIX_TCP_H
 
-#ifdef __unix__
+#if defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
 
 #include "../unix_io.h"
 #include <io/tcp.h>

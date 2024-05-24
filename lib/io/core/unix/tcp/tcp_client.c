@@ -2,7 +2,7 @@
 // Created by weijing on 2024/5/8.
 //
 
-#ifdef __unix__
+#if defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
 
 #include "./unix_tcp.h"
 
