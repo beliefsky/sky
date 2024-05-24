@@ -13,81 +13,81 @@ asm(
 ".p2align 4,,15\n\t"
 ".globl sky_context_make\n\t"
 ".def sky_context_make;\t.scl\t2;\t.type 32;\t.endef\n\t"
-".seh_proc\tsky_context_make\t\n"
+".seh_proc\tsky_context_make\n\t"
 "sky_context_make:\n\t"
 ".seh_endprologue\n\t"
 
 /* first arg of sky_context_make()  == top of context-stack */
-"   movq  %rcx, %rax\t\n"
+"   movq  %rcx, %rax\n\t"
 
 /* shift address in RAX to lower 16 byte boundary */
 /* == pointer to context_t and address of context stack */
-"   andq  $-16, %rax\t\n"
+"   andq  $-16, %rax\n\t"
 
 /* reserve space for context-data on context-stack */
 /* on context-function entry: (RSP -0x8) % 16 == 0 */
-"   leaq  -0x150(%rax), %rax\t\n"
+"   leaq  -0x150(%rax), %rax\n\t"
 
 /* third arg of context_make() == address of context-function */
-"   movq  %r8, 0x100(%rax)\t\n"
+"   movq  %r8, 0x100(%rax)\n\t"
 
 /* first arg of context_make() == top of context-stack */
 /* save top address of context stack as 'base' */
-"   movq  %rcx, 0xc8(%rax)\t\n"
+"   movq  %rcx, 0xc8(%rax)\n\t"
 /* second arg of context_make() == size of context-stack */
 /* negate stack size for LEA instruction (== substraction) */
-"   negq  %rdx\t\n"
+"   negq  %rdx\n\t"
 /* compute bottom address of context stack (limit) */
-"   leaq  (%rcx,%rdx), %rcx\t\n"
+"   leaq  (%rcx,%rdx), %rcx\n\t"
 /* save bottom address of context stack as 'limit' */
-"   movq  %rcx, 0xc0(%rax)\t\n"
+"   movq  %rcx, 0xc0(%rax)\n\t"
 /* save address of context stack limit as 'dealloction stack' */
-"   movq  %rcx, 0xb8(%rax)\t\n"
+"   movq  %rcx, 0xb8(%rax)\n\t"
 /* set fiber-storage to zero */
-"   xorq  %rcx, %rcx\t\n"
-"   movq  %rcx, 0xb0(%rax)\t\n"
+"   xorq  %rcx, %rcx\n\t"
+"   movq  %rcx, 0xb0(%rax)\n\t"
 
 /* save MMX control- and status-word */
-"   stmxcsr  0xa0(%rax)\t\n"
+"   stmxcsr  0xa0(%rax)\n\t"
 /* save x87 control-word */
-"   fnstcw   0xa4(%rax)\t\n"
+"   fnstcw   0xa4(%rax)\n\t"
 
 /* compute address of transport_t */
-"   leaq  0x140(%rax), %rcx\t\n"
+"   leaq  0x140(%rax), %rcx\n\t"
 /* store address of transport_t in hidden field */
-"   movq %rcx, 0x110(%rax)\t\n"
+"   movq %rcx, 0x110(%rax)\n\t"
 
 /* compute abs address of label trampoline */
-"   leaq  trampoline(%rip), %rcx\t\n"
+"   leaq  trampoline(%rip), %rcx\n\t"
 /* save address of finish as return-address for context-function */
 /* will be entered after sky_context_jump()  first time */
-"   movq  %rcx, 0x118(%rax)\t\n"
+"   movq  %rcx, 0x118(%rax)\n\t"
 
 /* compute abs address of label finish */
-"   leaq  finish(%rip), %rcx\t\n"
+"   leaq  finish(%rip), %rcx\n\t"
 /* save address of finish as return-address for context-function */
 /* will be entered after context-function returns */
-"   movq  %rcx, 0x108(%rax)\t\n"
+"   movq  %rcx, 0x108(%rax)\n\t"
 
 "   ret\n\t" /* return pointer to context-data */
 
-"trampoline:\t\n"
+"trampoline:\n\t"
 /* store return address on stack */
 /* fix stack alignment */
-"   pushq %rbp\t\n"
+"   pushq %rbp\n\t"
 /* jump to context-function */
-"   jmp *%rbx\t\n"
+"   jmp *%rbx\n\t"
 
-"finish:\t\n"
+"finish:\n\t"
 /* 32byte shadow-space for _exit() */
-"   andq  $-32, %rsp\t\n"
+"   andq  $-32, %rsp\n\t"
 /* 32byte shadow-space for _exit() are */
 /* already reserved by context_make() */
 /* exit code is zero */
-"   xorq  %rcx, %rcx\t\n"
+"   xorq  %rcx, %rcx\n\t"
 /* exit application */
-"   call  _exit\t\n"
-"   hlt\t\n"
+"   call  _exit\n\t"
+"   hlt\n\t"
 ".seh_endproc\n\t"
 ".def\t_exit;\t.scl\t2;\t.type\t32;\t.endef\n\t" /* standard C library function */
 ".section .drectve\n\t"
@@ -99,7 +99,7 @@ asm(
 ".p2align 4,,15\n\t"
 ".globl sky_context_jump\n\t"
 ".def sky_context_jump;\t.scl\t2;\t.type\t32;\t.endef\n\t"
-".seh_proc\tsky_context_jump\t\n"
+".seh_proc\tsky_context_jump\n\t"
 "sky_context_jump:\n\t"
 ".seh_endprologue\n\t"
 
@@ -221,7 +221,7 @@ asm(
 ".p2align 4,,15\n\t"
 ".globl sky_context_ontop\n\t"
 ".def sky_context_ontop;\t.scl\t2;\t.type\t32;\t.endef\n\t"
-".seh_proc\tsky_context_ontop\t\n"
+".seh_proc\tsky_context_ontop\n\t"
 "sky_context_ontop:\n\t"
 ".seh_endprologue\n\t"
 

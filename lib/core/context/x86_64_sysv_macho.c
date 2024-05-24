@@ -48,7 +48,7 @@ asm(
 /* will be entered after context-function returns */
 "   movq  %rcx, 0x30(%rax)\n\t"
 
-"   ret\t\n" /* return pointer to context-data */
+"   ret\n\t" /* return pointer to context-data */
 
 "trampoline:\n\t"
 /* store return address on stack */

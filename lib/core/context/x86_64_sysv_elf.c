@@ -7,7 +7,6 @@
 #define USE_TSX
 #undef CONTEXT_TLS_STACK_PROTECTOR
 
-
 asm(
 ".text\n\t"
 ".globl sky_context_make\n\t"
@@ -37,7 +36,7 @@ asm(
 #ifdef CONTEXT_TLS_STACK_PROTECTOR
 /* save stack guard */
 "   movq  %fs:0x28, %rcx\n\t"    /* read stack guard from TLS record */
-"   movq  %rcx, 0x8(%rsp)\t\n"   /* save stack guard */
+"   movq  %rcx, 0x8(%rsp)\n\t"   /* save stack guard */
 #endif
 
 /* compute abs address of label trampoline */
@@ -52,7 +51,7 @@ asm(
 /* will be entered after context-function returns */
 "   movq  %rcx, 0x38(%rax)\n\t"
 
-"   ret\t\n" /* return pointer to context-data */
+"   ret\n\t" /* return pointer to context-data */
 
 "trampoline:\n\t"
 /* store return address on stack */
