@@ -242,13 +242,13 @@ asm(
 ".def _sky_context_ontop; .scl    2;  .type 32;   .endef\n\t"
 "_sky_context_ontop:\n\t"
 /* prepare stack */
-"   leal  -0x2c(%esp), %esp
+"   leal  -0x2c(%esp), %esp\n\t"
 
 #ifndef USE_TSX
 /* save MMX control- and status-word */
-"   stmxcsr  (%esp)
+"   stmxcsr  (%esp)\n\t"
 /* save x87 control-word */
-"   fnstcw  0x4(%esp)
+"   fnstcw  0x4(%esp)\n\t"
 #endif
 
 /* load NT_TIB */
