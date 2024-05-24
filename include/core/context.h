@@ -28,9 +28,6 @@ sky_context_t sky_context_make(sky_uchar_t *sp, sky_usize_t size, sky_context_pt
 
 sky_context_from_t sky_context_jump(sky_context_t context, void *data);
 
-sky_context_from_t sky_context_ontop(sky_context_t context, void *data, sky_context_pt cb);
-
-
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif

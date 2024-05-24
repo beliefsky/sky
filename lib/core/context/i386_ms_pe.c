@@ -130,7 +130,7 @@ asm(
 
 ".def   _exit;  .scl    2;  .type   32; .endef\n\t" /* standard C library function */
 ".section .drectve\n\t"
-".ascii \" -export:\\\"_sky_context_make\\\"\"\n\t"
+".ascii \" -export:\\\"sky_context_make\\\"\"\n\t"
 );
 
 asm(
@@ -228,113 +228,7 @@ asm(
 "   jmp *%ecx\n\t"
 
 ".section .drectve\n\t"
-".ascii \" -export:\\\"_sky_context_jump\\\"\"\n\t"
-);
-
-asm(
-".text\n\t"
-".p2align 4,,15\n\t"
-/* mark as using no unregistered SEH handlers */
-".globl	@feat.00\n\t"
-".def	@feat.00;	.scl	3;	.type	0;	.endef\n\t"
-".set   @feat.00,   1\n\t"
-".globl _sky_context_ontop\n\t"
-".def _sky_context_ontop; .scl    2;  .type 32;   .endef\n\t"
-"_sky_context_ontop:\n\t"
-/* prepare stack */
-"   leal  -0x2c(%esp), %esp\n\t"
-
-#ifndef USE_TSX
-/* save MMX control- and status-word */
-"   stmxcsr  (%esp)\n\t"
-/* save x87 control-word */
-"   fnstcw  0x4(%esp)\n\t"
-#endif
-
-/* load NT_TIB */
-"   movl  %fs:(0x18), %edx\n\t"
-/* load fiber local storage */
-"   movl  0x10(%edx), %eax\n\t"
-"   movl  %eax, 0x8(%esp)\n\t"
-/* load current dealloction stack */
-"   movl  0xe0c(%edx), %eax\n\t"
-"   movl  %eax, 0xc(%esp)\n\t"
-/* load current stack limit */
-"   movl  0x8(%edx), %eax\n\t"
-"   movl  %eax, 0x10(%esp)\n\t"
-/* load current stack base */
-"   movl  0x4(%edx), %eax\n\t"
-"   movl  %eax, 0x14(%esp)\n\t"
-/* load current SEH exception list */
-"   movl  (%edx), %eax\n\t"
-"   movl  %eax, 0x18(%esp)\n\t"
-
-"   movl  %edi, 0x1c(%esp)\n\t"  /* save EDI */
-"   movl  %esi, 0x20(%esp)\n\t"  /* save ESI */
-"   movl  %ebx, 0x24(%esp)\n\t"  /* save EBX */
-"   movl  %ebp, 0x28(%esp)\n\t"  /* save EBP */
-
-/* store ESP (pointing to context-data) in ECX */
-"   movl  %esp, %ecx\n\t"
-
-/* first arg of sky_context_ontop()  == sky_context to jump to */
-"   movl  0x30(%esp), %eax\n\t"
-
-/* pass parent sky_context_t */
-"   movl  %ecx, 0x30(%eax)\n\t"
-
-/* second arg of sky_context_ontop()  == data to be transferred */
-"   movl  0x34(%esp), %ecx\n\t"
-
-/* pass data */
-"   movl  %ecx, 0x34(%eax)\n\t"
-
-/* third arg of sky_context_ontop()  == ontop-function */
-"   movl  0x38(%esp), %ecx\n\t"
-
-/* restore ESP (pointing to context-data) from EDX */
-"   movl  %eax, %esp\n\t"
-
-#ifndef USE_TSX
-/* restore MMX control- and status-word */
-"   ldmxcsr  (%esp)\n\t"
-/* restore x87 control-word */
-"   fldcw  0x4(%esp)\n\t"
-#endif
-
-/* restore NT_TIB into EDX */
-"   movl  %fs:(0x18), %edx\n\t"
-/* restore fiber local storage */
-"   movl  0x8(%esp), %eax\n\t"
-"   movl  %eax, 0x10(%edx)\n\t"
-/* restore current deallocation stack */
-"   movl  0xc(%esp), %eax\n\t"
-"   movl  %eax, 0xe0c(%edx)\n\t"
-/* restore current stack limit */
-"   movl  0x10(%esp), %eax\n\t"
-"   movl  %eax, 0x08(%edx)\n\t"
-/* restore current stack base */
-"   movl  0x14(%esp), %eax\n\t"
-"   movl  %eax, 0x04(%edx)\n\t"
-/* restore current SEH exception list */
-"   movl  0x18(%esp), %eax\n\t"
-"   movl  %eax, (%edx)\n\t"
-
-"   movl  0x1c(%esp), %edi\n\t"  /* restore EDI */
-"   movl  0x20(%esp), %esi\n\t"  /* restore ESI */
-"   movl  0x24(%esp), %ebx\n\t"  /* restore EBX */
-"   movl  0x28(%esp), %ebp\n\t"  /* restore EBP */
-
-/* prepare stack */
-"   leal  0x2c(%esp), %esp\n\t"
-
-/* keep return-address on stack */
-
-/* jump to context */
-"   jmp  *%ecx\n\t"
-
-".section .drectve\n\t"
-".ascii \" -export:\\\"_sky_context_ontop\\\"\"\n\t"
+".ascii \" -export:\\\"sky_context_jump\\\"\"\n\t"
 );
 
 #endif
