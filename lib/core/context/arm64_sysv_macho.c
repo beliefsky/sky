@@ -19,7 +19,15 @@ asm(
 /* store address as a PC to jump in  */
 "   str  x2, [x0, #0xa0]\n\t"
 
+#ifdef __clang__
+// compute abs address of label finish
+// 0x0c = 3 instructions * size (4) before label 'finish'
+// TODO: Numeric offset since llvm still does not support labels in ADR. Fix:
+// http://lists.cs.uiuc.edu/pipermail/llvm-commits/Week-of-Mon-20140407/212336.html
+"   adr  x1, 0x0c\n\t"
+#else
 "   adr  x1, finish\n\t"
+#endif
 
 /* save address of finish as return-address for context-function  */
 /* will be entered after context-function returns (LR register)  */
