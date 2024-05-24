@@ -4,8 +4,6 @@
 
 #if defined(__x86_64__) && defined(__ELF__)
 
-#include "./context_common.h"
-
 #define USE_TSX
 #undef CONTEXT_TLS_STACK_PROTECTOR
 

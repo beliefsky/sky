@@ -4,16 +4,8 @@
 
 #if defined(__i386__) && defined(__ELF__)
 
-#include "./context_common.h"
-
 #define USE_TSX
 #undef  CONTEXT_TLS_STACK_PROTECTOR
-
-# ifdef __CET__
-#include <cet.h>
-#else
-#  define _CET_ENDBR
-#endif
 
 asm(
 ".text\n\t"

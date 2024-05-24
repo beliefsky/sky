@@ -4,8 +4,6 @@
 
 #if defined(__i386__) && defined(__WINNT__)
 
-#include "./context_common.h"
-
 #define USE_TSX
 
 asm(
