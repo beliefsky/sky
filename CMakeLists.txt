@@ -123,11 +123,16 @@ endif ()
 #
 # These warnings are only supported by GCC, and some only in newer versions.
 #
+enable_warning_if_supported(-Waggressive-loop-optimizations)
+enable_warning_if_supported(-Warith-conversion)
 enable_warning_if_supported(-Warray-bounds)
 enable_warning_if_supported(-Wdouble-promotion)
 enable_warning_if_supported(-Wduplicated-branches)
 enable_warning_if_supported(-Wduplicated-cond)
+enable_warning_if_supported(-Wformat-overflow)
+enable_warning_if_supported(-Wlogical-not-parentheses)
 enable_warning_if_supported(-Wlogical-op)
+enable_warning_if_supported(-Wno-override-init)
 enable_warning_if_supported(-Wno-unused-parameter)
 enable_warning_if_supported(-Wrestrict)
 enable_warning_if_supported(-Wstringop-overflow)
@@ -135,13 +140,12 @@ enable_warning_if_supported(-Wstringop-overread)
 enable_warning_if_supported(-Wstringop-truncation)
 enable_warning_if_supported(-Wunsequenced)
 enable_warning_if_supported(-Wvla)
-enable_warning_if_supported(-Wno-override-init)
 
 # While a useful warning, this is giving false positives.
 enable_warning_if_supported(-Wno-free-nonheap-object)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra -Wshadow -Wconversion -std=gnu11")
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fvisibility=hidden")
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffunction-sections -fdata-sections -fvisibility=hidden")
 set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} ${C_FLAGS_REL}")
 set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} ${C_FLAGS_REL}")
 set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL} ${C_FLAGS_REL}")
