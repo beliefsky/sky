@@ -17,8 +17,7 @@ set_target_properties(sky_static PROPERTIES
         OUTPUT_NAME sky CLEAN_DIRECT_OUTPUT 1)
 set_target_properties(sky_static PROPERTIES COMPILE_FLAGS "-fPIC")
 
-file(WRITE "${CMAKE_BINARY_DIR}/empty.c" "")
-add_library(sky_shared SHARED "${CMAKE_BINARY_DIR}/empty.c")
+add_library(sky_shared SHARED ${SOURCES})
 target_link_libraries(sky_shared
         ${SKY_COMMON_LIBS}
         ${ADDITIONAL_LIBRARIES}
