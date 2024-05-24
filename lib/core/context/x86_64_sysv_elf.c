@@ -9,11 +9,6 @@
 #define USE_TSX
 #undef CONTEXT_TLS_STACK_PROTECTOR
 
-# ifdef __CET__
-#include <cet.h>
-#else
-#  define _CET_ENDBR
-#endif
 
 asm(
 ".text\n\t"
@@ -21,7 +16,6 @@ asm(
 ".type sky_context_make,@function\n\t"
 ".align 16\n\t"
 "sky_context_make:\n\t"
-"   " _CET_ENDBR "\n\t"
 /* first arg of sky_context_make()  == top of context-stack */
 "   movq  %rdi, %rax\n\t"
 
@@ -65,13 +59,11 @@ asm(
 "trampoline:\n\t"
 /* store return address on stack */
 /* fix stack alignment */
-"   " _CET_ENDBR "\n\t"
 "   push %rbp\n\t"
 /* jump to context-function */
 "   jmp *%rbx\n\t"
 
 "finish:\n\t"
-"   " _CET_ENDBR "\n\t"
 /* exit code is zero */
 "   xorq  %rdi, %rdi\n\t"
 /* exit application */
@@ -87,7 +79,6 @@ asm(
 ".type sky_context_jump,@function\n\t"
 ".align 16\n\t"
 "sky_context_jump:\n\t"
-"   " _CET_ENDBR "\n\t"
 "   leaq  -0x40(%rsp), %rsp\n\t" /* prepare stack */
 
 #ifndef USE_TSX
@@ -153,7 +144,6 @@ asm(
 ".type sky_context_ontop,@function\n\t"
 ".align 16\n\t"
 "sky_context_ontop:\n\t"
-"   " _CET_ENDBR "\n\t"
 /* preserve ontop-function in R8 */
 "   movq  %rdx, %r8\n\t"
 
