@@ -5,11 +5,15 @@
 #if defined(__arm__) && defined(__WINNT__)
 
 asm(
-"   AREA |.text|, CODE\n\t"
-"   ALIGN 4\n\t"
-"   EXPORT sky_context_make\n\t"
-"   IMPORT _exit\n\t"
-"sky_context_make proc\n\t"
+".text\n\t"
+".p2align 4,,15\n\t"
+/* mark as using no unregistered SEH handlers */
+".globl	@feat.00\n\t"
+".def	@feat.00;	.scl	3;	.type	0;	.endef\n\t"
+".set   @feat.00,   1\n\t"
+".globl _sky_context_make\n\t"
+".def _sky_context_make; .scl    2;  .type 32;   .endef\n\t"
+"_sky_context_make:\n\t"
 // first arg of sky_context_make()  == top of context-stack
 // save top of context-stack (base) A4
 "   mov  a4, a1\n\t"
@@ -46,22 +50,28 @@ asm(
 
 "   bx  lr\n\t" // return pointer to context-data
 
-"finish\n\t"
+"finish:\n\t"
 // exit code is zero 
 "   mov  a1, #0\n\t"
 // exit application 
 "   bl  _exit\n\t"
-"   ENDP\n\t"
-"   END\n\t"
+
+".def   _exit;  .scl    2;  .type   32; .endef\n\t" /* standard C library function */
+".section .drectve\n\t"
+".ascii \" -export:\\\"sky_context_make\\\"\"\n\t"
 );
 
 
 asm(
-"   AREA |.text|, CODE\n\t"
-"   ALIGN 4\n\t"
-"   EXPORT sky_context_jump\n\t"
-"   IMPORT _exit\n\t"
-"sky_context_jump proc\n\t"
+".text\n\t"
+".p2align 4,,15\n\t"
+/* mark as using no unregistered SEH handlers */
+".globl	@feat.00\n\t"
+".def	@feat.00;	.scl	3;	.type	0;	.endef\n\t"
+".set   @feat.00,   1\n\t"
+".globl _sky_context_jump\n\t"
+".def _sky_context_jump; .scl    2;  .type 32;   .endef\n\t"
+"_sky_context_jump:\n\t"
 // save LR as PC
 "   push {lr}\n\t"
 // save hidden,V1-V8,LR
@@ -109,8 +119,9 @@ asm(
 
 // restore PC
 "   pop {pc}\n\t"
-"   ENDP\n\t"
-"   END\n\t"
+
+".section .drectve\n\t"
+".ascii \" -export:\\\"sky_context_jump\\\"\"\n\t"
 );
 
 #endif

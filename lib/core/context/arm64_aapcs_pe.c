@@ -5,10 +5,15 @@
 #if defined(__aarch64__) && defined(__WINNT__)
 
 asm(
-"   AREA |.text|, CODE, READONLY, ALIGN=4, CODEALIGN\n\t"
-"   EXPORT sky_context_make\n\t"
-"   IMPORT _exit\n\t"
-"sky_context_make proc\n\t"
+".text\n\t"
+".p2align 4,,15\n\t"
+/* mark as using no unregistered SEH handlers */
+".globl	@feat.00\n\t"
+".def	@feat.00;	.scl	3;	.type	0;	.endef\n\t"
+".set   @feat.00,   1\n\t"
+".globl _sky_context_make\n\t"
+".def _sky_context_make; .scl    2;  .type 32;   .endef\n\t"
+"_sky_context_make:\n\t"
 // save stack top address to x3 
 "   mov x3, x0\n\t"
 
@@ -45,21 +50,28 @@ asm(
 "   mov  fp, sp\n\t"
 "   blr x19\n\t"
 
-"finish\n\t"
+"finish:\n\t"
 // exit code is zero 
 "   mov  x0, #0\n\t"
 // exit application 
 "   bl  _exit\n\t"
-"   ENDP\n\t"
-"   END\n\t"
+
+".def   _exit;  .scl    2;  .type   32; .endef\n\t" /* standard C library function */
+".section .drectve\n\t"
+".ascii \" -export:\\\"sky_context_make\\\"\"\n\t"
 );
 
 
 asm(
-"   AREA |.text|, CODE, READONLY, ALIGN=4, CODEALIGN\n\t"
-"   EXPORT sky_context_jump\n\t"
-"   IMPORT _exit\n\t"
-"sky_context_jump proc\n\t"
+".text\n\t"
+".p2align 4,,15\n\t"
+/* mark as using no unregistered SEH handlers */
+".globl	@feat.00\n\t"
+".def	@feat.00;	.scl	3;	.type	0;	.endef\n\t"
+".set   @feat.00,   1\n\t"
+".globl _sky_context_jump\n\t"
+".def _sky_context_jump; .scl    2;  .type 32;   .endef\n\t"
+"_sky_context_jump:\n\t"
 // prepare stack for GP + FPU
 "   sub  sp, sp, #0xd0\n\t"
 
@@ -128,8 +140,9 @@ asm(
 "   add  sp, sp, #0xd0\n\t"
 
 "   ret x4\n\t"
-"   ENDP\n\t"
-"   END\n\t"
+
+".section .drectve\n\t"
+".ascii \" -export:\\\"sky_context_jump\\\"\"\n\t"
 );
 
 #endif
