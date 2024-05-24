@@ -1034,13 +1034,12 @@ compute_float_64(sky_u64_t num, sky_isize_t power, sky_bool_t negative, sky_f64_
     num <<= lz;
 
     const sky_u32_t index = (sky_u32_t) (power - F64_SMALLEST_POWER) << 1;
-    sky_u64_t high, low;
-
-    u128_mul(num, power_of_five_128[index], &high, &low);
+    sky_u64_t high;
+    sky_u64_t low = u128_mul(num, power_of_five_128[index], &high);
 
     if ((high & 0x1FF) == 0x1FF) {
-        sky_u64_t high2, low2;
-        u128_mul(num, power_of_five_128[index + 1], &high2, &low2);
+        sky_u64_t high2;
+        u128_mul(num, power_of_five_128[index + 1], &high2);
         low += high2;
 
         if (high2 > low) {

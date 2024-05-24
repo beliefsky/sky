@@ -8,42 +8,44 @@
 #include <core/number.h>
 
 
-static sky_inline void
-u128_mul(const sky_u64_t a, const sky_u64_t b, sky_u64_t *const hi, sky_u64_t *const lo) {
+static sky_inline sky_u64_t
+u128_mul(const sky_u64_t a, const sky_u64_t b, sky_u64_t *const hi) {
 
 #ifdef __SIZEOF_INT128__
     const __uint128_t m = (__uint128_t) a * b;
     *hi = (sky_u64_t) (m >> 64);
-    *lo = (sky_u64_t) (m);
+    return (sky_u64_t) (m);
 #elif defined(_M_AMD64)
-    *lo = _umul128(a, b, hi);
+    return _umul128(a, b, hi);
 #else
-    const sky_u32_t a0 = (sky_u32_t)(a),  a1 = (sky_u32_t)(a >> 32);
-    const sky_u32_t b0 = (sky_u32_t)(b), b1 = (sky_u32_t)(b >> 32);
-    const sky_u64_t p00 = (sky_u64_t)a0 * b0, p01 = (sky_u64_t)a0 * b1;
-    const sky_u64_t p10 = (sky_u64_t)a1 * b0, p11 = (sky_u64_t)a1 * b1;
+    const sky_u32_t a0 = (sky_u32_t) (a), a1 = (sky_u32_t) (a >> 32);
+    const sky_u32_t b0 = (sky_u32_t) (b), b1 = (sky_u32_t) (b >> 32);
+    const sky_u64_t p00 = (sky_u64_t) a0 * b0, p01 = (sky_u64_t) a0 * b1;
+    const sky_u64_t p10 = (sky_u64_t) a1 * b0, p11 = (sky_u64_t) a1 * b1;
     const sky_u64_t m0 = p01 + (p00 >> 32);
-    const sky_u32_t m00 = (sky_u32_t)(m0), m01 = (sky_u32_t)(m0 >> 32);
+    const sky_u32_t m00 = (sky_u32_t) (m0), m01 = (sky_u32_t) (m0 >> 32);
     const sky_u64_t m1 = p10 + m00;
-    const sky_u32_t m10 = (sky_u32_t)(m1), m11 = (sky_u32_t)(m1 >> 32);
+    const sky_u32_t m10 = (sky_u32_t) (m1), m11 = (sky_u32_t) (m1 >> 32);
     *hi = p11 + m01 + m11;
-    *lo = ((sky_u64_t)m10 << 32) | (sky_u32_t)p00;
+    return ((sky_u64_t) m10 << 32) | (sky_u32_t) p00;
 #endif
 }
 
-static sky_inline void
-u128_mul_add(const sky_u64_t a, const sky_u64_t b, const sky_u64_t c, sky_u64_t *const hi, sky_u64_t *const lo) {
+static sky_inline sky_u64_t
+u128_mul_add(const sky_u64_t a, const sky_u64_t b, const sky_u64_t c, sky_u64_t *const hi) {
 #ifdef __SIZEOF_INT128__
     const __uint128_t m = (__uint128_t) a * b + c;
     *hi = (sky_u64_t) (m >> 64);
-    *lo = (sky_u64_t) (m);
+
+    return (sky_u64_t) (m);
 #else
-    sky_u64_t h, l, t;
-    u128_mul(a, b, &h, &l);
-    t = l + c;
-    h += (sky_u64_t)(((t < l) | (t < c)));
+    sky_u64_t h;
+    const sky_u64_t l = u128_mul(a, b, &h);
+    const sky_u64_t t = l + c;
+    h += (sky_u64_t) (((t < l) | (t < c)));
     *hi = h;
-    *lo = t;
+
+    return t;
 #endif
 }
 

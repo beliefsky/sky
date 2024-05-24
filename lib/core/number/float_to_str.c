@@ -134,9 +134,9 @@ sky_f64_to_str(sky_f64_t data, sky_uchar_t *out) {
 
 static sky_inline sky_u64_t
 round_to_odd(const sky_u64_t hi, const sky_u64_t lo, const sky_u64_t cp) {
-    sky_u64_t x_hi, x_lo, y_hi, y_lo;
-    u128_mul(cp, lo, &x_hi, &x_lo);
-    u128_mul_add(cp, hi, x_hi, &y_hi, &y_lo);
+    sky_u64_t x_hi, y_hi;
+    u128_mul(cp, lo, &x_hi);
+    const sky_u64_t y_lo = u128_mul_add(cp, hi, x_hi, &y_hi);
 
     return y_hi | (y_lo > 1);
 }

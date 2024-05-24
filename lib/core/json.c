@@ -2336,7 +2336,7 @@ read_number(sky_uchar_t **ptr, sky_uchar_t **pre, sky_json_val_t *val, sky_bool_
         lz = (sky_u32_t) sky_clz_u64(sig);
         sig1 = sig << lz;
         exp2 -= (sky_i32_t) lz;
-        u128_mul(sig1, sig2, &hi, &lo);
+        lo = u128_mul(sig1, sig2, &hi);
 
         /*
          The `hi` is in range [0x4000000000000000FFFFFFFFFFFFFFFE],
@@ -2363,7 +2363,7 @@ read_number(sky_uchar_t **ptr, sky_uchar_t **pre, sky_json_val_t *val, sky_bool_
              The `bits` is filled with all `0` or all `1`, so we need to check
              lower bits with another 64-bit multiplication.
              */
-            u128_mul(sig1, sig2_ext, &hi2, &lo2);
+            lo2 = u128_mul(sig1, sig2_ext, &hi2);
 
             add = lo + hi2;
             if (add + 1 > SKY_U64(1)) {
@@ -3420,7 +3420,7 @@ bigint_mul_u64(bigint_t *big, sky_u64_t val) {
         }
     }
     for (; idx < max; idx++) {
-        u128_mul_add(big->bits[idx], val, carry, &hi, &lo);
+        lo = u128_mul_add(big->bits[idx], val, carry, &hi);
         big->bits[idx] = lo;
         carry = hi;
     }
@@ -3586,7 +3586,7 @@ diy_fp_get_cached_pow10(sky_i32_t exp10) {
 static sky_inline diy_fp_t
 diy_fp_mul(diy_fp_t fp, diy_fp_t fp2) {
     sky_u64_t hi, lo;
-    u128_mul(fp.sig, fp2.sig, &hi, &lo);
+    lo = u128_mul(fp.sig, fp2.sig, &hi);
     fp.sig = hi + (lo >> 63);
     fp.exp += fp2.exp + 64;
     return fp;
