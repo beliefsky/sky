@@ -170,23 +170,15 @@ sky_date_to_rfc_str(sky_i64_t time, sky_uchar_t *src) {
     struct tm tm;
 
     const sky_u32_t day_of_time = (sky_u32_t) (time % 86400);
+    const time_t tmp = (time_t) time;
 #ifndef __WINNT__
-    if (sky_unlikely(null == gmtime_r(&time, &tm))) {
+    if (sky_unlikely(null == gmtime_r(&tmp, &tm))) {
         return 0;
     }
 #else
-
-#ifdef _USE_32BIT_TIME_T
-    time_t tmp = (time_t) time;
     if (sky_unlikely(0 != gmtime_s(&tm, &tmp))) {
         return 0;
     }
-#else
-    if (sky_unlikely(0 != gmtime_s(&tm, &time))) {
-        return 0;
-    }
-#endif
-
 #endif
 
     sky_memcpy4(src, week_days + (tm.tm_wday << 2));
