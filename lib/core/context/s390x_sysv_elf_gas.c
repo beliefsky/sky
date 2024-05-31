@@ -1,7 +1,7 @@
 //
 // Created by weijing on 2024/5/31.
 //
-#if 1 || defined(__s390x__) && defined(__ELF__)
+#if defined(__s390x__) && defined(__ELF__)
 
 #define GR_OFFSET          "16"
 #define R14_OFFSET         "88"

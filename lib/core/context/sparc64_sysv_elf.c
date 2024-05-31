@@ -1,7 +1,7 @@
 //
 // Created by weijing on 2024/5/31.
 //
-#if 1 || defined(__sparc__) && defined(__ELF__)
+#if defined(__sparc__) && defined(__ELF__)
 
 #define CC64FSZ "176"
 #define BIAS    "2047"
