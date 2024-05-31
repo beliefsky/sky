@@ -1,7 +1,7 @@
 //
 // Created by weijing on 2024/5/31.
 //
-#if defined(__mips__) && defined(__LP64__) && defined(__ELF__)
+#if defined(__mips64) && defined(__ELF__)
 
 asm(
 ".text\n\t"
