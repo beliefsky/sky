@@ -35,7 +35,7 @@ asm(
 
 ".size sky_context_make, .-sky_context_make\n\t"
 /* Mark that we don't need executable stack.  */
-".section .note.GNU-stack,"",%progbits\n\t"
+".section .note.GNU-stack,\"\",%progbits\n\t"
 );
 
 
@@ -119,7 +119,7 @@ asm(
 ".size sky_context_jump, .-sky_context_jump\n\t"
 
 /* Mark that we don't need executable stack.  */
-".section .note.GNU-stack,"",%progbits\n\t"
+".section .note.GNU-stack,\"\",%progbits\n\t"
 );
 
 #endif
