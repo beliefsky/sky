@@ -16,8 +16,6 @@ extern "C" {
 #define SKY_TCP_STATUS_ERROR        SKY_U32(0x00040000)
 #define SKY_TCP_STATUS_CLOSING      SKY_U32(0x00080000)
 
-#define SKY_TCP_ACCEPT_QUEUE_NUM    SKY_U8(16)
-#define SKY_TCP_ACCEPT_QUEUE_MASK   SKY_U8(15)
 #define SKY_TCP_READ_QUEUE_NUM      SKY_U8(8)
 #define SKY_TCP_READ_QUEUE_MASK     SKY_U8(7)
 #define SKY_TCP_WRITE_QUEUE_NUM     SKY_U8(16)
@@ -65,8 +63,8 @@ struct sky_tcp_ser_s {
 #ifdef __WINNT__
     sky_usize_t req_num;
 #else
-    sky_tcp_task_t *task_queue;
-    sky_tcp_task_t **task_queue_tail;
+    sky_tcp_task_t *accept_queue;
+    sky_tcp_task_t **accept_queue_tail;
 #endif
 };
 
