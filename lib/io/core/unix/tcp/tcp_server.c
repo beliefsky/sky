@@ -13,6 +13,13 @@
 #include <sys/errno.h>
 #include <unistd.h>
 
+
+typedef struct {
+    sky_tcp_task_t base;
+    sky_tcp_cli_t *cli;
+    sky_tcp_accept_pt cb;
+} tcp_accept_task_t;
+
 static void clean_accept(sky_tcp_ser_t *ser);
 
 static sky_io_result_t do_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli);
@@ -23,8 +30,8 @@ sky_tcp_ser_init(sky_tcp_ser_t *ser, sky_ev_loop_t *ev_loop) {
     ser->ev.flags = EV_TYPE_TCP_SER;
     ser->ev.ev_loop = ev_loop;
     ser->ev.next = null;
-    ser->r_idx = 0;
-    ser->w_idx = 0;
+    ser->task_queue = null;
+    ser->task_queue_tail = &ser->task_queue;
 }
 
 sky_api sky_inline sky_bool_t
@@ -88,19 +95,22 @@ sky_tcp_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_tcp_accept_pt cb) {
     if (sky_unlikely((ser->ev.flags & SKY_TCP_STATUS_ERROR) || ser->ev.fd == SKY_SOCKET_FD_NONE)) {
         return REQ_ERROR;
     }
-    if ((ser->ev.flags & TCP_STATUS_READ) && ser->w_idx == ser->r_idx) {
+
+    if ((ser->ev.flags & TCP_STATUS_READ) && !ser->task_queue) {
         const sky_io_result_t result = do_accept(ser, cli);
         if (result != REQ_PENDING) {
             return result;
         }
         event_add(&ser->ev, EV_REG_IN);
-    } else if ((ser->w_idx - ser->r_idx) == SKY_TCP_ACCEPT_QUEUE_NUM) {
-        return REQ_QUEUE_FULL;
     }
 
-    sky_tcp_acceptor_t *const req = ser->accept_queue + ((ser->w_idx++) & SKY_TCP_ACCEPT_QUEUE_MASK);
-    req->accept = cb;
-    req->cli = cli;
+    tcp_accept_task_t *const task = sky_malloc(sizeof(tcp_accept_task_t));
+    task->base.next = null;
+    task->cli = cli;
+    task->cb = cb;
+
+    *ser->task_queue_tail = &task->base;
+    ser->task_queue_tail = &task->base.next;
 
     return REQ_PENDING;
 }
@@ -125,67 +135,74 @@ void
 event_on_tcp_ser_error(sky_ev_t *ev) {
     sky_tcp_ser_t *const ser = (sky_tcp_ser_t *const) ev;
     ser->ev.flags |= SKY_TCP_STATUS_ERROR;
-    if (ser->r_idx == ser->w_idx) {
-        return;
+    if (ser->task_queue) {
+        clean_accept(ser);
     }
-    clean_accept(ser);
 }
 
 void
 event_on_tcp_ser_in(sky_ev_t *ev) {
     sky_tcp_ser_t *const ser = (sky_tcp_ser_t *const) ev;
     ser->ev.flags |= TCP_STATUS_READ;
-    if (ser->r_idx == ser->w_idx) {
+    if (!ser->task_queue) {
         return;
     }
     if ((ser->ev.flags & (SKY_TCP_STATUS_CLOSING | SKY_TCP_STATUS_ERROR))) {
         clean_accept(ser);
         return;
     }
-    sky_tcp_acceptor_t *req;
+    tcp_accept_task_t *task;
+
     do {
-        req = ser->accept_queue + (ser->r_idx & SKY_TCP_ACCEPT_QUEUE_MASK);
-        switch (do_accept(ser, req->cli)) {
+        task = (tcp_accept_task_t *) ser->task_queue;
+        switch (do_accept(ser, task->cli)) {
             case REQ_SUCCESS:
-                req->accept(ser, req->cli, true);
+                task->cb(ser, task->cli, true);
+                ser->task_queue = task->base.next;
+                sky_free(task);
                 if (!(ser->ev.flags & (SKY_TCP_STATUS_CLOSING | SKY_TCP_STATUS_ERROR))) {
                     break;
                 }
-                if ((ser->r_idx++) != ser->w_idx) {
-                    clean_accept(ser);
+                if (!ser->task_queue) {
+                    ser->task_queue_tail = &ser->task_queue;
+                    return;
                 }
-                return;
             case REQ_ERROR:
                 clean_accept(ser);
                 return;
             default:
                 return;
         }
-    } while ((ser->r_idx++) != ser->w_idx && (ev->flags & TCP_STATUS_READ));
+    } while (ser->task_queue);
+
+    ser->task_queue_tail = &ser->task_queue;
 }
 
 void
 event_on_tcp_ser_close(sky_ev_t *ev) {
     sky_tcp_ser_t *const ser = (sky_tcp_ser_t *const) ev;
 
-    if (ser->r_idx != ser->w_idx) {
+    if (ser->task_queue) {
         clean_accept(ser);
     }
     ser->ev.flags = EV_TYPE_TCP_SER;
-    ser->r_idx = 0;
-    ser->w_idx = 0;
     ser->close_cb(ser);
 }
 
 static sky_inline void
 clean_accept(sky_tcp_ser_t *ser) {
-    sky_tcp_acceptor_t *req;
-    do {
-        req = ser->accept_queue + ((ser->r_idx++) & SKY_TCP_ACCEPT_QUEUE_MASK);
-        req->accept(ser, req->cli, false);
-    } while (ser->r_idx != ser->w_idx);
-}
 
+    tcp_accept_task_t *task = (tcp_accept_task_t *) ser->task_queue, *next;
+    ser->task_queue = null;
+    ser->task_queue_tail = &ser->task_queue;
+
+    do {
+        next = (tcp_accept_task_t *) task->base.next;
+        task->cb(ser, task->cli, false);
+        sky_free(task);
+        task = next;
+    } while (task);
+}
 
 static sky_inline sky_io_result_t
 do_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli) {

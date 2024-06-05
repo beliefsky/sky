@@ -20,7 +20,13 @@ main() {
         const sky_http_server_file_conf_t conf = {
                 .host = sky_null_string,
                 .prefix = sky_null_string,
+
+#ifdef __WINNT__
                 .dir = sky_string("D:\\private\\sky\\html"),
+#else
+                .dir = sky_string("/mnt/d/private/sky/html"),
+#endif
+
                 .pre_run = http_index_router
         };
 

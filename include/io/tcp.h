@@ -29,8 +29,9 @@ typedef struct sky_tcp_cli_s sky_tcp_cli_t;
 typedef struct sky_tcp_fs_packet_s sky_tcp_fs_packet_t;
 
 #ifndef __WINNT__
-typedef struct sky_tcp_acceptor_s sky_tcp_acceptor_t;
 typedef struct sky_tcp_rw_task_s sky_tcp_rw_task_t;
+
+typedef struct sky_tcp_task_s sky_tcp_task_t;
 #endif
 
 typedef void (*sky_tcp_ser_cb_pt)(sky_tcp_ser_t *ser);
@@ -45,13 +46,11 @@ typedef void (*sky_tcp_rw_pt)(sky_tcp_cli_t *cli, sky_usize_t size, void *attr);
 
 typedef void (*sky_tcp_cli_cb_pt)(sky_tcp_cli_t *cli);
 
-
-struct sky_tcp_acceptor_s {
-    sky_tcp_accept_pt accept;
-    sky_tcp_cli_t *cli;
-};
-
 #ifndef __WINNT__
+
+struct sky_tcp_task_s {
+    sky_tcp_task_t *next;
+};
 
 struct sky_tcp_rw_task_s {
     sky_tcp_rw_pt cb;
@@ -66,9 +65,8 @@ struct sky_tcp_ser_s {
 #ifdef __WINNT__
     sky_usize_t req_num;
 #else
-    sky_u8_t r_idx;
-    sky_u8_t w_idx;
-    sky_tcp_acceptor_t accept_queue[SKY_TCP_ACCEPT_QUEUE_NUM];
+    sky_tcp_task_t *task_queue;
+    sky_tcp_task_t **task_queue_tail;
 #endif
 };
 
