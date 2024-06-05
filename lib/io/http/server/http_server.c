@@ -44,6 +44,9 @@ sky_http_server_create(sky_ev_loop_t *ev_loop, const sky_http_server_conf_t *con
 
 sky_api sky_bool_t
 sky_http_server_module_put(sky_http_server_t *const server, sky_http_server_module_t *const module) {
+    if (!module) {
+        return false;
+    }
     sky_trie_t *host_trie = sky_trie_contains(server->host_map, &module->host);
     if (!host_trie) {
         host_trie = sky_trie_create(server->pool);

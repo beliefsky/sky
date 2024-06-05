@@ -58,7 +58,7 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
     ULONG_PTR key;
     LPOVERLAPPED pov;
 //    LPOVERLAPPED_ENTRY event;
-    sky_ev_req_t *req;
+    ev_req_t *req;
     sky_ev_t *ev;
 
     update_time(ev_loop);
@@ -69,8 +69,8 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
             update_time(ev_loop);
 
             ev = (sky_ev_t *) key;
-            req = (sky_ev_req_t *) pov;
-            EVENT_TABLES[req->type](ev, bytes, true);
+            req = (ev_req_t *) pov;
+            EVENT_TABLES[req->type](ev, req, bytes, true);
         } else {
             update_time(ev_loop);
             if (GetLastError() == WAIT_TIMEOUT) {
@@ -80,8 +80,8 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
                 return;
             }
             ev = (sky_ev_t *) key;
-            req = (sky_ev_req_t *) pov;
-            EVENT_TABLES[req->type](ev, bytes, false);
+            req = (ev_req_t *) pov;
+            EVENT_TABLES[req->type](ev, req, bytes, false);
         }
 
 //        do {
@@ -108,8 +108,8 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
 //            event = ev_loop->sys_evs;
 //            do {
 //                ev = (sky_ev_t *) event->lpCompletionKey;
-//                req = (sky_ev_req_t *) event->lpOverlapped;
-//                EVENT_TABLES[req->type](ev, event->dwNumberOfBytesTransferred, !event->Internal);
+//                req = (ev_req_t *) event->lpOverlapped;
+//                EVENT_TABLES[req->type](ev, req, event->dwNumberOfBytesTransferred, !event->Internal);
 //                ++event;
 //            } while ((--i));
 //        } while (n == IOCP_EVENT_NUM);

@@ -10,9 +10,7 @@
 #include "../win_io.h"
 #include <io/tcp.h>
 
-#define TCP_STATUS_READING          SKY_U32(0x00100000)
-#define TCP_STATUS_WRITING          SKY_U32(0x00200000)
-
+#define TCP_STATUS_CONNECTING       SKY_U32(0x00100000)
 #define TCP_TYPE_MASK               SKY_U32(0x0000FFFF)
 
 

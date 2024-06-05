@@ -10,12 +10,18 @@
 #include <core/log.h>
 
 
-static void do_disconnect(sky_tcp_cli_t *cli);
+typedef struct {
+    ev_req_t req;
+    union {
+        sky_tcp_connect_pt connect;
+        sky_tcp_rw_pt read;
+        sky_tcp_rw_pt write;
+    };
+    void *attr;
+} tcp_req_t;
 
-static void clean_read(sky_tcp_cli_t *cli);
 
-static void clean_write(sky_tcp_cli_t *cli);
-
+static sky_bool_t do_disconnect_pending(sky_tcp_cli_t *cli);
 
 static LPFN_CONNECTEX connect_ex = null;
 static LPFN_DISCONNECTEX disconnect_ex = null;
@@ -26,10 +32,7 @@ sky_tcp_cli_init(sky_tcp_cli_t *cli, sky_ev_loop_t *ev_loop) {
     cli->ev.flags = EV_TYPE_TCP_CLI;
     cli->ev.ev_loop = ev_loop;
     cli->ev.next = null;
-    cli->read_r_idx = 0;
-    cli->read_w_idx = 0;
-    cli->write_r_idx = 0;
-    cli->write_w_idx = 0;
+    cli->req_num = 0;
 }
 
 
@@ -91,7 +94,7 @@ sky_tcp_connect(
         sky_tcp_connect_pt cb
 ) {
     if (sky_unlikely(cli->ev.fd == SKY_SOCKET_FD_NONE
-                     || (cli->ev.flags & (TCP_STATUS_WRITING | SKY_TCP_STATUS_CONNECTED | SKY_TCP_STATUS_ERROR)))) {
+                     || (cli->ev.flags & (TCP_STATUS_CONNECTING | SKY_TCP_STATUS_CONNECTED | SKY_TCP_STATUS_ERROR)))) {
         return REQ_ERROR;
     }
     if (!connect_ex) {
@@ -100,8 +103,11 @@ sky_tcp_connect(
             return REQ_ERROR;
         }
     }
-    sky_memzero(&cli->out_req.overlapped, sizeof(OVERLAPPED));
-    cli->out_req.type = EV_REQ_TCP_CONNECT;
+
+    tcp_req_t *const req = sky_malloc(sizeof(tcp_req_t));
+    sky_memzero(&req->req.overlapped, sizeof(OVERLAPPED));
+    req->req.type = EV_REQ_TCP_CONNECT;
+    req->connect = cb;
 
     DWORD bytes;
     if (connect_ex(
@@ -111,16 +117,18 @@ sky_tcp_connect(
             null,
             0,
             &bytes,
-            &cli->out_req.overlapped
+            &req->req.overlapped
     )) {
+        sky_free(req);
         cli->ev.flags |= SKY_TCP_STATUS_CONNECTED;
         return REQ_SUCCESS;
     }
     if (GetLastError() == ERROR_IO_PENDING) {
-        cli->connect_cb = cb;
-        cli->ev.flags |= TCP_STATUS_WRITING;
+        cli->ev.flags |= TCP_STATUS_CONNECTING;
+        ++cli->req_num;
         return REQ_PENDING;
     }
+    sky_free(req);
     cli->ev.flags |= SKY_TCP_STATUS_ERROR;
 
     return REQ_ERROR;
@@ -162,47 +170,41 @@ sky_tcp_read(
         *bytes = 0;
         return REQ_SUCCESS;
     }
-    if (cli->read_w_idx == cli->read_r_idx) {
-        if (!(cli->ev.flags & TCP_STATUS_READING)) {
-            DWORD read_bytes, flags = 0;
-            WSABUF wsabuf = {.len = (u_long) size, .buf = (sky_char_t *) buf};
-            sky_memzero(&cli->in_req.overlapped, sizeof(OVERLAPPED));
-            cli->in_req.type = EV_REQ_TCP_READ;
-            if (WSARecv(
-                    cli->ev.fd,
-                    &wsabuf,
-                    1,
-                    &read_bytes,
-                    &flags,
-                    &cli->in_req.overlapped,
-                    null
-            ) == 0) {
-                if (!read_bytes) {
-                    cli->ev.flags |= SKY_TCP_STATUS_EOF;
-                    return REQ_ERROR;
-                }
-                *bytes = read_bytes;
-                return REQ_SUCCESS;
-            }
-            if (GetLastError() != ERROR_IO_PENDING) {
-                cli->ev.flags |= SKY_TCP_STATUS_ERROR;
-                return REQ_ERROR;
-            }
-            cli->ev.flags |= TCP_STATUS_READING;
+
+    tcp_req_t *const req = sky_malloc(sizeof(tcp_req_t));
+    sky_memzero(&req->req.overlapped, sizeof(OVERLAPPED));
+    req->req.type = EV_REQ_TCP_READ;
+    req->read = cb;
+    req->attr = attr;
+
+    DWORD read_bytes, flags = 0;
+    WSABUF wsabuf = {.len = (u_long) size, .buf = (sky_char_t *) buf};
+
+    if (WSARecv(
+            cli->ev.fd,
+            &wsabuf,
+            1,
+            &read_bytes,
+            &flags,
+            &req->req.overlapped,
+            null
+    ) == 0) {
+        sky_free(req);
+        if (!read_bytes) {
+            cli->ev.flags |= SKY_TCP_STATUS_EOF;
+            return REQ_ERROR;
         }
-    } else if ((cli->read_w_idx - cli->read_r_idx) == SKY_TCP_READ_QUEUE_NUM) {
-        return REQ_QUEUE_FULL;
+        *bytes = read_bytes;
+        return REQ_SUCCESS;
     }
+    if (GetLastError() == ERROR_IO_PENDING) {
+        ++cli->req_num;
+        return REQ_PENDING;
+    }
+    sky_free(req);
+    cli->ev.flags |= SKY_TCP_STATUS_ERROR;
 
-    sky_io_vec_t *const vec = cli->read_queue + (cli->read_w_idx & SKY_TCP_READ_QUEUE_MASK);
-    vec->buf = buf;
-    vec->len = (u_long) size;
-
-    sky_tcp_rw_task_t *const task = cli->read_task + ((cli->read_w_idx++) & SKY_TCP_READ_QUEUE_MASK);
-    task->cb = cb;
-    task->attr = attr;
-
-    return REQ_PENDING;
+    return REQ_ERROR;
 }
 
 sky_api sky_io_result_t
@@ -222,53 +224,38 @@ sky_tcp_read_vec(
         *bytes = 0;
         return REQ_SUCCESS;
     }
-    if (cli->read_w_idx == cli->read_r_idx) {
-        if (num > SKY_TCP_READ_QUEUE_NUM) {
-            return REQ_QUEUE_FULL;
+    tcp_req_t *const req = sky_malloc(sizeof(tcp_req_t));
+    sky_memzero(&req->req.overlapped, sizeof(OVERLAPPED));
+    req->req.type = EV_REQ_TCP_READ;
+    req->read = cb;
+    req->attr = attr;
+
+    DWORD read_bytes, flags = 0;
+    if (WSARecv(
+            cli->ev.fd,
+            (LPWSABUF) vec,
+            num,
+            &read_bytes,
+            &flags,
+            &req->req.overlapped,
+            null
+    ) == 0) {
+        sky_free(req);
+        if (!read_bytes) {
+            cli->ev.flags |= SKY_TCP_STATUS_EOF;
+            return REQ_ERROR;
         }
-        if (!(cli->ev.flags & TCP_STATUS_READING)) {
-            DWORD read_bytes, flags = 0;
-            sky_memzero(&cli->in_req.overlapped, sizeof(OVERLAPPED));
-            cli->in_req.type = EV_REQ_TCP_READ;
-            if (WSARecv(
-                    cli->ev.fd,
-                    (LPWSABUF) vec,
-                    num,
-                    &read_bytes,
-                    &flags,
-                    &cli->in_req.overlapped,
-                    null
-            ) == 0) {
-                if (!read_bytes) {
-                    cli->ev.flags |= SKY_TCP_STATUS_EOF;
-                    return REQ_ERROR;
-                }
-                *bytes = read_bytes;
-                return REQ_SUCCESS;
-            }
-            if (GetLastError() != ERROR_IO_PENDING) {
-                cli->ev.flags |= SKY_TCP_STATUS_ERROR;
-                return REQ_ERROR;
-            }
-            cli->ev.flags |= TCP_STATUS_READING;
-        }
-    } else if (num > SKY_TCP_READ_QUEUE_NUM
-               || ((cli->read_w_idx - cli->read_r_idx) + num) > SKY_TCP_READ_QUEUE_NUM) {
-        return REQ_QUEUE_FULL;
+        *bytes = read_bytes;
+        return REQ_SUCCESS;
     }
+    if (GetLastError() == ERROR_IO_PENDING) {
+        ++cli->req_num;
+        return REQ_PENDING;
+    }
+    sky_free(req);
+    cli->ev.flags |= SKY_TCP_STATUS_ERROR;
 
-    sky_tcp_rw_task_t *task;
-
-    do {
-        cli->read_queue[cli->read_w_idx & SKY_TCP_READ_QUEUE_MASK] = *vec;
-        task = cli->read_task + ((cli->read_w_idx++) & SKY_TCP_READ_QUEUE_MASK);
-        task->cb = null;
-        ++vec;
-    } while ((--num));
-    task->cb = cb;
-    task->attr = attr;
-
-    return REQ_PENDING;
+    return REQ_ERROR;
 }
 
 sky_api sky_io_result_t
@@ -288,41 +275,36 @@ sky_tcp_write(
         *bytes = 0;
         return REQ_SUCCESS;
     }
-    if (cli->write_w_idx == cli->write_r_idx) {
-        if (!(cli->ev.flags & TCP_STATUS_WRITING)) {
-            DWORD write_bytes;
-            WSABUF wsabuf = {.len = (u_long) size, .buf = (sky_char_t *) buf};
-            sky_memzero(&cli->out_req.overlapped, sizeof(OVERLAPPED));
-            cli->out_req.type = EV_REQ_TCP_WRITE;
+    tcp_req_t *const req = sky_malloc(sizeof(tcp_req_t));
+    sky_memzero(&req->req.overlapped, sizeof(OVERLAPPED));
+    req->req.type = EV_REQ_TCP_WRITE;
+    req->read = cb;
+    req->attr = attr;
 
-            if (WSASend(
-                    cli->ev.fd,
-                    &wsabuf,
-                    1,
-                    &write_bytes,
-                    0,
-                    &cli->out_req.overlapped,
-                    null
-            ) == 0) {
-                *bytes = write_bytes;
-                return REQ_SUCCESS;
-            }
-            if (GetLastError() != ERROR_IO_PENDING) {
-                cli->ev.flags |= SKY_TCP_STATUS_ERROR;
-                return REQ_ERROR;
-            }
-            cli->ev.flags |= TCP_STATUS_READING;
-        }
+    DWORD write_bytes;
+    WSABUF wsabuf = {.len = (u_long) size, .buf = (sky_char_t *) buf};
+
+    if (WSASend(
+            cli->ev.fd,
+            &wsabuf,
+            1,
+            &write_bytes,
+            0,
+            &req->req.overlapped,
+            null
+    ) == 0) {
+        sky_free(req);
+        *bytes = write_bytes;
+        return REQ_SUCCESS;
     }
-    sky_io_vec_t *const vec = cli->write_queue + (cli->write_w_idx & SKY_TCP_WRITE_QUEUE_MASK);
-    vec->buf = buf;
-    vec->len = (u_long) size;
+    if (GetLastError() == ERROR_IO_PENDING) {
+        ++cli->req_num;
+        return REQ_PENDING;
+    }
+    sky_free(req);
+    cli->ev.flags |= SKY_TCP_STATUS_ERROR;
 
-    sky_tcp_rw_task_t *const task = cli->write_task + ((cli->write_w_idx++) & SKY_TCP_WRITE_QUEUE_MASK);
-    task->cb = cb;
-    task->attr = attr;
-
-    return REQ_PENDING;
+    return REQ_ERROR;
 }
 
 sky_api sky_io_result_t
@@ -342,46 +324,34 @@ sky_tcp_write_vec(
         *bytes = 0;
         return REQ_SUCCESS;
     }
-    if (cli->write_w_idx == cli->write_r_idx) {
-        if (!(cli->ev.flags & TCP_STATUS_WRITING)) {
-            DWORD write_bytes;
-            sky_memzero(&cli->out_req.overlapped, sizeof(OVERLAPPED));
-            cli->out_req.type = EV_REQ_TCP_WRITE;
+    tcp_req_t *const req = sky_malloc(sizeof(tcp_req_t));
+    sky_memzero(&req->req.overlapped, sizeof(OVERLAPPED));
+    req->req.type = EV_REQ_TCP_WRITE;
+    req->read = cb;
+    req->attr = attr;
 
-            if (WSASend(
-                    cli->ev.fd,
-                    (LPWSABUF) vec,
-                    num,
-                    &write_bytes,
-                    0,
-                    &cli->out_req.overlapped,
-                    null
-            ) == 0) {
-                *bytes = write_bytes;
-                return REQ_SUCCESS;
-            }
-            if (GetLastError() != ERROR_IO_PENDING) {
-                cli->ev.flags |= SKY_TCP_STATUS_ERROR;
-                return REQ_ERROR;
-            }
-            cli->ev.flags |= TCP_STATUS_READING;
-        }
-    } else if (num > SKY_TCP_WRITE_QUEUE_NUM
-               || ((cli->write_w_idx - cli->write_r_idx) + num) > SKY_TCP_WRITE_QUEUE_NUM) {
-        return REQ_QUEUE_FULL;
+    DWORD write_bytes;
+    if (WSASend(
+            cli->ev.fd,
+            (LPWSABUF) vec,
+            num,
+            &write_bytes,
+            0,
+            &req->req.overlapped,
+            null
+    ) == 0) {
+        sky_free(req);
+        *bytes = write_bytes;
+        return REQ_SUCCESS;
     }
-    sky_tcp_rw_task_t *task;
-    do {
-        cli->write_queue[cli->write_w_idx & SKY_TCP_WRITE_QUEUE_MASK] = *vec;
-        task = cli->write_task + (cli->write_w_idx & SKY_TCP_WRITE_QUEUE_MASK);
-        task->cb = null;
-        ++cli->write_w_idx;
-        ++vec;
-    } while ((--num));
-    task->cb = cb;
-    task->attr = attr;
+    if (GetLastError() == ERROR_IO_PENDING) {
+        ++cli->req_num;
+        return REQ_PENDING;
+    }
+    sky_free(req);
+    cli->ev.flags |= SKY_TCP_STATUS_ERROR;
 
-    return REQ_PENDING;
+    return REQ_ERROR;
 }
 
 sky_api sky_bool_t
@@ -389,301 +359,149 @@ sky_tcp_cli_close(sky_tcp_cli_t *cli, sky_tcp_cli_cb_pt cb) {
     if (cli->ev.fd == SKY_SOCKET_FD_NONE || (cli->ev.flags & SKY_TCP_STATUS_CLOSING)) {
         return false;
     }
+    sky_ev_loop_t *const ev_loop = cli->ev.ev_loop;
+
     cli->close_cb = cb;
     cli->ev.flags |= SKY_TCP_STATUS_CLOSING;
-    if (!(cli->ev.flags & (TCP_STATUS_READING | TCP_STATUS_WRITING))) {
-        do_disconnect(cli);
+
+    if (!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)) {
+        if (cli->req_num) {
+            CancelIoEx((HANDLE) cli->ev.fd, null);
+        } else {
+            *ev_loop->pending_tail = &cli->ev;
+            ev_loop->pending_tail = &cli->ev.next;
+        }
         return true;
     }
-    if ((cli->ev.flags & TCP_STATUS_READING)) {
-        CancelIoEx((HANDLE) cli->ev.fd, &cli->in_req.overlapped);
-    }
-    if ((cli->ev.flags & TCP_STATUS_WRITING)) {
-        CancelIoEx((HANDLE) cli->ev.fd, &cli->out_req.overlapped);
+    if (cli->req_num) {
+        CancelIoEx((HANDLE) cli->ev.fd, null);
+        do_disconnect_pending(cli);
+    } else {
+        if (!do_disconnect_pending(cli)) {
+            *ev_loop->pending_tail = &cli->ev;
+            ev_loop->pending_tail = &cli->ev.next;
+        }
     }
 
     return true;
 }
 
 void
-event_on_tcp_connect(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
+event_on_tcp_connect(sky_ev_t *ev, ev_req_t *req, sky_usize_t bytes, sky_bool_t success) {
     (void) bytes;
 
+    tcp_req_t *const tcp_req = (tcp_req_t *) req;
     sky_tcp_cli_t *const cli = (sky_tcp_cli_t *const) ev;
-    cli->ev.flags &= ~TCP_STATUS_WRITING;
+    --cli->req_num;
 
+    const sky_bool_t before_closing = (cli->ev.flags & SKY_TCP_STATUS_CLOSING);
+    const sky_tcp_connect_pt cb = tcp_req->connect;
+    sky_free(req);
+
+    cli->ev.flags &= ~TCP_STATUS_CONNECTING;
     if (success) {
         cli->ev.flags |= SKY_TCP_STATUS_CONNECTED;
-        cli->connect_cb(cli, true);
-        return;
     }
-    const sky_bool_t should_close = (cli->ev.flags & SKY_TCP_STATUS_CLOSING);
-    cli->connect_cb(cli, false);
-    if (should_close) {
-        do_disconnect(cli);
+    cb(cli, success);
+    if (before_closing && !cli->req_num) {
+        close_on_tcp_cli(ev);
     }
 }
 
 sky_inline void
-event_on_tcp_disconnect(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
+event_on_tcp_disconnect(sky_ev_t *ev, ev_req_t *req, sky_usize_t bytes, sky_bool_t success) {
     (void) bytes;
     (void) success;
 
     sky_tcp_cli_t *const cli = (sky_tcp_cli_t *const) ev;
-    cli->ev.flags &= ~TCP_STATUS_WRITING;
-    closesocket(cli->ev.fd);
-    cli->ev.fd = SKY_SOCKET_FD_NONE;
 
-    sky_ev_loop_t *const ev_loop = cli->ev.ev_loop;
-    *ev_loop->pending_tail = &cli->ev;
-    ev_loop->pending_tail = &cli->ev.next;
+    sky_free(req);
+    if (!(--cli->req_num)) { //此处一定状态为closing
+        close_on_tcp_cli(ev);
+    }
 }
 
 
 void
-event_on_tcp_read(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
+event_on_tcp_read(sky_ev_t *ev, ev_req_t *req, sky_usize_t bytes, sky_bool_t success) {
+    tcp_req_t *const tcp_req = (tcp_req_t *) req;
     sky_tcp_cli_t *const cli = (sky_tcp_cli_t *const) ev;
-    cli->ev.flags &= ~TCP_STATUS_READING;
+    --cli->req_num;
 
-    if (!success) {
-        ev->flags |= SKY_TCP_STATUS_ERROR;
-        if ((cli->ev.flags & SKY_TCP_STATUS_CLOSING) && !(cli->ev.flags & TCP_STATUS_WRITING)) {
-            do_disconnect(cli);
+    const sky_bool_t before_closing = (cli->ev.flags & SKY_TCP_STATUS_CLOSING);
+    const sky_tcp_rw_pt cb = tcp_req->read;
+    void *const attr = tcp_req->attr;
+    sky_free(req);
+    if (success) {
+        if (!bytes) {
+            ev->flags |= SKY_TCP_STATUS_EOF;
+            cb(cli, SKY_USIZE_MAX, attr);
         } else {
-            clean_read(cli);
+            cb(cli, bytes, attr);
         }
-        return;
-    }
-    if (!bytes) {
-        ev->flags |= SKY_TCP_STATUS_EOF;
-        clean_read(cli);
-        return;
+    } else {
+        ev->flags |= SKY_TCP_STATUS_ERROR;
+        cb(cli, SKY_USIZE_MAX, attr);
     }
 
-    sky_u8_t r_pre_idx, r_idx, num;
-    DWORD read_bytes, flags = 0;
-    sky_usize_t size = 0;
-    sky_io_vec_t *vec;
-    sky_tcp_rw_task_t *task;
-
-    for (;;) {
-        vec = cli->read_queue + (cli->read_r_idx & SKY_TCP_READ_QUEUE_MASK);
-        task = cli->read_task + ((cli->read_r_idx++) & SKY_TCP_READ_QUEUE_MASK);
-        if (bytes > vec->len) {
-            bytes -= vec->len;
-            size += vec->len;
-            if (task->cb) {
-                task->cb(cli, size, task->attr);
-                size = 0;
-            }
-            if ((cli->ev.flags & (SKY_TCP_STATUS_CLOSING | SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_EOF))) {
-                if (cli->read_r_idx != cli->read_w_idx) {
-                    clean_read(cli);
-                }
-                return;
-            }
-            continue;
-        }
-        size += bytes;
-        while (!task->cb) {
-            task = cli->read_task + ((cli->read_r_idx++) & SKY_TCP_READ_QUEUE_MASK);
-        }
-        task->cb(cli, size, task->attr);
-        size = 0;
-        if ((cli->ev.flags & (SKY_TCP_STATUS_CLOSING | SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_EOF))) {
-            if (cli->read_r_idx != cli->read_w_idx) {
-                clean_read(cli);
-            }
-            return;
-        }
-        if (cli->read_r_idx == cli->read_w_idx || (cli->ev.flags & TCP_STATUS_READING)) {
-            return;
-        }
-
-        r_pre_idx = cli->read_r_idx & SKY_TCP_READ_QUEUE_MASK;
-        r_idx = cli->read_w_idx & SKY_TCP_READ_QUEUE_MASK;
-        vec = cli->read_queue + r_pre_idx;
-        num = (r_idx > r_pre_idx || !r_idx) ? (cli->read_w_idx - cli->read_r_idx)
-                                            : (SKY_TCP_READ_QUEUE_NUM - r_pre_idx);
-
-        sky_memzero(&cli->in_req.overlapped, sizeof(OVERLAPPED));
-        cli->in_req.type = EV_REQ_TCP_READ;
-        if (WSARecv(
-                cli->ev.fd,
-                (LPWSABUF) vec,
-                num,
-                &read_bytes,
-                &flags,
-                &cli->in_req.overlapped,
-                null
-        ) == 0) {
-            if (!read_bytes) {
-                cli->ev.flags |= SKY_TCP_STATUS_EOF;
-                clean_read(cli);
-                return;
-            }
-            bytes = read_bytes;
-            continue;
-        }
-        if (GetLastError() != ERROR_IO_PENDING) {
-            cli->ev.flags |= SKY_TCP_STATUS_ERROR;
-            clean_read(cli);
-            return;
-        }
-        cli->ev.flags |= TCP_STATUS_READING;
-        return;
+    if (before_closing && !cli->req_num) {
+        close_on_tcp_cli(ev);
     }
 }
 
 void
-event_on_tcp_write(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success) {
+event_on_tcp_write(sky_ev_t *ev, ev_req_t *req, sky_usize_t bytes, sky_bool_t success) {
+    tcp_req_t *const tcp_req = (tcp_req_t *) req;
     sky_tcp_cli_t *const cli = (sky_tcp_cli_t *const) ev;
-    cli->ev.flags &= ~TCP_STATUS_WRITING;
-    if (!success) {
+    --cli->req_num;
+
+    const sky_bool_t before_closing = (cli->ev.flags & SKY_TCP_STATUS_CLOSING);
+    const sky_tcp_rw_pt cb = tcp_req->write;
+    void *const attr = tcp_req->attr;
+    sky_free(req);
+    if (success) {
+        cb(cli, bytes, attr);
+    } else {
         ev->flags |= SKY_TCP_STATUS_ERROR;
-        if ((cli->ev.flags & SKY_TCP_STATUS_CLOSING) && !(cli->ev.flags & TCP_STATUS_READING)) {
-            do_disconnect(cli);
-        } else {
-            clean_write(cli);
-        }
-        return;
+        cb(cli, SKY_USIZE_MAX, attr);
     }
 
-    sky_u8_t r_pre_idx, r_idx, num;
-    DWORD write_bytes;
-    sky_usize_t size = 0;
-    sky_io_vec_t *vec;
-    sky_tcp_rw_task_t *task;
-
-
-    for (;;) {
-        vec = cli->write_queue + (cli->write_r_idx & SKY_TCP_WRITE_QUEUE_MASK);
-        task = cli->write_task + ((cli->write_r_idx++) & SKY_TCP_WRITE_QUEUE_MASK);
-
-        if (bytes > vec->len) {
-            bytes -= vec->len;
-            size += vec->len;
-            if (task->cb) {
-                task->cb(cli, bytes, task->attr);
-                bytes = 0;
-            }
-            if ((cli->ev.flags & (SKY_TCP_STATUS_CLOSING | SKY_TCP_STATUS_ERROR))) {
-                if (cli->write_r_idx != cli->write_w_idx) {
-                    clean_write(cli);
-                }
-                return;
-            }
-            continue;
-        }
-        size += bytes;
-
-        while (!task->cb) {
-            task = cli->write_task + ((cli->write_r_idx++) & SKY_TCP_WRITE_QUEUE_MASK);
-        }
-        task->cb(cli, size, task->attr);
-        size = 0;
-        if ((cli->ev.flags & (SKY_TCP_STATUS_CLOSING | SKY_TCP_STATUS_ERROR))) {
-            if (cli->write_r_idx != cli->write_w_idx) {
-                clean_write(cli);
-            }
-            return;
-        }
-        if (cli->write_r_idx == cli->write_w_idx || (cli->ev.flags & TCP_STATUS_WRITING)) {
-            return;
-        }
-        r_pre_idx = cli->write_r_idx & SKY_TCP_WRITE_QUEUE_MASK;
-        r_idx = cli->write_w_idx & SKY_TCP_WRITE_QUEUE_MASK;
-        vec = cli->write_queue + r_pre_idx;
-        num = (r_idx > r_pre_idx || !r_idx) ? (cli->write_w_idx - cli->write_r_idx)
-                                            : (SKY_TCP_WRITE_QUEUE_NUM - r_pre_idx);
-        sky_memzero(&cli->out_req.overlapped, sizeof(OVERLAPPED));
-        cli->out_req.type = EV_REQ_TCP_WRITE;
-        if (WSASend(
-                cli->ev.fd,
-                (LPWSABUF) vec,
-                num,
-                &write_bytes,
-                0,
-                &cli->out_req.overlapped,
-                null
-        ) == 0) {
-            bytes = write_bytes;
-            continue;
-        }
-        if (GetLastError() != ERROR_IO_PENDING) {
-            cli->ev.flags |= SKY_TCP_STATUS_ERROR;
-            clean_write(cli);
-            return;
-        }
-        cli->ev.flags |= TCP_STATUS_WRITING;
-        return;
-    };
+    if (before_closing && !cli->req_num) {
+        close_on_tcp_cli(ev);
+    }
 }
 
 void
 close_on_tcp_cli(sky_ev_t *ev) {
     sky_tcp_cli_t *const cli = (sky_tcp_cli_t *const) ev;
-
-    if (cli->write_r_idx != cli->write_w_idx) {
-        clean_write(cli);
-    }
-    if (cli->read_r_idx != cli->read_w_idx) {
-        clean_read(cli);
-    }
-
+    closesocket(cli->ev.fd);
+    cli->ev.fd = SKY_SOCKET_FD_NONE;
     cli->ev.flags = EV_TYPE_TCP_CLI;
-    cli->read_r_idx = 0;
-    cli->read_w_idx = 0;
-    cli->write_r_idx = 0;
-    cli->write_w_idx = 0;
-
     cli->close_cb(cli);
 }
 
-static sky_inline void
-do_disconnect(sky_tcp_cli_t *cli) {
-    if ((cli->ev.flags & SKY_TCP_STATUS_CONNECTED)) {
-        if (!disconnect_ex) {
-            const GUID wsaid_disconnectex = WSAID_DISCONNECTEX;
-            if (sky_unlikely(!get_extension_function(cli->ev.fd, wsaid_disconnectex, (void **) &disconnect_ex))) {
-                event_on_tcp_disconnect(&cli->ev, 0, false);
-                return;
-            }
-        }
-        sky_memzero(&cli->out_req.overlapped, sizeof(OVERLAPPED));
-        cli->out_req.type = EV_REQ_TCP_DISCONNECT;
+static sky_inline sky_bool_t
+do_disconnect_pending(sky_tcp_cli_t *cli) {
 
-        if (!disconnect_ex(cli->ev.fd, &cli->out_req.overlapped, 0, 0)
-            && GetLastError() == ERROR_IO_PENDING) {
-            cli->ev.flags |= TCP_STATUS_WRITING;
-            cli->ev.flags &= ~SKY_TCP_STATUS_CONNECTED;
-            return;
+    if (!disconnect_ex) {
+        const GUID wsaid_disconnectex = WSAID_DISCONNECTEX;
+        if (sky_unlikely(!get_extension_function(cli->ev.fd, wsaid_disconnectex, (void **) &disconnect_ex))) {
+            return false;
         }
     }
-    event_on_tcp_disconnect(&cli->ev, 0, true);
-}
+    ev_req_t *const req = sky_malloc(sizeof(ev_req_t));
+    sky_memzero(&req->overlapped, sizeof(OVERLAPPED));
+    req->type = EV_REQ_TCP_DISCONNECT;
 
+    if (!disconnect_ex(cli->ev.fd, &req->overlapped, 0, 0)
+        && GetLastError() == ERROR_IO_PENDING) {
+        cli->ev.flags &= ~SKY_TCP_STATUS_CONNECTED;
+        ++cli->req_num;
+        return true;
+    }
+    sky_free(req);
 
-static sky_inline void
-clean_read(sky_tcp_cli_t *cli) {
-    sky_tcp_rw_task_t *task;
-    do {
-        task = cli->read_task + ((cli->read_r_idx++) & SKY_TCP_READ_QUEUE_MASK);
-        if (task->cb) {
-            task->cb(cli, SKY_USIZE_MAX, task->attr);
-        }
-    } while (cli->read_r_idx != cli->read_w_idx);
-}
-
-static sky_inline void
-clean_write(sky_tcp_cli_t *cli) {
-    sky_tcp_rw_task_t *task;
-    do {
-        task = cli->write_task + ((cli->write_r_idx++) & SKY_TCP_WRITE_QUEUE_MASK);
-        if (task->cb) {
-            task->cb(cli, SKY_USIZE_MAX, task->attr);
-        }
-    } while (cli->write_r_idx != cli->write_w_idx);
+    return false;
 }
 
 #endif

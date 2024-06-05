@@ -28,12 +28,20 @@
 
 #define EV_TYPE_TCP_SER     SKY_U32(0x00000000)
 #define EV_TYPE_TCP_CLI     SKY_U32(0x10000000)
+#define EV_TYPE_FS          SKY_U32(0x20000000)
 
 #define EV_TYPE_SHIFT       SKY_U32(28)
 
+typedef struct ev_req_s ev_req_t;
 
-typedef void (*event_req_pt)(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success);
+typedef void (*event_req_pt)(sky_ev_t *ev, ev_req_t *req, sky_usize_t bytes, sky_bool_t success);
+
 typedef void (*on_event_pt)(sky_ev_t *ev);
+
+struct ev_req_s {
+    OVERLAPPED overlapped;
+    sky_u32_t type;
+};
 
 
 struct sky_ev_loop_s {
@@ -46,15 +54,15 @@ struct sky_ev_loop_s {
     OVERLAPPED_ENTRY sys_evs[];
 };
 
-void event_on_tcp_accept(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success);
+void event_on_tcp_accept(sky_ev_t *ev, ev_req_t *req, sky_usize_t bytes, sky_bool_t success);
 
-void event_on_tcp_connect(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success);
+void event_on_tcp_connect(sky_ev_t *ev, ev_req_t *req, sky_usize_t bytes, sky_bool_t success);
 
-void event_on_tcp_disconnect(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success);
+void event_on_tcp_disconnect(sky_ev_t *ev, ev_req_t *req, sky_usize_t bytes, sky_bool_t success);
 
-void event_on_tcp_write(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success);
+void event_on_tcp_write(sky_ev_t *ev, ev_req_t *req, sky_usize_t bytes, sky_bool_t success);
 
-void event_on_tcp_read(sky_ev_t *ev, sky_usize_t bytes, sky_bool_t success);
+void event_on_tcp_read(sky_ev_t *ev, ev_req_t *req, sky_usize_t bytes, sky_bool_t success);
 
 void close_on_tcp_ser(sky_ev_t *ev);
 

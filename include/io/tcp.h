@@ -54,39 +54,35 @@ struct sky_tcp_rw_task_s {
 
 struct sky_tcp_ser_s {
     sky_ev_t ev;
-    sky_u8_t r_idx;
-    sky_u8_t w_idx;
     sky_tcp_ser_cb_pt close_cb;
 #ifdef __WINNT__
-    sky_socket_t accept_fd;
-    sky_ev_req_t accept_req;
-    sky_uchar_t accept_buffer[(sizeof(sky_inet_address_t) << 1) + 32];
-#endif
+    sky_usize_t req_num;
+#else
+    sky_u8_t r_idx;
+    sky_u8_t w_idx;
     sky_tcp_acceptor_t accept_queue[SKY_TCP_ACCEPT_QUEUE_NUM];
+#endif
 };
 
 
 struct sky_tcp_cli_s {
     sky_ev_t ev;
     sky_tcp_cli_cb_pt close_cb;
-    sky_tcp_connect_pt connect_cb;
 
+#ifdef __WINNT__
+    sky_usize_t req_num;
+#else
+    sky_tcp_connect_pt connect_cb;
     sky_u8_t read_r_idx;
     sky_u8_t read_w_idx;
     sky_u8_t write_r_idx;
     sky_u8_t write_w_idx;
-
-#ifdef __WINNT__
-    sky_ev_req_t in_req;
-    sky_ev_req_t out_req;
-#else
     sky_usize_t write_bytes;
-#endif
-
     sky_io_vec_t read_queue[SKY_TCP_READ_QUEUE_NUM];
     sky_io_vec_t write_queue[SKY_TCP_WRITE_QUEUE_NUM];
     sky_tcp_rw_task_t read_task[SKY_TCP_READ_QUEUE_NUM];
     sky_tcp_rw_task_t write_task[SKY_TCP_WRITE_QUEUE_NUM];
+#endif
 };
 
 

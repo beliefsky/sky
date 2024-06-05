@@ -16,19 +16,13 @@ extern "C" {
 typedef struct sky_ev_loop_s sky_ev_loop_t;
 typedef struct sky_ev_s sky_ev_t;
 
-#ifdef __WINNT__
-
-typedef struct sky_ev_req_s sky_ev_req_t;
-
-struct sky_ev_req_s {
-    OVERLAPPED overlapped;
-    sky_u32_t type;
-};
-
-#endif
-
 struct sky_ev_s {
-    sky_socket_t fd;
+    union {
+        sky_socket_t fd;
+#ifdef __WINNT__
+        HANDLE fs;
+#endif
+    };
     sky_u32_t flags;
     sky_ev_loop_t *ev_loop;
     sky_ev_t *next;
