@@ -17,10 +17,6 @@ typedef struct {
     sky_uchar_t accept_buffer[(sizeof(sky_inet_address_t) << 1) + 32];
 } tcp_acceptor_t;
 
-static void clean_accept(sky_tcp_ser_t *ser);
-
-static sky_io_result_t do_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli);
-
 static LPFN_ACCEPTEX accept_ex = null;
 
 sky_api void
