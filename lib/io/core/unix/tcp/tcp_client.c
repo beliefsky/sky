@@ -455,6 +455,17 @@ sky_tcp_write_vec(
     return REQ_PENDING;
 }
 
+sky_api sky_io_result_t
+sky_tcp_send_fs(
+        sky_tcp_cli_t *cli,
+        const sky_tcp_fs_packet_t *packet,
+        sky_usize_t *bytes,
+        sky_tcp_rw_pt cb,
+        void *attr
+) {
+    return REQ_ERROR;
+}
+
 
 sky_api sky_bool_t
 sky_tcp_cli_close(sky_tcp_cli_t *cli, sky_tcp_cli_cb_pt cb) {

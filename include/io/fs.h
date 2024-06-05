@@ -46,11 +46,11 @@ sky_bool_t sky_fs_open(
 
 sky_bool_t sky_fs_close(sky_fs_t *fs, sky_fs_cb_pt cb);
 
-sky_bool_t sky_fs_stat(sky_fs_t *fs, sky_fs_stat_t *stat);
+sky_bool_t sky_fs_stat(sky_fs_t *fs, sky_fs_stat_t *st);
 
 sky_bool_t sky_fs_closed(const sky_fs_t *fs);
 
-sky_bool_t sky_fs_status_is_dir(const sky_fs_stat_t *stat);
+sky_bool_t sky_fs_status_is_dir(const sky_fs_stat_t *st);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

@@ -4,14 +4,12 @@
 #ifdef __WINNT__
 
 #include "./win_fs.h"
-#include <core/log.h>
 
 static sky_bool_t fs_open(
         sky_fs_t *fs,
         const sky_uchar_t *path,
         sky_u32_t flags
 );
-
 
 sky_api void
 sky_fs_init(sky_fs_t *fs, sky_ev_loop_t *ev_loop) {
@@ -46,7 +44,7 @@ sky_fs_close(sky_fs_t *fs, sky_fs_cb_pt cb) {
 
 
 sky_api sky_bool_t
-sky_fs_stat(sky_fs_t *fs, sky_fs_stat_t *stat) {
+sky_fs_stat(sky_fs_t *fs, sky_fs_stat_t *st) {
     if (fs->ev.fs == INVALID_HANDLE_VALUE) {
         return false;
     }
@@ -54,16 +52,16 @@ sky_fs_stat(sky_fs_t *fs, sky_fs_stat_t *stat) {
     if (!GetFileInformationByHandle(fs->ev.fs, &file_info)) {
         return false;
     }
-    stat->file_type = file_info.dwFileAttributes;
+    st->file_type = file_info.dwFileAttributes;
 
     ULARGE_INTEGER ull;//ULARGE_INTEGER 是64位无符号整型结构
     ull.LowPart = file_info.ftLastWriteTime.dwLowDateTime;
     ull.HighPart = file_info.ftLastWriteTime.dwHighDateTime;
-    stat->modified_time_sec = (sky_i64_t) (ull.QuadPart / 10000000ULL - 11644473600ULL);
+    st->modified_time_sec = (sky_i64_t) (ull.QuadPart / 10000000ULL - 11644473600ULL);
 
     ull.LowPart = file_info.nFileSizeLow;
     ull.HighPart = file_info.nFileSizeHigh;
-    stat->size = ull.QuadPart;
+    st->size = ull.QuadPart;
 
     return true;
 }

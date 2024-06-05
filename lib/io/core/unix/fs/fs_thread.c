@@ -7,10 +7,14 @@
 #include "./fs_io.h"
 #include <fcntl.h>
 #include <unistd.h>
+#include <sys/stat.h>
 
 sky_api void
 sky_fs_init(sky_fs_t *fs, sky_ev_loop_t *ev_loop) {
-
+    fs->ev.fd = SKY_SOCKET_FD_NONE;
+    fs->ev.flags = 0;
+    fs->ev.ev_loop = ev_loop;
+    fs->ev.next = null;
 }
 
 
@@ -59,23 +63,38 @@ sky_fs_open(
     return true;
 }
 
-sky_api sky_io_result_t
-sky_fs_read(
-        sky_fs_t *fs,
-        sky_uchar_t *buf,
-        sky_usize_t size,
-        sky_usize_t *bytes,
-        sky_fs_rw_pt cb,
-        void *attr
-) {
-    return REQ_ERROR;
+sky_api sky_bool_t
+sky_fs_close(sky_fs_t *fs, sky_fs_cb_pt cb) {
+    if (fs->ev.fd != SKY_SOCKET_FD_NONE) {
+        close(fs->ev.fd);
+        fs->ev.fd = SKY_SOCKET_FD_NONE;
+    }
+    return false;
 }
 
 sky_api sky_bool_t
-sky_fs_close(sky_fs_t *fs, sky_fs_cb_pt cb) {
+sky_fs_stat(sky_fs_t *fs, sky_fs_stat_t *st) {
+    struct stat stat_buf;
+    if (sky_unlikely(fstat(fs->ev.fd, &stat_buf) != 0)) {
+        return false;
+    }
+    st->file_type = stat_buf.st_mode;
+    st->size = (sky_u64_t) stat_buf.st_size;
+    st->modified_time_sec = stat_buf.st_mtime;
 
-    return false;
+    return true;
 }
+
+sky_api sky_bool_t
+sky_fs_closed(const sky_fs_t *fs) {
+    return fs->ev.fd == SKY_SOCKET_FD_NONE;
+}
+
+sky_api sky_bool_t
+sky_fs_status_is_dir(const sky_fs_stat_t *stat) {
+    return S_ISDIR(stat->file_type);
+}
+
 
 #endif
 

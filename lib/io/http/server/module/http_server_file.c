@@ -9,7 +9,6 @@
 #include <core/date.h>
 #include <core/rbtree.h>
 #include <core/crc32.h>
-#include <core/log.h>
 
 #define http_error_page(_r, _status, _msg)                              \
     (_r)->state = _status;                                              \
