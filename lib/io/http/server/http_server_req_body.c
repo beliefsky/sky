@@ -11,7 +11,6 @@ sky_http_req_body_none(
         const sky_http_server_next_pt call,
         void *const data
 ) {
-    sky_log_info("none");
     if (sky_unlikely(r->read_request_body || r->error)) {
         call(r, data);
         return;

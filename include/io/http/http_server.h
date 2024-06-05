@@ -43,6 +43,7 @@ typedef void (*sky_http_server_read_pt)(sky_http_server_request_t *r, sky_usize_
 
 struct sky_http_server_conf_s {
     sky_usize_t body_str_max;
+    sky_u32_t sendfile_max_chunk;
     sky_u32_t keep_alive;
     sky_u32_t timeout;
     sky_u32_t header_buf_size;

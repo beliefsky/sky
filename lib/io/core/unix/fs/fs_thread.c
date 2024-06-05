@@ -71,44 +71,6 @@ sky_fs_read(
     return REQ_ERROR;
 }
 
-sky_api sky_io_result_t
-sky_fs_read_vec(
-        sky_fs_t *fs,
-        sky_io_vec_t *vec,
-        sky_u32_t num,
-        sky_usize_t *bytes,
-        sky_fs_rw_pt cb,
-        void *attr
-) {
-    return REQ_ERROR;
-}
-
-sky_api sky_io_result_t
-sky_fs_write(
-        sky_fs_t *fs,
-        sky_uchar_t *buf,
-        sky_usize_t size,
-        sky_usize_t *bytes,
-        sky_fs_rw_pt cb,
-        void *attr
-) {
-    return REQ_ERROR;
-}
-
-sky_api sky_io_result_t
-sky_fs_write_vec(
-        sky_fs_t *fs,
-        sky_io_vec_t *vec,
-        sky_u32_t num,
-        sky_usize_t *bytes,
-        sky_fs_rw_pt cb,
-        void *attr
-) {
-
-    return REQ_ERROR;
-}
-
-
 sky_api sky_bool_t
 sky_fs_close(sky_fs_t *fs, sky_fs_cb_pt cb) {
 

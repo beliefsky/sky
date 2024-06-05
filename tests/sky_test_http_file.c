@@ -20,7 +20,7 @@ main() {
         const sky_http_server_file_conf_t conf = {
                 .host = sky_null_string,
                 .prefix = sky_null_string,
-                .dir = sky_string("/mnt/d/private/sky/html"),
+                .dir = sky_string("D:\\private\\sky\\html"),
                 .pre_run = http_index_router
         };
 
@@ -28,11 +28,11 @@ main() {
     }
 
     sky_inet_address_t address;
-    sky_inet_address_ipv4(&address, 0, 8080);
+    sky_inet_address_ipv4(&address, 0, 8081);
     sky_http_server_bind(server, &address);
 
     const sky_uchar_t local_ipv6[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-    sky_inet_address_ipv6(&address, local_ipv6, 0, 8080);
+    sky_inet_address_ipv6(&address, local_ipv6, 0, 8081);
 
     sky_ev_loop_run(loop);
     sky_ev_loop_stop(loop);

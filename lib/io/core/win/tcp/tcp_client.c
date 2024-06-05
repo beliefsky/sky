@@ -25,6 +25,8 @@ static sky_bool_t do_disconnect_pending(sky_tcp_cli_t *cli);
 
 static LPFN_CONNECTEX connect_ex = null;
 static LPFN_DISCONNECTEX disconnect_ex = null;
+static LPFN_TRANSMITFILE sendfile_ex = null;
+static LPFN_TRANSMITPACKETS sendfile_offset_ex = null;
 
 sky_api void
 sky_tcp_cli_init(sky_tcp_cli_t *cli, sky_ev_loop_t *ev_loop) {
@@ -105,7 +107,9 @@ sky_tcp_connect(
     }
 
     tcp_req_t *const req = sky_malloc(sizeof(tcp_req_t));
-    sky_memzero(&req->req.overlapped, sizeof(OVERLAPPED));
+    req->req.overlapped.Offset = 0;
+    req->req.overlapped.OffsetHigh = 0;
+    req->req.overlapped.hEvent = null;
     req->req.type = EV_REQ_TCP_CONNECT;
     req->connect = cb;
 
@@ -162,49 +166,16 @@ sky_tcp_read(
         sky_tcp_rw_pt cb,
         void *attr
 ) {
-    if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
-                     || (cli->ev.flags & (SKY_TCP_STATUS_EOF | SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
-        return REQ_ERROR;
-    }
-    if (!size) {
+    if (sky_unlikely(!size)) {
+        if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
+                         || (cli->ev.flags & (SKY_TCP_STATUS_EOF | SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
+            return REQ_ERROR;
+        }
         *bytes = 0;
         return REQ_SUCCESS;
     }
-
-    tcp_req_t *const req = sky_malloc(sizeof(tcp_req_t));
-    sky_memzero(&req->req.overlapped, sizeof(OVERLAPPED));
-    req->req.type = EV_REQ_TCP_READ;
-    req->read = cb;
-    req->attr = attr;
-
-    DWORD read_bytes, flags = 0;
-    WSABUF wsabuf = {.len = (u_long) size, .buf = (sky_char_t *) buf};
-
-    if (WSARecv(
-            cli->ev.fd,
-            &wsabuf,
-            1,
-            &read_bytes,
-            &flags,
-            &req->req.overlapped,
-            null
-    ) == 0) {
-        sky_free(req);
-        if (!read_bytes) {
-            cli->ev.flags |= SKY_TCP_STATUS_EOF;
-            return REQ_ERROR;
-        }
-        *bytes = read_bytes;
-        return REQ_SUCCESS;
-    }
-    if (GetLastError() == ERROR_IO_PENDING) {
-        ++cli->req_num;
-        return REQ_PENDING;
-    }
-    sky_free(req);
-    cli->ev.flags |= SKY_TCP_STATUS_ERROR;
-
-    return REQ_ERROR;
+    sky_io_vec_t vec = {.len = (sky_u32_t) size, .buf = buf};
+    return sky_tcp_read_vec(cli, &vec, 1, bytes, cb, attr);
 }
 
 sky_api sky_io_result_t
@@ -220,12 +191,14 @@ sky_tcp_read_vec(
                      || (cli->ev.flags & (SKY_TCP_STATUS_EOF | SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
         return REQ_ERROR;
     }
-    if (!num) {
+    if (sky_unlikely(!num)) {
         *bytes = 0;
         return REQ_SUCCESS;
     }
     tcp_req_t *const req = sky_malloc(sizeof(tcp_req_t));
-    sky_memzero(&req->req.overlapped, sizeof(OVERLAPPED));
+    req->req.overlapped.Offset = 0;
+    req->req.overlapped.OffsetHigh = 0;
+    req->req.overlapped.hEvent = null;
     req->req.type = EV_REQ_TCP_READ;
     req->read = cb;
     req->attr = attr;
@@ -267,44 +240,16 @@ sky_tcp_write(
         sky_tcp_rw_pt cb,
         void *attr
 ) {
-    if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
-                     || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
-        return REQ_ERROR;
-    }
-    if (!size) {
+    if (sky_unlikely(!size)) {
+        if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
+                         || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
+            return REQ_ERROR;
+        }
         *bytes = 0;
         return REQ_SUCCESS;
     }
-    tcp_req_t *const req = sky_malloc(sizeof(tcp_req_t));
-    sky_memzero(&req->req.overlapped, sizeof(OVERLAPPED));
-    req->req.type = EV_REQ_TCP_WRITE;
-    req->read = cb;
-    req->attr = attr;
-
-    DWORD write_bytes;
-    WSABUF wsabuf = {.len = (u_long) size, .buf = (sky_char_t *) buf};
-
-    if (WSASend(
-            cli->ev.fd,
-            &wsabuf,
-            1,
-            &write_bytes,
-            0,
-            &req->req.overlapped,
-            null
-    ) == 0) {
-        sky_free(req);
-        *bytes = write_bytes;
-        return REQ_SUCCESS;
-    }
-    if (GetLastError() == ERROR_IO_PENDING) {
-        ++cli->req_num;
-        return REQ_PENDING;
-    }
-    sky_free(req);
-    cli->ev.flags |= SKY_TCP_STATUS_ERROR;
-
-    return REQ_ERROR;
+    sky_io_vec_t vec = {.len = (sky_u32_t) size, .buf = buf};
+    return sky_tcp_write_vec(cli, &vec, 1, bytes, cb, attr);
 }
 
 sky_api sky_io_result_t
@@ -320,12 +265,14 @@ sky_tcp_write_vec(
                      || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
         return REQ_ERROR;
     }
-    if (!num) {
+    if (sky_unlikely(!num)) {
         *bytes = 0;
         return REQ_SUCCESS;
     }
     tcp_req_t *const req = sky_malloc(sizeof(tcp_req_t));
-    sky_memzero(&req->req.overlapped, sizeof(OVERLAPPED));
+    req->req.overlapped.Offset = 0;
+    req->req.overlapped.OffsetHigh = 0;
+    req->req.overlapped.hEvent = null;
     req->req.type = EV_REQ_TCP_WRITE;
     req->read = cb;
     req->attr = attr;
@@ -353,6 +300,162 @@ sky_tcp_write_vec(
 
     return REQ_ERROR;
 }
+
+sky_api sky_io_result_t
+sky_tcp_send_fs(
+        sky_tcp_cli_t *cli,
+        const sky_tcp_fs_packet_t *packet,
+        sky_usize_t *bytes,
+        sky_tcp_rw_pt cb,
+        void *attr
+) {
+    if (sky_unlikely(
+            !(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
+            || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING))
+            || packet->fs->ev.fs == INVALID_HANDLE_VALUE
+    )) {
+        return REQ_ERROR;
+    }
+    tcp_req_t *req;
+    if (packet->head_n < 2 && packet->tail_n < 2) { // 不包含批量vec
+        if (!sendfile_ex) {
+            const GUID wsaid_sendfile_tx = WSAID_TRANSMITFILE;
+            if (sky_unlikely(!get_extension_function(cli->ev.fd, wsaid_sendfile_tx, (void **) &sendfile_ex))) {
+                return REQ_ERROR;
+            }
+        }
+        const ULARGE_INTEGER offset = {
+                .QuadPart = packet->offset
+        };
+
+        req = sky_malloc(sizeof(tcp_req_t));
+        req->req.overlapped.Offset = offset.LowPart;
+        req->req.overlapped.OffsetHigh = offset.HighPart;
+        req->req.overlapped.hEvent = null;
+        req->req.type = EV_REQ_TCP_WRITE;
+        req->read = cb;
+        req->attr = attr;
+
+        sky_bool_t result;
+        if (!packet->head_n && !packet->tail_n) {
+            result = sendfile_ex(
+                    cli->ev.fd,
+                    packet->fs->ev.fs,
+                    (sky_u32_t) packet->size,
+                    0,
+                    &req->req.overlapped,
+                    null,
+                    TF_WRITE_BEHIND
+            );
+        } else {
+            TRANSMIT_FILE_BUFFERS file_buffer;
+            if (packet->head_n) {
+                file_buffer.Head = packet->head->buf;
+                file_buffer.HeadLength = packet->head->len;
+            } else {
+                file_buffer.Head = null;
+                file_buffer.HeadLength = 0;
+            }
+
+            if (packet->tail_n) {
+                file_buffer.Tail = packet->tail->buf;
+                file_buffer.TailLength = packet->tail->len;
+            } else {
+                file_buffer.Tail = null;
+                file_buffer.TailLength = 0;
+            }
+            result = sendfile_ex(
+                    cli->ev.fd,
+                    packet->fs->ev.fs,
+                    (sky_u32_t) packet->size,
+                    0,
+                    &req->req.overlapped,
+                    &file_buffer,
+                    TF_WRITE_BEHIND
+            );
+        }
+        if (result) {
+            *bytes = req->req.overlapped.InternalHigh;
+            sky_free(req);
+            return REQ_SUCCESS;
+        }
+    } else {
+        if (!sendfile_offset_ex) {
+            const GUID wsaid_sendfile_tx = WSAID_TRANSMITPACKETS;
+            if (sky_unlikely(!get_extension_function(cli->ev.fd, wsaid_sendfile_tx, (void **) &sendfile_offset_ex))) {
+                return REQ_ERROR;
+            }
+        }
+        const sky_u32_t element_n = packet->head_n + packet->tail_n + 1;
+        sky_u32_t i;
+        TRANSMIT_PACKETS_ELEMENT *const element = sky_malloc(sizeof(TRANSMIT_PACKETS_ELEMENT) * element_n);
+        TRANSMIT_PACKETS_ELEMENT *current = element;
+        sky_io_vec_t *vec;
+        if (packet->head_n) { //head
+            vec = packet->head;
+            i = packet->head_n;
+            do {
+                current->dwElFlags = TP_ELEMENT_MEMORY;
+                current->cLength = vec->len;
+                current->pBuffer = vec->buf;
+                ++vec;
+                ++current;
+            } while ((--i));
+        }
+
+        current->dwElFlags = TP_ELEMENT_FILE;
+        current->cLength = (sky_u32_t) packet->size;
+        current->nFileOffset.QuadPart = (sky_i64_t) packet->offset;
+        current->hFile = packet->fs;
+
+        if (packet->tail_n) { //tail
+            vec = packet->tail;
+            i = packet->tail_n;
+            do {
+                current->dwElFlags = TP_ELEMENT_MEMORY;
+                current->cLength = vec->len;
+                current->pBuffer = vec->buf;
+                ++vec;
+                ++current;
+            } while ((--i));
+        }
+
+        req = sky_malloc(sizeof(tcp_req_t));
+        req->req.overlapped.Offset = 0;
+        req->req.overlapped.OffsetHigh = 0;
+        req->req.overlapped.hEvent = null;
+        req->req.type = EV_REQ_TCP_WRITE;
+        req->read = cb;
+        req->attr = attr;
+
+        if (sendfile_offset_ex(
+                cli->ev.fd,
+                element,
+                element_n,
+                0,
+                &req->req.overlapped,
+                TF_WRITE_BEHIND
+        )) {
+
+            *bytes = req->req.overlapped.InternalHigh;
+            sky_free(element);
+            sky_free(req);
+            return REQ_SUCCESS;
+        }
+        sky_free(element);
+    }
+
+    if (GetLastError() == ERROR_IO_PENDING) {
+        ++cli->req_num;
+
+        return REQ_PENDING;
+    }
+    sky_free(req);
+    cli->ev.flags |= SKY_TCP_STATUS_ERROR;
+
+    return REQ_ERROR;
+}
+
 
 sky_api sky_bool_t
 sky_tcp_cli_close(sky_tcp_cli_t *cli, sky_tcp_cli_cb_pt cb) {
@@ -490,7 +593,9 @@ do_disconnect_pending(sky_tcp_cli_t *cli) {
         }
     }
     ev_req_t *const req = sky_malloc(sizeof(ev_req_t));
-    sky_memzero(&req->overlapped, sizeof(OVERLAPPED));
+    req->overlapped.Offset = 0;
+    req->overlapped.OffsetHigh = 0;
+    req->overlapped.hEvent = null;
     req->type = EV_REQ_TCP_DISCONNECT;
 
     if (!disconnect_ex(cli->ev.fd, &req->overlapped, 0, 0)

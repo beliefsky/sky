@@ -13,6 +13,15 @@ typedef struct {
     void *cb_data;
 } http_res_packet_t;
 
+typedef struct {
+    sky_fs_t *fs;
+    sky_http_server_next_pt cb;
+    void *cb_data;
+    sky_usize_t head_size;
+    sky_u64_t offset;
+    sky_u64_t size;
+} http_res_fs_packet_t;
+
 
 static void http_header_write_pre(sky_http_server_request_t *r, sky_str_buf_t *buf);
 
@@ -21,6 +30,8 @@ static void http_header_write_ex(sky_http_server_request_t *r, sky_str_buf_t *bu
 static void http_res_default_cb(sky_http_server_request_t *r, void *data);
 
 static void on_http_response(sky_tcp_cli_t *tcp, sky_usize_t bytes, void *attr);
+
+static void on_http_file_response(sky_tcp_cli_t *tcp, sky_usize_t bytes, void *attr);
 
 static void status_msg_get(sky_u32_t status, sky_str_t *out);
 
@@ -161,8 +172,8 @@ sky_http_response_str_len(
     sky_str_buf_build(&buf, &result);
 
     sky_io_vec_t vec[2] = {
-            {.buf = result.data, .len = result.len},
-            {.buf = data, .len = data_len}
+            {.buf = result.data, .len = (sky_u32_t) result.len},
+            {.buf = data, .len = (sky_u32_t) data_len}
     };
 
     sky_http_connection_t *const conn = r->conn;
@@ -231,13 +242,12 @@ sky_http_response_file(
 
 
     sky_http_connection_t *const conn = r->conn;
-
+    sky_usize_t bytes;
     if (sky_unlikely(!size)) {
         http_res_packet_t *const packet = sky_palloc(r->pool, sizeof(http_res_packet_t));
         packet->cb = call;
         packet->cb_data = cb_data;
 
-        sky_usize_t bytes;
         switch (sky_tcp_write(
                 &conn->tcp,
                 result.data,
@@ -258,8 +268,62 @@ sky_http_response_file(
                 return;
         }
     }
+    sky_io_vec_t head = {.len = (sky_u32_t) result.len, .buf = result.data};
+    if (size <= conn->server->sendfile_max_chunk) {
+        http_res_packet_t *const packet = sky_palloc(r->pool, sizeof(http_res_packet_t));
+        packet->cb = call;
+        packet->cb_data = cb_data;
 
-    // todo sendfile
+        const sky_tcp_fs_packet_t file_packet = {
+                .fs = fs,
+                .offset = offset,
+                .size = size,
+                .head = &head,
+                .head_n = 1
+        };
+
+        switch (sky_tcp_send_fs(&conn->tcp, &file_packet, &bytes, on_http_response, packet)) {
+            case REQ_PENDING:
+                sky_event_timeout_set(sky_tcp_cli_ev_loop(&conn->tcp), &conn->timer, conn->server->timeout);
+                return;
+            case REQ_SUCCESS:
+                call(r, cb_data);
+                return;
+            default:
+                r->error = true;
+                call(r, cb_data);
+                return;
+        };
+    }
+
+    http_res_fs_packet_t *const packet = sky_palloc(r->pool, sizeof(http_res_fs_packet_t));
+    packet->fs = fs;
+    packet->cb = call;
+    packet->cb_data = cb_data;
+    packet->head_size = result.len;
+    packet->offset = offset;
+    packet->size = size;
+
+    const sky_tcp_fs_packet_t file_packet = {
+            .fs = fs,
+            .offset = offset,
+            .size = conn->server->sendfile_max_chunk,
+            .head = &head,
+            .head_n = 1
+    };
+
+    switch (sky_tcp_send_fs(&conn->tcp, &file_packet, &bytes, on_http_file_response, packet)) {
+        case REQ_PENDING:
+            sky_event_timeout_set(sky_tcp_cli_ev_loop(&conn->tcp), &conn->timer, conn->server->timeout);
+            return;
+        case REQ_SUCCESS:
+            on_http_file_response(&conn->tcp, bytes, packet);
+            return;
+        default:
+            r->error = true;
+            call(r, cb_data);
+            return;
+    };
 }
 
 static void
@@ -330,6 +394,67 @@ on_http_response(sky_tcp_cli_t *tcp, sky_usize_t bytes, void *attr) {
     packet->cb(conn->current_req, packet->cb_data);
 }
 
+static void
+on_http_file_response(sky_tcp_cli_t *tcp, sky_usize_t bytes, void *attr) {
+    sky_http_connection_t *const conn = sky_type_convert(tcp, sky_http_connection_t, tcp);
+    http_res_fs_packet_t *const packet = attr;
+    if (bytes == SKY_USIZE_MAX) {
+        conn->current_req->error = true;
+        sky_timer_wheel_unlink(&conn->timer);
+        packet->cb(conn->current_req, packet->cb_data);
+        return;
+    }
+    bytes -= packet->head_size; //排除head的发送字节数
+    packet->head_size = 0;
+    packet->offset += bytes;
+    packet->size -= bytes;
+
+    if (!packet->size) {
+        sky_timer_wheel_unlink(&conn->timer);
+        packet->cb(conn->current_req, packet->cb_data);
+        return;
+    }
+
+    sky_tcp_fs_packet_t file_packet = {
+            .fs = packet->fs,
+            .offset = packet->offset
+    };
+
+    while (packet->size > conn->server->sendfile_max_chunk) {
+        file_packet.size = conn->server->sendfile_max_chunk;
+        switch (sky_tcp_send_fs(&conn->tcp, &file_packet, &bytes, on_http_file_response, packet)) {
+            case REQ_PENDING:
+                packet->offset = file_packet.offset;
+                sky_event_timeout_set(sky_tcp_cli_ev_loop(&conn->tcp), &conn->timer, conn->server->timeout);
+                return;
+            case REQ_SUCCESS:
+                packet->size -= bytes;
+                file_packet.offset -= bytes;
+                continue;
+            default:
+                conn->current_req->error = true;
+                sky_timer_wheel_unlink(&conn->timer);
+                packet->cb(conn->current_req, packet->cb_data);
+                return;
+        };
+    }
+    if (packet->size) {
+        file_packet.size = packet->size;
+        switch (sky_tcp_send_fs(&conn->tcp, &file_packet, &bytes, on_http_file_response, packet)) {
+            case REQ_PENDING:
+                packet->offset = file_packet.offset;
+                sky_event_timeout_set(sky_tcp_cli_ev_loop(&conn->tcp), &conn->timer, conn->server->timeout);
+                return;
+            case REQ_SUCCESS:
+                break;
+            default:
+                conn->current_req->error = true;
+                break;
+        };
+    }
+    sky_timer_wheel_unlink(&conn->timer);
+    packet->cb(conn->current_req, packet->cb_data);
+}
 
 static void
 status_msg_get(const sky_u32_t status, sky_str_t *const out) {

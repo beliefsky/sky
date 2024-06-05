@@ -85,9 +85,9 @@ create_server(sky_ev_loop_t *ev_loop) {
     sky_inet_address_ipv4(&address, 0, 8081);
     sky_http_server_bind(server, &address);
 
-//    const sky_uchar_t local_ipv6[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-//    sky_inet_address_ipv6(&address, local_ipv6, 0, 8081);
-//    sky_http_server_bind(server, &address);
+    const sky_uchar_t local_ipv6[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    sky_inet_address_ipv6(&address, local_ipv6, 0, 8081);
+    sky_http_server_bind(server, &address);
 
     return true;
 }

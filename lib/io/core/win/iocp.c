@@ -151,7 +151,7 @@ run_pending(sky_ev_loop_t *ev_loop) {
     sky_u64_t timeout;
 
     do {
-        sky_timer_wheel_run(ev_loop->timer_ctx, 0);
+        sky_timer_wheel_run(ev_loop->timer_ctx, ev_loop->current_step);
         if (ev_loop->pending) {
             do {
                 ev = ev_loop->pending;

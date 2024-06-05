@@ -10,7 +10,7 @@ typedef struct {
     sky_http_server_t *server;
 } http_listener_t;
 
-static void http_server_accept(sky_tcp_ser_t * ser, sky_tcp_cli_t *cli, sky_bool_t success);
+static void http_server_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_bool_t success);
 
 static sky_bool_t http_server_options(sky_tcp_ser_t *ser);
 
@@ -26,12 +26,14 @@ sky_http_server_create(sky_ev_loop_t *ev_loop, const sky_http_server_conf_t *con
 
     if (!conf) {
         server->body_str_max = SKY_USIZE(1048576);
+        server->sendfile_max_chunk = SKY_U32(1048576);
         server->keep_alive = SKY_U32(75000);
         server->timeout = SKY_U32(30000);
         server->header_buf_size = SKY_U32(2048);
         server->header_buf_n = SKY_U8(4);
     } else {
         server->body_str_max = conf->body_str_max ?: SKY_USIZE(1048576);
+        server->sendfile_max_chunk = conf->sendfile_max_chunk ?: SKY_U32(1048576);
         server->keep_alive = conf->keep_alive ?: SKY_U32(75000);
         server->timeout = conf->timeout ?: SKY_U32(30000);
         server->header_buf_size = conf->header_buf_size ?: SKY_U32(2048);
@@ -120,7 +122,6 @@ sky_http_server_bind(
 }
 
 
-
 static void
 http_server_accept(sky_tcp_ser_t *const ser, sky_tcp_cli_t *cli, sky_bool_t success) {
     sky_http_connection_t *conn = sky_type_convert(cli, sky_http_connection_t, tcp);
@@ -132,7 +133,7 @@ http_server_accept(sky_tcp_ser_t *const ser, sky_tcp_cli_t *cli, sky_bool_t succ
     }
     http_listener_t *const l = sky_type_convert(ser, http_listener_t, tcp);
 
-    for(;;) {
+    for (;;) {
         http_server_request_process(conn);
 
         conn = sky_malloc(sizeof(sky_http_connection_t));

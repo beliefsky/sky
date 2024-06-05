@@ -5,7 +5,7 @@
 #ifndef SKY_TCP_H
 #define SKY_TCP_H
 
-#include "./ev_loop.h"
+#include "./fs.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -26,8 +26,12 @@ extern "C" {
 
 typedef struct sky_tcp_ser_s sky_tcp_ser_t;
 typedef struct sky_tcp_cli_s sky_tcp_cli_t;
+typedef struct sky_tcp_fs_packet_s sky_tcp_fs_packet_t;
+
+#ifndef __WINNT__
 typedef struct sky_tcp_acceptor_s sky_tcp_acceptor_t;
 typedef struct sky_tcp_rw_task_s sky_tcp_rw_task_t;
+#endif
 
 typedef void (*sky_tcp_ser_cb_pt)(sky_tcp_ser_t *ser);
 
@@ -47,10 +51,14 @@ struct sky_tcp_acceptor_s {
     sky_tcp_cli_t *cli;
 };
 
+#ifndef __WINNT__
+
 struct sky_tcp_rw_task_s {
     sky_tcp_rw_pt cb;
     void *attr;
 };
+
+#endif
 
 struct sky_tcp_ser_s {
     sky_ev_t ev;
@@ -83,6 +91,17 @@ struct sky_tcp_cli_s {
     sky_tcp_rw_task_t read_task[SKY_TCP_READ_QUEUE_NUM];
     sky_tcp_rw_task_t write_task[SKY_TCP_WRITE_QUEUE_NUM];
 #endif
+};
+
+
+struct sky_tcp_fs_packet_s {
+    sky_fs_t *fs;
+    sky_io_vec_t *head;
+    sky_io_vec_t *tail;
+    sky_u32_t head_n;
+    sky_u32_t tail_n;
+    sky_usize_t size;
+    sky_u64_t offset;
 };
 
 
@@ -150,6 +169,14 @@ sky_io_result_t sky_tcp_write_vec(
         sky_tcp_cli_t *cli,
         sky_io_vec_t *vec,
         sky_u32_t num,
+        sky_usize_t *bytes,
+        sky_tcp_rw_pt cb,
+        void *attr
+);
+
+sky_io_result_t sky_tcp_send_fs(
+        sky_tcp_cli_t *cli,
+        const sky_tcp_fs_packet_t *packet,
         sky_usize_t *bytes,
         sky_tcp_rw_pt cb,
         void *attr

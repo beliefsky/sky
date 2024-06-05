@@ -20,6 +20,7 @@ struct sky_http_server_s {
     sky_ev_loop_t *ev_loop;
     sky_time_t rfc_last;
     sky_usize_t body_str_max;
+    sky_u32_t sendfile_max_chunk;
     sky_u32_t keep_alive;
     sky_u32_t timeout;
     sky_u32_t header_buf_size;
