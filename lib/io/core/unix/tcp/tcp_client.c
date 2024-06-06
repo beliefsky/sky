@@ -1003,7 +1003,7 @@ tcp_sendfile(const sky_tcp_cli_t *const cli, const sky_tcp_fs_data_t *const data
                 data->size,
                 null,
                 &write_n,
-                SF_MNOWAIT
+                SF_NODISKIO
         );
     } else {
         struct sf_hdtr hdtr = {
@@ -1019,7 +1019,7 @@ tcp_sendfile(const sky_tcp_cli_t *const cli, const sky_tcp_fs_data_t *const data
                 data->size,
                 &hdtr,
                 &write_n,
-                SF_MNOWAIT
+                SF_NODISKIO
         );
     }
     if (r == 0) {
