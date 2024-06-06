@@ -996,21 +996,25 @@ tcp_sendfile(const sky_tcp_cli_t *const cli, const sky_tcp_fs_data_t *const data
 
     sky_i32_t r;
     if (!data->head_n && !data->tail_n) {
-       r = sendfile(
+        r = sendfile(
                 data->fs->ev.fd,
                 cli->ev.fd,
                 (off_t) data->offset,
                 data->size,
                 null,
                 &write_n,
+#ifdef SF_MNOWAIT
                 SF_MNOWAIT
+#else
+                0
+#endif
         );
     } else {
         struct sf_hdtr hdtr = {
                 .headers = (struct iovec *) data->head,
                 .hdr_cnt = (sky_i32_t) data->head_n,
                 .trailers = (struct iovec *) data->tail,
-                .trl_cnt = (sky_i32_t)  data->tail_n
+                .trl_cnt = (sky_i32_t) data->tail_n
         };
         r = sendfile(
                 data->fs->ev.fd,
@@ -1019,7 +1023,11 @@ tcp_sendfile(const sky_tcp_cli_t *const cli, const sky_tcp_fs_data_t *const data
                 data->size,
                 &hdtr,
                 &write_n,
+#ifdef SF_MNOWAIT
                 SF_MNOWAIT
+#else
+                0
+#endif
         );
     }
     if (r == 0) {
