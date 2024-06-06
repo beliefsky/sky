@@ -429,7 +429,7 @@ on_http_file_response(sky_tcp_cli_t *tcp, sky_usize_t bytes, void *attr) {
                 return;
             case REQ_SUCCESS:
                 packet->size -= bytes;
-                file_packet.offset -= bytes;
+                file_packet.offset += bytes;
                 continue;
             default:
                 conn->current_req->error = true;
