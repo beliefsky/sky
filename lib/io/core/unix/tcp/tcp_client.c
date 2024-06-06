@@ -10,6 +10,16 @@
 #include <sys/errno.h>
 #include <unistd.h>
 
+#if defined(__linux__)
+
+#include <sys/sendfile.h>
+
+#elif defined(__FreeBSD__) || defined(__APPLE__)
+
+#include <sys/socket.h>
+
+#endif
+
 
 #define WRITE_TASK_CONNECT      SKY_U8(1)
 #define WRITE_TASK_WRITE        SKY_U8(2)
@@ -42,10 +52,19 @@ typedef struct {
     sky_io_vec_t vec[];
 } tcp_write_buf_task_t;
 
+typedef struct {
+    tcp_write_task_t base;
+    sky_tcp_fs_data_t data;
+    void *attr;
+    sky_usize_t bytes;
+    sky_io_vec_t vec[];
+} tcp_write_fs_task_t;
+
 
 typedef union {
     tcp_write_task_t task;
     tcp_write_buf_task_t buf_task;
+    tcp_write_fs_task_t fs_task;
 } write_task_adapter_t;
 
 typedef union {
@@ -58,9 +77,11 @@ static void clean_read(sky_tcp_cli_t *cli);
 
 static void clean_write(sky_tcp_cli_t *cli);
 
+static sky_io_result_t tcp_sendfile(const sky_tcp_cli_t *cli, const sky_tcp_fs_data_t *data, sky_isize_t *bytes);
+
 
 sky_api sky_inline void
-sky_tcp_cli_init(sky_tcp_cli_t *cli, sky_ev_loop_t *ev_loop) {
+sky_tcp_cli_init(sky_tcp_cli_t *cli, sky_ev_loop_t *const ev_loop) {
     cli->ev.fd = SKY_SOCKET_FD_NONE;
     cli->ev.flags = EV_TYPE_TCP_CLI;
     cli->ev.ev_loop = ev_loop;
@@ -462,12 +483,123 @@ sky_tcp_write_vec(
 sky_api sky_io_result_t
 sky_tcp_send_fs(
         sky_tcp_cli_t *cli,
-        const sky_tcp_fs_packet_t *packet,
+        const sky_tcp_fs_data_t *packet,
         sky_usize_t *bytes,
         sky_tcp_rw_pt cb,
         void *attr
 ) {
-    return REQ_ERROR;
+    if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
+                     || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
+        return REQ_ERROR;
+    }
+    if (!packet->size && !packet->head_n && !packet->tail_n) {
+        *bytes = 0;
+        return REQ_SUCCESS;
+    }
+    sky_tcp_fs_data_t data = *packet;
+    sky_usize_t write_bytes = 0, offset = 0;
+
+    if ((cli->ev.flags & TCP_STATUS_WRITE) && !cli->write_queue) {
+        sky_isize_t n;
+        sky_io_result_t r;
+        for (;;) {
+            if (data.head_n) {
+                data.head->buf += offset;
+                data.head->len -= offset;
+                r = tcp_sendfile(cli, &data, &n);
+                data.head->buf -= offset;
+                data.head->len += offset;
+            } else if (data.size) {
+                r = tcp_sendfile(cli, &data, &n);
+            } else { // data.tail_n 必然不能为0
+                data.tail->buf += offset;
+                data.tail->len -= offset;
+                r = tcp_sendfile(cli, &data, &n);
+                data.tail->buf -= offset;
+                data.tail->len += offset;
+            }
+
+            if (r != REQ_SUCCESS) {
+                if (r == REQ_PENDING) {
+                    cli->ev.flags &= ~TCP_STATUS_WRITE;
+                    event_add(&cli->ev, EV_REG_OUT);
+                    break;
+                }
+                cli->ev.flags |= SKY_TCP_STATUS_ERROR;
+                return REQ_ERROR;
+            }
+            write_bytes += (sky_usize_t) n;
+            offset += (sky_usize_t) n;
+
+            if (data.head_n) {
+                while (offset && offset >= data.head->len) {
+                    offset -= data.head->len;
+                    ++data.head;
+                    --data.head_n;
+                }
+                if (data.head_n) {
+                    continue;
+                }
+            }
+            if (data.size) {
+                if (offset < data.size) {
+                    data.offset += offset;
+                    data.size -= offset;
+                    offset = 0;
+                    continue;
+                }
+                data.offset += data.size;
+                offset -= data.size;
+                data.size = 0;
+            }
+            if (data.tail_n) {
+                while (offset && offset >= data.tail->len) {
+                    offset -= data.tail->len;
+                    ++data.tail;
+                    --data.tail_n;
+                }
+                if (data.tail_n) {
+                    continue;
+                }
+            }
+            *bytes = write_bytes;
+            return REQ_SUCCESS;
+        }
+    }
+
+    const sky_usize_t head_alloc_size = sizeof(sky_io_vec_t) * data.head_n;
+    const sky_usize_t tail_alloc_size = sizeof(sky_io_vec_t) * data.tail_n;
+
+    tcp_write_fs_task_t *const task = sky_malloc(
+            sizeof(tcp_write_fs_task_t) + head_alloc_size + tail_alloc_size
+    );
+    task->base.base.next = null;
+    task->base.write = cb;
+    task->base.type = WRITE_TASK_SENDFILE;
+    task->data = data;
+    task->data.head = task->vec;
+    task->data.tail = task->vec + data.head_n;
+    task->attr = attr;
+    task->bytes = write_bytes;
+
+    if (head_alloc_size) {
+        sky_memcpy(task->data.head, data.head, head_alloc_size);
+        task->data.head->buf += offset;
+        task->data.head->len -= offset;
+    }
+    if (tail_alloc_size) {
+        sky_memcpy(task->data.tail, data.tail, tail_alloc_size);
+        if (!head_alloc_size && !data.size) {
+            task->data.tail->buf += offset;
+            task->data.tail->len -= offset;
+        }
+    }
+
+    *cli->write_queue_tail = &task->base.base;
+    cli->write_queue_tail = &task->base.base.next;
+
+
+    return REQ_PENDING;
 }
 
 
@@ -623,10 +755,77 @@ event_on_tcp_cli_out(sky_ev_t *ev) {
                     if (!task->buf_task.num) {
                         break;
                     }
+                    task->buf_task.current->len -= size;
+                    task->buf_task.current->buf += size;
                 }
                 cb.write = task->buf_task.base.write;
                 attr = task->buf_task.attr;
+                size = task->buf_task.bytes;
                 cli->write_queue = task->buf_task.base.base.next;
+                sky_free(task);
+                if (!cli->write_queue) {
+                    cli->write_queue_tail = &cli->write_queue;
+                    cb.write(cli, size, attr);
+                    return;
+                }
+                cb.write(cli, size, attr);
+                break;
+            }
+            case WRITE_TASK_SENDFILE: {
+                for (;;) {
+                    switch (tcp_sendfile(cli, &task->fs_task.data, &n)) {
+                        case REQ_PENDING:
+                            cli->ev.flags &= ~TCP_STATUS_WRITE;
+                            return;
+                        case REQ_SUCCESS:
+                            break;
+                        default:
+                            cli->ev.flags |= SKY_TCP_STATUS_ERROR;
+                            clean_write(cli);
+                            return;
+                    }
+                    size = (sky_usize_t) n;
+                    task->fs_task.bytes += size;
+                    if (task->fs_task.data.head_n) {
+                        while (size && size >= task->fs_task.data.head->len) {
+                            size -= task->fs_task.data.head->len;
+                            ++task->fs_task.data.head;
+                            --task->fs_task.data.head_n;
+                        }
+                        if (task->fs_task.data.head_n) {
+                            task->fs_task.data.head->len -= size;
+                            task->fs_task.data.head->buf += size;
+                            continue;
+                        }
+                    }
+                    if (task->fs_task.data.size) {
+                        if (size < task->fs_task.data.size) {
+                            task->fs_task.data.offset += size;
+                            task->fs_task.data.size -= size;
+                            continue;
+                        }
+                        task->fs_task.data.offset += task->fs_task.data.size;
+                        size -= task->fs_task.data.size;
+                        task->fs_task.data.size = 0;
+                    }
+                    if (task->fs_task.data.tail_n) {
+                        while (size && size >= task->fs_task.data.tail->len) {
+                            size -= task->fs_task.data.tail->len;
+                            ++task->fs_task.data.tail;
+                            --task->fs_task.data.tail_n;
+                        }
+                        if (task->fs_task.data.tail_n) {
+                            task->fs_task.data.tail->len -= size;
+                            task->fs_task.data.tail->buf += size;
+                            continue;
+                        }
+                    }
+                    break;
+                }
+                cb.write = task->fs_task.base.write;
+                attr = task->fs_task.attr;
+                size = task->fs_task.bytes;
+                cli->write_queue = task->fs_task.base.base.next;
                 sky_free(task);
                 if (!cli->write_queue) {
                     cli->write_queue_tail = &cli->write_queue;
@@ -707,9 +906,17 @@ clean_write(sky_tcp_cli_t *cli) {
                 break;
             }
             case WRITE_TASK_WRITE: {
-                cb.write = task->task.write;
+                cb.write = task->buf_task.base.write;
                 attr = task->buf_task.attr;
                 next = (write_task_adapter_t *) task->buf_task.base.base.next;
+                sky_free(task);
+                cb.write(cli, SKY_USIZE_MAX, attr);
+                break;
+            }
+            case WRITE_TASK_SENDFILE: {
+                cb.write = task->fs_task.base.write;
+                attr = task->fs_task.attr;
+                next = (write_task_adapter_t *) task->fs_task.base.base.next;
                 sky_free(task);
                 cb.write(cli, SKY_USIZE_MAX, attr);
                 break;
@@ -722,6 +929,142 @@ clean_write(sky_tcp_cli_t *cli) {
         }
         task = next;
     } while (task);
+}
+
+
+static sky_io_result_t
+tcp_sendfile(const sky_tcp_cli_t *const cli, const sky_tcp_fs_data_t *const data, sky_isize_t *const bytes) {
+#if defined(__linux__)
+
+    sky_isize_t n;
+    if (data->head_n) {
+        if (data->head_n == 1) {
+            n = send(cli->ev.fd, data->head->buf, data->head->len, MSG_NOSIGNAL);
+        } else {
+            const struct msghdr msg = {
+                    .msg_iov = (struct iovec *) data->head,
+                    .msg_iovlen = data->head_n
+            };
+            n = sendmsg(cli->ev.fd, &msg, MSG_NOSIGNAL);
+        }
+    } else if (data->size) {
+        sky_i64_t file_offset = (sky_i64_t) data->offset;
+        n = sendfile(cli->ev.fd, data->fs->ev.fd, &file_offset, data->size);
+    } else if (data->tail_n) {
+        if (data->tail_n == 1) {
+            n = send(cli->ev.fd, data->tail->buf, data->tail->len, MSG_NOSIGNAL);
+        } else {
+            const struct msghdr msg = {
+                    .msg_iov = (struct iovec *) data->tail,
+                    .msg_iovlen = data->tail_n
+            };
+            n = sendmsg(cli->ev.fd, &msg, MSG_NOSIGNAL);
+        }
+    } else {
+        *bytes = 0;
+        return REQ_SUCCESS;
+    }
+
+    if (n == -1) {
+        if (errno == EAGAIN) {
+            return REQ_PENDING;
+        }
+        return REQ_ERROR;
+    }
+    *bytes = (sky_isize_t) n;
+
+    return REQ_SUCCESS;
+
+#elif defined(__FreeBSD__)
+    off_t write_n;
+
+    sky_i32_t r;
+    if (!data->head_n && !data->tail_n) {
+       r = sendfile(
+                data->fs->ev.fd,
+                cli->ev.fd,
+                (off_t) data->offset,
+                data->size,
+                null,
+                &write_n,
+                SF_MNOWAIT
+        );
+    } else {
+        struct sf_hdtr hdtr = {
+                .headers = (struct iovec *) data->head,
+                .hdr_cnt = (sky_i32_t) data->head_n,
+                .trailers = (struct iovec *) data->tail,
+                .trl_cnt = (sky_i32_t)  data->tail_n
+        };
+        r = sendfile(
+                data->fs->ev.fd,
+                cli->ev.fd,
+                (off_t) data->offset,
+                data->size,
+                &hdtr,
+                &write_n,
+                SF_MNOWAIT
+        );
+    }
+    if (r == 0) {
+        *bytes = (sky_isize_t) write_n;
+        return REQ_SUCCESS;
+    }
+    switch (errno) {
+        case EAGAIN:
+        case EBUSY:
+        case EINTR:
+            return REQ_PENDING;
+        default:
+            return REQ_ERROR;
+    }
+
+
+#elif defined(__APPLE__)
+
+    off_t write_n = (off_t) data->size;
+
+    sky_i32_t r;
+    if (!data->head_n && !data->tail_n) {
+        r = sendfile(data->fs->ev.fd,
+                     cli->ev.fd,
+                     (off_t) data->offset,
+                     &write_n,
+                     null,
+                     0
+        );
+    } else {
+        struct sf_hdtr hdtr = {
+                .headers = (struct iovec *) data->head,
+                .hdr_cnt = (sky_i32_t) data->head_n,
+                .trailers = (struct iovec *) data->tail,
+                .trl_cnt = (sky_i32_t) data->tail_n
+        };
+        r = sendfile(data->fs->ev.fd,
+                     cli->ev.fd,
+                     (off_t) data->offset,
+                     &write_n,
+                     &hdtr,
+                     0
+        );
+    }
+    if (r == 0) {
+        *bytes = (sky_isize_t) write_n;
+        return REQ_SUCCESS;
+    }
+    switch (errno) {
+        case EAGAIN:
+        case EINTR:
+            return REQ_PENDING;
+        default:
+            return REQ_ERROR;
+    }
+
+#else
+
+#error not support sendfile.
+
+#endif
 }
 
 #endif

@@ -304,7 +304,7 @@ sky_tcp_write_vec(
 sky_api sky_io_result_t
 sky_tcp_send_fs(
         sky_tcp_cli_t *cli,
-        const sky_tcp_fs_packet_t *packet,
+        const sky_tcp_fs_data_t *packet,
         sky_usize_t *bytes,
         sky_tcp_rw_pt cb,
         void *attr

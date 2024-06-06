@@ -274,7 +274,7 @@ sky_http_response_file(
         packet->cb = call;
         packet->cb_data = cb_data;
 
-        const sky_tcp_fs_packet_t file_packet = {
+        const sky_tcp_fs_data_t file_packet = {
                 .fs = fs,
                 .offset = offset,
                 .size = size,
@@ -304,7 +304,7 @@ sky_http_response_file(
     packet->offset = offset;
     packet->size = size;
 
-    const sky_tcp_fs_packet_t file_packet = {
+    const sky_tcp_fs_data_t file_packet = {
             .fs = fs,
             .offset = offset,
             .size = conn->server->sendfile_max_chunk,
@@ -415,7 +415,7 @@ on_http_file_response(sky_tcp_cli_t *tcp, sky_usize_t bytes, void *attr) {
         return;
     }
 
-    sky_tcp_fs_packet_t file_packet = {
+    sky_tcp_fs_data_t file_packet = {
             .fs = packet->fs,
             .offset = packet->offset
     };

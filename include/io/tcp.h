@@ -19,7 +19,7 @@ extern "C" {
 
 typedef struct sky_tcp_ser_s sky_tcp_ser_t;
 typedef struct sky_tcp_cli_s sky_tcp_cli_t;
-typedef struct sky_tcp_fs_packet_s sky_tcp_fs_packet_t;
+typedef struct sky_tcp_fs_data_s sky_tcp_fs_data_t;
 
 typedef void (*sky_tcp_ser_cb_pt)(sky_tcp_ser_t *ser);
 
@@ -70,14 +70,14 @@ struct sky_tcp_cli_s {
 };
 
 
-struct sky_tcp_fs_packet_s {
+struct sky_tcp_fs_data_s {
+    sky_u64_t offset;
     sky_fs_t *fs;
     sky_io_vec_t *head;
     sky_io_vec_t *tail;
+    sky_usize_t size;
     sky_u32_t head_n;
     sky_u32_t tail_n;
-    sky_usize_t size;
-    sky_u64_t offset;
 };
 
 
@@ -152,7 +152,7 @@ sky_io_result_t sky_tcp_write_vec(
 
 sky_io_result_t sky_tcp_send_fs(
         sky_tcp_cli_t *cli,
-        const sky_tcp_fs_packet_t *packet,
+        const sky_tcp_fs_data_t *packet,
         sky_usize_t *bytes,
         sky_tcp_rw_pt cb,
         void *attr
