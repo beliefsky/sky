@@ -307,7 +307,11 @@ sky_tcp_read_vec(
     if ((cli->ev.flags & TCP_STATUS_READ) && !cli->read_queue) {
         struct msghdr msg = {
                 .msg_iov = (struct iovec *) vec,
+#ifdef __linux__
                 .msg_iovlen = num
+#else
+                .msg_iovlen = (sky_i32_t) num
+#endif
         };
         const sky_isize_t n = recvmsg(cli->ev.fd, &msg, 0);
 
@@ -431,7 +435,11 @@ sky_tcp_write_vec(
             } else {
                 const struct msghdr msg = {
                         .msg_iov = (struct iovec *) vec,
+#ifdef __linux__
                         .msg_iovlen = num
+#else
+                        .msg_iovlen = (sky_i32_t) num
+#endif
                 };
                 n = sendmsg(cli->ev.fd, &msg, MSG_NOSIGNAL);
             }
@@ -652,7 +660,11 @@ event_on_tcp_cli_in(sky_ev_t *ev) {
         } else {
             struct msghdr msg = {
                     .msg_iov = (struct iovec *) task->vec,
+#ifdef __linux__
                     .msg_iovlen = task->num
+#else
+                    .msg_iovlen = (sky_i32_t) task->num
+#endif
             };
             n = recvmsg(cli->ev.fd, &msg, 0);
         }
@@ -732,7 +744,11 @@ event_on_tcp_cli_out(sky_ev_t *ev) {
                     } else {
                         const struct msghdr msg = {
                                 .msg_iov = (struct iovec *) task->buf_task.vec,
+#ifdef __linux__
                                 .msg_iovlen = task->buf_task.num
+#else
+                                .msg_iovlen = (sky_i32_t) task->buf_task.num
+#endif
                         };
                         n = sendmsg(cli->ev.fd, &msg, MSG_NOSIGNAL);
                     }
