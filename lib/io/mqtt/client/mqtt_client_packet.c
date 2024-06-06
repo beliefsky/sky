@@ -72,8 +72,6 @@ mqtt_client_write_packet(sky_mqtt_client_t *const client) {
                 sky_queue_remove(queue);
                 sky_free(packet);
                 break;
-            case REQ_QUEUE_FULL:
-                return true;
             default:
                 return false;
         }

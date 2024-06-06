@@ -16,21 +16,10 @@ extern "C" {
 #define SKY_TCP_STATUS_ERROR        SKY_U32(0x00040000)
 #define SKY_TCP_STATUS_CLOSING      SKY_U32(0x00080000)
 
-#define SKY_TCP_READ_QUEUE_NUM      SKY_U8(8)
-#define SKY_TCP_READ_QUEUE_MASK     SKY_U8(7)
-#define SKY_TCP_WRITE_QUEUE_NUM     SKY_U8(16)
-#define SKY_TCP_WRITE_QUEUE_MASK    SKY_U8(15)
-
 
 typedef struct sky_tcp_ser_s sky_tcp_ser_t;
 typedef struct sky_tcp_cli_s sky_tcp_cli_t;
 typedef struct sky_tcp_fs_packet_s sky_tcp_fs_packet_t;
-
-#ifndef __WINNT__
-typedef struct sky_tcp_rw_task_s sky_tcp_rw_task_t;
-
-typedef struct sky_tcp_task_s sky_tcp_task_t;
-#endif
 
 typedef void (*sky_tcp_ser_cb_pt)(sky_tcp_ser_t *ser);
 
@@ -46,13 +35,10 @@ typedef void (*sky_tcp_cli_cb_pt)(sky_tcp_cli_t *cli);
 
 #ifndef __WINNT__
 
+typedef struct sky_tcp_task_s sky_tcp_task_t;
+
 struct sky_tcp_task_s {
     sky_tcp_task_t *next;
-};
-
-struct sky_tcp_rw_task_s {
-    sky_tcp_rw_pt cb;
-    void *attr;
 };
 
 #endif
@@ -76,16 +62,10 @@ struct sky_tcp_cli_s {
 #ifdef __WINNT__
     sky_usize_t req_num;
 #else
-    sky_tcp_connect_pt connect_cb;
-    sky_u8_t read_r_idx;
-    sky_u8_t read_w_idx;
-    sky_u8_t write_r_idx;
-    sky_u8_t write_w_idx;
-    sky_usize_t write_bytes;
-    sky_io_vec_t read_queue[SKY_TCP_READ_QUEUE_NUM];
-    sky_io_vec_t write_queue[SKY_TCP_WRITE_QUEUE_NUM];
-    sky_tcp_rw_task_t read_task[SKY_TCP_READ_QUEUE_NUM];
-    sky_tcp_rw_task_t write_task[SKY_TCP_WRITE_QUEUE_NUM];
+    sky_tcp_task_t *read_queue;
+    sky_tcp_task_t **read_queue_tail;
+    sky_tcp_task_t *write_queue;
+    sky_tcp_task_t **write_queue_tail;
 #endif
 };
 
