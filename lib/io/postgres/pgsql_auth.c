@@ -297,7 +297,7 @@ pgsql_password(
 
     sky_usize_t bytes;
 
-    switch (sky_tcp_read(
+    switch (sky_tcp_write(
             &conn->tcp,
             packet->buf.pos,
             (sky_usize_t) (packet->buf.last - packet->buf.pos),
