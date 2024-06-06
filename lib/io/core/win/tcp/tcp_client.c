@@ -7,7 +7,6 @@
 #include "./win_tcp.h"
 #include <mswsock.h>
 #include <ws2ipdef.h>
-#include <core/log.h>
 
 
 typedef struct {
