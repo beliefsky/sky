@@ -99,13 +99,13 @@ sky_tcp_cli_open(sky_tcp_cli_t *cli, sky_i32_t domain) {
         return false;
     }
 #ifdef SKY_HAVE_ACCEPT4
-    const sky_socket_t fd = socket(domain, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, domain == AF_UNIX ? IPPROTO_TCP : 0);
+    const sky_socket_t fd = socket(domain, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, domain == AF_UNIX ?  0 : IPPROTO_TCP);
     if (sky_unlikely(fd == -1)) {
         return false;
     }
 
 #else
-    const sky_socket_t fd = socket(domain, SOCK_STREAM, domain == AF_UNIX ? IPPROTO_TCP : 0);
+    const sky_socket_t fd = socket(domain, SOCK_STREAM, domain == AF_UNIX ?  0 : IPPROTO_TCP);
     if (sky_unlikely(fd == -1)) {
         return false;
     }
