@@ -213,7 +213,7 @@ on_pgsql_exec_send(sky_tcp_cli_t *const tcp, sky_usize_t size, void *attr) {
         return;
     }
     sky_buf_reset(buf);
-    sky_buf_rebuild(buf, 1024);
+    sky_buf_rebuild(buf, 2048);
     packet->result.desc = null;
     packet->result.data = null;
     packet->result.rows = 0;
@@ -408,7 +408,7 @@ on_pgsql_exec_read(sky_tcp_cli_t *const tcp, sky_usize_t size, void *attr) {
         }
 
         if ((sky_u32_t) (buf->end - buf->pos) <= packet->size) {
-            sky_buf_rebuild(buf, sky_max(packet->size, SKY_U32(1024)));
+            sky_buf_rebuild(buf, sky_max(packet->size, SKY_U32(2048)));
         }
 
         switch (sky_tcp_read(
@@ -422,6 +422,7 @@ on_pgsql_exec_read(sky_tcp_cli_t *const tcp, sky_usize_t size, void *attr) {
             case REQ_PENDING:
                 return;
             case REQ_SUCCESS:
+                buf->last += size;
                 continue;
             default:
                 goto error;
