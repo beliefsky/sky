@@ -548,6 +548,7 @@ sky_tcp_send_fs(
                 if (data.head_n) {
                     continue;
                 }
+                data.head = null;
             }
             if (data.size) {
                 if (offset < data.size) {
@@ -569,6 +570,7 @@ sky_tcp_send_fs(
                 if (data.tail_n) {
                     continue;
                 }
+                data.tail = null;
             }
             *bytes = write_bytes;
             return REQ_SUCCESS;
@@ -813,6 +815,7 @@ event_on_tcp_cli_out(sky_ev_t *ev) {
                             task->fs_task.data.head->buf += size;
                             continue;
                         }
+                        task->fs_task.data.head = null;
                     }
                     if (task->fs_task.data.size) {
                         if (size < task->fs_task.data.size) {
@@ -835,6 +838,7 @@ event_on_tcp_cli_out(sky_ev_t *ev) {
                             task->fs_task.data.tail->buf += size;
                             continue;
                         }
+                        task->fs_task.data.tail = null;
                     }
                     break;
                 }
