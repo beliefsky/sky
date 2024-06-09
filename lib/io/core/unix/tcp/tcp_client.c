@@ -77,7 +77,7 @@ static void clean_read(sky_tcp_cli_t *cli);
 
 static void clean_write(sky_tcp_cli_t *cli);
 
-static sky_io_result_t tcp_sendfile(const sky_tcp_cli_t *cli, const sky_tcp_fs_data_t *data, sky_isize_t *bytes);
+static sky_io_result_t tcp_sendfile(sky_tcp_cli_t *cli, const sky_tcp_fs_data_t *data, sky_isize_t *bytes);
 
 
 sky_api sky_inline void
@@ -949,7 +949,7 @@ clean_write(sky_tcp_cli_t *cli) {
 
 
 static sky_io_result_t
-tcp_sendfile(const sky_tcp_cli_t *const cli, const sky_tcp_fs_data_t *const data, sky_isize_t *const bytes) {
+tcp_sendfile(sky_tcp_cli_t *const cli, const sky_tcp_fs_data_t *const data, sky_isize_t *const bytes) {
 #if defined(__linux__)
 
     sky_isize_t n;
