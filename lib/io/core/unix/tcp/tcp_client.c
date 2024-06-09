@@ -529,11 +529,9 @@ sky_tcp_send_fs(
 
             if (r != REQ_SUCCESS) {
                 if (r == REQ_PENDING) {
-                    cli->ev.flags &= ~TCP_STATUS_WRITE;
                     event_add(&cli->ev, EV_REG_OUT);
                     break;
                 }
-                cli->ev.flags |= SKY_TCP_STATUS_ERROR;
                 return REQ_ERROR;
             }
             write_bytes += (sky_usize_t) n;
@@ -793,12 +791,10 @@ event_on_tcp_cli_out(sky_ev_t *ev) {
                 for (;;) {
                     switch (tcp_sendfile(cli, &task->fs_task.data, &n)) {
                         case REQ_PENDING:
-                            cli->ev.flags &= ~TCP_STATUS_WRITE;
                             return;
                         case REQ_SUCCESS:
                             break;
                         default:
-                            cli->ev.flags |= SKY_TCP_STATUS_ERROR;
                             clean_write(cli);
                             return;
                     }
@@ -987,8 +983,11 @@ tcp_sendfile(const sky_tcp_cli_t *const cli, const sky_tcp_fs_data_t *const data
 
     if (n == -1) {
         if (errno == EAGAIN) {
+            cli->ev.flags &= ~TCP_STATUS_WRITE;
             return REQ_PENDING;
         }
+        cli->ev.flags &= ~SKY_TCP_STATUS_ERROR;
+        
         return REQ_ERROR;
     }
     *bytes = (sky_isize_t) n;
@@ -996,8 +995,12 @@ tcp_sendfile(const sky_tcp_cli_t *const cli, const sky_tcp_fs_data_t *const data
     return REQ_SUCCESS;
 
 #elif defined(__FreeBSD__)
-    off_t write_n;
 
+    if ((cli->ev.flags & TCP_STATUS_WRITE)) {
+        return REQ_PENDING;
+    }
+
+    off_t write_n;
     sky_i32_t r;
     if (!data->head_n && !data->tail_n) {
         r = sendfile(
@@ -1038,17 +1041,26 @@ tcp_sendfile(const sky_tcp_cli_t *const cli, const sky_tcp_fs_data_t *const data
         *bytes = (sky_isize_t) write_n;
         return REQ_SUCCESS;
     }
+
     switch (errno) {
         case EAGAIN:
-        case EBUSY:
         case EINTR:
+            cli->ev.flags &= ~TCP_STATUS_WRITE;
+            *bytes = (sky_isize_t) write_n;
+            return write_n ?  REQ_SUCCESS : REQ_PENDING;
+         case EBUSY:
+            cli->ev.flags &= ~TCP_STATUS_WRITE;
             return REQ_PENDING;
         default:
+            cli->ev.flags &= ~SKY_TCP_STATUS_ERROR;
             return REQ_ERROR;
     }
 
 
 #elif defined(__APPLE__)
+    if ((cli->ev.flags & TCP_STATUS_WRITE)) {
+        return REQ_PENDING;
+    }
 
     off_t write_n = (off_t) data->size;
 
@@ -1083,8 +1095,11 @@ tcp_sendfile(const sky_tcp_cli_t *const cli, const sky_tcp_fs_data_t *const data
     switch (errno) {
         case EAGAIN:
         case EINTR:
-            return REQ_PENDING;
+            cli->ev.flags &= ~TCP_STATUS_WRITE;
+            *bytes = (sky_isize_t) write_n;
+            return write_n ?  REQ_SUCCESS : REQ_PENDING;
         default:
+            cli->ev.flags &= ~SKY_TCP_STATUS_ERROR;
             return REQ_ERROR;
     }
 
