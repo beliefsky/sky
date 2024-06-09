@@ -996,7 +996,7 @@ tcp_sendfile(sky_tcp_cli_t *const cli, const sky_tcp_fs_data_t *const data, sky_
 
 #elif defined(__FreeBSD__)
 
-    if ((cli->ev.flags & TCP_STATUS_WRITE)) {
+    if (!(cli->ev.flags & TCP_STATUS_WRITE)) {
         return REQ_PENDING;
     }
 
@@ -1058,7 +1058,7 @@ tcp_sendfile(sky_tcp_cli_t *const cli, const sky_tcp_fs_data_t *const data, sky_
 
 
 #elif defined(__APPLE__)
-    if ((cli->ev.flags & TCP_STATUS_WRITE)) {
+    if (!(cli->ev.flags & TCP_STATUS_WRITE)) {
         return REQ_PENDING;
     }
 
