@@ -541,7 +541,9 @@ sky_tcp_send_fs(
                 while (offset && offset >= data.head->len) {
                     offset -= data.head->len;
                     ++data.head;
-                    --data.head_n;
+                    if (!(--data.head_n)) {
+                        break;
+                    }
                 }
                 if (data.head_n) {
                     continue;
@@ -563,7 +565,9 @@ sky_tcp_send_fs(
                 while (offset && offset >= data.tail->len) {
                     offset -= data.tail->len;
                     ++data.tail;
-                    --data.tail_n;
+                    if (!(--data.tail_n)) {
+                        break;
+                    }
                 }
                 if (data.tail_n) {
                     continue;
@@ -804,7 +808,9 @@ event_on_tcp_cli_out(sky_ev_t *ev) {
                         while (size && size >= task->fs_task.data.head->len) {
                             size -= task->fs_task.data.head->len;
                             ++task->fs_task.data.head;
-                            --task->fs_task.data.head_n;
+                            if (!(--task->fs_task.data.head_n)) {
+                                break;
+                            }
                         }
                         if (task->fs_task.data.head_n) {
                             task->fs_task.data.head->len -= size;
@@ -827,7 +833,9 @@ event_on_tcp_cli_out(sky_ev_t *ev) {
                         while (size && size >= task->fs_task.data.tail->len) {
                             size -= task->fs_task.data.tail->len;
                             ++task->fs_task.data.tail;
-                            --task->fs_task.data.tail_n;
+                            if (!(--task->fs_task.data.tail_n)) {
+                                break;
+                            }
                         }
                         if (task->fs_task.data.tail_n) {
                             task->fs_task.data.tail->len -= size;
