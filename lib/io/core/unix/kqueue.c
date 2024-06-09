@@ -84,7 +84,7 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
         } else {
             tmp = &timespec;
             tmp->tv_sec = (sky_i64_t) next_time / 1000;
-            tmp->tv_nsec = ((sky_i64_t) next_time % 1000) * 1000;
+            tmp->tv_nsec = ((sky_i64_t) next_time % 1000) * 1000000;
         }
         n = kevent(
                 ev_loop->fd,
