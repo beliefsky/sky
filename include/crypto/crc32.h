@@ -5,7 +5,7 @@
 #ifndef SKY_CRC32_H
 #define SKY_CRC32_H
 
-#include "./types.h"
+#include "../core/types.h"
 
 #if defined(__cplusplus)
 extern "C" {

@@ -5,7 +5,7 @@
 #ifndef SKY_BASE64_H
 #define SKY_BASE64_H
 
-#include "./types.h"
+#include "../core/types.h"
 
 #if defined(__cplusplus)
 extern "C" {

@@ -3,9 +3,6 @@ include_directories(BEFORE ${CMAKE_BINARY_DIR})
 
 add_executable(sky_test sky_test.c)
 
-
-message("lib: ${SKY_COMMON_LIBS} ${ADDITIONAL_LIBRARIES}")
-
 target_link_libraries(sky_test
         ${SKY_COMMON_LIBS}
         ${ADDITIONAL_LIBRARIES}

@@ -1,7 +1,7 @@
 //
 // Created by beliefsky on 2020/8/30.
 //
-#include <core/crc32.h>
+#include <crypto/crc32.h>
 
 
 static sky_u32_t

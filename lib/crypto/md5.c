@@ -2,7 +2,7 @@
 // Created by beliefsky on 18-9-18.
 //
 
-#include <core/md5.h>
+#include <crypto/md5.h>
 #include <core/memory.h>
 
 static const sky_uchar_t *sky_md5_body(sky_md5_t *ctx, const sky_uchar_t *data, sky_usize_t size);
