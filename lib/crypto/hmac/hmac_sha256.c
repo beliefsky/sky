@@ -3,6 +3,7 @@
 //
 
 #include <crypto/hmac_sha256.h>
+#include <core/memory.h>
 
 #define B 64
 #define I_PAD 0x36
@@ -11,25 +12,31 @@
 
 sky_api void
 sky_hmac_sha256_init(sky_hmac_sha256_t *ctx, const sky_uchar_t *key, sky_usize_t size) {
+    sky_uchar_t kx[B], *fkx = ctx->fkx;
 
-    sky_uchar_t kh[SKY_SHA256_DIGEST_SIZE];
     if (size > B) {
+        sky_uchar_t kh[SKY_SHA256_DIGEST_SIZE];
+
         sky_sha256_init(&ctx->sha256);
         sky_sha256_update(&ctx->sha256, key, size);
         sky_sha256_final(&ctx->sha256, kh);
-        size = SKY_SHA256_DIGEST_SIZE;
-        key = kh;
-    }
-    sky_uchar_t kx[B], *fkx = ctx->fkx;
 
-    sky_usize_t i;
-    for (i = 0; i != size; i++) {
-        kx[i] = I_PAD ^ key[i];
-        fkx[i] = O_PAD ^ key[i];
-    }
-    for (; i != B; i++) {
-        kx[i] = I_PAD ^ 0;
-        fkx[i] = O_PAD ^ 0;
+        for (sky_u32_t i = 0; i != SKY_SHA256_DIGEST_SIZE; i++) {
+            kx[i] = I_PAD ^ kh[i];
+            fkx[i] = O_PAD ^ kh[i];
+        }
+        sky_memset(kx + SKY_SHA256_DIGEST_SIZE, I_PAD ^ 0, B - SKY_SHA256_DIGEST_SIZE);
+        sky_memset(fkx + SKY_SHA256_DIGEST_SIZE, O_PAD ^ 0, B - SKY_SHA256_DIGEST_SIZE);
+    } else {
+        sky_usize_t i;
+        for (i = 0; i != size; i++) {
+            kx[i] = I_PAD ^ key[i];
+            fkx[i] = O_PAD ^ key[i];
+        }
+        if (size != B) {
+            sky_memset(kx + size, I_PAD ^ 0, B - size);
+            sky_memset(fkx + size, O_PAD ^ 0, B - size);
+        }
     }
     sky_sha256_init(&ctx->sha256);
     sky_sha256_update(&ctx->sha256, kx, B);
