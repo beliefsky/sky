@@ -12,6 +12,7 @@ extern "C" {
 #endif
 
 #define SKY_SHA256_BLOCK_SIZE   64
+#define SKY_SHA256_DIGEST_SIZE  32
 
 typedef struct {
     sky_u32_t total[2];
@@ -24,7 +25,7 @@ void sky_sha256_init(sky_sha256_t *ctx);
 
 void sky_sha256_update(sky_sha256_t *ctx, const sky_uchar_t *data, sky_usize_t size);
 
-void sky_sha256_final(sky_sha256_t *ctx, sky_uchar_t result[32]);
+void sky_sha256_final(sky_sha256_t *ctx, sky_uchar_t result[SKY_SHA256_DIGEST_SIZE]);
 
 #if defined(__cplusplus)
 } /* extern "C" { */

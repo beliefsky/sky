@@ -7,7 +7,7 @@
 static void internal_sha256_process(sky_sha256_t *ctx, const sky_uchar_t data[SKY_SHA256_BLOCK_SIZE]);
 
 
-void
+sky_api void
 sky_sha256_init(sky_sha256_t *const ctx) {
     ctx->total[0] = 0;
     ctx->total[1] = 0;
@@ -21,7 +21,7 @@ sky_sha256_init(sky_sha256_t *const ctx) {
     ctx->state[7] = 0x5be0cd19;
 }
 
-void
+sky_api void
 sky_sha256_update(sky_sha256_t *const ctx, const sky_uchar_t *data, sky_usize_t size) {
     if (sky_unlikely(!size)) {
         return;
@@ -52,8 +52,8 @@ sky_sha256_update(sky_sha256_t *const ctx, const sky_uchar_t *data, sky_usize_t 
     }
 }
 
-void
-sky_sha256_final(sky_sha256_t *const ctx, sky_uchar_t result[32]) {
+sky_api void
+sky_sha256_final(sky_sha256_t *const ctx, sky_uchar_t result[SKY_SHA256_DIGEST_SIZE]) {
     /*
      * Add padding: 0x80 then 0x00 until 8 bytes remain for the length
      */
@@ -107,7 +107,7 @@ sky_sha256_final(sky_sha256_t *const ctx, sky_uchar_t result[32]) {
     sky_memcpy4(result + 28, &low);
 
 #else
-    sky_memcpy(result, ctx->state, 32);
+    sky_memcpy(result, ctx->state, SKY_SHA256_DIGEST_SIZE);
 #endif
 }
 
