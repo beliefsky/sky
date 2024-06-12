@@ -111,6 +111,19 @@ sky_sha256_final(sky_sha256_t *const ctx, sky_uchar_t result[SKY_SHA256_DIGEST_S
 #endif
 }
 
+
+sky_api void
+sky_sha256(
+        const sky_uchar_t *data,
+        sky_usize_t size,
+        sky_uchar_t result[SKY_SHA256_DIGEST_SIZE]
+) {
+    sky_sha256_t ctx;
+    sky_sha256_init(&ctx);
+    sky_sha256_update(&ctx, data, size);
+    sky_sha256_final(&ctx, result);
+}
+
 static void
 internal_sha256_process(sky_sha256_t *const ctx, const sky_uchar_t data[SKY_SHA256_BLOCK_SIZE]) {
     static const sky_u32_t K[] = {
@@ -182,40 +195,40 @@ internal_sha256_process(sky_sha256_t *const ctx, const sky_uchar_t data[SKY_SHA2
 
     for (i = 0; i < 16; i += 8) {
         P(local.A[0], local.A[1], local.A[2], local.A[3], local.A[4],
-          local.A[5], local.A[6], local.A[7], local.W[i+0], K[i+0]);
+          local.A[5], local.A[6], local.A[7], local.W[i + 0], K[i + 0]);
         P(local.A[7], local.A[0], local.A[1], local.A[2], local.A[3],
-          local.A[4], local.A[5], local.A[6], local.W[i+1], K[i+1]);
+          local.A[4], local.A[5], local.A[6], local.W[i + 1], K[i + 1]);
         P(local.A[6], local.A[7], local.A[0], local.A[1], local.A[2],
-          local.A[3], local.A[4], local.A[5], local.W[i+2], K[i+2]);
+          local.A[3], local.A[4], local.A[5], local.W[i + 2], K[i + 2]);
         P(local.A[5], local.A[6], local.A[7], local.A[0], local.A[1],
-          local.A[2], local.A[3], local.A[4], local.W[i+3], K[i+3]);
+          local.A[2], local.A[3], local.A[4], local.W[i + 3], K[i + 3]);
         P(local.A[4], local.A[5], local.A[6], local.A[7], local.A[0],
-          local.A[1], local.A[2], local.A[3], local.W[i+4], K[i+4]);
+          local.A[1], local.A[2], local.A[3], local.W[i + 4], K[i + 4]);
         P(local.A[3], local.A[4], local.A[5], local.A[6], local.A[7],
-          local.A[0], local.A[1], local.A[2], local.W[i+5], K[i+5]);
+          local.A[0], local.A[1], local.A[2], local.W[i + 5], K[i + 5]);
         P(local.A[2], local.A[3], local.A[4], local.A[5], local.A[6],
-          local.A[7], local.A[0], local.A[1], local.W[i+6], K[i+6]);
+          local.A[7], local.A[0], local.A[1], local.W[i + 6], K[i + 6]);
         P(local.A[1], local.A[2], local.A[3], local.A[4], local.A[5],
-          local.A[6], local.A[7], local.A[0], local.W[i+7], K[i+7]);
+          local.A[6], local.A[7], local.A[0], local.W[i + 7], K[i + 7]);
     }
 
     for (i = 16; i < 64; i += 8) {
         P(local.A[0], local.A[1], local.A[2], local.A[3], local.A[4],
-          local.A[5], local.A[6], local.A[7], R(i+0), K[i+0]);
+          local.A[5], local.A[6], local.A[7], R(i + 0), K[i + 0]);
         P(local.A[7], local.A[0], local.A[1], local.A[2], local.A[3],
-          local.A[4], local.A[5], local.A[6], R(i+1), K[i+1]);
+          local.A[4], local.A[5], local.A[6], R(i + 1), K[i + 1]);
         P(local.A[6], local.A[7], local.A[0], local.A[1], local.A[2],
-          local.A[3], local.A[4], local.A[5], R(i+2), K[i+2]);
+          local.A[3], local.A[4], local.A[5], R(i + 2), K[i + 2]);
         P(local.A[5], local.A[6], local.A[7], local.A[0], local.A[1],
-          local.A[2], local.A[3], local.A[4], R(i+3), K[i+3]);
+          local.A[2], local.A[3], local.A[4], R(i + 3), K[i + 3]);
         P(local.A[4], local.A[5], local.A[6], local.A[7], local.A[0],
-          local.A[1], local.A[2], local.A[3], R(i+4), K[i+4]);
+          local.A[1], local.A[2], local.A[3], R(i + 4), K[i + 4]);
         P(local.A[3], local.A[4], local.A[5], local.A[6], local.A[7],
-          local.A[0], local.A[1], local.A[2], R(i+5), K[i+5]);
+          local.A[0], local.A[1], local.A[2], R(i + 5), K[i + 5]);
         P(local.A[2], local.A[3], local.A[4], local.A[5], local.A[6],
-          local.A[7], local.A[0], local.A[1], R(i+6), K[i+6]);
+          local.A[7], local.A[0], local.A[1], R(i + 6), K[i + 6]);
         P(local.A[1], local.A[2], local.A[3], local.A[4], local.A[5],
-          local.A[6], local.A[7], local.A[0], R(i+7), K[i+7]);
+          local.A[6], local.A[7], local.A[0], R(i + 7), K[i + 7]);
     }
     for (i = 0; i < 8; i++) {
         ctx->state[i] += local.A[i];
