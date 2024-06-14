@@ -57,6 +57,12 @@ sky_hmac_sha256_final(sky_hmac_sha256_t *ctx, sky_uchar_t result[SKY_HMAC_SHA256
     sky_sha256_final(&ctx->sha256, result);
 }
 
+sky_api void
+sky_hmac_sha256_cpy(sky_hmac_sha256_t *out, const sky_hmac_sha256_t *src) {
+    sky_sha256_cpy(&out->sha256, &src->sha256);
+    sky_memcpy(out->fkx, src->fkx, B);
+    out->key_len = src->key_len;
+}
 
 sky_api void
 sky_hmac_sha256(

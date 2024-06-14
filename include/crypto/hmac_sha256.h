@@ -27,6 +27,8 @@ void sky_hmac_sha256_update(sky_hmac_sha256_t *ctx, const sky_uchar_t *data, sky
 
 void sky_hmac_sha256_final(sky_hmac_sha256_t *ctx, sky_uchar_t result[SKY_HMAC_SHA256_DIGEST_SIZE]);
 
+void sky_hmac_sha256_cpy(sky_hmac_sha256_t *out, const sky_hmac_sha256_t *src);
+
 
 void sky_hmac_sha256(
         const sky_uchar_t *key, sky_usize_t key_len,

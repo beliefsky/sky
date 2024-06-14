@@ -113,6 +113,11 @@ sky_sha256_final(sky_sha256_t *const ctx, sky_uchar_t result[SKY_SHA256_DIGEST_S
 
 
 sky_api void
+sky_sha256_cpy(sky_sha256_t *out, const sky_sha256_t *src) {
+    sky_memcpy(out, src, sizeof(sky_sha256_t));
+}
+
+sky_api void
 sky_sha256(
         const sky_uchar_t *data,
         sky_usize_t size,

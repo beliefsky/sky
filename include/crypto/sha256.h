@@ -27,6 +27,8 @@ void sky_sha256_update(sky_sha256_t *ctx, const sky_uchar_t *data, sky_usize_t s
 
 void sky_sha256_final(sky_sha256_t *ctx, sky_uchar_t result[SKY_SHA256_DIGEST_SIZE]);
 
+void sky_sha256_cpy(sky_sha256_t *out, const sky_sha256_t *src);
+
 void sky_sha256(const sky_uchar_t *data, sky_usize_t size, sky_uchar_t result[SKY_SHA256_DIGEST_SIZE]);
 
 
