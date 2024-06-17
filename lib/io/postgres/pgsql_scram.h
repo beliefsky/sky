@@ -16,7 +16,8 @@ typedef struct {
     sky_str_t slat;
     sky_str_t client_server_nonce;
     sky_usize_t client_nonce_offset;
-
+    sky_uchar_t *server_sign;
+    sky_u32_t server_sign_size;
 
     sky_u32_t rounds;
 } pgsql_scram_t;
@@ -38,6 +39,13 @@ pgsql_scram_sha256_first_server_msg(
         sky_usize_t *out_size
 );
 
+
+sky_bool_t
+pgsql_scram_final_server_msg(
+        pgsql_scram_t *scram,
+        const sky_uchar_t *data,
+        sky_usize_t size
+);
 
 static sky_inline void
 pgsql_scram_init(

@@ -165,7 +165,6 @@ on_pgsql_auth_read(sky_tcp_cli_t *tcp, sky_usize_t size, void *attr) {
                         break;
                     case 'S':
                         packet->status = STRING;
-                        sky_log_info("1111");
                         break;
                     case 'K':
                         packet->status = KEY_DATA;
@@ -346,13 +345,10 @@ pgsql_password(
             }
             ++packet->auth_count;
             packet->auth_type = 0;
-
+            if (!auth_sasl_final_message_password(packet, data, size)) {
+                return -1;
+            }
             return 2;
-//            if (!auth_sasl_final_message_password(packet, data, size)) {
-//                return -1;
-//            }
-
-            break;
         default:
             sky_log_error("unsupported auth type: %d -> (%u)%s", auth_type, size, data);
             return -1;
@@ -571,5 +567,7 @@ auth_sasl_final_message_password(
         const sky_uchar_t *data,
         sky_u32_t size
 ) {
+    pgsql_scram_t *const scram = packet->auth_data;
 
+    return pgsql_scram_final_server_msg(scram, data, size);
 }

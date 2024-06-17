@@ -9,7 +9,6 @@
 #include <crypto/pbkdf2.h>
 #include <crypto/hmac_sha256.h>
 
-#include <core/log.h>
 
 #define FIRST_CLIENT_MSG_BARE_OFFSET    3
 
@@ -19,6 +18,7 @@ static sky_bool_t first_server_msg_parse(
         const sky_uchar_t *data,
         sky_usize_t size
 );
+
 
 const sky_uchar_t *
 pgsql_scram_first_client_msg(
@@ -64,6 +64,9 @@ pgsql_scram_sha256_first_server_msg(
         return null;
     }
 
+    scram->server_sign = sky_palloc(scram->pool, SKY_HMAC_SHA256_DIGEST_SIZE);
+    scram->server_sign_size = SKY_HMAC_SHA256_DIGEST_SIZE;
+
     sky_uchar_t slat_password[32];
     sky_pbkdf2_hmac_sha256(
             scram->password.data,
@@ -86,20 +89,46 @@ pgsql_scram_sha256_first_server_msg(
     ptr += 3;
 
 
-    sky_uchar_t client_key[SKY_HMAC_SHA256_DIGEST_SIZE];
+    sky_uchar_t server_client_key[SKY_HMAC_SHA256_DIGEST_SIZE];
+    {
+        sky_hmac_sha256(
+                slat_password,
+                32,
+                sky_str_line("Client Key"),
+                server_client_key
+        );
+        sky_uchar_t stored_key[SKY_SHA256_DIGEST_SIZE];
+        sky_sha256(server_client_key, SKY_SHA256_DIGEST_SIZE, stored_key); // stored key
+
+        sky_hmac_sha256_t ctx;
+        sky_hmac_sha256_init(&ctx, stored_key, SKY_SHA256_DIGEST_SIZE);
+        sky_hmac_sha256_update(
+                &ctx,
+                scram->first_client_msg.data + FIRST_CLIENT_MSG_BARE_OFFSET,
+                scram->first_client_msg.len - FIRST_CLIENT_MSG_BARE_OFFSET
+        );
+        sky_hmac_sha256_update(&ctx, sky_str_line(","));
+        sky_hmac_sha256_update(&ctx, data, size);
+        sky_hmac_sha256_update(&ctx, sky_str_line(","));
+        sky_hmac_sha256_update(&ctx, start, 9 + scram->client_server_nonce.len);
+        sky_hmac_sha256_final(&ctx, stored_key);
+
+        for (sky_u32_t i = 0; i < SKY_HMAC_SHA256_DIGEST_SIZE; ++i) {
+            stored_key[i] ^= server_client_key[i];
+        }
+        const sky_usize_t proof_size = sky_base64_encode(ptr, stored_key, SKY_HMAC_SHA256_DIGEST_SIZE);
+        *out_size = 12 + scram->client_server_nonce.len + proof_size;
+    }
 
     sky_hmac_sha256(
             slat_password,
             32,
-            sky_str_line("Client Key"),
-            client_key
+            sky_str_line("Server Key"),
+            server_client_key
     );
 
-    sky_uchar_t stored_key[SKY_SHA256_DIGEST_SIZE];
-    sky_sha256(client_key, SKY_SHA256_DIGEST_SIZE, stored_key); // stored key
-
     sky_hmac_sha256_t ctx;
-    sky_hmac_sha256_init(&ctx, stored_key, SKY_SHA256_DIGEST_SIZE);
+    sky_hmac_sha256_init(&ctx, server_client_key, SKY_SHA256_DIGEST_SIZE);
     sky_hmac_sha256_update(
             &ctx,
             scram->first_client_msg.data + FIRST_CLIENT_MSG_BARE_OFFSET,
@@ -109,18 +138,40 @@ pgsql_scram_sha256_first_server_msg(
     sky_hmac_sha256_update(&ctx, data, size);
     sky_hmac_sha256_update(&ctx, sky_str_line(","));
     sky_hmac_sha256_update(&ctx, start, 9 + scram->client_server_nonce.len);
+    sky_hmac_sha256_final(&ctx, scram->server_sign);
 
-    sky_uchar_t client_sign[SKY_HMAC_SHA256_DIGEST_SIZE];
-    sky_hmac_sha256_final(&ctx, client_sign);
-
-    for (sky_u32_t i = 0; i < SKY_HMAC_SHA256_DIGEST_SIZE; ++i) {
-        client_sign[i] ^= client_key[i];
-    }
-    const sky_usize_t proof_size = sky_base64_encode(ptr, client_sign, SKY_HMAC_SHA256_DIGEST_SIZE);
-
-    *out_size = 12 + scram->client_server_nonce.len + proof_size;
 
     return start;
+}
+
+
+sky_bool_t
+pgsql_scram_final_server_msg(
+        pgsql_scram_t *scram,
+        const sky_uchar_t *data,
+        sky_usize_t size
+) {
+    if (size <= 2 || !sky_str2_cmp(data, 'v', '=')) {
+        return false;
+    }
+    data += 2;
+    size -= 2;
+
+    const sky_usize_t alloc_size = sky_base64_decoded_length(size);
+    sky_uchar_t *const sign = sky_palloc(scram->pool, alloc_size);
+    const sky_usize_t sign_size = sky_base64_decode(sign, data, size);
+
+    const sky_bool_t flag = sky_base64_decode_success(sign_size)
+                            && sky_str_len_equals(
+            scram->server_sign,
+            scram->server_sign_size,
+            sign,
+            sign_size
+    );
+
+    sky_pfree(scram->pool, sign, alloc_size);
+
+    return flag;
 }
 
 static sky_bool_t
