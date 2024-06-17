@@ -2,6 +2,7 @@
 // Created by beliefsky on 2023/7/21.
 //
 #include "./pgsql_common.h"
+#include "./pgsql_scram.h"
 #include <core/buf.h>
 #include <crypto/md5.h>
 #include <crypto/base16.h>
@@ -25,12 +26,6 @@ typedef struct {
     sky_u32_t auth_type; //只有0时客户端才验证通过，如果客户端认为信息接收完成，设置为0
     sky_u32_t auth_count; //认证会话计数
 } auth_packet_t;
-
-
-typedef struct {
-    sky_u32_t size;
-    sky_uchar_t data[28];
-} auth_sasl_data_t;
 
 static void on_pgsql_connect_info_send(sky_tcp_cli_t *tcp, sky_usize_t size, void *attr);
 
@@ -61,7 +56,7 @@ static void auth_md5_password(
 
 static void auth_sasl_first_message_password(
         auth_packet_t *packet,
-        const sky_pgsql_pool_t *pg_pool,
+        sky_pgsql_pool_t *pg_pool,
         sky_pool_t *mem_pool,
         const sky_uchar_t *data,
         sky_u32_t size
@@ -69,7 +64,12 @@ static void auth_sasl_first_message_password(
 
 static sky_bool_t auth_sasl_continue_message_password(
         auth_packet_t *packet,
-        const sky_pgsql_pool_t *pg_pool,
+        const sky_uchar_t *data,
+        sky_u32_t size
+);
+
+static sky_bool_t auth_sasl_final_message_password(
+        auth_packet_t *packet,
         const sky_uchar_t *data,
         sky_u32_t size
 );
@@ -165,6 +165,7 @@ on_pgsql_auth_read(sky_tcp_cli_t *tcp, sky_usize_t size, void *attr) {
                         break;
                     case 'S':
                         packet->status = STRING;
+                        sky_log_info("1111");
                         break;
                     case 'K':
                         packet->status = KEY_DATA;
@@ -193,10 +194,14 @@ on_pgsql_auth_read(sky_tcp_cli_t *tcp, sky_usize_t size, void *attr) {
                     break;
                 }
                 const sky_u32_t type = sky_ntohl(*((sky_u32_t *) buf->pos));
-                buf->pos += 4;
-                packet->size -= 4;
+                const sky_u32_t auth_size = packet->size - 4;
+                const sky_uchar_t *const auth_data = buf->pos + 4;
+                buf->pos += packet->size;
+
+                packet->size = 0;
                 packet->status = START;
-                switch (pgsql_password(conn, buf->pos, packet->size, type)) {
+
+                switch (pgsql_password(conn, auth_data, auth_size, type)) {
                     case 0: //pending
                         return;
                     case 1: // send success
@@ -212,12 +217,13 @@ on_pgsql_auth_read(sky_tcp_cli_t *tcp, sky_usize_t size, void *attr) {
                 if ((sky_u32_t) (buf->last - buf->pos) < packet->size) {
                     break;
                 }
-//                    for (p = buf.pos; p != buf.last; ++p) {
-//                        if (*p == 0) {
-//                            break;
-//                        }
+//                sky_uchar_t *p;
+//                for (p = buf->pos; p != buf->last; ++p) {
+//                    if (*p == 0) {
+//                        break;
 //                    }
-//                    sky_log_info("%s : %s", buf.pos, ++p);
+//                }
+//                sky_log_info("%s : %s", buf->pos, ++p);
                 buf->pos += packet->size;
                 packet->status = START;
                 continue;
@@ -296,14 +302,9 @@ pgsql_password(
         const sky_u32_t auth_type
 ) {
     auth_packet_t *const packet = conn->data;
-    packet->size = 0;
 
     switch (auth_type) {
-        case 0: { // trust
-            if (packet->auth_count) {
-                return -1;
-            }
-            ++packet->auth_count;
+        case 0: { // trust or success
             return 2;
         }
         case 3: // password
@@ -334,10 +335,23 @@ pgsql_password(
                 return -1;
             }
             ++packet->auth_count;
-            packet->auth_type = 0;
-            if (!auth_sasl_continue_message_password(packet, conn->pg_pool, data, size)) {
+            packet->auth_type = auth_type;
+            if (!auth_sasl_continue_message_password(packet, data, size)) {
                 return -1;
             }
+            break;
+        case 12: // sasl final message
+            if (packet->auth_count != 2 && packet->auth_type != 11) {
+                return -1;
+            }
+            ++packet->auth_count;
+            packet->auth_type = 0;
+
+            return 2;
+//            if (!auth_sasl_final_message_password(packet, data, size)) {
+//                return -1;
+//            }
+
             break;
         default:
             sky_log_error("unsupported auth type: %d -> (%u)%s", auth_type, size, data);
@@ -466,32 +480,33 @@ auth_md5_password(
 static void
 auth_sasl_first_message_password(
         auth_packet_t *const packet,
-        const sky_pgsql_pool_t *const pg_pool,
+        sky_pgsql_pool_t *const pg_pool,
         sky_pool_t *const mem_pool,
         const sky_uchar_t *const data,
         const sky_u32_t size
 ) {
+    pgsql_scram_t *const scram = sky_palloc(mem_pool, sizeof(pgsql_scram_t));
+    sky_str_t username = sky_string("*");
+    pgsql_scram_init(scram, &username, &pg_pool->password, mem_pool);
+
+    packet->auth_data = scram;
+
+
     sky_u64_t sec = (sky_u64_t) sky_ev_now_sec(pg_pool->ev_loop);
     sec ^= SKY_U64(2378765478993723622);
     sec ^= ~(sky_u64_t) packet;
     sec ^= (sky_u64_t) data;
-    const sky_uchar_t *const sec_ptr = &sec;
 
-    auth_sasl_data_t *const sasl_data = sky_palloc(mem_pool, sizeof(auth_sasl_data_t));
-    sasl_data->size = 9;
-    sky_memcpy8(sasl_data->data, "n,,n=*,r");
-    sasl_data->data[8] = '=';  // "n,,n=*,r="
+    sky_usize_t scram_size_tmp;
+    const sky_uchar_t *scram_data = pgsql_scram_first_client_msg(
+            scram,
+            (const sky_uchar_t *) &sec,
+            sizeof(sky_u64_t),
+            &scram_size_tmp
+    );
+    sky_u32_t scram_size = (sky_u32_t) scram_size_tmp;
 
-    sky_uchar_t *ptr = sasl_data->data + 9;
-    for (sky_u32_t i = 0; i < 8; ++i) { // 生成 33~126除去44(,)的值均可
-        *(ptr++) = (sec_ptr[i] & 63) + 45;
-        *(ptr++) = (sec_ptr[i] >> 6) + 45;
-    }
-    sasl_data->size = 16;
-
-    packet->auth_data = sasl_data;
-
-    const sky_u32_t len = sasl_data->size + size + 7;
+    const sky_u32_t len = scram_size + size + 7;
 
     sky_buf_reset(&packet->buf);
     if (sky_unlikely((sky_usize_t) (packet->buf.end - packet->buf.last) < (len + 1))) {
@@ -504,31 +519,57 @@ auth_sasl_first_message_password(
     buf->last += 4;
     sky_memcpy(buf->last, data, size - 1); // 此处拷贝的应该是"SCRAM-SHA-256\0"
     buf->last += size - 1;
-    *((sky_u32_t *) buf->last) = sky_htonl(sasl_data->size);
+    *((sky_u32_t *) buf->last) = sky_htonl(scram_size);
     buf->last += 4;
-    sky_memcpy(buf->last, sasl_data->data, sasl_data->size);
-    buf->last += sasl_data->size;
+    sky_memcpy(buf->last, scram_data, scram_size);
+    buf->last += scram_size;
 }
 
 static sky_bool_t
 auth_sasl_continue_message_password(
         auth_packet_t *const packet,
-        const sky_pgsql_pool_t *const pg_pool,
         const sky_uchar_t *const data,
         const sky_u32_t size
 ) {
-    auth_sasl_data_t *const sasl_data = packet->auth_data;
+    pgsql_scram_t *const scram = packet->auth_data;
 
-    // r=xxx,s=xxx,i=4096
-    // 接收r接收的值必然是上次发送r的值拼接而来
-    //send时r=原样发送
+    sky_usize_t out_size_tmp;
+
+    const sky_uchar_t *const out_data = pgsql_scram_sha256_first_server_msg(
+            scram,
+            data,
+            size,
+            &out_size_tmp
+    );
+
+    if (!out_data) {
+        return false;
+    }
+
+    sky_u32_t out_size = (sky_u32_t) out_size_tmp;
+
+    const sky_u32_t len = out_size + 4;
 
     sky_buf_reset(&packet->buf);
-    if (sky_unlikely((sky_usize_t) (packet->buf.end - packet->buf.last) < 55)) {
-        sky_buf_rebuild(&packet->buf, 1024);
+    if (sky_unlikely((sky_usize_t) (packet->buf.end - packet->buf.last) < (len + 1))) {
+        sky_buf_rebuild(&packet->buf, (len + 1));
     }
-    sky_log_info("my slat: %s", sasl_data->data, sasl_data->size);
-    sky_log_info("read data -> %u %s", size, data);
+    sky_buf_t *const buf = &packet->buf;
 
-    return false;
+    *(buf->last++) = 'p';
+    *((sky_u32_t *) buf->last) = sky_htonl(len);
+    buf->last += 4;
+    sky_memcpy(buf->last, out_data, out_size);
+    buf->last += out_size;
+
+    return true;
+}
+
+static sky_bool_t
+auth_sasl_final_message_password(
+        auth_packet_t *packet,
+        const sky_uchar_t *data,
+        sky_u32_t size
+) {
+
 }
