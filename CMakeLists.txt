@@ -70,12 +70,6 @@ else ()
     message(STATUS "Valgrind headers not found -- disabling valgrind support")
 endif ()
 
-
-option(MTUNE_NATIVE "Build with -mtune=native/-march=native" "ON")
-if (MTUNE_NATIVE)
-    enable_c_flag_if_avail(-mtune=native C_FLAGS_REL SKY_HAVE_MTUNE_NATIVE)
-    enable_c_flag_if_avail(-march=native C_FLAGS_REL SKY_HAVE_MARCH_NATIVE)
-endif ()
 enable_c_flag_if_avail(-fstack-protector-explicit CMAKE_C_FLAGS SKY_HAVE_STACK_PROTECTOR_EXPLICIT)
 #
 # Check if immediate binding and read-only global offset table flags
@@ -98,6 +92,12 @@ else()
 endif ()
 
 if (${CMAKE_BUILD_TYPE} MATCHES "Rel")
+    option(MTUNE_NATIVE "Build with -mtune=native/-march=native" "ON")
+    if (MTUNE_NATIVE)
+        enable_c_flag_if_avail(-mtune=native C_FLAGS_REL SKY_HAVE_MTUNE_NATIVE)
+        enable_c_flag_if_avail(-march=native C_FLAGS_REL SKY_HAVE_MARCH_NATIVE)
+    endif ()
+
     enable_c_flag_if_avail(-falign-functions=32 C_FLAGS_REL SKY_HAVE_ALIGN_FNS)
     enable_c_flag_if_avail(-fno-semantic-interposition C_FLAGS_REL SKY_HAVE_NO_SEMANTIC_INTERPOSITION)
     enable_c_flag_if_avail(-malign-data=abi C_FLAGS_REL SKY_HAVE_ALIGN_DATA)
