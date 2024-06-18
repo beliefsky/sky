@@ -38,7 +38,7 @@ asm(
 
         "__entry:\n\t"
 
-        // pass old-context(context: rdi, priv: rsi) argument to the context function
+        // pass old-context(context: rdi, data: rsi) argument to the context function
         "   movq %rax, %rdi\n\t"
 
         // patch __end
