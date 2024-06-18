@@ -4,214 +4,170 @@
 
 #if defined(__x86_64__) && defined(__WINNT__)
 
-#define USE_TSX
+asm(
+        ".text\n\t"
+        ".p2align 4,,15\n\t"
+        ".globl sky_context_make\n\t"
+        ".def sky_context_make;\t.scl\t2;\t.type 32;\t.endef\n\t"
+        ".seh_proc\tsky_context_make\n\t"
+        "sky_context_make:\n\t"
+        ".seh_endprologue\n\t"
+
+        "   movq %rcx, %rax\n\t"
+
+        // reserve space for first argument(from) and retval(from) item of context-function
+        "   subq $32, %rax\n\t"
+
+        // 16-align of the stack top address
+        "   andq $-16, %rax\n\t"
+
+        // reserve space for context-data on context-stack
+        "   subq $112, %rax\n\t"
+
+        // context.rbx = func
+        "   movq %r8, 80(%rax)\n\t"
+
+        // save bottom address of context stack as 'limit'
+        "   movq %rcx, 16(%rax)\n\t"
+
+        // save address of context stack limit as 'dealloction stack'
+        "   movq %rcx, 8(%rax)\n\t"
+
+        // save top address of context stack as 'base'
+        "   addq %rdx, %rcx\n\t"
+        "   movq %rcx, 24(%rax)\n\t"
+
+        // init fiber-storage to zero
+        "   xorq %rcx, %rcx\n\t"
+        "   movq %rcx, (%rax)\n\t"
+
+        // init context.retval(saved) = a writeable space (unused)
+        // it will write context (unused) and data (unused) when jump to a new context function entry first
+        "   leaq 128(%rax), %rcx\n\t"
+        "   movq %rcx, 96(%rax)\n\t"
+
+        // context.rip = the address of label __entry
+        "   leaq __entry(%rip), %rcx\n\t"
+        "   movq %rcx, 104(%rax)\n\t"
+
+        // context.end = the address of label __end
+        "   leaq __end(%rip), %rcx\n\t"
+        "   movq %rcx, 88(%rax)\n\t"
+
+        // return pointer to context-data
+        "   ret\n\t"
+
+        "__entry:\n\t"
+        // patch return address (__end) on stack
+        "   push %rbp\n\t"
+
+        // jump to the context function entry(rip)
+        "   jmp *%rbx\n\t"
+
+        "__end:\n\t"
+        "   xorq %rcx, %rcx\n\t"
+        "   call _exit\n\t"
+        "   hlt\n\t"
+        ".seh_endproc\n\t"
+        ".def\t_exit;\t.scl\t2;\t.type\t32;\t.endef\n\t" /* standard C library function */
+        ".section .drectve\n\t"
+        ".ascii \" -export:\\\"sky_context_make\\\"\"\n\t"
+        );
 
 asm(
-".text\n\t"
-".p2align 4,,15\n\t"
-".globl sky_context_make\n\t"
-".def sky_context_make;\t.scl\t2;\t.type 32;\t.endef\n\t"
-".seh_proc\tsky_context_make\n\t"
-"sky_context_make:\n\t"
-".seh_endprologue\n\t"
+        ".text\n\t"
+        ".p2align 4,,15\n\t"
+        ".globl sky_context_jump\n\t"
+        ".def sky_context_jump;\t.scl\t2;\t.type\t32;\t.endef\n\t"
+        ".seh_proc\tsky_context_jump\n\t"
+        "sky_context_jump:\n\t"
+        ".seh_endprologue\n\t"
 
-/* first arg of sky_context_make()  == top of context-stack */
-"   movq  %rcx, %rax\n\t"
+        // save the hidden argument: retval (from-context)
+        "   pushq %rcx\n\t"
 
-/* shift address in RAX to lower 16 byte boundary */
-/* == pointer to context_t and address of context stack */
-"   andq  $-16, %rax\n\t"
+        // save registers and construct the current context
+        "   pushq %rbp\n\t"
+        "   pushq %rbx\n\t"
+        "   pushq %rsi\n\t"
+        "   pushq %rdi\n\t"
+        "   pushq %r15\n\t"
+        "   pushq %r14\n\t"
+        "   pushq %r13\n\t"
+        "   pushq %r12\n\t"
 
-/* reserve space for context-data on context-stack */
-/* on context-function entry: (RSP -0x8) % 16 == 0 */
-"   leaq  -0x150(%rax), %rax\n\t"
+        // load TIB
+        "   movq %gs:(0x30), %r10\n\t"
 
-/* third arg of context_make() == address of context-function */
-"   movq  %r8, 0x100(%rax)\n\t"
+        // save current stack base
+        "   movq 0x08(%r10), %rax\n\t"
+        "   pushq %rax\n\t"
 
-/* first arg of context_make() == top of context-stack */
-/* save top address of context stack as 'base' */
-"   movq  %rcx, 0xc8(%rax)\n\t"
-/* second arg of context_make() == size of context-stack */
-/* negate stack size for LEA instruction (== substraction) */
-"   negq  %rdx\n\t"
-/* compute bottom address of context stack (limit) */
-"   leaq  (%rcx,%rdx), %rcx\n\t"
-/* save bottom address of context stack as 'limit' */
-"   movq  %rcx, 0xc0(%rax)\n\t"
-/* save address of context stack limit as 'dealloction stack' */
-"   movq  %rcx, 0xb8(%rax)\n\t"
-/* set fiber-storage to zero */
-"   xorq  %rcx, %rcx\n\t"
-"   movq  %rcx, 0xb0(%rax)\n\t"
+        // save current stack limit
+        "   movq 0x10(%r10), %rax\n\t"
+        "   pushq %rax\n\t"
 
-/* save MMX control- and status-word */
-"   stmxcsr  0xa0(%rax)\n\t"
-/* save x87 control-word */
-"   fnstcw   0xa4(%rax)\n\t"
+        // save current deallocation stack
+        "   movq 0x1478(%r10), %rax\n\t"
+        "   pushq %rax\n\t"
 
-/* compute address of transport_t */
-"   leaq  0x140(%rax), %rcx\n\t"
-/* store address of transport_t in hidden field */
-"   movq %rcx, 0x110(%rax)\n\t"
+        // save fiber local storage
+        "   movq 0x18(%r10), %rax\n\t"
+        "   pushq %rax\n\t"
 
-/* compute abs address of label trampoline */
-"   leaq  trampoline(%rip), %rcx\n\t"
-/* save address of finish as return-address for context-function */
-/* will be entered after sky_context_jump()  first time */
-"   movq  %rcx, 0x118(%rax)\n\t"
+        // save the old context(esp) to r9
+        "   movq %rsp, %r9\n\t"
 
-/* compute abs address of label finish */
-"   leaq  finish(%rip), %rcx\n\t"
-/* save address of finish as return-address for context-function */
-/* will be entered after context-function returns */
-"   movq  %rcx, 0x108(%rax)\n\t"
+        // switch to the new context(esp) and stack
+        "   movq %rdx, %rsp\n\t"
 
-"   ret\n\t" /* return pointer to context-data */
+        // load TIB
+        "   movq %gs:(0x30), %r10\n\t"
 
-"trampoline:\n\t"
-/* store return address on stack */
-/* fix stack alignment */
-"   pushq %rbp\n\t"
-/* jump to context-function */
-"   jmp *%rbx\n\t"
+        // restore fiber local storage
+        "   popq %rax\n\t"
+        "   movq %rax, 0x18(%r10)\n\t"
 
-"finish:\n\t"
-/* 32byte shadow-space for _exit() */
-"   andq  $-32, %rsp\n\t"
-/* 32byte shadow-space for _exit() are */
-/* already reserved by context_make() */
-/* exit code is zero */
-"   xorq  %rcx, %rcx\n\t"
-/* exit application */
-"   call  _exit\n\t"
-"   hlt\n\t"
-".seh_endproc\n\t"
-".def\t_exit;\t.scl\t2;\t.type\t32;\t.endef\n\t" /* standard C library function */
-".section .drectve\n\t"
-".ascii \" -export:\\\"sky_context_make\\\"\"\n\t"
-);
+        // restore deallocation stack
+        "   popq %rax\n\t"
+        "   movq %rax, 0x1478(%r10)\n\t"
 
-asm(
-".text\n\t"
-".p2align 4,,15\n\t"
-".globl sky_context_jump\n\t"
-".def sky_context_jump;\t.scl\t2;\t.type\t32;\t.endef\n\t"
-".seh_proc\tsky_context_jump\n\t"
-"sky_context_jump:\n\t"
-".seh_endprologue\n\t"
+        // restore stack limit
+        "   popq %rax\n\t"
+        "   mov %rax, 0x10(%r10)\n\t"
 
-"   leaq  -0x118(%rsp), %rsp\n\t" /* prepare stack */
+        // restore stack base
+        "   popq %rax\n\t"
+        "   movq %rax, 0x08(%r10)\n\t"
 
-#ifndef USE_TSX
-/* save XMM storage */
-"   movaps  %xmm6, 0x0(%rsp)\n\t"
-"   movaps  %xmm7, 0x10(%rsp)\n\t"
-"   movaps  %xmm8, 0x20(%rsp)\n\t"
-"   movaps  %xmm9, 0x30(%rsp)\n\t"
-"   movaps  %xmm10, 0x40(%rsp)\n\t"
-"   movaps  %xmm11, 0x50(%rsp)\n\t"
-"   movaps  %xmm12, 0x60(%rsp)\n\t"
-"   movaps  %xmm13, 0x70(%rsp)\n\t"
-"   movaps  %xmm14, 0x80(%rsp)\n\t"
-"   movaps  %xmm15, 0x90(%rsp)\n\t"
-"   stmxcsr  0xa0(%rsp)\n\t"  /* save MMX control- and status-word */
-"   fnstcw   0xa4(%rsp)\n\t"  /* save x87 control-word */
-#endif
+        // restore registers of the new context
+        "   popq %r12\n\t"
+        "   popq %r13\n\t"
+        "   popq %r14\n\t"
+        "   popq %r15\n\t"
+        "   popq %rdi\n\t"
+        "   popq %rsi\n\t"
+        "   popq %rbx\n\t"
+        "   popq %rbp\n\t"
 
-/* load NT_TIB */
-"   movq  %gs:(0x30), %r10\n\t"
-/* save fiber local storage */
-"   movq  0x20(%r10), %rax\n\t"
-"   movq  %rax, 0xb0(%rsp)\n\t"
-/* save current deallocation stack */
-"   movq  0x1478(%r10), %rax\n\t"
-"   movq  %rax, 0xb8(%rsp)\n\t"
-/* save current stack limit */
-"   movq  0x10(%r10), %rax\n\t"
-"   movq  %rax, 0xc0(%rsp)\n\t"
-/* save current stack base */
-"   movq  0x08(%r10), %rax\n\t"
-"   movq  %rax, 0xc8(%rsp)\n\t"
+        // restore retval (saved) to rax
+        "   popq %rax\n\t"
 
-"   movq  %r12, 0xd0(%rsp)\n\t"  /* save R12 */
-"   movq  %r13, 0xd8(%rsp)\n\t"  /* save R13 */
-"   movq  %r14, 0xe0(%rsp)\n\t"  /* save R14 */
-"   movq  %r15, 0xe8(%rsp)\n\t"  /* save R15 */
-"   movq  %rdi, 0xf0(%rsp)\n\t"  /* save RDI */
-"   movq  %rsi, 0xf8(%rsp)\n\t"  /* save RSI */
-"   movq  %rbx, 0x100(%rsp)\n\t"  /* save RBX */
-"   movq  %rbp, 0x108(%rsp)\n\t"  /* save RBP */
+        // restore the return or function address(r10)
+        "   popq %r10\n\t"
 
-"   movq  %rcx, 0x110(%rsp)\n\t"  /* save hidden address of transport_t */
+        // return from-context(retval: [rcx](context: r9, data: r8)) from jump
+        // it will write context (unused) and data (unused) when jump to a new context function entry first
+        "   movq %r9, (%rax)\n\t"
+        "   movq %r8, 8(%rax)\n\t"
 
-/* preserve RSP (pointing to context-data) in R9 */
-"   movq  %rsp, %r9\n\t"
+        "   movq %rax, %rcx\n\t"
 
-/* restore RSP (pointing to context-data) from RDX */
-"   movq  %rdx, %rsp\n\t"
-
-#ifndef USE_TSX
-/* restore XMM storage */
-"   movaps  0x0(%rsp), %xmm6\n\t"
-"   movaps  0x10(%rsp), %xmm7\n\t"
-"   movaps  0x20(%rsp), %xmm8\n\t"
-"   movaps  0x30(%rsp), %xmm9\n\t"
-"   movaps  0x40(%rsp), %xmm10\n\t"
-"   movaps  0x50(%rsp), %xmm11\n\t"
-"   movaps  0x60(%rsp), %xmm12\n\t"
-"   movaps  0x70(%rsp), %xmm13\n\t"
-"   movaps  0x80(%rsp), %xmm14\n\t"
-"   movaps  0x90(%rsp), %xmm15\n\t"
-"   ldmxcsr 0xa0(%rsp)\n\t" /* restore MMX control- and status-word */
-"   fldcw   0xa4(%rsp)\n\t" /* restore x87 control-word */
-#endif
-
-/* load NT_TIB */
-"   movq  %gs:(0x30), %r10\n\t"
-/* restore fiber local storage */
-"   movq  0xb0(%rsp), %rax\n\t"
-"   movq  %rax, 0x20(%r10)\n\t"
-/* restore current deallocation stack */
-"   movq  0xb8(%rsp), %rax\n\t"
-"   movq  %rax, 0x1478(%r10)\n\t"
-/* restore current stack limit */
-"   movq  0xc0(%rsp), %rax\n\t"
-"   movq  %rax, 0x10(%r10)\n\t"
-/* restore current stack base */
-"   movq  0xc8(%rsp), %rax\n\t"
-"   movq  %rax, 0x08(%r10)\n\t"
-
-"   movq  0xd0(%rsp),  %r12\n\t"  /* restore R12 */
-"   movq  0xd8(%rsp),  %r13\n\t"  /* restore R13 */
-"   movq  0xe0(%rsp),  %r14\n\t"  /* restore R14 */
-"   movq  0xe8(%rsp),  %r15\n\t"  /* restore R15 */
-"   movq  0xf0(%rsp),  %rdi\n\t"  /* restore RDI */
-"   movq  0xf8(%rsp),  %rsi\n\t"  /* restore RSI */
-"   movq  0x100(%rsp), %rbx\n\t"  /* restore RBX */
-"   movq  0x108(%rsp), %rbp\n\t"  /* restore RBP */
-
-"   movq  0x110(%rsp), %rax\n\t"  /* restore hidden address of transport_t */
-
-"   leaq  0x118(%rsp), %rsp\n\t" /* prepare stack */
-
-/* restore return-address */
-"   popq  %r10\n\t"
-
-/* transport_t returned in RAX */
-/* return parent sky_context_t */
-"   movq  %r9, 0x0(%rax)\n\t"
-/* return data */
-"   movq  %r8, 0x8(%rax)\n\t"
-
-/* transport_t as 1.arg of context-function */
-"   movq  %rax, %rcx\n\t"
-
-/* indirect jump to context */
-"   jmp  *%r10\n\t"
-".seh_endproc\n\t"
-".section .drectve\n\t"
-".ascii \" -export:\\\"sky_context_jump\\\"\"\n\t"
-);
+        // jump to the return or function address(rip)
+        "   jmp *%r10\n\t"
+        ".seh_endproc\n\t"
+        ".section .drectve\n\t"
+        ".ascii \" -export:\\\"sky_context_jump\\\"\"\n\t"
+        );
 
 #endif
