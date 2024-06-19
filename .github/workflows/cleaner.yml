@@ -1,7 +1,5 @@
 name: cleaner
-on:
-  schedule:
-    - cron: '20 16 * * 2'
+on: [ push ]
 
 jobs:
   remove-old-artifacts:
