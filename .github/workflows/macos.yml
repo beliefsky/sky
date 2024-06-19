@@ -11,6 +11,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
+      - uses: actions/checkout@v4
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
