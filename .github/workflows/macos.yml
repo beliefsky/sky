@@ -11,6 +11,12 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: public
+          path: public
+          retention-days: 30
       - uses: actions/checkout@v2
 
       - name: Create Build Environment
