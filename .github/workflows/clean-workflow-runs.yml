@@ -1,7 +1,7 @@
 name: Delete old workflow runs
 on:
   schedule:
-    - cron: '0 0 2 * * SUN'
+    - cron: '0 0 1 ? * 7'
 
 jobs:
   remove-old-artifacts:
