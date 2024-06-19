@@ -1,5 +1,7 @@
-name: ubuntu
-on: [ push ]
+name: Delete old workflow runs
+on:
+  schedule:
+    - cron: '0 0 2 * * SUN'
 
 jobs:
   remove-old-artifacts:
@@ -7,11 +9,10 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - name: Delete Self
+      - name: Delete old workflow runs
         uses: Mattraks/delete-workflow-runs@v2
         with:
           token: ${{ github.token }}
           repository: ${{ github.repository }}
-          retain_days: 1
-          keep_minimum_runs: 1
-#          delete_workflow_pattern: 'Delete old workflow runs'
+          retain_days: 30
+          keep_minimum_runs: 6
