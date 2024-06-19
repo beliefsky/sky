@@ -6,7 +6,7 @@
 #define SKY_TYPES_H
 
 #include "../sky_build_config.h"
-#include <inttypes.h>
+#include <stdint.h>
 
 #ifdef __has_include
 #define sky_has_include(_x) __has_include(_x)
