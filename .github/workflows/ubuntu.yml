@@ -7,7 +7,11 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - name: Remove old artifacts
-        uses: c-hive/gha-remove-artifacts@v1
+      - name: Delete Self
+        uses: Mattraks/delete-workflow-runs@v2
         with:
-          age: '1 days'
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: 1
+          keep_minimum_runs: 1
+          delete_workflow_pattern: 'Delete old workflow runs'
