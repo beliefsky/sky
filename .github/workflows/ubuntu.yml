@@ -10,7 +10,6 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
-
     steps:
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
