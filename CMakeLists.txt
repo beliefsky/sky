@@ -42,9 +42,6 @@ endif ()
 # Ensure compiler is compatible with GNU11 standard
 #
 check_c_compiler_flag(-std=gnu11 SKY_HAVE_STD_GNU)
-if (NOT SKY_HAVE_STD_GNU)
-    message(FATAL_ERROR "Compiler does not support -std=gnu11. Consider using a newer compiler")
-endif ()
 
 #
 # Check for GCC builtin functions
