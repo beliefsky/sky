@@ -1,4 +1,4 @@
-<div style="text-align: center;">
+<div align="center">
     <h1>SKY</h1>
     <a href="https://github.com/beliefsky/sky/actions?query=workflow%3ALinux">
       <img src="https://img.shields.io/github/actions/workflow/status/beliefsky/sky/linux.yml?branch=develop&style=flat-square&logo=linux" alt="linux" />
