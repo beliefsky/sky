@@ -190,6 +190,59 @@ http_req_length_body_read(
     }
 }
 
+sky_io_result_t
+http_req_length_body_skip(
+        sky_http_server_request_t *r,
+        sky_usize_t size,
+        sky_usize_t *bytes,
+        sky_http_server_read_pt call,
+        void *data
+) {
+    if (size > r->headers_in.content_length_n) {
+        size = r->headers_in.content_length_n;
+    }
+    sky_http_connection_t *const conn = r->conn;
+    sky_buf_t *const tmp = conn->buf;
+    const sky_usize_t read_n = (sky_usize_t) (tmp->last - tmp->pos);
+    if (read_n) {
+        size = sky_min(size, read_n);
+        tmp->pos += size;
+        r->headers_in.content_length_n -= size;
+        *bytes = size;
+
+        if (!r->headers_in.content_length_n) {
+            r->read_request_body = true;
+        }
+        return REQ_SUCCESS;
+    }
+
+    http_body_cb_t *const cb_data = sky_palloc(r->pool, sizeof(http_body_cb_t));
+    cb_data->read_cb = call;
+    cb_data->data = data;
+
+    switch (sky_tcp_skip(
+            &conn->tcp,
+            size,
+            bytes,
+            on_http_body_read,
+            cb_data
+    )) {
+        case REQ_PENDING:
+            sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
+            return REQ_PENDING;
+        case REQ_SUCCESS:
+            r->headers_in.content_length_n -= *bytes;
+            if (!r->headers_in.content_length_n) {
+                r->read_request_body = true;
+            }
+            sky_pfree(r->pool, cb_data, sizeof(http_body_cb_t));
+            return REQ_SUCCESS;
+        default:
+            r->error = true;
+            return REQ_ERROR;
+    }
+}
+
 static void
 on_http_body_read_none(sky_tcp_cli_t *const cli, sky_usize_t bytes, void *attr) {
     sky_http_connection_t *const conn = sky_type_convert(cli, sky_http_connection_t, tcp);

@@ -62,6 +62,14 @@ sky_io_result_t http_req_length_body_read(
         void *data
 );
 
+sky_io_result_t http_req_length_body_skip(
+        sky_http_server_request_t *r,
+        sky_usize_t size,
+        sky_usize_t *bytes,
+        sky_http_server_read_pt call,
+        void *data
+);
+
 void http_req_chunked_body_none(sky_http_server_request_t *r, sky_http_server_next_pt call, void *data);
 
 void http_req_chunked_body_str(

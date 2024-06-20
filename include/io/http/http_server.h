@@ -144,6 +144,14 @@ sky_io_result_t sky_http_req_body_read(
         void *data
 );
 
+sky_io_result_t sky_http_req_body_skip(
+        sky_http_server_request_t *r,
+        sky_usize_t size,
+        sky_usize_t *bytes,
+        sky_http_server_read_pt call,
+        void *data
+);
+
 //sky_i8_t sky_http_req_body_multipart(
 //        sky_http_server_request_t *r,
 //        sky_http_server_multipart_t *m,
