@@ -32,8 +32,8 @@ extern "C" {
 
 #ifdef __WINNT__
 
-#include <windows.h>
 #include <winsock2.h>
+#include <windows.h>
 
 #define SKY_SOCKET_FD_NONE INVALID_SOCKET
 typedef SOCKET sky_socket_t;
