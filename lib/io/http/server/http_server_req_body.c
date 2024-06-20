@@ -65,4 +65,24 @@ sky_http_req_body_read(
     return REQ_ERROR;
 }
 
+sky_api sky_io_result_t
+sky_http_req_body_skip(
+        sky_http_server_request_t *r,
+        sky_usize_t size,
+        sky_usize_t *bytes,
+        sky_http_server_read_pt call,
+        void *data
+) {
+    if (sky_unlikely(r->read_request_body || r->error)) {
+        return REQ_ERROR;
+    }
+    if (r->headers_in.content_length) {
+        return http_req_length_body_skip(r, size, bytes, call, data);
+    }
+//    if (r->headers_in.transfer_encoding) {
+//        return http_req_chunked_body_skip(r, size, bytes, call, data);
+//    }
+    return REQ_ERROR;
+}
+
 
