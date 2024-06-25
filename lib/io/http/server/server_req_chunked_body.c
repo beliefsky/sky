@@ -88,8 +88,6 @@ http_req_chunked_body_none(
     sky_http_connection_t *const conn = r->conn;
     sky_buf_t *const buf = conn->buf;
 
-    r->read_request_body = false;
-
     switch (parse_chunk_none(r, buf)) {
         case REQ_PENDING:
             break;
@@ -167,8 +165,6 @@ http_req_chunked_body_str(
     }
 
     sky_buf_t *const buf = conn->buf;
-
-    r->read_request_body = false;
 
     http_body_str_cb_t *const cb_data = sky_palloc(r->pool, sizeof(http_body_str_cb_t));
     cb_data->free_size = sky_max(r->headers_in.content_length_n, 2048);
@@ -680,7 +676,7 @@ on_http_body_read(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr) {
 
     sky_pfree(r->pool, cb_data, sizeof(http_body_read_t));
     sky_timer_wheel_unlink(&conn->timer);
-    if (bytes != SKY_USIZE_MAX) {
+    if (bytes == SKY_USIZE_MAX) {
         sky_buf_rebuild(conn->buf, 0);
         r->headers_in.content_length_n = 0;
         r->read_request_body = true;
@@ -818,7 +814,8 @@ parse_chunk_none(sky_http_server_request_t *const r, sky_buf_t *const buf) {
             read_n -= r->headers_in.content_length_n;
             r->headers_in.content_length_n = 0;
             r->index = 0;
-            if (r->read_request_body) {
+            if (r->req_end_chunked) {
+                r->read_request_body = true;
                 buf->pos = r->req_pos;
                 r->req_pos = null;
                 sky_buf_rebuild(buf, 0);
@@ -866,7 +863,7 @@ parse_chunk_none(sky_http_server_request_t *const r, sky_buf_t *const buf) {
             return REQ_ERROR;
         }
         if (!r->headers_in.content_length_n) {
-            r->read_request_body = true;
+            r->req_end_chunked = true;
         }
         r->headers_in.content_length_n += 2;
         r->req_pos += n + 1;
@@ -944,9 +941,10 @@ parse_chunk_data(
             read_n -= r->headers_in.content_length_n;
             r->headers_in.content_length_n = 0;
             r->index = 0;
-            if (r->read_request_body) {
+            if (r->req_end_chunked) {
                 buf->pos = r->req_pos;
                 r->req_pos = null;
+                r->read_request_body = true;
                 sky_buf_rebuild(buf, 0);
 
                 *bytes = out_size;
@@ -994,7 +992,7 @@ parse_chunk_data(
             return REQ_ERROR;
         }
         if (!r->headers_in.content_length_n) {
-            r->read_request_body = true;
+            r->req_end_chunked = true;
         }
         r->headers_in.content_length_n += 2;
         r->req_pos += n + 1;
@@ -1067,9 +1065,10 @@ parse_chunk_skip(
             read_n -= r->headers_in.content_length_n;
             r->headers_in.content_length_n = 0;
             r->index = 0;
-            if (r->read_request_body) {
+            if (r->req_end_chunked) {
                 buf->pos = r->req_pos;
                 r->req_pos = null;
+                r->read_request_body = true;
                 sky_buf_rebuild(buf, 0);
 
                 *bytes = out_size;
@@ -1117,7 +1116,7 @@ parse_chunk_skip(
             return REQ_ERROR;
         }
         if (!r->headers_in.content_length_n) {
-            r->read_request_body = true;
+            r->req_end_chunked = true;
         }
         r->headers_in.content_length_n += 2;
         r->req_pos += n + 1;
