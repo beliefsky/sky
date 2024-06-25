@@ -272,6 +272,38 @@ http_req_chunked_body_read(
         sky_http_server_read_pt call,
         void *data
 ) {
+    sky_http_connection_t *const conn = r->conn;
+    sky_buf_t *const buffer = conn->buf;
+
+
+    sky_usize_t read_size;
+
+    switch (parse_chunk_data(r, buffer, buf, size, &read_size)) {
+        case REQ_PENDING:
+            if (!read_size) {
+                break;
+            }
+            *bytes = read_size;
+            return REQ_SUCCESS;
+        case REQ_SUCCESS:
+            if (!read_size) {
+                *bytes = SKY_USIZE_MAX;
+                break;
+            }
+            return REQ_ERROR; //
+        default:
+            goto error;
+    }
+
+
+    return REQ_ERROR;
+
+
+    error:
+    sky_buf_rebuild(buffer, 0);
+    r->req_pos = null;
+    r->read_request_body = true;
+    r->error = true;
     return REQ_ERROR;
 }
 

@@ -167,8 +167,12 @@ sky_tcp_read(
 ) {
     if (sky_unlikely(!size)) {
         if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
-                         || (cli->ev.flags & (SKY_TCP_STATUS_EOF | SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
+                         || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
             return REQ_ERROR;
+        }
+        if ((cli->ev.flags & SKY_TCP_STATUS_EOF)) {
+            *bytes = SKY_USIZE_MAX;
+            return REQ_EOF;
         }
         *bytes = 0;
         return REQ_SUCCESS;
@@ -187,8 +191,12 @@ sky_tcp_read_vec(
         void *attr
 ) {
     if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
-                     || (cli->ev.flags & (SKY_TCP_STATUS_EOF | SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
+                     || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
         return REQ_ERROR;
+    }
+    if ((cli->ev.flags & SKY_TCP_STATUS_EOF)) {
+        *bytes = SKY_USIZE_MAX;
+        return REQ_EOF;
     }
     if (sky_unlikely(!num)) {
         *bytes = 0;
@@ -215,7 +223,7 @@ sky_tcp_read_vec(
         sky_free(req);
         if (!read_bytes) {
             cli->ev.flags |= SKY_TCP_STATUS_EOF;
-            return REQ_ERROR;
+            return REQ_EOF;
         }
         *bytes = read_bytes;
         return REQ_SUCCESS;

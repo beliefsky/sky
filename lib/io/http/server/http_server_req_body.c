@@ -53,8 +53,11 @@ sky_http_req_body_read(
         sky_http_server_read_pt call,
         void *data
 ) {
-    if (sky_unlikely(r->read_request_body || r->error)) {
+    if (sky_unlikely(r->error)) {
         return REQ_ERROR;
+    }
+    if (sky_unlikely(r->read_request_body)) {
+        return REQ_EOF;
     }
     if (r->headers_in.content_length) {
         return http_req_length_body_read(r, buf, size, bytes, call, data);
@@ -73,8 +76,11 @@ sky_http_req_body_skip(
         sky_http_server_read_pt call,
         void *data
 ) {
-    if (sky_unlikely(r->read_request_body || r->error)) {
+    if (sky_unlikely(r->error)) {
         return REQ_ERROR;
+    }
+    if (sky_unlikely(r->read_request_body)) {
+        return REQ_EOF;
     }
     if (r->headers_in.content_length) {
         return http_req_length_body_skip(r, size, bytes, call, data);

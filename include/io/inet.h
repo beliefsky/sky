@@ -55,6 +55,7 @@ typedef struct sky_inet_address_s sky_inet_address_t;
 enum sky_io_result_s {
     REQ_PENDING = 0, // 请求提交成功，未就绪，等待回调
     REQ_SUCCESS, // 请求成功，可立即获取结果，不会触发回调
+    REQ_EOF,    // 触发EOF,表示已经读取完成
     REQ_ERROR // 请求失败
 };
 
