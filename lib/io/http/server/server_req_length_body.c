@@ -81,11 +81,11 @@ http_req_length_body_str(
 ) {
     sky_http_connection_t *const conn = r->conn;
     sky_usize_t size = r->headers_in.content_length_n;
-    if (sky_unlikely(size > conn->server->body_str_max)) { // body过大先响应异常，再丢弃body
+    if (sky_unlikely(size > conn->server->body_str_max)) { // 丢弃body数据，并发送数据异常响应
         http_body_cb_t *const cb_data = sky_palloc(r->pool, sizeof(http_body_cb_t));
         cb_data->str_cb = call;
         cb_data->data = data;
-        http_req_length_body_none(r, http_body_str_too_large, cb_data);;
+        http_req_length_body_none(r, http_body_str_too_large, cb_data);
     }
 
     sky_buf_t *const tmp = conn->buf;
