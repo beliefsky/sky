@@ -1,7 +1,6 @@
 //
 // Created by beliefsky on 2023/7/11.
 //
-#include <core/log.h>
 #include "./http_server_common.h"
 
 
@@ -59,6 +58,11 @@ sky_http_req_body_read(
     if (sky_unlikely(r->read_request_body)) {
         return REQ_EOF;
     }
+    if (!size) {
+        *bytes = 0;
+        return REQ_SUCCESS;
+    }
+
     if (r->headers_in.content_length) {
         return http_req_length_body_read(r, buf, size, bytes, call, data);
     }
@@ -82,12 +86,17 @@ sky_http_req_body_skip(
     if (sky_unlikely(r->read_request_body)) {
         return REQ_EOF;
     }
+    if (!size) {
+        *bytes = 0;
+        return REQ_SUCCESS;
+    }
+
     if (r->headers_in.content_length) {
         return http_req_length_body_skip(r, size, bytes, call, data);
     }
-//    if (r->headers_in.transfer_encoding) {
-//        return http_req_chunked_body_skip(r, size, bytes, call, data);
-//    }
+    if (r->headers_in.transfer_encoding) {
+        return http_req_chunked_body_skip(r, size, bytes, call, data);
+    }
     return REQ_ERROR;
 }
 
