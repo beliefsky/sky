@@ -145,7 +145,7 @@ static void
 on_http_line_cb(sky_tcp_cli_t *const tcp, sky_usize_t bytes, void *attr) {
     (void) attr;
     sky_http_connection_t *const conn = sky_type_convert(tcp, sky_http_connection_t, tcp);
-    if (bytes == SKY_IO_EOF) {
+    if (bytes == SKY_USIZE_MAX) {
         http_conn_close(conn);
         return;
     }
@@ -191,7 +191,7 @@ on_http_header_cb(sky_tcp_cli_t *const tcp, sky_usize_t bytes, void *attr) {
     (void) attr;
 
     sky_http_connection_t *const conn = sky_type_convert(tcp, sky_http_connection_t, tcp);
-    if (bytes == SKY_IO_EOF) {
+    if (bytes == SKY_USIZE_MAX) {
         http_conn_close(conn);
         return;
     }
