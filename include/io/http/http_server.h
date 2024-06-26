@@ -250,6 +250,26 @@ sky_http_res_set_content_length(sky_http_server_request_t *const r, const sky_u6
     }
 }
 
+static sky_inline void
+sky_http_res_add_header(
+        sky_http_server_request_t *const r,
+        sky_uchar_t *const key,
+        const sky_usize_t key_len,
+        sky_uchar_t *const val,
+        const sky_usize_t val_len
+) {
+    sky_http_server_header_t *const h = sky_list_push(&r->headers_out.headers);
+    h->key.data = key;
+    h->key.len = key_len;
+    h->val.data = val;
+    h->val.len = val_len;
+}
+
+static sky_inline sky_http_server_header_t *
+sky_http_res_push_header(sky_http_server_request_t *const r) {
+    return sky_list_push(&r->headers_out.headers);
+}
+
 #if defined(__cplusplus)
 } /* extern "C" { */
 #endif

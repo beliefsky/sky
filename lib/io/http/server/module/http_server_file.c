@@ -9,16 +9,16 @@
 #include <core/rbtree.h>
 #include <crypto/crc32.h>
 
-#define http_error_page(_r, _status, _msg)                              \
-    (_r)->state = _status;                                              \
-    sky_str_set(&(_r)->headers_out.content_type, "text/html");          \
-    sky_http_res_str_len(r,sky_str_line("<html>\n<head><title>" \
-    _msg                                                                \
-    "</title></head>\n<body bgcolor=\"white\">\n<center><h1>"           \
-    _msg                                                                \
-    "</h1></center>\n<hr><center>sky</center>\n</body>\n</html>"),      \
-    null,                                                               \
-    null                                                                \
+#define http_error_page(_r, _status, _msg) \
+    sky_http_res_set_status(_r, _status);  \
+    sky_http_res_set_content_type(_r, sky_str_line("text/html")); \
+    sky_http_res_str_len(_r,sky_str_line("<html>\n<head><title>"  \
+    _msg                                   \
+    "</title></head>\n<body bgcolor=\"white\">\n<center><h1>"     \
+    _msg                                   \
+    "</h1></center>\n<hr><center>sky</center>\n</body>\n</html>"),\
+    null,                                  \
+    null                                   \
     )
 
 
@@ -226,14 +226,14 @@ http_run_handler(sky_http_server_request_t *const r, void *const data) {
         http_error_page(r, 404, "404 Not Found");
         return;
     }
+    sky_http_res_set_content_type(r, mime_type.val.data, mime_type.val.len);
 
-    r->headers_out.content_type = mime_type.val;
-    sky_http_server_header_t *const header = sky_list_push(&r->headers_out.headers);
+    sky_http_server_header_t *const header = sky_http_res_push_header(r);
     sky_str_set(&header->key, "Last-Modified");
 
     if (file->modified && file->modified_time == fs_stat.modified_time_sec) {
         header->val = *r->headers_in.if_modified_since;
-        r->state = 304;
+        sky_http_res_set_status(r, 304);
         cache_node_file_unref(node);
         sky_http_res_nobody(r, null, null);
         return;
@@ -242,7 +242,7 @@ http_run_handler(sky_http_server_request_t *const r, void *const data) {
     header->val.len = sky_date_to_rfc_str(fs_stat.modified_time_sec, header->val.data);
 
     if (file->range && (!file->if_range || file->range_time == fs_stat.modified_time_sec)) {
-        r->state = 206;
+        sky_http_res_set_status(r, 206);
         if (file->right == 0 || file->right > fs_stat.size) {
             file->right = fs_stat.size - 1;
         }
