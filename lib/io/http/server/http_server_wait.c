@@ -23,32 +23,32 @@ sky_http_req_body_wait_str(sky_http_server_request_t *const r, sky_sync_wait_t *
 
 
 sky_api void
-sky_http_response_wait_nobody(sky_http_server_request_t *const r, sky_sync_wait_t *const wait) {
+sky_http_res_wait_nobody(sky_http_server_request_t *const r, sky_sync_wait_t *const wait) {
     sky_sync_wait_yield_before(wait);
-    sky_http_response_nobody(r, http_none_cb, wait);
+    sky_http_res_nobody(r, http_none_cb, wait);
     sky_sync_wait_yield(wait);
 }
 
 sky_api void
-sky_http_response_wait_str(
+sky_http_res_wait_str(
         sky_http_server_request_t *const r,
         sky_sync_wait_t *const wait,
         const sky_str_t *const data
 ) {
     sky_sync_wait_yield_before(wait);
-    sky_http_response_str(r, data, http_none_cb, wait);
+    sky_http_res_str(r, data, http_none_cb, wait);
     sky_sync_wait_yield(wait);
 }
 
 sky_api void
-sky_http_response_wait_str_len(
+sky_http_res_wait_str_len(
         sky_http_server_request_t *const r,
         sky_sync_wait_t *const wait,
         sky_uchar_t *const data,
         const sky_usize_t data_len
 ) {
     sky_sync_wait_yield_before(wait);
-    sky_http_response_str_len(r, data, data_len, http_none_cb, wait);
+    sky_http_res_str_len(r, data, data_len, http_none_cb, wait);
     sky_sync_wait_yield(wait);
 }
 

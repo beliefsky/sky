@@ -36,7 +36,7 @@ static void on_http_file_response(sky_tcp_cli_t *tcp, sky_usize_t bytes, void *a
 static void status_msg_get(sky_u32_t status, sky_str_t *out);
 
 sky_api void
-sky_http_response_nobody(
+sky_http_res_nobody(
         sky_http_server_request_t *const r,
         sky_http_server_next_pt call,
         void *const cb_data
@@ -89,21 +89,21 @@ sky_http_response_nobody(
 }
 
 sky_api void
-sky_http_response_str(
+sky_http_res_str(
         sky_http_server_request_t *const r,
         const sky_str_t *const data,
         const sky_http_server_next_pt call,
         void *const cb_data
 ) {
     if (!data) {
-        sky_http_response_str_len(r, null, 0, call, cb_data);
+        sky_http_res_str_len(r, null, 0, call, cb_data);
     } else {
-        sky_http_response_str_len(r, data->data, data->len, call, cb_data);
+        sky_http_res_str_len(r, data->data, data->len, call, cb_data);
     }
 }
 
 sky_api void
-sky_http_response_str_len(
+sky_http_res_str_len(
         sky_http_server_request_t *const r,
         sky_uchar_t *const data,
         const sky_usize_t data_len,
@@ -201,7 +201,7 @@ sky_http_response_str_len(
 
 
 sky_api void
-sky_http_response_file(
+sky_http_res_file(
         sky_http_server_request_t *r,
         sky_fs_t *fs,
         sky_u64_t offset,

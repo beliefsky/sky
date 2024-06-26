@@ -760,7 +760,7 @@ on_http_body_skip_parse(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr) {
 static void
 http_body_str_too_large(sky_http_server_request_t *const r, void *const data) {
     r->state = 413;
-    sky_http_response_str_len(
+    sky_http_res_str_len(
             r,
             sky_str_line("413 Request Entity Too Large"),
             http_body_read_none_to_str,

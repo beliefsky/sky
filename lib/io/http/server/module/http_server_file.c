@@ -13,7 +13,7 @@
 #define http_error_page(_r, _status, _msg)                              \
     (_r)->state = _status;                                              \
     sky_str_set(&(_r)->headers_out.content_type, "text/html");          \
-    sky_http_response_str_len(r,sky_str_line("<html>\n<head><title>" \
+    sky_http_res_str_len(r,sky_str_line("<html>\n<head><title>" \
     _msg                                                                \
     "</title></head>\n<body bgcolor=\"white\">\n<center><h1>"           \
     _msg                                                                \
@@ -236,7 +236,7 @@ http_run_handler(sky_http_server_request_t *const r, void *const data) {
         header->val = *r->headers_in.if_modified_since;
         r->state = 304;
         cache_node_file_unref(node);
-        sky_http_response_nobody(r, null, null);
+        sky_http_res_nobody(r, null, null);
         return;
     }
     header->val.data = sky_palloc(r->pool, 30);
@@ -252,7 +252,7 @@ http_run_handler(sky_http_server_request_t *const r, void *const data) {
         file->right = fs_stat.size - 1;
     }
 
-    sky_http_response_file(
+    sky_http_res_file(
             r,
             &node->file,
             file->left,

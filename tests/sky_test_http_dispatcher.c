@@ -93,7 +93,7 @@ create_server(sky_ev_loop_t *ev_loop) {
 }
 
 static SKY_HTTP_MAPPER_HANDLER(hello_world) {
-    sky_http_response_str_len(
+    sky_http_res_str_len(
             req,
             sky_str_line("{\"status\": 200, \"msg\": \"success\"}"),
             null, // 回调未null会自动调用finish
@@ -114,7 +114,7 @@ pgsql_test_wait(sky_sync_wait_t *const wait, void *const data) {
         sky_pgsql_result_t *result = sky_pgsql_wait_exec(conn, wait, &sql, null, 0);
         sky_pgsql_conn_release(conn);
         if (result) {
-            sky_http_response_wait_str_len(
+            sky_http_res_wait_str_len(
                     req,
                     wait,
                     sky_str_line("{\"status\": 200, \"msg\": \"success\"}")
@@ -124,7 +124,7 @@ pgsql_test_wait(sky_sync_wait_t *const wait, void *const data) {
         }
     }
 
-    sky_http_response_wait_str_len(
+    sky_http_res_wait_str_len(
             req,
             wait,
             sky_str_line("{\"status\": 500, \"msg\": \"query error\"}")
@@ -150,7 +150,7 @@ body_cb(sky_http_server_request_t *req, sky_str_t *body, void *data) {
     sky_log_warn("=============");
 
 
-    sky_http_response_str_len(
+    sky_http_res_str_len(
             req,
             sky_str_line("{\"status\": 200, \"msg\": \"success\"}"),
             null,

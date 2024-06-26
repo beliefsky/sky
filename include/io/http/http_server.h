@@ -83,6 +83,7 @@ struct sky_http_server_request_s {
     struct {
         sky_list_t headers;
         sky_str_t content_type;
+        sky_u64_t content_length_n;
     } headers_out;
 
     sky_usize_t index;
@@ -101,7 +102,6 @@ struct sky_http_server_request_s {
     sky_bool_t response: 1;
 
     sky_bool_t req_end_chunked: 1;
-    sky_bool_t chunked: 1;
 };
 
 struct sky_http_server_header_s {
@@ -170,16 +170,16 @@ sky_io_result_t sky_http_req_body_skip(
 //void sky_http_multipart_body_read(sky_http_server_multipart_t *m, sky_http_server_multipart_read_pt call, void *data);
 
 
-void sky_http_response_nobody(sky_http_server_request_t *r, sky_http_server_next_pt call, void *cb_data);
+void sky_http_res_nobody(sky_http_server_request_t *r, sky_http_server_next_pt call, void *cb_data);
 
-void sky_http_response_str(
+void sky_http_res_str(
         sky_http_server_request_t *r,
         const sky_str_t *data,
         sky_http_server_next_pt call,
         void *cb_data
 );
 
-void sky_http_response_str_len(
+void sky_http_res_str_len(
         sky_http_server_request_t *r,
         sky_uchar_t *data,
         sky_usize_t data_len,
@@ -188,7 +188,7 @@ void sky_http_response_str_len(
 );
 
 
-void sky_http_response_file(
+void sky_http_res_file(
         sky_http_server_request_t *r,
         sky_fs_t *fs,
         sky_u64_t offset,
@@ -201,15 +201,15 @@ void sky_http_response_file(
 /*
 
 
-void sky_http_response_chunked_start(sky_http_server_request_t *r);
+void sky_http_res_chunked_start(sky_http_server_request_t *r);
 
-void sky_http_response_chunked_write(sky_http_server_request_t *r, const sky_str_t *buf);
+void sky_http_res_chunked_write(sky_http_server_request_t *r, const sky_str_t *buf);
 
-void sky_http_response_chunked_write_len(sky_http_server_request_t *r, const sky_uchar_t *buf, sky_usize_t buf_len);
+void sky_http_res_chunked_write_len(sky_http_server_request_t *r, const sky_uchar_t *buf, sky_usize_t buf_len);
 
-void sky_http_response_chunked_flush(sky_http_server_request_t *r);
+void sky_http_res_chunked_flush(sky_http_server_request_t *r);
 
-void sky_http_response_chunked_end(sky_http_server_request_t *r);
+void sky_http_res_chunked_end(sky_http_server_request_t *r);
 
  */
 
@@ -223,13 +223,35 @@ sky_http_server_req_error(const sky_http_server_request_t *const r) {
 }
 
 static sky_inline void
-sky_http_server_req_set_data(sky_http_server_request_t *const r, void *const data) {
+sky_http_req_set_data(sky_http_server_request_t *const r, void *const data) {
     r->attr_data = data;
 }
 
 static sky_inline void *
-sky_http_server_req_get_data(sky_http_server_request_t *const r) {
+sky_http_req_get_data(sky_http_server_request_t *const r) {
     return r->attr_data;
+}
+
+static sky_inline void
+sky_http_res_set_status(sky_http_server_request_t *const r, const sky_u32_t status) {
+    r->state = status;
+}
+
+static sky_inline void
+sky_http_res_set_content_type(
+        sky_http_server_request_t *const r,
+        sky_uchar_t *const value,
+        const sky_usize_t size
+) {
+    r->headers_out.content_type.data = value;
+    r->headers_out.content_type.len = size;
+}
+
+static sky_inline void
+sky_http_res_set_content_length(sky_http_server_request_t *const r, const sky_u64_t size) {
+    if (sky_likely(!r->response)) {
+        r->headers_out.content_length_n = size;
+    }
 }
 
 #if defined(__cplusplus)
