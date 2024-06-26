@@ -16,6 +16,19 @@ void sky_http_req_body_wait_none(sky_http_server_request_t *r, sky_sync_wait_t *
 
 sky_str_t *sky_http_req_body_wait_str(sky_http_server_request_t *r, sky_sync_wait_t *wait);
 
+sky_usize_t sky_http_req_body_wait_read(
+        sky_http_server_request_t *r,
+        sky_uchar_t *buf,
+        sky_usize_t size,
+        sky_sync_wait_t *wait
+);
+
+sky_usize_t sky_http_req_body_wait_skip(
+        sky_http_server_request_t *r,
+        sky_usize_t size,
+        sky_sync_wait_t *wait
+);
+
 /*
  *
  * void sky_http_req_body_wait_read(
