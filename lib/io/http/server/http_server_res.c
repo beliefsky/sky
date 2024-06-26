@@ -42,6 +42,7 @@ sky_http_res_nobody(
         void *const cb_data
 ) {
     if (sky_unlikely(r->response)) {
+        call(r, cb_data);
         return;
     }
     r->response = true;
@@ -110,11 +111,12 @@ sky_http_res_str_len(
         sky_http_server_next_pt call,
         void *const cb_data
 ) {
+    call = call ?: http_res_default_cb;
     if (sky_unlikely(r->response)) {
+        call(r, cb_data);
         return;
     }
     r->response = true;
-    call = call ?: http_res_default_cb;
 
     if (r->error) {
         call(r, cb_data);
