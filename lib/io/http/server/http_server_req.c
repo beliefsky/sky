@@ -4,7 +4,6 @@
 
 #include "./http_server_common.h"
 #include <core/memory.h>
-#include <core/log.h>
 
 
 static void http_server_request_set(sky_http_connection_t *conn, sky_pool_t *pool, sky_usize_t buf_size);

@@ -10,15 +10,15 @@
 static sky_bool_t create_server(sky_ev_loop_t *ev_loop);
 
 
-static SKY_HTTP_MAPPER_HANDLER(redis_test);
+static void redis_test(sky_http_server_request_t *req);
 
-static SKY_HTTP_MAPPER_HANDLER(upload_test);
+static void upload_test(sky_http_server_request_t *req);
 
-static SKY_HTTP_MAPPER_HANDLER(hello_world);
+static void hello_world(sky_http_server_request_t *req);
 
-static SKY_HTTP_MAPPER_HANDLER(pgsql_test);
+static void pgsql_test(sky_http_server_request_t *req);
 
-static SKY_HTTP_MAPPER_HANDLER(put_data);
+static void put_data(sky_http_server_request_t *req);
 
 static sky_pgsql_pool_t *pgsql_pool;
 
@@ -92,7 +92,8 @@ create_server(sky_ev_loop_t *ev_loop) {
     return true;
 }
 
-static SKY_HTTP_MAPPER_HANDLER(hello_world) {
+static void
+hello_world(sky_http_server_request_t *req) {
     sky_http_res_str_len(
             req,
             sky_str_line("{\"status\": 200, \"msg\": \"success\"}"),
@@ -134,7 +135,8 @@ pgsql_test_wait(sky_sync_wait_t *const wait, void *const data) {
 }
 
 
-static SKY_HTTP_MAPPER_HANDLER(pgsql_test) {
+static void
+pgsql_test(sky_http_server_request_t *req) {
     sky_sync_wait_create_with_stack(pgsql_test_wait, req, 4096);
 }
 
@@ -158,7 +160,8 @@ body_cb(sky_http_server_request_t *req, sky_str_t *body, void *data) {
     );
 }
 
-static SKY_HTTP_MAPPER_HANDLER(put_data) {
+static void
+put_data(sky_http_server_request_t *req) {
     sky_http_req_body_str(req, body_cb, null);
 }
 

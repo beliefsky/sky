@@ -11,10 +11,6 @@
 extern "C" {
 #endif
 
-#define SKY_HTTP_MAPPER_HANDLER(_handler) \
-    void _handler(sky_http_server_request_t *req)
-
-
 typedef struct sky_http_mapper_s sky_http_mapper_t;
 typedef void (*sky_http_mapper_pt)(sky_http_server_request_t *req);
 
