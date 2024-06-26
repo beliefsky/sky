@@ -38,7 +38,7 @@ typedef void (*sky_http_server_next_pt)(sky_http_server_request_t *r, void *data
 
 typedef void (*sky_http_server_next_str_pt)(sky_http_server_request_t *r, sky_str_t *body, void *data);
 
-typedef void (*sky_http_server_read_pt)(sky_http_server_request_t *r, sky_usize_t size, void *data);
+typedef void (*sky_http_server_rw_pt)(sky_http_server_request_t *r, sky_usize_t size, void *data);
 
 
 struct sky_http_server_conf_s {
@@ -98,10 +98,11 @@ struct sky_http_server_request_s {
     sky_u8_t method: 7;
     sky_bool_t keep_alive: 1;
     sky_bool_t read_request_body: 1;
+    sky_bool_t req_end_chunked: 1;
     sky_bool_t error: 1;
     sky_bool_t response: 1;
-
-    sky_bool_t req_end_chunked: 1;
+    sky_bool_t res_content_length: 1;
+    sky_bool_t res_finish: 1;
 };
 
 struct sky_http_server_header_s {
@@ -142,7 +143,7 @@ sky_io_result_t sky_http_req_body_read(
         sky_uchar_t *buf,
         sky_usize_t size,
         sky_usize_t *bytes,
-        sky_http_server_read_pt call,
+        sky_http_server_rw_pt call,
         void *data
 );
 
@@ -150,7 +151,7 @@ sky_io_result_t sky_http_req_body_skip(
         sky_http_server_request_t *r,
         sky_usize_t size,
         sky_usize_t *bytes,
-        sky_http_server_read_pt call,
+        sky_http_server_rw_pt call,
         void *data
 );
 
@@ -198,21 +199,15 @@ void sky_http_res_file(
         void *cb_data
 );
 
-/*
 
-
-void sky_http_res_chunked_start(sky_http_server_request_t *r);
-
-void sky_http_res_chunked_write(sky_http_server_request_t *r, const sky_str_t *buf);
-
-void sky_http_res_chunked_write_len(sky_http_server_request_t *r, const sky_uchar_t *buf, sky_usize_t buf_len);
-
-void sky_http_res_chunked_flush(sky_http_server_request_t *r);
-
-void sky_http_res_chunked_end(sky_http_server_request_t *r);
-
- */
-
+sky_io_result_t sky_http_res_write(
+        sky_http_server_request_t *r,
+        sky_uchar_t *buf,
+        sky_usize_t size,
+        sky_usize_t *bytes,
+        sky_http_server_rw_pt call,
+        void *data
+);
 
 void sky_http_server_req_finish(sky_http_server_request_t *r);
 
@@ -251,6 +246,7 @@ static sky_inline void
 sky_http_res_set_content_length(sky_http_server_request_t *const r, const sky_u64_t size) {
     if (sky_likely(!r->response)) {
         r->headers_out.content_length_n = size;
+        r->res_content_length = true;
     }
 }
 

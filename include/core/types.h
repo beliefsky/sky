@@ -13,7 +13,9 @@
 #endif
 
 #if sky_has_include(<endian.h>)
+
 #include <endian.h>
+
 #elif sky_has_include(<sys/endian.h>)
 #include <sys/endian.h>
 #elif sky_has_include(<machine/endian.h>)
@@ -98,9 +100,15 @@ typedef int64_t sky_i64_t;                  /*-9223372036854775808 ~ +9223372036
 typedef uint64_t sky_u64_t;                 /*0 ~ 18446744073709551615*/
 
 #if UINTPTR_MAX == UINT64_MAX
+
+#define SKY_USIZE_BITS  8
+
 typedef sky_i64_t sky_isize_t;
 typedef sky_u64_t sky_usize_t;
 #else
+
+#define SKY_USIZE_BITS  4
+
 typedef sky_i32_t sky_isize_t;
 typedef sky_u32_t sky_usize_t;
 #endif

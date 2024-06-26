@@ -21,14 +21,14 @@ typedef struct {
 } http_body_str_cb_t;
 
 typedef struct {
-    sky_http_server_read_pt read_cb;
+    sky_http_server_rw_pt read_cb;
     void *data;
 } http_body_read_t;
 
 typedef struct {
     sky_uchar_t *buf;
     sky_usize_t size;
-    sky_http_server_read_pt read_cb;
+    sky_http_server_rw_pt read_cb;
     void *data;
 } http_body_read_parse_t;
 
@@ -290,7 +290,7 @@ http_req_chunked_body_read(
         sky_uchar_t *const buf,
         sky_usize_t size,
         sky_usize_t *const bytes,
-        const sky_http_server_read_pt call,
+        const sky_http_server_rw_pt call,
         void *const data
 ) {
     sky_http_connection_t *const conn = r->conn;
@@ -389,7 +389,7 @@ http_req_chunked_body_skip(
         sky_http_server_request_t *r,
         sky_usize_t size,
         sky_usize_t *bytes,
-        sky_http_server_read_pt call,
+        sky_http_server_rw_pt call,
         void *data
 ) {
     sky_http_connection_t *const conn = r->conn;
@@ -671,7 +671,7 @@ on_http_body_read(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr) {
     sky_http_connection_t *const conn = sky_type_convert(cli, sky_http_connection_t, tcp);
     sky_http_server_request_t *const r = conn->current_req;
     http_body_read_t *const cb_data = attr;
-    const sky_http_server_read_pt cb = cb_data->read_cb;
+    const sky_http_server_rw_pt cb = cb_data->read_cb;
     void *const data = cb_data->data;
 
     sky_pfree(r->pool, cb_data, sizeof(http_body_read_t));
@@ -693,7 +693,7 @@ on_http_body_read_parse(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr) {
     sky_http_server_request_t *const r = conn->current_req;
     sky_buf_t *const buf = conn->buf;
     http_body_read_parse_t *const cb_data = attr;
-    sky_http_server_read_pt cb = cb_data->read_cb;
+    sky_http_server_rw_pt cb = cb_data->read_cb;
     void *const data = cb_data->data;
 
     sky_timer_wheel_unlink(&conn->timer);
@@ -728,7 +728,7 @@ on_http_body_skip_parse(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr) {
     sky_http_server_request_t *const r = conn->current_req;
     sky_buf_t *const buf = conn->buf;
     http_body_read_parse_t *const cb_data = attr;
-    sky_http_server_read_pt cb = cb_data->read_cb;
+    sky_http_server_rw_pt cb = cb_data->read_cb;
     void *const data = cb_data->data;
 
     sky_timer_wheel_unlink(&conn->timer);

@@ -8,7 +8,7 @@ typedef struct {
     union {
         sky_http_server_next_pt none_cb;
         sky_http_server_next_str_pt str_cb;
-        sky_http_server_read_pt read_cb;
+        sky_http_server_rw_pt read_cb;
     };
     void *data;
 } http_body_cb_t;
@@ -140,7 +140,7 @@ http_req_length_body_read(
         sky_uchar_t *buf,
         sky_usize_t size,
         sky_usize_t *bytes,
-        sky_http_server_read_pt call,
+        sky_http_server_rw_pt call,
         void *data
 ) {
     if (size > r->headers_in.content_length_n) {
@@ -195,7 +195,7 @@ http_req_length_body_skip(
         sky_http_server_request_t *r,
         sky_usize_t size,
         sky_usize_t *bytes,
-        sky_http_server_read_pt call,
+        sky_http_server_rw_pt call,
         void *data
 ) {
     if (size > r->headers_in.content_length_n) {
@@ -337,7 +337,7 @@ on_http_body_read(sky_tcp_cli_t *const cli, sky_usize_t bytes, void *attr) {
     sky_http_connection_t *const conn = sky_type_convert(cli, sky_http_connection_t, tcp);
     sky_http_server_request_t *const req = conn->current_req;
     http_body_cb_t *const cb_data = attr;
-    const sky_http_server_read_pt read_cb = cb_data->read_cb;
+    const sky_http_server_rw_pt read_cb = cb_data->read_cb;
     void *const data = cb_data->data;
     sky_pfree(req->pool, cb_data, sizeof(http_body_cb_t));
 
