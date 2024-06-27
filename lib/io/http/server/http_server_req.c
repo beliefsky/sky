@@ -28,7 +28,7 @@ static void on_http_conn_close(sky_tcp_cli_t *cli);
 
 
 sky_api void
-sky_http_server_req_finish(sky_http_server_request_t *const r) {
+sky_http_req_finish(sky_http_server_request_t *const r) {
     sky_http_connection_t *const conn = r->conn;
 
     if (sky_unlikely(r->error)) {

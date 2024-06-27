@@ -267,7 +267,7 @@ http_response_next(sky_http_server_request_t *const r, void *const data) {
     file_cache_node_t *const node = data;
     cache_node_file_unref(node);
 
-    sky_http_server_req_finish(r);
+    sky_http_req_finish(r);
 }
 
 static file_cache_node_t *

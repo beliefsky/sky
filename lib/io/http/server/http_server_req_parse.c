@@ -919,14 +919,15 @@ parse_token(sky_uchar_t *buf, const sky_uchar_t *const end, const sky_uchar_t ne
     }
 #endif
 
+    sky_uchar_t ch = *buf;
     do {
-        if (*buf == next_char) {
+        if (ch == next_char) {
             return (buf - start);
         }
-        if (!token_char_map[*buf]) {
+        if (!token_char_map[ch]) {
             return -2;
         }
-        ++buf;
+        ch = *(++buf);
     } while (buf != end);
 
     return -1;

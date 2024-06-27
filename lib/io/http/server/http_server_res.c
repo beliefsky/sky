@@ -623,7 +623,7 @@ static sky_inline void
 http_res_default_cb(sky_http_server_request_t *const r, void *const data) {
     (void) data;
 
-    sky_http_server_req_finish(r);
+    sky_http_req_finish(r);
 }
 
 static void

@@ -40,6 +40,8 @@ typedef void (*sky_http_server_next_str_pt)(sky_http_server_request_t *r, sky_st
 
 typedef void (*sky_http_server_rw_pt)(sky_http_server_request_t *r, sky_usize_t size, void *data);
 
+typedef void (*sky_http_server_next_multipart_pt)(sky_http_server_request_t *r, sky_http_server_multipart_t *m);
+
 
 struct sky_http_server_conf_s {
     sky_usize_t body_str_max;
@@ -155,21 +157,24 @@ sky_io_result_t sky_http_req_body_skip(
         void *data
 );
 
-//sky_i8_t sky_http_req_body_multipart(
-//        sky_http_server_request_t *r,
-//        sky_http_server_multipart_t *m,
-//        void *call,
-//        void *data
-//);
+sky_io_result_t sky_http_req_body_multipart(
+        sky_http_server_request_t *r,
+        sky_http_server_multipart_t *m,
+        sky_http_server_next_multipart_pt *call
+);
 
-//void sky_http_multipart_next(sky_http_server_multipart_t *m, sky_http_server_multipart_pt call, void *data);
+sky_io_result_t sky_http_multipart_next(
+        sky_http_server_multipart_t *m,
+        sky_http_server_multipart_t *next,
+        sky_http_server_next_multipart_pt *call
+);
 
-//void sky_http_multipart_body_none(sky_http_server_multipart_t *m, sky_http_server_multipart_pt call, void *data);
+sky_bool_t sky_http_multipart_has_next(sky_http_server_multipart_t *m);
 
-//void sky_http_multipart_body_str(sky_http_server_multipart_t *m, sky_http_server_multipart_str_pt call, void *data);
 
-//void sky_http_multipart_body_read(sky_http_server_multipart_t *m, sky_http_server_multipart_read_pt call, void *data);
-
+//sky_io_result_t sky_http_multipart_read();
+//
+//sky_io_result_t sky_http_multipart_skip();
 
 void sky_http_res_nobody(sky_http_server_request_t *r, sky_http_server_next_pt call, void *cb_data);
 
@@ -209,11 +214,11 @@ sky_io_result_t sky_http_res_write(
         void *data
 );
 
-void sky_http_server_req_finish(sky_http_server_request_t *r);
+void sky_http_req_finish(sky_http_server_request_t *r);
 
 
 static sky_inline sky_bool_t
-sky_http_server_req_error(const sky_http_server_request_t *const r) {
+sky_http_req_error(const sky_http_server_request_t *const r) {
     return r->error;
 }
 
