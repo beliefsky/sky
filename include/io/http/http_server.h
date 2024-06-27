@@ -95,6 +95,7 @@ struct sky_http_server_request_s {
 
     sky_u32_t state;
     sky_u8_t method: 7;
+    sky_bool_t arg_no_decode: 1;
     sky_bool_t keep_alive: 1;
     sky_bool_t read_request_body: 1;
     sky_bool_t req_end_chunked: 1;
@@ -115,7 +116,7 @@ sky_bool_t sky_http_server_module_put(sky_http_server_t *server, sky_http_server
 
 sky_bool_t sky_http_server_bind(sky_http_server_t *server, const sky_inet_address_t *address);
 
-sky_bool_t sky_http_url_decode(sky_str_t *str);
+sky_str_t *sky_http_req_args(sky_http_server_request_t *r);
 
 void sky_http_req_body_none(sky_http_server_request_t *r, sky_http_server_next_pt call, void *data);
 

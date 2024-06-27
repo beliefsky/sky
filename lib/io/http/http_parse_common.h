@@ -61,7 +61,8 @@ advance_token(sky_uchar_t *buf, const sky_uchar_t *const end) {
     const sky_uchar_t *const start = buf;
 #ifdef __SSE4_1__
 
-    static const sky_uchar_t sky_align(16) ranges[16] = "\000\040""\177\177";
+    static const sky_uchar_t sky_align(16) ranges[16] = "\000\040"
+                                                        "\177\177";
 
     if (!find_char_fast(&buf, (sky_usize_t) (end - start), ranges, 4)) {
         if (buf == end) {
@@ -79,6 +80,43 @@ advance_token(sky_uchar_t *buf, const sky_uchar_t *const end) {
     do {
         ch = *buf;
         if (ch == ' ') {
+            return (buf - start);
+        }
+        if (sky_unlikely(!IS_PRINTABLE_ASCII(ch))) {
+            if (ch < '\040' || ch == '\177') {
+                return -2;
+            }
+        }
+    } while ((++buf) != end);
+
+    return -1;
+}
+
+static sky_inline sky_isize_t
+advance_token_no_unicode(sky_uchar_t *buf, const sky_uchar_t *const end) {
+    const sky_uchar_t *const start = buf;
+#ifdef __SSE4_1__
+
+    static const sky_uchar_t sky_align(16) ranges[16] = "\000\040"
+                                                        "%%"
+                                                        "\177\177";
+
+    if (!find_char_fast(&buf, (sky_usize_t) (end - start), ranges, 6)) {
+        if (buf == end) {
+            return -1;
+        }
+    }
+#else
+    if (buf == end) {
+        return -1;
+    }
+#endif
+
+    sky_uchar_t ch;
+
+    do {
+        ch = *buf;
+        if (ch == ' ' || ch == '%') {
             return (buf - start);
         }
         if (sky_unlikely(!IS_PRINTABLE_ASCII(ch))) {
