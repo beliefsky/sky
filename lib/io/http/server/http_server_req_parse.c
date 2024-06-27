@@ -21,8 +21,6 @@ typedef enum {
     sw_line_LF
 } parse_state_t;
 
-static sky_bool_t sky_http_url_decode(sky_str_t *str);
-
 static sky_bool_t http_method_identify(sky_http_server_request_t *r);
 
 static sky_isize_t parse_url_no_unicode(sky_http_server_request_t *r, sky_uchar_t *post, const sky_uchar_t *end);
@@ -30,24 +28,6 @@ static sky_isize_t parse_url_no_unicode(sky_http_server_request_t *r, sky_uchar_
 static sky_isize_t parse_url_code(sky_http_server_request_t *r, sky_uchar_t *post, const sky_uchar_t *end);
 
 static sky_bool_t header_handle_run(sky_http_server_request_t *req, sky_http_server_header_t *h);
-
-sky_api sky_str_t *
-sky_http_req_uri(sky_http_server_request_t *const r) {
-    if (r->uri_no_unicode) {
-        r->uri_no_unicode = false;
-        sky_http_url_decode(&r->uri);
-    }
-    return &r->uri;
-}
-
-sky_api sky_str_t *
-sky_http_req_args(sky_http_server_request_t *const r) {
-    if (r->arg_no_unicode) {
-        r->arg_no_unicode = false;
-        sky_http_url_decode(&r->args);
-    }
-    return &r->args;
-}
 
 
 sky_i8_t
@@ -340,8 +320,8 @@ http_request_header_parse(sky_http_server_request_t *const r, sky_buf_t *const b
     return 1;
 }
 
-static sky_bool_t
-sky_http_url_decode(sky_str_t *const str) {
+sky_bool_t
+http_unicode_decode(sky_str_t *const str) {
     sky_uchar_t *s, *p, ch;
 
     p = sky_str_find_char(str, '%');

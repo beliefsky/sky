@@ -18,7 +18,7 @@ static void http_module_run(sky_http_server_request_t *r);
 
 static void http_server_req_finish(sky_http_server_request_t *r, void *data);
 
-void http_timeout_cb(sky_timer_wheel_entry_t * timer);
+void http_timeout_cb(sky_timer_wheel_entry_t *timer);
 
 static void http_server_request_next(sky_timer_wheel_entry_t *timer);
 
@@ -46,6 +46,24 @@ sky_http_req_finish(sky_http_server_request_t *const r) {
     }
 
     http_server_req_finish(r, null);
+}
+
+sky_api sky_str_t *
+sky_http_req_uri(sky_http_server_request_t *const r) {
+    if (r->uri_no_unicode) {
+        r->uri_no_unicode = false;
+        http_unicode_decode(&r->uri);
+    }
+    return &r->uri;
+}
+
+sky_api sky_str_t *
+sky_http_req_args(sky_http_server_request_t *const r) {
+    if (r->arg_no_unicode) {
+        r->arg_no_unicode = false;
+        http_unicode_decode(&r->args);
+    }
+    return &r->args;
 }
 
 
