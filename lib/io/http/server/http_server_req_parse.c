@@ -1017,19 +1017,23 @@ header_handle_run(sky_http_server_request_t *const req, sky_http_server_header_t
                     return true;
             }
         case 14:
-            if (((sky_str8_cmp(p, 'C', 'o', 'n', 't', 'e', 'n', 't', '-')
-                  && sky_str4_cmp(p + 8, 'L', 'e', 'n', 'g')
-                 ) || (sky_str8_cmp(p, 'c', 'o', 'n', 't', 'e', 'n', 't', '-')
-                       && sky_str4_cmp(p + 8, 'l', 'e', 'n', 'g')
-                 )
-                ) && sky_str2_cmp(p + 12, 't', 'h')) { // Content-Length
-                sky_str_set(&h->key, " content-length");
-                req->headers_in.content_length = &h->val;
-                req->read_request_body = false;
+            switch (sky_str8_switch(p)) {
+                case sky_str8_num('C', 'o', 'n', 't', 'e', 'n', 't', '-'):
+                case sky_str8_num('c', 'o', 'n', 't', 'e', 'n', 't', '-'): {
+                    if (sky_likely((sky_str4_cmp(p + 8, 'L', 'e', 'n', 'g')
+                                    || sky_str4_cmp(p + 8, 'l', 'e', 'n', 'g'
+                    ) && sky_str2_cmp(p + 12, 't', 'h')))) { // Content-Length
+                        sky_str_set(&h->key, " content-length");
+                        req->headers_in.content_length = &h->val;
+                        req->read_request_body = false;
 
-                return sky_str_to_usize(&h->val, &req->headers_in.content_length_n);
+                        return sky_str_to_usize(&h->val, &req->headers_in.content_length_n);
+                    }
+                    return true;
+                }
+                default:
+                    return true;
             }
-            return true;
         case 17:
             switch (sky_str8_switch(p)) {
                 case sky_str8_num('I', 'f', '-', 'M', 'o', 'd', 'i', 'f'):
