@@ -266,8 +266,9 @@ http_module_run(sky_http_server_request_t *const r) {
             }
         }
     }
+    sky_str_t *const uri = sky_http_req_uri(r);
 
-    const sky_http_server_module_t *const module = sky_trie_find(host_trie, &r->uri);
+    const sky_http_server_module_t *const module = sky_trie_find(host_trie, uri);
     if (module) {
         module->run(r, module->module_data);
         return;

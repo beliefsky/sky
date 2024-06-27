@@ -81,8 +81,9 @@ sky_http_server_dispatcher_destroy(sky_http_server_module_t *const server_dispat
 static void
 http_run_handler_with_pre(sky_http_server_request_t *const r, void *const data) {
     const http_module_dispatcher_t *const dispatcher = data;
-    r->uri.data += dispatcher->prefix->len;
-    r->uri.len -= dispatcher->prefix->len;
+    sky_str_t *const uri = sky_http_req_uri(r);
+    uri->data += dispatcher->prefix->len;
+    uri->len -= dispatcher->prefix->len;
 
     if (dispatcher->pre_run(r, dispatcher->run_data)) {
         http_run_handler_next(r, data);
@@ -92,15 +93,17 @@ http_run_handler_with_pre(sky_http_server_request_t *const r, void *const data) 
 static void
 http_run_handler(sky_http_server_request_t *const r, void *const data) {
     const http_module_dispatcher_t *const dispatcher = data;
-    r->uri.data += dispatcher->prefix->len;
-    r->uri.len -= dispatcher->prefix->len;
+    sky_str_t *const uri = sky_http_req_uri(r);
+    uri->data += dispatcher->prefix->len;
+    uri->len -= dispatcher->prefix->len;
 
     http_run_handler_next(r, dispatcher);
 }
 
 static void
 http_run_handler_next(sky_http_server_request_t *const r, const http_module_dispatcher_t *const dispatcher) {
-    const sky_http_mapper_pt *handler = sky_trie_contains(dispatcher->mappers, &r->uri);
+    sky_str_t *const uri = sky_http_req_uri(r);
+    const sky_http_mapper_pt *handler = sky_trie_contains(dispatcher->mappers, uri);
 
     sky_http_res_set_content_type(r, sky_str_line("application/json"));
     if (!handler) {

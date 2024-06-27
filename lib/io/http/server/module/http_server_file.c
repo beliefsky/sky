@@ -164,14 +164,15 @@ sky_http_server_file_destroy(sky_http_server_module_t *const server_file) {
 static void
 http_run_handler(sky_http_server_request_t *const r, void *const data) {
     http_module_file_t *const module_file = data;
+    sky_str_t *const uri = sky_http_req_uri(r);
+    uri->data += module_file->prefix->len;
+    uri->len -= module_file->prefix->len;
 
-    r->uri.data += module_file->prefix->len;
-    r->uri.len -= module_file->prefix->len;
     if (sky_unlikely(!r->uri.len)) {
         http_error_page(r, 404, "404 Not Found");
         return;
     }
-    if (r->uri.len == 1 && *r->uri.data == '/') {
+    if (uri->len == 1 && *uri->data == '/') {
         sky_str_set(&r->uri, "/index.html");
         sky_str_set(&r->exten, ".html");
     }
@@ -216,7 +217,7 @@ http_run_handler(sky_http_server_request_t *const r, void *const data) {
         }
     }
 
-    file_cache_node_t *const node = cache_node_file_get_ref(module_file, r->pool, &r->uri);
+    file_cache_node_t *const node = cache_node_file_get_ref(module_file, r->pool, uri);
     if (sky_fs_closed(&node->file)) {
         http_error_page(r, 404, "404 Not Found");
         return;
