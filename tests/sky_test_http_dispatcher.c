@@ -120,7 +120,7 @@ pgsql_test_wait(sky_sync_wait_t *const wait, void *const data) {
                     wait,
                     sky_str_line("{\"status\": 200, \"msg\": \"success\"}")
             );
-            sky_http_server_req_finish(req); // wait模式需要主动调用finish
+            sky_http_req_finish(req); // wait模式需要主动调用finish
             return;
         }
     }
@@ -131,7 +131,7 @@ pgsql_test_wait(sky_sync_wait_t *const wait, void *const data) {
             sky_str_line("{\"status\": 500, \"msg\": \"query error\"}")
     );
 
-    sky_http_server_req_finish(req); // wait模式需要主动调用finish
+    sky_http_req_finish(req); // wait模式需要主动调用finish
 }
 
 
@@ -145,6 +145,7 @@ body_cb(sky_http_server_request_t *req, sky_str_t *body, void *data) {
     (void) data;
 
     if (body) {
+        sky_log_info("%s", req->headers_in.content_type->data);
         sky_log_warn("%lu: %s", body->len, body->data);
     } else {
         sky_log_error("not body or error");
