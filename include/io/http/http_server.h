@@ -119,7 +119,6 @@ sky_bool_t sky_http_server_bind(sky_http_server_t *server, const sky_inet_addres
 
 sky_str_t *sky_http_req_uri(sky_http_server_request_t *r);
 
-sky_str_t *sky_http_req_args(sky_http_server_request_t *r);
 
 void sky_http_req_body_none(sky_http_server_request_t *r, sky_http_server_next_pt call, void *data);
 
@@ -182,6 +181,11 @@ sky_io_result_t sky_http_res_write(
 
 void sky_http_req_finish(sky_http_server_request_t *r);
 
+
+static sky_inline sky_str_t *
+sky_http_req_query_raw(sky_http_server_request_t *const r) {
+    return &r->args;
+}
 
 static sky_inline sky_bool_t
 sky_http_req_error(const sky_http_server_request_t *const r) {

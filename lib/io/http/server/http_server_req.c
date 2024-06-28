@@ -48,22 +48,13 @@ sky_http_req_finish(sky_http_server_request_t *const r) {
     http_server_req_finish(r, null);
 }
 
-sky_api sky_str_t *
+sky_api sky_inline sky_str_t *
 sky_http_req_uri(sky_http_server_request_t *const r) {
     if (r->uri_no_decode) {
         r->uri_no_decode = false;
         http_url_decode(&r->uri);
     }
     return &r->uri;
-}
-
-sky_api sky_str_t *
-sky_http_req_args(sky_http_server_request_t *const r) {
-    if (r->arg_no_decode) {
-        r->arg_no_decode = false;
-        http_url_decode(&r->args);
-    }
-    return &r->args;
 }
 
 
