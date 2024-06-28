@@ -93,7 +93,7 @@ advance_token(sky_uchar_t *buf, const sky_uchar_t *const end) {
 }
 
 static sky_inline sky_isize_t
-advance_token_no_unicode(sky_uchar_t *buf, const sky_uchar_t *const end) {
+advance_token_no_decode(sky_uchar_t *buf, const sky_uchar_t *const end) {
     const sky_uchar_t *const start = buf;
 #ifdef __SSE4_1__
 

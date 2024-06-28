@@ -40,7 +40,7 @@ sky_i8_t http_request_line_parse(sky_http_server_request_t *r, sky_buf_t *b);
 
 sky_i8_t http_request_header_parse(sky_http_server_request_t *r, sky_buf_t *b);
 
-sky_bool_t http_unicode_decode(sky_str_t *str);
+sky_bool_t http_url_decode(sky_str_t *str);
 
 void http_server_request_process(sky_http_connection_t *conn);
 

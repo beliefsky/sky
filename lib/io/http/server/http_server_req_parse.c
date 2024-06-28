@@ -8,10 +8,10 @@
 typedef enum {
     sw_start = 0,
     sw_method,
-    sw_uri_no_unicode,
+    sw_uri_no_decode,
     sw_uri_code,
     sw_args_code,
-    sw_args_no_unicode,
+    sw_args_no_decode,
     sw_args_next,
     sw_http,
     sw_line,
@@ -23,7 +23,7 @@ typedef enum {
 
 static sky_bool_t http_method_identify(sky_http_server_request_t *r);
 
-static sky_isize_t parse_url_no_unicode(sky_http_server_request_t *r, sky_uchar_t *post, const sky_uchar_t *end);
+static sky_isize_t parse_url_no_decode(sky_http_server_request_t *r, sky_uchar_t *post, const sky_uchar_t *end);
 
 static sky_isize_t parse_url_code(sky_http_server_request_t *r, sky_uchar_t *post, const sky_uchar_t *end);
 
@@ -72,10 +72,10 @@ http_request_line_parse(sky_http_server_request_t *const r, sky_buf_t *const b) 
                 return -1;
             }
             r->req_pos = p;
-            state = sw_uri_no_unicode;
+            state = sw_uri_no_decode;
         }
-        case sw_uri_no_unicode: {
-            index = parse_url_no_unicode(r, p, end);
+        case sw_uri_no_decode: {
+            index = parse_url_no_decode(r, p, end);
 
             if (sky_unlikely(index < 0)) {
                 if (sky_unlikely(index == -2)) {
@@ -116,8 +116,8 @@ http_request_line_parse(sky_http_server_request_t *const r, sky_buf_t *const b) 
             state = sw_args_next;
             goto re_switch;
         }
-        case sw_args_no_unicode: {
-            index = advance_token_no_unicode(p, end);
+        case sw_args_no_decode: {
+            index = advance_token_no_decode(p, end);
             if (sky_unlikely(index < 0)) {
                 if (sky_unlikely(index == -2)) {
                     return -1;
@@ -128,7 +128,7 @@ http_request_line_parse(sky_http_server_request_t *const r, sky_buf_t *const b) 
             p += index;
             if (*p == '%') {
                 ++p;
-                r->arg_no_unicode = true;
+                r->arg_no_decode = true;
                 state = sw_args_code;
             } else {
                 state = sw_args_next;
@@ -321,7 +321,7 @@ http_request_header_parse(sky_http_server_request_t *const r, sky_buf_t *const b
 }
 
 sky_bool_t
-http_unicode_decode(sky_str_t *const str) {
+http_url_decode(sky_str_t *const str) {
     sky_uchar_t *s, *p, ch;
 
     p = sky_str_find_char(str, '%');
@@ -430,7 +430,7 @@ http_method_identify(sky_http_server_request_t *const r) {
 }
 
 static sky_inline sky_isize_t
-parse_url_no_unicode(sky_http_server_request_t *const r, sky_uchar_t *post, const sky_uchar_t *const end) {
+parse_url_no_decode(sky_http_server_request_t *const r, sky_uchar_t *post, const sky_uchar_t *const end) {
     const sky_uchar_t *const start = post;
 #ifdef __SSE4_1__
     static const sky_uchar_t sky_align(16) ranges[16] = "\000\040"
@@ -460,7 +460,7 @@ parse_url_no_unicode(sky_http_server_request_t *const r, sky_uchar_t *post, cons
             case '%': {
                 ++post;
                 r->state = sw_uri_code;
-                r->uri_no_unicode = true;
+                r->uri_no_decode = true;
                 return (post - start);
             }
             case '.': {
@@ -478,7 +478,7 @@ parse_url_no_unicode(sky_http_server_request_t *const r, sky_uchar_t *post, cons
                 }
                 *(post++) = '\0';
                 r->req_pos = post;
-                r->state = sw_args_no_unicode;
+                r->state = sw_args_no_decode;
                 return (post - start);
             }
             default:
@@ -526,7 +526,7 @@ parse_url_no_unicode(sky_http_server_request_t *const r, sky_uchar_t *post, cons
                 }
                 *(post++) = '\0';
                 r->req_pos = post;
-                r->state = sw_args_no_unicode;
+                r->state = sw_args_no_decode;
                 return (post - start);
             }
             default: {
@@ -584,7 +584,7 @@ parse_url_code(sky_http_server_request_t *const r, sky_uchar_t *post, const sky_
                 }
                 *(post++) = '\0';
 
-                r->state = sw_args_no_unicode;
+                r->state = sw_args_no_decode;
                 r->req_pos = post;
                 return (post - start);
             }
@@ -629,7 +629,7 @@ parse_url_code(sky_http_server_request_t *const r, sky_uchar_t *post, const sky_
                 }
                 *(post++) = '\0';
 
-                r->state = sw_args_no_unicode;
+                r->state = sw_args_no_decode;
                 r->req_pos = post;
                 return (post - start);
             }
