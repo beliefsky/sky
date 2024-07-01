@@ -3,14 +3,12 @@
 //
 
 #include "./http_server_common.h"
-#include "core/log.h"
 
 static sky_usize_t http_url_decode(sky_uchar_t *data, sky_usize_t size);
 
 sky_bool_t
 http_req_url_decode(sky_http_server_request_t *r) {
     const sky_usize_t size = http_url_decode(r->uri.data, r->uri.len);
-    sky_log_info("%lu:%s -> %lu/%lu", r->uri.len, r->uri.data, size, sky_str_index_char(&r->uri, '\0'));
     if (sky_unlikely(size == SKY_USIZE_MAX)) {
         return false;
     }
@@ -93,7 +91,6 @@ http_url_decode(sky_uchar_t *const data, sky_usize_t size) {
         for (;;) {
             if (!size) {
                 *s = '\0';
-                sky_log_warn("%lu", s - data);
                 return (sky_usize_t) (s - data);
             }
             --size;
