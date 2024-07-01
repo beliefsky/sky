@@ -48,16 +48,6 @@ sky_http_req_finish(sky_http_server_request_t *const r) {
     http_server_req_finish(r, null);
 }
 
-sky_api sky_inline sky_str_t *
-sky_http_req_uri(sky_http_server_request_t *const r) {
-    if (r->uri_no_decode) {
-        r->uri_no_decode = false;
-        http_url_decode(&r->uri);
-    }
-    return &r->uri;
-}
-
-
 void
 http_server_request_process(sky_http_connection_t *const conn) {
     sky_pool_t *const pool = sky_pool_create(SKY_POOL_DEFAULT_SIZE);
@@ -275,9 +265,11 @@ http_module_run(sky_http_server_request_t *const r) {
             }
         }
     }
-    sky_str_t *const uri = sky_http_req_uri(r);
+    if (r->uri_no_decode && !http_req_url_decode(r)) {
+        goto no_module;
+    }
 
-    const sky_http_server_module_t *const module = sky_trie_find(host_trie, uri);
+    const sky_http_server_module_t *const module = sky_trie_find(host_trie, &r->uri);
     if (module) {
         module->run(r, module->module_data);
         return;

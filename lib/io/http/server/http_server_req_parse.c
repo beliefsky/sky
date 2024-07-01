@@ -320,61 +320,6 @@ http_request_header_parse(sky_http_server_request_t *const r, sky_buf_t *const b
     return 1;
 }
 
-sky_bool_t
-http_url_decode(sky_str_t *const str) {
-    sky_uchar_t *s, *p, ch;
-
-    p = sky_str_find_char(str, '%');
-    if (!p) {
-        return true;
-    }
-
-    s = p++;
-
-    for (;;) {
-        ch = *(p++);
-        if (ch >= '0' && ch <= '9') {
-            ch -= (sky_uchar_t) '0';
-            *s = (sky_uchar_t) (ch << 4U);
-        } else {
-            ch |= 0x20U;
-            if (sky_unlikely(ch < 'a' || ch > 'f')) {
-                return false;
-            }
-            ch -= 'a' - 10;
-            *s = (sky_uchar_t) (ch << 4U);
-        }
-
-        ch = *(p++);
-        if (ch >= '0' && ch <= '9') {
-            *(s++) += (sky_uchar_t) (ch - '0');
-        } else {
-            ch |= 0x20U;
-            if (sky_unlikely(ch < 'a' || ch > 'f')) {
-                return false;
-            }
-            *(s++) += (sky_uchar_t) (ch - 'a' + 10);
-        }
-
-        for (;;) {
-            switch (*p) {
-                case '\0':
-                    *s = '\0';
-                    str->len = (sky_usize_t) (s - str->data);
-                    return true;
-                case '%':
-                    break;
-                default:
-                    *(s++) = *(p++);
-                    continue;
-            }
-            ++p;
-            break;
-        }
-    }
-}
-
-
 static sky_inline sky_bool_t
 http_method_identify(sky_http_server_request_t *const r) {
     const sky_uchar_t *m = r->method_name.data;
@@ -421,6 +366,13 @@ http_method_identify(sky_http_server_request_t *const r) {
                 return false;
             }
             r->method = SKY_HTTP_OPTIONS;
+            break;
+        case sky_str4_num('C', 'O', 'N', 'N'):
+            m += 4;
+            if (sky_unlikely(!sky_str4_cmp(m, 'E', 'C', 'T', '\0'))) {
+                return false;
+            }
+            r->method = SKY_HTTP_CONNECT;
             break;
         default:
             return false;
@@ -509,6 +461,7 @@ parse_url_no_decode(sky_http_server_request_t *const r, sky_uchar_t *post, const
             }
             case '%': {
                 ++post;
+                r->uri_no_decode = true;
                 r->state = sw_uri_code;
                 return (post - start);
             }
@@ -718,7 +671,7 @@ header_handle_run(sky_http_server_request_t *const req, sky_http_server_header_t
                     switch (sky_str4_switch(p + 8)) {
                         case sky_str4_num('T', 'y', 'p', 'e'):
                         case sky_str4_num('t', 'y', 'p', 'e'): { // Content-Type
-                            sky_str_set(&h->key, " content-type");
+                            sky_str_set(&h->key, "content-type");
                             req->headers_in.content_type = &h->val;
                             return true;
                         }
@@ -736,7 +689,7 @@ header_handle_run(sky_http_server_request_t *const req, sky_http_server_header_t
                     if (sky_likely((sky_str4_cmp(p + 8, 'L', 'e', 'n', 'g')
                                     || sky_str4_cmp(p + 8, 'l', 'e', 'n', 'g'
                     ) && sky_str2_cmp(p + 12, 't', 'h')))) { // Content-Length
-                        sky_str_set(&h->key, " content-length");
+                        sky_str_set(&h->key, "content-length");
                         req->headers_in.content_length = &h->val;
                         req->read_request_body = false;
 
@@ -755,7 +708,7 @@ header_handle_run(sky_http_server_request_t *const req, sky_http_server_header_t
                     if ((sky_str8_cmp(p, 'i', 'e', 'd', '-', 'S', 'i', 'n', 'c')
                          || sky_str8_cmp(p, 'i', 'e', 'd', '-', 's', 'i', 'n', 'c')
                         ) && p[8] == 'e') { // If-Modified-Since
-                        sky_str_set(&h->key, " if-modified-since");
+                        sky_str_set(&h->key, "if-modified-since");
                         req->headers_in.if_modified_since = &h->val;
                     }
                     return true;
@@ -766,7 +719,7 @@ header_handle_run(sky_http_server_request_t *const req, sky_http_server_header_t
                     if ((sky_str8_cmp(p, '-', 'E', 'n', 'c', 'o', 'd', 'i', 'n')
                          || sky_str8_cmp(p, '-', 'e', 'n', 'c', 'o', 'd', 'i', 'n')
                         ) && p[8] == 'g') { // Transfer-Encoding
-                        sky_str_set(&h->key, " transfer-encoding");
+                        sky_str_set(&h->key, "transfer-encoding");
                         req->headers_in.transfer_encoding = &h->val;
                         req->read_request_body = false;
                         return h->val.len == 7

@@ -117,7 +117,7 @@ http_run_handler_next(sky_http_server_request_t *const r, const http_module_disp
         return;
     }
 
-    switch (r->method) {
+    switch (sky_http_req_method(r)) {
         case SKY_HTTP_GET:
             break;
         case SKY_HTTP_POST:

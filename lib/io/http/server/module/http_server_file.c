@@ -167,14 +167,16 @@ http_run_handler(sky_http_server_request_t *const r, void *const data) {
     sky_str_t *const uri = sky_http_req_uri(r);
     uri->data += module_file->prefix->len;
     uri->len -= module_file->prefix->len;
-
-    if (sky_unlikely(!r->uri.len)) {
+    if (sky_unlikely(!uri->len)) {
         http_error_page(r, 404, "404 Not Found");
         return;
     }
+
+    sky_str_t *const exten = sky_http_req_exten(r);
+
     if (uri->len == 1 && *uri->data == '/') {
-        sky_str_set(&r->uri, "/index.html");
-        sky_str_set(&r->exten, ".html");
+        sky_str_set(uri, "/index.html");
+        sky_str_set(exten, ".html");
     }
 
     if (module_file->pre_run) {
@@ -185,17 +187,11 @@ http_run_handler(sky_http_server_request_t *const r, void *const data) {
     }
 
     http_mime_type_t mime_type;
-    if (!r->exten.len) {
+    if (!exten->len) {
         mime_type = module_file->default_mime_type;
     } else {
-        const sky_str_t lower = {
-                .len = r->exten.len,
-                .data = sky_palloc(r->pool, sizeof(r->exten.len) + 1)
-        };
-        sky_str_lower(lower.data, r->exten.data, lower.len);
-        lower.data[lower.len] = '\0';
-
-        if (!http_mime_type_get(&lower, &mime_type)) {
+        sky_str_lower2(&r->exten);
+        if (!http_mime_type_get(&r->exten, &mime_type)) {
             mime_type = module_file->default_mime_type;
         }
     }
@@ -203,17 +199,20 @@ http_run_handler(sky_http_server_request_t *const r, void *const data) {
 
     http_file_t *const file = sky_pcalloc(r->pool, sizeof(http_file_t));
 
-    if (r->headers_in.if_modified_since) {
+    sky_str_t *val = sky_http_req_if_modified_since(r);
+    if (!val) {
         file->modified = true;
-        sky_rfc_str_to_date(r->headers_in.if_modified_since, &file->modified_time);
+        sky_rfc_str_to_date(val, &file->modified_time);
     }
-    if (r->headers_in.range) {
+    val = sky_http_req_range(r);
+    if (val) {
         file->range = true;
-        http_header_range(file, r->headers_in.range);
+        http_header_range(file, val);
 
-        if (r->headers_in.if_range) {
+        val = sky_http_req_if_range(r);
+        if (val) {
             file->if_range = true;
-            sky_rfc_str_to_date(r->headers_in.if_range, &file->range_time);
+            sky_rfc_str_to_date(val, &file->range_time);
         }
     }
 
@@ -233,7 +232,7 @@ http_run_handler(sky_http_server_request_t *const r, void *const data) {
     sky_str_set(&header->key, "Last-Modified");
 
     if (file->modified && file->modified_time == fs_stat.modified_time_sec) {
-        header->val = *r->headers_in.if_modified_since;
+        header->val = *sky_http_req_if_modified_since(r);
         sky_http_res_set_status(r, 304);
         cache_node_file_unref(node);
         sky_http_res_nobody(r, null, null);

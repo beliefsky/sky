@@ -15,14 +15,14 @@
 extern "C" {
 #endif
 
-#define SKY_HTTP_UNKNOWN                   0x0000
-#define SKY_HTTP_GET                       0x0001
-#define SKY_HTTP_HEAD                      0x0002
-#define SKY_HTTP_POST                      0x0004
-#define SKY_HTTP_PUT                       0x0008
-#define SKY_HTTP_DELETE                    0x0010
-#define SKY_HTTP_OPTIONS                   0x0020
-#define SKY_HTTP_PATCH                     0x0040
+#define SKY_HTTP_GET        SKY_U8(0x01)
+#define SKY_HTTP_HEAD       SKY_U8(0x02)
+#define SKY_HTTP_POST       SKY_U8(0x04)
+#define SKY_HTTP_PUT        SKY_U8(0x08)
+#define SKY_HTTP_DELETE     SKY_U8(0x10)
+#define SKY_HTTP_OPTIONS    SKY_U8(0x20)
+#define SKY_HTTP_PATCH      SKY_U8(0x40)
+#define SKY_HTTP_CONNECT    SKY_U8(0x80)
 
 typedef struct sky_http_server_conf_s sky_http_server_conf_t;
 typedef struct sky_http_server_s sky_http_server_t;
@@ -59,8 +59,8 @@ struct sky_http_server_module_s {
 struct sky_http_server_request_s {
     sky_str_t method_name;
     sky_str_t uri;
-    sky_str_t args;
     sky_str_t exten;
+    sky_str_t args;
     sky_str_t version_name;
     sky_str_t header_name;
 
@@ -94,7 +94,7 @@ struct sky_http_server_request_s {
     void *attr_data;
 
     sky_u32_t state;
-    sky_u8_t method: 7;
+    sky_u8_t method;
     sky_bool_t uri_no_decode: 1;
     sky_bool_t arg_no_decode: 1;
     sky_bool_t keep_alive: 1;
@@ -116,9 +116,6 @@ sky_http_server_t *sky_http_server_create(sky_ev_loop_t *ev_loop, const sky_http
 sky_bool_t sky_http_server_module_put(sky_http_server_t *server, sky_http_server_module_t *module);
 
 sky_bool_t sky_http_server_bind(sky_http_server_t *server, const sky_inet_address_t *address);
-
-sky_str_t *sky_http_req_uri(sky_http_server_request_t *r);
-
 
 void sky_http_req_body_none(sky_http_server_request_t *r, sky_http_server_next_pt call, void *data);
 
@@ -182,14 +179,14 @@ sky_io_result_t sky_http_res_write(
 void sky_http_req_finish(sky_http_server_request_t *r);
 
 
-static sky_inline sky_str_t *
-sky_http_req_query_raw(sky_http_server_request_t *const r) {
-    return &r->args;
-}
-
 static sky_inline sky_bool_t
 sky_http_req_error(const sky_http_server_request_t *const r) {
     return r->error;
+}
+
+static sky_inline sky_pool_t *
+sky_http_req_pool(const sky_http_server_request_t *const r) {
+    return r->pool;
 }
 
 static sky_inline void
@@ -201,6 +198,65 @@ static sky_inline void *
 sky_http_req_get_data(sky_http_server_request_t *const r) {
     return r->attr_data;
 }
+
+static sky_inline sky_u8_t
+sky_http_req_method(sky_http_server_request_t *const r) {
+    return r->method;
+}
+
+static sky_inline sky_str_t *
+sky_http_req_method_name(sky_http_server_request_t *const r) {
+    return &r->method_name;
+}
+
+sky_api sky_inline sky_str_t *
+sky_http_req_uri(sky_http_server_request_t *const r) {
+    return &r->uri;
+}
+
+sky_api sky_inline sky_str_t *
+sky_http_req_exten(sky_http_server_request_t *r) {
+    return &r->exten;
+}
+
+static sky_inline sky_str_t *
+sky_http_req_host(sky_http_server_request_t *const r) {
+    return r->headers_in.host;
+}
+
+static sky_inline sky_str_t *
+sky_http_req_connection(sky_http_server_request_t *const r) {
+    return r->headers_in.connection;
+}
+
+static sky_inline sky_str_t *
+sky_http_req_if_modified_since(sky_http_server_request_t *const r) {
+    return r->headers_in.if_modified_since;
+}
+
+static sky_inline sky_str_t *
+sky_http_req_content_type(sky_http_server_request_t *const r) {
+    return r->headers_in.content_type;
+}
+
+static sky_inline sky_str_t *
+sky_http_req_range(sky_http_server_request_t *const r) {
+    return r->headers_in.range;
+}
+
+static sky_inline sky_str_t *
+sky_http_req_if_range(sky_http_server_request_t *const r) {
+    return r->headers_in.if_range;
+}
+
+#define sky_http_req_header_foreach(_r, _item, _code) \
+    sky_list_foreach(&(_r)->headers_in.headers, sky_http_server_header_t, _item, _code)
+
+static sky_inline sky_str_t *
+sky_http_req_header_fo(sky_http_server_request_t *const r) {
+    return r->headers_in.if_range;
+}
+
 
 static sky_inline void
 sky_http_res_set_status(sky_http_server_request_t *const r, const sky_u32_t status) {
