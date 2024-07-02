@@ -30,6 +30,7 @@ typedef struct sky_http_server_module_s sky_http_server_module_t;
 typedef struct sky_http_connection_s sky_http_connection_t;
 typedef struct sky_http_server_request_s sky_http_server_request_t;
 typedef struct sky_http_server_header_s sky_http_server_header_t;
+typedef struct sky_http_server_header_s sky_http_server_param_t;
 
 typedef void (*sky_http_server_module_run_pt)(sky_http_server_request_t *r, void *module_data);
 
@@ -85,6 +86,8 @@ struct sky_http_server_request_s {
         sky_u64_t content_length_n;
     } headers_out;
 
+    sky_list_t *params;
+
     sky_usize_t index;
     sky_uchar_t *req_pos;
 
@@ -111,16 +114,59 @@ struct sky_http_server_header_s {
     sky_str_t val;
 };
 
+
+#define sky_http_req_header_foreach(_r, _item, _code) \
+    sky_list_foreach(&(_r)->headers_in.headers, sky_http_server_header_t, _item, _code)
+
+#define sky_http_req_params_foreach(_list, _item, _code) \
+    sky_list_foreach(_list, sky_http_server_param_t, _item, _code)
+
+
+
 sky_http_server_t *sky_http_server_create(sky_ev_loop_t *ev_loop, const sky_http_server_conf_t *conf);
 
 sky_bool_t sky_http_server_module_put(sky_http_server_t *server, sky_http_server_module_t *module);
 
 sky_bool_t sky_http_server_bind(sky_http_server_t *server, const sky_inet_address_t *address);
 
+/**
+ * 获取http 请求参数
+ *
+ * @param r http req
+ * @return 请求参数集合, 可用 sky_http_req_params_foreach 进行遍历
+ */
+sky_list_t *sky_http_req_query_params(sky_http_server_request_t *r);
+
+/**
+ * 读取 http body的所有数据，忽略其中的内容
+
+ * @param r http req
+ * @param call 回调函数
+ * @param data 执行回调时自定义数据
+ */
 void sky_http_req_body_none(sky_http_server_request_t *r, sky_http_server_next_pt call, void *data);
 
+/**
+ * 读取 http body的所有数据，此函数受 body_str_max 参数影响，
+ * 大于此参数会自动发送响应 413 并放弃内容
+ *
+ * @param r http req
+ * @param call 回调函数
+ * @param data 执行回调时自定义数据
+ */
 void sky_http_req_body_str(sky_http_server_request_t *r, sky_http_server_next_str_pt call, void *data);
 
+/**
+ * 使用原生读取 http body数据
+ *
+ * @param r http req
+ * @param buf 待发送数据
+ * @param size 待发送数据字节数
+ * @param bytes 已发送字节数，当返回 REQ_SUCCESS 时有效
+ * @param call 回调函数，如果不是 REQ_PENDING 时会立即返回，不会触发回调
+ * @param data 执行回调时自定义数据
+ * @return 调用结果
+ */
 sky_io_result_t sky_http_req_body_read(
         sky_http_server_request_t *r,
         sky_uchar_t *buf,
@@ -130,6 +176,16 @@ sky_io_result_t sky_http_req_body_read(
         void *data
 );
 
+/**
+ * 使用原生读取 http body数据并忽略其中的内容
+ *
+ * @param r http req
+ * @param size 待发送数据字节数
+ * @param bytes 已发送字节数，当返回 REQ_SUCCESS 时有效
+ * @param call 回调函数，如果不是 REQ_PENDING 时会立即返回，不会触发回调
+ * @param data 执行回调时自定义数据
+ * @return 调用结果
+ */
 sky_io_result_t sky_http_req_body_skip(
         sky_http_server_request_t *r,
         sky_usize_t size,
@@ -138,8 +194,23 @@ sky_io_result_t sky_http_req_body_skip(
         void *data
 );
 
+/**
+ * http 发送响应，针对无内容的http响应，比如304，302之类的
+ *
+ * @param r http req
+ * @param call 回调函数，如果为 null, 会自动调用 sky_http_req_finish 结束
+ * @param cb_data 回调自定义数据
+ */
 void sky_http_res_nobody(sky_http_server_request_t *r, sky_http_server_next_pt call, void *cb_data);
 
+/**
+ * http 响应发送数据
+ *
+ * @param r http req
+ * @param data 待待发送数据
+ * @param call 回调函数，如果为 null, 会自动调用 sky_http_req_finish 结束
+ * @param cb_data 回调自定义数据
+ */
 void sky_http_res_str(
         sky_http_server_request_t *r,
         const sky_str_t *data,
@@ -147,6 +218,15 @@ void sky_http_res_str(
         void *cb_data
 );
 
+/**
+ * http 响应发送数据
+ *
+ * @param r  http req
+ * @param data 待待发送数据
+ * @param data_len 待发送数据长度
+ * @param call 回调函数，如果为 null, 会自动调用 sky_http_req_finish 结束
+ * @param cb_data 回调自定义数据
+ */
 void sky_http_res_str_len(
         sky_http_server_request_t *r,
         sky_uchar_t *data,
@@ -156,6 +236,17 @@ void sky_http_res_str_len(
 );
 
 
+/**
+ * http 响应发送文件
+ *
+ * @param r  http req
+ * @param fs 文件
+ * @param offset 偏移字节数
+ * @param size 发送字节数
+ * @param file_size 整个文件大小(206 按字节偏移发送时需要)
+ * @param call 回调函数，如果为 null, 会自动调用 sky_http_req_finish 结束
+ * @param cb_data 回调自定义数据
+ */
 void sky_http_res_file(
         sky_http_server_request_t *r,
         sky_fs_t *fs,
@@ -167,6 +258,18 @@ void sky_http_res_file(
 );
 
 
+/**
+ * 使用原生方式发送数据，如果未 调用 sky_http_res_set_content_length 则采用 chunked发送。
+ * 使用chunked发送完成时，必须再调用一次且 size = 0，表示已发送结束
+ *
+ * @param r http req
+ * @param buf 待发送数据
+ * @param size 待发送数据字节数
+ * @param bytes 已发送字节数，当返回 REQ_SUCCESS 时有效
+ * @param call 回调函数，如果不是 REQ_PENDING 时会立即返回，不会触发回调
+ * @param data 执行回调时自定义数据
+ * @return 调用结果
+ */
 sky_io_result_t sky_http_res_write(
         sky_http_server_request_t *r,
         sky_uchar_t *buf,
@@ -176,24 +279,53 @@ sky_io_result_t sky_http_res_write(
         void *data
 );
 
+/**
+ * http 请求结束，整个请求和响应完成
+ *
+ * @param r http req
+ */
 void sky_http_req_finish(sky_http_server_request_t *r);
 
 
+/**
+ * http 是否有异常，在读取body时可能报文不正确，超时，连接关闭等
+ *
+ * @param r http req
+ * @return 是否异常
+ */
 static sky_inline sky_bool_t
 sky_http_req_error(const sky_http_server_request_t *const r) {
     return r->error;
 }
 
+/**
+ * 获取http内存池，会随着http请求完成统一回收
+ *
+ * @param r http req
+ * @return  内存池
+ */
 static sky_inline sky_pool_t *
 sky_http_req_pool(const sky_http_server_request_t *const r) {
     return r->pool;
 }
 
+/**
+ * http req自定义数据设置
+ *
+ * @param r http req
+ * @param data  自定义数据
+ */
 static sky_inline void
 sky_http_req_set_data(sky_http_server_request_t *const r, void *const data) {
     r->attr_data = data;
 }
 
+/**
+ * http req自定义数据获取
+ *
+ * @param r http req
+ * @return 自定义数据
+ */
 static sky_inline void *
 sky_http_req_get_data(sky_http_server_request_t *const r) {
     return r->attr_data;
@@ -209,13 +341,13 @@ sky_http_req_method_name(sky_http_server_request_t *const r) {
     return &r->method_name;
 }
 
-sky_api sky_inline sky_str_t *
+static sky_inline sky_str_t *
 sky_http_req_uri(sky_http_server_request_t *const r) {
     return &r->uri;
 }
 
-sky_api sky_inline sky_str_t *
-sky_http_req_exten(sky_http_server_request_t *r) {
+static sky_inline sky_str_t *
+sky_http_req_exten(sky_http_server_request_t *const r) {
     return &r->exten;
 }
 
@@ -249,15 +381,6 @@ sky_http_req_if_range(sky_http_server_request_t *const r) {
     return r->headers_in.if_range;
 }
 
-#define sky_http_req_header_foreach(_r, _item, _code) \
-    sky_list_foreach(&(_r)->headers_in.headers, sky_http_server_header_t, _item, _code)
-
-static sky_inline sky_str_t *
-sky_http_req_header_fo(sky_http_server_request_t *const r) {
-    return r->headers_in.if_range;
-}
-
-
 static sky_inline void
 sky_http_res_set_status(sky_http_server_request_t *const r, const sky_u32_t status) {
     r->state = status;
@@ -273,6 +396,12 @@ sky_http_res_set_content_type(
     r->headers_out.content_type.len = size;
 }
 
+/**
+ * 在已知发送数据字节数时设置响应内容的字节数，采用 sky_http_res_write 发送时有效
+ *
+ * @param r http req
+ * @param size  响应内容的字节数
+ */
 static sky_inline void
 sky_http_res_set_content_length(sky_http_server_request_t *const r, const sky_u64_t size) {
     if (sky_likely(!r->response)) {

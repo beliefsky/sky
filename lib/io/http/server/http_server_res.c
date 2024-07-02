@@ -460,7 +460,7 @@ sky_http_res_write(
         }
 
         sky_uchar_t *const p = sky_str_buf_need_size(&buffer, (SKY_USIZE_BITS << 1) + 2);
-        const sky_u8_t n = sky_usize_to_hex_str(size, p, true);
+        const sky_usize_t n = sky_usize_to_hex_str(size, p, true);
         sky_memcpy2(p + 2, "\r\n");
         sky_str_buf_need_commit(&buffer, n + 2);
 
