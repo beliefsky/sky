@@ -224,11 +224,19 @@ http_params_decode(sky_list_t *list, sky_uchar_t *p, sky_usize_t size) {
 
 static sky_usize_t
 http_url_decode(sky_uchar_t *const data, sky_usize_t size) {
-    sky_uchar_t *p = sky_str_len_find_char(data, size, '%');
-    if (!p) {
-        return size;
+    if (sky_unlikely(!size)) {
+        return 0;
     }
-    sky_uchar_t *s = p++, ch;
+    sky_uchar_t *p, ch = *data;
+    if (ch == '%') {
+        p = data;
+    } else {
+        p = sky_str_len_find_char(data + 1, size - 1, '%');
+        if (!p) {
+            return size;
+        }
+    }
+    sky_uchar_t *s = p++;
     size -= (sky_usize_t) (p - data);
     for (;;) {
         if (sky_unlikely(size < 2)) {
