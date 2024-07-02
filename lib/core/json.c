@@ -2323,7 +2323,7 @@ read_number(sky_uchar_t **ptr, sky_uchar_t **pre, sky_json_val_t *val, sky_bool_
          */
 
         sky_u64_t raw;
-        sky_u64_t sig1, sig2, sig2_ext, hi, lo, hi2, lo2, add, bits;
+        sky_u64_t sig1, sig2, sig2_ext, hi, lo, hi2, add, bits;
         sky_i32_t exp2;
         sky_u32_t lz;
         sky_bool_t exact = false, carry, round_up;
@@ -2363,7 +2363,7 @@ read_number(sky_uchar_t **ptr, sky_uchar_t **pre, sky_json_val_t *val, sky_bool_
              The `bits` is filled with all `0` or all `1`, so we need to check
              lower bits with another 64-bit multiplication.
              */
-            lo2 = u128_mul(sig1, sig2_ext, &hi2);
+            u128_mul(sig1, sig2_ext, &hi2);
 
             add = lo + hi2;
             if (add + 1 > SKY_U64(1)) {
