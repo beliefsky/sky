@@ -79,6 +79,20 @@ sky_http_req_query_params(sky_http_server_request_t *r) {
     return r->params;
 }
 
+sky_api sky_list_t *
+sky_http_req_body_parse_urlencoded(sky_http_server_request_t *r, sky_str_t *body) {
+    if (!body || !body->len) {
+        return null;
+    }
+    sky_str_t *content_type = sky_http_req_content_type(r);
+    if (!content_type || !sky_str_equals2(content_type, sky_str_line("application/x-www-form-urlencoded"))) {
+        return null;
+    }
+    sky_list_t *const list = sky_list_create(r->pool, 8, sizeof(sky_http_server_param_t));
+    http_params_decode(list, body->data, body->len);
+    return list;
+}
+
 
 sky_bool_t
 http_req_url_decode(sky_http_server_request_t *r) {
@@ -179,7 +193,7 @@ http_params_decode(sky_list_t *list, sky_uchar_t *p, sky_usize_t size) {
             tmp = http_url_decode(p, (sky_usize_t) param_val_index);
             if (sky_likely(tmp != SKY_USIZE_MAX)) {
                 p[tmp] = '\0';
-                v_size = (sky_usize_t)(param_end_index - param_val_index - 1);
+                v_size = (sky_usize_t) (param_end_index - param_val_index - 1);
                 if (!size) {
                     param = sky_list_push(list);
                     param->key.data = p;
@@ -187,7 +201,7 @@ http_params_decode(sky_list_t *list, sky_uchar_t *p, sky_usize_t size) {
                     param->val.data = null;
                     param->val.len = 0;
                 } else {
-                    v_p =  p + param_val_index + 1;
+                    v_p = p + param_val_index + 1;
                     v_size = http_url_decode(v_p, v_size);
                     if (sky_likely(v_size != SKY_USIZE_MAX)) {
                         v_p[v_size] = '\0';

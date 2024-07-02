@@ -286,6 +286,14 @@ sky_io_result_t sky_http_res_write(
  */
 void sky_http_req_finish(sky_http_server_request_t *r);
 
+/**
+ * 获取http form 参数，只在content-type=application/x-www-form-urlencoded时生效
+ *
+ * @param r http req
+ * @param body 获取到的body数据
+ * @return 请求参数集合, 可用 sky_http_req_params_foreach 进行遍历
+ */
+sky_list_t *sky_http_req_body_parse_urlencoded(sky_http_server_request_t *r, sky_str_t *body);
 
 /**
  * http 是否有异常，在读取body时可能报文不正确，超时，连接关闭等
