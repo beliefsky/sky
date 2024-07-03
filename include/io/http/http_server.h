@@ -447,7 +447,7 @@ sky_http_res_push_header(sky_http_server_request_t *const r) {
  * @param r http req
  * @return 请求参数集合, 可用 sky_http_req_params_foreach 进行遍历
  */
-sky_list_t *
+static sky_inline  sky_list_t *
 sky_http_req_query_params(sky_http_server_request_t *r) {
     sky_str_t *const args = sky_http_req_args_raw(r);
     return sky_http_req_parse_params(
@@ -465,7 +465,7 @@ sky_http_req_query_params(sky_http_server_request_t *r) {
  * @param body 获取到的body数据
  * @return 请求参数集合, 可用 sky_http_req_params_foreach 进行遍历
  */
-static sky_list_t *
+static sky_inline sky_list_t *
 sky_http_req_body_parse_urlencoded(sky_http_server_request_t *const r, sky_str_t *const body) {
     sky_str_t *const content_type = sky_http_req_content_type(r);
     if (!content_type || !sky_str_equals2(content_type, sky_str_line("application/x-www-form-urlencoded"))) {
