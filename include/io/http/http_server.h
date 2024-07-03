@@ -86,8 +86,6 @@ struct sky_http_server_request_s {
         sky_u64_t content_length_n;
     } headers_out;
 
-    sky_list_t *params;
-
     sky_usize_t index;
     sky_uchar_t *req_pos;
 
@@ -122,20 +120,11 @@ struct sky_http_server_header_s {
     sky_list_foreach(_list, sky_http_server_param_t, _item, _code)
 
 
-
 sky_http_server_t *sky_http_server_create(sky_ev_loop_t *ev_loop, const sky_http_server_conf_t *conf);
 
 sky_bool_t sky_http_server_module_put(sky_http_server_t *server, sky_http_server_module_t *module);
 
 sky_bool_t sky_http_server_bind(sky_http_server_t *server, const sky_inet_address_t *address);
-
-/**
- * 获取http 请求参数
- *
- * @param r http req
- * @return 请求参数集合, 可用 sky_http_req_params_foreach 进行遍历
- */
-sky_list_t *sky_http_req_query_params(sky_http_server_request_t *r);
 
 /**
  * 读取 http body的所有数据，忽略其中的内容
@@ -286,14 +275,15 @@ sky_io_result_t sky_http_res_write(
  */
 void sky_http_req_finish(sky_http_server_request_t *r);
 
+
 /**
- * 获取http form 参数，只在content-type=application/x-www-form-urlencoded时生效
- *
- * @param r http req
- * @param body 获取到的body数据
- * @return 请求参数集合, 可用 sky_http_req_params_foreach 进行遍历
+ * 解析http参数
+ * @param pool 内存池
+ * @param data 待处理的字符串
+ * @param decode 是否转义解码
+ * @return 参数集合，可用 sky_http_req_params_foreach 进行遍历
  */
-sky_list_t *sky_http_req_body_parse_urlencoded(sky_http_server_request_t *r, sky_str_t *body);
+sky_list_t *sky_http_req_parse_params(sky_pool_t *pool, sky_str_t *data, sky_bool_t decode);
 
 /**
  * http 是否有异常，在读取body时可能报文不正确，超时，连接关闭等
@@ -352,6 +342,18 @@ sky_http_req_method_name(sky_http_server_request_t *const r) {
 static sky_inline sky_str_t *
 sky_http_req_uri(sky_http_server_request_t *const r) {
     return &r->uri;
+}
+
+
+static sky_inline sky_str_t *
+sky_http_req_args_raw(sky_http_server_request_t *const r) {
+    return &r->args;
+}
+
+
+static sky_inline sky_bool_t
+sky_http_req_args_need_decode(sky_http_server_request_t *const r) {
+    return r->arg_no_decode;
 }
 
 static sky_inline sky_str_t *
@@ -436,6 +438,40 @@ sky_http_res_add_header(
 static sky_inline sky_http_server_header_t *
 sky_http_res_push_header(sky_http_server_request_t *const r) {
     return sky_list_push(&r->headers_out.headers);
+}
+
+
+/**
+ * 获取http 请求参数
+ *
+ * @param r http req
+ * @return 请求参数集合, 可用 sky_http_req_params_foreach 进行遍历
+ */
+sky_list_t *
+sky_http_req_query_params(sky_http_server_request_t *r) {
+    sky_str_t *const args = sky_http_req_args_raw(r);
+    return sky_http_req_parse_params(
+            sky_http_req_pool(r),
+            args,
+            sky_http_req_args_need_decode(r)
+    );
+}
+
+
+/**
+ * 获取http form 参数，只在content-type=application/x-www-form-urlencoded时生效
+ *
+ * @param r http req
+ * @param body 获取到的body数据
+ * @return 请求参数集合, 可用 sky_http_req_params_foreach 进行遍历
+ */
+static sky_list_t *
+sky_http_req_body_parse_urlencoded(sky_http_server_request_t *const r, sky_str_t *const body) {
+    sky_str_t *const content_type = sky_http_req_content_type(r);
+    if (!content_type || !sky_str_equals2(content_type, sky_str_line("application/x-www-form-urlencoded"))) {
+        return null;
+    }
+    return sky_http_req_parse_params(sky_http_req_pool(r), body, true);
 }
 
 #if defined(__cplusplus)
