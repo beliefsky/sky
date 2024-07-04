@@ -13,6 +13,7 @@ typedef struct {
     sky_queue_t link;
     sky_socket_t accept_fd;
     sky_tcp_accept_pt accept;
+    void *cb_data;
     sky_tcp_cli_t *cli;
     sky_uchar_t accept_buffer[(sizeof(sky_inet_address_t) << 1) + 32];
 } tcp_acceptor_t;
@@ -72,7 +73,7 @@ sky_tcp_ser_open(
 }
 
 sky_api sky_io_result_t
-sky_tcp_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_tcp_accept_pt cb) {
+sky_tcp_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_tcp_accept_pt cb, void *attr) {
     if (sky_unlikely(ser->ev.fd == SKY_SOCKET_FD_NONE
                      || (ser->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
         return REQ_ERROR;
@@ -85,8 +86,9 @@ sky_tcp_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_tcp_accept_pt cb) {
     sky_memzero(&acceptor->req.overlapped, sizeof(OVERLAPPED));
     acceptor->req.type = EV_REQ_TCP_ACCEPT;
     acceptor->accept_fd = accept_fd;
-    acceptor->cli = cli;
     acceptor->accept = cb;
+    acceptor->cb_data = attr;
+    acceptor->cli = cli;
 
     DWORD bytes;
     if (accept_ex(
@@ -126,11 +128,12 @@ sky_tcp_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_tcp_accept_pt cb) {
 }
 
 sky_api sky_bool_t
-sky_tcp_ser_close(sky_tcp_ser_t *ser, sky_tcp_ser_cb_pt cb) {
+sky_tcp_ser_close(sky_tcp_ser_t *ser, sky_tcp_ser_cb_pt cb, void *attr) {
     if (ser->ev.fd == SKY_SOCKET_FD_NONE || (ser->ev.flags & SKY_TCP_STATUS_CLOSING)) {
         return false;
     }
     ser->close_cb = cb;
+    ser->close_data = attr;
     ser->ev.flags |= SKY_TCP_STATUS_CLOSING;
 
     if (ser->req_num) {
@@ -150,8 +153,10 @@ event_on_tcp_accept(sky_ev_t *ev, ev_req_t *req, sky_usize_t bytes, sky_bool_t s
 
     sky_tcp_ser_t *const ser = (sky_tcp_ser_t *const) ev;
     tcp_acceptor_t *const acceptor = (tcp_acceptor_t *) req;
-    sky_tcp_cli_t *const cli = acceptor->cli;
     sky_tcp_accept_pt cb = acceptor->accept;
+    void *const attr = acceptor->cb_data;
+    sky_tcp_cli_t *const cli = acceptor->cli;
+
     --ser->req_num;
 
     const sky_bool_t before_closing = (ser->ev.flags & SKY_TCP_STATUS_CLOSING);
@@ -168,12 +173,12 @@ event_on_tcp_accept(sky_ev_t *ev, ev_req_t *req, sky_usize_t bytes, sky_bool_t s
                 0
         );
         SetFileCompletionNotificationModes((HANDLE) cli->ev.fd, FILE_SKIP_COMPLETION_PORT_ON_SUCCESS);
-        cb(ser, cli, true);
+        cb(ser, cli, true, attr);
     } else {
         closesocket(acceptor->accept_fd);
         sky_free(acceptor);
 
-        cb(ser, cli, false);
+        cb(ser, cli, false, attr);
     }
 
     if (before_closing && !ser->req_num) {
@@ -188,7 +193,7 @@ close_on_tcp_ser(sky_ev_t *ev) {
     closesocket(ser->ev.fd);
     ser->ev.fd = SKY_SOCKET_FD_NONE;
     ser->ev.flags = EV_TYPE_TCP_SER;
-    ser->close_cb(ser);
+    ser->close_cb(ser, ser->close_data);
 }
 
 

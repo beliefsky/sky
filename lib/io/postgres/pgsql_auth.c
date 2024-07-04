@@ -40,7 +40,7 @@ static sky_i8_t pgsql_password(
 
 static void on_pgsql_password_send(sky_tcp_cli_t *tcp, sky_usize_t size, void *attr);
 
-static void on_pgsql_close(sky_tcp_cli_t *tcp);
+static void on_pgsql_close(sky_tcp_cli_t *tcp, void *data);
 
 static void auth_cleartext_password(
         auth_packet_t *packet,
@@ -96,7 +96,7 @@ pgsql_auth(sky_pgsql_conn_t *const conn) {
             return;
         default:
             sky_timer_wheel_unlink(&conn->timer);
-            sky_tcp_cli_close(&conn->tcp, on_pgsql_close);
+            sky_tcp_cli_close(&conn->tcp, on_pgsql_close, null);
             return;
     }
 }
@@ -108,7 +108,7 @@ on_pgsql_connect_info_send(sky_tcp_cli_t *tcp, sky_usize_t size, void *attr) {
     sky_pgsql_conn_t *const conn = sky_type_convert(tcp, sky_pgsql_conn_t, tcp);
     if (size == SKY_USIZE_MAX) {
         sky_timer_wheel_unlink(&conn->timer);
-        sky_tcp_cli_close(tcp, on_pgsql_close);
+        sky_tcp_cli_close(tcp, on_pgsql_close, null);
         return;
     }
     auth_packet_t *const packet = sky_palloc(conn->current_pool, sizeof(auth_packet_t));
@@ -135,7 +135,7 @@ on_pgsql_connect_info_send(sky_tcp_cli_t *tcp, sky_usize_t size, void *attr) {
             return;
         default:
             sky_timer_wheel_unlink(&conn->timer);
-            sky_tcp_cli_close(tcp, on_pgsql_close);
+            sky_tcp_cli_close(tcp, on_pgsql_close, null);
             return;
     }
 }
@@ -289,7 +289,7 @@ on_pgsql_auth_read(sky_tcp_cli_t *tcp, sky_usize_t size, void *attr) {
     error:
     sky_timer_wheel_unlink(&conn->timer);
     sky_buf_destroy(buf);
-    sky_tcp_cli_close(tcp, on_pgsql_close);
+    sky_tcp_cli_close(tcp, on_pgsql_close, null);
 }
 
 
@@ -381,7 +381,7 @@ on_pgsql_password_send(sky_tcp_cli_t *tcp, sky_usize_t size, void *attr) {
     if (size == SKY_USIZE_MAX) {
         sky_timer_wheel_unlink(&conn->timer);
         sky_buf_destroy(&packet->buf);
-        sky_tcp_cli_close(tcp, on_pgsql_close);
+        sky_tcp_cli_close(tcp, on_pgsql_close, null);
         return;
     }
     sky_buf_reset(&packet->buf);
@@ -401,13 +401,15 @@ on_pgsql_password_send(sky_tcp_cli_t *tcp, sky_usize_t size, void *attr) {
             return;
         default:
             sky_timer_wheel_unlink(&conn->timer);
-            sky_tcp_cli_close(tcp, on_pgsql_close);
+            sky_tcp_cli_close(tcp, on_pgsql_close, null);
             return;
     }
 }
 
 static void
-on_pgsql_close(sky_tcp_cli_t *const tcp) {
+on_pgsql_close(sky_tcp_cli_t *const tcp, void *data) {
+    (void) data;
+
     sky_pgsql_conn_t *const conn = sky_type_convert(tcp, sky_pgsql_conn_t, tcp);
     const sky_pgsql_conn_pt call = conn->conn_cb;
     void *const cb_data = conn->cb_data;

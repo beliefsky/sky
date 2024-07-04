@@ -21,17 +21,17 @@ typedef struct sky_tcp_ser_s sky_tcp_ser_t;
 typedef struct sky_tcp_cli_s sky_tcp_cli_t;
 typedef struct sky_tcp_fs_data_s sky_tcp_fs_data_t;
 
-typedef void (*sky_tcp_ser_cb_pt)(sky_tcp_ser_t *ser);
+typedef void (*sky_tcp_ser_cb_pt)(sky_tcp_ser_t *ser, void *attr);
 
 typedef sky_bool_t (*sky_tcp_ser_option_pt)(sky_tcp_ser_t *ser);
 
-typedef void (*sky_tcp_accept_pt)(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_bool_t success);
+typedef void (*sky_tcp_accept_pt)(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_bool_t success, void *attr);
 
-typedef void (*sky_tcp_connect_pt)(sky_tcp_cli_t *cli, sky_bool_t success);
+typedef void (*sky_tcp_connect_pt)(sky_tcp_cli_t *cli, sky_bool_t success, void *attr);
 
 typedef void (*sky_tcp_rw_pt)(sky_tcp_cli_t *cli, sky_usize_t size, void *attr);
 
-typedef void (*sky_tcp_cli_cb_pt)(sky_tcp_cli_t *cli);
+typedef void (*sky_tcp_cli_cb_pt)(sky_tcp_cli_t *cli, void *attr);
 
 #ifndef __WINNT__
 
@@ -46,6 +46,7 @@ struct sky_tcp_task_s {
 struct sky_tcp_ser_s {
     sky_ev_t ev;
     sky_tcp_ser_cb_pt close_cb;
+    void *close_data;
 #ifdef __WINNT__
     sky_usize_t req_num;
 #else
@@ -58,7 +59,7 @@ struct sky_tcp_ser_s {
 struct sky_tcp_cli_s {
     sky_ev_t ev;
     sky_tcp_cli_cb_pt close_cb;
-
+    void *close_data;
 #ifdef __WINNT__
     sky_usize_t req_num;
 #else
@@ -92,9 +93,18 @@ sky_bool_t sky_tcp_ser_open(
         sky_i32_t backlog
 );
 
-sky_io_result_t sky_tcp_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_tcp_accept_pt cb);
+sky_io_result_t sky_tcp_accept(
+        sky_tcp_ser_t *ser,
+        sky_tcp_cli_t *cli,
+        sky_tcp_accept_pt cb,
+        void *attr
+);
 
-sky_bool_t sky_tcp_ser_close(sky_tcp_ser_t *ser, sky_tcp_ser_cb_pt cb);
+sky_bool_t sky_tcp_ser_close(
+        sky_tcp_ser_t *ser,
+        sky_tcp_ser_cb_pt cb,
+        void *attr
+);
 
 void sky_tcp_cli_init(sky_tcp_cli_t *cli, sky_ev_loop_t *ev_loop);
 
@@ -103,7 +113,8 @@ sky_bool_t sky_tcp_cli_open(sky_tcp_cli_t *cli, sky_i32_t domain);
 sky_io_result_t sky_tcp_connect(
         sky_tcp_cli_t *cli,
         const sky_inet_address_t *address,
-        sky_tcp_connect_pt cb
+        sky_tcp_connect_pt cb,
+        void *attr
 );
 
 sky_io_result_t sky_tcp_skip(
@@ -159,7 +170,7 @@ sky_io_result_t sky_tcp_send_fs(
 );
 
 
-sky_bool_t sky_tcp_cli_close(sky_tcp_cli_t *cli, sky_tcp_cli_cb_pt cb);
+sky_bool_t sky_tcp_cli_close(sky_tcp_cli_t *cli, sky_tcp_cli_cb_pt cb,  void *attr);
 
 
 static sky_inline sky_ev_loop_t *

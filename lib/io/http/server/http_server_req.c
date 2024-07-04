@@ -24,7 +24,7 @@ static void http_server_request_next(sky_timer_wheel_entry_t *timer);
 
 static void http_conn_close(sky_http_connection_t *conn);
 
-static void on_http_conn_close(sky_tcp_cli_t *cli);
+static void on_http_conn_close(sky_tcp_cli_t *cli, void *data);
 
 
 sky_api void
@@ -299,7 +299,7 @@ http_server_req_finish(sky_http_request_t *r, void *const data) {
 void
 http_timeout_cb(sky_timer_wheel_entry_t *const timer) {
     sky_http_connection_t *const conn = sky_type_convert(timer, sky_http_connection_t, timer);
-    sky_tcp_cli_close(&conn->tcp, on_http_conn_close);
+    sky_tcp_cli_close(&conn->tcp, on_http_conn_close, null);
 }
 
 static void
@@ -363,11 +363,13 @@ http_server_request_next(sky_timer_wheel_entry_t *const timer) {
 static sky_inline void
 http_conn_close(sky_http_connection_t *const conn) {
     sky_timer_wheel_unlink(&conn->timer);
-    sky_tcp_cli_close(&conn->tcp, on_http_conn_close);
+    sky_tcp_cli_close(&conn->tcp, on_http_conn_close, null);
 }
 
 static void
-on_http_conn_close(sky_tcp_cli_t *cli) {
+on_http_conn_close(sky_tcp_cli_t *cli, void *data) {
+    (void) data;
+
     sky_http_connection_t *const conn = sky_type_convert(cli, sky_http_connection_t, tcp);
     sky_pool_destroy(conn->current_req->pool);
     sky_free(conn);

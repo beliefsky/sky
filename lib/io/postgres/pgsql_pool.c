@@ -8,13 +8,13 @@
 
 static void pgsql_connect_next(sky_pgsql_conn_t *conn);
 
-static void on_pgsql_connection(sky_tcp_cli_t *tcp, sky_bool_t success);
+static void on_pgsql_connection(sky_tcp_cli_t *tcp, sky_bool_t success, void *data);
 
-static void on_pgsql_close(sky_tcp_cli_t *tcp);
+static void on_pgsql_close(sky_tcp_cli_t *tcp, void *data);
 
-static void on_pgsql_keepalive_close(sky_tcp_cli_t *tcp);
+static void on_pgsql_keepalive_close(sky_tcp_cli_t *tcp, void *data);
 
-static void on_pgsql_destroy_close(sky_tcp_cli_t *const tcp);
+static void on_pgsql_destroy_close(sky_tcp_cli_t *tcp, void *data);
 
 static void pgsql_pool_destroy(sky_pgsql_pool_t *pg_pool);
 
@@ -177,7 +177,7 @@ pgsql_connect_next(sky_pgsql_conn_t *const conn) {
         return;
     }
 
-    switch (sky_tcp_connect(&conn->tcp, &pg_pool->address, on_pgsql_connection)) {
+    switch (sky_tcp_connect(&conn->tcp, &pg_pool->address, on_pgsql_connection, null)) {
         case REQ_PENDING:
             sky_timer_set_cb(&conn->timer, pgsql_connect_timeout);
             sky_event_timeout_set(pg_pool->ev_loop, &conn->timer, pg_pool->timeout);
@@ -188,24 +188,28 @@ pgsql_connect_next(sky_pgsql_conn_t *const conn) {
             pgsql_auth(conn);
             return;
         default:
-            sky_tcp_cli_close(&conn->tcp, on_pgsql_close);
+            sky_tcp_cli_close(&conn->tcp, on_pgsql_close, null);
             return;
     }
 }
 
 static void
-on_pgsql_connection(sky_tcp_cli_t *const tcp, sky_bool_t success) {
+on_pgsql_connection(sky_tcp_cli_t *const tcp, sky_bool_t success, void *data) {
+    (void) data;
+
     sky_pgsql_conn_t *const conn = sky_type_convert(tcp, sky_pgsql_conn_t, tcp);
     if (!success) {
         sky_timer_wheel_unlink(&conn->timer);
-        sky_tcp_cli_close(tcp, on_pgsql_close);
+        sky_tcp_cli_close(tcp, on_pgsql_close, null);
         return;
     }
     pgsql_auth(conn);
 }
 
 static void
-on_pgsql_close(sky_tcp_cli_t *const tcp) {
+on_pgsql_close(sky_tcp_cli_t *const tcp, void *data) {
+    (void) data;
+
     sky_pgsql_conn_t *const conn = sky_type_convert(tcp, sky_pgsql_conn_t, tcp);
     const sky_pgsql_conn_pt call = conn->conn_cb;
     void *const cb_data = conn->cb_data;
@@ -214,15 +218,19 @@ on_pgsql_close(sky_tcp_cli_t *const tcp) {
 }
 
 static void
-on_pgsql_keepalive_close(sky_tcp_cli_t *const tcp) {
+on_pgsql_keepalive_close(sky_tcp_cli_t *const tcp, void *data) {
+    (void) data;
+
     sky_pgsql_conn_t *const conn = sky_type_convert(tcp, sky_pgsql_conn_t, tcp);
     pgsql_task_next(&conn->timer);
 }
 
 static void
-on_pgsql_destroy_close(sky_tcp_cli_t *const tcp) {
+on_pgsql_destroy_close(sky_tcp_cli_t *const tcp, void *data) {
+    (void) data;
+
     sky_pgsql_conn_t *const conn = sky_type_convert(tcp, sky_pgsql_conn_t, tcp);
-    sky_pgsql_pool_t  *const pg_pool = conn->pg_pool;
+    sky_pgsql_pool_t *const pg_pool = conn->pg_pool;
     ++pg_pool->free_conn_num;
     if (pg_pool->free_conn_num == pg_pool->conn_num) {
         sky_free(pg_pool);
@@ -234,7 +242,7 @@ pgsql_pool_destroy(sky_pgsql_pool_t *const pg_pool) {
     sky_pgsql_conn_t *conn = (sky_pgsql_conn_t *) (pg_pool + 1);
     for (sky_u32_t i = pg_pool->conn_num; i > 0; --i, ++conn) {
         sky_timer_wheel_unlink(&conn->timer);
-        if (!sky_tcp_cli_close(&conn->tcp, on_pgsql_destroy_close)) {
+        if (!sky_tcp_cli_close(&conn->tcp, on_pgsql_destroy_close, null)) {
             --pg_pool->free_conn_num;
         }
     }
@@ -248,13 +256,13 @@ pgsql_conn_keepalive_timeout(sky_timer_wheel_entry_t *const timer) {
     sky_pgsql_conn_t *const conn = sky_type_convert(timer, sky_pgsql_conn_t, timer);
     sky_queue_remove(&conn->link);
     --conn->pg_pool->free_conn_num;
-    sky_tcp_cli_close(&conn->tcp, on_pgsql_keepalive_close);
+    sky_tcp_cli_close(&conn->tcp, on_pgsql_keepalive_close, null);
 }
 
 static void
 pgsql_connect_timeout(sky_timer_wheel_entry_t *const timer) {
     sky_pgsql_conn_t *const conn = sky_type_convert(timer, sky_pgsql_conn_t, timer);
-    sky_tcp_cli_close(&conn->tcp, on_pgsql_close);
+    sky_tcp_cli_close(&conn->tcp, on_pgsql_close, null);
 }
 
 static void

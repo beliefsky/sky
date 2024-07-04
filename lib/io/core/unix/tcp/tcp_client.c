@@ -39,13 +39,13 @@ typedef struct {
         sky_tcp_connect_pt connect;
         sky_tcp_rw_pt write;
     };
+    void *attr;
     sky_u8_t type;
 } tcp_write_task_t;
 
 
 typedef struct {
     tcp_write_task_t base;
-    void *attr;
     sky_io_vec_t *current;
     sky_usize_t bytes;
     sky_u32_t num;
@@ -55,7 +55,6 @@ typedef struct {
 typedef struct {
     tcp_write_task_t base;
     sky_tcp_fs_data_t data;
-    void *attr;
     sky_usize_t bytes;
     sky_io_vec_t vec[];
 } tcp_write_fs_task_t;
@@ -126,7 +125,8 @@ sky_api sky_io_result_t
 sky_tcp_connect(
         sky_tcp_cli_t *cli,
         const sky_inet_address_t *address,
-        sky_tcp_connect_pt cb
+        sky_tcp_connect_pt cb,
+        void *attr
 ) {
     if (sky_unlikely(cli->ev.fd == SKY_SOCKET_FD_NONE
                      || (cli->ev.flags & (TCP_STATUS_CONNECTING | SKY_TCP_STATUS_CONNECTED | SKY_TCP_STATUS_ERROR)))) {
@@ -155,6 +155,7 @@ sky_tcp_connect(
     tcp_write_task_t *const task = sky_malloc(sizeof(tcp_write_task_t));
     task->base.next = null;
     task->connect = cb;
+    task->attr = attr;
     task->type = WRITE_TASK_CONNECT;
 
     *cli->write_queue_tail = &task->base;
@@ -405,8 +406,8 @@ sky_tcp_write(
     );
     task->base.base.next = null;
     task->base.write = cb;
+    task->base.attr = attr;
     task->base.type = WRITE_TASK_WRITE;
-    task->attr = attr;
     task->current = task->vec;
     task->bytes = write_bytes;
     task->num = 1;
@@ -486,8 +487,8 @@ sky_tcp_write_vec(
     tcp_write_buf_task_t *const task = sky_malloc(sizeof(tcp_write_buf_task_t) + vec_alloc_size);
     task->base.base.next = null;
     task->base.write = cb;
+    task->base.attr = attr;
     task->base.type = WRITE_TASK_WRITE;
-    task->attr = attr;
     task->current = task->vec;
     task->bytes = write_bytes;
     task->num = num;
@@ -600,11 +601,11 @@ sky_tcp_send_fs(
     );
     task->base.base.next = null;
     task->base.write = cb;
+    task->base.attr = attr;
     task->base.type = WRITE_TASK_SENDFILE;
     task->data = data;
     task->data.head = task->vec;
     task->data.tail = task->vec + data.head_n;
-    task->attr = attr;
     task->bytes = write_bytes;
 
     if (head_alloc_size) {
@@ -629,11 +630,12 @@ sky_tcp_send_fs(
 
 
 sky_api sky_bool_t
-sky_tcp_cli_close(sky_tcp_cli_t *cli, sky_tcp_cli_cb_pt cb) {
+sky_tcp_cli_close(sky_tcp_cli_t *cli, sky_tcp_cli_cb_pt cb, void *attr) {
     if (sky_unlikely(cli->ev.fd == SKY_SOCKET_FD_NONE)) {
         return false;
     }
     cli->close_cb = cb;
+    cli->close_data = attr;
     close(cli->ev.fd);
     cli->ev.fd = SKY_SOCKET_FD_NONE;
     cli->ev.flags |= SKY_TCP_STATUS_CLOSING;
@@ -744,14 +746,15 @@ event_on_tcp_cli_out(sky_ev_t *ev) {
                     cli->ev.flags |= SKY_TCP_STATUS_CONNECTED;
                 }
                 cb.connect = task->task.connect;
+                attr = task->task.attr;
                 cli->write_queue = task->task.base.next;
                 sky_free(task);
                 if (!cli->write_queue) {
                     cli->write_queue_tail = &cli->write_queue;
-                    cb.connect(cli, (cli->ev.flags & SKY_TCP_STATUS_CONNECTED));
+                    cb.connect(cli, (cli->ev.flags & SKY_TCP_STATUS_CONNECTED), attr);
                     return;
                 }
-                cb.connect(cli, (cli->ev.flags & SKY_TCP_STATUS_CONNECTED));
+                cb.connect(cli, (cli->ev.flags & SKY_TCP_STATUS_CONNECTED), attr);
                 break;
             }
             case WRITE_TASK_WRITE: {
@@ -792,7 +795,7 @@ event_on_tcp_cli_out(sky_ev_t *ev) {
                     task->buf_task.current->buf += size;
                 }
                 cb.write = task->buf_task.base.write;
-                attr = task->buf_task.attr;
+                attr = task->buf_task.base.attr;
                 size = task->buf_task.bytes;
                 cli->write_queue = task->buf_task.base.base.next;
                 sky_free(task);
@@ -860,7 +863,7 @@ event_on_tcp_cli_out(sky_ev_t *ev) {
                     break;
                 }
                 cb.write = task->fs_task.base.write;
-                attr = task->fs_task.attr;
+                attr = task->fs_task.base.attr;
                 size = task->fs_task.bytes;
                 cli->write_queue = task->fs_task.base.base.next;
                 sky_free(task);
@@ -900,7 +903,7 @@ event_on_tcp_cli_close(sky_ev_t *ev) {
         clean_read(cli);
     }
     cli->ev.flags = EV_TYPE_TCP_CLI;
-    cli->close_cb(cli);
+    cli->close_cb(cli, cli->close_data);
 }
 
 static sky_inline void
@@ -937,14 +940,15 @@ clean_write(sky_tcp_cli_t *cli) {
             case WRITE_TASK_CONNECT: {
                 cli->ev.flags &= ~TCP_STATUS_CONNECTING;
                 cb.connect = task->task.connect;
+                attr = task->task.attr;
                 next = (write_task_adapter_t *) task->task.base.next;
                 sky_free(task);
-                cb.connect(cli, false);
+                cb.connect(cli, false, attr);
                 break;
             }
             case WRITE_TASK_WRITE: {
                 cb.write = task->buf_task.base.write;
-                attr = task->buf_task.attr;
+                attr = task->buf_task.base.attr;
                 next = (write_task_adapter_t *) task->buf_task.base.base.next;
                 sky_free(task);
                 cb.write(cli, SKY_USIZE_MAX, attr);
@@ -952,7 +956,7 @@ clean_write(sky_tcp_cli_t *cli) {
             }
             case WRITE_TASK_SENDFILE: {
                 cb.write = task->fs_task.base.write;
-                attr = task->fs_task.attr;
+                attr = task->fs_task.base.attr;
                 next = (write_task_adapter_t *) task->fs_task.base.base.next;
                 sky_free(task);
                 cb.write(cli, SKY_USIZE_MAX, attr);

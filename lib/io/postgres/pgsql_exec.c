@@ -36,7 +36,7 @@ static void on_pgsql_exec_send(sky_tcp_cli_t *tcp, sky_usize_t size, void *attr)
 
 static void on_pgsql_exec_read(sky_tcp_cli_t *tcp, sky_usize_t size, void *attr);
 
-static void on_pgsql_close(sky_tcp_cli_t *tcp);
+static void on_pgsql_close(sky_tcp_cli_t *tcp, void *data);
 
 static sky_pgsql_type_t get_type_by_oid(sky_usize_t oid);
 
@@ -115,7 +115,7 @@ sky_pgsql_exec(
         default:
             sky_buf_destroy(buf);
             sky_timer_wheel_unlink(&conn->timer);
-            sky_tcp_cli_close(&conn->tcp, on_pgsql_close);
+            sky_tcp_cli_close(&conn->tcp, on_pgsql_close, null);
             return;
     }
 }
@@ -209,7 +209,7 @@ on_pgsql_exec_send(sky_tcp_cli_t *const tcp, sky_usize_t size, void *attr) {
     if (size == SKY_USIZE_MAX) {
         sky_buf_destroy(buf);
         sky_timer_wheel_unlink(&conn->timer);
-        sky_tcp_cli_close(tcp, on_pgsql_close);
+        sky_tcp_cli_close(tcp, on_pgsql_close, null);
         return;
     }
     sky_buf_reset(buf);
@@ -238,7 +238,7 @@ on_pgsql_exec_send(sky_tcp_cli_t *const tcp, sky_usize_t size, void *attr) {
         default:
             sky_buf_destroy(buf);
             sky_timer_wheel_unlink(&conn->timer);
-            sky_tcp_cli_close(tcp, on_pgsql_close);
+            sky_tcp_cli_close(tcp, on_pgsql_close, null);
             return;
     }
 }
@@ -254,7 +254,7 @@ on_pgsql_exec_read(sky_tcp_cli_t *const tcp, sky_usize_t size, void *attr) {
     if (size == SKY_USIZE_MAX) {
         sky_buf_destroy(buf);
         sky_timer_wheel_unlink(&conn->timer);
-        sky_tcp_cli_close(tcp, on_pgsql_close);
+        sky_tcp_cli_close(tcp, on_pgsql_close, null);
         return;
     }
     buf->last += size;
@@ -432,7 +432,7 @@ on_pgsql_exec_read(sky_tcp_cli_t *const tcp, sky_usize_t size, void *attr) {
     error:
     sky_buf_destroy(buf);
     sky_timer_wheel_unlink(&conn->timer);
-    sky_tcp_cli_close(tcp, on_pgsql_close);
+    sky_tcp_cli_close(tcp, on_pgsql_close, null);
 }
 
 
@@ -1133,7 +1133,9 @@ array_deserialize(sky_pool_t *const pool, sky_uchar_t *p, const sky_pgsql_type_t
 }
 
 static void
-on_pgsql_close(sky_tcp_cli_t *const tcp) {
+on_pgsql_close(sky_tcp_cli_t *const tcp, void *data) {
+    (void) data;
+
     sky_pgsql_conn_t *const conn = sky_type_convert(tcp, sky_pgsql_conn_t, tcp);
     conn->exec_cb(conn, null, conn->cb_data);
 }
@@ -1462,5 +1464,5 @@ encode_data(
 static void
 pgsql_exec_timeout(sky_timer_wheel_entry_t *const timer) {
     sky_pgsql_conn_t *const conn = sky_type_convert(timer, sky_pgsql_conn_t, timer);
-    sky_tcp_cli_close(&conn->tcp, on_pgsql_close);
+    sky_tcp_cli_close(&conn->tcp, on_pgsql_close, null);
 }

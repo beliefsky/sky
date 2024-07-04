@@ -18,6 +18,7 @@ typedef struct {
     sky_tcp_task_t base;
     sky_tcp_cli_t *cli;
     sky_tcp_accept_pt cb;
+    void *cb_data;
 } tcp_accept_task_t;
 
 static void clean_accept(sky_tcp_ser_t *ser);
@@ -91,7 +92,7 @@ sky_tcp_ser_open(
 }
 
 sky_api sky_io_result_t
-sky_tcp_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_tcp_accept_pt cb) {
+sky_tcp_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_tcp_accept_pt cb, void *attr) {
     if (sky_unlikely((ser->ev.flags & SKY_TCP_STATUS_ERROR) || ser->ev.fd == SKY_SOCKET_FD_NONE)) {
         return REQ_ERROR;
     }
@@ -108,6 +109,7 @@ sky_tcp_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_tcp_accept_pt cb) {
     task->base.next = null;
     task->cli = cli;
     task->cb = cb;
+    task->cb_data = attr;
 
     *ser->accept_queue_tail = &task->base;
     ser->accept_queue_tail = &task->base.next;
@@ -116,11 +118,12 @@ sky_tcp_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_tcp_accept_pt cb) {
 }
 
 sky_api sky_bool_t
-sky_tcp_ser_close(sky_tcp_ser_t *ser, sky_tcp_ser_cb_pt cb) {
+sky_tcp_ser_close(sky_tcp_ser_t *ser, sky_tcp_ser_cb_pt cb,  void *attr) {
     if (sky_unlikely(ser->ev.fd == SKY_SOCKET_FD_NONE)) {
         return false;
     }
     ser->close_cb = cb;
+    ser->close_data = attr;
     close(ser->ev.fd);
     ser->ev.fd = SKY_SOCKET_FD_NONE;
     ser->ev.flags |= SKY_TCP_STATUS_CLOSING;
@@ -154,10 +157,12 @@ event_on_tcp_ser_in(sky_ev_t *ev) {
     tcp_accept_task_t *task;
     sky_tcp_accept_pt cb;
     sky_tcp_cli_t *cli;
+    void *cb_data;
 
     for (;;) {
         task = (tcp_accept_task_t *) ser->accept_queue;
         cli = task->cli;
+        cb_data = task->cb_data;
         switch (do_accept(ser, cli)) {
             case REQ_SUCCESS:
                 cb = task->cb;
@@ -165,10 +170,10 @@ event_on_tcp_ser_in(sky_ev_t *ev) {
                 sky_free(task);
                 if (!ser->accept_queue) {
                     ser->accept_queue_tail = &ser->accept_queue;
-                    cb(ser, cli, true);
+                    cb(ser, cli, true, cb_data);
                     return;
                 }
-                cb(ser, cli, true);
+                cb(ser, cli, true, cb_data);
                 if (!(ser->ev.flags & (SKY_TCP_STATUS_CLOSING | SKY_TCP_STATUS_ERROR))) {
                     continue;
                 }
@@ -189,7 +194,7 @@ event_on_tcp_ser_close(sky_ev_t *ev) {
         clean_accept(ser);
     }
     ser->ev.flags = EV_TYPE_TCP_SER;
-    ser->close_cb(ser);
+    ser->close_cb(ser, ser->close_data);
 }
 
 static sky_inline void
@@ -201,12 +206,14 @@ clean_accept(sky_tcp_ser_t *ser) {
 
     sky_tcp_accept_pt cb;
     sky_tcp_cli_t *cli;
+    void *cb_data;
     do {
         cb = task->cb;
         cli = task->cli;
+        cb_data = task->cb_data;
         next = (tcp_accept_task_t *) task->base.next;
         sky_free(task);
-        cb(ser, cli, false);
+        cb(ser, cli, false, cb_data);
         task = next;
     } while (task);
 }

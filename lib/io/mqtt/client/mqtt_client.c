@@ -6,9 +6,9 @@
 
 static void tcp_create_connection(sky_mqtt_client_t *client);
 
-static void on_tcp_connection(sky_tcp_cli_t *tcp, sky_bool_t success);
+static void on_tcp_connection(sky_tcp_cli_t *tcp, sky_bool_t success, void *data);
 
-static void on_tcp_close(sky_tcp_cli_t *tcp);
+static void on_tcp_close(sky_tcp_cli_t *tcp, void *data);
 
 static void tcp_reconnect_timer_cb(sky_timer_wheel_entry_t *timer);
 
@@ -88,7 +88,7 @@ mqtt_client_close(sky_mqtt_client_t *client) {
     sky_pool_reset(client->reader_pool);
     client->head_copy = 0;
     client->is_ok = false;
-    sky_tcp_cli_close(&client->tcp, on_tcp_close);
+    sky_tcp_cli_close(&client->tcp, on_tcp_close, null);
 }
 
 static void
@@ -98,7 +98,7 @@ tcp_create_connection(sky_mqtt_client_t *const client) {
             goto re_conn;
         }
     }
-    switch (sky_tcp_connect(&client->tcp, &client->address, on_tcp_connection)) {
+    switch (sky_tcp_connect(&client->tcp, &client->address, on_tcp_connection, null)) {
         case REQ_PENDING:
             return;
         case REQ_SUCCESS:
@@ -117,7 +117,9 @@ tcp_create_connection(sky_mqtt_client_t *const client) {
 }
 
 static void
-on_tcp_connection(sky_tcp_cli_t *const tcp, sky_bool_t success) {
+on_tcp_connection(sky_tcp_cli_t *const tcp, sky_bool_t success, void *data) {
+    (void ) data;
+
     sky_mqtt_client_t *const client = sky_type_convert(tcp, sky_mqtt_client_t, tcp);
 
     if (!success) {
@@ -128,7 +130,9 @@ on_tcp_connection(sky_tcp_cli_t *const tcp, sky_bool_t success) {
 }
 
 static void
-on_tcp_close(sky_tcp_cli_t *const tcp) {
+on_tcp_close(sky_tcp_cli_t *const tcp, void *data) {
+    (void )data;
+
     sky_mqtt_client_t *const client = sky_type_convert(tcp, sky_mqtt_client_t, tcp);
     if (client->closed) {
         client->closed(client);

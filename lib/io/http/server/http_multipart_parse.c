@@ -275,7 +275,7 @@ sky_http_multipart_parse_exec(
 
         case sw_header_name: {
             tmp.isize = parse_token((sky_uchar_t *) buf, buf + size, ':');
-            if (sky_unlikely(index < 0)) {
+            if (sky_unlikely(tmp.isize < 0)) {
                 if (sky_unlikely(tmp.isize == -2)) {
                     goto error;
                 }

@@ -92,7 +92,8 @@ sky_api sky_io_result_t
 sky_tcp_connect(
         sky_tcp_cli_t *cli,
         const sky_inet_address_t *address,
-        sky_tcp_connect_pt cb
+        sky_tcp_connect_pt cb,
+        void *attr
 ) {
     if (sky_unlikely(cli->ev.fd == SKY_SOCKET_FD_NONE
                      || (cli->ev.flags & (TCP_STATUS_CONNECTING | SKY_TCP_STATUS_CONNECTED | SKY_TCP_STATUS_ERROR)))) {
@@ -111,6 +112,7 @@ sky_tcp_connect(
     req->req.overlapped.hEvent = null;
     req->req.type = EV_REQ_TCP_CONNECT;
     req->connect = cb;
+    req->attr = attr;
 
     DWORD bytes;
     if (connect_ex(
@@ -465,13 +467,14 @@ sky_tcp_send_fs(
 
 
 sky_api sky_bool_t
-sky_tcp_cli_close(sky_tcp_cli_t *cli, sky_tcp_cli_cb_pt cb) {
+sky_tcp_cli_close(sky_tcp_cli_t *cli, sky_tcp_cli_cb_pt cb,  void *attr) {
     if (cli->ev.fd == SKY_SOCKET_FD_NONE || (cli->ev.flags & SKY_TCP_STATUS_CLOSING)) {
         return false;
     }
     sky_ev_loop_t *const ev_loop = cli->ev.ev_loop;
 
     cli->close_cb = cb;
+    cli->close_data = attr;
     cli->ev.flags |= SKY_TCP_STATUS_CLOSING;
 
     if (!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)) {
@@ -506,13 +509,14 @@ event_on_tcp_connect(sky_ev_t *ev, ev_req_t *req, sky_usize_t bytes, sky_bool_t 
 
     const sky_bool_t before_closing = (cli->ev.flags & SKY_TCP_STATUS_CLOSING);
     const sky_tcp_connect_pt cb = tcp_req->connect;
+    void *const attr = tcp_req->attr;
     sky_free(req);
 
     cli->ev.flags &= ~TCP_STATUS_CONNECTING;
     if (success) {
         cli->ev.flags |= SKY_TCP_STATUS_CONNECTED;
     }
-    cb(cli, success);
+    cb(cli, success, attr);
     if (before_closing && !cli->req_num) {
         close_on_tcp_cli(ev);
     }
@@ -587,7 +591,7 @@ close_on_tcp_cli(sky_ev_t *ev) {
     closesocket(cli->ev.fd);
     cli->ev.fd = SKY_SOCKET_FD_NONE;
     cli->ev.flags = EV_TYPE_TCP_CLI;
-    cli->close_cb(cli);
+    cli->close_cb(cli, cli->close_data);
 }
 
 static sky_inline sky_bool_t
