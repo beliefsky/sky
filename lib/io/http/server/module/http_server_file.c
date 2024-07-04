@@ -456,24 +456,28 @@ http_mime_type_get(const sky_str_t *const exten, http_mime_type_t *const type) {
     const sky_uchar_t *p = exten->data;
     switch (exten->len) {
         case 3: {
-            switch (sky_str4_switch(p)) {
-                case sky_str4_num('.', 'p', 's', '\0'):
-                case sky_str4_num('.', 'a', 'i', '\0'):
+            ++p;
+            switch (sky_str2_switch(p)) {
+                case sky_str2_num('m', 'd'):
+                mine_set("text/markdown", false);
+                    return true;
+                case sky_str2_num('p', 's'):
+                case sky_str2_num('a', 'i'):
                 mine_set("application/postscript", true);
                     return true;
-                case sky_str4_num('.', 'j', 's', '\0'):
+                case sky_str2_num('j', 's'):
                 mine_set("application/javascript", false);
                     return true;
-                case sky_str4_num('.', '7', 'z', '\0'):
+                case sky_str2_num('7', 'z'):
                 mine_set("application/x-7z-compressed", true);
                     return true;
-                case sky_str4_num('.', 'g', 'z', '\0'):
+                case sky_str2_num('g', 'z'):
                 mine_set("application/x-gzip", true);
                     return true;
-                case sky_str4_num('.', 'r', 'a', '\0'):
+                case sky_str2_num('r', 'a'):
                 mine_set("audio/x-realaudio", true);
                     return true;
-                case sky_str4_num('.', 't', 's', '\0'):
+                case sky_str2_num('t', 's'):
                 mine_set("video/mp2t", true);
                     return true;
                 default:
