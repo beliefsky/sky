@@ -11,16 +11,16 @@ typedef struct {
     sky_pool_t *pool;
     sky_trie_t *mappers;
 
-    sky_bool_t (*pre_run)(sky_http_server_request_t *req, void *data);
+    sky_bool_t (*pre_run)(sky_http_request_t *req, void *data);
 
     void *run_data;
 } http_module_dispatcher_t;
 
-static void http_run_handler_with_pre(sky_http_server_request_t *r, void *data);
+static void http_run_handler_with_pre(sky_http_request_t *r, void *data);
 
-static void http_run_handler(sky_http_server_request_t *r, void *data);
+static void http_run_handler(sky_http_request_t *r, void *data);
 
-static void http_run_handler_next(sky_http_server_request_t *r, const http_module_dispatcher_t *dispatcher);
+static void http_run_handler_next(sky_http_request_t *r, const http_module_dispatcher_t *dispatcher);
 
 
 sky_api sky_http_server_module_t *
@@ -79,7 +79,7 @@ sky_http_server_dispatcher_destroy(sky_http_server_module_t *const server_dispat
 }
 
 static void
-http_run_handler_with_pre(sky_http_server_request_t *const r, void *const data) {
+http_run_handler_with_pre(sky_http_request_t *const r, void *const data) {
     const http_module_dispatcher_t *const dispatcher = data;
     sky_str_t *const uri = sky_http_req_uri(r);
     uri->data += dispatcher->prefix->len;
@@ -91,7 +91,7 @@ http_run_handler_with_pre(sky_http_server_request_t *const r, void *const data) 
 }
 
 static void
-http_run_handler(sky_http_server_request_t *const r, void *const data) {
+http_run_handler(sky_http_request_t *const r, void *const data) {
     const http_module_dispatcher_t *const dispatcher = data;
     sky_str_t *const uri = sky_http_req_uri(r);
     uri->data += dispatcher->prefix->len;
@@ -101,7 +101,7 @@ http_run_handler(sky_http_server_request_t *const r, void *const data) {
 }
 
 static void
-http_run_handler_next(sky_http_server_request_t *const r, const http_module_dispatcher_t *const dispatcher) {
+http_run_handler_next(sky_http_request_t *const r, const http_module_dispatcher_t *const dispatcher) {
     sky_str_t *const uri = sky_http_req_uri(r);
     const sky_http_mapper_pt *handler = sky_trie_contains(dispatcher->mappers, uri);
 

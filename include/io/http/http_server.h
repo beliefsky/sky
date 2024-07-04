@@ -5,11 +5,9 @@
 #ifndef SKY_HTTP_SERVER_H
 #define SKY_HTTP_SERVER_H
 
+#include "./http_parse_utils.h"
 #include "../ev_loop.h"
 #include "../fs.h"
-#include "../../core/string.h"
-#include "../../core/palloc.h"
-#include "../../core/list.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -28,17 +26,15 @@ typedef struct sky_http_server_conf_s sky_http_server_conf_t;
 typedef struct sky_http_server_s sky_http_server_t;
 typedef struct sky_http_server_module_s sky_http_server_module_t;
 typedef struct sky_http_connection_s sky_http_connection_t;
-typedef struct sky_http_server_request_s sky_http_server_request_t;
-typedef struct sky_http_server_header_s sky_http_server_header_t;
-typedef struct sky_http_server_header_s sky_http_server_param_t;
+typedef struct sky_http_request_s sky_http_request_t;
 
-typedef void (*sky_http_server_module_run_pt)(sky_http_server_request_t *r, void *module_data);
+typedef void (*sky_http_server_module_run_pt)(sky_http_request_t *r, void *module_data);
 
-typedef void (*sky_http_server_next_pt)(sky_http_server_request_t *r, void *data);
+typedef void (*sky_http_server_next_pt)(sky_http_request_t *r, void *data);
 
-typedef void (*sky_http_server_next_str_pt)(sky_http_server_request_t *r, sky_str_t *body, void *data);
+typedef void (*sky_http_server_next_str_pt)(sky_http_request_t *r, sky_str_t *body, void *data);
 
-typedef void (*sky_http_server_rw_pt)(sky_http_server_request_t *r, sky_usize_t size, void *data);
+typedef void (*sky_http_server_rw_pt)(sky_http_request_t *r, sky_usize_t size, void *data);
 
 
 struct sky_http_server_conf_s {
@@ -57,7 +53,7 @@ struct sky_http_server_module_s {
     void *module_data;
 };
 
-struct sky_http_server_request_s {
+struct sky_http_request_s {
     sky_str_t method_name;
     sky_str_t uri;
     sky_str_t exten;
@@ -107,18 +103,9 @@ struct sky_http_server_request_s {
     sky_bool_t res_finish: 1;
 };
 
-struct sky_http_server_header_s {
-    sky_str_t key;
-    sky_str_t val;
-};
-
 
 #define sky_http_req_header_foreach(_r, _item, _code) \
-    sky_list_foreach(&(_r)->headers_in.headers, sky_http_server_header_t, _item, _code)
-
-#define sky_http_req_params_foreach(_list, _item, _code) \
-    sky_list_foreach(_list, sky_http_server_param_t, _item, _code)
-
+    sky_http_header_foreach(&(_r)->headers_in.headers, _item, _code)
 
 sky_http_server_t *sky_http_server_create(sky_ev_loop_t *ev_loop, const sky_http_server_conf_t *conf);
 
@@ -133,7 +120,7 @@ sky_bool_t sky_http_server_bind(sky_http_server_t *server, const sky_inet_addres
  * @param call 回调函数
  * @param data 执行回调时自定义数据
  */
-void sky_http_req_body_none(sky_http_server_request_t *r, sky_http_server_next_pt call, void *data);
+void sky_http_req_body_none(sky_http_request_t *r, sky_http_server_next_pt call, void *data);
 
 /**
  * 读取 http body的所有数据，此函数受 body_str_max 参数影响，
@@ -143,7 +130,7 @@ void sky_http_req_body_none(sky_http_server_request_t *r, sky_http_server_next_p
  * @param call 回调函数
  * @param data 执行回调时自定义数据
  */
-void sky_http_req_body_str(sky_http_server_request_t *r, sky_http_server_next_str_pt call, void *data);
+void sky_http_req_body_str(sky_http_request_t *r, sky_http_server_next_str_pt call, void *data);
 
 /**
  * 使用原生读取 http body数据
@@ -157,7 +144,7 @@ void sky_http_req_body_str(sky_http_server_request_t *r, sky_http_server_next_st
  * @return 调用结果
  */
 sky_io_result_t sky_http_req_body_read(
-        sky_http_server_request_t *r,
+        sky_http_request_t *r,
         sky_uchar_t *buf,
         sky_usize_t size,
         sky_usize_t *bytes,
@@ -176,7 +163,7 @@ sky_io_result_t sky_http_req_body_read(
  * @return 调用结果
  */
 sky_io_result_t sky_http_req_body_skip(
-        sky_http_server_request_t *r,
+        sky_http_request_t *r,
         sky_usize_t size,
         sky_usize_t *bytes,
         sky_http_server_rw_pt call,
@@ -190,7 +177,7 @@ sky_io_result_t sky_http_req_body_skip(
  * @param call 回调函数，如果为 null, 会自动调用 sky_http_req_finish 结束
  * @param cb_data 回调自定义数据
  */
-void sky_http_res_nobody(sky_http_server_request_t *r, sky_http_server_next_pt call, void *cb_data);
+void sky_http_res_nobody(sky_http_request_t *r, sky_http_server_next_pt call, void *cb_data);
 
 /**
  * http 响应发送数据
@@ -201,7 +188,7 @@ void sky_http_res_nobody(sky_http_server_request_t *r, sky_http_server_next_pt c
  * @param cb_data 回调自定义数据
  */
 void sky_http_res_str(
-        sky_http_server_request_t *r,
+        sky_http_request_t *r,
         const sky_str_t *data,
         sky_http_server_next_pt call,
         void *cb_data
@@ -217,7 +204,7 @@ void sky_http_res_str(
  * @param cb_data 回调自定义数据
  */
 void sky_http_res_str_len(
-        sky_http_server_request_t *r,
+        sky_http_request_t *r,
         sky_uchar_t *data,
         sky_usize_t data_len,
         sky_http_server_next_pt call,
@@ -237,7 +224,7 @@ void sky_http_res_str_len(
  * @param cb_data 回调自定义数据
  */
 void sky_http_res_file(
-        sky_http_server_request_t *r,
+        sky_http_request_t *r,
         sky_fs_t *fs,
         sky_u64_t offset,
         sky_u64_t size,
@@ -260,7 +247,7 @@ void sky_http_res_file(
  * @return 调用结果
  */
 sky_io_result_t sky_http_res_write(
-        sky_http_server_request_t *r,
+        sky_http_request_t *r,
         sky_uchar_t *buf,
         sky_usize_t size,
         sky_usize_t *bytes,
@@ -273,17 +260,10 @@ sky_io_result_t sky_http_res_write(
  *
  * @param r http req
  */
-void sky_http_req_finish(sky_http_server_request_t *r);
+void sky_http_req_finish(sky_http_request_t *r);
 
 
-/**
- * 解析http参数
- * @param pool 内存池
- * @param data 待处理的字符串
- * @param decode 是否转义解码
- * @return 参数集合，可用 sky_http_req_params_foreach 进行遍历
- */
-sky_list_t *sky_http_req_parse_params(sky_pool_t *pool, sky_str_t *data, sky_bool_t decode);
+sky_http_multipart_parser_t *sky_http_req_body_parse_multipart(sky_http_request_t *r);
 
 /**
  * http 是否有异常，在读取body时可能报文不正确，超时，连接关闭等
@@ -292,7 +272,7 @@ sky_list_t *sky_http_req_parse_params(sky_pool_t *pool, sky_str_t *data, sky_boo
  * @return 是否异常
  */
 static sky_inline sky_bool_t
-sky_http_req_error(const sky_http_server_request_t *const r) {
+sky_http_req_error(const sky_http_request_t *const r) {
     return r->error;
 }
 
@@ -303,7 +283,7 @@ sky_http_req_error(const sky_http_server_request_t *const r) {
  * @return  内存池
  */
 static sky_inline sky_pool_t *
-sky_http_req_pool(const sky_http_server_request_t *const r) {
+sky_http_req_pool(const sky_http_request_t *const r) {
     return r->pool;
 }
 
@@ -314,7 +294,7 @@ sky_http_req_pool(const sky_http_server_request_t *const r) {
  * @param data  自定义数据
  */
 static sky_inline void
-sky_http_req_set_data(sky_http_server_request_t *const r, void *const data) {
+sky_http_req_set_data(sky_http_request_t *const r, void *const data) {
     r->attr_data = data;
 }
 
@@ -325,80 +305,80 @@ sky_http_req_set_data(sky_http_server_request_t *const r, void *const data) {
  * @return 自定义数据
  */
 static sky_inline void *
-sky_http_req_get_data(sky_http_server_request_t *const r) {
+sky_http_req_get_data(sky_http_request_t *const r) {
     return r->attr_data;
 }
 
 static sky_inline sky_u8_t
-sky_http_req_method(sky_http_server_request_t *const r) {
+sky_http_req_method(sky_http_request_t *const r) {
     return r->method;
 }
 
 static sky_inline sky_str_t *
-sky_http_req_method_name(sky_http_server_request_t *const r) {
+sky_http_req_method_name(sky_http_request_t *const r) {
     return &r->method_name;
 }
 
 static sky_inline sky_str_t *
-sky_http_req_uri(sky_http_server_request_t *const r) {
+sky_http_req_uri(sky_http_request_t *const r) {
     return &r->uri;
 }
 
 
 static sky_inline sky_str_t *
-sky_http_req_args_raw(sky_http_server_request_t *const r) {
+sky_http_req_args_raw(sky_http_request_t *const r) {
     return &r->args;
 }
 
 
 static sky_inline sky_bool_t
-sky_http_req_args_need_decode(sky_http_server_request_t *const r) {
+sky_http_req_args_need_decode(sky_http_request_t *const r) {
     return r->arg_no_decode;
 }
 
 static sky_inline sky_str_t *
-sky_http_req_exten(sky_http_server_request_t *const r) {
+sky_http_req_exten(sky_http_request_t *const r) {
     return &r->exten;
 }
 
 static sky_inline sky_str_t *
-sky_http_req_host(sky_http_server_request_t *const r) {
+sky_http_req_host(sky_http_request_t *const r) {
     return r->headers_in.host;
 }
 
 static sky_inline sky_str_t *
-sky_http_req_connection(sky_http_server_request_t *const r) {
+sky_http_req_connection(sky_http_request_t *const r) {
     return r->headers_in.connection;
 }
 
 static sky_inline sky_str_t *
-sky_http_req_if_modified_since(sky_http_server_request_t *const r) {
+sky_http_req_if_modified_since(sky_http_request_t *const r) {
     return r->headers_in.if_modified_since;
 }
 
 static sky_inline sky_str_t *
-sky_http_req_content_type(sky_http_server_request_t *const r) {
+sky_http_req_content_type(sky_http_request_t *const r) {
     return r->headers_in.content_type;
 }
 
 static sky_inline sky_str_t *
-sky_http_req_range(sky_http_server_request_t *const r) {
+sky_http_req_range(sky_http_request_t *const r) {
     return r->headers_in.range;
 }
 
 static sky_inline sky_str_t *
-sky_http_req_if_range(sky_http_server_request_t *const r) {
+sky_http_req_if_range(sky_http_request_t *const r) {
     return r->headers_in.if_range;
 }
 
 static sky_inline void
-sky_http_res_set_status(sky_http_server_request_t *const r, const sky_u32_t status) {
+sky_http_res_set_status(sky_http_request_t *const r, const sky_u32_t status) {
     r->state = status;
 }
 
 static sky_inline void
 sky_http_res_set_content_type(
-        sky_http_server_request_t *const r,
+        sky_http_request_t *const r,
         sky_uchar_t *const value,
         const sky_usize_t size
 ) {
@@ -413,7 +393,7 @@ sky_http_res_set_content_type(
  * @param size  响应内容的字节数
  */
 static sky_inline void
-sky_http_res_set_content_length(sky_http_server_request_t *const r, const sky_u64_t size) {
+sky_http_res_set_content_length(sky_http_request_t *const r, const sky_u64_t size) {
     if (sky_likely(!r->response)) {
         r->headers_out.content_length_n = size;
         r->res_content_length = true;
@@ -422,21 +402,21 @@ sky_http_res_set_content_length(sky_http_server_request_t *const r, const sky_u6
 
 static sky_inline void
 sky_http_res_add_header(
-        sky_http_server_request_t *const r,
+        sky_http_request_t *const r,
         sky_uchar_t *const key,
         const sky_usize_t key_len,
         sky_uchar_t *const val,
         const sky_usize_t val_len
 ) {
-    sky_http_server_header_t *const h = sky_list_push(&r->headers_out.headers);
+    sky_http_header_t *const h = sky_list_push(&r->headers_out.headers);
     h->key.data = key;
     h->key.len = key_len;
     h->val.data = val;
     h->val.len = val_len;
 }
 
-static sky_inline sky_http_server_header_t *
-sky_http_res_push_header(sky_http_server_request_t *const r) {
+static sky_inline sky_http_header_t *
+sky_http_res_push_header(sky_http_request_t *const r) {
     return sky_list_push(&r->headers_out.headers);
 }
 
@@ -447,10 +427,10 @@ sky_http_res_push_header(sky_http_server_request_t *const r) {
  * @param r http req
  * @return 请求参数集合, 可用 sky_http_req_params_foreach 进行遍历
  */
-static sky_inline  sky_list_t *
-sky_http_req_query_params(sky_http_server_request_t *r) {
+static sky_inline sky_list_t *
+sky_http_req_query_params(sky_http_request_t *r) {
     sky_str_t *const args = sky_http_req_args_raw(r);
-    return sky_http_req_parse_params(
+    return sky_http_parse_params(
             sky_http_req_pool(r),
             args,
             sky_http_req_args_need_decode(r)
@@ -466,12 +446,12 @@ sky_http_req_query_params(sky_http_server_request_t *r) {
  * @return 请求参数集合, 可用 sky_http_req_params_foreach 进行遍历
  */
 static sky_inline sky_list_t *
-sky_http_req_body_parse_urlencoded(sky_http_server_request_t *const r, sky_str_t *const body) {
+sky_http_req_body_parse_urlencoded(sky_http_request_t *const r, sky_str_t *const body) {
     sky_str_t *const content_type = sky_http_req_content_type(r);
     if (!content_type || !sky_str_equals2(content_type, sky_str_line("application/x-www-form-urlencoded"))) {
         return null;
     }
-    return sky_http_req_parse_params(sky_http_req_pool(r), body, true);
+    return sky_http_parse_params(sky_http_req_pool(r), body, true);
 }
 
 #if defined(__cplusplus)

@@ -31,29 +31,29 @@ struct sky_http_connection_s {
     sky_tcp_cli_t tcp;
     sky_timer_wheel_entry_t timer;
     sky_http_server_t *server;
-    sky_http_server_request_t *current_req;
+    sky_http_request_t *current_req;
     sky_buf_t *buf;
     sky_u8_t free_buf_n;
 };
 
-sky_i8_t http_request_line_parse(sky_http_server_request_t *r, sky_buf_t *b);
+sky_i8_t http_request_line_parse(sky_http_request_t *r, sky_buf_t *b);
 
-sky_i8_t http_request_header_parse(sky_http_server_request_t *r, sky_buf_t *b);
+sky_i8_t http_request_header_parse(sky_http_request_t *r, sky_buf_t *b);
 
-sky_bool_t http_req_url_decode(sky_http_server_request_t *r);
+sky_bool_t http_req_url_decode(sky_http_request_t *r);
 
 void http_server_request_process(sky_http_connection_t *conn);
 
-void http_req_length_body_none(sky_http_server_request_t *r, sky_http_server_next_pt call, void *data);
+void http_req_length_body_none(sky_http_request_t *r, sky_http_server_next_pt call, void *data);
 
 void http_req_length_body_str(
-        sky_http_server_request_t *r,
+        sky_http_request_t *r,
         sky_http_server_next_str_pt call,
         void *data
 );
 
 sky_io_result_t http_req_length_body_read(
-        sky_http_server_request_t *r,
+        sky_http_request_t *r,
         sky_uchar_t *buf,
         sky_usize_t size,
         sky_usize_t *bytes,
@@ -62,23 +62,23 @@ sky_io_result_t http_req_length_body_read(
 );
 
 sky_io_result_t http_req_length_body_skip(
-        sky_http_server_request_t *r,
+        sky_http_request_t *r,
         sky_usize_t size,
         sky_usize_t *bytes,
         sky_http_server_rw_pt call,
         void *data
 );
 
-void http_req_chunked_body_none(sky_http_server_request_t *r, sky_http_server_next_pt call, void *data);
+void http_req_chunked_body_none(sky_http_request_t *r, sky_http_server_next_pt call, void *data);
 
 void http_req_chunked_body_str(
-        sky_http_server_request_t *r,
+        sky_http_request_t *r,
         sky_http_server_next_str_pt call,
         void *data
 );
 
 sky_io_result_t http_req_chunked_body_read(
-        sky_http_server_request_t *r,
+        sky_http_request_t *r,
         sky_uchar_t *buf,
         sky_usize_t size,
         sky_usize_t *bytes,
@@ -87,7 +87,7 @@ sky_io_result_t http_req_chunked_body_read(
 );
 
 sky_io_result_t http_req_chunked_body_skip(
-        sky_http_server_request_t *r,
+        sky_http_request_t *r,
         sky_usize_t size,
         sky_usize_t *bytes,
         sky_http_server_rw_pt call,

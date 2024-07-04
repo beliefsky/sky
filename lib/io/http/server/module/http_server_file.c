@@ -47,7 +47,7 @@ typedef struct {
     sky_pool_t *pool;
     sky_ev_loop_t *ev_loop;
 
-    sky_bool_t (*pre_run)(sky_http_server_request_t *req, void *data);
+    sky_bool_t (*pre_run)(sky_http_request_t *req, void *data);
 
     void *run_data;
     sky_u32_t cache_sec;
@@ -65,9 +65,9 @@ typedef struct {
     sky_u32_t ref_count;
 } file_cache_node_t;
 
-static void http_run_handler(sky_http_server_request_t *r, void *data);
+static void http_run_handler(sky_http_request_t *r, void *data);
 
-static void http_response_next(sky_http_server_request_t *r, void *data);
+static void http_response_next(sky_http_request_t *r, void *data);
 
 static file_cache_node_t *cache_node_file_get_ref(
         http_module_file_t *module_file,
@@ -162,7 +162,7 @@ sky_http_server_file_destroy(sky_http_server_module_t *const server_file) {
 }
 
 static void
-http_run_handler(sky_http_server_request_t *const r, void *const data) {
+http_run_handler(sky_http_request_t *const r, void *const data) {
     http_module_file_t *const module_file = data;
     sky_str_t *const uri = sky_http_req_uri(r);
     uri->data += module_file->prefix->len;
@@ -228,7 +228,7 @@ http_run_handler(sky_http_server_request_t *const r, void *const data) {
     }
     sky_http_res_set_content_type(r, mime_type.val.data, mime_type.val.len);
 
-    sky_http_server_header_t *const header = sky_http_res_push_header(r);
+    sky_http_header_t *const header = sky_http_res_push_header(r);
     sky_str_set(&header->key, "Last-Modified");
 
     if (file->modified && file->modified_time == fs_stat.modified_time_sec) {
@@ -263,7 +263,7 @@ http_run_handler(sky_http_server_request_t *const r, void *const data) {
 }
 
 static void
-http_response_next(sky_http_server_request_t *const r, void *const data) {
+http_response_next(sky_http_request_t *const r, void *const data) {
     file_cache_node_t *const node = data;
     cache_node_file_unref(node);
 

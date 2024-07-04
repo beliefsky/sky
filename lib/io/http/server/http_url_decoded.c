@@ -11,11 +11,11 @@ static void http_params_decode(sky_list_t *list, sky_uchar_t *p, sky_usize_t siz
 static sky_usize_t http_url_decode(sky_uchar_t *data, sky_usize_t size);
 
 sky_api sky_list_t *
-sky_http_req_parse_params(sky_pool_t *const pool, sky_str_t *const data, const sky_bool_t decode) {
+sky_http_parse_params(sky_pool_t *const pool, sky_str_t *const data, const sky_bool_t decode) {
     if (!data || !data->len) {
         return null;
     }
-    sky_list_t *const list = sky_list_create(pool, 8, sizeof(sky_http_server_param_t));
+    sky_list_t *const list = sky_list_create(pool, 8, sizeof(sky_http_param_t));
     if (decode) {
         http_params_decode(list, data->data, data->len);
     } else {
@@ -25,7 +25,7 @@ sky_http_req_parse_params(sky_pool_t *const pool, sky_str_t *const data, const s
 }
 
 sky_bool_t
-http_req_url_decode(sky_http_server_request_t *const r) {
+http_req_url_decode(sky_http_request_t *const r) {
     const sky_usize_t size = http_url_decode(r->uri.data, r->uri.len);
     if (sky_unlikely(size == SKY_USIZE_MAX)) {
         return false;
@@ -60,7 +60,7 @@ http_req_url_decode(sky_http_server_request_t *const r) {
 
 static void
 http_params_no_need_decode(sky_list_t *const list, sky_uchar_t *p, sky_usize_t size) {
-    sky_http_server_param_t *param;
+    sky_http_param_t *param;
     sky_isize_t param_end_index, param_val_index;
 
     for (;;) {
@@ -114,7 +114,7 @@ http_params_no_need_decode(sky_list_t *const list, sky_uchar_t *p, sky_usize_t s
 
 static void
 http_params_decode(sky_list_t *const list, sky_uchar_t *p, sky_usize_t size) {
-    sky_http_server_param_t *param;
+    sky_http_param_t *param;
     sky_isize_t param_end_index, param_val_index;
     sky_usize_t tmp, v_size;
     sky_uchar_t *v_p;

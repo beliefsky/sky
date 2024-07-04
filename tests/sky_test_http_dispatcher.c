@@ -10,15 +10,15 @@
 static sky_bool_t create_server(sky_ev_loop_t *ev_loop);
 
 
-static void redis_test(sky_http_server_request_t *req);
+static void redis_test(sky_http_request_t *req);
 
-static void upload_test(sky_http_server_request_t *req);
+static void upload_test(sky_http_request_t *req);
 
-static void hello_world(sky_http_server_request_t *req);
+static void hello_world(sky_http_request_t *req);
 
-static void pgsql_test(sky_http_server_request_t *req);
+static void pgsql_test(sky_http_request_t *req);
 
-static void put_data(sky_http_server_request_t *req);
+static void put_data(sky_http_request_t *req);
 
 static sky_pgsql_pool_t *pgsql_pool;
 
@@ -93,7 +93,7 @@ create_server(sky_ev_loop_t *ev_loop) {
 }
 
 static void
-hello_world(sky_http_server_request_t *req) {
+hello_world(sky_http_request_t *req) {
     sky_http_res_str_len(
             req,
             sky_str_line("{\"status\": 200, \"msg\": \"success\"}"),
@@ -105,7 +105,7 @@ hello_world(sky_http_server_request_t *req) {
 
 static void
 pgsql_test_wait(sky_sync_wait_t *const wait, void *const data) {
-    sky_http_server_request_t *req = data;
+    sky_http_request_t *req = data;
 
 
     sky_pgsql_conn_t *conn = sky_pgsql_pool_wait_get(pgsql_pool, req->pool, wait);
@@ -136,12 +136,12 @@ pgsql_test_wait(sky_sync_wait_t *const wait, void *const data) {
 
 
 static void
-pgsql_test(sky_http_server_request_t *req) {
+pgsql_test(sky_http_request_t *req) {
     sky_sync_wait_create_with_stack(pgsql_test_wait, req, 4096);
 }
 
 static void
-body_cb(sky_http_server_request_t *req, sky_str_t *body, void *data) {
+body_cb(sky_http_request_t *req, sky_str_t *body, void *data) {
     (void) data;
 
     if (body) {
@@ -162,7 +162,7 @@ body_cb(sky_http_server_request_t *req, sky_str_t *body, void *data) {
 }
 
 static void
-put_data(sky_http_server_request_t *req) {
+put_data(sky_http_request_t *req) {
     sky_http_req_body_str(req, body_cb, null);
 }
 

@@ -5,7 +5,7 @@
 #include <core/log.h>
 #include <io/http/http_server_file.h>
 
-static sky_bool_t http_index_router(sky_http_server_request_t *req, void *data);
+static sky_bool_t http_index_router(sky_http_request_t *req, void *data);
 
 int
 main() {
@@ -48,17 +48,17 @@ main() {
 
 
 static sky_bool_t
-http_index_router(sky_http_server_request_t *req, void *data) {
+http_index_router(sky_http_request_t *req, void *data) {
     (void) data;
     if (!req->exten.len) {
         sky_str_set(&req->uri, "/index.html");
         sky_str_set(&req->exten, ".html");
 
-        sky_http_server_header_t *header;
-        header = sky_list_push(&req->headers_out.headers);
+        sky_http_header_t *header;
+        header = sky_http_res_push_header(req);
         sky_str_set(&header->key, "X-Content-Type-Options");
         sky_str_set(&header->val, "nosniff");
-        header = sky_list_push(&req->headers_out.headers);
+        header = sky_http_res_push_header(req);
         sky_str_set(&header->key, "X-XSS-Protection");
         sky_str_set(&header->val, "1; mode=block");
     }

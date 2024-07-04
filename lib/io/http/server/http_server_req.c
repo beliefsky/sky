@@ -8,15 +8,15 @@
 
 static void http_server_request_set(sky_http_connection_t *conn, sky_pool_t *pool, sky_usize_t buf_size);
 
-static void http_line_next(sky_http_connection_t *conn, sky_http_server_request_t *r, sky_buf_t *buf);
+static void http_line_next(sky_http_connection_t *conn, sky_http_request_t *r, sky_buf_t *buf);
 
 static void on_http_line_cb(sky_tcp_cli_t *tcp, sky_usize_t bytes, void *attr);
 
 static void on_http_header_cb(sky_tcp_cli_t *tcp, sky_usize_t bytes, void *attr);
 
-static void http_module_run(sky_http_server_request_t *r);
+static void http_module_run(sky_http_request_t *r);
 
-static void http_server_req_finish(sky_http_server_request_t *r, void *data);
+static void http_server_req_finish(sky_http_request_t *r, void *data);
 
 void http_timeout_cb(sky_timer_wheel_entry_t *timer);
 
@@ -28,7 +28,7 @@ static void on_http_conn_close(sky_tcp_cli_t *cli);
 
 
 sky_api void
-sky_http_req_finish(sky_http_server_request_t *const r) {
+sky_http_req_finish(sky_http_request_t *const r) {
     sky_http_connection_t *const conn = r->conn;
 
     if (sky_unlikely(r->error)) {
@@ -78,12 +78,12 @@ http_server_request_process(sky_http_connection_t *const conn) {
 static sky_inline void
 http_server_request_set(sky_http_connection_t *const conn, sky_pool_t *const pool, const sky_usize_t buf_size) {
     sky_http_server_t *const server = conn->server;
-    sky_http_server_request_t *const r = sky_pcalloc(pool, sizeof(sky_http_server_request_t));
+    sky_http_request_t *const r = sky_pcalloc(pool, sizeof(sky_http_request_t));
     r->pool = pool;
     r->conn = conn;
     r->read_request_body = true;
-    sky_list_init(&r->headers_out.headers, pool, 16, sizeof(sky_http_server_header_t));
-    sky_list_init(&r->headers_in.headers, pool, 16, sizeof(sky_http_server_header_t));
+    sky_list_init(&r->headers_out.headers, pool, 16, sizeof(sky_http_header_t));
+    sky_list_init(&r->headers_in.headers, pool, 16, sizeof(sky_http_header_t));
 
     sky_timer_set_cb(&conn->timer, http_timeout_cb);
     conn->current_req = r;
@@ -92,7 +92,7 @@ http_server_request_set(sky_http_connection_t *const conn, sky_pool_t *const poo
 }
 
 static void
-http_line_next(sky_http_connection_t *const conn, sky_http_server_request_t *const r, sky_buf_t *const buf) {
+http_line_next(sky_http_connection_t *const conn, sky_http_request_t *const r, sky_buf_t *const buf) {
     sky_i8_t i = http_request_header_parse(r, buf);
     if (i > 0) {
         http_module_run(r);
@@ -148,7 +148,7 @@ on_http_line_cb(sky_tcp_cli_t *const tcp, sky_usize_t bytes, void *attr) {
         return;
     }
 
-    sky_http_server_request_t *const r = conn->current_req;
+    sky_http_request_t *const r = conn->current_req;
     sky_buf_t *const buf = conn->buf;
 
     sky_i8_t i;
@@ -194,7 +194,7 @@ on_http_header_cb(sky_tcp_cli_t *const tcp, sky_usize_t bytes, void *attr) {
         return;
     }
 
-    sky_http_server_request_t *const r = conn->current_req;
+    sky_http_request_t *const r = conn->current_req;
     sky_buf_t *const buf = conn->buf;
 
     sky_i8_t i;
@@ -246,7 +246,7 @@ on_http_header_cb(sky_tcp_cli_t *const tcp, sky_usize_t bytes, void *attr) {
 
 
 static sky_inline void
-http_module_run(sky_http_server_request_t *const r) {
+http_module_run(sky_http_request_t *const r) {
     sky_timer_wheel_unlink(&r->conn->timer);
 
     const sky_str_t *const host = r->headers_in.host;
@@ -282,7 +282,7 @@ http_module_run(sky_http_server_request_t *const r) {
 }
 
 static sky_inline void
-http_server_req_finish(sky_http_server_request_t *r, void *const data) {
+http_server_req_finish(sky_http_request_t *r, void *const data) {
     (void) data;
 
     sky_http_connection_t *const conn = r->conn;
@@ -305,7 +305,7 @@ http_timeout_cb(sky_timer_wheel_entry_t *const timer) {
 static void
 http_server_request_next(sky_timer_wheel_entry_t *const timer) {
     sky_http_connection_t *const conn = sky_type_convert(timer, sky_http_connection_t, timer);
-    sky_http_server_request_t *r = conn->current_req;
+    sky_http_request_t *r = conn->current_req;
     sky_buf_t *const old_buf = conn->buf;
 
     if (old_buf->pos == old_buf->last) {

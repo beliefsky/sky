@@ -43,13 +43,13 @@ static void on_http_body_read_parse(sky_tcp_cli_t *cli, sky_usize_t bytes, void 
 
 static void on_http_body_skip_parse(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr);
 
-static void http_body_str_too_large(sky_http_server_request_t *r, void *data);
+static void http_body_str_too_large(sky_http_request_t *r, void *data);
 
-static sky_io_result_t parse_chunk_none(sky_http_server_request_t *r, sky_buf_t *buf);
+static sky_io_result_t parse_chunk_none(sky_http_request_t *r, sky_buf_t *buf);
 
 static sky_io_result_t
 parse_chunk_data(
-        sky_http_server_request_t *r,
+        sky_http_request_t *r,
         sky_buf_t *buf,
         sky_uchar_t *out,
         sky_usize_t size,
@@ -58,13 +58,13 @@ parse_chunk_data(
 
 static sky_io_result_t
 parse_chunk_skip(
-        sky_http_server_request_t *r,
+        sky_http_request_t *r,
         sky_buf_t *buf,
         sky_usize_t size,
         sky_usize_t *bytes
 );
 
-static void http_body_read_none_to_str(sky_http_server_request_t *r, void *data);
+static void http_body_read_none_to_str(sky_http_request_t *r, void *data);
 
 static sky_inline sky_bool_t check_chunk_data(
         sky_usize_t need_size,
@@ -81,7 +81,7 @@ static sky_usize_t check_chunk_data_size(
 
 void
 http_req_chunked_body_none(
-        sky_http_server_request_t *const r,
+        sky_http_request_t *const r,
         const sky_http_server_next_pt call,
         void *const data
 ) {
@@ -150,7 +150,7 @@ http_req_chunked_body_none(
 
 void
 http_req_chunked_body_str(
-        sky_http_server_request_t *const r,
+        sky_http_request_t *const r,
         const sky_http_server_next_str_pt call,
         void *const data
 ) {
@@ -286,7 +286,7 @@ http_req_chunked_body_str(
 
 sky_io_result_t
 http_req_chunked_body_read(
-        sky_http_server_request_t *const r,
+        sky_http_request_t *const r,
         sky_uchar_t *const buf,
         sky_usize_t size,
         sky_usize_t *const bytes,
@@ -386,7 +386,7 @@ http_req_chunked_body_read(
 
 sky_io_result_t
 http_req_chunked_body_skip(
-        sky_http_server_request_t *r,
+        sky_http_request_t *r,
         sky_usize_t size,
         sky_usize_t *bytes,
         sky_http_server_rw_pt call,
@@ -483,7 +483,7 @@ http_req_chunked_body_skip(
 static void
 on_http_body_read_none(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr) {
     sky_http_connection_t *const conn = sky_type_convert(cli, sky_http_connection_t, tcp);
-    sky_http_server_request_t *const r = conn->current_req;
+    sky_http_request_t *const r = conn->current_req;
     http_body_cb_t *const cb_data = attr;
     sky_buf_t *const buf = conn->buf;
     if (bytes == SKY_USIZE_MAX) {
@@ -549,7 +549,7 @@ on_http_body_read_none(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr) {
 static void
 on_http_body_read_str(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr) {
     sky_http_connection_t *const conn = sky_type_convert(cli, sky_http_connection_t, tcp);
-    sky_http_server_request_t *const r = conn->current_req;
+    sky_http_request_t *const r = conn->current_req;
     http_body_str_cb_t *const cb_data = attr;
     sky_buf_t *const buf = conn->buf;
 
@@ -669,7 +669,7 @@ on_http_body_read_str(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr) {
 static void
 on_http_body_read(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr) {
     sky_http_connection_t *const conn = sky_type_convert(cli, sky_http_connection_t, tcp);
-    sky_http_server_request_t *const r = conn->current_req;
+    sky_http_request_t *const r = conn->current_req;
     http_body_read_t *const cb_data = attr;
     const sky_http_server_rw_pt cb = cb_data->read_cb;
     void *const data = cb_data->data;
@@ -690,7 +690,7 @@ on_http_body_read(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr) {
 static void
 on_http_body_read_parse(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr) {
     sky_http_connection_t *const conn = sky_type_convert(cli, sky_http_connection_t, tcp);
-    sky_http_server_request_t *const r = conn->current_req;
+    sky_http_request_t *const r = conn->current_req;
     sky_buf_t *const buf = conn->buf;
     http_body_read_parse_t *const cb_data = attr;
     sky_http_server_rw_pt cb = cb_data->read_cb;
@@ -725,7 +725,7 @@ on_http_body_read_parse(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr) {
 static void
 on_http_body_skip_parse(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr) {
     sky_http_connection_t *const conn = sky_type_convert(cli, sky_http_connection_t, tcp);
-    sky_http_server_request_t *const r = conn->current_req;
+    sky_http_request_t *const r = conn->current_req;
     sky_buf_t *const buf = conn->buf;
     http_body_read_parse_t *const cb_data = attr;
     sky_http_server_rw_pt cb = cb_data->read_cb;
@@ -758,7 +758,7 @@ on_http_body_skip_parse(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr) {
 }
 
 static void
-http_body_str_too_large(sky_http_server_request_t *const r, void *const data) {
+http_body_str_too_large(sky_http_request_t *const r, void *const data) {
     r->state = 413;
     sky_http_res_str_len(
             r,
@@ -769,14 +769,14 @@ http_body_str_too_large(sky_http_server_request_t *const r, void *const data) {
 }
 
 static void
-http_body_read_none_to_str(sky_http_server_request_t *const r, void *const data) {
+http_body_read_none_to_str(sky_http_request_t *const r, void *const data) {
     http_body_str_cb_t *const cb_data = data;
     cb_data->str_cb(r, null, cb_data->data);
 }
 
 
 static sky_io_result_t
-parse_chunk_none(sky_http_server_request_t *const r, sky_buf_t *const buf) {
+parse_chunk_none(sky_http_request_t *const r, sky_buf_t *const buf) {
     sky_usize_t read_n, tmp;
     sky_isize_t n;
 
@@ -876,7 +876,7 @@ parse_chunk_none(sky_http_server_request_t *const r, sky_buf_t *const buf) {
 
 static sky_io_result_t
 parse_chunk_data(
-        sky_http_server_request_t *const r,
+        sky_http_request_t *const r,
         sky_buf_t *const buf,
         sky_uchar_t *out,
         sky_usize_t size,
@@ -1006,7 +1006,7 @@ parse_chunk_data(
 
 static sky_io_result_t
 parse_chunk_skip(
-        sky_http_server_request_t *const r,
+        sky_http_request_t *const r,
         sky_buf_t *const buf,
         sky_usize_t size,
         sky_usize_t *bytes

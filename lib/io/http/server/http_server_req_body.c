@@ -6,7 +6,7 @@
 
 sky_api void
 sky_http_req_body_none(
-        sky_http_server_request_t *const r,
+        sky_http_request_t *const r,
         const sky_http_server_next_pt call,
         void *const data
 ) {
@@ -27,7 +27,7 @@ sky_http_req_body_none(
 }
 
 sky_api void
-sky_http_req_body_str(sky_http_server_request_t *r, sky_http_server_next_str_pt call, void *data) {
+sky_http_req_body_str(sky_http_request_t *r, sky_http_server_next_str_pt call, void *data) {
     if (sky_unlikely(r->read_request_body || r->error)) {
         call(r, null, data);
         return;
@@ -45,7 +45,7 @@ sky_http_req_body_str(sky_http_server_request_t *r, sky_http_server_next_str_pt 
 
 sky_api sky_io_result_t
 sky_http_req_body_read(
-        sky_http_server_request_t *r,
+        sky_http_request_t *r,
         sky_uchar_t *buf,
         sky_usize_t size,
         sky_usize_t *bytes,
@@ -74,7 +74,7 @@ sky_http_req_body_read(
 
 sky_api sky_io_result_t
 sky_http_req_body_skip(
-        sky_http_server_request_t *r,
+        sky_http_request_t *r,
         sky_usize_t size,
         sky_usize_t *bytes,
         sky_http_server_rw_pt call,

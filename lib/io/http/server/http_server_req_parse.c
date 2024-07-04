@@ -21,17 +21,17 @@ typedef enum {
     sw_line_LF
 } parse_state_t;
 
-static sky_bool_t http_method_identify(sky_http_server_request_t *r);
+static sky_bool_t http_method_identify(sky_http_request_t *r);
 
-static sky_isize_t parse_url_no_decode(sky_http_server_request_t *r, sky_uchar_t *post, const sky_uchar_t *end);
+static sky_isize_t parse_url_no_decode(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end);
 
-static sky_isize_t parse_url_code(sky_http_server_request_t *r, sky_uchar_t *post, const sky_uchar_t *end);
+static sky_isize_t parse_url_code(sky_http_request_t *r, sky_uchar_t *post, const sky_uchar_t *end);
 
-static sky_bool_t header_handle_run(sky_http_server_request_t *req, sky_http_server_header_t *h);
+static sky_bool_t header_handle_run(sky_http_request_t *req, sky_http_header_t *h);
 
 
 sky_i8_t
-http_request_line_parse(sky_http_server_request_t *const r, sky_buf_t *const b) {
+http_request_line_parse(sky_http_request_t *const r, sky_buf_t *const b) {
     parse_state_t state = (parse_state_t) r->state;
     sky_uchar_t *p = b->pos;
     sky_uchar_t *const end = b->last;
@@ -206,12 +206,12 @@ http_request_line_parse(sky_http_server_request_t *const r, sky_buf_t *const b) 
 }
 
 sky_i8_t
-http_request_header_parse(sky_http_server_request_t *const r, sky_buf_t *const b) {
+http_request_header_parse(sky_http_request_t *const r, sky_buf_t *const b) {
     parse_state_t state = (parse_state_t) r->state;
     sky_uchar_t *p = b->pos;
     sky_uchar_t *const end = b->last;
 
-    sky_http_server_header_t *h;
+    sky_http_header_t *h;
     sky_isize_t index;
     sky_uchar_t ch;
 
@@ -321,7 +321,7 @@ http_request_header_parse(sky_http_server_request_t *const r, sky_buf_t *const b
 }
 
 static sky_inline sky_bool_t
-http_method_identify(sky_http_server_request_t *const r) {
+http_method_identify(sky_http_request_t *const r) {
     const sky_uchar_t *m = r->method_name.data;
 
     if (sky_unlikely(r->method_name.len < 3)) {
@@ -382,7 +382,7 @@ http_method_identify(sky_http_server_request_t *const r) {
 }
 
 static sky_inline sky_isize_t
-parse_url_no_decode(sky_http_server_request_t *const r, sky_uchar_t *post, const sky_uchar_t *const end) {
+parse_url_no_decode(sky_http_request_t *const r, sky_uchar_t *post, const sky_uchar_t *const end) {
     const sky_uchar_t *const start = post;
 #ifdef __SSE4_1__
     static const sky_uchar_t sky_align(16) ranges[16] = "\000\040"
@@ -497,7 +497,7 @@ parse_url_no_decode(sky_http_server_request_t *const r, sky_uchar_t *post, const
 
 
 static sky_inline sky_isize_t
-parse_url_code(sky_http_server_request_t *const r, sky_uchar_t *post, const sky_uchar_t *const end) {
+parse_url_code(sky_http_request_t *const r, sky_uchar_t *post, const sky_uchar_t *const end) {
     const sky_uchar_t *const start = post;
 #ifdef __SSE4_1__
     static const sky_uchar_t sky_align(16) ranges[16] = "\000\040"
@@ -600,7 +600,7 @@ parse_url_code(sky_http_server_request_t *const r, sky_uchar_t *post, const sky_
 }
 
 static sky_inline sky_bool_t
-header_handle_run(sky_http_server_request_t *const req, sky_http_server_header_t *const h) {
+header_handle_run(sky_http_request_t *const req, sky_http_header_t *const h) {
     const sky_uchar_t *p = h->key.data;
 
     switch (h->key.len) {

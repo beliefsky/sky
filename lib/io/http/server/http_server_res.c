@@ -32,11 +32,11 @@ typedef struct {
 } http_res_write_packet_t;
 
 
-static void http_header_write_pre(sky_http_server_request_t *r, sky_str_buf_t *buf);
+static void http_header_write_pre(sky_http_request_t *r, sky_str_buf_t *buf);
 
-static void http_header_write_ex(sky_http_server_request_t *r, sky_str_buf_t *buf);
+static void http_header_write_ex(sky_http_request_t *r, sky_str_buf_t *buf);
 
-static void http_res_default_cb(sky_http_server_request_t *r, void *data);
+static void http_res_default_cb(sky_http_request_t *r, void *data);
 
 static void on_http_response(sky_tcp_cli_t *tcp, sky_usize_t bytes, void *attr);
 
@@ -48,7 +48,7 @@ static void status_msg_get(sky_u32_t status, sky_str_t *out);
 
 sky_api void
 sky_http_res_nobody(
-        sky_http_server_request_t *const r,
+        sky_http_request_t *const r,
         sky_http_server_next_pt call,
         void *const cb_data
 ) {
@@ -102,7 +102,7 @@ sky_http_res_nobody(
 
 sky_api void
 sky_http_res_str(
-        sky_http_server_request_t *const r,
+        sky_http_request_t *const r,
         const sky_str_t *const data,
         const sky_http_server_next_pt call,
         void *const cb_data
@@ -116,7 +116,7 @@ sky_http_res_str(
 
 sky_api void
 sky_http_res_str_len(
-        sky_http_server_request_t *const r,
+        sky_http_request_t *const r,
         sky_uchar_t *const data,
         const sky_usize_t data_len,
         sky_http_server_next_pt call,
@@ -215,7 +215,7 @@ sky_http_res_str_len(
 
 sky_api void
 sky_http_res_file(
-        sky_http_server_request_t *r,
+        sky_http_request_t *r,
         sky_fs_t *fs,
         sky_u64_t offset,
         sky_u64_t size,
@@ -342,7 +342,7 @@ sky_http_res_file(
 
 sky_api sky_io_result_t
 sky_http_res_write(
-        sky_http_server_request_t *r,
+        sky_http_request_t *r,
         sky_uchar_t *buf,
         sky_usize_t size,
         sky_usize_t *bytes,
@@ -571,7 +571,7 @@ sky_http_res_write(
 }
 
 static void
-http_header_write_pre(sky_http_server_request_t *const r, sky_str_buf_t *const buf) {
+http_header_write_pre(sky_http_request_t *const r, sky_str_buf_t *const buf) {
     sky_str_buf_append_str(buf, &r->version_name);
     sky_str_buf_append_uchar(buf, ' ');
 
@@ -607,8 +607,8 @@ http_header_write_pre(sky_http_server_request_t *const r, sky_str_buf_t *const b
 }
 
 static void
-http_header_write_ex(sky_http_server_request_t *r, sky_str_buf_t *buf) {
-    sky_list_foreach(&r->headers_out.headers, sky_http_server_header_t, item, {
+http_header_write_ex(sky_http_request_t *r, sky_str_buf_t *buf) {
+    sky_list_foreach(&r->headers_out.headers, sky_http_header_t, item, {
         sky_str_buf_append_str(buf, &item->key);
         sky_str_buf_append_two_uchar(buf, ':', ' ');
         sky_str_buf_append_str(buf, &item->val);
@@ -620,7 +620,7 @@ http_header_write_ex(sky_http_server_request_t *r, sky_str_buf_t *buf) {
 
 
 static sky_inline void
-http_res_default_cb(sky_http_server_request_t *const r, void *const data) {
+http_res_default_cb(sky_http_request_t *const r, void *const data) {
     (void) data;
 
     sky_http_req_finish(r);
