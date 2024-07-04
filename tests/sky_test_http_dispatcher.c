@@ -69,13 +69,17 @@ create_server(sky_ev_loop_t *ev_loop) {
                     .path = sky_string("/pgsql"),
                     .get = pgsql_test
             },
+            {
+                    .path = sky_string("/upload"),
+                    .post = upload_test
+            },
     };
 
     const sky_http_server_dispatcher_conf_t dispatcher = {
             .host = sky_null_string,
             .prefix = sky_string("/api"),
             .mappers = mappers,
-            .mapper_len = 2
+            .mapper_len = 3
     };
 
     sky_http_server_module_put(server, sky_http_server_dispatcher_create(&dispatcher));
@@ -145,7 +149,6 @@ body_cb(sky_http_request_t *req, sky_str_t *body, void *data) {
     (void) data;
 
     if (body) {
-        sky_log_info("%s", req->headers_in.content_type->data);
         sky_log_warn("%lu: %s", body->len, body->data);
     } else {
         sky_log_error("not body or error");
@@ -164,5 +167,80 @@ body_cb(sky_http_request_t *req, sky_str_t *body, void *data) {
 static void
 put_data(sky_http_request_t *req) {
     sky_http_req_body_str(req, body_cb, null);
+}
+
+static void
+upload_wait(sky_sync_wait_t *wait, void *data) {
+    sky_http_request_t *req = data;
+
+    sky_http_multipart_parser_t *parser = sky_http_req_body_parse_multipart(req);
+    if (!parser) {
+        sky_http_res_str_len(
+                req,
+                sky_str_line("{\"status\": 500, \"msg\": \"isn't multipart\"}"),
+                null,
+                null
+        );
+        return;
+    }
+
+    sky_uchar_t ch[1024], *p;
+    sky_usize_t size, n;
+    for (;;) {
+        size = sky_http_req_body_wait_read(req, ch, 1024, wait);
+        if (size == SKY_USIZE_MAX) {
+            sky_http_res_str_len(
+                    req,
+                    sky_str_line("{\"status\": 500, \"msg\": \"parse error\"}"),
+                    null,
+                    null
+            );
+            return;
+        }
+        p = ch;
+
+        while (size) {
+            n = sky_http_multipart_parse_exec(parser, p, size);
+            p += n;
+            size -= n;
+
+            switch (sky_http_multipart_result(parser)) {
+                case MULTIPART_PENDING:
+                    break;
+                case MULTIPART_HEADERS:
+                    sky_http_multipart_header_foreach(parser, item, {
+                        sky_log_info("%s: %s", item->key.data, item->val.data);
+                    });
+                    continue;
+                case MULTIPART_DATA: {
+                    sky_http_multipart_data(parser, &n);
+                    sky_log_warn("data: %lu", n);
+                    continue;
+                }
+                case MULTIPART_END:
+                    sky_log_warn("end");
+                    sky_http_res_str_len(
+                            req,
+                            sky_str_line("{\"status\": 200, \"msg\": \"success\"}"),
+                            null,
+                            null
+                    );
+                    return;
+                default:
+                    sky_http_res_str_len(
+                            req,
+                            sky_str_line("{\"status\": 400, \"msg\": \"bad request\"}"),
+                            null,
+                            null
+                    );
+                    return;
+            }
+        }
+    }
+}
+
+static void
+upload_test(sky_http_request_t *req) {
+    sky_sync_wait_create(upload_wait, req);
 }
 
