@@ -31,7 +31,7 @@ sky_http_req_body_wait_read(
         sky_sync_wait_t *wait
 ) {
     sky_usize_t read_n;
-    switch (sky_http_req_body_read(r, buf, size, &read_n, http_rw_cb, &read_n)) {
+    switch (sky_http_req_body_read(r, buf, size, &read_n, http_rw_cb, wait)) {
         case REQ_SUCCESS:
             return read_n;
         case REQ_PENDING:
