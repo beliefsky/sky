@@ -33,6 +33,8 @@ typedef enum {
 
 } http_multipart_status_t;
 
+static void header_handle_run(sky_http_multipart_parser_t *m, sky_http_header_t *h);
+
 
 sky_api sky_http_multipart_parser_t *
 sky_http_multipart_parse_create(sky_pool_t *const pool, const sky_str_t *const boundary) {
@@ -356,6 +358,8 @@ sky_http_multipart_parse_exec(
             h->key = m->tmp_header_name;
             sky_str_buf_build(m->str_buf, &h->val);
 
+            header_handle_run(m, h);
+
             if (size == 1) {
                 m->result = MULTIPART_PENDING;
                 break;
@@ -550,4 +554,53 @@ sky_http_req_body_parse_multipart(sky_http_request_t *const r) {
     };
 
     return sky_http_multipart_parse_create(sky_http_req_pool(r), &result);
+}
+
+
+static sky_inline void
+header_handle_run(sky_http_multipart_parser_t *m, sky_http_header_t *const h) {
+    const sky_uchar_t *p = h->key.data;
+
+    switch (h->key.len) {
+        case 12:
+            switch (sky_str8_switch(p)) {
+                case sky_str8_num('C', 'o', 'n', 't', 'e', 'n', 't', '-'):
+                case sky_str8_num('c', 'o', 'n', 't', 'e', 'n', 't', '-'): {
+                    switch (sky_str4_switch(p + 8)) {
+                        case sky_str4_num('T', 'y', 'p', 'e'):
+                        case sky_str4_num('t', 'y', 'p', 'e'): { // Content-Type
+                            sky_str_set(&h->key, "content-type");
+                            m->content_type = &h->val;
+                            break;
+                        }
+                        default:
+                            break;
+                    }
+                }
+                default:
+                    break;
+            }
+        case 19:
+            switch (sky_str8_switch(p)) {
+                case sky_str8_num('C', 'o', 'n', 't', 'e', 'n', 't', '-'):
+                case sky_str8_num('c', 'o', 'n', 't', 'e', 'n', 't', '-'): {
+                    switch (sky_str8_switch(p + 8)) {
+                        case sky_str8_num('D', 'i', 's', 'p', 'o', 's', 'i', 't'):
+                        case sky_str8_num('d', 'i', 's', 'p', 'o', 's', 'i', 't'): {
+                            if (sky_str2_cmp(p + 16, 'i', 'o') && p[18] == 'n') { // Content-Disposition
+                                sky_str_set(&h->key, "content-disposition");
+                                m->content_disposition = &h->val;
+                            }
+                            break;
+                        }
+                        default:
+                            break;
+                    }
+                }
+                default:
+                    break;
+            }
+        default:
+            break;
+    }
 }
