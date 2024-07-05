@@ -148,13 +148,30 @@ sky_tcp_skip(
         sky_tcp_rw_pt cb,
         void *attr
 ) {
-#define TCP_SKIP_BUFF_SIZE 8192
-    static sky_uchar_t SKIP_BUFF[TCP_SKIP_BUFF_SIZE];
-    if (size <= 8192) {
-        return sky_tcp_read(cli, SKIP_BUFF, size, bytes, cb, attr);
-    }
-    return sky_tcp_read(cli, SKIP_BUFF, TCP_SKIP_BUFF_SIZE, bytes, cb, attr);
+#define TCP_SKIP_BUFF_SIZE  4096
+#define TCP_SKIP_BUFF_SHIFT 12
+#define TCP_SKIP_VEC_NUM    8
 
+    static sky_uchar_t SKIP_BUFF[TCP_SKIP_BUFF_SIZE];
+    static sky_io_vec_t SKIP_VEC[] = { // 4096 * 8 = 32k 单次读写
+            {.len = TCP_SKIP_BUFF_SIZE, .buf = SKIP_BUFF},
+            {.len = TCP_SKIP_BUFF_SIZE, .buf = SKIP_BUFF},
+            {.len = TCP_SKIP_BUFF_SIZE, .buf = SKIP_BUFF},
+            {.len = TCP_SKIP_BUFF_SIZE, .buf = SKIP_BUFF},
+            {.len = TCP_SKIP_BUFF_SIZE, .buf = SKIP_BUFF},
+            {.len = TCP_SKIP_BUFF_SIZE, .buf = SKIP_BUFF},
+            {.len = TCP_SKIP_BUFF_SIZE, .buf = SKIP_BUFF},
+            {.len = TCP_SKIP_BUFF_SIZE, .buf = SKIP_BUFF}
+    };
+    if (size > TCP_SKIP_BUFF_SIZE) {
+        sky_usize_t num = size >> TCP_SKIP_BUFF_SHIFT;
+        num = sky_min(num, TCP_SKIP_VEC_NUM);
+        return sky_tcp_read_vec(cli, SKIP_VEC, (sky_u32_t) num, bytes, cb, attr);
+    }
+    return sky_tcp_read(cli, SKIP_BUFF, size, bytes, cb, attr);
+
+#undef TCP_SKIP_VEC_NUM
+#undef TCP_SKIP_BUFF_SHIFT
 #undef TCP_SKIP_BUFF_SIZE
 }
 
@@ -173,12 +190,8 @@ sky_tcp_read(
             *bytes = SKY_USIZE_MAX;
             return REQ_ERROR;
         }
-        if ((cli->ev.flags & SKY_TCP_STATUS_EOF)) {
-            *bytes = 0;
-            return REQ_EOF;
-        }
         *bytes = 0;
-        return REQ_SUCCESS;
+        return (cli->ev.flags & SKY_TCP_STATUS_EOF) ? REQ_EOF : REQ_SUCCESS;
     }
     sky_io_vec_t vec = {.len = (sky_u32_t) size, .buf = buf};
     return sky_tcp_read_vec(cli, &vec, 1, bytes, cb, attr);
@@ -490,7 +503,7 @@ sky_tcp_send_fs(
 
 
 sky_api sky_bool_t
-sky_tcp_cli_close(sky_tcp_cli_t *cli, sky_tcp_cli_cb_pt cb,  void *attr) {
+sky_tcp_cli_close(sky_tcp_cli_t *cli, sky_tcp_cli_cb_pt cb, void *attr) {
     if (cli->ev.fd == SKY_SOCKET_FD_NONE || (cli->ev.flags & SKY_TCP_STATUS_CLOSING)) {
         return false;
     }
