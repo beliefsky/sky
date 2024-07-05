@@ -91,7 +91,7 @@ static sky_bool_t http_mime_type_get(const sky_str_t *exten, http_mime_type_t *t
 
 static sky_bool_t http_header_range(http_file_t *file, const sky_str_t *value);
 
-static void on_file_node_close(sky_fs_t *fs);
+static void on_file_node_close(sky_fs_t *fs, void *data);
 
 
 sky_api sky_http_server_module_t *
@@ -153,7 +153,7 @@ sky_http_server_file_destroy(sky_http_server_module_t *const server_file) {
         }
         sky_rb_tree_del(&data->cache_tree, item);
         node = sky_type_convert(item, file_cache_node_t, node);
-        if (!sky_fs_close(&node->file, on_file_node_close)) {
+        if (!sky_fs_close(&node->file, on_file_node_close, null)) {
             sky_free(node);
         }
     }
@@ -343,7 +343,7 @@ cache_node_free_timer(sky_timer_wheel_entry_t *const timer) {
         }
         sky_queue_remove(item);
         sky_rb_tree_del(&node->module_file->cache_tree, &node->node);
-        if (!sky_fs_close(&node->file, on_file_node_close)) {
+        if (!sky_fs_close(&node->file, on_file_node_close, null)) {
             sky_free(node);
         }
     }
@@ -441,7 +441,9 @@ http_header_range(http_file_t *const file, const sky_str_t *const value) {
 
 
 static void
-on_file_node_close(sky_fs_t *fs) {
+on_file_node_close(sky_fs_t *const fs, void *const data) {
+    (void) data;
+
     file_cache_node_t *const node = sky_type_convert(fs, file_cache_node_t, file);
     sky_free(node);
 }

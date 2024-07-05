@@ -26,7 +26,7 @@ static void clean_accept(sky_tcp_ser_t *ser);
 static sky_io_result_t do_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli);
 
 sky_api sky_inline void
-sky_tcp_ser_init(sky_tcp_ser_t *ser, sky_ev_loop_t *ev_loop) {
+sky_tcp_ser_init(sky_tcp_ser_t *const ser, sky_ev_loop_t *const ev_loop) {
     ser->ev.fd = SKY_SOCKET_FD_NONE;
     ser->ev.flags = EV_TYPE_TCP_SER;
     ser->ev.ev_loop = ev_loop;
@@ -36,7 +36,7 @@ sky_tcp_ser_init(sky_tcp_ser_t *ser, sky_ev_loop_t *ev_loop) {
 }
 
 sky_api sky_inline sky_bool_t
-sky_tcp_ser_options_reuse_port(sky_tcp_ser_t *ser) {
+sky_tcp_ser_options_reuse_port(sky_tcp_ser_t *const ser) {
     const sky_i32_t opt = 1;
 
 #if defined(SO_REUSEPORT_LB)
@@ -51,10 +51,10 @@ sky_tcp_ser_options_reuse_port(sky_tcp_ser_t *ser) {
 
 sky_api sky_bool_t
 sky_tcp_ser_open(
-        sky_tcp_ser_t *ser,
-        const sky_inet_address_t *address,
-        sky_tcp_ser_option_pt options_cb,
-        sky_i32_t backlog
+        sky_tcp_ser_t *const ser,
+        const sky_inet_address_t *const address,
+        const sky_tcp_ser_option_pt options_cb,
+        const sky_i32_t backlog
 ) {
     if (sky_unlikely(ser->ev.fd != SKY_SOCKET_FD_NONE || (ser->ev.flags & SKY_TCP_STATUS_CLOSING))) {
         return false;
@@ -65,7 +65,7 @@ sky_tcp_ser_open(
         return false;
     }
 #else
-    const sky_socket_t fd = socket(address->family, SOCK_STREAM, address->family == AF_UNIX ?  0 : IPPROTO_TCP);
+    const sky_socket_t fd = socket(address->family, SOCK_STREAM, address->family == AF_UNIX ? 0 : IPPROTO_TCP);
     if (sky_unlikely(fd == -1)) {
         return false;
     }
@@ -92,7 +92,12 @@ sky_tcp_ser_open(
 }
 
 sky_api sky_io_result_t
-sky_tcp_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_tcp_accept_pt cb, void *attr) {
+sky_tcp_accept(
+        sky_tcp_ser_t *const ser,
+        sky_tcp_cli_t *const cli,
+        const sky_tcp_accept_pt cb,
+        void *const attr
+) {
     if (sky_unlikely((ser->ev.flags & SKY_TCP_STATUS_ERROR) || ser->ev.fd == SKY_SOCKET_FD_NONE)) {
         return REQ_ERROR;
     }
@@ -118,7 +123,7 @@ sky_tcp_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_tcp_accept_pt cb, voi
 }
 
 sky_api sky_bool_t
-sky_tcp_ser_close(sky_tcp_ser_t *ser, sky_tcp_ser_cb_pt cb,  void *attr) {
+sky_tcp_ser_close(sky_tcp_ser_t *const ser, const sky_tcp_ser_cb_pt cb, void *const attr) {
     if (sky_unlikely(ser->ev.fd == SKY_SOCKET_FD_NONE)) {
         return false;
     }
@@ -135,7 +140,7 @@ sky_tcp_ser_close(sky_tcp_ser_t *ser, sky_tcp_ser_cb_pt cb,  void *attr) {
 
 
 void
-event_on_tcp_ser_error(sky_ev_t *ev) {
+event_on_tcp_ser_error(sky_ev_t *const ev) {
     sky_tcp_ser_t *const ser = (sky_tcp_ser_t *const) ev;
     ser->ev.flags |= SKY_TCP_STATUS_ERROR;
     if (ser->accept_queue) {
@@ -144,7 +149,7 @@ event_on_tcp_ser_error(sky_ev_t *ev) {
 }
 
 void
-event_on_tcp_ser_in(sky_ev_t *ev) {
+event_on_tcp_ser_in(sky_ev_t *const ev) {
     sky_tcp_ser_t *const ser = (sky_tcp_ser_t *const) ev;
     ser->ev.flags |= TCP_STATUS_READ;
     if (!ser->accept_queue) {
@@ -187,7 +192,7 @@ event_on_tcp_ser_in(sky_ev_t *ev) {
 }
 
 void
-event_on_tcp_ser_close(sky_ev_t *ev) {
+event_on_tcp_ser_close(sky_ev_t *const ev) {
     sky_tcp_ser_t *const ser = (sky_tcp_ser_t *const) ev;
 
     if (ser->accept_queue) {
@@ -198,7 +203,7 @@ event_on_tcp_ser_close(sky_ev_t *ev) {
 }
 
 static sky_inline void
-clean_accept(sky_tcp_ser_t *ser) {
+clean_accept(sky_tcp_ser_t *const ser) {
 
     tcp_accept_task_t *task = (tcp_accept_task_t *) ser->accept_queue, *next;
     ser->accept_queue = null;
@@ -219,7 +224,7 @@ clean_accept(sky_tcp_ser_t *ser) {
 }
 
 static sky_inline sky_io_result_t
-do_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli) {
+do_accept(sky_tcp_ser_t *const ser, sky_tcp_cli_t *const cli) {
 #ifdef SKY_HAVE_ACCEPT4
     const sky_socket_t accept_fd = accept4(ser->ev.fd, null, 0, SOCK_NONBLOCK | SOCK_CLOEXEC);
     if (accept_fd != -1) {

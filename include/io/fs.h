@@ -15,15 +15,21 @@ extern "C" {
 #define SKY_FS_O_WRITE      SKY_U32(0x02000000)
 #define SKY_FS_O_APPEND     SKY_U32(0x04000000)
 
+
+#define SKY_FS_STATUS_ERROR        SKY_U32(0x00010000)
+#define SKY_FS_STATUS_CLOSING      SKY_U32(0x00020000)
+
 typedef struct sky_fs_s sky_fs_t;
 typedef struct sky_fs_stat_s sky_fs_stat_t;
 
 typedef void (*sky_fs_rw_pt)(sky_fs_t *fs, sky_usize_t size, void *attr);
 
-typedef void (*sky_fs_cb_pt)(sky_fs_t *fs);
+typedef void (*sky_fs_cb_pt)(sky_fs_t *fs, void *attr);
 
 struct sky_fs_s {
     sky_ev_t ev;
+    sky_fs_cb_pt close_cb;
+    void *close_data;
     sky_usize_t req_num;
 };
 
@@ -43,8 +49,28 @@ sky_bool_t sky_fs_open(
         sky_u32_t flags
 );
 
+sky_io_result_t sky_fs_pread(
+        sky_fs_t *fs,
+        sky_uchar_t *buf,
+        sky_usize_t size,
+        sky_usize_t *bytes,
+        sky_u64_t offset,
+        sky_fs_rw_pt cb,
+        void *attr
+);
 
-sky_bool_t sky_fs_close(sky_fs_t *fs, sky_fs_cb_pt cb);
+sky_io_result_t sky_fs_pwrite(
+        sky_fs_t *fs,
+        sky_uchar_t *buf,
+        sky_usize_t size,
+        sky_usize_t *bytes,
+        sky_u64_t offset,
+        sky_fs_rw_pt cb,
+        void *attr
+);
+
+
+sky_bool_t sky_fs_close(sky_fs_t *fs, sky_fs_cb_pt cb, void *attr);
 
 sky_bool_t sky_fs_stat(sky_fs_t *fs, sky_fs_stat_t *st);
 

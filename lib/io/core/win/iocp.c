@@ -50,7 +50,9 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
             [EV_REQ_TCP_CONNECT] = event_on_tcp_connect,
             [EV_REQ_TCP_DISCONNECT] = event_on_tcp_disconnect,
             [EV_REQ_TCP_WRITE] = event_on_tcp_write,
-            [EV_REQ_TCP_READ] = event_on_tcp_read
+            [EV_REQ_TCP_READ] = event_on_tcp_read,
+            [EV_REQ_FS_WRITE] = event_on_fs_write,
+            [EV_REQ_FS_READ] = event_on_fs_read
     };
 
     DWORD bytes, timeout;
@@ -142,8 +144,9 @@ sky_event_timeout_set(sky_ev_loop_t *ev_loop, sky_timer_wheel_entry_t *timer, sk
 static DWORD
 run_pending(sky_ev_loop_t *ev_loop) {
     static const on_event_pt CLOSE_TABLES[] = {
-            close_on_tcp_ser,
-            close_on_tcp_cli
+            [EV_TYPE_TCP_SER >> EV_TYPE_SHIFT] = close_on_tcp_ser,
+            [EV_TYPE_TCP_CLI >> EV_TYPE_SHIFT] = close_on_tcp_cli,
+            [EV_TYPE_FS >> EV_TYPE_SHIFT] = close_on_fs_cli
     };
 
 

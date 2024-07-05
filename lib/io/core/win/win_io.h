@@ -25,10 +25,15 @@
 #define EV_REQ_TCP_DISCONNECT   SKY_U32(2)
 #define EV_REQ_TCP_WRITE        SKY_U32(3)
 #define EV_REQ_TCP_READ         SKY_U32(4)
+#define EV_REQ_UDP_WRITE        SKY_U32(5)
+#define EV_REQ_UDP_READ         SKY_U32(6)
+#define EV_REQ_FS_WRITE         SKY_U32(7)
+#define EV_REQ_FS_READ          SKY_U32(8)
 
 #define EV_TYPE_TCP_SER     SKY_U32(0x00000000)
 #define EV_TYPE_TCP_CLI     SKY_U32(0x10000000)
-#define EV_TYPE_FS          SKY_U32(0x20000000)
+#define EV_TYPE_UDP         SKY_U32(0x20000000)
+#define EV_TYPE_FS          SKY_U32(0x40000000)
 
 #define EV_TYPE_SHIFT       SKY_U32(28)
 
@@ -64,9 +69,15 @@ void event_on_tcp_write(sky_ev_t *ev, ev_req_t *req, sky_usize_t bytes, sky_bool
 
 void event_on_tcp_read(sky_ev_t *ev, ev_req_t *req, sky_usize_t bytes, sky_bool_t success);
 
+void event_on_fs_write(sky_ev_t *ev, ev_req_t *req, sky_usize_t bytes, sky_bool_t success);
+
+void event_on_fs_read(sky_ev_t *ev, ev_req_t *req, sky_usize_t bytes, sky_bool_t success);
+
 void close_on_tcp_ser(sky_ev_t *ev);
 
 void close_on_tcp_cli(sky_ev_t *ev);
+
+void close_on_fs_cli(sky_ev_t *ev);
 
 
 static sky_inline sky_bool_t

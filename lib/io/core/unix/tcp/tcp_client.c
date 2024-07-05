@@ -80,7 +80,7 @@ static sky_io_result_t tcp_sendfile(sky_tcp_cli_t *cli, const sky_tcp_fs_data_t 
 
 
 sky_api sky_inline void
-sky_tcp_cli_init(sky_tcp_cli_t *cli, sky_ev_loop_t *const ev_loop) {
+sky_tcp_cli_init(sky_tcp_cli_t *const cli, sky_ev_loop_t *const ev_loop) {
     cli->ev.fd = SKY_SOCKET_FD_NONE;
     cli->ev.flags = EV_TYPE_TCP_CLI;
     cli->ev.ev_loop = ev_loop;
@@ -93,7 +93,7 @@ sky_tcp_cli_init(sky_tcp_cli_t *cli, sky_ev_loop_t *const ev_loop) {
 }
 
 sky_api sky_bool_t
-sky_tcp_cli_open(sky_tcp_cli_t *cli, sky_i32_t domain) {
+sky_tcp_cli_open(sky_tcp_cli_t *const cli, const sky_i32_t domain) {
     if (sky_unlikely(cli->ev.fd != SKY_SOCKET_FD_NONE || (cli->ev.flags & SKY_TCP_STATUS_CLOSING))) {
         return false;
     }
@@ -105,7 +105,7 @@ sky_tcp_cli_open(sky_tcp_cli_t *cli, sky_i32_t domain) {
     }
 
 #else
-    const sky_socket_t fd = socket(domain, SOCK_STREAM, domain == AF_UNIX ?  0 : IPPROTO_TCP);
+    const sky_socket_t fd = socket(domain, SOCK_STREAM, domain == AF_UNIX ? 0 : IPPROTO_TCP);
     if (sky_unlikely(fd == -1)) {
         return false;
     }
@@ -123,10 +123,10 @@ sky_tcp_cli_open(sky_tcp_cli_t *cli, sky_i32_t domain) {
 
 sky_api sky_io_result_t
 sky_tcp_connect(
-        sky_tcp_cli_t *cli,
-        const sky_inet_address_t *address,
-        sky_tcp_connect_pt cb,
-        void *attr
+        sky_tcp_cli_t *const cli,
+        const sky_inet_address_t *const address,
+        const sky_tcp_connect_pt cb,
+        void *const attr
 ) {
     if (sky_unlikely(cli->ev.fd == SKY_SOCKET_FD_NONE
                      || (cli->ev.flags & (TCP_STATUS_CONNECTING | SKY_TCP_STATUS_CONNECTED | SKY_TCP_STATUS_ERROR)))) {
@@ -167,11 +167,11 @@ sky_tcp_connect(
 
 sky_api sky_io_result_t
 sky_tcp_skip(
-        sky_tcp_cli_t *cli,
-        sky_usize_t size,
-        sky_usize_t *bytes,
-        sky_tcp_rw_pt cb,
-        void *attr
+        sky_tcp_cli_t *const cli,
+        const sky_usize_t size,
+        sky_usize_t *const bytes,
+        const sky_tcp_rw_pt cb,
+        void *const attr
 ) {
 #define TCP_SKIP_BUFF_SIZE  4096
 #define TCP_SKIP_BUFF_SHIFT 12
@@ -279,12 +279,12 @@ sky_tcp_skip(
 
 sky_api sky_io_result_t
 sky_tcp_read(
-        sky_tcp_cli_t *cli,
-        sky_uchar_t *buf,
-        sky_usize_t size,
-        sky_usize_t *bytes,
-        sky_tcp_rw_pt cb,
-        void *attr
+        sky_tcp_cli_t *const cli,
+        sky_uchar_t *const buf,
+        const sky_usize_t size,
+        sky_usize_t *const bytes,
+        const sky_tcp_rw_pt cb,
+        void *const attr
 ) {
     if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
                      || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
@@ -339,12 +339,12 @@ sky_tcp_read(
 
 sky_api sky_io_result_t
 sky_tcp_read_vec(
-        sky_tcp_cli_t *cli,
-        sky_io_vec_t *vec,
-        sky_u32_t num,
-        sky_usize_t *bytes,
-        sky_tcp_rw_pt cb,
-        void *attr
+        sky_tcp_cli_t *const cli,
+        sky_io_vec_t *const vec,
+        const sky_u32_t num,
+        sky_usize_t *const bytes,
+        const sky_tcp_rw_pt cb,
+        void *const attr
 ) {
     if (num == 1) {
         return sky_tcp_read(cli, vec->buf, vec->len, bytes, cb, attr);
@@ -410,12 +410,12 @@ sky_tcp_read_vec(
 
 sky_api sky_io_result_t
 sky_tcp_write(
-        sky_tcp_cli_t *cli,
+        sky_tcp_cli_t *const cli,
         sky_uchar_t *buf,
         sky_usize_t size,
-        sky_usize_t *bytes,
-        sky_tcp_rw_pt cb,
-        void *attr
+        sky_usize_t *const bytes,
+        const sky_tcp_rw_pt cb,
+        void *const attr
 ) {
     if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
                      || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
@@ -475,12 +475,12 @@ sky_tcp_write(
 
 sky_api sky_io_result_t
 sky_tcp_write_vec(
-        sky_tcp_cli_t *cli,
+        sky_tcp_cli_t *const cli,
         sky_io_vec_t *vec,
         sky_u32_t num,
-        sky_usize_t *bytes,
-        sky_tcp_rw_pt cb,
-        void *attr
+        sky_usize_t *const bytes,
+        const sky_tcp_rw_pt cb,
+        void *const attr
 ) {
     if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
                      || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
@@ -561,11 +561,11 @@ sky_tcp_write_vec(
 
 sky_api sky_io_result_t
 sky_tcp_send_fs(
-        sky_tcp_cli_t *cli,
-        const sky_tcp_fs_data_t *packet,
-        sky_usize_t *bytes,
-        sky_tcp_rw_pt cb,
-        void *attr
+        sky_tcp_cli_t *const cli,
+        const sky_tcp_fs_data_t *const packet,
+        sky_usize_t *const bytes,
+        const sky_tcp_rw_pt cb,
+        void *const attr
 ) {
     if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
                      || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
@@ -691,7 +691,7 @@ sky_tcp_send_fs(
 
 
 sky_api sky_bool_t
-sky_tcp_cli_close(sky_tcp_cli_t *cli, sky_tcp_cli_cb_pt cb, void *attr) {
+sky_tcp_cli_close(sky_tcp_cli_t *const cli, const sky_tcp_cli_cb_pt cb, void *const attr) {
     if (sky_unlikely(cli->ev.fd == SKY_SOCKET_FD_NONE)) {
         return false;
     }
@@ -707,7 +707,7 @@ sky_tcp_cli_close(sky_tcp_cli_t *cli, sky_tcp_cli_cb_pt cb, void *attr) {
 }
 
 void
-event_on_tcp_cli_error(sky_ev_t *ev) {
+event_on_tcp_cli_error(sky_ev_t *const ev) {
     sky_tcp_cli_t *const cli = (sky_tcp_cli_t *const) ev;
     cli->ev.flags |= SKY_TCP_STATUS_ERROR;
     if (cli->write_queue) {
@@ -719,7 +719,7 @@ event_on_tcp_cli_error(sky_ev_t *ev) {
 }
 
 void
-event_on_tcp_cli_in(sky_ev_t *ev) {
+event_on_tcp_cli_in(sky_ev_t *const ev) {
     sky_tcp_cli_t *const cli = (sky_tcp_cli_t *const) ev;
     cli->ev.flags |= TCP_STATUS_READ;
     if (!cli->read_queue) {
@@ -780,7 +780,7 @@ event_on_tcp_cli_in(sky_ev_t *ev) {
 }
 
 void
-event_on_tcp_cli_out(sky_ev_t *ev) {
+event_on_tcp_cli_out(sky_ev_t *const ev) {
     sky_tcp_cli_t *const cli = (sky_tcp_cli_t *const) ev;
     cli->ev.flags |= TCP_STATUS_WRITE;
     if (!cli->write_queue) {
@@ -954,7 +954,7 @@ event_on_tcp_cli_out(sky_ev_t *ev) {
 }
 
 void
-event_on_tcp_cli_close(sky_ev_t *ev) {
+event_on_tcp_cli_close(sky_ev_t *const ev) {
     sky_tcp_cli_t *const cli = (sky_tcp_cli_t *const) ev;
 
     if (cli->write_queue) {
@@ -968,7 +968,7 @@ event_on_tcp_cli_close(sky_ev_t *ev) {
 }
 
 static sky_inline void
-clean_read(sky_tcp_cli_t *cli) {
+clean_read(sky_tcp_cli_t *const cli) {
     tcp_read_task_t *task = (tcp_read_task_t *) cli->read_queue, *next;
     cli->read_queue = null;
     cli->read_queue_tail = &cli->read_queue;
@@ -987,7 +987,7 @@ clean_read(sky_tcp_cli_t *cli) {
 }
 
 static sky_inline void
-clean_write(sky_tcp_cli_t *cli) {
+clean_write(sky_tcp_cli_t *const cli) {
     write_task_adapter_t *task = (write_task_adapter_t *) cli->write_queue, *next;
 
     cli->write_queue = null;
