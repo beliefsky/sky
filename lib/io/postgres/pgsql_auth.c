@@ -148,7 +148,7 @@ on_pgsql_auth_read(sky_tcp_cli_t *tcp, sky_usize_t size, void *attr) {
     auth_packet_t *const packet = conn->data;
     sky_buf_t *const buf = &packet->buf;
 
-    if (size == SKY_USIZE_MAX) {
+    if (!size || size == SKY_USIZE_MAX) {
         goto error;
     }
     buf->last += size;

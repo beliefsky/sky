@@ -20,7 +20,7 @@ on_mqtt_msg_read(sky_tcp_cli_t *tcp, sky_usize_t size, void *attr) {
     (void) attr;
 
     sky_mqtt_client_t *const client = sky_type_convert(tcp, sky_mqtt_client_t, tcp);
-    if (size == SKY_USIZE_MAX) {
+    if (!size || size == SKY_USIZE_MAX) {
         mqtt_client_close(client);
         return;
     }

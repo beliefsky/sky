@@ -31,16 +31,12 @@ sky_http_req_body_wait_read(
         sky_sync_wait_t *wait
 ) {
     sky_usize_t read_n;
-    switch (sky_http_req_body_read(r, buf, size, &read_n, http_rw_cb, wait)) {
-        case REQ_SUCCESS:
-            return read_n;
-        case REQ_PENDING:
-            sky_sync_wait_yield_before(wait);
-            break;
-        default:
-            return SKY_USIZE_MAX;
+
+    if (sky_http_req_body_read(r, buf, size, &read_n, http_rw_cb, wait) == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
+        return (sky_usize_t) sky_sync_wait_yield(wait);
     }
-    return (sky_usize_t) sky_sync_wait_yield(wait);
+    return read_n;
 }
 
 sky_api sky_usize_t
@@ -50,16 +46,12 @@ sky_http_req_body_wait_skip(
         sky_sync_wait_t *wait
 ) {
     sky_usize_t read_n;
-    switch (sky_http_req_body_skip(r, size, &read_n, http_rw_cb, wait)) {
-        case REQ_SUCCESS:
-            return read_n;
-        case REQ_PENDING:
-            sky_sync_wait_yield_before(wait);
-            break;
-        default:
-            return SKY_USIZE_MAX;
+
+    if (sky_http_req_body_skip(r, size, &read_n, http_rw_cb, wait) == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
+        return (sky_usize_t) sky_sync_wait_yield(wait);
     }
-    return (sky_usize_t) sky_sync_wait_yield(wait);
+    return read_n;
 }
 
 
@@ -115,16 +107,12 @@ sky_http_res_wait_write(
         sky_usize_t size
 ) {
     sky_usize_t read_n;
-    switch (sky_http_res_write(r, buf, size, &read_n, http_rw_cb, wait)) {
-        case REQ_SUCCESS:
-            return read_n;
-        case REQ_PENDING:
-            sky_sync_wait_yield_before(wait);
-            break;
-        default:
-            return SKY_USIZE_MAX;
+
+    if (sky_http_res_write(r, buf, size, &read_n, http_rw_cb, wait) == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
+        return (sky_usize_t) sky_sync_wait_yield(wait);
     }
-    return (sky_usize_t) sky_sync_wait_yield(wait);
+    return read_n;
 }
 
 

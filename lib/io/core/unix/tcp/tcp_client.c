@@ -173,16 +173,31 @@ sky_tcp_skip(
         sky_tcp_rw_pt cb,
         void *attr
 ) {
-#define TCP_SKIP_BUFF_SIZE  8192
+#define TCP_SKIP_BUFF_SIZE  4096
+#define TCP_SKIP_BUFF_SHIFT 12
+#define TCP_SKIP_BUFF_MASK  4095
+#define TCP_SKIP_VEC_NUM    8
 
     static sky_uchar_t SKIP_BUFF[TCP_SKIP_BUFF_SIZE];
+    static sky_io_vec_t SKIP_VEC[] = { // 4096 * 8 = 32k 单次读写
+            {.len = TCP_SKIP_BUFF_SIZE, .buf = SKIP_BUFF},
+            {.len = TCP_SKIP_BUFF_SIZE, .buf = SKIP_BUFF},
+            {.len = TCP_SKIP_BUFF_SIZE, .buf = SKIP_BUFF},
+            {.len = TCP_SKIP_BUFF_SIZE, .buf = SKIP_BUFF},
+            {.len = TCP_SKIP_BUFF_SIZE, .buf = SKIP_BUFF},
+            {.len = TCP_SKIP_BUFF_SIZE, .buf = SKIP_BUFF},
+            {.len = TCP_SKIP_BUFF_SIZE, .buf = SKIP_BUFF},
+            {.len = TCP_SKIP_BUFF_SIZE, .buf = SKIP_BUFF}
+    };
+
 
     if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
                      || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
+        *bytes = SKY_USIZE_MAX;
         return REQ_ERROR;
     }
     if ((cli->ev.flags & SKY_TCP_STATUS_EOF)) {
-        *bytes = SKY_USIZE_MAX;
+        *bytes = 0;
         return REQ_EOF;
     }
     if (!size) {
@@ -191,51 +206,74 @@ sky_tcp_skip(
     }
     if ((cli->ev.flags & TCP_STATUS_READ) && !cli->read_queue) {
         sky_isize_t n;
-        sky_usize_t read_bytes = 0;
-        for (;;) {
-            n = recv(cli->ev.fd, SKIP_BUFF, sky_min(size, TCP_SKIP_BUFF_SIZE), 0);
-            if (n == -1) {
-                if (errno != EAGAIN) {
-                    cli->ev.flags |= SKY_TCP_STATUS_ERROR;
-                    return REQ_ERROR;
-                }
-                cli->ev.flags &= ~TCP_STATUS_READ;
-                event_add(&cli->ev, EV_REG_IN);
-                if (read_bytes) {
-                    *bytes = read_bytes;
-                    return REQ_SUCCESS;
-                }
-                break;
+
+        if (size > TCP_SKIP_BUFF_SIZE) {
+            sky_usize_t num = size >> TCP_SKIP_BUFF_SHIFT;
+            num = sky_min(num, TCP_SKIP_VEC_NUM);
+
+            struct msghdr msg = {
+                    .msg_iov = (struct iovec *) SKIP_VEC,
+#ifdef __linux__
+                    .msg_iovlen = num
+#else
+                    .msg_iovlen = (sky_i32_t) num
+#endif
+            };
+            n = recvmsg(cli->ev.fd, &msg, 0);
+        } else {
+            n = recv(cli->ev.fd, SKIP_BUFF, size, 0);
+        }
+        if (n == -1) {
+            if (errno != EAGAIN) {
+                cli->ev.flags |= SKY_TCP_STATUS_ERROR;
+                *bytes = SKY_USIZE_MAX;
+                return REQ_ERROR;
             }
+            cli->ev.flags &= ~TCP_STATUS_READ;
+            event_add(&cli->ev, EV_REG_IN);
+        } else {
+            *bytes = (sky_usize_t) n;
             if (!n) {
                 cli->ev.flags |= SKY_TCP_STATUS_EOF;
-                if (read_bytes) {
-                    *bytes = read_bytes;
-                    return REQ_SUCCESS;
-                }
                 return REQ_EOF;
             }
-            read_bytes += (sky_usize_t) n;
-            size -= (sky_usize_t) n;
-            if (!size) {
-                *bytes = read_bytes;
-                return REQ_SUCCESS;
-            }
+            return REQ_SUCCESS;
         }
     }
-    tcp_read_task_t *const task = sky_malloc(sizeof(tcp_read_task_t) + sizeof(sky_io_vec_t));
+    sky_usize_t num = size >> TCP_SKIP_BUFF_SHIFT;
+
+    tcp_read_task_t *task;
+    if (num < TCP_SKIP_VEC_NUM) {
+        const sky_usize_t more_size = size & TCP_SKIP_BUFF_MASK;
+        if (!more_size) {
+            task = sky_malloc(sizeof(tcp_read_task_t) + (sizeof(sky_io_vec_t) * num));
+            task->num = (sky_u32_t) num;
+        } else {
+            task = sky_malloc(sizeof(tcp_read_task_t) + (sizeof(sky_io_vec_t) * num) + 1);
+            task->num = (sky_u32_t) num + 1;
+            task->vec[num].buf = SKIP_BUFF;
+            task->vec[num].len = more_size;
+        }
+        sky_memcpy(task->vec, SKIP_VEC, (sizeof(sky_io_vec_t) * num));
+    } else {
+        task = sky_malloc(sizeof(tcp_read_task_t) + (sizeof(sky_io_vec_t) * TCP_SKIP_VEC_NUM));
+        task->num = TCP_SKIP_VEC_NUM;
+        sky_memcpy(task->vec, SKIP_VEC, (sizeof(sky_io_vec_t) * TCP_SKIP_VEC_NUM));
+    }
     task->base.next = null;
     task->cb = cb;
     task->attr = attr;
-    task->num = 1;
-    task->vec->buf = SKIP_BUFF;
-    task->vec->len = sky_min(size, TCP_SKIP_BUFF_SIZE);
 
     *cli->read_queue_tail = &task->base;
     cli->read_queue_tail = &task->base.next;
 
+    *bytes = 0;
+
     return REQ_PENDING;
 
+#undef TCP_SKIP_VEC_NUM
+#undef TCP_SKIP_BUFF_MASK
+#undef TCP_SKIP_BUFF_SHIFT
 #undef TCP_SKIP_BUFF_SIZE
 }
 
@@ -250,10 +288,11 @@ sky_tcp_read(
 ) {
     if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
                      || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
+        *bytes = SKY_USIZE_MAX;
         return REQ_ERROR;
     }
     if ((cli->ev.flags & SKY_TCP_STATUS_EOF)) {
-        *bytes = SKY_USIZE_MAX;
+        *bytes = 0;
         return REQ_EOF;
     }
     if (!size) {
@@ -266,15 +305,17 @@ sky_tcp_read(
         if (n == -1) {
             if (errno != EAGAIN) {
                 cli->ev.flags |= SKY_TCP_STATUS_ERROR;
+                *bytes = SKY_USIZE_MAX;
                 return REQ_ERROR;
             }
             cli->ev.flags &= ~TCP_STATUS_READ;
             event_add(&cli->ev, EV_REG_IN);
-        } else if (!n) {
-            cli->ev.flags |= SKY_TCP_STATUS_EOF;
-            return REQ_EOF;
         } else {
             *bytes = (sky_usize_t) n;
+            if (!n) {
+                cli->ev.flags |= SKY_TCP_STATUS_EOF;
+                return REQ_EOF;
+            }
             return REQ_SUCCESS;
         }
     }
@@ -289,6 +330,8 @@ sky_tcp_read(
 
     *cli->read_queue_tail = &task->base;
     cli->read_queue_tail = &task->base.next;
+
+    *bytes = 0;
 
     return REQ_PENDING;
 
@@ -308,10 +351,11 @@ sky_tcp_read_vec(
     }
     if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
                      || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
+        *bytes = SKY_USIZE_MAX;
         return REQ_ERROR;
     }
     if ((cli->ev.flags & SKY_TCP_STATUS_EOF)) {
-        *bytes = SKY_USIZE_MAX;
+        *bytes = 0;
         return REQ_EOF;
     }
     if (!num) {
@@ -332,15 +376,18 @@ sky_tcp_read_vec(
         if (n == -1) {
             if (errno != EAGAIN) {
                 cli->ev.flags |= SKY_TCP_STATUS_ERROR;
+
+                *bytes = SKY_USIZE_MAX;
                 return REQ_ERROR;
             }
             cli->ev.flags &= ~TCP_STATUS_READ;
             event_add(&cli->ev, EV_REG_IN);
-        } else if (!n) {
-            cli->ev.flags |= SKY_TCP_STATUS_EOF;
-            return REQ_EOF;
         } else {
             *bytes = (sky_usize_t) n;
+            if (!n) {
+                cli->ev.flags |= SKY_TCP_STATUS_EOF;
+                return REQ_EOF;
+            }
             return REQ_SUCCESS;
         }
     }
@@ -356,6 +403,8 @@ sky_tcp_read_vec(
     *cli->read_queue_tail = &task->base;
     cli->read_queue_tail = &task->base.next;
 
+    *bytes = 0;
+
     return REQ_PENDING;
 }
 
@@ -370,6 +419,7 @@ sky_tcp_write(
 ) {
     if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
                      || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
+        *bytes = SKY_USIZE_MAX;
         return REQ_ERROR;
     }
     if (!size) {
@@ -385,6 +435,8 @@ sky_tcp_write(
             if (n == -1) {
                 if (errno != EAGAIN) {
                     cli->ev.flags |= SKY_TCP_STATUS_ERROR;
+
+                    *bytes = SKY_USIZE_MAX;
                     return REQ_ERROR;
                 }
                 cli->ev.flags &= ~TCP_STATUS_WRITE;
@@ -417,6 +469,7 @@ sky_tcp_write(
     *cli->write_queue_tail = &task->base.base;
     cli->write_queue_tail = &task->base.base.next;
 
+    *bytes = 0;
     return REQ_PENDING;
 }
 
@@ -431,6 +484,7 @@ sky_tcp_write_vec(
 ) {
     if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
                      || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
+        *bytes = SKY_USIZE_MAX;
         return REQ_ERROR;
     }
     if (!num) {
@@ -462,6 +516,7 @@ sky_tcp_write_vec(
             if (n == -1) {
                 if (errno != EAGAIN) {
                     cli->ev.flags |= SKY_TCP_STATUS_ERROR;
+                    *bytes = SKY_USIZE_MAX;
                     return REQ_ERROR;
                 }
                 cli->ev.flags &= ~TCP_STATUS_WRITE;
@@ -499,6 +554,8 @@ sky_tcp_write_vec(
     *cli->write_queue_tail = &task->base.base;
     cli->write_queue_tail = &task->base.base.next;
 
+    *bytes = 0;
+
     return REQ_PENDING;
 }
 
@@ -512,6 +569,7 @@ sky_tcp_send_fs(
 ) {
     if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
                      || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
+        *bytes = SKY_USIZE_MAX;
         return REQ_ERROR;
     }
     if (!packet->size && !packet->head_n && !packet->tail_n) {
@@ -546,6 +604,7 @@ sky_tcp_send_fs(
                     event_add(&cli->ev, EV_REG_OUT);
                     break;
                 }
+                *bytes = SKY_USIZE_MAX;
                 return REQ_ERROR;
             }
             write_bytes += (sky_usize_t) n;
@@ -624,6 +683,8 @@ sky_tcp_send_fs(
     *cli->write_queue_tail = &task->base.base;
     cli->write_queue_tail = &task->base.base.next;
 
+
+    *bytes = 0;
 
     return REQ_PENDING;
 }
@@ -920,7 +981,7 @@ clean_read(sky_tcp_cli_t *cli) {
         attr = task->attr;
         next = (tcp_read_task_t *) task->base.next;
         sky_free(task);
-        cb(cli, SKY_USIZE_MAX, attr);
+        cb(cli, (cli->ev.flags & (SKY_TCP_STATUS_CLOSING | SKY_TCP_STATUS_ERROR)) ? SKY_USIZE_MAX : 0, attr);
         task = next;
     } while (task);
 }

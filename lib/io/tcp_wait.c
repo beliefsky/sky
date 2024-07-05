@@ -25,11 +25,11 @@ sky_tcp_wait_accept(
             return true;
         case REQ_PENDING:
             sky_sync_wait_yield_before(wait);
-            break;
+            return null != sky_sync_wait_yield(wait);
         default:
             return false;
     }
-    return null != sky_sync_wait_yield(wait);
+
 }
 
 sky_api sky_bool_t
@@ -52,11 +52,10 @@ sky_tcp_wait_connect(
             return true;
         case REQ_PENDING:
             sky_sync_wait_yield_before(wait);
-            break;
+            return null != sky_sync_wait_yield(wait);
         default:
             return false;
     }
-    return null != sky_sync_wait_yield(wait);
 }
 
 sky_api sky_usize_t
@@ -67,16 +66,12 @@ sky_tcp_wait_skip(
 ) {
     sky_usize_t read_n;
 
-    switch (sky_tcp_skip(cli, size, &read_n, on_tcp_rw, wait)) {
-        case REQ_SUCCESS:
-            return read_n;
-        case REQ_PENDING:
-            sky_sync_wait_yield_before(wait);
-            break;
-        default:
-            return SKY_USIZE_MAX;
+    if (sky_tcp_skip(cli, size, &read_n, on_tcp_rw, wait) == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
+        return (sky_usize_t) sky_sync_wait_yield(wait);
     }
-    return (sky_usize_t) sky_sync_wait_yield(wait);
+
+    return read_n;
 }
 
 sky_api sky_usize_t
@@ -88,16 +83,11 @@ sky_tcp_wait_read(
 ) {
     sky_usize_t read_n;
 
-    switch (sky_tcp_read(cli, buf, size, &read_n, on_tcp_rw, wait)) {
-        case REQ_SUCCESS:
-            return read_n;
-        case REQ_PENDING:
-            sky_sync_wait_yield_before(wait);
-            break;
-        default:
-            return SKY_USIZE_MAX;
+    if (sky_tcp_read(cli, buf, size, &read_n, on_tcp_rw, wait) == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
+        return (sky_usize_t) sky_sync_wait_yield(wait);
     }
-    return (sky_usize_t) sky_sync_wait_yield(wait);
+    return read_n;
 }
 
 sky_api sky_usize_t
@@ -108,17 +98,12 @@ sky_tcp_wait_read_vec(
         sky_sync_wait_t *const wait
 ) {
     sky_usize_t read_n;
-
-    switch (sky_tcp_read_vec(cli, vec, num, &read_n, on_tcp_rw, wait)) {
-        case REQ_SUCCESS:
-            return read_n;
-        case REQ_PENDING:
-            sky_sync_wait_yield_before(wait);
-            break;
-        default:
-            return SKY_USIZE_MAX;
+    if (sky_tcp_read_vec(cli, vec, num, &read_n, on_tcp_rw, wait) == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
+        return (sky_usize_t) sky_sync_wait_yield(wait);
     }
-    return (sky_usize_t) sky_sync_wait_yield(wait);
+
+    return read_n;
 }
 
 sky_api sky_usize_t
@@ -128,18 +113,13 @@ sky_tcp_wait_write(
         const sky_usize_t size,
         sky_sync_wait_t *const wait
 ) {
-    sky_usize_t read_n;
+    sky_usize_t write_n;
 
-    switch (sky_tcp_write(cli, buf, size, &read_n, on_tcp_rw, wait)) {
-        case REQ_SUCCESS:
-            return read_n;
-        case REQ_PENDING:
-            sky_sync_wait_yield_before(wait);
-            break;
-        default:
-            return SKY_USIZE_MAX;
+    if (sky_tcp_write(cli, buf, size, &write_n, on_tcp_rw, wait) == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
+        return (sky_usize_t) sky_sync_wait_yield(wait);
     }
-    return (sky_usize_t) sky_sync_wait_yield(wait);
+    return write_n;
 }
 
 sky_api sky_usize_t
@@ -149,18 +129,12 @@ sky_tcp_wait_write_vec(
         const sky_u32_t num,
         sky_sync_wait_t *const wait
 ) {
-    sky_usize_t read_n;
-
-    switch (sky_tcp_write_vec(cli, vec, num, &read_n, on_tcp_rw, wait)) {
-        case REQ_SUCCESS:
-            return read_n;
-        case REQ_PENDING:
-            sky_sync_wait_yield_before(wait);
-            break;
-        default:
-            return SKY_USIZE_MAX;
+    sky_usize_t write_n;
+    if (sky_tcp_write_vec(cli, vec, num, &write_n, on_tcp_rw, wait) == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
+        return (sky_usize_t) sky_sync_wait_yield(wait);
     }
-    return (sky_usize_t) sky_sync_wait_yield(wait);
+    return write_n;
 }
 
 sky_api sky_usize_t
@@ -169,18 +143,13 @@ sky_tcp_wait_send_fs(
         const sky_tcp_fs_data_t *const packet,
         sky_sync_wait_t *const wait
 ) {
-    sky_usize_t read_n;
-
-    switch (sky_tcp_send_fs(cli, packet, &read_n, on_tcp_rw, wait)) {
-        case REQ_SUCCESS:
-            return read_n;
-        case REQ_PENDING:
-            sky_sync_wait_yield_before(wait);
-            break;
-        default:
-            return SKY_USIZE_MAX;
+    sky_usize_t write_n;
+    if (sky_tcp_send_fs(cli, packet, &write_n, on_tcp_rw, wait) == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
+        return (sky_usize_t) sky_sync_wait_yield(wait);
     }
-    return (sky_usize_t) sky_sync_wait_yield(wait);
+
+    return write_n;
 }
 
 

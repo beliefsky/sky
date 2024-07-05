@@ -305,8 +305,8 @@ http_req_chunked_body_read(
             *bytes = read_size;
             return REQ_SUCCESS;
         case REQ_SUCCESS:
+            *bytes = read_size;
             if (!read_size) {
-                *bytes = SKY_USIZE_MAX;
                 return REQ_EOF;
             }
             return REQ_SUCCESS;
@@ -339,10 +339,14 @@ http_req_chunked_body_read(
         switch (result) {
             case REQ_PENDING:
                 sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
+                *bytes = 0;
                 return REQ_PENDING;
-            case REQ_SUCCESS:
-                on_http_body_read(&conn->tcp, read_n, cb_data);
-                return REQ_PENDING;
+            case REQ_SUCCESS: {
+                sky_pfree(r->pool, cb_data, sizeof(http_body_read_t));
+                r->headers_in.content_length_n -= read_n;
+                *bytes = read_n;
+                return REQ_SUCCESS;
+            }
             default:
                 sky_pfree(r->pool, cb_data, sizeof(http_body_read_t));
                 break;
@@ -365,12 +369,28 @@ http_req_chunked_body_read(
         switch (result) {
             case REQ_PENDING:
                 sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
+                *bytes = 0;
                 return REQ_PENDING;
-            case REQ_SUCCESS:
-                on_http_body_read_parse(&conn->tcp, read_n, cb_data);
-                return REQ_PENDING;
-            default:
+            case REQ_SUCCESS: {
+                buffer->last += read_n;
+                const sky_io_result_t parse = parse_chunk_data(r, buffer, buf, size, &read_n);
                 sky_pfree(r->pool, cb_data, sizeof(http_body_read_parse_t));
+                switch (parse) {
+                    case REQ_PENDING:
+                        *bytes = read_n;
+                        return REQ_SUCCESS;
+                    case REQ_SUCCESS:
+                        *bytes = read_n;
+                        if (!read_n) {
+                            return REQ_EOF;
+                        }
+                        return REQ_SUCCESS;
+                    default:
+                        break;
+                }
+            }
+            default:
+                sky_pfree(r->pool, cb_data, sizeof(http_body_read_t));
                 break;
         };
     }
@@ -380,6 +400,8 @@ http_req_chunked_body_read(
     r->req_pos = null;
     r->read_request_body = true;
     r->error = true;
+
+    *bytes = SKY_USIZE_MAX;
     return REQ_ERROR;
 }
 
@@ -404,8 +426,8 @@ http_req_chunked_body_skip(
             *bytes = read_size;
             return REQ_SUCCESS;
         case REQ_SUCCESS:
+            *bytes = read_size;
             if (!read_size) {
-                *bytes = SKY_USIZE_MAX;
                 return REQ_EOF;
             }
             return REQ_SUCCESS;
@@ -437,10 +459,13 @@ http_req_chunked_body_skip(
         switch (result) {
             case REQ_PENDING:
                 sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
+                *bytes = 0;
                 return REQ_PENDING;
             case REQ_SUCCESS:
-                on_http_body_read(&conn->tcp, read_n, cb_data);
-                return REQ_PENDING;
+                sky_pfree(r->pool, cb_data, sizeof(http_body_read_t));
+                r->headers_in.content_length_n -= read_n;
+                *bytes = read_n;
+                return REQ_SUCCESS;
             default:
                 sky_pfree(r->pool, cb_data, sizeof(http_body_read_t));
                 break;
@@ -462,12 +487,28 @@ http_req_chunked_body_skip(
         switch (result) {
             case REQ_PENDING:
                 sky_event_timeout_set(conn->server->ev_loop, &conn->timer, conn->server->timeout);
+                *bytes = 0;
                 return REQ_PENDING;
-            case REQ_SUCCESS:
-                on_http_body_skip_parse(&conn->tcp, read_n, cb_data);
-                return REQ_PENDING;
-            default:
+            case REQ_SUCCESS: {
+                buffer->last += read_n;
+                const sky_io_result_t parse = parse_chunk_skip(r, buffer, cb_data->size, &read_n);
                 sky_pfree(r->pool, cb_data, sizeof(http_body_read_parse_t));
+                switch (parse) {
+                    case REQ_PENDING:
+                        *bytes = read_n;
+                        return REQ_SUCCESS;
+                    case REQ_SUCCESS:
+                        *bytes = read_n;
+                        if (!read_n) {
+                            return REQ_EOF;
+                        }
+                        return REQ_SUCCESS;
+                    default:
+                        break;
+                }
+            }
+            default:
+                sky_pfree(r->pool, cb_data, sizeof(http_body_read_t));
                 break;
         };
     }
@@ -477,6 +518,8 @@ http_req_chunked_body_skip(
     r->req_pos = null;
     r->read_request_body = true;
     r->error = true;
+    *bytes = SKY_USIZE_MAX;
+
     return REQ_ERROR;
 }
 
@@ -486,7 +529,7 @@ on_http_body_read_none(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr) {
     sky_http_request_t *const r = conn->current_req;
     http_body_cb_t *const cb_data = attr;
     sky_buf_t *const buf = conn->buf;
-    if (bytes == SKY_USIZE_MAX) {
+    if (!bytes || bytes == SKY_USIZE_MAX) {
         goto error;
     }
     sky_io_result_t result;
@@ -553,7 +596,7 @@ on_http_body_read_str(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr) {
     http_body_str_cb_t *const cb_data = attr;
     sky_buf_t *const buf = conn->buf;
 
-    if (bytes == SKY_USIZE_MAX) {
+    if (!bytes || bytes == SKY_USIZE_MAX) {
         goto error;
     }
     sky_io_result_t result;
@@ -676,7 +719,7 @@ on_http_body_read(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr) {
 
     sky_pfree(r->pool, cb_data, sizeof(http_body_read_t));
     sky_timer_wheel_unlink(&conn->timer);
-    if (bytes == SKY_USIZE_MAX) {
+    if (!bytes || bytes == SKY_USIZE_MAX) {
         sky_buf_rebuild(conn->buf, 0);
         r->headers_in.content_length_n = 0;
         r->read_request_body = true;
@@ -697,7 +740,7 @@ on_http_body_read_parse(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr) {
     void *const data = cb_data->data;
 
     sky_timer_wheel_unlink(&conn->timer);
-    if (bytes == SKY_USIZE_MAX) {
+    if (!bytes || bytes == SKY_USIZE_MAX) {
         sky_pfree(r->pool, cb_data, sizeof(http_body_read_parse_t));
     } else {
         buf->last += bytes;
@@ -705,10 +748,8 @@ on_http_body_read_parse(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr) {
         sky_pfree(r->pool, cb_data, sizeof(http_body_read_parse_t));
         switch (result) {
             case REQ_PENDING:
-                cb(r, bytes, data);
-                return;
             case REQ_SUCCESS:
-                cb(r, bytes ?: SKY_USIZE_MAX, data);
+                cb(r, bytes, data);
                 return;
             default:
                 break;
@@ -732,7 +773,7 @@ on_http_body_skip_parse(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr) {
     void *const data = cb_data->data;
 
     sky_timer_wheel_unlink(&conn->timer);
-    if (bytes == SKY_USIZE_MAX) {
+    if (!bytes || bytes == SKY_USIZE_MAX) {
         sky_pfree(r->pool, cb_data, sizeof(http_body_read_parse_t));
     } else {
         buf->last += bytes;
@@ -740,10 +781,8 @@ on_http_body_skip_parse(sky_tcp_cli_t *cli, sky_usize_t bytes, void *attr) {
         sky_pfree(r->pool, cb_data, sizeof(http_body_read_parse_t));
         switch (result) {
             case REQ_PENDING:
-                cb(r, bytes, data);
-                return;
             case REQ_SUCCESS:
-                cb(r, bytes ?: SKY_USIZE_MAX, data);
+                cb(r, bytes, data);
                 return;
             default:
                 break;

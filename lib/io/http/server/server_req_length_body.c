@@ -249,7 +249,7 @@ on_http_body_read_none(sky_tcp_cli_t *const cli, sky_usize_t bytes, void *attr) 
     sky_http_request_t *const req = conn->current_req;
     http_body_cb_t *const cb_data = attr;
 
-    if (bytes == SKY_USIZE_MAX) {
+    if (!bytes || bytes == SKY_USIZE_MAX) {
         req->error = true;
         sky_timer_wheel_unlink(&conn->timer);
         cb_data->none_cb(req, cb_data->data);
@@ -289,7 +289,7 @@ on_http_body_read_str(sky_tcp_cli_t *const cli, sky_usize_t bytes, void *attr) {
     sky_http_request_t *const req = conn->current_req;
     http_body_cb_t *const cb_data = attr;
 
-    if (bytes == SKY_USIZE_MAX) {
+    if (!bytes || bytes == SKY_USIZE_MAX) {
         req->error = true;
         sky_timer_wheel_unlink(&conn->timer);
         cb_data->str_cb(req, null, cb_data->data);
@@ -341,7 +341,7 @@ on_http_body_read(sky_tcp_cli_t *const cli, sky_usize_t bytes, void *attr) {
     void *const data = cb_data->data;
     sky_pfree(req->pool, cb_data, sizeof(http_body_cb_t));
 
-    if (bytes == SKY_USIZE_MAX) {
+    if (!bytes || bytes == SKY_USIZE_MAX) {
         req->error = true;
     } else {
         req->headers_in.content_length_n -= bytes;

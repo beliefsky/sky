@@ -170,10 +170,11 @@ sky_tcp_read(
     if (sky_unlikely(!size)) {
         if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
                          || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
+            *bytes = SKY_USIZE_MAX;
             return REQ_ERROR;
         }
         if ((cli->ev.flags & SKY_TCP_STATUS_EOF)) {
-            *bytes = SKY_USIZE_MAX;
+            *bytes = 0;
             return REQ_EOF;
         }
         *bytes = 0;
@@ -194,10 +195,11 @@ sky_tcp_read_vec(
 ) {
     if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
                      || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
+        *bytes = SKY_USIZE_MAX;
         return REQ_ERROR;
     }
     if ((cli->ev.flags & SKY_TCP_STATUS_EOF)) {
-        *bytes = SKY_USIZE_MAX;
+        *bytes = 0;
         return REQ_EOF;
     }
     if (sky_unlikely(!num)) {
@@ -223,19 +225,24 @@ sky_tcp_read_vec(
             null
     ) == 0) {
         sky_free(req);
+
+        *bytes = read_bytes;
         if (!read_bytes) {
             cli->ev.flags |= SKY_TCP_STATUS_EOF;
             return REQ_EOF;
         }
-        *bytes = read_bytes;
         return REQ_SUCCESS;
     }
     if (GetLastError() == ERROR_IO_PENDING) {
         ++cli->req_num;
+
+        *bytes = 0;
         return REQ_PENDING;
     }
     sky_free(req);
     cli->ev.flags |= SKY_TCP_STATUS_ERROR;
+
+    *bytes = SKY_USIZE_MAX;
 
     return REQ_ERROR;
 }
@@ -252,6 +259,8 @@ sky_tcp_write(
     if (sky_unlikely(!size)) {
         if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
                          || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
+            *bytes = SKY_USIZE_MAX;
+
             return REQ_ERROR;
         }
         *bytes = 0;
@@ -272,6 +281,7 @@ sky_tcp_write_vec(
 ) {
     if (sky_unlikely(!(cli->ev.flags & SKY_TCP_STATUS_CONNECTED)
                      || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
+        *bytes = SKY_USIZE_MAX;
         return REQ_ERROR;
     }
     if (sky_unlikely(!num)) {
@@ -302,10 +312,14 @@ sky_tcp_write_vec(
     }
     if (GetLastError() == ERROR_IO_PENDING) {
         ++cli->req_num;
+
+        *bytes = 0;
         return REQ_PENDING;
     }
     sky_free(req);
     cli->ev.flags |= SKY_TCP_STATUS_ERROR;
+
+    *bytes = SKY_USIZE_MAX;
 
     return REQ_ERROR;
 }
@@ -323,6 +337,8 @@ sky_tcp_send_fs(
             || (cli->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING))
             || packet->fs->ev.fs == INVALID_HANDLE_VALUE
     )) {
+        *bytes = SKY_USIZE_MAX;
+
         return REQ_ERROR;
     }
     tcp_req_t *req;
@@ -330,6 +346,8 @@ sky_tcp_send_fs(
         if (!sendfile_ex) {
             const GUID wsaid_sendfile_tx = WSAID_TRANSMITFILE;
             if (sky_unlikely(!get_extension_function(cli->ev.fd, wsaid_sendfile_tx, (void **) &sendfile_ex))) {
+                *bytes = SKY_USIZE_MAX;
+
                 return REQ_ERROR;
             }
         }
@@ -392,6 +410,8 @@ sky_tcp_send_fs(
         if (!sendfile_offset_ex) {
             const GUID wsaid_sendfile_tx = WSAID_TRANSMITPACKETS;
             if (sky_unlikely(!get_extension_function(cli->ev.fd, wsaid_sendfile_tx, (void **) &sendfile_offset_ex))) {
+                *bytes = SKY_USIZE_MAX;
+
                 return REQ_ERROR;
             }
         }
@@ -457,10 +477,13 @@ sky_tcp_send_fs(
     if (GetLastError() == ERROR_IO_PENDING) {
         ++cli->req_num;
 
+        *bytes = 0;
         return REQ_PENDING;
     }
     sky_free(req);
     cli->ev.flags |= SKY_TCP_STATUS_ERROR;
+
+    *bytes = SKY_USIZE_MAX;
 
     return REQ_ERROR;
 }
@@ -549,10 +572,8 @@ event_on_tcp_read(sky_ev_t *ev, ev_req_t *req, sky_usize_t bytes, sky_bool_t suc
     if (success) {
         if (!bytes) {
             ev->flags |= SKY_TCP_STATUS_EOF;
-            cb(cli, SKY_USIZE_MAX, attr);
-        } else {
-            cb(cli, bytes, attr);
         }
+        cb(cli, bytes, attr);
     } else {
         ev->flags |= SKY_TCP_STATUS_ERROR;
         cb(cli, SKY_USIZE_MAX, attr);

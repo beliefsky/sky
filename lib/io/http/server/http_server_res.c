@@ -350,6 +350,7 @@ sky_http_res_write(
         void *data
 ) {
     if (sky_unlikely(r->error)) {
+        *bytes = SKY_USIZE_MAX;
         return REQ_ERROR;
     }
 
@@ -381,6 +382,8 @@ sky_http_res_write(
                 switch (sky_tcp_write(&conn->tcp, result.data, result.len, &read_n, on_http_write, packet)) {
                     case REQ_PENDING:
                         sky_event_timeout_set(sky_tcp_cli_ev_loop(&conn->tcp), &conn->timer, conn->server->timeout);
+
+                        *bytes = 0;
                         return REQ_PENDING;
                     case REQ_SUCCESS:
                         *bytes = 0;
@@ -388,6 +391,7 @@ sky_http_res_write(
                         return REQ_SUCCESS;
                     default:
                         sky_free(packet);
+                        *bytes = SKY_USIZE_MAX;
                         return REQ_ERROR;
                 }
             }
@@ -419,6 +423,7 @@ sky_http_res_write(
             switch (sky_tcp_write_vec(&conn->tcp, vec, 2, &read_n, on_http_write, packet)) {
                 case REQ_PENDING:
                     sky_event_timeout_set(sky_tcp_cli_ev_loop(&conn->tcp), &conn->timer, conn->server->timeout);
+                    *bytes = 0;
                     return REQ_PENDING;
                 case REQ_SUCCESS:
                     sky_free(packet);
@@ -426,6 +431,7 @@ sky_http_res_write(
                     return REQ_SUCCESS;
                 default:
                     sky_free(packet);
+                    *bytes = SKY_USIZE_MAX;
                     return REQ_ERROR;
             }
         }
@@ -448,6 +454,7 @@ sky_http_res_write(
             switch (sky_tcp_write(&conn->tcp, result.data, result.len, &read_n, on_http_write, packet)) {
                 case REQ_PENDING:
                     sky_event_timeout_set(sky_tcp_cli_ev_loop(&conn->tcp), &conn->timer, conn->server->timeout);
+                    *bytes = 0;
                     return REQ_PENDING;
                 case REQ_SUCCESS:
                     sky_free(packet);
@@ -455,6 +462,7 @@ sky_http_res_write(
                     return REQ_SUCCESS;
                 default:
                     sky_free(packet);
+                    *bytes = SKY_USIZE_MAX;
                     return REQ_ERROR;
             }
         }
@@ -480,6 +488,7 @@ sky_http_res_write(
         switch (sky_tcp_write_vec(&conn->tcp, vec, 3, &read_n, on_http_write, packet)) {
             case REQ_PENDING:
                 sky_event_timeout_set(sky_tcp_cli_ev_loop(&conn->tcp), &conn->timer, conn->server->timeout);
+                *bytes = 0;
                 return REQ_PENDING;
             case REQ_SUCCESS:
                 sky_free(packet);
@@ -487,11 +496,13 @@ sky_http_res_write(
                 return REQ_SUCCESS;
             default:
                 sky_free(packet);
+                *bytes = SKY_USIZE_MAX;
                 return REQ_ERROR;
         }
     }
 
     if (r->res_finish) {
+        *bytes = 0;
         return REQ_EOF;
     }
     if (r->res_content_length) {
@@ -511,17 +522,13 @@ sky_http_res_write(
         packet->cb = call;
         packet->cb_data = data;
 
-        switch (sky_tcp_write(&conn->tcp, buf, size, bytes, on_http_write, packet)) {
-            case REQ_PENDING:
-                sky_event_timeout_set(sky_tcp_cli_ev_loop(&conn->tcp), &conn->timer, conn->server->timeout);
-                return REQ_PENDING;
-            case REQ_SUCCESS:
-                sky_free(packet);
-                return REQ_SUCCESS;
-            default:
-                sky_free(packet);
-                return REQ_ERROR;
+        const sky_io_result_t result = sky_tcp_write(&conn->tcp, buf, size, bytes, on_http_write, packet);
+        if (result == REQ_PENDING) {
+            sky_event_timeout_set(sky_tcp_cli_ev_loop(&conn->tcp), &conn->timer, conn->server->timeout);
+        } else {
+            sky_free(packet);
         }
+        return result;
     }
 
     sky_usize_t read_n;
@@ -534,6 +541,7 @@ sky_http_res_write(
         switch (sky_tcp_write(&conn->tcp, sky_str_line("0\r\n\r\n"), &read_n, on_http_write, packet)) {
             case REQ_PENDING:
                 sky_event_timeout_set(sky_tcp_cli_ev_loop(&conn->tcp), &conn->timer, conn->server->timeout);
+                *bytes = 0;
                 return REQ_PENDING;
             case REQ_SUCCESS:
                 sky_free(packet);
@@ -541,6 +549,7 @@ sky_http_res_write(
                 return REQ_SUCCESS;
             default:
                 sky_free(packet);
+                *bytes = SKY_USIZE_MAX;
                 return REQ_ERROR;
         }
     }
@@ -559,6 +568,7 @@ sky_http_res_write(
     switch (sky_tcp_write_vec(&conn->tcp, vec, 3, &read_n, on_http_write, packet)) {
         case REQ_PENDING:
             sky_event_timeout_set(sky_tcp_cli_ev_loop(&conn->tcp), &conn->timer, conn->server->timeout);
+            *bytes = 0;
             return REQ_PENDING;
         case REQ_SUCCESS:
             sky_free(packet);
@@ -566,6 +576,7 @@ sky_http_res_write(
             return REQ_SUCCESS;
         default:
             sky_free(packet);
+            *bytes = SKY_USIZE_MAX;
             return REQ_ERROR;
     }
 }

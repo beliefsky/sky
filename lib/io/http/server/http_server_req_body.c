@@ -53,9 +53,13 @@ sky_http_req_body_read(
         void *data
 ) {
     if (sky_unlikely(r->read_request_body)) {
+        *bytes = 0;
+
         return REQ_EOF;
     }
     if (sky_unlikely(r->error)) {
+        *bytes = SKY_USIZE_MAX;
+
         return REQ_ERROR;
     }
     if (!size) {
@@ -81,9 +85,11 @@ sky_http_req_body_skip(
         void *data
 ) {
     if (sky_unlikely(r->read_request_body)) {
+        *bytes = 0;
         return REQ_EOF;
     }
     if (sky_unlikely(r->error)) {
+        *bytes = SKY_USIZE_MAX;
         return REQ_ERROR;
     }
     if (!size) {

@@ -251,7 +251,7 @@ on_pgsql_exec_read(sky_tcp_cli_t *const tcp, sky_usize_t size, void *attr) {
     pgsql_packet_t *const packet = conn->data;
     sky_buf_t *const buf = &packet->buf;
 
-    if (size == SKY_USIZE_MAX) {
+    if (!size || size == SKY_USIZE_MAX) {
         sky_buf_destroy(buf);
         sky_timer_wheel_unlink(&conn->timer);
         sky_tcp_cli_close(tcp, on_pgsql_close, null);
