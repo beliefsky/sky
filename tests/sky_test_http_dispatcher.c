@@ -188,7 +188,7 @@ upload_wait(sky_sync_wait_t *wait, void *data) {
     sky_usize_t size, n;
     for (;;) {
         size = sky_http_req_body_wait_read(req, ch, 1024, wait);
-        if (size == SKY_USIZE_MAX) {
+        if (!size || size == SKY_USIZE_MAX) {
             sky_http_res_str_len(
                     req,
                     sky_str_line("{\"status\": 500, \"msg\": \"parse error\"}"),
