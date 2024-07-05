@@ -249,7 +249,7 @@ sky_tcp_skip(
             task = sky_malloc(sizeof(tcp_read_task_t) + (sizeof(sky_io_vec_t) * num));
             task->num = (sky_u32_t) num;
         } else {
-            task = sky_malloc(sizeof(tcp_read_task_t) + (sizeof(sky_io_vec_t) * num) + 1);
+            task = sky_malloc(sizeof(tcp_read_task_t) + (sizeof(sky_io_vec_t) * (num + 1)));
             task->num = (sky_u32_t) num + 1;
             task->vec[num].buf = SKIP_BUFF;
             task->vec[num].len = more_size;
