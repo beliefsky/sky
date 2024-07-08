@@ -28,9 +28,9 @@ typedef void (*sky_fs_cb_pt)(sky_fs_t *fs, void *attr);
 
 struct sky_fs_s {
     sky_ev_t ev;
+    sky_usize_t req_num;
     sky_fs_cb_pt close_cb;
     void *close_data;
-    sky_usize_t req_num;
 };
 
 struct sky_fs_stat_s {

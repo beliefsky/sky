@@ -45,21 +45,19 @@ struct sky_tcp_task_s {
 
 struct sky_tcp_ser_s {
     sky_ev_t ev;
-    sky_tcp_ser_cb_pt close_cb;
-    void *close_data;
 #ifdef __WINNT__
     sky_usize_t req_num;
 #else
     sky_tcp_task_t *accept_queue;
     sky_tcp_task_t **accept_queue_tail;
 #endif
+    sky_tcp_ser_cb_pt close_cb;
+    void *close_data;
 };
 
 
 struct sky_tcp_cli_s {
     sky_ev_t ev;
-    sky_tcp_cli_cb_pt close_cb;
-    void *close_data;
 #ifdef __WINNT__
     sky_usize_t req_num;
 #else
@@ -68,6 +66,8 @@ struct sky_tcp_cli_s {
     sky_tcp_task_t *write_queue;
     sky_tcp_task_t **write_queue_tail;
 #endif
+    sky_tcp_cli_cb_pt close_cb;
+    void *close_data;
 };
 
 

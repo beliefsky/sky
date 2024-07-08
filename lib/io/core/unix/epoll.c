@@ -14,11 +14,10 @@ static void event_on_status(sky_ev_loop_t *ev_loop, const on_event_pt event_tabl
 
 sky_api sky_ev_loop_t *
 sky_ev_loop_create() {
-    struct sigaction sa;
-
-    sky_memzero(&sa, sizeof(struct sigaction));
-    sa.sa_handler = SIG_IGN;
-    sigaction(SIGPIPE, &sa, null);
+    struct sigaction ign_sa = {
+            .sa_handler = SIG_IGN
+    };
+    sigaction(SIGPIPE, &ign_sa, null);
 
     const sky_i32_t fd = epoll_create1(EPOLL_CLOEXEC);
     if (sky_unlikely(fd == -1)) {

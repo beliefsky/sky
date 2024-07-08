@@ -21,8 +21,6 @@ struct sky_ev_s {
         sky_socket_t fd;
 #ifdef __WINNT__
         HANDLE fs;
-#else
-        sky_i32_t fs;
 #endif
     };
     sky_u32_t flags;
