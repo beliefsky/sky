@@ -25,7 +25,6 @@
 #define EV_LOOP_USE_SELECTOR
 
 #ifdef SIGEV_KEVENT
-#define IO_SIGNAL SIGUSR1
 #define EV_FS_USE_POSIX_AIO
 #else
 #define EV_FS_USE_SYNC
