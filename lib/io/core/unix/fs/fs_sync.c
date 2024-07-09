@@ -5,9 +5,6 @@
 #if defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
 
 #include "../unix_io.h"
-
-#ifdef EV_FS_USE_SYNC
-
 #include "./fs_io.h"
 #include <unistd.h>
 
@@ -108,5 +105,4 @@ event_on_fs_close(sky_ev_t *ev) {
     fs->close_cb(fs, fs->close_data);
 }
 
-#endif
 #endif

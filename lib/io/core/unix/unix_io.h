@@ -15,7 +15,6 @@
 
 #define EVENT_USE_EPOLL
 #define EV_LOOP_USE_SELECTOR
-#define EV_FS_USE_SYNC
 
 #include <sys/epoll.h>
 
@@ -23,12 +22,6 @@
 
 #define EVENT_USE_KQUEUE
 #define EV_LOOP_USE_SELECTOR
-
-#ifdef SIGEV_KEVENT
-#define EV_FS_USE_POSIX_AIO
-#else
-#define EV_FS_USE_SYNC
-#endif
 
 #include <sys/event.h>
 
@@ -119,11 +112,6 @@ void event_on_tcp_cli_out(sky_ev_t *ev);
 
 void event_on_tcp_cli_close(sky_ev_t *ev);
 
-#ifdef EV_FS_USE_POSIX_AIO
-
-void event_on_aio(void *data);
-
-#endif
 
 void event_on_fs_close(sky_ev_t *ev);
 
