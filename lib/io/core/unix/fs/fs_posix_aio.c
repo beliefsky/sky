@@ -102,12 +102,12 @@ sky_fs_pread(
     task->io_cb.aio_nbytes = size;
     task->io_cb.aio_offset = (sky_i64_t) offset;
 
-#if defined(EVENT_USE_EPOLL)
-    task->io_cb.aio_sigevent.sigev_signo = IO_SIGNAL;
-    task->io_cb.aio_sigevent.sigev_notify = SIGEV_SIGNAL;
-#elif defined(EVENT_USE_KQUEUE)
+#if defined(EVENT_USE_KQUEUE) && defined(SIGEV_KEVENT)
     task->io_cb.aio_sigevent.sigev_notify_kqueue = fs->ev.ev_loop->fd;
     task->io_cb.aio_sigevent.sigev_notify = SIGEV_KEVENT;
+#else
+    task->io_cb.aio_sigevent.sigev_signo = IO_SIGNAL;
+    task->io_cb.aio_sigevent.sigev_notify = SIGEV_SIGNAL;
 #endif
 
     task->io_cb.aio_sigevent.sigev_value.sival_ptr = task;
@@ -152,13 +152,15 @@ sky_fs_pwrite(
     task->io_cb.aio_buf = buf;
     task->io_cb.aio_nbytes = size;
     task->io_cb.aio_offset = (sky_i64_t) offset;
-#if defined(EVENT_USE_EPOLL)
-    task->io_cb.aio_sigevent.sigev_signo = IO_SIGNAL;
-    task->io_cb.aio_sigevent.sigev_notify = SIGEV_SIGNAL;
-#elif defined(EVENT_USE_KQUEUE)
+
+#if defined(EVENT_USE_KQUEUE) && defined(SIGEV_KEVENT)
     task->io_cb.aio_sigevent.sigev_notify_kqueue = fs->ev.ev_loop->fd;
     task->io_cb.aio_sigevent.sigev_notify = SIGEV_KEVENT;
+#else
+    task->io_cb.aio_sigevent.sigev_signo = IO_SIGNAL;
+    task->io_cb.aio_sigevent.sigev_notify = SIGEV_SIGNAL;
 #endif
+
     task->io_cb.aio_sigevent.sigev_value.sival_ptr = task;
     task->fs = fs;
     task->cb = cb;

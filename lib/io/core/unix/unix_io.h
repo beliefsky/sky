@@ -9,6 +9,7 @@
 
 #include <io/ev_loop.h>
 #include <core/memory.h>
+#include <signal.h>
 
 #if sky_has_include(<sys/epoll.h>)
 
@@ -16,9 +17,6 @@
 #define EV_LOOP_USE_SELECTOR
 
 #include <sys/epoll.h>
-#include <signal.h>
-
-#define IO_SIGNAL SIGUSR1
 
 #elif sky_has_include(<sys/event.h>)
 
@@ -26,6 +24,8 @@
 #define EV_LOOP_USE_SELECTOR
 
 #include <sys/event.h>
+
+#define IO_SIGNAL SIGUSR1
 
 #else
 
