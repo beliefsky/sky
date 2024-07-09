@@ -5,17 +5,9 @@
 
 #ifdef EVENT_USE_KQUEUE
 
-#include <signal.h>
 #include <unistd.h>
 
 static void event_on_status(sky_ev_loop_t *ev_loop, const on_event_pt event_tables[][4]);
-
-#ifndef SIGEV_KEVENT
-
-static void signal_aio_handle(sky_i32_t sig, siginfo_t *info, void *ctx);
-
-#endif
-
 
 sky_api sky_ev_loop_t *
 sky_ev_loop_create() {
@@ -23,14 +15,6 @@ sky_ev_loop_create() {
             .sa_handler = SIG_IGN
     };
     sigaction(SIGPIPE, &ign_sa, null);
-
-#ifndef SIGEV_KEVENT
-    struct sigaction aio_sa = {
-            .sa_flags = SA_RESTART | SA_SIGINFO,
-            .sa_sigaction = signal_aio_handle
-    };
-    sigaction(IO_SIGNAL, &aio_sa, null);
-#endif
 
     const sky_i32_t fd = kqueue();
     if (sky_unlikely(fd == -1)) {
@@ -140,14 +124,12 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
                         EVENT_TABLES[event_type][(event->flags & (EV_ERROR)) ? 0 : 1](ev);
                         break;
                     }
-#ifdef SIGEV_KEVENT
+#ifdef EV_FS_USE_POSIX_AIO
 
                     case EVFILT_AIO: {
                         event_on_aio(event->udata);
                         break;
                     }
-#else
-
 #endif
 
                     default:
@@ -233,18 +215,6 @@ event_on_status(sky_ev_loop_t *ev_loop, const on_event_pt event_tables[][4]) {
         ev = next;
     } while (ev);
 }
-
-#ifndef SIGEV_KEVENT
-
-static void
-signal_aio_handle(const sky_i32_t sig, siginfo_t *const info, void *const ctx) {
-    (void) sig;
-    (void) ctx;
-
-    event_on_aio(info->si_value.sival_ptr);
-}
-
-#endif
 
 #endif
 

@@ -180,7 +180,7 @@ event_on_tcp_ser_in(sky_ev_t *const ev) {
                 }
                 cb(ser, cli, true, cb_data);
                 if (!(ser->ev.flags & (SKY_TCP_STATUS_CLOSING | SKY_TCP_STATUS_ERROR))) {
-                    continue;
+                    break;
                 }
             case REQ_ERROR:
                 clean_accept(ser);
