@@ -69,6 +69,12 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
                     event_on_tcp_cli_out,
                     event_on_tcp_cli_in,
                     event_on_tcp_cli_close
+            },
+            [EV_TYPE_FS] = {
+                    null,
+                    null,
+                    null,
+                    event_on_fs_close
             }
     };
 

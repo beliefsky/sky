@@ -120,6 +120,7 @@ sky_fs_pread(
         *bytes = SKY_USIZE_MAX;
         return REQ_ERROR;
     }
+    ++fs->req_num;
 
     *bytes = 0;
     return REQ_PENDING;
