@@ -99,14 +99,17 @@ if (${CMAKE_BUILD_TYPE} MATCHES "Rel")
     endif ()
 
     enable_c_flag_if_avail(-falign-functions=32 C_FLAGS_REL SKY_HAVE_ALIGN_FNS)
-    enable_c_flag_if_avail(-fno-semantic-interposition C_FLAGS_REL SKY_HAVE_NO_SEMANTIC_INTERPOSITION)
     enable_c_flag_if_avail(-malign-data=abi C_FLAGS_REL SKY_HAVE_ALIGN_DATA)
     enable_c_flag_if_avail(-fno-asynchronous-unwind-tables C_FLAGS_REL SKY_HAVE_NO_ASYNC_UNWIND_TABLES)
 
     enable_c_flag_if_avail(-fPIC -flto C_FLAGS_REL SKY_HAVE_LTO)
 
     enable_c_flag_if_avail(-ffat-lto-objects C_FLAGS_REL SKY_HAVE_LTO_FAT_OBJS)
-    enable_c_flag_if_avail(-mcrc32 C_FLAGS_REL SKY_HAVE_BUILTIN_IA32_CRC32)
+
+    if (NOT (APPLE AND (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")))
+        enable_c_flag_if_avail(-fno-semantic-interposition C_FLAGS_REL SKY_HAVE_NO_SEMANTIC_INTERPOSITION)
+        enable_c_flag_if_avail(-mcrc32 C_FLAGS_REL SKY_HAVE_BUILTIN_IA32_CRC32)
+    endif ()
 endif ()
 if (${CMAKE_BUILD_TYPE} MATCHES "Deb")
     option(SANITIZER "Use sanitizer (undefined, address, none)" "none")
