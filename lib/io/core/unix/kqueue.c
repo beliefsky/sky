@@ -102,14 +102,29 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
         if (n) {
             event = ev_loop->sys_evs + ev_loop->max_event;
             do {
-                ev = event->udata;
-                event_type = ev->flags & EV_TYPE_MASK;
-                if (sky_unlikely((event->flags & (EV_ERROR)))) {
-                    EVENT_TABLES[event_type][0](ev);
-                } else if (event->filter == EVFILT_WRITE) {
-                    EVENT_TABLES[event_type][1](ev);
-                } else {
-                    EVENT_TABLES[event_type][2](ev);
+                switch (event->filter) {
+                    case EVFILT_READ: {
+                        ev = event->udata;
+                        event_type = ev->flags & EV_TYPE_MASK;
+                        if ((event->flags & EV_ERROR)) {
+                            EVENT_TABLES[event_type][0](ev);
+                        } else if (!(ev->flags & EV_EOF)) {
+                            EVENT_TABLES[event_type][2](ev);
+                        }
+                        break;
+                    }
+                    case EVFILT_WRITE: {
+                        ev = event->udata;
+                        event_type = ev->flags & EV_TYPE_MASK;
+                        EVENT_TABLES[event_type][(event->flags & (EV_ERROR)) ? 0 : 1](ev);
+                        break;
+                    }
+                    case EVFILT_AIO: {
+                        event_on_aio(event->udata);
+                        break;
+                    }
+                    default:
+                        break;
                 }
                 ++event;
             } while ((--n));

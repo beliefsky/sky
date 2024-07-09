@@ -101,8 +101,15 @@ sky_fs_pread(
     task->io_cb.aio_buf = buf;
     task->io_cb.aio_nbytes = size;
     task->io_cb.aio_offset = (sky_i64_t) offset;
+
+#if defined(EVENT_USE_EPOLL)
     task->io_cb.aio_sigevent.sigev_signo = IO_SIGNAL;
     task->io_cb.aio_sigevent.sigev_notify = SIGEV_SIGNAL;
+#elif defined(EVENT_USE_KQUEUE)
+    task->io_cb.aio_sigevent.sigev_notify_kqueue = fs->ev.ev_loop->fd;
+    task->io_cb.aio_sigevent.sigev_notify = SIGEV_KEVENT;
+#endif
+
     task->io_cb.aio_sigevent.sigev_value.sival_ptr = task;
     task->fs = fs;
     task->cb = cb;
@@ -145,8 +152,13 @@ sky_fs_pwrite(
     task->io_cb.aio_buf = buf;
     task->io_cb.aio_nbytes = size;
     task->io_cb.aio_offset = (sky_i64_t) offset;
+#if defined(EVENT_USE_EPOLL)
     task->io_cb.aio_sigevent.sigev_signo = IO_SIGNAL;
     task->io_cb.aio_sigevent.sigev_notify = SIGEV_SIGNAL;
+#elif defined(EVENT_USE_KQUEUE)
+    task->io_cb.aio_sigevent.sigev_notify_kqueue = fs->ev.ev_loop->fd;
+    task->io_cb.aio_sigevent.sigev_notify = SIGEV_KEVENT;
+#endif
     task->io_cb.aio_sigevent.sigev_value.sival_ptr = task;
     task->fs = fs;
     task->cb = cb;
@@ -206,7 +218,7 @@ sky_fs_status_is_dir(const sky_fs_stat_t *const stat) {
     return S_ISDIR(stat->file_type);
 }
 
-#ifdef EVENT_USE_EPOLL
+#if defined(EVENT_USE_EPOLL) || defined(EVENT_USE_KQUEUE)
 
 void
 event_on_aio(void *const data) {

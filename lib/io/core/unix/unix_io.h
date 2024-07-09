@@ -115,7 +115,7 @@ void event_on_tcp_cli_out(sky_ev_t *ev);
 
 void event_on_tcp_cli_close(sky_ev_t *ev);
 
-#ifdef EVENT_USE_EPOLL
+#if defined(EVENT_USE_EPOLL) || defined(EVENT_USE_KQUEUE)
 
 void event_on_aio(void *data);
 
