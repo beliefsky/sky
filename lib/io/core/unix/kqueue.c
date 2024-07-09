@@ -134,10 +134,16 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
                         EVENT_TABLES[event_type][(event->flags & (EV_ERROR)) ? 0 : 1](ev);
                         break;
                     }
+#ifdef SIGEV_KEVENT
+
                     case EVFILT_AIO: {
                         event_on_aio(event->udata);
                         break;
                     }
+#else
+
+#endif
+
                     default:
                         break;
                 }
