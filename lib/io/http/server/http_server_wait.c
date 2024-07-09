@@ -25,15 +25,14 @@ sky_http_req_body_wait_str(sky_http_request_t *const r, sky_sync_wait_t *const w
 
 sky_api sky_usize_t
 sky_http_req_body_wait_read(
-        sky_http_request_t *r,
-        sky_uchar_t *buf,
-        sky_usize_t size,
-        sky_sync_wait_t *wait
+        sky_http_request_t *const r,
+        sky_uchar_t *const buf,
+        const sky_usize_t size,
+        sky_sync_wait_t *const wait
 ) {
     sky_usize_t read_n;
 
     if (sky_http_req_body_read(r, buf, size, &read_n, http_rw_cb, wait) == REQ_PENDING) {
-        sky_sync_wait_yield_before(wait);
         return (sky_usize_t) sky_sync_wait_yield(wait);
     }
     return read_n;
@@ -41,14 +40,13 @@ sky_http_req_body_wait_read(
 
 sky_api sky_usize_t
 sky_http_req_body_wait_skip(
-        sky_http_request_t *r,
-        sky_usize_t size,
-        sky_sync_wait_t *wait
+        sky_http_request_t *const r,
+        const sky_usize_t size,
+        sky_sync_wait_t *const wait
 ) {
     sky_usize_t read_n;
 
     if (sky_http_req_body_skip(r, size, &read_n, http_rw_cb, wait) == REQ_PENDING) {
-        sky_sync_wait_yield_before(wait);
         return (sky_usize_t) sky_sync_wait_yield(wait);
     }
     return read_n;
@@ -65,8 +63,8 @@ sky_http_res_wait_nobody(sky_http_request_t *const r, sky_sync_wait_t *const wai
 sky_api void
 sky_http_res_wait_str(
         sky_http_request_t *const r,
-        sky_sync_wait_t *const wait,
-        const sky_str_t *const data
+        const sky_str_t *const data,
+        sky_sync_wait_t *const wait
 ) {
     sky_sync_wait_yield_before(wait);
     sky_http_res_str(r, data, http_none_cb, wait);
@@ -76,9 +74,9 @@ sky_http_res_wait_str(
 sky_api void
 sky_http_res_wait_str_len(
         sky_http_request_t *const r,
-        sky_sync_wait_t *const wait,
         sky_uchar_t *const data,
-        const sky_usize_t data_len
+        const sky_usize_t data_len,
+        sky_sync_wait_t *const wait
 ) {
     sky_sync_wait_yield_before(wait);
     sky_http_res_str_len(r, data, data_len, http_none_cb, wait);
@@ -87,12 +85,12 @@ sky_http_res_wait_str_len(
 
 sky_api void
 sky_http_res_wait_file(
-        sky_http_request_t *r,
-        sky_sync_wait_t *wait,
-        sky_fs_t *fs,
-        sky_u64_t offset,
-        sky_usize_t size,
-        sky_usize_t file_size
+        sky_http_request_t *const r,
+        sky_fs_t *const fs,
+        const sky_u64_t offset,
+        const sky_usize_t size,
+        const sky_usize_t file_size,
+        sky_sync_wait_t *const wait
 ) {
     sky_sync_wait_yield_before(wait);
     sky_http_res_file(r, fs, offset, size, file_size, http_none_cb, wait);
@@ -101,15 +99,14 @@ sky_http_res_wait_file(
 
 sky_api sky_usize_t
 sky_http_res_wait_write(
-        sky_http_request_t *r,
-        sky_sync_wait_t *wait,
-        sky_uchar_t *buf,
-        sky_usize_t size
+        sky_http_request_t *const r,
+        sky_uchar_t *const buf,
+        const sky_usize_t size,
+        sky_sync_wait_t *const wait
 ) {
     sky_usize_t read_n;
 
     if (sky_http_res_write(r, buf, size, &read_n, http_rw_cb, wait) == REQ_PENDING) {
-        sky_sync_wait_yield_before(wait);
         return (sky_usize_t) sky_sync_wait_yield(wait);
     }
     return read_n;

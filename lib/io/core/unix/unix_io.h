@@ -32,6 +32,8 @@
 
 #define EV_TYPE_TCP_SER     SKY_U32(0)
 #define EV_TYPE_TCP_CLI     SKY_U32(1)
+#define EV_TYPE_UDP         SKY_U32(2)
+#define EV_TYPE_FS          SKY_U32(3)
 
 #define EV_TYPE_MASK        SKY_U32(0x0000000F)
 
@@ -55,6 +57,7 @@ struct sky_ev_loop_s {
     sky_u64_t current_step;
 
 #ifdef EVENT_USE_EPOLL
+    sky_ev_t aio_event;
     struct epoll_event sys_evs[];
 #endif
 #ifdef EVENT_USE_KQUEUE
@@ -108,6 +111,8 @@ void event_on_tcp_cli_in(sky_ev_t *ev);
 void event_on_tcp_cli_out(sky_ev_t *ev);
 
 void event_on_tcp_cli_close(sky_ev_t *ev);
+
+void event_on_fs_close(sky_ev_t *ev);
 
 #endif
 
