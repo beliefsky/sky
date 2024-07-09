@@ -16,6 +16,9 @@
 #define EV_LOOP_USE_SELECTOR
 
 #include <sys/epoll.h>
+#include <signal.h>
+
+#define IO_SIGNAL SIGUSR1
 
 #elif sky_has_include(<sys/event.h>)
 
@@ -57,7 +60,7 @@ struct sky_ev_loop_s {
     sky_u64_t current_step;
 
 #ifdef EVENT_USE_EPOLL
-    sky_ev_t aio_event;
+    sky_ev_t signal_ev;
     struct epoll_event sys_evs[];
 #endif
 #ifdef EVENT_USE_KQUEUE
@@ -111,6 +114,12 @@ void event_on_tcp_cli_in(sky_ev_t *ev);
 void event_on_tcp_cli_out(sky_ev_t *ev);
 
 void event_on_tcp_cli_close(sky_ev_t *ev);
+
+#ifdef EVENT_USE_EPOLL
+
+void event_on_aio(void *data);
+
+#endif
 
 void event_on_fs_close(sky_ev_t *ev);
 
