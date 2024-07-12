@@ -161,6 +161,7 @@ event_on_tcp_accept(ev_req_t *const req, const sky_i32_t res) {
                 struct io_uring_sqe *sqe = get_seq2(&ser->ev);
                 io_uring_sqe_set_data(sqe, acceptor);
                 io_uring_prep_accept(sqe, ser->ev.fd, null, null, SOCK_NONBLOCK | SOCK_CLOEXEC);
+                ++ser->req_num;
                 return;
             }
             cb(ser, cli, false, attr);

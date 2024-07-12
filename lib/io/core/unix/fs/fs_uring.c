@@ -152,6 +152,7 @@ event_on_fs_read(ev_req_t *const req, const sky_i32_t res) {
     if (fs < 0) {
         if (EAGAIN == (res)) {
             struct io_uring_sqe *const sqe = get_seq2(&fs->ev);
+            io_uring_sqe_set_data(sqe, req);
             io_uring_prep_read(
                     sqe,
                     fs->ev.fd,
@@ -159,7 +160,7 @@ event_on_fs_read(ev_req_t *const req, const sky_i32_t res) {
                     (sky_u32_t) fs_req->size,
                     (sky_u64_t) fs_req->offset
             );
-            io_uring_sqe_set_data(sqe, req);
+            ++fs->req_num;
             return;
         }
         const sky_fs_rw_pt cb = fs_req->read;
@@ -213,6 +214,7 @@ event_on_fs_write(ev_req_t *const req, const sky_i32_t res) {
     if (fs < 0) {
         if (EAGAIN == (-res)) {
             struct io_uring_sqe *const sqe = get_seq2(&fs->ev);
+            io_uring_sqe_set_data(sqe, req);
             io_uring_prep_write(
                     sqe,
                     fs->ev.fd,
@@ -220,7 +222,7 @@ event_on_fs_write(ev_req_t *const req, const sky_i32_t res) {
                     (sky_u32_t) fs_req->size,
                     (sky_u64_t) fs_req->offset
             );
-            io_uring_sqe_set_data(sqe, req);
+            ++fs->req_num;
             return;
         }
         const sky_fs_rw_pt cb = fs_req->write;
@@ -238,6 +240,7 @@ event_on_fs_write(ev_req_t *const req, const sky_i32_t res) {
 
     if (fs_req->size) {
         struct io_uring_sqe *const sqe = get_seq2(&fs->ev);
+        io_uring_sqe_set_data(sqe, req);
         io_uring_prep_write(
                 sqe,
                 fs->ev.fd,
@@ -245,7 +248,7 @@ event_on_fs_write(ev_req_t *const req, const sky_i32_t res) {
                 (sky_u32_t) fs_req->size,
                 (sky_u64_t) fs_req->offset
         );
-        io_uring_sqe_set_data(sqe, req);
+        ++fs->req_num;
         return;
     }
     size = fs_req->bytes;
