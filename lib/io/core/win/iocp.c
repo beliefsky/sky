@@ -119,7 +119,7 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
 }
 
 sky_api void
-sky_ev_loop_stop(sky_ev_loop_t *ev_loop) {
+sky_ev_loop_destroy(sky_ev_loop_t *ev_loop) {
     CloseHandle(ev_loop->iocp);
     sky_timer_wheel_destroy(ev_loop->timer_ctx);
     sky_free(ev_loop);

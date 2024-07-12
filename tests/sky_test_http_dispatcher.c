@@ -49,7 +49,7 @@ main() {
     create_server(ev_loop);
     sky_ev_loop_run(ev_loop);
     sky_pgsql_pool_destroy(pgsql_pool);
-    sky_ev_loop_stop(ev_loop);
+    sky_ev_loop_destroy(ev_loop);
 
     return 0;
 }

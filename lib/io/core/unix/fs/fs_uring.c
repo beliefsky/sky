@@ -6,7 +6,7 @@
 
 #include "./fs_io.h"
 
-#ifdef EV_LOOP_USE_SELECTOR
+#ifdef EVENT_USE_URING
 
 #include <unistd.h>
 
@@ -99,7 +99,7 @@ sky_fs_close(sky_fs_t *const fs, const sky_fs_cb_pt cb, void *const attr) {
 
     close(fs->ev.fd);
     fs->ev.fd = SKY_SOCKET_FD_NONE;
-    event_close_add(&fs->ev);
+//    event_close_add(&fs->ev);
 
     return true;
 }

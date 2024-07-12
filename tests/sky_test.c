@@ -75,7 +75,7 @@ main() {
 
     sky_ev_loop_run(event_loop);
 
-    sky_ev_loop_stop(event_loop);
+    sky_ev_loop_destroy(event_loop);
 
 
     return 0;

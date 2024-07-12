@@ -41,7 +41,7 @@ main() {
     sky_inet_address_ipv6(&address, local_ipv6, 0, 8081);
 
     sky_ev_loop_run(loop);
-    sky_ev_loop_stop(loop);
+    sky_ev_loop_destroy(loop);
 
     return 0;
 }

@@ -9,6 +9,8 @@
 
 #include "./unix_tcp.h"
 
+#ifdef EV_LOOP_USE_SELECTOR
+
 #include <netinet/in.h>
 #include <sys/errno.h>
 #include <unistd.h>
@@ -259,4 +261,5 @@ do_accept(sky_tcp_ser_t *const ser, sky_tcp_cli_t *const cli) {
     }
 }
 
+#endif
 #endif

@@ -126,7 +126,7 @@ sky_inet_address_family(const sky_inet_address_t *const address) {
 }
 
 static sky_inline sky_u32_t
-sky_inet_address_size(const sky_inet_address_t *address) {
+sky_inet_address_size(const sky_inet_address_t *const address) {
 
 #if defined(__linux__) || defined(__WINNT__)
     switch (address->family) {
@@ -140,6 +140,21 @@ sky_inet_address_size(const sky_inet_address_t *address) {
 #else
     return address->size;
 #endif
+}
+
+static sky_inline void
+sky_inet_address_copy(sky_inet_address_t *const dst, const sky_inet_address_t *const src) {
+    switch (src->family) {
+        case AF_INET:
+            dst->ipv4 = src->ipv4;
+            break;
+        case AF_INET6:
+            dst->ipv6 = src->ipv6;
+            break;
+        default:
+            dst->un = src->un;
+            break;
+    }
 }
 
 

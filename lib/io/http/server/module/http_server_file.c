@@ -190,7 +190,6 @@ http_run_handler(sky_http_request_t *const r, void *const data) {
     if (!exten->len) {
         mime_type = module_file->default_mime_type;
     } else {
-        sky_str_lower2(&r->exten);
         if (!http_mime_type_get(&r->exten, &mime_type)) {
             mime_type = module_file->default_mime_type;
         }
@@ -200,7 +199,7 @@ http_run_handler(sky_http_request_t *const r, void *const data) {
     http_file_t *const file = sky_pcalloc(r->pool, sizeof(http_file_t));
 
     sky_str_t *val = sky_http_req_if_modified_since(r);
-    if (!val) {
+    if (val) {
         file->modified = true;
         sky_rfc_str_to_date(val, &file->modified_time);
     }
@@ -461,25 +460,33 @@ http_mime_type_get(const sky_str_t *const exten, http_mime_type_t *const type) {
             ++p;
             switch (sky_str2_switch(p)) {
                 case sky_str2_num('m', 'd'):
+                case sky_str2_num('M', 'D'):
                 mine_set("text/markdown", false);
                     return true;
                 case sky_str2_num('p', 's'):
+                case sky_str2_num('P', 'S'):
                 case sky_str2_num('a', 'i'):
+                case sky_str2_num('A', 'I'):
                 mine_set("application/postscript", true);
                     return true;
                 case sky_str2_num('j', 's'):
+                case sky_str2_num('J', 'S'):
                 mine_set("application/javascript", false);
                     return true;
                 case sky_str2_num('7', 'z'):
+                case sky_str2_num('7', 'Z'):
                 mine_set("application/x-7z-compressed", true);
                     return true;
                 case sky_str2_num('g', 'z'):
+                case sky_str2_num('G', 'Z'):
                 mine_set("application/x-gzip", true);
                     return true;
                 case sky_str2_num('r', 'a'):
+                case sky_str2_num('R', 'A'):
                 mine_set("audio/x-realaudio", true);
                     return true;
                 case sky_str2_num('t', 's'):
+                case sky_str2_num('T', 'S'):
                 mine_set("video/mp2t", true);
                     return true;
                 default:
@@ -490,180 +497,227 @@ http_mime_type_get(const sky_str_t *const exten, http_mime_type_t *const type) {
         case 4: {
             switch (sky_str4_switch(p)) {
                 case sky_str4_num('.', 'h', 't', 'm'):
+                case sky_str4_num('.', 'H', 'T', 'M'):
                 mine_set("text/html", false);
                     return true;
                 case sky_str4_num('.', 'c', 's', 's'):
+                case sky_str4_num('.', 'C', 'S', 'S'):
                 mine_set("text/css", false);
                     return true;
                 case sky_str4_num('.', 'm', 'm', 'l'):
+                case sky_str4_num('.', 'M', 'M', 'L'):
                 mine_set("text/mathml", false);
                     return true;
                 case sky_str4_num('.', 't', 'x', 't'):
+                case sky_str4_num('.', 'T', 'X', 'T'):
                 mine_set("text/plain", false);
                     return true;
                 case sky_str4_num('.', 'j', 'a', 'd'):
+                case sky_str4_num('.', 'J', 'A', 'D'):
                 mine_set("text/vnd.sun.j2me.app-descriptor", false);
                     return true;
                 case sky_str4_num('.', 'w', 'm', 'l'):
+                case sky_str4_num('.', 'W', 'M', 'L'):
                 mine_set("text/vnd.wap.wml", false);
                     return true;
                 case sky_str4_num('.', 'h', 't', 'c'):
+                case sky_str4_num('.', 'H', 'T', 'C'):
                 mine_set("text/x-component", false);
                     return true;
                 case sky_str4_num('.', 'x', 'm', 'l'):
+                case sky_str4_num('.', 'X', 'M', 'L'):
                 mine_set("text/xml", false);
                     return true;
                 case sky_str4_num('.', 'j', 'p', 'g'):
+                case sky_str4_num('.', 'J', 'P', 'G'):
                 mine_set("image/jpeg", true);
                     return true;
                 case sky_str4_num('.', 'p', 'n', 'g'):
+                case sky_str4_num('.', 'P', 'N', 'G'):
                 mine_set("image/png", true);
                     return true;
                 case sky_str4_num('.', 'g', 'i', 'f'):
+                case sky_str4_num('.', 'G', 'I', 'F'):
                 mine_set("image/gif", true);
                     return true;
                 case sky_str4_num('.', 's', 'v', 'g'):
+                case sky_str4_num('.', 'S', 'V', 'G'):
                 mine_set("image/svg+xml", false);
                     return true;
                 case sky_str4_num('.', 't', 'i', 'f'):
+                case sky_str4_num('.', 'T', 'I', 'F'):
                 mine_set("image/tiff ", true);
                     return true;
                 case sky_str4_num('.', 'i', 'c', 'o'):
+                case sky_str4_num('.', 'I', 'C', 'O'):
                 mine_set("image/x-icon", true);
                     return true;
                 case sky_str4_num('.', 'j', 'n', 'g'):
+                case sky_str4_num('.', 'J', 'N', 'G'):
                 mine_set("image/x-jng", true);
                     return true;
                 case sky_str4_num('.', 'b', 'm', 'p'):
+                case sky_str4_num('.', 'B', 'M', 'P'):
                 mine_set("image/x-ms-bmp", true);
                     return true;
                 case sky_str4_num('.', 'r', 's', 's'):
+                case sky_str4_num('.', 'R', 'S', 'S'):
                 mine_set("application/rss+xml", false);
                     return true;
                 case sky_str4_num('.', 'p', 'd', 'f'):
+                case sky_str4_num('.', 'P', 'D', 'F'):
                 mine_set("application/pdf", true);
                     return true;
                 case sky_str4_num('.', 'j', 'a', 'r'):
+                case sky_str4_num('.', 'J', 'A', 'R'):
                 case sky_str4_num('.', 'w', 'a', 'r'):
+                case sky_str4_num('.', 'W', 'A', 'R'):
                 case sky_str4_num('.', 'e', 'a', 'r'):
+                case sky_str4_num('.', 'E', 'A', 'R'):
                 mine_set("application/java-archive", true);
                     return true;
                 case sky_str4_num('.', 'h', 'q', 'x'):
+                case sky_str4_num('.', 'H', 'Q', 'X'):
                 mine_set("application/mac-binhex40", true);
                     return true;
                 case sky_str4_num('.', 'd', 'o', 'c'):
+                case sky_str4_num('.', 'D', 'O', 'C'):
                 mine_set("application/msword", true);
                     return true;
                 case sky_str4_num('.', 'e', 's', 'p'):
+                case sky_str4_num('.', 'E', 'S', 'P'):
                 mine_set("application/postscript", true);
                     return true;
                 case sky_str4_num('.', 'r', 't', 'f'):
+                case sky_str4_num('.', 'R', 'T', 'F'):
                 mine_set("application/rtf", false);
                     return true;
                 case sky_str4_num('.', 'k', 'm', 'l'):
+                case sky_str4_num('.', 'K', 'M', 'L'):
                 mine_set("application/vnd.google-earth.kml+xml", false);
                     return true;
                 case sky_str4_num('.', 'k', 'm', 'z'):
+                case sky_str4_num('.', 'K', 'M', 'Z'):
                 mine_set("application/vnd.google-earth.kmz", true);
                     return true;
                 case sky_str4_num('.', 'x', 'l', 's'):
+                case sky_str4_num('.', 'X', 'L', 'S'):
                 mine_set("application/vnd.ms-excel", true);
                     return true;
                 case sky_str4_num('.', 'e', 'o', 't'):
+                case sky_str4_num('.', 'E', 'O', 'T'):
                 mine_set("application/vnd.ms-fontobject", true);
                     return true;
                 case sky_str4_num('.', 'p', 'p', 't'):
+                case sky_str4_num('.', 'P', 'P', 'T'):
                 mine_set("application/vnd.ms-powerpoint", true);
                     return true;
                 case sky_str4_num('.', 'o', 'd', 'g'):
+                case sky_str4_num('.', 'O', 'D', 'G'):
                 mine_set("application/vnd.oasis.opendocument.graphics", true);
                     return true;
                 case sky_str4_num('.', 'o', 'd', 'd'):
+                case sky_str4_num('.', 'O', 'D', 'D'):
                 mine_set("application/vnd.oasis.opendocument.presentation", true);
                     return true;
                 case sky_str4_num('.', 'o', 'd', 's'):
+                case sky_str4_num('.', 'O', 'D', 'S'):
                 mine_set("application/vnd.oasis.opendocument.spreadsheet", true);
                     return true;
                 case sky_str4_num('.', 'o', 'd', 't'):
+                case sky_str4_num('.', 'O', 'D', 'T'):
                 mine_set("application/vnd.oasis.opendocument.text", false);
                     return true;
                 case sky_str4_num('.', 'r', 'u', 'n'):
+                case sky_str4_num('.', 'R', 'U', 'N'):
                 mine_set("application/x-makeself", true);
                     return true;
                 case sky_str4_num('.', 'r', 'a', 'r'):
+                case sky_str4_num('.', 'R', 'A', 'R'):
                 mine_set("application/x-rar-compressed", true);
                     return true;
                 case sky_str4_num('.', 'r', 'p', 'm'):
+                case sky_str4_num('.', 'R', 'P', 'M'):
                 mine_set(" application/x-redhat-package-manager", true);
                     return true;
                 case sky_str4_num('.', 'd', 'e', 'r'):
+                case sky_str4_num('.', 'D', 'E', 'R'):
                 case sky_str4_num('.', 'p', 'e', 'm'):
+                case sky_str4_num('.', 'P', 'E', 'M'):
                 case sky_str4_num('.', 'c', 'r', 't'):
+                case sky_str4_num('.', 'C', 'R', 'T'):
                 mine_set("application/x-x509-ca-cert", false);
                     return true;
                 case sky_str4_num('.', 'x', 'p', 'i'):
+                case sky_str4_num('.', 'X', 'P', 'I'):
                 mine_set("application/x-xpinstall", true);
                     return true;
                 case sky_str4_num('.', 'z', 'i', 'p'):
+                case sky_str4_num('.', 'Z', 'I', 'P'):
                 mine_set("application/zip", true);
                     return true;
                 case sky_str4_num('.', 't', 'a', 'r'):
+                case sky_str4_num('.', 'T', 'A', 'R'):
                 mine_set("application/x-tar", true);
                     return true;
-                case sky_str4_num('.', 'b', 'i', 'n'):
-                case sky_str4_num('.', 'e', 'x', 'e'):
-                case sky_str4_num('.', 'd', 'l', 'l'):
-                case sky_str4_num('.', 'd', 'e', 'b'):
-                case sky_str4_num('.', 'd', 'm', 'g'):
-                case sky_str4_num('.', 'i', 's', 'o'):
-                case sky_str4_num('.', 'i', 'm', 'g'):
-                case sky_str4_num('.', 's', 'm', 'i'):
-                case sky_str4_num('.', 's', 'm', 'p'):
-                case sky_str4_num('.', 's', 'm', 'm'):
-                mine_set("application/octet-stream ", true);
-                    return true;
                 case sky_str4_num('.', 'k', 'a', 'r'):
+                case sky_str4_num('.', 'K', 'A', 'R'):
                 case sky_str4_num('.', 'm', 'i', 'd'):
+                case sky_str4_num('.', 'M', 'I', 'D'):
                 mine_set("audio/midi", true);
                     return true;
                 case sky_str4_num('.', 'm', '4', 'a'):
+                case sky_str4_num('.', 'M', '4', 'A'):
                 mine_set("audio/x-m4a", true);
                     return true;
                 case sky_str4_num('.', 'm', 'p', '3'):
+                case sky_str4_num('.', 'M', 'P', '3'):
                 mine_set("audio/mp3", true);
                     return true;
                 case sky_str4_num('.', 'o', 'g', 'g'):
+                case sky_str4_num('.', 'O', 'G', 'G'):
                 mine_set("audio/ogg", true);
                     return true;
                 case sky_str4_num('.', '3', 'g', 'p'):
+                case sky_str4_num('.', '3', 'G', 'P'):
                 mine_set("video/3gpp", true);
                     return true;
                 case sky_str4_num('.', 'm', 'p', '4'):
+                case sky_str4_num('.', 'M', 'P', '4'):
                 mine_set("video/mp4", true);
                     return true;
                 case sky_str4_num('.', 'm', 'p', 'g'):
+                case sky_str4_num('.', 'M', 'P', 'G'):
                 mine_set("video/mpeg", true);
                     return true;
                 case sky_str4_num('.', 'm', 'o', 'v'):
+                case sky_str4_num('.', 'M', 'O', 'V'):
                 mine_set("video/quicktime", true);
                     return true;
                 case sky_str4_num('.', 'f', 'l', 'v'):
+                case sky_str4_num('.', 'F', 'L', 'V'):
                 mine_set("video/x-flv", true);
                     return true;
                 case sky_str4_num('.', 'm', '4', 'v'):
+                case sky_str4_num('.', 'M', '4', 'V'):
                 mine_set("video/x-m4v", true);
                     return true;
                 case sky_str4_num('.', 'm', 'n', 'g'):
+                case sky_str4_num('.', 'M', 'N', 'G'):
                 mine_set("video/x-mng", true);
                     return true;
                 case sky_str4_num('.', 'a', 's', 'x'):
+                case sky_str4_num('.', 'A', 'S', 'X'):
                 case sky_str4_num('.', 'a', 's', 'f'):
+                case sky_str4_num('.', 'A', 'S', 'F'):
                 mine_set("video/x-ms-asf", true);
                     return true;
                 case sky_str4_num('.', 'w', 'm', 'v'):
+                case sky_str4_num('.', 'W', 'M', 'V'):
                 mine_set("video/x-ms-wmv", true);
                     return true;
                 case sky_str4_num('.', 'a', 'v', 'i'):
+                case sky_str4_num('.', 'A', 'V', 'I'):
                 mine_set("video/x-msvideo", true);
                     return true;
                 default:
@@ -675,63 +729,83 @@ http_mime_type_get(const sky_str_t *const exten, http_mime_type_t *const type) {
             ++p;
             switch (sky_str4_switch(p)) {
                 case sky_str4_num('h', 't', 'm', 'l'):
+                case sky_str4_num('T', 'T', 'M', 'L'):
                 mine_set("text/html", false);
                     return true;
                 case sky_str4_num('a', 't', 'o', 'm'):
+                case sky_str4_num('A', 'T', 'O', 'M'):
                 mine_set("application/atom+xml", false);
                     return true;
                 case sky_str4_num('j', 's', 'o', 'n'):
+                case sky_str4_num('J', 'S', 'O', 'N'):
                 mine_set("application/json", false);
                     return true;
                 case sky_str4_num('m', '3', 'u', '8'):
+                case sky_str4_num('M', '3', 'U', '8'):
                 mine_set("application/vnd.apple.mpegurl", false);
                     return true;
                 case sky_str4_num('p', 'p', 't', 'x'):
+                case sky_str4_num('P', 'P', 'T', 'X'):
                 mine_set("application/vnd.openxmlformats-officedocument.presentationml.presentation", true);
                     return true;
                 case sky_str4_num('x', 'l', 's', 'x'):
+                case sky_str4_num('X', 'L', 'S', 'X'):
                 mine_set("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", true);
                     return true;
                 case sky_str4_num('d', 'o', 'c', 'x'):
+                case sky_str4_num('D', 'O', 'C', 'X'):
                 mine_set("application/vnd.openxmlformats-officedocument.wordprocessingml.document", true);
                     return true;
                 case sky_str4_num('w', 'm', 'l', 'c'):
+                case sky_str4_num('W', 'M', 'L', 'C'):
                 mine_set("application/vnd.wap.wmlc", false);
                     return true;
                 case sky_str4_num('w', 'a', 's', 'n'):
+                case sky_str4_num('W', 'A', 'S', 'N'):
                 mine_set("application/wasm", true);
                     return true;
                 case sky_str4_num('x', 's', 'p', 'f'):
+                case sky_str4_num('X', 'S', 'P', 'F'):
                 mine_set("application/xspf+xml", false);
                     return true;
                 case sky_str4_num('j', 'p', 'e', 'g'):
+                case sky_str4_num('J', 'P', 'E', 'G'):
                 mine_set("image/jpeg", true);
                     return true;
                 case sky_str4_num('s', 'v', 'g', 'z'):
+                case sky_str4_num('S', 'V', 'G', 'Z'):
                 mine_set("image/svg+xml", false);
                     return true;
                 case sky_str4_num('t', 'i', 'f', 'f'):
+                case sky_str4_num('T', 'I', 'F', 'F'):
                 mine_set("image/tiff ", true);
                     return true;
                 case sky_str4_num('w', 'b', 'm', 'p'):
+                case sky_str4_num('W', 'B', 'M', 'P'):
                 mine_set("image/vnd.wap.wbmp", true);
                     return true;
                 case sky_str4_num('w', 'e', 'b', 'p'):
+                case sky_str4_num('W', 'E', 'B', 'P'):
                 mine_set("image/webp", true);
                     return true;
                 case sky_str4_num('w', 'o', 'f', 'f'):
+                case sky_str4_num('W', 'O', 'F', 'F'):
                 mine_set("font/woff", true);
                     return true;
                 case sky_str4_num('m', 'i', 'd', 'i'):
+                case sky_str4_num('M', 'I', 'D', 'I'):
                 mine_set("audio/midi", true);
                     return true;
                 case sky_str4_num('3', 'g', 'p', 'p'):
+                case sky_str4_num('3', 'G', 'P', 'P'):
                 mine_set("video/3gpp", true);
                     return true;
                 case sky_str4_num('m', 'p', 'e', 'g'):
+                case sky_str4_num('M', 'P', 'E', 'G'):
                 mine_set("video/mpeg", true);
                     return true;
                 case sky_str4_num('w', 'e', 'b', 'm'):
+                case sky_str4_num('W', 'E', 'B', 'M'):
                 mine_set("video/webm", true);
                     return true;
                 default:
@@ -743,6 +817,7 @@ http_mime_type_get(const sky_str_t *const exten, http_mime_type_t *const type) {
             ++p;
             switch (sky_str4_switch(p)) {
                 case sky_str4_num('w', 'o', 'f', 'f'):
+                case sky_str4_num('W', 'O', 'F', 'F'):
                     if (sky_likely(p[4] == '2')) {
                         mine_set("font/woff2", true);
                         return true;
@@ -750,6 +825,12 @@ http_mime_type_get(const sky_str_t *const exten, http_mime_type_t *const type) {
                     break;
                 case sky_str4_num('x', 'h', 't', 'm'):
                     if (sky_likely(p[4] == 'l')) {
+                        mine_set("application/x-xpinstall", false);
+                        return true;
+                    }
+                    break;
+                case sky_str4_num('X', 'H', 'T', 'M'):
+                    if (sky_likely(p[4] == 'L')) {
                         mine_set("application/x-xpinstall", false);
                         return true;
                     }

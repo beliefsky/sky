@@ -1,6 +1,8 @@
 //
 // Created by weijing on 2024/3/8.
 //
+#if defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
+
 #include "./unix_io.h"
 
 #ifdef EVENT_USE_KQUEUE
@@ -134,7 +136,7 @@ sky_ev_loop_run(sky_ev_loop_t *ev_loop) {
 }
 
 sky_api void
-sky_ev_loop_stop(sky_ev_loop_t *ev_loop) {
+sky_ev_loop_destroy(sky_ev_loop_t *ev_loop) {
     close(ev_loop->fd);
     sky_timer_wheel_destroy(ev_loop->timer_ctx);
     sky_free(ev_loop);
@@ -208,5 +210,6 @@ event_on_status(sky_ev_loop_t *ev_loop, const on_event_pt event_tables[][4]) {
     } while (ev);
 }
 
+#endif
 #endif
 

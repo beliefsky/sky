@@ -4,19 +4,8 @@
 #if defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
 
 #include "./fs_io.h"
-#include "../unix_io.h"
 #include <fcntl.h>
-#include <unistd.h>
 #include <sys/stat.h>
-
-sky_api void
-sky_fs_init(sky_fs_t *const fs, sky_ev_loop_t *const ev_loop) {
-    fs->ev.fd = SKY_SOCKET_FD_NONE;
-    fs->ev.flags = EV_TYPE_FS;
-    fs->ev.ev_loop = ev_loop;
-    fs->ev.next = null;
-    fs->req_num = 0;
-}
 
 sky_api sky_bool_t
 sky_fs_open(

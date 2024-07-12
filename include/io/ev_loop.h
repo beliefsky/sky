@@ -32,7 +32,7 @@ sky_ev_loop_t *sky_ev_loop_create();
 
 void sky_ev_loop_run(sky_ev_loop_t *ev_loop);
 
-void sky_ev_loop_stop(sky_ev_loop_t *ev_loop);
+void sky_ev_loop_destroy(sky_ev_loop_t *ev_loop);
 
 sky_i64_t sky_ev_now_sec(sky_ev_loop_t *ev_loop);
 

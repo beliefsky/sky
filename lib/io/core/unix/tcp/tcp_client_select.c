@@ -6,6 +6,8 @@
 
 #include "./unix_tcp.h"
 
+#ifdef EV_LOOP_USE_SELECTOR
+
 #include <netinet/in.h>
 #include <sys/errno.h>
 #include <unistd.h>
@@ -1196,5 +1198,6 @@ tcp_sendfile(sky_tcp_cli_t *const cli, const sky_tcp_fs_data_t *const data, sky_
 #endif
 }
 
+#endif
 #endif
 

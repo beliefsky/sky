@@ -23,6 +23,12 @@ endif ()
 #
 # Find libraries
 #
+check_include_file(liburing.h SKY_HAVE_URING)
+if (SKY_HAVE_URING)
+    find_package(uring QUIET)
+    set(ADDITIONAL_LIBRARIES ${ADDITIONAL_LIBRARIES} uring)
+endif ()
+
 check_include_file(openssl/ssl.h SKY_HAVE_OPENSSL)
 if (SKY_HAVE_OPENSSL)
     find_package(OpenSSL QUIET)
