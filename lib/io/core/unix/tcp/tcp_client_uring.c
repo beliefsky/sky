@@ -114,7 +114,7 @@ sky_api sky_io_result_t
 sky_tcp_connect(
         sky_tcp_cli_t *const cli,
         const sky_inet_address_t *const address,
-        const sky_tcp_connect_pt cb,
+        const sky_tcp_status_pt cb,
         void *const attr
 ) {
     if (sky_unlikely(cli->ev.fd == SKY_SOCKET_FD_NONE

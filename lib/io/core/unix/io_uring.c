@@ -51,6 +51,9 @@ sky_ev_loop_run(sky_ev_loop_t *const ev_loop) {
             [EV_REQ_TCP_SENDFILE] = event_on_tcp_sendfile,
             [EV_REQ_TCP_CLI_SHUTDOWN] = event_on_tcp_cli_shutdown,
             [EV_REQ_TCP_CLI_CLOSE] = event_on_tcp_cli_close,
+            [EV_REQ_FS_WRITE] = event_on_fs_write,
+            [EV_REQ_FS_READ] = event_on_fs_read,
+            [EV_REQ_FS_CLOSE] = event_on_fs_close
     };
 
 

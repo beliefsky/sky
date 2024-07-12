@@ -100,13 +100,14 @@ sky_tcp_accept(
                      || (ser->ev.flags & (SKY_TCP_STATUS_ERROR | SKY_TCP_STATUS_CLOSING)))) {
         return REQ_ERROR;
     }
-    struct io_uring_sqe *sqe = get_seq2(&ser->ev);
     tcp_accept_req_t *const req = sky_malloc(sizeof(tcp_accept_req_t));
     req->req.ev = &ser->ev;
     req->req.type = EV_REQ_TCP_ACCEPT;
     req->cli = cli;
     req->cb = cb;
     req->attr = attr;
+
+    struct io_uring_sqe *sqe = get_seq2(&ser->ev);
     io_uring_sqe_set_data(sqe, req);
     io_uring_prep_accept(sqe, ser->ev.fd, null, null, SOCK_NONBLOCK | SOCK_CLOEXEC);
 
@@ -124,11 +125,11 @@ sky_tcp_ser_close(sky_tcp_ser_t *ser, sky_tcp_ser_cb_pt cb, void *attr) {
     ser->close_data = attr;
     ser->ev.flags |= SKY_TCP_STATUS_CLOSING;
 
-    struct io_uring_sqe *sqe = get_seq2(&ser->ev);
     ev_req_t *const req = sky_malloc(sizeof(ev_req_t));
     req->ev = &ser->ev;
     req->type = EV_REQ_TCP_SER_CLOSE;
 
+    struct io_uring_sqe *sqe = get_seq2(&ser->ev);
     io_uring_sqe_set_data(sqe, req);
     io_uring_prep_close(sqe, ser->ev.fd);
 
@@ -153,7 +154,25 @@ event_on_tcp_accept(ev_req_t *const req, const sky_i32_t res) {
     sky_free(acceptor);
 
     --ser->req_num;
-    const sky_bool_t closing = (ser->ev.flags & SKY_TCP_STATUS_CLOSING) && !ser->req_num;
+
+    if (!(ser->ev.flags & SKY_TCP_STATUS_CLOSING)) {
+        if (res < 0) {
+            if (EAGAIN == (-res)) {
+                struct io_uring_sqe *sqe = get_seq2(&ser->ev);
+                io_uring_sqe_set_data(sqe, acceptor);
+                io_uring_prep_accept(sqe, ser->ev.fd, null, null, SOCK_NONBLOCK | SOCK_CLOEXEC);
+                return;
+            }
+            cb(ser, cli, false, attr);
+            return;
+        }
+        cli->ev.fd = res;
+        cli->ev.flags |= SKY_TCP_STATUS_CONNECTED;
+        cb(ser, cli, true, attr);
+        return;
+    }
+
+    const sky_bool_t closing = !ser->req_num;
     if (res < 0) {
         cb(ser, cli, false, attr);
     } else {

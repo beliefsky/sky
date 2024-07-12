@@ -12,7 +12,7 @@
 typedef struct {
     ev_req_t req;
     union {
-        sky_tcp_connect_pt connect;
+        sky_tcp_status_pt connect;
         sky_tcp_rw_pt read;
         sky_tcp_rw_pt write;
     };
@@ -92,7 +92,7 @@ sky_api sky_io_result_t
 sky_tcp_connect(
         sky_tcp_cli_t *const cli,
         const sky_inet_address_t *const address,
-        const sky_tcp_connect_pt cb,
+        const sky_tcp_status_pt cb,
         void *const attr
 ) {
     if (sky_unlikely(cli->ev.fd == SKY_SOCKET_FD_NONE
@@ -552,7 +552,7 @@ event_on_tcp_connect(
     --cli->req_num;
 
     const sky_bool_t before_closing = (cli->ev.flags & SKY_TCP_STATUS_CLOSING);
-    const sky_tcp_connect_pt cb = tcp_req->connect;
+    const sky_tcp_status_pt cb = tcp_req->connect;
     void *const attr = tcp_req->attr;
     sky_free(req);
 

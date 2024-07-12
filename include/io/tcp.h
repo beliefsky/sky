@@ -27,8 +27,6 @@ typedef sky_bool_t (*sky_tcp_ser_option_pt)(sky_tcp_ser_t *ser);
 
 typedef void (*sky_tcp_accept_pt)(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_bool_t success, void *attr);
 
-typedef void (*sky_tcp_connect_pt)(sky_tcp_cli_t *cli, sky_bool_t success, void *attr);
-
 typedef void (*sky_tcp_status_pt)(sky_tcp_cli_t *cli, sky_bool_t success, void *attr);
 
 typedef void (*sky_tcp_rw_pt)(sky_tcp_cli_t *cli, sky_usize_t size, void *attr);
@@ -120,7 +118,7 @@ sky_bool_t sky_tcp_cli_open(sky_tcp_cli_t *cli, sky_i32_t domain);
 sky_io_result_t sky_tcp_connect(
         sky_tcp_cli_t *cli,
         const sky_inet_address_t *address,
-        sky_tcp_connect_pt cb,
+        sky_tcp_status_pt cb,
         void *attr
 );
 
