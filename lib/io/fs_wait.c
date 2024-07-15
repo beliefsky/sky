@@ -3,9 +3,26 @@
 //
 #include <io/fs_wait.h>
 
+static void on_fs_status(sky_fs_t *fs, sky_bool_t success, void *data);
+
 static void on_fs_rw(sky_fs_t *fs, sky_usize_t size, void *data);
 
 static void on_fs_cli_cb(sky_fs_t *fs, void *data);
+
+sky_api sky_bool_t
+sky_fs_wait_open(
+        sky_fs_t *const fs,
+        const sky_uchar_t *const path,
+        const sky_usize_t len,
+        const sky_u32_t flags,
+        sky_sync_wait_t *const wait
+) {
+    const sky_io_result_t result = sky_fs_open(fs, path, len, flags, on_fs_status, wait);
+    if (result == REQ_PENDING) {
+        return null != sky_sync_wait_yield(wait);
+    }
+    return result == REQ_SUCCESS;
+}
 
 sky_api sky_usize_t
 sky_fs_wait_pread(
@@ -50,6 +67,13 @@ sky_fs_wait_close(sky_fs_t *const fs, sky_sync_wait_t *const wait) {
     return true;
 }
 
+static void
+on_fs_status(sky_fs_t *const fs, const sky_bool_t success, void *const data) {
+    (void) fs;
+
+    sky_sync_wait_t *const wait = data;
+    sky_sync_wait_resume(wait, (void *) success);
+}
 
 static void
 on_fs_rw(sky_fs_t *const fs, const sky_usize_t size, void *const data) {

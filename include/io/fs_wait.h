@@ -12,6 +12,14 @@
 extern "C" {
 #endif
 
+sky_bool_t sky_fs_wait_open(
+        sky_fs_t *fs,
+        const sky_uchar_t *path,
+        sky_usize_t len,
+        sky_u32_t flags,
+        sky_sync_wait_t *wait
+);
+
 
 sky_usize_t sky_fs_wait_pread(
         sky_fs_t *fs,
