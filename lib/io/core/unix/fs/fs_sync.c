@@ -9,6 +9,7 @@
 #ifdef EV_LOOP_USE_SELECTOR
 
 #include <unistd.h>
+#include <fcntl.h>
 
 sky_api void
 sky_fs_init(sky_fs_t *const fs, sky_ev_loop_t *const ev_loop) {
