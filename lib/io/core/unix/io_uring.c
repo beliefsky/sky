@@ -7,8 +7,6 @@
 
 #ifdef EVENT_USE_URING
 
-#include <linux/io_uring.h>
-
 #include <errno.h>
 
 sky_api sky_ev_loop_t *
@@ -56,6 +54,7 @@ sky_ev_loop_run(sky_ev_loop_t *const ev_loop) {
             [EV_REQ_FS_OPEN] = event_on_fs_open,
             [EV_REQ_FS_WRITE] = event_on_fs_write,
             [EV_REQ_FS_READ] = event_on_fs_read,
+            [EV_REQ_FS_SYNC] = event_on_fs_sync,
             [EV_REQ_FS_CLOSE] = event_on_fs_close
     };
 

@@ -58,6 +58,25 @@ sky_fs_wait_pwrite(
 
 
 sky_api sky_bool_t
+sky_fs_wait_sync(sky_fs_t *const fs, sky_sync_wait_t *const wait) {
+    const sky_io_result_t result = sky_fs_sync(fs, on_fs_status, wait);
+    if (result == REQ_PENDING) {
+        return null != sky_sync_wait_yield(wait);
+    }
+    return result == REQ_SUCCESS;
+}
+
+sky_api sky_bool_t
+sky_fs_wait_datasync(sky_fs_t *const fs,sky_sync_wait_t *const wait) {
+    const sky_io_result_t result = sky_fs_datasync(fs, on_fs_status, wait);
+    if (result == REQ_PENDING) {
+        return null != sky_sync_wait_yield(wait);
+    }
+    return result == REQ_SUCCESS;
+}
+
+
+sky_api sky_bool_t
 sky_fs_wait_close(sky_fs_t *const fs, sky_sync_wait_t *const wait) {
     if (!sky_fs_close(fs, on_fs_cli_cb, wait)) {
         return false;

@@ -37,6 +37,10 @@ sky_usize_t sky_fs_wait_pwrite(
         sky_sync_wait_t *wait
 );
 
+sky_bool_t sky_fs_wait_sync(sky_fs_t *fs, sky_sync_wait_t *wait);
+
+sky_bool_t sky_fs_wait_datasync(sky_fs_t *fs, sky_sync_wait_t *wait);
+
 sky_bool_t sky_fs_wait_close(sky_fs_t *fs, sky_sync_wait_t *wait);
 
 

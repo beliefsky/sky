@@ -8,10 +8,12 @@
 
 #ifdef EVENT_USE_URING
 
+
 typedef struct {
     ev_req_t req;
     union {
         sky_fs_status_pt open;
+        sky_fs_status_pt sync;
     };
     void *attr;
     sky_uchar_t path[];
@@ -138,6 +140,16 @@ sky_fs_pwrite(
         const sky_fs_rw_pt cb,
         void *const attr
 ) {
+    if (sky_unlikely(fs->ev.fd == SKY_SOCKET_FD_NONE
+                     || (fs->ev.flags & (SKY_FS_STATUS_CLOSING | SKY_FS_STATUS_ERROR)))) {
+        *bytes = SKY_USIZE_MAX;
+        return REQ_ERROR;
+    }
+    if (sky_unlikely(!size)) {
+        *bytes = 0;
+        return REQ_SUCCESS;
+    }
+
     fs_req_buf_t *const req = sky_malloc(sizeof(fs_req_buf_t));
     req->req.ev = &fs->ev;
     req->req.type = EV_REQ_FS_WRITE;
@@ -155,6 +167,46 @@ sky_fs_pwrite(
     ++fs->req_num;
 
     *bytes = 0;
+    return REQ_PENDING;
+}
+
+sky_api sky_io_result_t
+sky_fs_sync(sky_fs_t *const fs, const sky_fs_status_pt cb, void *const attr) {
+    if (sky_unlikely(fs->ev.fd == SKY_SOCKET_FD_NONE
+                     || (fs->ev.flags & (SKY_FS_STATUS_CLOSING | SKY_FS_STATUS_ERROR)))) {
+        return REQ_ERROR;
+    }
+
+    fs_req_path_t *const req = sky_malloc(sizeof(fs_req_path_t));
+    req->req.ev = &fs->ev;
+    req->req.type = EV_REQ_FS_SYNC;
+    req->sync = cb;
+    req->attr = attr;
+
+    struct io_uring_sqe *const sqe = get_seq2(&fs->ev);
+    io_uring_sqe_set_data(sqe, req);
+    io_uring_prep_fsync(sqe, fs->ev.fd, 0);
+
+    return REQ_PENDING;
+}
+
+sky_api sky_io_result_t
+sky_fs_datasync(sky_fs_t *const fs, const sky_fs_status_pt cb, void *const attr) {
+    if (sky_unlikely(fs->ev.fd == SKY_SOCKET_FD_NONE
+                     || (fs->ev.flags & (SKY_FS_STATUS_CLOSING | SKY_FS_STATUS_ERROR)))) {
+        return REQ_ERROR;
+    }
+
+    fs_req_path_t *const req = sky_malloc(sizeof(fs_req_path_t));
+    req->req.ev = &fs->ev;
+    req->req.type = EV_REQ_FS_SYNC;
+    req->sync = cb;
+    req->attr = attr;
+
+    struct io_uring_sqe *const sqe = get_seq2(&fs->ev);
+    io_uring_sqe_set_data(sqe, req);
+    io_uring_prep_fsync(sqe, fs->ev.fd, IORING_FSYNC_DATASYNC);
+
     return REQ_PENDING;
 }
 
@@ -359,6 +411,28 @@ event_on_fs_write(ev_req_t *const req, const sky_i32_t res) {
     sky_free(fs_req);
 
     cb(fs, size, attr);
+}
+
+void
+event_on_fs_sync(ev_req_t *const req, const sky_i32_t res) {
+    sky_fs_t *const fs = (sky_fs_t *const) req->ev;
+    fs_req_path_t *const fs_req = (fs_req_path_t *) req;
+    const sky_fs_status_pt cb = fs_req->sync;
+    void *const attr = fs_req->attr;
+    sky_free(fs_req);
+
+    --fs->req_num;
+
+    const sky_bool_t success = res >= 0;
+    if ((fs->ev.flags & SKY_FS_STATUS_CLOSING)) {
+        const sky_bool_t closing = !fs->req_num;
+        cb(fs, success, attr);
+        if (closing) {
+            do_close(fs);
+        }
+        return;
+    }
+    cb(fs, success, attr);
 }
 
 void

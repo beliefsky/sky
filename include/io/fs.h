@@ -75,6 +75,9 @@ sky_io_result_t sky_fs_pwrite(
         void *attr
 );
 
+sky_io_result_t sky_fs_sync(sky_fs_t *fs, sky_fs_status_pt cb, void *attr);
+
+sky_io_result_t sky_fs_datasync(sky_fs_t *fs, sky_fs_status_pt cb, void *attr);
 
 sky_bool_t sky_fs_close(sky_fs_t *fs, sky_fs_cb_pt cb, void *attr);
 
@@ -104,7 +107,7 @@ sky_fs_closing(const sky_fs_t *const fs) {
 
 static sky_inline sky_bool_t
 sky_fs_closed(const sky_fs_t *const fs) {
-    return !(fs->ev.flags & (SKY_FS_STATUS_OPENING | SKY_FS_STATUS_OPENED  | SKY_FS_STATUS_CLOSING));
+    return !(fs->ev.flags & (SKY_FS_STATUS_OPENING | SKY_FS_STATUS_OPENED | SKY_FS_STATUS_CLOSING));
 }
 
 #if defined(__cplusplus)

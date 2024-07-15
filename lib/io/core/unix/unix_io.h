@@ -63,7 +63,8 @@
 #define EV_REQ_FS_OPEN          SKY_U32(10)
 #define EV_REQ_FS_WRITE         SKY_U32(11)
 #define EV_REQ_FS_READ          SKY_U32(12)
-#define EV_REQ_FS_CLOSE         SKY_U32(13)
+#define EV_REQ_FS_SYNC          SKY_U32(13)
+#define EV_REQ_FS_CLOSE         SKY_U32(14)
 
 typedef struct ev_req_s ev_req_t;
 
@@ -169,6 +170,8 @@ void event_on_fs_open(ev_req_t *req, sky_i32_t res);
 void event_on_fs_read(ev_req_t *req, sky_i32_t res);
 
 void event_on_fs_write(ev_req_t *req, sky_i32_t res);
+
+void event_on_fs_sync(ev_req_t *req, sky_i32_t res);
 
 void event_on_fs_close(ev_req_t *req, sky_i32_t res);
 
