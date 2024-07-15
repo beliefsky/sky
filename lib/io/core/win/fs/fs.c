@@ -32,18 +32,23 @@ sky_fs_init(sky_fs_t *fs, sky_ev_loop_t *ev_loop) {
     fs->req_num = 0;
 }
 
-sky_api sky_bool_t
+sky_api sky_io_result_t
 sky_fs_open(
         sky_fs_t *const fs,
         const sky_uchar_t *const path,
         const sky_usize_t len,
-        const sky_u32_t flags
+        const sky_u32_t flags,
+        const sky_fs_status_pt cb,
+        void *const attr
 ) {
+    (void) cb;
+    (void) attr;
+
     if (sky_unlikely(!len)) {
-        return false;
+        return REQ_ERROR;
     }
 
-    return fs_open(fs, path, flags);
+    return fs_open(fs, path, flags) ? REQ_SUCCESS : REQ_ERROR;
 }
 
 sky_api sky_io_result_t
@@ -169,6 +174,38 @@ sky_fs_pwrite(
     return REQ_ERROR;
 }
 
+sky_api sky_io_result_t
+sky_fs_sync(
+        sky_fs_t *const fs,
+        const sky_fs_status_pt cb,
+        void *const attr
+) {
+    (void) cb;
+    (void) attr;
+
+    if (sky_unlikely(fs->ev.fs == INVALID_HANDLE_VALUE
+                     || (fs->ev.flags & (SKY_FS_STATUS_CLOSING | SKY_FS_STATUS_ERROR)))) {
+        return REQ_ERROR;
+    }
+    return REQ_SUCCESS;
+}
+
+sky_api sky_io_result_t
+sky_fs_datasync(
+        sky_fs_t *const fs,
+        const sky_fs_status_pt cb,
+        void *const attr
+) {
+    (void) cb;
+    (void) attr;
+
+    if (sky_unlikely(fs->ev.fs == INVALID_HANDLE_VALUE
+                     || (fs->ev.flags & (SKY_FS_STATUS_CLOSING | SKY_FS_STATUS_ERROR)))) {
+        return REQ_ERROR;
+    }
+    return REQ_SUCCESS;
+}
+
 sky_api sky_bool_t
 sky_fs_close(sky_fs_t *const fs, const sky_fs_cb_pt cb, void *const attr) {
     if (fs->ev.fs == INVALID_HANDLE_VALUE || (fs->ev.flags & SKY_FS_STATUS_CLOSING)) {
@@ -212,11 +249,6 @@ sky_fs_stat(sky_fs_t *const fs, sky_fs_stat_t *const st) {
     st->size = ull.QuadPart;
 
     return true;
-}
-
-sky_api sky_bool_t
-sky_fs_closed(const sky_fs_t *const fs) {
-    return fs == INVALID_HANDLE_VALUE;
 }
 
 sky_api sky_bool_t
@@ -338,6 +370,7 @@ fs_open(
     SetFileCompletionNotificationModes((HANDLE) fd, FILE_SKIP_COMPLETION_PORT_ON_SUCCESS);
 
     fs->ev.fs = fd;
+    fs->ev.flags |= SKY_FS_STATUS_OPENED;
 
     return true;
 }

@@ -139,6 +139,31 @@ sky_fs_pwrite(
     return REQ_SUCCESS;
 }
 
+sky_api sky_io_result_t
+sky_fs_sync(sky_fs_t *const fs, const sky_fs_status_pt cb, void *const attr) {
+    (void) cb;
+    (void) attr;
+
+    if (sky_unlikely(fs->ev.fd == SKY_SOCKET_FD_NONE
+                     || (fs->ev.flags & (SKY_FS_STATUS_CLOSING | SKY_FS_STATUS_ERROR)))) {
+        return REQ_ERROR;
+    }
+    return 0 == fsync(fs->ev.fd) ? REQ_SUCCESS : REQ_ERROR;
+}
+
+
+sky_api sky_io_result_t
+sky_fs_datasync(sky_fs_t *const fs, const sky_fs_status_pt cb, void *const attr) {
+    (void) cb;
+    (void) attr;
+
+    if (sky_unlikely(fs->ev.fd == SKY_SOCKET_FD_NONE
+                     || (fs->ev.flags & (SKY_FS_STATUS_CLOSING | SKY_FS_STATUS_ERROR)))) {
+        return REQ_ERROR;
+    }
+    return 0 == fdatasync(fs->ev.fd) ? REQ_SUCCESS : REQ_ERROR;
+}
+
 sky_api sky_bool_t
 sky_fs_close(sky_fs_t *const fs, const sky_fs_cb_pt cb, void *const attr) {
     if (sky_unlikely(fs->ev.fd == SKY_SOCKET_FD_NONE)) {
