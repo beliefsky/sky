@@ -21,8 +21,12 @@
 
 typedef struct {
     ev_req_t req;
-    sky_tcp_task_t task;
     union {
+        sky_tcp_task_t task;
+        sky_i32_t domain;
+    };
+    union {
+        sky_tcp_status_pt open;
         sky_tcp_status_pt connect;
         sky_tcp_rw_pt read;
         sky_tcp_rw_pt write;
@@ -83,32 +87,41 @@ sky_tcp_cli_init(sky_tcp_cli_t *const cli, sky_ev_loop_t *const ev_loop) {
 }
 
 
-sky_api sky_bool_t
-sky_tcp_cli_open(sky_tcp_cli_t *const cli, const sky_i32_t domain) {
-    if (sky_unlikely(cli->ev.fd != SKY_SOCKET_FD_NONE)) {
-        return false;
+sky_api sky_io_result_t
+sky_tcp_cli_open(
+        sky_tcp_cli_t *const cli,
+        const sky_i32_t domain,
+        const sky_tcp_status_pt cb,
+        void *const attr
+) {
+    if (sky_unlikely(cli->ev.fd != SKY_SOCKET_FD_NONE
+                     || (cli->ev.flags & (SKY_TCP_STATUS_OPENING | SKY_TCP_STATUS_CLOSING)))) {
+        return REQ_ERROR;
     }
-#ifdef SKY_HAVE_ACCEPT4
-    const sky_socket_t fd = socket(domain, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC,
-                                   domain == AF_UNIX ? 0 : IPPROTO_TCP);
-    if (sky_unlikely(fd == -1)) {
-        return false;
-    }
+    cli->ev.flags |= SKY_TCP_STATUS_OPENING;
 
-#else
-    const sky_socket_t fd = socket(domain, SOCK_STREAM, domain == AF_UNIX ? 0 : IPPROTO_TCP);
-    if (sky_unlikely(fd == -1)) {
-        return false;
-    }
-    if (sky_unlikely(!set_socket_nonblock(fd))) {
-        close(fd);
-        return false;
-    }
-#endif
-    cli->ev.fd = fd;
 
-    return true;
+    tcp_req_t *const req = sky_malloc(sizeof(tcp_req_t));
+    req->req.ev = &cli->ev;
+    req->req.type = EV_REQ_TCP_CLI_OPEN;
+    req->domain = domain;
+    req->open = cb;
+    req->attr = attr;
+
+    struct io_uring_sqe *const sqe = get_seq2(&cli->ev);
+    io_uring_sqe_set_data(sqe, req);
+    io_uring_prep_socket(
+            sqe,
+            domain,
+            SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC,
+            domain == AF_UNIX ? 0 : IPPROTO_TCP,
+            0
+    );
+
+    return REQ_PENDING;
+
 }
+
 
 sky_api sky_io_result_t
 sky_tcp_connect(
@@ -498,12 +511,17 @@ sky_tcp_send_fs(
 
 sky_api sky_bool_t
 sky_tcp_cli_close(sky_tcp_cli_t *const cli, const sky_tcp_cli_cb_pt cb, void *const attr) {
-    if (cli->ev.fd == SKY_SOCKET_FD_NONE || (cli->ev.flags & SKY_TCP_STATUS_CLOSING)) {
+    if ((cli->ev.fd == SKY_SOCKET_FD_NONE && !(cli->ev.flags & SKY_TCP_STATUS_OPENING))
+        || (cli->ev.flags & SKY_TCP_STATUS_CLOSING)) {
         return false;
     }
     cli->close_cb = cb;
     cli->close_data = attr;
     cli->ev.flags |= SKY_TCP_STATUS_CLOSING;
+
+    if ((cli->ev.flags & SKY_TCP_STATUS_OPENING)) { //正在打开时触发close不做处理，open回调处理
+        return true;
+    }
 
     ev_req_t *const req = sky_malloc(sizeof(ev_req_t));
     req->ev = &cli->ev;
@@ -519,6 +537,76 @@ sky_tcp_cli_close(sky_tcp_cli_t *const cli, const sky_tcp_cli_cb_pt cb, void *co
     }
 
     return true;
+}
+
+void
+event_on_tcp_cli_open(ev_req_t *req, sky_i32_t res) {
+    sky_tcp_cli_t *const cli = (sky_tcp_cli_t *const) req->ev;
+    tcp_req_t *const tcp_req = (tcp_req_t *) req;
+
+    const sky_i32_t domain = tcp_req->domain;
+    const sky_tcp_status_pt cb = tcp_req->open;
+    void *const attr = tcp_req->attr;
+    sky_free(tcp_req);
+
+    cli->ev.flags &= ~SKY_TCP_STATUS_OPENING;
+
+    if ((cli->ev.flags & SKY_TCP_STATUS_CLOSING)) {
+        if (res < 0) {
+            cb(cli, false, attr);
+
+            cli->ev.fd = SKY_SOCKET_FD_NONE;
+            cli->ev.flags = EV_TYPE_TCP_CLI;
+            cli->read_queue = null;
+            cli->read_queue_tail = &cli->read_queue;
+            cli->write_queue = null;
+            cli->write_queue_tail = &cli->write_queue;
+
+            cli->close_cb(cli, cli->close_data);
+            return;
+        }
+        cli->ev.fd = res;
+        cb(cli, true, attr);
+        do_close(cli);
+
+        return;
+    }
+
+    if (res < 0) {
+        if (EINVAL == (-res)) { //不支持异步socket(), 保证能正常运行
+
+#ifdef SKY_HAVE_ACCEPT4
+            const sky_socket_t fd = socket(domain, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC,
+                                           domain == AF_UNIX ? 0 : IPPROTO_TCP);
+            if (sky_unlikely(fd == -1)) {
+                cb(cli, false, attr);
+                return;
+            }
+
+#else
+            const sky_socket_t fd = socket(domain, SOCK_STREAM, domain == AF_UNIX ? 0 : IPPROTO_TCP);
+            if (sky_unlikely(fd == -1)) {
+                cb(cli, false, attr);
+                return;
+            }
+            if (sky_unlikely(!set_socket_nonblock(fd))) {
+                close(fd);
+                cb(cli, false, attr);
+                return;
+            }
+#endif
+            cli->ev.fd = fd;
+            cb(cli, true, attr);
+
+            return;
+        }
+        cb(cli, false, attr);
+
+        return;
+    }
+
+    cli->ev.fd = res;
+    cb(cli, true, attr);
 }
 
 void
@@ -539,7 +627,6 @@ event_on_tcp_connect(ev_req_t *req, sky_i32_t res) {
         do_close(cli);
         return;
     }
-
     if (res < 0) {
         cb(cli, false, attr);
     } else {
@@ -977,6 +1064,9 @@ event_on_tcp_cli_close(ev_req_t *const req, const sky_i32_t res) {
     }
     if ((cli->write_queue)) {
         clean_write(cli);
+    }
+    if (res < 0) { //避免close不支持，失败等问题
+        close(cli->ev.fd);
     }
 
     cli->ev.fd = SKY_SOCKET_FD_NONE;

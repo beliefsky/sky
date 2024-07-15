@@ -94,33 +94,41 @@ sky_tcp_cli_init(sky_tcp_cli_t *const cli, sky_ev_loop_t *const ev_loop) {
     cli->write_queue_tail = &cli->write_queue;
 }
 
-sky_api sky_bool_t
-sky_tcp_cli_open(sky_tcp_cli_t *const cli, const sky_i32_t domain) {
+sky_api sky_io_result_t
+sky_tcp_cli_open(
+        sky_tcp_cli_t *const cli,
+        const sky_i32_t domain,
+        const sky_tcp_status_pt cb,
+        void *const attr
+) {
+    (void ) cb;
+    (void ) attr;
+
     if (sky_unlikely(cli->ev.fd != SKY_SOCKET_FD_NONE || (cli->ev.flags & SKY_TCP_STATUS_CLOSING))) {
-        return false;
+        return REQ_ERROR;
     }
 #ifdef SKY_HAVE_ACCEPT4
     const sky_socket_t fd = socket(domain, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC,
                                    domain == AF_UNIX ? 0 : IPPROTO_TCP);
     if (sky_unlikely(fd == -1)) {
-        return false;
+        return REQ_ERROR;
     }
 
 #else
     const sky_socket_t fd = socket(domain, SOCK_STREAM, domain == AF_UNIX ? 0 : IPPROTO_TCP);
     if (sky_unlikely(fd == -1)) {
-        return false;
+        return REQ_ERROR;
     }
     if (sky_unlikely(!set_socket_nonblock(fd))) {
         close(fd);
-        return false;
+        return REQ_ERROR;
     }
 #endif
 
     cli->ev.fd = fd;
     cli->ev.flags |= TCP_STATUS_READ | TCP_STATUS_WRITE;
 
-    return true;
+    return REQ_SUCCESS;
 }
 
 sky_api sky_io_result_t

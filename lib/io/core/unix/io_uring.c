@@ -44,13 +44,16 @@ sky_ev_loop_run(sky_ev_loop_t *const ev_loop) {
             [EV_REQ_TCP_SER_OPEN] = event_on_tcp_ser_open,
             [EV_REQ_TCP_ACCEPT] = event_on_tcp_accept,
             [EV_REQ_TCP_SER_CLOSE] = event_on_tcp_ser_close,
-            [EV_REQ_TCP_CLI_OPEN] = null,
+
+            [EV_REQ_TCP_CLI_OPEN] = event_on_tcp_cli_open,
             [EV_REQ_TCP_CONNECT] = event_on_tcp_connect,
             [EV_REQ_TCP_WRITE] = event_on_tcp_write,
             [EV_REQ_TCP_READ] = event_on_tcp_read,
             [EV_REQ_TCP_SENDFILE] = event_on_tcp_sendfile,
             [EV_REQ_TCP_CLI_SHUTDOWN] = event_on_tcp_cli_shutdown,
             [EV_REQ_TCP_CLI_CLOSE] = event_on_tcp_cli_close,
+
+            [EV_REQ_FS_OPEN] = event_on_fs_open,
             [EV_REQ_FS_WRITE] = event_on_fs_write,
             [EV_REQ_FS_READ] = event_on_fs_read,
             [EV_REQ_FS_CLOSE] = event_on_fs_close

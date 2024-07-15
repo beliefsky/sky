@@ -11,10 +11,11 @@
 extern "C" {
 #endif
 
-#define SKY_TCP_STATUS_CONNECTED    SKY_U32(0x00010000)
-#define SKY_TCP_STATUS_EOF          SKY_U32(0x00020000)
-#define SKY_TCP_STATUS_ERROR        SKY_U32(0x00040000)
-#define SKY_TCP_STATUS_CLOSING      SKY_U32(0x00080000)
+#define SKY_TCP_STATUS_OPENING      SKY_U32(0x00010000)
+#define SKY_TCP_STATUS_CONNECTED    SKY_U32(0x00020000)
+#define SKY_TCP_STATUS_EOF          SKY_U32(0x00030000)
+#define SKY_TCP_STATUS_ERROR        SKY_U32(0x00080000)
+#define SKY_TCP_STATUS_CLOSING      SKY_U32(0x00100000)
 
 
 typedef struct sky_tcp_ser_s sky_tcp_ser_t;
@@ -113,7 +114,13 @@ sky_bool_t sky_tcp_ser_close(
 
 void sky_tcp_cli_init(sky_tcp_cli_t *cli, sky_ev_loop_t *ev_loop);
 
-sky_bool_t sky_tcp_cli_open(sky_tcp_cli_t *cli, sky_i32_t domain);
+sky_io_result_t
+sky_tcp_cli_open(
+        sky_tcp_cli_t *cli,
+        sky_i32_t domain,
+        sky_tcp_status_pt cb,
+        void *attr
+);
 
 sky_io_result_t sky_tcp_connect(
         sky_tcp_cli_t *cli,
@@ -184,13 +191,19 @@ sky_tcp_ser_ev_loop(const sky_tcp_ser_t *ser) {
 }
 
 static sky_inline sky_bool_t
+sky_tcp_ser_opening(const sky_tcp_ser_t *ser) {
+    return !!(ser->ev.flags & SKY_TCP_STATUS_OPENING);
+}
+
+static sky_inline sky_bool_t
 sky_tcp_ser_error(const sky_tcp_ser_t *ser) {
     return !!(ser->ev.flags & SKY_TCP_STATUS_ERROR);
 }
 
 static sky_inline sky_bool_t
 sky_tcp_ser_closed(const sky_tcp_ser_t *ser) {
-    return ser->ev.fd == SKY_SOCKET_FD_NONE && !(ser->ev.flags & SKY_TCP_STATUS_CLOSING);
+    return ser->ev.fd == SKY_SOCKET_FD_NONE
+           && !(ser->ev.flags & (SKY_TCP_STATUS_OPENING | SKY_TCP_STATUS_CLOSING));
 }
 
 static sky_inline sky_bool_t
@@ -204,8 +217,14 @@ sky_tcp_cli_ev_loop(const sky_tcp_cli_t *cli) {
 }
 
 static sky_inline sky_bool_t
+sky_tcp_cli_opening(const sky_tcp_cli_t *cli) {
+    return !!(cli->ev.flags & SKY_TCP_STATUS_OPENING);
+}
+
+static sky_inline sky_bool_t
 sky_tcp_cli_closed(const sky_tcp_cli_t *cli) {
-    return cli->ev.fd == SKY_SOCKET_FD_NONE && !(cli->ev.flags & SKY_TCP_STATUS_CLOSING);
+    return cli->ev.fd == SKY_SOCKET_FD_NONE
+           && !(cli->ev.flags & (SKY_TCP_STATUS_OPENING | SKY_TCP_STATUS_CLOSING));
 }
 
 static sky_inline sky_bool_t

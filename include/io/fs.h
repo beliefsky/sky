@@ -16,11 +16,15 @@ extern "C" {
 #define SKY_FS_O_APPEND     SKY_U32(0x04000000)
 
 
-#define SKY_FS_STATUS_ERROR        SKY_U32(0x00010000)
-#define SKY_FS_STATUS_CLOSING      SKY_U32(0x00020000)
+#define SKY_FS_STATUS_OPENING      SKY_U32(0x00010000)
+#define SKY_FS_STATUS_OPENED       SKY_U32(0x00020000)
+#define SKY_FS_STATUS_ERROR        SKY_U32(0x00040000)
+#define SKY_FS_STATUS_CLOSING      SKY_U32(0x00080000)
 
 typedef struct sky_fs_s sky_fs_t;
 typedef struct sky_fs_stat_s sky_fs_stat_t;
+
+typedef void (*sky_fs_status_pt)(sky_fs_t *fs, sky_bool_t success, void *attr);
 
 typedef void (*sky_fs_rw_pt)(sky_fs_t *fs, sky_usize_t size, void *attr);
 
@@ -42,11 +46,13 @@ struct sky_fs_stat_s {
 void sky_fs_init(sky_fs_t *fs, sky_ev_loop_t *ev_loop);
 
 
-sky_bool_t sky_fs_open(
+sky_io_result_t sky_fs_open(
         sky_fs_t *fs,
         const sky_uchar_t *path,
         sky_usize_t len,
-        sky_u32_t flags
+        sky_u32_t flags,
+        sky_fs_status_pt cb,
+        void *attr
 );
 
 sky_io_result_t sky_fs_pread(
@@ -74,9 +80,32 @@ sky_bool_t sky_fs_close(sky_fs_t *fs, sky_fs_cb_pt cb, void *attr);
 
 sky_bool_t sky_fs_stat(sky_fs_t *fs, sky_fs_stat_t *st);
 
-sky_bool_t sky_fs_closed(const sky_fs_t *fs);
-
 sky_bool_t sky_fs_status_is_dir(const sky_fs_stat_t *st);
+
+static sky_inline sky_bool_t
+sky_fs_opening(const sky_fs_t *const fs) {
+    return !!(fs->ev.flags & SKY_FS_STATUS_OPENING);
+}
+
+static sky_inline sky_bool_t
+sky_fs_opened(const sky_fs_t *const fs) {
+    return !!(fs->ev.flags & SKY_FS_STATUS_OPENED);
+}
+
+static sky_inline sky_bool_t
+sky_fs_error(const sky_fs_t *const fs) {
+    return !!(fs->ev.flags & SKY_FS_STATUS_ERROR);
+}
+
+static sky_inline sky_bool_t
+sky_fs_closing(const sky_fs_t *const fs) {
+    return !!(fs->ev.flags & SKY_FS_STATUS_CLOSING);
+}
+
+static sky_inline sky_bool_t
+sky_fs_closed(const sky_fs_t *const fs) {
+    return !(fs->ev.flags & (SKY_FS_STATUS_OPENING | SKY_FS_STATUS_OPENED  | SKY_FS_STATUS_CLOSING));
+}
 
 #if defined(__cplusplus)
 } /* extern "C" { */

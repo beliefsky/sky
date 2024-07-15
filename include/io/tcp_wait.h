@@ -16,6 +16,12 @@ sky_bool_t sky_tcp_wait_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_sync_
 
 sky_bool_t sky_tcp_ser_wait_close(sky_tcp_ser_t *ser, sky_sync_wait_t *wait);
 
+sky_bool_t sky_tcp_cli_wait_open(
+        sky_tcp_cli_t *cli,
+        sky_i32_t domain,
+        sky_sync_wait_t *wait
+);
+
 sky_bool_t sky_tcp_wait_connect(
         sky_tcp_cli_t *cli,
         const sky_inet_address_t *address,

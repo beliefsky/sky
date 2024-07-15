@@ -37,14 +37,22 @@ sky_tcp_cli_init(sky_tcp_cli_t *const cli, sky_ev_loop_t *const ev_loop) {
 }
 
 
-sky_api sky_bool_t
-sky_tcp_cli_open(sky_tcp_cli_t *const cli, const sky_i32_t domain) {
+sky_api sky_io_result_t
+sky_tcp_cli_open(
+        sky_tcp_cli_t *const cli,
+        const sky_i32_t domain,
+        const sky_tcp_status_pt cb,
+        void *const attr
+) {
+    (void ) cb;
+    (void ) attr;
+
     if (sky_unlikely(cli->ev.fd != SKY_SOCKET_FD_NONE)) {
-        return false;
+        return REQ_ERROR;
     }
     const sky_socket_t fd = create_socket(domain);
     if (sky_unlikely(fd == SKY_SOCKET_FD_NONE)) {
-        return false;
+        return REQ_ERROR;
     }
     switch (domain) {
         case AF_INET: {
@@ -53,7 +61,7 @@ sky_tcp_cli_open(sky_tcp_cli_t *const cli, const sky_i32_t domain) {
             };
             if (0 != bind(fd, (const struct sockaddr *) &bind_address, sizeof(struct sockaddr_in))) {
                 closesocket(fd);
-                return false;
+                return REQ_ERROR;
             }
             break;
         }
@@ -63,13 +71,13 @@ sky_tcp_cli_open(sky_tcp_cli_t *const cli, const sky_i32_t domain) {
             };
             if (0 != bind(cli->ev.fd, (const struct sockaddr *) &bind_address, sizeof(struct sockaddr_in6))) {
                 closesocket(fd);
-                return false;
+                return REQ_ERROR;
             }
             break;
         }
         default:
             closesocket(fd);
-            return false;
+            return REQ_ERROR;
 
     }
     if (sky_unlikely(!CreateIoCompletionPort(
@@ -79,13 +87,13 @@ sky_tcp_cli_open(sky_tcp_cli_t *const cli, const sky_i32_t domain) {
             0
     ))) {
         closesocket(fd);
-        return false;
+        return REQ_ERROR;
     }
     SetFileCompletionNotificationModes((HANDLE) fd, FILE_SKIP_COMPLETION_PORT_ON_SUCCESS);
 
     cli->ev.fd = fd;
 
-    return true;
+    return REQ_SUCCESS;
 }
 
 sky_api sky_io_result_t

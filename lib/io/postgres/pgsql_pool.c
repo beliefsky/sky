@@ -8,6 +8,8 @@
 
 static void pgsql_connect_next(sky_pgsql_conn_t *conn);
 
+static void on_pgsql_open(sky_tcp_cli_t *tcp, sky_bool_t success, void *data);
+
 static void on_pgsql_connection(sky_tcp_cli_t *tcp, sky_bool_t success, void *data);
 
 static void on_pgsql_close(sky_tcp_cli_t *tcp, void *data);
@@ -169,13 +171,34 @@ pgsql_connect_next(sky_pgsql_conn_t *const conn) {
         return;
     }
 
-    if (sky_unlikely(!sky_tcp_cli_open(&conn->tcp, sky_inet_address_family(&pg_pool->address)))) {
+    const sky_io_result_t result = sky_tcp_cli_open(
+            &conn->tcp,
+            sky_inet_address_family(&pg_pool->address),
+            on_pgsql_open,
+            null
+    );
+
+    if (result == REQ_PENDING) {
+        return;
+    }
+    on_pgsql_open(&conn->tcp, result == REQ_SUCCESS, null);
+}
+
+static void
+on_pgsql_open(sky_tcp_cli_t *const tcp, sky_bool_t success, void *data) {
+    (void) data;
+
+    sky_pgsql_conn_t *const conn = sky_type_convert(tcp, sky_pgsql_conn_t, tcp);
+
+    if (!success) {
         const sky_pgsql_conn_pt call = conn->conn_cb;
         void *const cb_data = conn->cb_data;
         sky_pgsql_conn_release(conn);
         call(null, cb_data);
         return;
     }
+
+    sky_pgsql_pool_t *const pg_pool = conn->pg_pool;
 
     switch (sky_tcp_connect(&conn->tcp, &pg_pool->address, on_pgsql_connection, null)) {
         case REQ_PENDING:

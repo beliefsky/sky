@@ -10,38 +10,14 @@
 
 #include <stdio.h>
 #include <sys/time.h>
+#include <time.h>
 
 
 static void test_context();
 
 static void test_tcp_connect(sky_ev_loop_t *ev_loop);
 
-
-static void
-on_fs_close(sky_fs_t *fs, void *data) {
-    sky_log_info("fs close cb");
-}
-
-static sky_uchar_t ch[1025];
-static sky_u64_t offset = 1000000;
-
-static void
-on_fs_read(sky_fs_t *fs, sky_usize_t size, void *data) {
-    sky_log_warn("====== cb =========");
-
-    do {
-        if (!size || size == SKY_USIZE_MAX) {
-            sky_fs_close(fs, on_fs_close, null);
-            sky_log_error("EOF/ERROR: %llu", size);
-            return;
-        }
-        offset += size;
-
-        ch[size] = '\0';
-        sky_log_info("(%lu)%s", size, ch);
-
-    } while (sky_fs_pread(fs, ch, 1024, &size, offset, on_fs_read, null) != REQ_PENDING);
-}
+static void test_fs(sky_ev_loop_t * ev_loop);
 
 int
 main() {
@@ -50,28 +26,11 @@ main() {
 
 //    test_context();
 
-//    return 0;
-
-
     sky_ev_loop_t *const event_loop = sky_ev_loop_create();
 
-    test_tcp_connect(event_loop);
+//    test_tcp_connect(event_loop);
+    test_fs(event_loop);
 
-//    sky_fs_t fs;
-//    sky_fs_init(&fs, event_loop);
-//    sky_fs_open(&fs, sky_str_line("D:/doc/project.csv"), SKY_FS_O_READ);
-//
-//
-//    sky_usize_t bytes;
-//
-//    switch (sky_fs_pread(&fs, ch, 1024, &bytes, offset, on_fs_read, null)) {
-//        case REQ_PENDING:
-//        sky_log_warn("====== pending =========");
-//            break;
-//        default:
-//            on_fs_read(&fs, bytes, null);
-//            break;
-//    }
 
     sky_ev_loop_run(event_loop);
 
@@ -156,12 +115,13 @@ on_close_cb(sky_tcp_cli_t *tcp, void *data) {
 
 static void
 on_write_cb(sky_tcp_cli_t *tcp, sky_usize_t bytes, void *attr) {
+
     if (bytes == SKY_USIZE_MAX) {
         sky_log_error("write error or fail");
         sky_tcp_cli_close(tcp, on_close_cb, null);
         return;
     }
-    sky_log_warn("write size: %lu", bytes);
+    sky_log_error("write size: %lu", bytes);
 }
 
 sky_uchar_t read_buf[516];
@@ -175,7 +135,7 @@ on_read_cb(sky_tcp_cli_t *tcp, sky_usize_t bytes, void *attr) {
     }
     for (;;) {
         read_buf[bytes] = '\0';
-        sky_log_debug("(%lu)", bytes);
+        sky_log_debug("read: (%lu)", bytes);
 
 
         switch (sky_tcp_read(
@@ -187,14 +147,14 @@ on_read_cb(sky_tcp_cli_t *tcp, sky_usize_t bytes, void *attr) {
                 null
         )) {
             case REQ_PENDING:
-            sky_log_warn("read submit pending");
+                sky_log_warn("read submit pending");
                 return;
             case REQ_SUCCESS:
-            sky_log_warn("read submit success");
+                sky_log_warn("read submit success");
                 continue;
             case REQ_EOF:
             default:
-            sky_log_error("read error");
+                sky_log_error("read error");
                 sky_tcp_cli_close(tcp, on_close_cb, null);
                 return;
         }
@@ -211,6 +171,7 @@ on_connect_cb(sky_tcp_cli_t *tcp, sky_bool_t success, void *data) {
         sky_tcp_cli_close(tcp, on_close_cb, null);
         return;
     }
+
     sky_log_info("2: %llu", tcp->ev.fd);
 
     sky_usize_t bytes;
@@ -228,14 +189,14 @@ on_connect_cb(sky_tcp_cli_t *tcp, sky_bool_t success, void *data) {
             null
     )) {
         case REQ_PENDING:
-        sky_log_warn("write submit pending");
+            sky_log_warn("write submit pending");
             break;
         case REQ_SUCCESS:
-        sky_log_warn("write submit success");
+            sky_log_warn("write submit success");
             on_write_cb(tcp, bytes, null);
             break;
         default:
-        sky_log_error("write submit error");
+            sky_log_error("write submit error");
             on_write_cb(tcp, SKY_USIZE_MAX, null);
             return;
     }
@@ -249,34 +210,120 @@ on_connect_cb(sky_tcp_cli_t *tcp, sky_bool_t success, void *data) {
             null
     )) {
         case REQ_PENDING:
-        sky_log_warn("read submit pending");
+            sky_log_warn("read submit pending");
             break;
         case REQ_SUCCESS:
-        sky_log_warn("read submit success");
+            sky_log_warn("read submit success");
             on_read_cb(tcp, bytes, null);
             break;
         default:
-        sky_log_error("read submit error");
+            sky_log_error("read submit error");
             on_read_cb(tcp, SKY_USIZE_MAX, null);
             return;
     }
 }
 
+static void
+on_open_cb(sky_tcp_cli_t *tcp, sky_bool_t success, void *data) {
+    (void) data;
+
+    if (!success) {
+        sky_log_error("tcp cli open fail");
+
+        return;
+    }
+
+    sky_inet_address_t address;
+    sky_inet_address_ip_str(&address, sky_str_line("192.168.0.76"), 7000);
+
+    const sky_io_result_t r = sky_tcp_connect(tcp, &address, on_connect_cb, null);
+    if (sky_likely(r == REQ_PENDING)) { //wait
+        sky_log_warn("try connect wait");
+    } else {
+        on_connect_cb(tcp, r == REQ_SUCCESS, null);
+    }
+}
 
 static void
 test_tcp_connect(sky_ev_loop_t *const ev_loop) {
     static sky_tcp_cli_t tcp;
     sky_tcp_cli_init(&tcp, ev_loop);
 
-    sky_inet_address_t address;
-    sky_inet_address_ip_str(&address, sky_str_line("192.168.0.76"), 7000);
-
-    sky_tcp_cli_open(&tcp, sky_inet_address_family(&address));
-    const sky_io_result_t r = sky_tcp_connect(&tcp, &address, on_connect_cb, null);
-    if (sky_likely(r == REQ_PENDING)) { //wait
-        sky_log_warn("try connect wait");
-    } else {
-        on_connect_cb(&tcp, r == REQ_SUCCESS, null);
+    switch (sky_tcp_cli_open(&tcp, AF_INET, on_open_cb, null)) {
+        case REQ_PENDING:
+            return;
+        case REQ_SUCCESS:
+            on_open_cb(&tcp, true, null);
+            return;
+        default:
+            on_open_cb(&tcp, false, null);
+            return;
     }
 }
 
+// ===================== test fs ===========
+
+static void
+on_fs_close(sky_fs_t *fs, void *data) {
+    sky_log_info("fs close cb");
+}
+
+#define FS_BUF_SIZE (1024 * 64)
+
+static sky_uchar_t ch[FS_BUF_SIZE];
+static sky_u64_t offset = 0;
+
+static sky_i64_t now;
+
+
+static void
+on_fs_read(sky_fs_t *fs, sky_usize_t size, void *data) {
+    do {
+        if (!size || size == SKY_USIZE_MAX) {
+            sky_fs_close(fs, on_fs_close, null);
+            sky_log_error("EOF/ERROR: %lu -> %ld s", size, time(null) - now);
+            return;
+        }
+        offset += size;
+
+    } while (sky_fs_pread(fs, ch, FS_BUF_SIZE, &size, offset, on_fs_read, null) != REQ_PENDING);
+}
+
+static void
+on_fs_open(sky_fs_t *fs, sky_bool_t success, void *data) {
+    if (!success) {
+        sky_log_error("open -> %d", success);
+        return;
+    }
+    sky_usize_t bytes;
+
+    switch (sky_fs_pread(fs, ch, FS_BUF_SIZE, &bytes, offset, on_fs_read, null)) {
+        case REQ_PENDING:
+            sky_log_warn("====== pending =========");
+            break;
+        default:
+            on_fs_read(fs, bytes, null);
+            break;
+    }
+}
+
+static void
+test_fs(sky_ev_loop_t *const ev_loop) {
+
+    static sky_fs_t fs;
+
+    sky_fs_init(&fs, ev_loop);
+
+    now = sky_ev_now_sec(ev_loop);
+    switch (sky_fs_open(&fs, sky_str_line("/mnt/d/package/v2/iot.zip"), SKY_FS_O_READ, on_fs_open, null)) {
+        case REQ_PENDING:
+            sky_log_warn("====== pending =========");
+            break;
+        case REQ_SUCCESS:
+            on_fs_open(&fs, true, null);
+            break;
+        default:
+            on_fs_open(&fs, false, null);
+            break;
+    }
+}

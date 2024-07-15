@@ -23,16 +23,6 @@
 
 
 typedef struct {
-    sky_i64_t modified_time;
-    sky_i64_t range_time;
-    sky_u64_t left;
-    sky_u64_t right;
-    sky_bool_t modified: 1;
-    sky_bool_t range: 1;
-    sky_bool_t if_range: 1;
-} http_file_t;
-
-typedef struct {
     sky_str_t val;
     sky_bool_t binary: 1;
 } http_mime_type_t;
@@ -57,15 +47,35 @@ typedef struct {
 typedef struct {
     sky_rb_node_t node;
     sky_queue_t link;
+    sky_queue_t open_queue;
+    sky_fs_stat_t fs_stat;
     sky_str_t path;
     sky_fs_t file;
     sky_i64_t expire_at;
     http_module_file_t *module_file;
     sky_u32_t path_hash;
     sky_u32_t ref_count;
+    sky_bool_t not_open;
 } file_cache_node_t;
 
+typedef struct {
+    sky_queue_t link;
+    sky_http_request_t *req;
+    file_cache_node_t *node;
+    http_module_file_t *module_file;
+
+    sky_i64_t modified_time;
+    sky_i64_t range_time;
+    sky_u64_t left;
+    sky_u64_t right;
+    sky_bool_t modified: 1;
+    sky_bool_t range: 1;
+    sky_bool_t if_range: 1;
+} http_file_t;
+
 static void http_run_handler(sky_http_request_t *r, void *data);
+
+static void http_response(http_file_t *file);
 
 static void http_response_next(sky_http_request_t *r, void *data);
 
@@ -90,6 +100,8 @@ static void rb_tree_insert(sky_rb_tree_t *tree, file_cache_node_t *node);
 static sky_bool_t http_mime_type_get(const sky_str_t *exten, http_mime_type_t *type);
 
 static sky_bool_t http_header_range(http_file_t *file, const sky_str_t *value);
+
+static void on_file_open(sky_fs_t *fs, sky_bool_t success, void *data);
 
 static void on_file_node_close(sky_fs_t *fs, void *data);
 
@@ -173,7 +185,6 @@ http_run_handler(sky_http_request_t *const r, void *const data) {
     }
 
     sky_str_t *const exten = sky_http_req_exten(r);
-
     if (uri->len == 1 && *uri->data == '/') {
         sky_str_set(uri, "/index.html");
         sky_str_set(exten, ".html");
@@ -185,16 +196,6 @@ http_run_handler(sky_http_request_t *const r, void *const data) {
             return;
         }
     }
-
-    http_mime_type_t mime_type;
-    if (!exten->len) {
-        mime_type = module_file->default_mime_type;
-    } else {
-        if (!http_mime_type_get(&r->exten, &mime_type)) {
-            mime_type = module_file->default_mime_type;
-        }
-    }
-
 
     http_file_t *const file = sky_pcalloc(r->pool, sizeof(http_file_t));
 
@@ -214,23 +215,48 @@ http_run_handler(sky_http_request_t *const r, void *const data) {
             sky_rfc_str_to_date(val, &file->range_time);
         }
     }
-
     file_cache_node_t *const node = cache_node_file_get_ref(module_file, r->pool, uri);
-    if (sky_fs_closed(&node->file)) {
+    file->req = r;
+    file->node = node;
+    file->module_file = module_file;
+
+    if (sky_fs_opening(&node->file)) {
+        sky_queue_init_node(&file->link);
+        sky_queue_insert_next(&node->open_queue, &file->link);
+        return;
+    }
+    if (node->not_open || sky_fs_status_is_dir(&node->fs_stat)) {
+        cache_node_file_unref(node);
         http_error_page(r, 404, "404 Not Found");
         return;
     }
-    sky_fs_stat_t fs_stat;
-    if (sky_unlikely(!sky_fs_stat(&node->file, &fs_stat)) || sky_fs_status_is_dir(&fs_stat)) {
-        http_error_page(r, 404, "404 Not Found");
-        return;
+
+    http_response(file);
+}
+
+static void
+http_response(http_file_t *file) {
+    sky_http_request_t *const r = file->req;
+    file_cache_node_t *const node = file->node;
+
+    http_module_file_t *const module_file = file->module_file;
+    sky_str_t *const exten = sky_http_req_exten(r);
+
+    http_mime_type_t mime_type;
+    if (!exten->len) {
+        mime_type = module_file->default_mime_type;
+    } else {
+        if (!http_mime_type_get(&r->exten, &mime_type)) {
+            mime_type = module_file->default_mime_type;
+        }
     }
+
     sky_http_res_set_content_type(r, mime_type.val.data, mime_type.val.len);
 
     sky_http_header_t *const header = sky_http_res_push_header(r);
     sky_str_set(&header->key, "Last-Modified");
 
-    if (file->modified && file->modified_time == fs_stat.modified_time_sec) {
+    if (file->modified && file->modified_time == node->fs_stat.modified_time_sec) {
         header->val = *sky_http_req_if_modified_since(r);
         sky_http_res_set_status(r, 304);
         cache_node_file_unref(node);
@@ -238,16 +264,16 @@ http_run_handler(sky_http_request_t *const r, void *const data) {
         return;
     }
     header->val.data = sky_palloc(r->pool, 30);
-    header->val.len = sky_date_to_rfc_str(fs_stat.modified_time_sec, header->val.data);
+    header->val.len = sky_date_to_rfc_str(node->fs_stat.modified_time_sec, header->val.data);
 
-    if (file->range && (!file->if_range || file->range_time == fs_stat.modified_time_sec)) {
+    if (file->range && (!file->if_range || file->range_time == node->fs_stat.modified_time_sec)) {
         sky_http_res_set_status(r, 206);
-        if (file->right == 0 || file->right > fs_stat.size) {
-            file->right = fs_stat.size - 1;
+        if (file->right == 0 || file->right > node->fs_stat.size) {
+            file->right = node->fs_stat.size - 1;
         }
     } else {
         file->left = 0;
-        file->right = fs_stat.size - 1;
+        file->right = node->fs_stat.size - 1;
     }
 
     sky_http_res_file(
@@ -255,7 +281,7 @@ http_run_handler(sky_http_request_t *const r, void *const data) {
             &node->file,
             file->left,
             file->right - file->left + 1,
-            fs_stat.size,
+            node->fs_stat.size,
             http_response_next,
             node
     );
@@ -289,6 +315,7 @@ cache_node_file_get_ref(http_module_file_t *module_file, sky_pool_t *pool, const
 
     sky_fs_init(&node->file, module_file->ev_loop);
     sky_queue_init_node(&node->link);
+    sky_queue_init(&node->open_queue);
     node->module_file = module_file;
     node->path_hash = path_hash;
     node->ref_count = 1;
@@ -302,12 +329,23 @@ cache_node_file_get_ref(http_module_file_t *module_file, sky_pool_t *pool, const
     sky_memcpy(path, module_file->path.data, module_file->path.len);
     sky_memcpy(path + module_file->path.len, uri_path->data, uri_path->len + 1);
 
-    sky_fs_open(
+    switch (sky_fs_open(
             &node->file,
             path,
             path_size - 1,
-            SKY_FS_O_READ
-    );
+            SKY_FS_O_READ,
+            on_file_open,
+            null
+    )) {
+        case REQ_PENDING:
+            break;
+        case REQ_SUCCESS:
+            node->not_open = !sky_fs_stat(&node->file, &node->fs_stat);
+            break;
+        default:
+            node->not_open = true;
+            break;
+    }
     sky_pfree(pool, path, path_size);
 
     return node;
@@ -438,6 +476,35 @@ http_header_range(http_file_t *const file, const sky_str_t *const value) {
     return true;
 }
 
+
+static void
+on_file_open(sky_fs_t *const fs, sky_bool_t success, void *const data) {
+    (void) data;
+    file_cache_node_t *const node = sky_type_convert(fs, file_cache_node_t, file);
+    sky_queue_t *item;
+    http_file_t *file;
+
+    if (success) {
+        node->not_open = !sky_fs_stat(&node->file, &node->fs_stat);
+        if (!node->not_open && !sky_fs_status_is_dir(&node->fs_stat)) {
+            while (!sky_queue_empty(&node->open_queue)) {
+                item = sky_queue_next(&node->open_queue);
+                sky_queue_remove(item);
+                file = sky_type_convert(item, http_file_t, link);
+                http_response(file);
+            }
+            return;
+        }
+    }
+
+    while (!sky_queue_empty(&node->open_queue)) {
+        item = sky_queue_next(&node->open_queue);
+        sky_queue_remove(item);
+        file = sky_type_convert(item, http_file_t, link);
+        cache_node_file_unref(node);
+        http_error_page(file->req, 404, "404 Not Found");
+    }
+}
 
 static void
 on_file_node_close(sky_fs_t *const fs, void *const data) {

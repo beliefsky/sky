@@ -60,9 +60,10 @@
 #define EV_REQ_TCP_CLI_SHUTDOWN SKY_U32(8)
 #define EV_REQ_TCP_CLI_CLOSE    SKY_U32(9)
 
-#define EV_REQ_FS_WRITE         SKY_U32(10)
-#define EV_REQ_FS_READ          SKY_U32(11)
-#define EV_REQ_FS_CLOSE         SKY_U32(12)
+#define EV_REQ_FS_OPEN          SKY_U32(10)
+#define EV_REQ_FS_WRITE         SKY_U32(11)
+#define EV_REQ_FS_READ          SKY_U32(12)
+#define EV_REQ_FS_CLOSE         SKY_U32(13)
 
 typedef struct ev_req_s ev_req_t;
 
@@ -163,6 +164,7 @@ void event_on_tcp_cli_shutdown(ev_req_t *req, sky_i32_t res);
 void event_on_tcp_cli_close(ev_req_t *req, sky_i32_t res);
 
 
+void event_on_fs_open(ev_req_t *req, sky_i32_t res);
 
 void event_on_fs_read(ev_req_t *req, sky_i32_t res);
 

@@ -20,6 +20,57 @@ sky_fs_init(sky_fs_t *const fs, sky_ev_loop_t *const ev_loop) {
 }
 
 sky_api sky_io_result_t
+sky_fs_open(
+        sky_fs_t *const fs,
+        const sky_uchar_t *const path,
+        const sky_usize_t len,
+        sky_u32_t flags,
+        const sky_fs_status_pt cb,
+        void *const attr
+) {
+    (void ) cb;
+    (void ) attr;
+
+    if (sky_unlikely(!len)) {
+        return REQ_ERROR;
+    }
+
+    sky_i32_t sys_flags = O_NONBLOCK;
+    if ((flags & (SKY_FS_O_READ | SKY_FS_O_WRITE))) {
+        flags = O_RDWR;
+    } else if ((flags & SKY_FS_O_READ)) {
+        flags = O_RDONLY;
+    } else if ((flags & SKY_FS_O_WRITE)) {
+        flags = O_WRONLY;
+    } else {
+        return REQ_ERROR;
+    }
+    if ((flags & SKY_FS_O_APPEND)) {
+        flags |= O_APPEND;
+    }
+
+#ifdef O_CLOEXEC
+    sky_i32_t fd = open((sky_char_t *) path, sys_flags | O_CLOEXEC);
+    if (fd == -1) {
+        return REQ_ERROR;
+    }
+#else
+    sky_i32_t fd = open((sky_char_t *) path, sys_flags);
+    if (fd == -1) {
+        return REQ_ERROR;
+    }
+    if (0 != fcntl(fd, F_SETFD, FD_CLOEXEC)) {
+        close(fd);
+        return REQ_ERROR;
+    }
+#endif
+    fs->ev.fd = fd;
+    fs->ev.flags |= SKY_FS_STATUS_OPENED;
+
+    return REQ_SUCCESS;
+}
+
+sky_api sky_io_result_t
 sky_fs_pread(
         sky_fs_t *const fs,
         sky_uchar_t *const buf,

@@ -8,7 +8,7 @@ static void on_tcp_ser_cb(sky_tcp_ser_t *ser, void *data);
 
 static void on_tcp_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_bool_t success, void *data);
 
-static void on_tcp_connect(sky_tcp_cli_t *cli, sky_bool_t success, void *data);
+static void on_tcp_status(sky_tcp_cli_t *cli, sky_bool_t success, void *data);
 
 static void on_tcp_rw(sky_tcp_cli_t *cli, sky_usize_t size, void *data);
 
@@ -41,12 +41,28 @@ sky_tcp_ser_wait_close(sky_tcp_ser_t *const ser, sky_sync_wait_t *const wait) {
 }
 
 sky_api sky_bool_t
+sky_tcp_cli_wait_open(
+        sky_tcp_cli_t *const cli,
+        const sky_i32_t domain,
+        sky_sync_wait_t *const wait
+) {
+    switch (sky_tcp_cli_open(cli, domain, on_tcp_status, wait)) {
+        case REQ_SUCCESS:
+            return true;
+        case REQ_PENDING:
+            return null != sky_sync_wait_yield(wait);
+        default:
+            return false;
+    }
+}
+
+sky_api sky_bool_t
 sky_tcp_wait_connect(
         sky_tcp_cli_t *const cli,
         const sky_inet_address_t *const address,
         sky_sync_wait_t *const wait
 ) {
-    switch (sky_tcp_connect(cli, address, on_tcp_connect, wait)) {
+    switch (sky_tcp_connect(cli, address, on_tcp_status, wait)) {
         case REQ_SUCCESS:
             return true;
         case REQ_PENDING:
@@ -178,7 +194,7 @@ on_tcp_accept(
 }
 
 static void
-on_tcp_connect(sky_tcp_cli_t *const cli, const sky_bool_t success, void *const data) {
+on_tcp_status(sky_tcp_cli_t *const cli, const sky_bool_t success, void *const data) {
     (void) cli;
 
     sky_sync_wait_t *const wait = data;
