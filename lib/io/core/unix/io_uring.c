@@ -31,7 +31,7 @@ sky_ev_loop_create() {
     ev_loop->timer_ctx = sky_timer_wheel_create(0);
     init_time(ev_loop);
 
-    io_uring_queue_init(max_event, &ev_loop->ring, 0);
+    io_uring_queue_init(max_event, &ev_loop->ring, IORING_SETUP_SQPOLL);
 
     return ev_loop;
 }
