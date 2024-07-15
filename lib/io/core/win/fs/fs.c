@@ -187,7 +187,7 @@ sky_fs_sync(
                      || (fs->ev.flags & (SKY_FS_STATUS_CLOSING | SKY_FS_STATUS_ERROR)))) {
         return REQ_ERROR;
     }
-    return REQ_SUCCESS;
+    return FlushFileBuffers(fs->ev.fs) ? REQ_SUCCESS : REQ_ERROR;
 }
 
 sky_api sky_io_result_t
@@ -203,7 +203,7 @@ sky_fs_datasync(
                      || (fs->ev.flags & (SKY_FS_STATUS_CLOSING | SKY_FS_STATUS_ERROR)))) {
         return REQ_ERROR;
     }
-    return REQ_SUCCESS;
+    return FlushFileBuffers(fs->ev.fs) ? REQ_SUCCESS : REQ_ERROR;
 }
 
 sky_api sky_bool_t
