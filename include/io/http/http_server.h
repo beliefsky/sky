@@ -30,6 +30,8 @@ typedef struct sky_http_request_s sky_http_request_t;
 
 typedef void (*sky_http_server_module_run_pt)(sky_http_request_t *r, void *module_data);
 
+typedef void (*sky_http_server_bind_pt)(sky_http_server_t *server, sky_bool_t success, void *attr);
+
 typedef void (*sky_http_server_next_pt)(sky_http_request_t *r, void *data);
 
 typedef void (*sky_http_server_next_str_pt)(sky_http_request_t *r, sky_str_t *body, void *data);
@@ -111,7 +113,12 @@ sky_http_server_t *sky_http_server_create(sky_ev_loop_t *ev_loop, const sky_http
 
 sky_bool_t sky_http_server_module_put(sky_http_server_t *server, sky_http_server_module_t *module);
 
-sky_bool_t sky_http_server_bind(sky_http_server_t *server, const sky_inet_address_t *address);
+void sky_http_server_bind(
+        sky_http_server_t *server,
+        const sky_inet_address_t *address,
+        sky_http_server_bind_pt cb,
+        void *attr
+);
 
 /**
  * 读取 http body的所有数据，忽略其中的内容

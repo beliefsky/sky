@@ -22,13 +22,15 @@ typedef struct sky_tcp_ser_s sky_tcp_ser_t;
 typedef struct sky_tcp_cli_s sky_tcp_cli_t;
 typedef struct sky_tcp_fs_data_s sky_tcp_fs_data_t;
 
+typedef void (*sky_tcp_ser_status_pt)(sky_tcp_ser_t *ser, sky_bool_t success, void *attr);
+
 typedef void (*sky_tcp_ser_cb_pt)(sky_tcp_ser_t *ser, void *attr);
 
 typedef sky_bool_t (*sky_tcp_ser_option_pt)(sky_tcp_ser_t *ser);
 
 typedef void (*sky_tcp_accept_pt)(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_bool_t success, void *attr);
 
-typedef void (*sky_tcp_status_pt)(sky_tcp_cli_t *cli, sky_bool_t success, void *attr);
+typedef void (*sky_tcp_cli_status_pt)(sky_tcp_cli_t *cli, sky_bool_t success, void *attr);
 
 typedef void (*sky_tcp_rw_pt)(sky_tcp_cli_t *cli, sky_usize_t size, void *attr);
 
@@ -92,11 +94,14 @@ void sky_tcp_ser_init(sky_tcp_ser_t *ser, sky_ev_loop_t *ev_loop);
 
 sky_bool_t sky_tcp_ser_options_reuse_port(sky_tcp_ser_t *ser);
 
-sky_bool_t sky_tcp_ser_open(
+sky_io_result_t sky_tcp_ser_open(
         sky_tcp_ser_t *ser,
         const sky_inet_address_t *address,
         sky_tcp_ser_option_pt options_cb,
-        sky_i32_t backlog
+        sky_i32_t backlog,
+        sky_tcp_ser_status_pt cb,
+        void *attr
+
 );
 
 sky_io_result_t sky_tcp_accept(
@@ -118,14 +123,14 @@ sky_io_result_t
 sky_tcp_cli_open(
         sky_tcp_cli_t *cli,
         sky_i32_t domain,
-        sky_tcp_status_pt cb,
+        sky_tcp_cli_status_pt cb,
         void *attr
 );
 
 sky_io_result_t sky_tcp_connect(
         sky_tcp_cli_t *cli,
         const sky_inet_address_t *address,
-        sky_tcp_status_pt cb,
+        sky_tcp_cli_status_pt cb,
         void *attr
 );
 

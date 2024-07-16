@@ -10,9 +10,16 @@ typedef struct {
     sky_http_server_t *server;
 } http_listener_t;
 
+typedef struct {
+    sky_http_server_bind_pt cb;
+    void *data;
+} http_bind_data_t;
+
 static void http_server_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_bool_t success, void *data);
 
 static sky_bool_t http_server_options(sky_tcp_ser_t *ser);
+
+static void http_server_on_open(sky_tcp_ser_t *ser, sky_bool_t success, void *data);
 
 static void http_server_on_close(sky_tcp_ser_t *ser, void *data);
 
@@ -87,37 +94,32 @@ sky_http_server_module_put(sky_http_server_t *const server, sky_http_server_modu
     return false;
 }
 
-sky_api sky_bool_t
+sky_api void
 sky_http_server_bind(
         sky_http_server_t *const server,
-        const sky_inet_address_t *const address
+        const sky_inet_address_t *const address,
+        const sky_http_server_bind_pt cb,
+        void *const attr
 ) {
     http_listener_t *const listener = sky_palloc(server->pool, sizeof(http_listener_t));
     sky_tcp_ser_init(&listener->tcp, server->ev_loop);
     listener->server = server;
-    if (sky_unlikely(!sky_tcp_ser_open(
+
+    http_bind_data_t *const data = sky_palloc(server->pool, sizeof(http_bind_data_t));
+    data->cb = cb;
+    data->data = attr;
+
+    const sky_io_result_t result = sky_tcp_ser_open(
             &listener->tcp,
             address,
             http_server_options,
-            1000
-    ))) {
-        sky_pfree(server->pool, listener, sizeof(http_listener_t));
-        return false;
-    }
-    sky_http_connection_t *conn = sky_malloc(sizeof(sky_http_connection_t));
-    sky_tcp_cli_init(&conn->tcp, server->ev_loop);
-    sky_ev_timeout_init(server->ev_loop, &conn->timer, null);
-    conn->server = server;
+            1000,
+            http_server_on_open,
+            data
+    );
 
-    switch (sky_tcp_accept(&listener->tcp, &conn->tcp, http_server_accept, null)) {
-        case REQ_PENDING:
-            return true;
-        case REQ_SUCCESS:
-            http_server_accept(&listener->tcp, &conn->tcp, true, null);
-            return true;
-        default:
-            sky_free(conn);
-            return false;
+    if (result != REQ_PENDING) {
+        http_server_on_open(&listener->tcp, result == REQ_SUCCESS, data);
     }
 }
 
@@ -165,6 +167,46 @@ http_server_options(sky_tcp_ser_t *ser) {
   sky_tcp_option_defer_accept(&listener->tcp);
   */
     return true;
+}
+
+static void
+http_server_on_open(sky_tcp_ser_t *const ser, const sky_bool_t success, void *const data) {
+    sky_ev_loop_t *const ev_loop = sky_tcp_ser_ev_loop(ser);
+    http_listener_t *const l = sky_type_convert(ser, http_listener_t, tcp);
+    sky_http_server_t *const server = l->server;
+
+    http_bind_data_t *const bind_data = data;
+    const sky_http_server_bind_pt cb = bind_data->cb;
+    void *const attr = bind_data->data;
+    sky_pfree(server->pool, bind_data, sizeof(http_bind_data_t));
+
+    if (!success) {
+        sky_pfree(server->pool, l, sizeof(http_listener_t));
+        if (cb) {
+            cb(server, false, attr);
+        }
+        return;
+    }
+
+    sky_http_connection_t *conn = sky_malloc(sizeof(sky_http_connection_t));
+    sky_tcp_cli_init(&conn->tcp, ev_loop);
+    sky_ev_timeout_init(ev_loop, &conn->timer, null);
+    conn->server = l->server;
+
+    switch (sky_tcp_accept(ser, &conn->tcp, http_server_accept, null)) {
+        case REQ_PENDING:
+            break;
+        case REQ_SUCCESS:
+            http_server_accept(ser, &conn->tcp, true, null);
+            break;
+        default:
+            sky_free(conn);
+            break;
+    }
+
+    if (cb) {
+        cb(server, true, attr);
+    }
 }
 
 static void

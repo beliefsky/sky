@@ -8,6 +8,9 @@
 #ifdef EVENT_USE_URING
 
 #include <errno.h>
+#include <unistd.h>
+
+static void event_on_close(ev_req_t * req, sky_i32_t res);
 
 sky_api sky_ev_loop_t *
 sky_ev_loop_create() {
@@ -39,6 +42,7 @@ sky_ev_loop_create() {
 sky_api void
 sky_ev_loop_run(sky_ev_loop_t *const ev_loop) {
     static const event_req_pt EVENT_TABLES[] = {
+            [EV_REQ_CLOSE] = event_on_close,
             [EV_REQ_TCP_SER_OPEN] = event_on_tcp_ser_open,
             [EV_REQ_TCP_ACCEPT] = event_on_tcp_accept,
             [EV_REQ_TCP_SER_CLOSE] = event_on_tcp_ser_close,
@@ -121,6 +125,28 @@ sky_ev_loop_destroy(sky_ev_loop_t *const ev_loop) {
     io_uring_queue_exit(&ev_loop->ring);
     sky_timer_wheel_destroy(ev_loop->timer_ctx);
     sky_free(ev_loop);
+}
+
+void
+event_close(sky_ev_loop_t *const ev_loop, const sky_i32_t fd) {
+    ev_req_close_t *const req = sky_malloc(sizeof(ev_req_close_t));
+    req->req.ev = &req->ev;
+    req->req.type = EV_REQ_CLOSE;
+    req->ev.fd = fd;
+
+    struct io_uring_sqe *const sqe = get_seq(ev_loop);
+    io_uring_sqe_set_data(sqe, req);
+    io_uring_prep_close(sqe, fd);
+}
+
+static void
+event_on_close(ev_req_t *const req, const sky_i32_t res) {
+    const sky_socket_t fd = req->ev->fd;
+    sky_free(req);
+
+    if (res < 0) { //避免close不支持，失败等问题
+        close(fd);
+    }
 }
 
 #endif

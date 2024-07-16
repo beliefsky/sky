@@ -48,23 +48,24 @@
 
 #ifdef EVENT_USE_URING
 
-#define EV_REQ_TCP_SER_OPEN     SKY_U32(0)
-#define EV_REQ_TCP_ACCEPT       SKY_U32(1)
-#define EV_REQ_TCP_SER_CLOSE    SKY_U32(2)
+#define EV_REQ_CLOSE            SKY_U32(0)
+#define EV_REQ_TCP_SER_OPEN     SKY_U32(1)
+#define EV_REQ_TCP_ACCEPT       SKY_U32(2)
+#define EV_REQ_TCP_SER_CLOSE    SKY_U32(3)
 
-#define EV_REQ_TCP_CLI_OPEN     SKY_U32(3)
-#define EV_REQ_TCP_CONNECT      SKY_U32(4)
-#define EV_REQ_TCP_WRITE        SKY_U32(5)
-#define EV_REQ_TCP_READ         SKY_U32(6)
-#define EV_REQ_TCP_SENDFILE     SKY_U32(7)
-#define EV_REQ_TCP_CLI_SHUTDOWN SKY_U32(8)
-#define EV_REQ_TCP_CLI_CLOSE    SKY_U32(9)
+#define EV_REQ_TCP_CLI_OPEN     SKY_U32(4)
+#define EV_REQ_TCP_CONNECT      SKY_U32(5)
+#define EV_REQ_TCP_WRITE        SKY_U32(6)
+#define EV_REQ_TCP_READ         SKY_U32(7)
+#define EV_REQ_TCP_SENDFILE     SKY_U32(8)
+#define EV_REQ_TCP_CLI_SHUTDOWN SKY_U32(9)
+#define EV_REQ_TCP_CLI_CLOSE    SKY_U32(10)
 
-#define EV_REQ_FS_OPEN          SKY_U32(10)
-#define EV_REQ_FS_WRITE         SKY_U32(11)
-#define EV_REQ_FS_READ          SKY_U32(12)
-#define EV_REQ_FS_SYNC          SKY_U32(13)
-#define EV_REQ_FS_CLOSE         SKY_U32(14)
+#define EV_REQ_FS_OPEN          SKY_U32(11)
+#define EV_REQ_FS_WRITE         SKY_U32(12)
+#define EV_REQ_FS_READ          SKY_U32(13)
+#define EV_REQ_FS_SYNC          SKY_U32(14)
+#define EV_REQ_FS_CLOSE         SKY_U32(15)
 
 typedef struct ev_req_s ev_req_t;
 
@@ -72,6 +73,11 @@ struct ev_req_s {
     sky_ev_t *ev;
     sky_u32_t type;
 };
+
+typedef struct {
+    ev_req_t req;
+    sky_ev_t ev;
+} ev_req_close_t;
 
 typedef void (*event_req_pt)(ev_req_t *req, sky_i32_t res);
 
@@ -143,6 +149,14 @@ static sky_inline struct io_uring_sqe *
 get_seq2(sky_ev_t *const ev) {
     return get_seq(ev->ev_loop);
 }
+
+/**
+ * 异步关闭fd句柄，不触发任何回调
+ *
+ * @param ev_loop event loop
+ * @param fd  fd
+ */
+void event_close(sky_ev_loop_t *ev_loop, sky_i32_t fd);
 
 void event_on_tcp_ser_open(ev_req_t *req, sky_i32_t res);
 

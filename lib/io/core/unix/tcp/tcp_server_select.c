@@ -37,43 +37,36 @@ sky_tcp_ser_init(sky_tcp_ser_t *const ser, sky_ev_loop_t *const ev_loop) {
     ser->accept_queue_tail = &ser->accept_queue;
 }
 
-sky_api sky_inline sky_bool_t
-sky_tcp_ser_options_reuse_port(sky_tcp_ser_t *const ser) {
-    const sky_i32_t opt = 1;
 
-#if defined(SO_REUSEPORT_LB)
-    return 0 == setsockopt(ser->ev.fd, SOL_SOCKET, SO_REUSEPORT_LB, &opt, sizeof(sky_i32_t));
-#elif defined(SO_REUSEPORT)
-    return 0 == setsockopt(ser->ev.fd, SOL_SOCKET, SO_REUSEPORT, &opt, sizeof(sky_i32_t));
-#else
-
-    return false;
-#endif
-}
-
-sky_api sky_bool_t
+sky_api sky_io_result_t
 sky_tcp_ser_open(
         sky_tcp_ser_t *const ser,
         const sky_inet_address_t *const address,
         const sky_tcp_ser_option_pt options_cb,
-        const sky_i32_t backlog
+        const sky_i32_t backlog,
+        const sky_tcp_ser_status_pt cb,
+        void *const attr
+
 ) {
+    (void) cb;
+    (void) attr;
+
     if (sky_unlikely(ser->ev.fd != SKY_SOCKET_FD_NONE || (ser->ev.flags & SKY_TCP_STATUS_CLOSING))) {
-        return false;
+        return REQ_ERROR;
     }
 #ifdef SKY_HAVE_ACCEPT4
     const sky_socket_t fd = socket(address->family, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, address->family == AF_UNIX ? 0 : IPPROTO_TCP);
     if (sky_unlikely(fd == -1)) {
-        return false;
+        return REQ_ERROR;
     }
 #else
     const sky_socket_t fd = socket(address->family, SOCK_STREAM, address->family == AF_UNIX ? 0 : IPPROTO_TCP);
     if (sky_unlikely(fd == -1)) {
-        return false;
+        return REQ_ERROR;
     }
     if (sky_unlikely(!set_socket_nonblock(fd))) {
         close(fd);
-        return false;
+        return REQ_ERROR;
     }
 #endif
     ser->ev.fd = fd;
@@ -86,11 +79,11 @@ sky_tcp_ser_open(
         || listen(fd, backlog) != 0) {
         close(fd);
         ser->ev.fd = SKY_SOCKET_FD_NONE;
-        return false;
+        return REQ_ERROR;
     }
     ser->ev.flags |= TCP_STATUS_READ;
 
-    return true;
+    return REQ_SUCCESS;
 }
 
 sky_api sky_io_result_t

@@ -12,6 +12,14 @@
 extern "C" {
 #endif
 
+sky_bool_t sky_tcp_ser_wait_open(
+        sky_tcp_ser_t *ser,
+        const sky_inet_address_t *address,
+        sky_tcp_ser_option_pt options_cb,
+        sky_i32_t backlog,
+        sky_sync_wait_t *wait
+);
+
 sky_bool_t sky_tcp_wait_accept(sky_tcp_ser_t *ser, sky_tcp_cli_t *cli, sky_sync_wait_t *wait);
 
 sky_bool_t sky_tcp_ser_wait_close(sky_tcp_ser_t *ser, sky_sync_wait_t *wait);

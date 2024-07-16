@@ -38,7 +38,7 @@ typedef struct {
 typedef struct {
     sky_tcp_task_t base;
     union {
-        sky_tcp_status_pt connect;
+        sky_tcp_cli_status_pt connect;
         sky_tcp_rw_pt write;
     };
     void *attr;
@@ -69,7 +69,7 @@ typedef union {
 } write_task_adapter_t;
 
 typedef union {
-    sky_tcp_status_pt connect;
+    sky_tcp_cli_status_pt connect;
     sky_tcp_rw_pt write;
 } write_cb_adapter_t;
 
@@ -98,7 +98,7 @@ sky_api sky_io_result_t
 sky_tcp_cli_open(
         sky_tcp_cli_t *const cli,
         const sky_i32_t domain,
-        const sky_tcp_status_pt cb,
+        const sky_tcp_cli_status_pt cb,
         void *const attr
 ) {
     (void ) cb;
@@ -135,7 +135,7 @@ sky_api sky_io_result_t
 sky_tcp_connect(
         sky_tcp_cli_t *const cli,
         const sky_inet_address_t *const address,
-        const sky_tcp_status_pt cb,
+        const sky_tcp_cli_status_pt cb,
         void *const attr
 ) {
     if (sky_unlikely(cli->ev.fd == SKY_SOCKET_FD_NONE
