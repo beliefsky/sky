@@ -87,11 +87,13 @@ create_server(sky_ev_loop_t *ev_loop) {
     sky_inet_address_t address;
 
     sky_inet_address_ipv4(&address, 0, 8081);
-    sky_http_server_bind(server, &address);
+    sky_bool_t success = sky_http_server_bind(server, &address);
+    sky_log_info("bind 0.0.0.0:8081  %d", success);
 
     const sky_uchar_t local_ipv6[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     sky_inet_address_ipv6(&address, local_ipv6, 0, 8081);
-    sky_http_server_bind(server, &address);
+    success = sky_http_server_bind(server, &address);
+    sky_log_info("bind [::]:8081  %d", success);
 
     return true;
 }
@@ -121,8 +123,8 @@ pgsql_test_wait(sky_sync_wait_t *const wait, void *const data) {
         if (result) {
             sky_http_res_wait_str_len(
                     req,
-                    wait,
-                    sky_str_line("{\"status\": 200, \"msg\": \"success\"}")
+                    sky_str_line("{\"status\": 200, \"msg\": \"success\"}"),
+                    wait
             );
             sky_http_req_finish(req); // wait模式需要主动调用finish
             return;
@@ -131,8 +133,8 @@ pgsql_test_wait(sky_sync_wait_t *const wait, void *const data) {
 
     sky_http_res_wait_str_len(
             req,
-            wait,
-            sky_str_line("{\"status\": 500, \"msg\": \"query error\"}")
+            sky_str_line("{\"status\": 500, \"msg\": \"query error\"}"),
+            wait
     );
 
     sky_http_req_finish(req); // wait模式需要主动调用finish
