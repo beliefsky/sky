@@ -4,7 +4,6 @@
 #ifdef __WINNT__
 
 #include "./win_fs.h"
-#include "core/log.h"
 
 
 typedef struct {
