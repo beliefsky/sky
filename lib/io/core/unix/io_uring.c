@@ -32,12 +32,10 @@ sky_ev_loop_create() {
     ev_loop->timer_ctx = sky_timer_wheel_create(0);
     init_time(ev_loop);
 
-    io_uring_queue_init(max_event, &ev_loop->ring, IORING_SETUP_SQPOLL);
+    io_uring_queue_init(max_event, &ev_loop->ring, 0);
 
     return ev_loop;
 }
-
-#include "liburing/io_uring.h"
 
 sky_api void
 sky_ev_loop_run(sky_ev_loop_t *const ev_loop) {
