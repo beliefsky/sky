@@ -362,7 +362,7 @@ pgsql_password(
             (sky_usize_t) (packet->buf.last - packet->buf.pos),
             &bytes,
             on_pgsql_password_send,
-            null
+            packet
     )) {
         case REQ_PENDING:
             return 0;
