@@ -354,7 +354,6 @@ on_http_body_read(sky_tcp_cli_t *const cli, sky_usize_t bytes, void *attr) {
         }
     }
     sky_timer_wheel_unlink(&conn->timer);
-    printf("-----------------> %lu\n", bytes);
     cb(req, bytes, data);
 }
 
