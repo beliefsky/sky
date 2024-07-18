@@ -137,7 +137,6 @@ sky_tcp_connect(
     tcp_req_addr_t *const req = sky_malloc(sizeof(tcp_req_addr_t));
     req->req.req.ev = &cli->ev;
     req->req.req.type = EV_REQ_TCP_CONNECT;
-    req->req.task.next = null;
     req->req.connect = cb;
     req->req.attr = attr;
     sky_inet_address_copy(&req->address, address);
@@ -217,7 +216,6 @@ sky_tcp_read(
     tcp_req_vec_t *const req = sky_malloc(sizeof(tcp_req_vec_t) + sizeof(sky_io_vec_t));
     req->req.req.ev = &cli->ev;
     req->req.req.type = EV_REQ_TCP_READ;
-    req->req.task.next = null;
     req->req.read = cb;
     req->req.attr = attr;
     req->msg.msg_iov = (struct iovec *) req->vec;
@@ -268,7 +266,6 @@ sky_tcp_read_vec(
     tcp_req_vec_t *const req = sky_malloc(sizeof(tcp_req_vec_t) + (sizeof(sky_io_vec_t) * num));
     req->req.req.ev = &cli->ev;
     req->req.req.type = EV_REQ_TCP_READ;
-    req->req.task.next = null;
     req->req.read = cb;
     req->req.attr = attr;
     sky_memzero(&req->msg, sizeof(struct msghdr));
@@ -311,7 +308,6 @@ sky_tcp_write(
     tcp_req_vec_t *const req = sky_malloc(sizeof(tcp_req_vec_t) + sizeof(sky_io_vec_t));
     req->req.req.ev = &cli->ev;
     req->req.req.type = EV_REQ_TCP_WRITE;
-    req->req.task.next = null;
     req->req.write = cb;
     req->req.attr = attr;
     req->msg.msg_iov = (struct iovec *) req->vec;
@@ -358,7 +354,6 @@ sky_tcp_write_vec(
     tcp_req_vec_t *const req = sky_malloc(sizeof(tcp_req_vec_t) + (sizeof(sky_io_vec_t) * num));
     req->req.req.ev = &cli->ev;
     req->req.req.type = EV_REQ_TCP_WRITE;
-    req->req.task.next = null;
     req->req.write = cb;
     req->req.attr = attr;
     sky_memzero(&req->msg, sizeof(struct msghdr));
@@ -402,7 +397,6 @@ sky_tcp_send_fs(
         );
         req->req.req.ev = &cli->ev;
         req->req.req.type = EV_REQ_TCP_WRITE;
-        req->req.task.next = null;
         req->req.write = cb;
         req->req.attr = attr;
         sky_memzero(&req->msg, sizeof(struct msghdr));
@@ -442,7 +436,6 @@ sky_tcp_send_fs(
     );
     req->req.req.ev = &cli->ev;
     req->req.req.type = EV_REQ_TCP_SENDFILE;
-    req->req.task.next = null;
     req->req.write = cb;
     req->req.attr = attr;
     req->offset = packet->offset;

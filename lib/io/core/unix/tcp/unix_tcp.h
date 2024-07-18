@@ -29,12 +29,16 @@
 
 static sky_inline void
 add_read_task(sky_tcp_cli_t *const cli, sky_tcp_task_t *const task) {
+    task->next = null;
+
     *cli->read_queue_tail = task;
     cli->read_queue_tail = &task->next;
 }
 
 static sky_inline void
 add_write_task(sky_tcp_cli_t *const cli, sky_tcp_task_t *const task) {
+    task->next = null;
+
     *cli->write_queue_tail = task;
     cli->write_queue_tail = &task->next;
 }
