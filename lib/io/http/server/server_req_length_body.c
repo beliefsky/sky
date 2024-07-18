@@ -86,6 +86,7 @@ http_req_length_body_str(
         cb_data->str_cb = call;
         cb_data->data = data;
         http_req_length_body_none(r, http_body_str_too_large, cb_data);
+        return;
     }
 
     sky_buf_t *const tmp = conn->buf;
