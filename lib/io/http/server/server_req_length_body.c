@@ -187,6 +187,7 @@ http_req_length_body_read(
             return REQ_SUCCESS;
         default:
             r->error = true;
+            sky_pfree(r->pool, cb_data, sizeof(http_body_cb_t));
             return REQ_ERROR;
     }
 }
@@ -240,6 +241,7 @@ http_req_length_body_skip(
             return REQ_SUCCESS;
         default:
             r->error = true;
+            sky_pfree(r->pool, cb_data, sizeof(http_body_cb_t));
             return REQ_ERROR;
     }
 }
@@ -338,8 +340,9 @@ on_http_body_read(sky_tcp_cli_t *const cli, sky_usize_t bytes, void *attr) {
     sky_http_connection_t *const conn = sky_type_convert(cli, sky_http_connection_t, tcp);
     sky_http_request_t *const req = conn->current_req;
     http_body_cb_t *const cb_data = attr;
-    const sky_http_server_rw_pt read_cb = cb_data->read_cb;
+    const sky_http_server_rw_pt cb = cb_data->read_cb;
     void *const data = cb_data->data;
+
     sky_pfree(req->pool, cb_data, sizeof(http_body_cb_t));
 
     if (!bytes || bytes == SKY_USIZE_MAX) {
@@ -351,7 +354,8 @@ on_http_body_read(sky_tcp_cli_t *const cli, sky_usize_t bytes, void *attr) {
         }
     }
     sky_timer_wheel_unlink(&conn->timer);
-    read_cb(req, bytes, data);
+    printf("-----------------> %lu\n", bytes);
+    cb(req, bytes, data);
 }
 
 

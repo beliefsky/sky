@@ -19,6 +19,7 @@ sky_fs_wait_open(
 ) {
     const sky_io_result_t result = sky_fs_open(fs, path, len, flags, on_fs_status, wait);
     if (result == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
         return null != sky_sync_wait_yield(wait);
     }
     return result == REQ_SUCCESS;
@@ -35,6 +36,7 @@ sky_fs_wait_pread(
     sky_usize_t read_n;
 
     if (sky_fs_pread(fs, buf, size, &read_n, offset, on_fs_rw, wait) == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
         return (sky_usize_t) sky_sync_wait_yield(wait);
     }
     return read_n;
@@ -51,6 +53,7 @@ sky_fs_wait_pwrite(
     sky_usize_t write_n;
 
     if (sky_fs_pwrite(fs, buf, size, &write_n, offset, on_fs_rw, wait) == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
         return (sky_usize_t) sky_sync_wait_yield(wait);
     }
     return write_n;
@@ -61,6 +64,7 @@ sky_api sky_bool_t
 sky_fs_wait_sync(sky_fs_t *const fs, sky_sync_wait_t *const wait) {
     const sky_io_result_t result = sky_fs_sync(fs, on_fs_status, wait);
     if (result == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
         return null != sky_sync_wait_yield(wait);
     }
     return result == REQ_SUCCESS;
@@ -70,6 +74,7 @@ sky_api sky_bool_t
 sky_fs_wait_datasync(sky_fs_t *const fs,sky_sync_wait_t *const wait) {
     const sky_io_result_t result = sky_fs_datasync(fs, on_fs_status, wait);
     if (result == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
         return null != sky_sync_wait_yield(wait);
     }
     return result == REQ_SUCCESS;
@@ -81,6 +86,7 @@ sky_fs_wait_close(sky_fs_t *const fs, sky_sync_wait_t *const wait) {
     if (!sky_fs_close(fs, on_fs_cli_cb, wait)) {
         return false;
     }
+    sky_sync_wait_yield_before(wait);
     sky_sync_wait_yield(wait);
 
     return true;

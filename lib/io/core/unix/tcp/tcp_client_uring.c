@@ -268,8 +268,8 @@ sky_tcp_read_vec(
     req->req.req.type = EV_REQ_TCP_READ;
     req->req.read = cb;
     req->req.attr = attr;
-    sky_memzero(&req->msg, sizeof(struct msghdr));
     sky_memcpy(req->vec, vec, (sizeof(sky_io_vec_t) * num));
+    sky_memzero(&req->msg, sizeof(struct msghdr));
     req->msg.msg_iov = (struct iovec *) req->vec;
     req->msg.msg_iovlen = num;
 
@@ -356,8 +356,8 @@ sky_tcp_write_vec(
     req->req.req.type = EV_REQ_TCP_WRITE;
     req->req.write = cb;
     req->req.attr = attr;
-    sky_memzero(&req->msg, sizeof(struct msghdr));
     sky_memcpy(req->vec, vec, (sizeof(sky_io_vec_t) * num));
+    sky_memzero(&req->msg, sizeof(struct msghdr));
     req->msg.msg_iov = (struct iovec *) req->vec;
     req->msg.msg_iovlen = num;
     req->bytes = 0;

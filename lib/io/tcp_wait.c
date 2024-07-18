@@ -29,6 +29,7 @@ sky_tcp_ser_wait_open(
         case REQ_SUCCESS:
             return true;
         case REQ_PENDING:
+            sky_sync_wait_yield_before(wait);
             return null != sky_sync_wait_yield(wait);
         default:
             return false;
@@ -46,6 +47,7 @@ sky_tcp_wait_accept(
         case REQ_SUCCESS:
             return true;
         case REQ_PENDING:
+            sky_sync_wait_yield_before(wait);
             return null != sky_sync_wait_yield(wait);
         default:
             return false;
@@ -58,6 +60,7 @@ sky_tcp_ser_wait_close(sky_tcp_ser_t *const ser, sky_sync_wait_t *const wait) {
     if (!sky_tcp_ser_close(ser, on_tcp_ser_cb, wait)) {
         return false;
     }
+    sky_sync_wait_yield_before(wait);
     sky_sync_wait_yield(wait);
     return true;
 }
@@ -72,6 +75,7 @@ sky_tcp_cli_wait_open(
         case REQ_SUCCESS:
             return true;
         case REQ_PENDING:
+            sky_sync_wait_yield_before(wait);
             return null != sky_sync_wait_yield(wait);
         default:
             return false;
@@ -88,6 +92,7 @@ sky_tcp_wait_connect(
         case REQ_SUCCESS:
             return true;
         case REQ_PENDING:
+            sky_sync_wait_yield_before(wait);
             return null != sky_sync_wait_yield(wait);
         default:
             return false;
@@ -103,6 +108,7 @@ sky_tcp_wait_skip(
     sky_usize_t read_n;
 
     if (sky_tcp_skip(cli, size, &read_n, on_tcp_rw, wait) == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
         return (sky_usize_t) sky_sync_wait_yield(wait);
     }
 
@@ -119,6 +125,7 @@ sky_tcp_wait_read(
     sky_usize_t read_n;
 
     if (sky_tcp_read(cli, buf, size, &read_n, on_tcp_rw, wait) == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
         return (sky_usize_t) sky_sync_wait_yield(wait);
     }
     return read_n;
@@ -133,6 +140,7 @@ sky_tcp_wait_read_vec(
 ) {
     sky_usize_t read_n;
     if (sky_tcp_read_vec(cli, vec, num, &read_n, on_tcp_rw, wait) == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
         return (sky_usize_t) sky_sync_wait_yield(wait);
     }
 
@@ -149,6 +157,7 @@ sky_tcp_wait_write(
     sky_usize_t write_n;
 
     if (sky_tcp_write(cli, buf, size, &write_n, on_tcp_rw, wait) == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
         return (sky_usize_t) sky_sync_wait_yield(wait);
     }
     return write_n;
@@ -163,6 +172,7 @@ sky_tcp_wait_write_vec(
 ) {
     sky_usize_t write_n;
     if (sky_tcp_write_vec(cli, vec, num, &write_n, on_tcp_rw, wait) == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
         return (sky_usize_t) sky_sync_wait_yield(wait);
     }
     return write_n;
@@ -176,6 +186,7 @@ sky_tcp_wait_send_fs(
 ) {
     sky_usize_t write_n;
     if (sky_tcp_send_fs(cli, packet, &write_n, on_tcp_rw, wait) == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
         return (sky_usize_t) sky_sync_wait_yield(wait);
     }
 
@@ -188,6 +199,7 @@ sky_tcp_cli_wait_close(sky_tcp_cli_t *const cli, sky_sync_wait_t *const wait) {
     if (!sky_tcp_cli_close(cli, on_tcp_cli_cb, wait)) {
         return false;
     }
+    sky_sync_wait_yield_before(wait);
     sky_sync_wait_yield(wait);
 
     return true;

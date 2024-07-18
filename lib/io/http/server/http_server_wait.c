@@ -23,6 +23,7 @@ sky_http_req_body_wait_str(sky_http_request_t *const r, sky_sync_wait_t *const w
     return sky_sync_wait_yield(wait);
 }
 
+
 sky_api sky_usize_t
 sky_http_req_body_wait_read(
         sky_http_request_t *const r,
@@ -33,10 +34,12 @@ sky_http_req_body_wait_read(
     sky_usize_t read_n;
 
     if (sky_http_req_body_read(r, buf, size, &read_n, http_rw_cb, wait) == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
         return (sky_usize_t) sky_sync_wait_yield(wait);
     }
     return read_n;
 }
+
 
 sky_api sky_usize_t
 sky_http_req_body_wait_skip(
@@ -47,6 +50,7 @@ sky_http_req_body_wait_skip(
     sky_usize_t read_n;
 
     if (sky_http_req_body_skip(r, size, &read_n, http_rw_cb, wait) == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
         return (sky_usize_t) sky_sync_wait_yield(wait);
     }
     return read_n;
