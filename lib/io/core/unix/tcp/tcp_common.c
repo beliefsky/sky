@@ -3,6 +3,8 @@
 //
 #include "./unix_tcp.h"
 
+#if defined(__unix__) || defined(__unix) || (defined(__APPLE__) && defined(__MACH__))
+
 
 sky_api sky_inline sky_bool_t
 sky_tcp_ser_options_reuse_port(sky_tcp_ser_t *const ser) {
@@ -17,3 +19,5 @@ sky_tcp_ser_options_reuse_port(sky_tcp_ser_t *const ser) {
     return false;
 #endif
 }
+
+#endif
