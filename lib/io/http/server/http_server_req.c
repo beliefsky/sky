@@ -26,6 +26,11 @@ static void http_conn_close(sky_http_connection_t *conn);
 
 static void on_http_conn_close(sky_tcp_cli_t *cli, void *data);
 
+sky_api sky_inline sky_ev_loop_t *
+sky_http_req_ev_loop(sky_http_request_t *const r) {
+    return sky_tcp_cli_ev_loop(&r->conn->tcp);
+}
+
 
 sky_api void
 sky_http_req_finish(sky_http_request_t *const r) {

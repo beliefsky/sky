@@ -85,6 +85,11 @@ sky_bool_t sky_fs_stat(sky_fs_t *fs, sky_fs_stat_t *st);
 
 sky_bool_t sky_fs_status_is_dir(const sky_fs_stat_t *st);
 
+static sky_inline sky_ev_loop_t *
+sky_fs_ev_loop(sky_fs_t *const fs) {
+    return fs->ev.ev_loop;
+}
+
 static sky_inline sky_bool_t
 sky_fs_opening(const sky_fs_t *const fs) {
     return !!(fs->ev.flags & SKY_FS_STATUS_OPENING);

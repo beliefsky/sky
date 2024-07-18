@@ -262,6 +262,7 @@ sky_io_result_t sky_http_res_write(
         void *data
 );
 
+
 /**
  * http 请求结束，整个请求和响应完成
  *
@@ -271,6 +272,15 @@ void sky_http_req_finish(sky_http_request_t *r);
 
 
 sky_http_multipart_parser_t *sky_http_req_body_parse_multipart(sky_http_request_t *r);
+
+
+/**
+ * 获取 event loop
+ *
+ * @param r http req
+ * @return  event loop
+ */
+sky_ev_loop_t *sky_http_req_ev_loop(sky_http_request_t *r);
 
 /**
  * http 是否有异常，在读取body时可能报文不正确，超时，连接关闭等
