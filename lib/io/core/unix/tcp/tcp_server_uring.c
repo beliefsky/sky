@@ -141,20 +141,20 @@ event_on_tcp_ser_open(ev_req_t *const req, sky_i32_t res) {
     ser->ev.flags &= ~SKY_TCP_STATUS_OPENING;
 
     if ((ser->ev.flags & SKY_TCP_STATUS_CLOSING)) {
-        sky_free(tcp_req);
         cb(ser, false, attr);
         if (res < 0) {
+            sky_free(tcp_req);
+
             ser->ev.fd = SKY_SOCKET_FD_NONE;
             ser->ev.flags = EV_TYPE_TCP_SER;
             ser->close_cb(ser, ser->close_data);
             return;
         }
         ser->ev.fd = res;
-
-        req->type = EV_REQ_TCP_SER_CLOSE;
+        tcp_req->req.type = EV_REQ_TCP_SER_CLOSE;
 
         struct io_uring_sqe *const sqe = get_seq2(&ser->ev);
-        io_uring_sqe_set_data(sqe, req);
+        io_uring_sqe_set_data(sqe, tcp_req);
         io_uring_prep_close(sqe, res);
 
         ++ser->req_num;
@@ -229,7 +229,6 @@ event_on_tcp_accept(ev_req_t *const req, const sky_i32_t res) {
     sky_tcp_cli_t *const cli = acceptor->cli;
     sky_tcp_accept_pt cb = acceptor->cb;
     void *const attr = acceptor->attr;
-    sky_free(acceptor);
 
     --ser->req_num;
 
@@ -242,14 +241,18 @@ event_on_tcp_accept(ev_req_t *const req, const sky_i32_t res) {
                 ++ser->req_num;
                 return;
             }
+            sky_free(acceptor);
             cb(ser, cli, false, attr);
             return;
         }
+        sky_free(acceptor);
+
         cli->ev.fd = res;
         cli->ev.flags |= SKY_TCP_STATUS_CONNECTED;
         cb(ser, cli, true, attr);
         return;
     }
+    sky_free(acceptor);
 
     const sky_bool_t closing = !ser->req_num;
     if (res < 0) {

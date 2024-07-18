@@ -265,7 +265,7 @@ sky_tcp_read_vec(
         return REQ_SUCCESS;
     }
 
-    tcp_req_vec_t *const req = sky_malloc(sizeof(tcp_req_vec_t));
+    tcp_req_vec_t *const req = sky_malloc(sizeof(tcp_req_vec_t) + (sizeof(sky_io_vec_t) * num));
     req->req.req.ev = &cli->ev;
     req->req.req.type = EV_REQ_TCP_READ;
     req->req.task.next = null;
@@ -643,7 +643,6 @@ event_on_tcp_read(ev_req_t *req, sky_i32_t res) {
         return;
     }
 
-
     tcp_req_vec_t *const tcp_req = (tcp_req_vec_t *) req;
 
     if (res < 0) {
@@ -676,7 +675,7 @@ event_on_tcp_read(ev_req_t *req, sky_i32_t res) {
         tcp_req_vec_t *const next_req = sky_type_convert(cli->read_queue, tcp_req_vec_t, req.task);
         struct io_uring_sqe *sqe = get_seq2(&cli->ev);
         io_uring_sqe_set_data(sqe, next_req);
-        if (tcp_req->msg.msg_iovlen == 1) {
+        if (next_req->msg.msg_iovlen == 1) {
             io_uring_prep_recv(sqe, cli->ev.fd, next_req->vec[0].buf, next_req->vec[0].len, 0);
         } else {
             io_uring_prep_recvmsg(sqe, cli->ev.fd, &next_req->msg, 0);

@@ -601,7 +601,7 @@ http_header_write_pre(sky_http_request_t *const r, sky_str_buf_t *const buf) {
 
     const sky_i64_t now = sky_ev_now_sec(r->conn->server->ev_loop);
 
-    if (now > r->conn->server->rfc_last) {
+    if (now != r->conn->server->rfc_last) {
         sky_date_to_rfc_str(now, r->conn->server->rfc_date);
         r->conn->server->rfc_last = now;
     }
