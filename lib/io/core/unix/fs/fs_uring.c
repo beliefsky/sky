@@ -319,7 +319,24 @@ sky_fs_rmdir(
         const sky_fs_cmd_pt cb,
         void *const attr
 ) {
-    return sky_fs_delete(ev_loop, path, len, cb, attr);
+    if (sky_unlikely(!len)) {
+        return REQ_ERROR;
+    }
+
+    fs_req_path_t *const req = sky_malloc(sizeof(fs_req_path_t) + len + 1);
+    req->req.ev = null;
+    req->req.type = EV_REQ_FS_CMD;
+    req->cmd = cb;
+    req->attr = attr;
+    sky_memcpy(req->path, path, len);
+    req->path[len] = '\0';
+
+
+    struct io_uring_sqe *const sqe = get_seq(ev_loop);
+    io_uring_sqe_set_data(sqe, req);
+    io_uring_prep_unlink(sqe, (const sky_char_t *) req->path, AT_REMOVEDIR);
+
+    return REQ_PENDING;
 }
 
 
