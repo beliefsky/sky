@@ -219,6 +219,8 @@ sky_fs_datasync(sky_fs_t *const fs, const sky_fs_status_pt cb, void *const attr)
     io_uring_sqe_set_data(sqe, req);
     io_uring_prep_fsync(sqe, fs->ev.fd, IORING_FSYNC_DATASYNC);
 
+    ++fs->req_num;
+
     return REQ_PENDING;
 }
 
