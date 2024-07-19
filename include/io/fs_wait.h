@@ -43,6 +43,28 @@ sky_bool_t sky_fs_wait_datasync(sky_fs_t *fs, sky_sync_wait_t *wait);
 
 sky_bool_t sky_fs_wait_close(sky_fs_t *fs, sky_sync_wait_t *wait);
 
+sky_bool_t sky_fs_wait_delete(
+        sky_ev_loop_t *ev_loop,
+        const sky_uchar_t *path,
+        sky_usize_t len,
+        sky_sync_wait_t *wait
+);
+
+sky_bool_t sky_fs_wait_mkdir(
+        sky_ev_loop_t *ev_loop,
+        const sky_uchar_t *path,
+        sky_usize_t len,
+        sky_u32_t flags,
+        sky_sync_wait_t *wait
+);
+
+sky_bool_t sky_fs_wait_rmdir(
+        sky_ev_loop_t *ev_loop,
+        const sky_uchar_t *path,
+        sky_usize_t len,
+        sky_sync_wait_t *wait
+);
+
 
 #if defined(__cplusplus)
 } /* extern "C" { */

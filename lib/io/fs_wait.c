@@ -9,6 +9,8 @@ static void on_fs_rw(sky_fs_t *fs, sky_usize_t size, void *data);
 
 static void on_fs_cli_cb(sky_fs_t *fs, void *data);
 
+static void on_fs_cmd_cb(sky_bool_t success, void *data);
+
 sky_api sky_bool_t
 sky_fs_wait_open(
         sky_fs_t *const fs,
@@ -71,7 +73,7 @@ sky_fs_wait_sync(sky_fs_t *const fs, sky_sync_wait_t *const wait) {
 }
 
 sky_api sky_bool_t
-sky_fs_wait_datasync(sky_fs_t *const fs,sky_sync_wait_t *const wait) {
+sky_fs_wait_datasync(sky_fs_t *const fs, sky_sync_wait_t *const wait) {
     const sky_io_result_t result = sky_fs_datasync(fs, on_fs_status, wait);
     if (result == REQ_PENDING) {
         sky_sync_wait_yield_before(wait);
@@ -90,6 +92,52 @@ sky_fs_wait_close(sky_fs_t *const fs, sky_sync_wait_t *const wait) {
     sky_sync_wait_yield(wait);
 
     return true;
+}
+
+sky_api sky_bool_t
+sky_fs_wait_delete(
+        sky_ev_loop_t *const ev_loop,
+        const sky_uchar_t *const path,
+        const sky_usize_t len,
+        sky_sync_wait_t *const wait
+) {
+    const sky_io_result_t result = sky_fs_delete(ev_loop, path, len, on_fs_cmd_cb, wait);
+    if (result == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
+        return null != sky_sync_wait_yield(wait);
+    }
+    return result == REQ_SUCCESS;
+}
+
+sky_api sky_bool_t
+sky_fs_wait_mkdir(
+        sky_ev_loop_t *const ev_loop,
+        const sky_uchar_t *const path,
+        const sky_usize_t len,
+        const sky_u32_t flags,
+        sky_sync_wait_t *const wait
+) {
+    const sky_io_result_t result = sky_fs_mkdir(ev_loop, path, len, flags, on_fs_cmd_cb, wait);
+    if (result == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
+        return null != sky_sync_wait_yield(wait);
+    }
+    return result == REQ_SUCCESS;
+}
+
+sky_api sky_bool_t
+sky_fs_wait_rmdir(
+        sky_ev_loop_t *const ev_loop,
+        const sky_uchar_t *const path,
+        const sky_usize_t len,
+        sky_sync_wait_t *const wait
+) {
+    const sky_io_result_t result = sky_fs_rmdir(ev_loop, path, len, on_fs_cmd_cb, wait);
+    if (result == REQ_PENDING) {
+        sky_sync_wait_yield_before(wait);
+        return null != sky_sync_wait_yield(wait);
+    }
+    return result == REQ_SUCCESS;
 }
 
 static void
@@ -114,4 +162,10 @@ on_fs_cli_cb(sky_fs_t *const fs, void *const data) {
 
     sky_sync_wait_t *const wait = data;
     sky_sync_wait_resume(wait, null);
+}
+
+static void
+on_fs_cmd_cb(const sky_bool_t success, void *const data) {
+    sky_sync_wait_t *const wait = data;
+    sky_sync_wait_resume(wait, (void *) success);
 }

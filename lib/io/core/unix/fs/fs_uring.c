@@ -387,7 +387,7 @@ event_on_fs_read(ev_req_t *const req, const sky_i32_t res) {
         return;
     }
 
-    if (fs < 0) {
+    if (res < 0) {
         if (EAGAIN == (res)) {
             struct io_uring_sqe *const sqe = get_seq2(&fs->ev);
             io_uring_sqe_set_data(sqe, req);
@@ -449,7 +449,7 @@ event_on_fs_write(ev_req_t *const req, const sky_i32_t res) {
         return;
     }
 
-    if (fs < 0) {
+    if (res < 0) {
         if (EAGAIN == (-res)) {
             struct io_uring_sqe *const sqe = get_seq2(&fs->ev);
             io_uring_sqe_set_data(sqe, req);
