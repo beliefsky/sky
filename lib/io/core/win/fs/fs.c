@@ -255,6 +255,68 @@ sky_fs_status_is_dir(const sky_fs_stat_t *const stat) {
     return stat->file_type == FILE_ATTRIBUTE_DIRECTORY;
 }
 
+sky_api sky_io_result_t
+sky_fs_delete(
+        sky_ev_loop_t *const ev_loop,
+        const sky_uchar_t *const path,
+        const sky_usize_t len,
+        const sky_fs_cmd_pt cb,
+        void *const attr
+) {
+    (void ) ev_loop;
+    (void) len;
+    (void) cb;
+    (void) attr;
+
+     if (sky_unlikely(!len)) {
+        return REQ_ERROR;
+    }
+
+    return DeleteFileA((const sky_char_t *) path) ? REQ_SUCCESS : REQ_ERROR;
+}
+
+sky_api sky_io_result_t
+sky_fs_mkdir(
+        sky_ev_loop_t *const ev_loop,
+        const sky_uchar_t *const path,
+        const sky_usize_t len,
+        sky_u32_t flags,
+        const sky_fs_cmd_pt cb,
+        void *const attr
+) {
+    (void ) ev_loop;
+    (void) len;
+    (void) cb;
+    (void) attr;
+
+     if (sky_unlikely(!len)) {
+        return REQ_ERROR;
+    }
+
+    return CreateDirectory((const sky_char_t *) path, null) ? REQ_SUCCESS : REQ_ERROR;
+}
+
+sky_api sky_io_result_t
+sky_fs_rmdir(
+        sky_ev_loop_t *const ev_loop,
+        const sky_uchar_t *const path,
+        const sky_usize_t len,
+        const sky_fs_cmd_pt cb,
+        void *const attr
+) {
+    (void ) ev_loop;
+    (void) len;
+    (void) cb;
+    (void) attr;
+
+     if (sky_unlikely(!len)) {
+        return REQ_ERROR;
+    }
+
+    return RemoveDirectory((const sky_char_t *) path) ? REQ_SUCCESS : REQ_ERROR;
+}
+
+
 void
 event_on_fs_write(
         sky_ev_t *const ev,
@@ -346,9 +408,9 @@ fs_open(
 
     if (flags & SKY_FS_O_CREAT) {
         if ((flags & SKY_FS_O_TRUNC)) {
-            disposition = (flags & SKY_FS_O_EXCL) ?  TRUNCATE_EXISTING: CREATE_ALWAYS;
+            disposition = (flags & SKY_FS_O_EXCL) ? TRUNCATE_EXISTING : CREATE_ALWAYS;
         } else {
-            disposition = (flags & SKY_FS_O_EXCL) ?  CREATE_NEW : OPEN_ALWAYS;
+            disposition = (flags & SKY_FS_O_EXCL) ? CREATE_NEW : OPEN_ALWAYS;
         }
     }
 

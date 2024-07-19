@@ -10,6 +10,7 @@
 
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 
 sky_api void
 sky_fs_init(sky_fs_t *const fs, sky_ev_loop_t *const ev_loop) {
@@ -191,10 +192,67 @@ sky_fs_close(sky_fs_t *const fs, const sky_fs_cb_pt cb, void *const attr) {
     return true;
 }
 
-void
-event_on_aio(void *const data) {
-    (void) data;
+
+sky_api sky_io_result_t
+sky_fs_delete(
+        sky_ev_loop_t *const ev_loop,
+        const sky_uchar_t *const path,
+        const sky_usize_t len,
+        const sky_fs_cmd_pt cb,
+        void *const attr
+) {
+    (void) ev_loop;
+    (void) len;
+    (void) cb;
+    (void) attr;
+
+    if (sky_unlikely(!len)) {
+        return REQ_ERROR;
+    }
+    return 0 == unlink((const sky_char_t *) path) ? REQ_SUCCESS : REQ_ERROR;
 }
+
+sky_api sky_io_result_t
+sky_fs_mkdir(
+        sky_ev_loop_t *const ev_loop,
+        const sky_uchar_t *const path,
+        const sky_usize_t len,
+        sky_u32_t flags,
+        const sky_fs_cmd_pt cb,
+        void *const attr
+) {
+    (void) ev_loop;
+    (void) len;
+    (void) cb;
+    (void) attr;
+
+    if (sky_unlikely(!len)) {
+        return REQ_ERROR;
+    }
+    const mode_t sys_mode = flags & 0x1FF;
+
+    return 0 == mkdir((const sky_char_t *) path, sys_mode) ? REQ_SUCCESS : REQ_ERROR;
+}
+
+sky_api sky_io_result_t
+sky_fs_rmdir(
+        sky_ev_loop_t *const ev_loop,
+        const sky_uchar_t *const path,
+        const sky_usize_t len,
+        const sky_fs_cmd_pt cb,
+        void *const attr
+) {
+    (void) ev_loop;
+    (void) len;
+    (void) cb;
+    (void) attr;
+
+    if (sky_unlikely(!len)) {
+        return REQ_ERROR;
+    }
+    return 0 == rmdir((const sky_char_t *) path) ? REQ_SUCCESS : REQ_ERROR;
+}
+
 
 void
 event_on_fs_close(sky_ev_t *ev) {

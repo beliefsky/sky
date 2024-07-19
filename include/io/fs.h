@@ -38,6 +38,8 @@ extern "C" {
 typedef struct sky_fs_s sky_fs_t;
 typedef struct sky_fs_stat_s sky_fs_stat_t;
 
+typedef void (*sky_fs_cmd_pt)(sky_bool_t success, void *attr);
+
 typedef void (*sky_fs_status_pt)(sky_fs_t *fs, sky_bool_t success, void *attr);
 
 typedef void (*sky_fs_rw_pt)(sky_fs_t *fs, sky_usize_t size, void *attr);
@@ -98,6 +100,32 @@ sky_bool_t sky_fs_close(sky_fs_t *fs, sky_fs_cb_pt cb, void *attr);
 sky_bool_t sky_fs_stat(sky_fs_t *fs, sky_fs_stat_t *st);
 
 sky_bool_t sky_fs_status_is_dir(const sky_fs_stat_t *st);
+
+
+sky_io_result_t sky_fs_delete(
+        sky_ev_loop_t *ev_loop,
+        const sky_uchar_t *path,
+        sky_usize_t len,
+        sky_fs_cmd_pt cb,
+        void *attr
+);
+
+sky_io_result_t sky_fs_mkdir(
+        sky_ev_loop_t *ev_loop,
+        const sky_uchar_t *path,
+        sky_usize_t len,
+        sky_u32_t flags,
+        sky_fs_cmd_pt cb,
+        void *attr
+);
+
+sky_io_result_t sky_fs_rmdir(
+        sky_ev_loop_t *ev_loop,
+        const sky_uchar_t *path,
+        sky_usize_t len,
+        sky_fs_cmd_pt cb,
+        void *attr
+);
 
 static sky_inline sky_ev_loop_t *
 sky_fs_ev_loop(sky_fs_t *const fs) {

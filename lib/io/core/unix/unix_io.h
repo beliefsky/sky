@@ -67,6 +67,9 @@
 #define EV_REQ_FS_SYNC          SKY_U32(14)
 #define EV_REQ_FS_CLOSE         SKY_U32(15)
 
+#define EV_REQ_FS_CMD           SKY_U32(16)
+
+
 typedef struct ev_req_s ev_req_t;
 
 struct ev_req_s {
@@ -188,6 +191,8 @@ void event_on_fs_write(ev_req_t *req, sky_i32_t res);
 void event_on_fs_sync(ev_req_t *req, sky_i32_t res);
 
 void event_on_fs_close(ev_req_t *req, sky_i32_t res);
+
+void event_on_fs_cmd(ev_req_t *req, sky_i32_t res);
 
 #else
 

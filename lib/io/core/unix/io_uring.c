@@ -10,7 +10,7 @@
 #include <errno.h>
 #include <unistd.h>
 
-static void event_on_close(ev_req_t * req, sky_i32_t res);
+static void event_on_close(ev_req_t *req, sky_i32_t res);
 
 sky_api sky_ev_loop_t *
 sky_ev_loop_create() {
@@ -57,7 +57,8 @@ sky_ev_loop_run(sky_ev_loop_t *const ev_loop) {
             [EV_REQ_FS_WRITE] = event_on_fs_write,
             [EV_REQ_FS_READ] = event_on_fs_read,
             [EV_REQ_FS_SYNC] = event_on_fs_sync,
-            [EV_REQ_FS_CLOSE] = event_on_fs_close
+            [EV_REQ_FS_CLOSE] = event_on_fs_close,
+            [EV_REQ_FS_CMD] = event_on_fs_cmd
     };
 
 

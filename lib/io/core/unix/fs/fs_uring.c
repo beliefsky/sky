@@ -14,6 +14,7 @@ typedef struct {
     union {
         sky_fs_status_pt open;
         sky_fs_status_pt sync;
+        sky_fs_cmd_pt cmd;
     };
     void *attr;
     sky_uchar_t path[];
@@ -171,8 +172,8 @@ sky_fs_pwrite(
     req->attr = attr;
 
     struct io_uring_sqe *const sqe = get_seq2(&fs->ev);
-    io_uring_prep_write(sqe, fs->ev.fd, buf, (sky_u32_t) size, (sky_u64_t) offset);
     io_uring_sqe_set_data(sqe, req);
+    io_uring_prep_write(sqe, fs->ev.fd, buf, (sky_u32_t) size, (sky_u64_t) offset);
 
     ++fs->req_num;
 
@@ -244,13 +245,83 @@ sky_fs_close(sky_fs_t *const fs, const sky_fs_cb_pt cb, void *const attr) {
     req->type = EV_REQ_FS_CLOSE;
 
     struct io_uring_sqe *const sqe = get_seq2(&fs->ev);
-    io_uring_prep_close(sqe, fs->ev.fd);
     io_uring_sqe_set_data(sqe, req);
+    io_uring_prep_close(sqe, fs->ev.fd);
 
     ++fs->req_num;
 
     return true;
 }
+
+sky_api sky_io_result_t
+sky_fs_delete(
+        sky_ev_loop_t *const ev_loop,
+        const sky_uchar_t *const path,
+        const sky_usize_t len,
+        const sky_fs_cmd_pt cb,
+        void *const attr
+) {
+    if (sky_unlikely(!len)) {
+        return REQ_ERROR;
+    }
+
+    fs_req_path_t *const req = sky_malloc(sizeof(fs_req_path_t) + len + 1);
+    req->req.ev = null;
+    req->req.type = EV_REQ_FS_CMD;
+    req->cmd = cb;
+    req->attr = attr;
+    sky_memcpy(req->path, path, len);
+    req->path[len] = '\0';
+
+
+    struct io_uring_sqe *const sqe = get_seq(ev_loop);
+    io_uring_sqe_set_data(sqe, req);
+    io_uring_prep_unlink(sqe, (const sky_char_t *) req->path, 0);
+
+    return REQ_PENDING;
+}
+
+sky_api sky_io_result_t
+sky_fs_mkdir(
+        sky_ev_loop_t *const ev_loop,
+        const sky_uchar_t *const path,
+        const sky_usize_t len,
+        sky_u32_t flags,
+        const sky_fs_cmd_pt cb,
+        void *const attr
+) {
+    if (sky_unlikely(!len)) {
+        return REQ_ERROR;
+    }
+
+    const mode_t sys_mode = flags & 0x1FF;
+
+    fs_req_path_t *const req = sky_malloc(sizeof(fs_req_path_t) + len + 1);
+    req->req.ev = null;
+    req->req.type = EV_REQ_FS_CMD;
+    req->cmd = cb;
+    req->attr = attr;
+    sky_memcpy(req->path, path, len);
+    req->path[len] = '\0';
+
+    struct io_uring_sqe *const sqe = get_seq(ev_loop);
+    io_uring_sqe_set_data(sqe, req);
+    io_uring_prep_mkdir(sqe, (const sky_char_t *) req->path, sys_mode);
+
+    return REQ_PENDING;
+}
+
+sky_api sky_io_result_t
+sky_fs_rmdir(
+        sky_ev_loop_t *const ev_loop,
+        const sky_uchar_t *const path,
+        const sky_usize_t len,
+        const sky_fs_cmd_pt cb,
+        void *const attr
+) {
+    return sky_fs_delete(ev_loop, path, len, cb, attr);
+}
+
 
 void
 event_on_fs_open(ev_req_t *req, sky_i32_t res) {
@@ -458,6 +529,17 @@ event_on_fs_close(ev_req_t *const req, const sky_i32_t res) {
         do_close(fs);
     }
 }
+
+void
+event_on_fs_cmd(ev_req_t *const req, const sky_i32_t res) {
+    fs_req_path_t *const fs_req = (fs_req_path_t *) req;
+    const sky_fs_cmd_pt cb = fs_req->cmd;
+    void *const attr = fs_req->attr;
+    sky_free(req);
+
+    cb(res >= 0, attr);
+}
+
 
 
 static sky_inline void
