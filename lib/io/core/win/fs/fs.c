@@ -330,19 +330,28 @@ fs_open(
         const sky_u32_t flags
 ) {
     DWORD access = 0;
+    DWORD share = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;
+    DWORD disposition = OPEN_EXISTING;
+    DWORD attributes = FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED;
+
     if ((flags & SKY_FS_O_READ)) {
         access |= GENERIC_READ;
     }
     if ((flags & SKY_FS_O_WRITE)) {
         access |= GENERIC_WRITE;
     }
-    if ((flags & SKY_FS_O_APPEND)) {
-        access &= ~((DWORD) FILE_WRITE_DATA);
-        access |= FILE_APPEND_DATA;
+    if ((flags & SKY_FS_O_EXCL)) {
+        access |= GENERIC_EXECUTE;
     }
-    DWORD share = FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE;
-    DWORD disposition = OPEN_EXISTING;
-    DWORD attributes = FILE_ATTRIBUTE_NORMAL | FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED;
+
+    if (flags & SKY_FS_O_CREAT) {
+        if ((flags & SKY_FS_O_TRUNC)) {
+            disposition = (flags & SKY_FS_O_EXCL) ?  TRUNCATE_EXISTING: CREATE_ALWAYS;
+        } else {
+            disposition = (flags & SKY_FS_O_EXCL) ?  CREATE_NEW : OPEN_ALWAYS;
+        }
+    }
+
 
     HANDLE fd = CreateFile(
             (const sky_char_t *) path,

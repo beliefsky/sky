@@ -60,17 +60,27 @@ sky_fs_open(
     }
 
     sky_i32_t sys_flags = O_NONBLOCK | O_CLOEXEC;
+    mode_t sys_mode = 0;
     if ((flags & (SKY_FS_O_READ | SKY_FS_O_WRITE))) {
-        flags = O_RDWR;
+        sys_flags = O_RDWR;
     } else if ((flags & SKY_FS_O_READ)) {
-        flags = O_RDONLY;
+        sys_flags = O_RDONLY;
     } else if ((flags & SKY_FS_O_WRITE)) {
-        flags = O_WRONLY;
+        sys_flags = O_WRONLY;
     } else {
         return REQ_ERROR;
     }
-    if ((flags & SKY_FS_O_APPEND)) {
-        flags |= O_APPEND;
+    if ((flags & SKY_FS_O_CREAT)) {
+        sys_flags |= O_CREAT;
+        sys_mode = flags & 0x1FF;
+    }
+
+    if ((flags & SKY_FS_O_EXCL)) {
+        sys_flags |= O_EXCL;
+    }
+
+    if ((flags & SKY_FS_O_TRUNC)) {
+        sys_flags |= O_TRUNC;
     }
 
     fs->ev.flags |= SKY_FS_STATUS_OPENING;
@@ -85,7 +95,7 @@ sky_fs_open(
 
     struct io_uring_sqe *const sqe = get_seq2(&fs->ev);
     io_uring_sqe_set_data(sqe, req);
-    io_uring_prep_openat(sqe, AT_FDCWD, (const sky_char_t *) req->path, sys_flags, 0);
+    io_uring_prep_openat(sqe, AT_FDCWD, (const sky_char_t *) req->path, sys_flags, sys_mode);
 
     return REQ_PENDING;
 }
